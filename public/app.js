@@ -359,7 +359,7 @@ function initWolfSelect() {
   });
 
   $('enter-public-studio').addEventListener('click', () => {
-    selectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.png' });
+    selectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' });
   });
 }
 
@@ -374,7 +374,7 @@ function selectWolf(wolf) {
 function loadStudio(wolf) {
   // Header
   const img = $('studio-wolf-img');
-  if (img) img.src = `/${wolf.image || 'logo.png'}`;
+  if (img) img.src = `/${wolf.image || 'logo.svg'}`;
   const dotEl = $('studio-artist-dot');
   if (dotEl) dotEl.style.background = wolf.color;
   if (dotEl) dotEl.style.boxShadow  = `0 0 8px ${wolf.color}`;
@@ -567,7 +567,7 @@ function renderPack(pack, meta) {
   // Summary card
   const sc = $('summary-card');
   const wolfImg = $('summary-wolf-img');
-  if (wolfImg) wolfImg.src = `/${state.wolf?.image || 'logo.png'}`;
+  if (wolfImg) wolfImg.src = `/${state.wolf?.image || 'logo.svg'}`;
   $('summary-title').textContent  = meta.title || '';
   $('summary-artist').textContent = meta.artist || '';
   $('summary-genre').textContent  = meta.genre  || '';

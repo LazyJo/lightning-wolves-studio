@@ -11,10 +11,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── Supabase ────────────────────────────────────────────────────────────────
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
-);
+const supabase = process.env.SUPABASE_URL
+  ? createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
+    )
+  : null;
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -49,6 +51,7 @@ const upload = multer({
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 async function getUserFromToken(req) {
+  if (!supabase) return null;
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) return null;
   const token = auth.slice(7);
@@ -58,6 +61,7 @@ async function getUserFromToken(req) {
 }
 
 async function getProfile(userId) {
+  if (!supabase) return null;
   const { data } = await supabase
     .from('profiles')
     .select('*')

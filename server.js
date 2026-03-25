@@ -26,7 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Multer ───────────────────────────────────────────────────────────────────
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = '/tmp/uploads';
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 const storage = multer.diskStorage({

@@ -135,6 +135,9 @@ app.post('/api/generate', async (req, res) => {
       return res.status(500).json({ error: 'Failed to parse AI response', raw });
     }
 
+    // Generate SRT server-side from the lyrics array
+    pack.srt = buildSrt(pack.lyrics);
+
     // ── Persist generation record ──────────────────────────────────────────
     if (user) {
       await supabase.from('generations').insert({
@@ -315,49 +318,73 @@ function sanitizeJsonString(str) {
   return result;
 }
 
+// ─── SRT builder ─────────────────────────────────────────────────────────────
+// Converts the lyrics array [{ts:"0:16", text:"..."}] to an SRT string.
+// Each subtitle shows for 4 seconds (or until the next line).
+function buildSrt(lyrics) {
+  if (!Array.isArray(lyrics) || lyrics.length === 0) return '';
+
+  function tsToSeconds(ts) {
+    if (!ts) return 0;
+    const parts = String(ts).split(':').map(Number);
+    return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0];
+  }
+
+  function formatSrtTime(secs) {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = Math.floor(secs % 60);
+    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},000`;
+  }
+
+  return lyrics.map((line, i) => {
+    const start = tsToSeconds(line.ts);
+    const nextStart = i + 1 < lyrics.length ? tsToSeconds(lyrics[i + 1].ts) : start + 4;
+    const end = Math.max(start + 1, nextStart);
+    return `${i + 1}\n${formatSrtTime(start)} --> ${formatSrtTime(end)}\n${line.text}`;
+  }).join('\n\n') + '\n\n';
+}
+
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildUserPrompt({ title, artist, genre, bpm, language, mood }) {
-  return `Generate a complete music production pack for the following track:
+  return `Generate a music production pack for this track:
 
-Track Title: ${title}
+Title: ${title}
 Artist: ${artist}
 Genre: ${genre}
-Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood/Vibe: ${mood}` : ''}
+Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood: ${mood}` : ''}
 
-Return ONLY a valid JSON object with this exact structure:
+Return ONLY a JSON object with exactly this structure (no text before or after):
 {
   "lyrics": [
-    {"ts": "0:00", "text": "lyric line here"},
-    {"ts": "0:05", "text": "next lyric line"}
+    {"ts": "0:00", "text": "[INTRO]"},
+    {"ts": "0:08", "text": "first lyric line"},
+    {"ts": "0:16", "text": "[VERSE 1]"},
+    {"ts": "0:24", "text": "verse lyric line"}
   ],
-  "srt": "1\\n00:00:00,000 --> 00:00:05,000\\nLyric line here\\n\\n2\\n00:00:05,000 --> 00:00:10,000\\nNext lyric line\\n\\n",
   "beats": [
-    {"ts": "0:00", "label": "Intro start", "type": "CUT"},
-    {"ts": "0:16", "label": "Verse 1 drop", "type": "CUT"},
-    {"ts": "0:32", "label": "Pre-chorus build", "type": "FADE"},
-    {"ts": "0:48", "label": "Chorus hit", "type": "ZOOM"},
-    {"ts": "1:04", "label": "Flash moment", "type": "FLASH"}
+    {"ts": "0:00", "label": "Intro", "type": "CUT"},
+    {"ts": "0:32", "label": "Verse 1", "type": "CUT"},
+    {"ts": "1:04", "label": "Chorus", "type": "ZOOM"},
+    {"ts": "2:00", "label": "Outro", "type": "FADE"}
   ],
   "prompts": [
-    {"section": "Intro (0:00-0:16)", "prompt": "Detailed cinematic visual prompt for Kling/Runway/PixVerse AI video generation, describing camera angles, lighting, atmosphere, movement, style for this section"},
-    {"section": "Verse 1 (0:16-0:48)", "prompt": "..."}
+    {"section": "Intro", "prompt": "cinematic AI video prompt for this section"},
+    {"section": "Verse", "prompt": "cinematic AI video prompt for this section"},
+    {"section": "Chorus", "prompt": "cinematic AI video prompt for this section"}
   ],
   "tips": [
-    {"title": "TikTok Hook", "tip": "Specific actionable advice for this genre on TikTok"},
-    {"title": "Instagram Reels", "tip": "Specific advice for Reels"},
-    {"title": "YouTube Shorts", "tip": "Specific advice for Shorts"},
-    {"title": "Visual Style", "tip": "Genre-specific visual tip"},
-    {"title": "Trending Audio", "tip": "How to leverage this track on social media"}
+    {"title": "TikTok", "tip": "actionable tip for this genre on TikTok"},
+    {"title": "Reels", "tip": "actionable tip for Instagram Reels"},
+    {"title": "Shorts", "tip": "actionable tip for YouTube Shorts"}
   ]
 }
 
-Requirements:
-- Write authentic ${genre} lyrics in ${language} (minimum 24 lines covering: intro, verse 1, pre-chorus, chorus, verse 2, bridge, outro)
-- Include section headers as lyric lines (e.g. {"ts": "0:16", "text": "[VERSE 1]"})
-- SRT must be properly formatted subtitle file content with \\n escape sequences (NOT literal newlines)
-- Beat cuts should cover the full song structure with realistic timestamps
-- AI prompts should be highly detailed and cinematic, tailored to ${genre} aesthetics
-- Tips must be specific to ${genre} and current social media trends
-- All content must be in ${language}
-- CRITICAL JSON RULES: All string values must be on a single line. Use \\n for newlines (e.g. in SRT), never literal newline characters inside strings. Do not use smart quotes or curly apostrophes — use only straight ASCII quotes and apostrophes. The entire response must be a single valid JSON object with no text before or after it.`;
+Rules:
+- Lyrics: 20+ lines in ${language}, section headers like [INTRO] [VERSE 1] [CHORUS] [BRIDGE] [OUTRO]
+- Timestamps format: "M:SS" (e.g. "1:04")
+- beats: exactly 4 entries covering intro, verse, chorus, outro
+- prompts: exactly 3 entries, each prompt 1-2 sentences, cinematic style for ${genre}
+- tips: exactly 3 entries, specific to ${genre}
+- No literal newlines inside string values. No smart quotes. Straight ASCII only.`;
 }

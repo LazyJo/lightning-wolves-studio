@@ -25,27 +25,41 @@ module.exports = async function handler(req, res) {
   let tmpPath = null;
 
   try {
-    // Parse multipart/form-data with busboy
     tmpPath = await new Promise((resolve, reject) => {
       const busboy = Busboy({ headers: req.headers });
-      let savedPath = null;
-      let writeError = null;
+      let dest = null;
+      let writeFinishPromise = null;
 
       busboy.on('file', (fieldname, fileStream, info) => {
-        const ext = path.extname(info.filename || 'audio.mp3') || '.mp3';
-        const dest = path.join('/tmp', `whisper-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
-        const writeStream = fs.createWriteStream(dest);
+        console.log(`[transcribe] file field="${fieldname}" filename="${info.filename}" mime="${info.mimeType}"`);
 
-        fileStream.on('error', (err) => { writeError = err; });
-        writeStream.on('error', (err) => { writeError = err; });
-        writeStream.on('finish', () => { savedPath = dest; });
-        fileStream.pipe(writeStream);
+        const ext = path.extname(info.filename || '') || '.mp3';
+        dest = path.join('/tmp', `whisper-${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+
+        // Track write completion as a promise so busboy.finish can await it
+        writeFinishPromise = new Promise((res, rej) => {
+          const writeStream = fs.createWriteStream(dest);
+          writeStream.on('finish', res);
+          writeStream.on('error', rej);
+          fileStream.on('error', rej);
+          fileStream.pipe(writeStream);
+        });
       });
 
-      busboy.on('finish', () => {
-        if (writeError) return reject(writeError);
-        if (!savedPath) return reject(new Error('No audio file found in request'));
-        resolve(savedPath);
+      busboy.on('field', (name, val) => {
+        console.log(`[transcribe] non-file field="${name}" value="${val}"`);
+      });
+
+      busboy.on('finish', async () => {
+        if (!dest) {
+          return reject(new Error('No audio file found in request — check FormData field name is "file"'));
+        }
+        try {
+          await writeFinishPromise;
+          resolve(dest);
+        } catch (writeErr) {
+          reject(writeErr);
+        }
       });
 
       busboy.on('error', reject);

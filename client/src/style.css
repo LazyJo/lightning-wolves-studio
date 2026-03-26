@@ -250,16 +250,9 @@ a:hover { text-decoration: underline; }
   width: 130px;
   height: 130px;
   margin: 0 auto 16px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* Active wolf cards: crisp white backdrop so PNG images pop on dark cards */
-.wolf-card.active .wolf-img-wrap {
-  background: rgba(255, 255, 255, 0.92);
 }
 
 .wolf-img-wrap img {
@@ -268,7 +261,6 @@ a:hover { text-decoration: underline; }
   object-fit: contain;
   position: relative;
   z-index: 1;
-  border-radius: 50%;
 }
 
 .wolf-emoji, .lock-icon {

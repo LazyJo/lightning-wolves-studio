@@ -122,11 +122,16 @@ app.post('/api/generate', async (req, res) => {
       return res.status(500).json({ error: 'Failed to parse AI response: no JSON object found', raw });
     }
 
+    // Sanitize: replace literal control characters inside JSON string values.
+    // Claude sometimes emits raw newlines/tabs inside string values which is
+    // invalid JSON — this walks the string char-by-char to fix only those cases.
+    const sanitized = sanitizeJsonString(jsonMatch[0]);
+
     let pack;
     try {
-      pack = JSON.parse(jsonMatch[0]);
+      pack = JSON.parse(sanitized);
     } catch (parseErr) {
-      console.error('[generate] JSON.parse failed:', parseErr.message, '\nExtracted string (first 300):', jsonMatch[0].slice(0, 300));
+      console.error('[generate] JSON.parse failed:', parseErr.message, '\nSanitized (first 300):', sanitized.slice(0, 300));
       return res.status(500).json({ error: 'Failed to parse AI response', raw });
     }
 
@@ -287,6 +292,29 @@ if (require.main === module) {
 
 module.exports = app;
 
+// ─── JSON sanitizer ───────────────────────────────────────────────────────────
+// Walks the string character-by-character and escapes literal control characters
+// (newline, carriage return, tab) that appear inside JSON string values.
+// These are valid in JSON only as \n \r \t — Claude occasionally emits them raw.
+function sanitizeJsonString(str) {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === '\\' && inString) { result += ch; escaped = true; continue; }
+    if (ch === '"') { inString = !inString; result += ch; continue; }
+    if (inString) {
+      if (ch === '\n') { result += '\\n'; continue; }
+      if (ch === '\r') { result += '\\r'; continue; }
+      if (ch === '\t') { result += '\\t'; continue; }
+    }
+    result += ch;
+  }
+  return result;
+}
+
 // ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildUserPrompt({ title, artist, genre, bpm, language, mood }) {
   return `Generate a complete music production pack for the following track:
@@ -326,9 +354,10 @@ Return ONLY a valid JSON object with this exact structure:
 Requirements:
 - Write authentic ${genre} lyrics in ${language} (minimum 24 lines covering: intro, verse 1, pre-chorus, chorus, verse 2, bridge, outro)
 - Include section headers as lyric lines (e.g. {"ts": "0:16", "text": "[VERSE 1]"})
-- SRT must be properly formatted subtitle file content
+- SRT must be properly formatted subtitle file content with \\n escape sequences (NOT literal newlines)
 - Beat cuts should cover the full song structure with realistic timestamps
 - AI prompts should be highly detailed and cinematic, tailored to ${genre} aesthetics
 - Tips must be specific to ${genre} and current social media trends
-- All content must be in ${language}`;
+- All content must be in ${language}
+- CRITICAL JSON RULES: All string values must be on a single line. Use \\n for newlines (e.g. in SRT), never literal newline characters inside strings. Do not use smart quotes or curly apostrophes — use only straight ASCII quotes and apostrophes. The entire response must be a single valid JSON object with no text before or after it.`;
 }

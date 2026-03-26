@@ -147,12 +147,15 @@ app.post('/api/generate', async (req, res) => {
 
     const raw = message.content[0].type === 'text' ? message.content[0].text : '';
 
-    // Extract JSON — strip any accidental markdown fences
-    const jsonStr = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
+    // Extract the outermost JSON object, tolerating preamble text or markdown fences
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return res.status(500).json({ error: 'Failed to parse AI response: no JSON object found', raw });
+    }
 
     let pack;
     try {
-      pack = JSON.parse(jsonStr);
+      pack = JSON.parse(jsonMatch[0]);
     } catch {
       return res.status(500).json({ error: 'Failed to parse AI response', raw });
     }

@@ -25,6 +25,12 @@ function escapeHTML(str) {
     .replace(/"/g, '&quot;')
 }
 
+function secsToTs(secs) {
+  const m = Math.floor(secs / 60)
+  const s = Math.floor(secs % 60)
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 function downloadText(content, filename, mime) {
   const blob = new Blob([content], { type: mime })
   const url  = URL.createObjectURL(blob)
@@ -298,15 +304,8 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
       setUploadInfo({ text: `File too large (max 100 MB)`, color: '#ff4455' })
       return
     }
-    setUploadInfo({ text: `Reading ${file.name}…`, color: null })
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const base64 = e.target.result.split(',')[1]
-      setUploadedFile({ name: file.name, type: file.type, base64 })
-      setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB`, color: '#3ddc84' })
-    }
-    reader.onerror = () => setUploadInfo({ text: 'Failed to read file', color: '#ff4455' })
-    reader.readAsDataURL(file)
+    setUploadedFile(file)
+    setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB`, color: '#3ddc84' })
   }
 
   async function handleGenerate() {
@@ -316,15 +315,44 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     setGenerating(true)
     setPack(null); setMeta(null)
     try {
-      const body = { title, artist, genre, language, wolfId: wolf?.id }
-      if (bpm)          body.bpm      = bpm
-      if (mood)         body.mood     = mood
-      if (token)        body.token    = token
+      // ── Whisper transcription (direct from browser to OpenAI) ──────────
+      let transcriptLines = null
       if (uploadedFile) {
-        body.fileBase64 = uploadedFile.base64
-        body.fileName   = uploadedFile.name
-        body.fileType   = uploadedFile.type
+        setUploadInfo({ text: `Transcribing ${uploadedFile.name}…`, color: null })
+        try {
+          const configRes = await fetch('/api/config')
+          const config = await configRes.json()
+          if (config.openaiApiKey) {
+            const fd = new FormData()
+            fd.append('file', uploadedFile)
+            fd.append('model', 'whisper-1')
+            fd.append('response_format', 'verbose_json')
+            fd.append('timestamp_granularities[]', 'segment')
+            const whisperRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${config.openaiApiKey}` },
+              body: fd,
+            })
+            const whisperData = await whisperRes.json()
+            if (whisperData.segments?.length) {
+              transcriptLines = whisperData.segments.map(seg => ({
+                ts: secsToTs(seg.start),
+                text: seg.text.trim(),
+              }))
+              setUploadInfo({ text: `✓ Transcribed · ${transcriptLines.length} lines`, color: '#3ddc84' })
+            }
+          }
+        } catch (tErr) {
+          console.warn('Transcription failed, falling back to AI lyrics:', tErr.message)
+          setUploadInfo({ text: `✓ ${uploadedFile.name} (transcription failed, using AI lyrics)`, color: '#ffaa00' })
+        }
       }
+
+      const body = { title, artist, genre, language, wolfId: wolf?.id }
+      if (bpm)             body.bpm             = bpm
+      if (mood)            body.mood            = mood
+      if (token)           body.token           = token
+      if (transcriptLines) body.transcriptLines = transcriptLines
 
       const res  = await fetch('/api/generate', {
         method: 'POST',
@@ -450,7 +478,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
 
           <button className="btn-generate" onClick={handleGenerate} disabled={generating}>
             <span className="btn-lightning">⚡</span>
-            <span className="btn-text">{generating ? 'GENERATING…' : 'GENERATE'}</span>
+            <span className="btn-text">{generating ? (uploadedFile ? 'TRANSCRIBING…' : 'GENERATING…') : 'GENERATE'}</span>
           </button>
           {genError && <div className="gen-error">{genError}</div>}
         </aside>

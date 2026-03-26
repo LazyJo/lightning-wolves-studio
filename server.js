@@ -1,10 +1,8 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
-const { OpenAI } = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -20,11 +18,6 @@ const supabase = process.env.SUPABASE_URL
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-// ─── OpenAI (Whisper) ─────────────────────────────────────────────────────────
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
@@ -57,11 +50,12 @@ async function getProfile(userId) {
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// Public config — exposes only safe, public-facing keys to the frontend
+// Public config — exposes public-facing keys to the frontend
 app.get('/api/config', (req, res) => {
   res.json({
     supabaseUrl:     process.env.SUPABASE_URL     || null,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null,
+    openaiApiKey:    process.env.OPENAI_API_KEY   || null,
   });
 });
 
@@ -106,18 +100,11 @@ app.post('/api/generate', async (req, res) => {
       }
     }
 
-    // ── Whisper transcription (if file provided and key available) ─────────
-    let transcribedLyrics = null;
-    const { fileBase64, fileName, fileType } = req.body;
-
-    if (fileBase64 && openai) {
-      try {
-        transcribedLyrics = await transcribeAudio(fileBase64, fileName || 'audio.mp3', fileType || 'audio/mpeg');
-        console.log('[generate] Whisper transcription segments:', transcribedLyrics?.length);
-      } catch (transcribeErr) {
-        console.error('[generate] Whisper error (falling back to Claude lyrics):', transcribeErr.message);
-      }
-    }
+    // ── Transcript from frontend Whisper call (if provided) ────────────────
+    const { transcriptLines } = req.body;
+    const transcribedLyrics = Array.isArray(transcriptLines) && transcriptLines.length > 0
+      ? transcriptLines
+      : null;
 
     // ── Build Claude prompt ────────────────────────────────────────────────
     const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
@@ -319,34 +306,6 @@ if (require.main === module) {
 }
 
 module.exports = app;
-
-// ─── Whisper transcription ────────────────────────────────────────────────────
-async function transcribeAudio(fileBase64, fileName, fileType) {
-  const buffer = Buffer.from(fileBase64, 'base64');
-  const tmpPath = `/tmp/whisper-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  fs.writeFileSync(tmpPath, buffer);
-  try {
-    const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(tmpPath),
-      model: 'whisper-1',
-      response_format: 'verbose_json',
-      timestamp_granularities: ['segment'],
-    });
-    // Convert Whisper segments to lyrics array format [{ts, text}]
-    return (transcription.segments || []).map(seg => ({
-      ts: formatSecondsToTs(seg.start),
-      text: seg.text.trim(),
-    }));
-  } finally {
-    try { fs.unlinkSync(tmpPath); } catch { /* ignore cleanup error */ }
-  }
-}
-
-function formatSecondsToTs(secs) {
-  const m = Math.floor(secs / 60);
-  const s = Math.floor(secs % 60);
-  return `${m}:${String(s).padStart(2, '0')}`;
-}
 
 // ─── JSON sanitizer ───────────────────────────────────────────────────────────
 // Walks the string character-by-character and escapes literal control characters

@@ -294,8 +294,8 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
 
   function handleFile(file) {
     const sizeMB = (file.size / 1024 / 1024).toFixed(1)
-    if (file.size > 25 * 1024 * 1024) {
-      setUploadInfo({ text: `File too large (max 25 MB)`, color: '#ff4455' })
+    if (file.size > 100 * 1024 * 1024) {
+      setUploadInfo({ text: `File too large (max 100 MB)`, color: '#ff4455' })
       return
     }
     setUploadInfo({ text: `Reading ${file.name}…`, color: null })

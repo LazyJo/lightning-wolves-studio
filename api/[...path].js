@@ -5,6 +5,6 @@ module.exports = app;
 module.exports.config = {
   api: {
     bodyParser: false,
-    sizeLimit: '50mb',
+    sizeLimit: '150mb',
   },
 };

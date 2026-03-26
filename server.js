@@ -1,8 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 const Anthropic = require('@anthropic-ai/sdk');
+const { OpenAI } = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -18,6 +21,23 @@ const supabase = process.env.SUPABASE_URL
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// ─── OpenAI (Whisper) ─────────────────────────────────────────────────────────
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+// ─── Multer (multipart uploads to /tmp) ──────────────────────────────────────
+const uploadsDir = '/tmp/uploads';
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadsDir),
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 },
+});
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
@@ -61,6 +81,41 @@ app.get('/api/config', (req, res) => {
 
 // Test endpoint — confirms API routing is live
 app.get('/api/test', (req, res) => res.json({ status: 'ok' }));
+
+// Transcription endpoint — receives audio as multipart/form-data, returns transcript lines
+app.post('/api/transcribe', upload.single('file'), async (req, res) => {
+  if (!openai) {
+    return res.status(503).json({ error: 'OPENAI_API_KEY is not configured on the server.' });
+  }
+  if (!req.file) {
+    return res.status(400).json({ error: 'No audio file provided.' });
+  }
+  const tmpPath = req.file.path;
+  try {
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(tmpPath),
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+      timestamp_granularities: ['segment'],
+    });
+    const transcriptLines = (transcription.segments || []).map(seg => ({
+      ts: secsToTs(seg.start),
+      text: seg.text.trim(),
+    }));
+    res.json({ transcriptLines });
+  } catch (err) {
+    console.error('[transcribe] Whisper error:', err.message);
+    res.status(500).json({ error: err.message || 'Transcription failed' });
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch { /* ignore */ }
+  }
+});
+
+function secsToTs(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
 
 // Main generation endpoint
 app.post('/api/generate', async (req, res) => {

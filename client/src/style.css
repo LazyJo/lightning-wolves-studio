@@ -164,8 +164,9 @@ a:hover { text-decoration: underline; }
 }
 
 .header-logo {
-  width: 40px;
-  height: 40px;
+  height: 48px;
+  width: auto;
+  max-width: 260px;
   object-fit: contain;
 }
 
@@ -207,8 +208,13 @@ a:hover { text-decoration: underline; }
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 20px;
-  max-width: 780px;
+  max-width: 840px;
   margin: 0 auto 40px;
+  background: rgba(0, 0, 0, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 24px;
+  padding: 28px;
+  backdrop-filter: blur(6px);
 }
 
 .wolf-card {
@@ -241,17 +247,28 @@ a:hover { text-decoration: underline; }
 
 .wolf-img-wrap {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 130px;
+  height: 130px;
   margin: 0 auto 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Active wolf cards: crisp white backdrop so PNG images pop on dark cards */
+.wolf-card.active .wolf-img-wrap {
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .wolf-img-wrap img {
-  width: 100%;
-  height: 100%;
+  width: 90%;
+  height: 90%;
   object-fit: contain;
   position: relative;
   z-index: 1;
+  border-radius: 50%;
 }
 
 .wolf-emoji, .lock-icon {
@@ -377,8 +394,9 @@ a:hover { text-decoration: underline; }
 }
 
 .studio-logo {
-  width: 36px;
   height: 36px;
+  width: auto;
+  max-width: 180px;
   object-fit: contain;
 }
 

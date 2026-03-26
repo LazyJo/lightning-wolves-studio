@@ -3,9 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
-  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',  genre: 'Melodic Hip-Hop',  image: 'wolf-yellow.svg', locked: false },
-  { id: 'orange', color: '#e8870a', artist: 'Rosakay',  genre: 'Pop / French Pop', image: 'wolf-orange.svg', locked: false },
-  { id: 'purple', color: '#9b6dff', artist: 'Zirka',    genre: 'French Hip-Hop',   image: 'wolf-purple.svg', locked: false },
+  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',  genre: 'Melodic Hip-Hop',  image: 'wolf-yellow.png', locked: false },
+  { id: 'orange', color: '#e8870a', artist: 'Rosakay',  genre: 'Pop / French Pop', image: 'wolf-orange.png', locked: false },
+  { id: 'purple', color: '#9b6dff', artist: 'Zirka',    genre: 'French Hip-Hop',   image: 'wolf-purple.png', locked: false },
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
   { id: 'pink',   color: '#E040FB', locked: true, image: 'wolf-pink.svg'  },
@@ -212,11 +212,7 @@ function WolfSelectPage({ onSelectWolf }) {
   return (
     <div id="wolf-select-page" className="page">
       <header className="select-header">
-        <img src="/logo.svg" alt="Lightning Wolves" className="header-logo" onError={e => e.target.style.display='none'} />
-        <div className="header-brand">
-          <div className="header-title">LIGHTNING WOLVES</div>
-          <div className="header-sub">Lyrics Studio</div>
-        </div>
+        <img src="/logo.png" alt="Lightning Wolves" className="header-logo" onError={e => e.target.style.display='none'} />
       </header>
 
       <main className="select-main">
@@ -382,7 +378,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     <div id="studio-page" className="page">
       <header className="studio-header">
         <div className="studio-header-left">
-          <img src={`/${wolf?.image || 'logo.svg'}`} alt="LW" className="studio-logo"
+          <img src="/logo.png" alt="Lightning Wolves" className="studio-logo"
                onError={e => e.target.style.display='none'} />
           <div className="studio-titles">
             <div className="studio-brand">LIGHTNING WOLVES / Lyrics Studio</div>

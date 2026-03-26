@@ -1,8 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
 const path = require('path');
 const Anthropic = require('@anthropic-ai/sdk');
+const { OpenAI } = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -19,9 +21,14 @@ const supabase = process.env.SUPABASE_URL
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// ─── OpenAI (Whisper) ─────────────────────────────────────────────────────────
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
@@ -99,10 +106,25 @@ app.post('/api/generate', async (req, res) => {
       }
     }
 
-    // ── Build Claude prompt ────────────────────────────────────────────────
-    const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Generate complete, authentic, emotionally resonant song content tailored precisely to the genre, language and vibe provided. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
+    // ── Whisper transcription (if file provided and key available) ─────────
+    let transcribedLyrics = null;
+    const { fileBase64, fileName, fileType } = req.body;
 
-    const userPrompt = buildUserPrompt({ title, artist, genre, bpm, language, mood });
+    if (fileBase64 && openai) {
+      try {
+        transcribedLyrics = await transcribeAudio(fileBase64, fileName || 'audio.mp3', fileType || 'audio/mpeg');
+        console.log('[generate] Whisper transcription segments:', transcribedLyrics?.length);
+      } catch (transcribeErr) {
+        console.error('[generate] Whisper error (falling back to Claude lyrics):', transcribeErr.message);
+      }
+    }
+
+    // ── Build Claude prompt ────────────────────────────────────────────────
+    const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
+
+    const userPrompt = transcribedLyrics
+      ? buildPromptWithTranscription({ title, artist, genre, bpm, language, mood, lyrics: transcribedLyrics })
+      : buildUserPrompt({ title, artist, genre, bpm, language, mood });
 
     // ── Call Claude ────────────────────────────────────────────────────────
     const message = await anthropic.messages.create({
@@ -134,6 +156,9 @@ app.post('/api/generate', async (req, res) => {
       console.error('[generate] JSON.parse failed:', parseErr.message, '\nSanitized (first 300):', sanitized.slice(0, 300));
       return res.status(500).json({ error: 'Failed to parse AI response', raw });
     }
+
+    // If we used transcription, the lyrics come from Whisper — not from Claude's JSON
+    if (transcribedLyrics) pack.lyrics = transcribedLyrics;
 
     // Generate SRT server-side from the lyrics array
     pack.srt = buildSrt(pack.lyrics);
@@ -295,6 +320,34 @@ if (require.main === module) {
 
 module.exports = app;
 
+// ─── Whisper transcription ────────────────────────────────────────────────────
+async function transcribeAudio(fileBase64, fileName, fileType) {
+  const buffer = Buffer.from(fileBase64, 'base64');
+  const tmpPath = `/tmp/whisper-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  fs.writeFileSync(tmpPath, buffer);
+  try {
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(tmpPath),
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+      timestamp_granularities: ['segment'],
+    });
+    // Convert Whisper segments to lyrics array format [{ts, text}]
+    return (transcription.segments || []).map(seg => ({
+      ts: formatSecondsToTs(seg.start),
+      text: seg.text.trim(),
+    }));
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch { /* ignore cleanup error */ }
+  }
+}
+
+function formatSecondsToTs(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 // ─── JSON sanitizer ───────────────────────────────────────────────────────────
 // Walks the string character-by-character and escapes literal control characters
 // (newline, carriage return, tab) that appear inside JSON string values.
@@ -385,6 +438,45 @@ Rules:
 - Timestamps format: "M:SS" (e.g. "1:04")
 - beats: exactly 4 entries covering intro, verse, chorus, outro
 - prompts: exactly 3 entries, each prompt 1-2 sentences, cinematic style for ${genre}
+- tips: exactly 3 entries, specific to ${genre}
+- No literal newlines inside string values. No smart quotes. Straight ASCII only.`;
+}
+
+function buildPromptWithTranscription({ title, artist, genre, bpm, language, mood, lyrics }) {
+  const lyricsText = lyrics.map(l => `[${l.ts}] ${l.text}`).join('\n');
+  return `Generate a music production pack for this track. The lyrics have already been transcribed — do NOT generate new lyrics.
+
+Title: ${title}
+Artist: ${artist}
+Genre: ${genre}
+Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood: ${mood}` : ''}
+
+Transcribed lyrics with timestamps:
+${lyricsText}
+
+Return ONLY a JSON object with exactly this structure (no text before or after):
+{
+  "beats": [
+    {"ts": "0:00", "label": "Intro", "type": "CUT"},
+    {"ts": "0:32", "label": "Verse 1", "type": "CUT"},
+    {"ts": "1:04", "label": "Chorus", "type": "ZOOM"},
+    {"ts": "2:00", "label": "Outro", "type": "FADE"}
+  ],
+  "prompts": [
+    {"section": "Intro", "prompt": "cinematic AI video prompt for this section"},
+    {"section": "Verse", "prompt": "cinematic AI video prompt for this section"},
+    {"section": "Chorus", "prompt": "cinematic AI video prompt for this section"}
+  ],
+  "tips": [
+    {"title": "TikTok", "tip": "actionable tip for this genre on TikTok"},
+    {"title": "Reels", "tip": "actionable tip for Instagram Reels"},
+    {"title": "Shorts", "tip": "actionable tip for YouTube Shorts"}
+  ]
+}
+
+Rules:
+- Use the real lyric timestamps to place beat cuts accurately
+- prompts: exactly 3 entries, 1-2 sentences each, cinematic style for ${genre}
 - tips: exactly 3 entries, specific to ${genre}
 - No literal newlines inside string values. No smart quotes. Straight ASCII only.`;
 }

@@ -276,6 +276,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
   const [meta,         setMeta]         = useState(null)
   const [activeTab,    setActiveTab]    = useState('lyrics')
   const [uploadInfo,   setUploadInfo]   = useState(null)
+  const [uploadedFile, setUploadedFile] = useState(null)
   const [dragover,     setDragover]     = useState(false)
   const fileInputRef = useRef(null)
 
@@ -293,7 +294,19 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
 
   function handleFile(file) {
     const sizeMB = (file.size / 1024 / 1024).toFixed(1)
-    setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB`, color: '#3ddc84' })
+    if (file.size > 25 * 1024 * 1024) {
+      setUploadInfo({ text: `File too large (max 25 MB)`, color: '#ff4455' })
+      return
+    }
+    setUploadInfo({ text: `Reading ${file.name}…`, color: null })
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const base64 = e.target.result.split(',')[1]
+      setUploadedFile({ name: file.name, type: file.type, base64 })
+      setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB`, color: '#3ddc84' })
+    }
+    reader.onerror = () => setUploadInfo({ text: 'Failed to read file', color: '#ff4455' })
+    reader.readAsDataURL(file)
   }
 
   async function handleGenerate() {
@@ -304,9 +317,14 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     setPack(null); setMeta(null)
     try {
       const body = { title, artist, genre, language, wolfId: wolf?.id }
-      if (bpm)   body.bpm  = bpm
-      if (mood)  body.mood = mood
-      if (token) body.token = token
+      if (bpm)          body.bpm      = bpm
+      if (mood)         body.mood     = mood
+      if (token)        body.token    = token
+      if (uploadedFile) {
+        body.fileBase64 = uploadedFile.base64
+        body.fileName   = uploadedFile.name
+        body.fileType   = uploadedFile.type
+      }
 
       const res  = await fetch('/api/generate', {
         method: 'POST',
@@ -331,7 +349,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
 
   function handleNewTrack() {
     setTitle(''); setBpm(''); setMood('')
-    setUploadInfo(null); setPack(null); setMeta(null); setGenError('')
+    setUploadInfo(null); setUploadedFile(null); setPack(null); setMeta(null); setGenError('')
     localStorage.removeItem('lw_last_pack'); localStorage.removeItem('lw_last_meta')
   }
 

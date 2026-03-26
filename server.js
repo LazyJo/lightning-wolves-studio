@@ -1,9 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -23,31 +21,8 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ─── Multer ───────────────────────────────────────────────────────────────────
-const uploadsDir = '/tmp/uploads';
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, unique + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
-  fileFilter: (req, file, cb) => {
-    const allowed = /audio|video/;
-    if (allowed.test(file.mimetype)) return cb(null, true);
-    cb(new Error('Only audio and video files are allowed'));
-  },
-});
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 async function getUserFromToken(req) {
@@ -83,16 +58,8 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// File upload
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file provided' });
-  res.json({
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    size: req.file.size,
-    mimetype: req.file.mimetype,
-  });
-});
+// Test endpoint — confirms API routing is live
+app.get('/api/test', (req, res) => res.json({ status: 'ok' }));
 
 // Main generation endpoint
 app.post('/api/generate', async (req, res) => {
@@ -145,18 +112,21 @@ app.post('/api/generate', async (req, res) => {
       messages: [{ role: 'user', content: userPrompt }],
     });
 
-    const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+    const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
+    console.log('[generate] raw Claude response (first 500 chars):', raw.slice(0, 500));
 
-    // Extract the outermost JSON object, tolerating preamble text or markdown fences
+    // Extract the outermost JSON object, tolerating any preamble or markdown fences
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error('[generate] No JSON object found in response. Full raw:', raw);
       return res.status(500).json({ error: 'Failed to parse AI response: no JSON object found', raw });
     }
 
     let pack;
     try {
       pack = JSON.parse(jsonMatch[0]);
-    } catch {
+    } catch (parseErr) {
+      console.error('[generate] JSON.parse failed:', parseErr.message, '\nExtracted string (first 300):', jsonMatch[0].slice(0, 300));
       return res.status(500).json({ error: 'Failed to parse AI response', raw });
     }
 

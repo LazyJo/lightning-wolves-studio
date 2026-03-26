@@ -291,19 +291,9 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     } catch { /* ignore */ }
   }, [])
 
-  async function handleFile(file) {
+  function handleFile(file) {
     const sizeMB = (file.size / 1024 / 1024).toFixed(1)
-    setUploadInfo({ text: `Uploading ${file.name} (${sizeMB} MB)…`, color: null })
-    const fd = new FormData()
-    fd.append('file', file)
-    try {
-      const res  = await fetch('/api/upload', { method: 'POST', body: fd })
-      const json = await res.json()
-      if (!res.ok) throw new Error(json.error)
-      setUploadInfo({ text: `✓ ${json.originalName} · ${sizeMB} MB`, color: '#3ddc84' })
-    } catch (err) {
-      setUploadInfo({ text: `Upload failed: ${err.message}`, color: '#ff4455' })
-    }
+    setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB`, color: '#3ddc84' })
   }
 
   async function handleGenerate() {

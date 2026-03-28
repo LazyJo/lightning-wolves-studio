@@ -3,16 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
-  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',  genre: 'Melodic Hip-Hop',  image: 'wolf-yellow.png', locked: false },
-  { id: 'orange', color: '#e8870a', artist: 'Rosakay',  genre: 'Pop / French Pop', image: 'wolf-orange.png', locked: false },
-  { id: 'purple', color: '#9b6dff', artist: 'Zirka',    genre: 'French Hip-Hop',   image: 'wolf-purple.png', locked: false },
+  { id: 'yellow',     color: '#f5c518', artist: 'Lazy Jo',        genre: 'Melodic Hip-Hop',   image: 'wolf-yellow.png', video: 'wolf-yellow.mp4',     locked: false },
+  { id: 'orange',     color: '#e8870a', artist: 'Rosakay',        genre: 'Pop / French Pop',  image: 'wolf-orange.png', video: 'Wolf-Orange.mp4',     locked: false },
+  { id: 'purple',     color: '#9b6dff', artist: 'Zirka',          genre: 'French Hip-Hop',    image: 'wolf-purple.png', video: 'Wolf-Purple.mp4',     locked: false },
+  { id: 'white-blue', color: '#64b5f6', artist: 'Drippydesigns',  genre: 'Visual / Creative', image: 'wolf-white.svg',  video: 'wolf-white-blue.mp4', locked: false },
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
   { id: 'pink',   color: '#E040FB', locked: true, image: 'wolf-pink.svg'  },
   { id: 'green',  color: '#00E64D', locked: true, image: 'wolf-green.svg' },
   { id: 'red',    color: '#E53935', locked: true, image: 'wolf-red.svg'   },
   { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
-  { id: 'white',  color: '#e8e8e8', locked: true, image: 'wolf-white.svg' },
 ]
 
 const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯']
@@ -231,7 +231,7 @@ function WolfSelectPage({ onSelectWolf }) {
             ) : (
               <div key={wolf.id} className="wolf-card active" onClick={() => onSelectWolf(wolf)}>
                 <div className="wolf-img-wrap">
-                  <img src={`/${wolf.image}`} alt={wolf.artist} onError={e => e.target.parentElement.innerHTML='<div class="wolf-emoji">🐺</div>'} />
+                  <video className="wolf-video" src={`/${wolf.video}`} autoPlay loop muted playsInline />
                   <div className="wolf-glow" style={{'--glow-color': wolf.color}}></div>
                 </div>
                 <div className="wolf-name">{wolf.artist}</div>

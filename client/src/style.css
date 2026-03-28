@@ -263,6 +263,15 @@ a:hover { text-decoration: underline; }
   z-index: 1;
 }
 
+.wolf-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  position: relative;
+  z-index: 1;
+}
+
 .wolf-emoji, .lock-icon {
   font-size: 3.5rem;
   line-height: 120px;

@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
   { id: 'yellow',     color: '#f5c518', artist: 'Lazy Jo',        genre: 'Melodic Hip-Hop',   image: 'wolf-yellow.png', video: 'wolf-yellow.mp4',     locked: false },
-  { id: 'orange',     color: '#e8870a', artist: 'Rosakay',        genre: 'Pop / French Pop',  image: 'wolf-orange.png', video: 'Wolf-Orange.mp4',     locked: false },
   { id: 'purple',     color: '#9b6dff', artist: 'Zirka',          genre: 'French Hip-Hop',    image: 'wolf-purple.png', video: 'Wolf-Purple.mp4',     locked: false },
+  { id: 'orange',     color: '#e8870a', artist: 'Rosakay',        genre: 'Pop / French Pop',  image: 'wolf-orange.png', video: 'Wolf-Orange.mp4',     locked: false },
   { id: 'white-blue', color: '#64b5f6', artist: 'Drippydesigns',  genre: 'Visual / Creative', image: 'wolf-white.svg',  video: 'wolf-white-blue.mp4', locked: false },
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },

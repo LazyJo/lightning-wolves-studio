@@ -329,6 +329,7 @@
             <span class="summary-genre-badge" id="summary-genre"></span>
           </div>
         </div>
+        <button class="btn-outline btn-sm" id="save-track-btn">Save to Tracks</button>
         <button class="btn-outline btn-sm" id="new-track-btn">New Track</button>
       </div>
 
@@ -437,10 +438,11 @@
       <h2 class="section-title">TRACKS</h2>
       <p class="section-desc">Your saved packs and past generations — all in one place.</p>
     </div>
-    <div class="empty-state">
+    <div id="tracks-empty" class="empty-state">
       <div class="empty-icon">📦</div>
-      <div>No saved tracks yet. Generate a pack in the Studio to see it here.</div>
+      <div>No saved tracks yet. Generate a pack in the Studio and hit "Save to Tracks".</div>
     </div>
+    <div id="tracks-list" class="tracks-list hidden"></div>
   </div>
 </div>
 

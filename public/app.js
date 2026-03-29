@@ -84,6 +84,9 @@ function showSection(name) {
   document.querySelectorAll('.nav-link').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.nav === name);
   });
+
+  // Refresh tracks list when entering tracks page
+  if (name === 'tracks') renderTracksList();
 }
 
 function updateNavVisibility() {
@@ -769,6 +772,112 @@ function renderTips(tips) {
   if (tips.length) { hide($('tips-empty')); show(container); }
 }
 
+// ─── Tracks (localStorage persistence) ───────────────────────────────────────
+const LW_TRACKS_KEY = 'lw_saved_tracks';
+
+function getSavedTracks() {
+  try { return JSON.parse(localStorage.getItem(LW_TRACKS_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveTracks(tracks) {
+  localStorage.setItem(LW_TRACKS_KEY, JSON.stringify(tracks));
+}
+
+function saveCurrentTrack() {
+  if (!state.lastPack || !state.lastMeta) return;
+  const tracks = getSavedTracks();
+  const track = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    title: state.lastMeta.title,
+    artist: state.lastMeta.artist,
+    genre: state.lastMeta.genre,
+    wolfId: state.lastMeta.wolfId || state.wolf?.id,
+    date: new Date().toISOString(),
+    pack: state.lastPack,
+    meta: state.lastMeta,
+  };
+  tracks.unshift(track);
+  saveTracks(tracks);
+
+  // Visual feedback
+  const btn = $('save-track-btn');
+  if (btn) {
+    btn.textContent = 'Saved!';
+    btn.disabled = true;
+    setTimeout(() => { btn.textContent = 'Save to Tracks'; btn.disabled = false; }, 2000);
+  }
+}
+
+function deleteTrack(id) {
+  const tracks = getSavedTracks().filter(t => t.id !== id);
+  saveTracks(tracks);
+  renderTracksList();
+}
+
+function loadTrack(id) {
+  const tracks = getSavedTracks();
+  const track = tracks.find(t => t.id === id);
+  if (!track) return;
+
+  state.lastPack = track.pack;
+  state.lastMeta = track.meta;
+  localStorage.setItem('lw_last_pack', JSON.stringify(track.pack));
+  localStorage.setItem('lw_last_meta', JSON.stringify(track.meta));
+
+  // Switch to studio and render
+  showSection('studio');
+  renderPack(track.pack, track.meta);
+}
+
+function renderTracksList() {
+  const tracks = getSavedTracks();
+  const listEl = $('tracks-list');
+  const emptyEl = $('tracks-empty');
+
+  if (!tracks.length) {
+    hide(listEl); show(emptyEl);
+    return;
+  }
+
+  hide(emptyEl); show(listEl);
+  listEl.innerHTML = '';
+
+  tracks.forEach(track => {
+    const date = new Date(track.date);
+    const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const row = document.createElement('div');
+    row.className = 'track-row';
+    row.innerHTML = `
+      <div class="track-info" data-load="${track.id}">
+        <div class="track-title">${escapeHTML(track.title)}</div>
+        <div class="track-meta">
+          <span>${escapeHTML(track.artist)}</span>
+          <span class="track-genre-badge">${escapeHTML(track.genre)}</span>
+          <span class="track-date">${dateStr}</span>
+        </div>
+      </div>
+      <button class="btn-ghost btn-sm track-delete" data-delete="${track.id}" title="Delete track">✕</button>
+    `;
+    listEl.appendChild(row);
+  });
+
+  // Wire click handlers
+  listEl.querySelectorAll('[data-load]').forEach(el => {
+    el.addEventListener('click', () => loadTrack(el.dataset.load));
+  });
+  listEl.querySelectorAll('[data-delete]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteTrack(btn.dataset.delete);
+    });
+  });
+}
+
+function initTracks() {
+  $('save-track-btn').addEventListener('click', saveCurrentTrack);
+}
+
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 function initTabs() {
   document.querySelectorAll('.tab').forEach(btn => {
@@ -972,6 +1081,7 @@ async function init() {
   initDownloads();
   initNewTrack();
   initChangeWolf();
+  initTracks();
   initDashboard();
   initModal();
   initUpgradeModal();

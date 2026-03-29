@@ -874,73 +874,199 @@ function PromptCard({ prompt: p }) {
   )
 }
 
+// ─── Promo Codes ─────────────────────────────────────────────────────────────
+const PROMO_CODES = {
+  'WOLFPACK':  { type: 'percent', value: 20, label: '20% off' },
+  'LAZYJO':    { type: 'percent', value: 100, label: 'Free month' },
+  'STUDIO10':  { type: 'percent', value: 10, label: '10% off' },
+  'CREDITS50': { type: 'credits', value: 50, label: '+50 bonus Credits ⚡' },
+}
+
+const CREDIT_PACKS = [
+  { credits: 100, price: 3 },
+  { credits: 300, price: 8 },
+  { credits: 750, price: 18 },
+  { credits: 2000, price: 39 },
+]
+
+const PLANS = [
+  {
+    id: 'free', name: 'Lone Wolf', monthlyPrice: 0, annualPrice: 0,
+    period: 'forever', credits: '10 ⚡ on signup',
+    features: ['3 generations lifetime', 'Subtitle & Minimal styles', 'Basic lyric overlay', '10 Lightning Credits ⚡'],
+    disabled: ['Full timeline editor', 'Beat drop effects', 'No watermark', 'All styles & animations', 'AI model access'],
+    btnLabel: 'Current Plan', btnStyle: 'outline',
+  },
+  {
+    id: 'starter', name: 'Starter', monthlyPrice: 9, annualPrice: 7,
+    period: '/month', credits: '100 ⚡/month',
+    features: ['50 generations/month', 'No watermark', 'All styles + animations', 'Basic beat detection', '100 Credits ⚡/month'],
+    disabled: ['Full timeline editor', 'AI model access', 'Priority processing'],
+    btnLabel: 'Coming Soon', btnStyle: 'outline', comingSoon: true,
+  },
+  {
+    id: 'pro', name: 'Wolf Pro', monthlyPrice: 24, annualPrice: 20,
+    badge: 'MOST POPULAR', period: '/month', credits: '350 ⚡/month',
+    features: ['Unlimited generations', 'Full timeline editor', 'All styles + beat drop effects', 'AI model access', 'Priority processing', '350 Credits ⚡/month'],
+    disabled: [],
+    btnLabel: 'Coming Soon', btnStyle: 'gold', comingSoon: true,
+  },
+  {
+    id: 'leader', name: 'Pack Leader', monthlyPrice: 49, annualPrice: 41,
+    badge: 'BEST VALUE', period: '/month', credits: 'Unlimited ⚡',
+    features: ['Everything in Wolf Pro', '4K export', 'Early access to new AI models', 'Dedicated support', 'Unlimited Credits ⚡'],
+    disabled: [],
+    btnLabel: 'Coming Soon', btnStyle: 'outline', comingSoon: true,
+  },
+]
+
 // ─── Pricing Page ────────────────────────────────────────────────────────────
 function PricingPage({ onBack, onSignup }) {
+  const [annual, setAnnual] = useState(false)
+  const [promoInput, setPromoInput] = useState('')
+  const [appliedPromo, setAppliedPromo] = useState(() => {
+    try { const c = localStorage.getItem('lw_promo_code'); return c ? JSON.parse(c) : null } catch { return null }
+  })
+  const [promoError, setPromoError] = useState('')
+  const [promoShake, setPromoShake] = useState(false)
+
+  function applyPromo(code) {
+    const upper = (code || '').trim().toUpperCase()
+    if (!upper) return
+    const promo = PROMO_CODES[upper]
+    if (!promo) {
+      setPromoError('Code not recognized')
+      setPromoShake(true)
+      setTimeout(() => setPromoShake(false), 600)
+      return
+    }
+    setAppliedPromo({ code: upper, ...promo })
+    localStorage.setItem('lw_promo_code', JSON.stringify({ code: upper, ...promo }))
+    setPromoError('')
+    setPromoInput('')
+  }
+
+  function clearPromo() {
+    setAppliedPromo(null)
+    localStorage.removeItem('lw_promo_code')
+  }
+
+  function getPrice(plan) {
+    const base = annual ? plan.annualPrice : plan.monthlyPrice
+    if (base === 0) return 'Free'
+    if (appliedPromo?.type === 'percent' && base > 0) {
+      const discounted = base * (1 - appliedPromo.value / 100)
+      return discounted <= 0 ? 'Free' : `€${discounted.toFixed(0)}`
+    }
+    return `€${base}`
+  }
+
+  function getOriginalPrice(plan) {
+    const base = annual ? plan.annualPrice : plan.monthlyPrice
+    if (base === 0 || !appliedPromo?.type || appliedPromo.type !== 'percent') return null
+    return `€${base}`
+  }
+
+  const annualSavings = Math.round((1 - (20 * 12) / (24 * 12)) * 100) // ~17%
+
   return (
     <div className="pricing-page">
       <header className="pricing-header">
         <button className="btn-outline btn-sm" onClick={onBack}>← Back</button>
-        <span style={{ fontFamily: 'Bebas Neue', fontSize: '1.2rem', letterSpacing: '0.06em', color: 'var(--accent)' }}>Lightning Wolves</span>
-        <div></div>
+        <img src="/lw-logo.png" alt="LW" style={{ height: 32, objectFit: 'contain' }} onError={e => e.target.style.display='none'} />
+        <div style={{ width: 60 }}></div>
       </header>
+
+      {/* Promo bar */}
+      <div className="pricing-promo-bar">
+        {appliedPromo ? (
+          <div className="pricing-promo-applied">
+            ⚡ Code <strong>{appliedPromo.code}</strong> applied! {appliedPromo.label}
+            <button className="pricing-promo-clear" onClick={clearPromo}>✕</button>
+          </div>
+        ) : (
+          <div className={`pricing-promo-form${promoShake ? ' shake' : ''}`}>
+            <span className="pricing-promo-label">Have a promo code?</span>
+            <input className="pricing-promo-input" placeholder="Enter code" value={promoInput}
+              onChange={e => { setPromoInput(e.target.value); setPromoError('') }}
+              onKeyDown={e => e.key === 'Enter' && applyPromo(promoInput)} />
+            <button className="btn-outline btn-sm" onClick={() => applyPromo(promoInput)}>Apply</button>
+            {promoError && <span className="pricing-promo-error">{promoError}</span>}
+          </div>
+        )}
+      </div>
 
       <div className="pricing-hero">
         <h1 className="pricing-title">Choose Your Pack</h1>
         <p className="pricing-subtitle">Create lyric videos that hit different.</p>
+
+        {/* Annual toggle */}
+        <div className="pricing-toggle-wrap">
+          <span className={!annual ? 'pricing-toggle-active' : ''}>Monthly</span>
+          <button className={`pricing-toggle-switch${annual ? ' on' : ''}`} onClick={() => setAnnual(!annual)}>
+            <div className="pricing-toggle-knob"></div>
+          </button>
+          <span className={annual ? 'pricing-toggle-active' : ''}>Annual</span>
+          {annual && <span className="pricing-toggle-save">Save ~17%</span>}
+        </div>
       </div>
 
+      {/* Plan cards */}
       <div className="pricing-grid">
-        {/* FREE */}
-        <div className="pricing-card">
-          <div className="pricing-card-name">Lone Wolf</div>
-          <div className="pricing-card-price">Free</div>
-          <div className="pricing-card-period">forever</div>
-          <ul className="pricing-features">
-            <li>3 generations total</li>
-            <li>Subtitle &amp; Minimal styles</li>
-            <li>Basic lyric overlay</li>
-            <li className="disabled">Full timeline editor</li>
-            <li className="disabled">Beat drop effects</li>
-            <li className="disabled">No watermark</li>
-            <li className="disabled">All styles &amp; animations</li>
-          </ul>
-          <button className="btn-outline pricing-card-btn" onClick={onBack}>Current Plan</button>
-        </div>
+        {PLANS.map(plan => {
+          const origPrice = getOriginalPrice(plan)
+          return (
+            <div key={plan.id} className={`pricing-card${plan.badge === 'MOST POPULAR' ? ' featured' : ''}${plan.badge === 'BEST VALUE' ? ' best-value' : ''}`}>
+              {plan.badge && <div className={`pricing-card-badge${plan.badge === 'BEST VALUE' ? ' badge-alt' : ''}`}>{plan.badge}</div>}
+              <div className="pricing-card-name">{plan.name}</div>
+              <div className="pricing-card-price-row">
+                {origPrice && <span className="pricing-card-original">{origPrice}</span>}
+                <span className="pricing-card-price">{getPrice(plan)}</span>
+              </div>
+              <div className="pricing-card-period">{plan.period}{annual && plan.monthlyPrice > 0 ? ' (billed annually)' : ''}</div>
+              <div className="pricing-card-credits">{plan.credits}</div>
+              <ul className="pricing-features">
+                {plan.features.map((f, i) => <li key={i}>{f}</li>)}
+                {plan.disabled.map((f, i) => <li key={`d${i}`} className="disabled">{f}</li>)}
+              </ul>
+              {plan.id === 'free' ? (
+                <button className="btn-outline pricing-card-btn" onClick={onBack}>Current Plan</button>
+              ) : plan.comingSoon ? (
+                <button className={`${plan.btnStyle === 'gold' ? 'btn-gold' : 'btn-outline'} pricing-card-btn pricing-btn-soon`} disabled>Coming Soon</button>
+              ) : (
+                <button className="btn-gold pricing-card-btn" onClick={onSignup}>{plan.btnLabel}</button>
+              )}
+            </div>
+          )
+        })}
+      </div>
 
-        {/* MEMBER */}
-        <div className="pricing-card featured">
-          <div className="pricing-card-badge">MOST POPULAR</div>
-          <div className="pricing-card-name">Wolf Pack</div>
-          <div className="pricing-card-price">$9</div>
-          <div className="pricing-card-period">/month</div>
-          <ul className="pricing-features">
-            <li>Unlimited generations</li>
-            <li>All 5 lyric styles</li>
-            <li>Full timeline editor</li>
-            <li>Beat drop effects</li>
-            <li>No watermark on export</li>
-            <li>All animations</li>
-            <li>Priority processing</li>
-          </ul>
-          <button className="btn-gold pricing-card-btn" onClick={onSignup}>Join the Pack</button>
-        </div>
-
-        {/* PRO */}
-        <div className="pricing-card">
-          <div className="pricing-card-name">Wolf Pro</div>
-          <div className="pricing-card-price">$29</div>
-          <div className="pricing-card-period">/month</div>
-          <ul className="pricing-features">
-            <li>Everything in Wolf Pack</li>
-            <li>4K export</li>
-            <li>Custom fonts</li>
-            <li>Priority support</li>
-            <li>Early access to new features</li>
-            <li>Commercial license</li>
-          </ul>
-          <button className="btn-outline pricing-card-btn" disabled style={{ opacity: 0.5 }}>Coming Soon</button>
+      {/* Credits section */}
+      <div className="pricing-credits-section">
+        <h2 className="pricing-credits-title">Lightning Credits ⚡</h2>
+        <p className="pricing-credits-sub">No subscription needed. Top up anytime.</p>
+        <div className="pricing-credits-grid">
+          {CREDIT_PACKS.map(cp => (
+            <div key={cp.credits} className="pricing-credit-card">
+              <div className="pricing-credit-amount">{cp.credits} ⚡</div>
+              <div className="pricing-credit-price">€{cp.price}</div>
+              {appliedPromo?.type === 'credits' && <div className="pricing-credit-bonus">+{appliedPromo.value} bonus ⚡</div>}
+              <button className="btn-outline btn-sm pricing-btn-soon" disabled>Coming Soon</button>
+            </div>
+          ))}
         </div>
       </div>
+
+      {/* Members banner */}
+      <div className="pricing-member-banner">
+        <div className="pricing-member-icon">🐺</div>
+        <div>
+          <div className="pricing-member-text">Lightning Wolves crew members get full access free forever.</div>
+          <button className="pricing-member-link" onClick={onSignup}>Already a member? Sign in →</button>
+        </div>
+      </div>
+
+      <div style={{ height: 60 }}></div>
     </div>
   )
 }
@@ -1538,7 +1664,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
 }
 
 // ─── Nav Bar ─────────────────────────────────────────────────────────────────
-function NavBar({ section, onNavigate, isMember }) {
+function NavBar({ section, onNavigate, isMember, onPricing }) {
   const sections = [
     { id: 'studio', label: 'Studio', membersOnly: false },
     { id: 'tracks', label: 'Tracks', membersOnly: true },
@@ -1555,12 +1681,13 @@ function NavBar({ section, onNavigate, isMember }) {
           </button>
         )
       ))}
+      <button className="nav-link nav-link-pricing" onClick={onPricing}>Pricing</button>
     </nav>
   )
 }
 
 // ─── App Shell (header + nav + section content) ──────────────────────────────
-function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal, onShowUpgradeModal, testMemberMode, onToggleTestMember }) {
+function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal, onShowUpgradeModal, testMemberMode, onToggleTestMember, onPricing }) {
   const realMember = profile?.role === 'member'
   const isMember = realMember || testMemberMode
   const isLoneWolf = !user && wolf?.id === 'lone-wolf'
@@ -1607,7 +1734,7 @@ function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, o
         </div>
       </header>
 
-      <NavBar section={section} onNavigate={onNavigate} isMember={isMember} />
+      <NavBar section={section} onNavigate={onNavigate} isMember={isMember} onPricing={onPricing} />
 
       {section === 'studio' && (
         <StudioPage key={studioKey} wolf={wolf} user={user} profile={profile} token={token} supabase={supabase}
@@ -1750,6 +1877,7 @@ export default function App() {
           onOpenDashboard={() => setPage('dashboard')}
           onShowLimitModal={() => setShowLimitModal(true)}
           onShowUpgradeModal={() => setShowUpgradeModal(true)}
+          onPricing={() => setPage('pricing')}
         />
       )}
 

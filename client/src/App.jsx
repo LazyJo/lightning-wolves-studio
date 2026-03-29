@@ -210,7 +210,7 @@ function LightningCanvas({ wolfColor }) {
 }
 
 // ─── Auth Page ────────────────────────────────────────────────────────────────
-function AuthPage({ supabase, onAuth, onGuest }) {
+function AuthPage({ supabase, onAuth, onGuest, onHome }) {
   const [tab,         setTab]         = useState('login')
   const [loginEmail,  setLoginEmail]  = useState('')
   const [loginPass,   setLoginPass]   = useState('')
@@ -248,7 +248,7 @@ function AuthPage({ supabase, onAuth, onGuest }) {
   return (
     <div id="auth-page" className="page">
       <div className="auth-container">
-        <img src="/logo.png" alt="Lightning Wolves" className="auth-logo" onError={e => e.target.style.display='none'} />
+        <img src="/logo.png" alt="Lightning Wolves" className="auth-logo clickable-logo" onClick={onHome} onError={e => e.target.style.display='none'} />
         <div className="auth-wordmark">LIGHTNING WOLVES</div>
         <div className="auth-sub">Lyrics Studio</div>
 
@@ -977,7 +977,7 @@ function PricingPage({ onBack, onSignup }) {
     <div className="pricing-page">
       <header className="pricing-header">
         <button className="btn-outline btn-sm" onClick={onBack}>← Back</button>
-        <img src="/logo.png" alt="LW" style={{ height: 32, objectFit: 'contain' }} onError={e => e.target.style.display='none'} />
+        <img src="/logo.png" alt="LW" className="clickable-logo" onClick={onBack} style={{ height: 32, objectFit: 'contain' }} onError={e => e.target.style.display='none'} />
         <div style={{ width: 60 }}></div>
       </header>
 
@@ -1716,7 +1716,7 @@ function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, o
     <div id="app-shell" className="page">
       <header className="studio-header">
         <div className="studio-header-left">
-          <img src="/logo.png" alt="Lightning Wolves" className="studio-logo" onError={e => e.target.style.display='none'} />
+          <img src="/logo.png" alt="Lightning Wolves" className="studio-logo clickable-logo" onClick={onChangeWolf} onError={e => e.target.style.display='none'} />
           <div className="studio-titles"><div className="studio-brand">LIGHTNING WOLVES</div></div>
         </div>
         <div className="studio-header-right">
@@ -1867,7 +1867,7 @@ export default function App() {
       )}
 
       {page === 'auth' && (
-        <AuthPage supabase={supabase} onAuth={handleAuth} onGuest={() => setPage('wolf-select')} />
+        <AuthPage supabase={supabase} onAuth={handleAuth} onGuest={() => setPage('wolf-select')} onHome={() => setPage('wolf-select')} />
       )}
 
       {page === 'app' && (

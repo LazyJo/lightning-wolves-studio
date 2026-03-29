@@ -351,7 +351,7 @@ a:hover { text-decoration: underline; }
 
 .lone-wolf-grid-card { cursor: pointer; opacity: 0.75; transition: opacity 0.2s; }
 .lone-wolf-grid-card:hover { opacity: 1; }
-.lone-wolf-grid-img { filter: grayscale(0.3); opacity: 0.7; }
+.lone-wolf-emoji { font-size: 3.5rem; position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    APP SHELL & NAVIGATION

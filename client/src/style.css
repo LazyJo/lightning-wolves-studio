@@ -1280,6 +1280,280 @@ textarea { resize: vertical; min-height: 72px; }
 .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   WOLF PROFILE PAGE (3D POKEMON CARD)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.profile-page {
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 28px;
+  background: rgba(17,17,21,0.85);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.profile-back-btn { border-color: var(--muted); color: var(--muted); }
+.profile-back-btn:hover { border-color: var(--text); color: var(--text); }
+
+.profile-header-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  letter-spacing: 0.08em;
+}
+
+.profile-studio-btn { white-space: nowrap; }
+
+/* ── 3D Card Area ──────────────────────────────────────────────────────── */
+.profile-card-area {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 24px 40px;
+}
+
+.profile-card-container {
+  perspective: 1200px;
+  width: 360px;
+  height: 500px;
+}
+
+.profile-card-3d {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  cursor: pointer;
+}
+
+.profile-card-3d.flipped {
+  transform: perspective(800px) rotateY(180deg);
+}
+
+.profile-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 2px solid var(--profile-color, var(--accent));
+  box-shadow:
+    0 0 30px color-mix(in srgb, var(--profile-color) 30%, transparent),
+    0 0 60px color-mix(in srgb, var(--profile-color) 15%, transparent),
+    inset 0 0 30px rgba(0,0,0,0.4);
+  background: linear-gradient(145deg, #111115 0%, #0a0a0c 50%, #111115 100%);
+}
+
+.profile-card-glare {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  border-radius: 20px;
+}
+
+.profile-card-holo {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: linear-gradient(
+    125deg,
+    transparent 0%,
+    rgba(255,255,255,0.03) 20%,
+    rgba(255,255,255,0.08) 40%,
+    transparent 50%,
+    rgba(255,255,255,0.05) 65%,
+    transparent 80%
+  );
+  mix-blend-mode: overlay;
+  animation: holo-shift 6s ease-in-out infinite alternate;
+}
+
+@keyframes holo-shift {
+  0%   { opacity: 0.4; filter: hue-rotate(0deg); }
+  50%  { opacity: 0.7; filter: hue-rotate(30deg); }
+  100% { opacity: 0.4; filter: hue-rotate(-30deg); }
+}
+
+/* Front face */
+.profile-card-front { display: flex; flex-direction: column; }
+
+.profile-card-video-wrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(255,255,255,0.03) 0%, transparent 70%);
+}
+
+.profile-card-video, .profile-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-card-info {
+  padding: 20px 24px 16px;
+  text-align: center;
+  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding-bottom: 44px;
+}
+
+.profile-card-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  color: var(--profile-color, var(--accent));
+  text-shadow: 0 0 20px color-mix(in srgb, var(--profile-color) 50%, transparent);
+}
+
+.profile-card-genre {
+  font-size: 0.85rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+}
+
+.profile-card-tag {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--profile-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--profile-color) 30%, transparent);
+  color: var(--profile-color, var(--accent));
+}
+
+.profile-card-flip-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 8;
+}
+
+/* Back face */
+.profile-card-back {
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-card-back-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px 44px;
+  text-align: center;
+  overflow-y: auto;
+}
+
+.profile-card-avatar {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  border-radius: 50%;
+  border: 2px solid var(--profile-color, var(--accent));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--profile-color) 30%, transparent);
+  margin-bottom: 16px;
+  background: rgba(0,0,0,0.3);
+}
+
+.profile-card-bio {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 12px;
+  max-width: 280px;
+}
+
+/* ── Sections below card ───────────────────────────────────────────────── */
+.profile-sections {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 20px 28px 60px;
+}
+
+.profile-section {
+  margin-bottom: 40px;
+}
+
+.profile-section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  color: var(--profile-color, var(--accent));
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--profile-color) 20%, transparent);
+}
+
+.profile-section-text {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.profile-media-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.profile-media-thumb {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.profile-media-thumb img,
+.profile-media-thumb video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-enter-studio {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.profile-enter-studio .btn-gold {
+  max-width: 400px;
+  padding: 14px 32px;
+  font-size: 1.1rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    MOBILE RESPONSIVE
    ═══════════════════════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
@@ -1320,6 +1594,10 @@ textarea { resize: vertical; min-height: 72px; }
   .dash-grid { grid-template-columns: 1fr 1fr; }
 
   .select-tagline { margin-bottom: 28px; }
+
+  .profile-card-container { width: 300px; height: 420px; }
+  .profile-header { flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .profile-media-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 480px) {
@@ -1327,5 +1605,6 @@ textarea { resize: vertical; min-height: 72px; }
   .wolf-card { padding: 12px 8px; }
   .wolf-img-wrap { width: 56px; height: 56px; }
   .studio-brand { font-size: 0.85rem; }
+  .profile-card-container { width: 260px; height: 370px; }
   .artist-name-header, .artist-dot { display: none; }
 }

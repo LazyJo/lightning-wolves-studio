@@ -17,11 +17,16 @@ const WOLVES = [
 ]
 
 const PACK_MEMBERS = [
-  { name: 'Lazy Jo',        role: 'Melodic Hip-Hop', tag: 'Founder · Artist',   color: '#f5c518', image: 'wolf-yellow.png' },
-  { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png' },
-  { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png' },
-  { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#64b5f6', image: 'drippydesigns-logo.png', emoji: null, halfColor: '#e8e8e8' },
-  { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.png', emoji: null },
+  { name: 'Lazy Jo',        role: 'Melodic Hip-Hop', tag: 'Founder · Artist',   color: '#f5c518', image: 'wolf-yellow.png',
+    bio: 'Founder of Lightning Wolves. Melodic Hip-Hop artist blending introspective lyrics with cinematic beats. Building the future of independent music.' },
+  { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png',
+    bio: 'French Hip-Hop artist bringing raw energy and sharp wordplay. Representing the streets with authenticity and fire.' },
+  { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png',
+    bio: 'Pop and French Pop vocalist with a voice that cuts through. Bridging cultures through melody and emotion.' },
+  { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#64b5f6', image: 'drippydesigns-logo.png', emoji: null, halfColor: '#e8e8e8',
+    bio: 'Creative Director behind every cover, trailer, and visual identity. Turning sound into art you can see.' },
+  { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.png', emoji: null,
+    bio: 'The eye behind the lens. Capturing the pack in motion — photos, videos, and everything in between.' },
 ]
 
 const WOLF_NAMES = PACK_MEMBERS.map(m => m.name)
@@ -247,7 +252,7 @@ function AuthPage({ supabase, onAuth, onGuest }) {
 }
 
 // ─── Wolf Select Page ─────────────────────────────────────────────────────────
-function WolfSelectPage({ onSelectWolf }) {
+function WolfSelectPage({ onSelectWolf, onViewProfile }) {
   return (
     <div id="wolf-select-page" className="page">
       <header className="select-header">
@@ -268,7 +273,7 @@ function WolfSelectPage({ onSelectWolf }) {
                 <div className="wolf-genre-tag locked-tag">Coming Soon</div>
               </div>
             ) : (
-              <div key={wolf.id} className="wolf-card active" onClick={() => onSelectWolf(wolf)}>
+              <div key={wolf.id} className="wolf-card active" onClick={() => onViewProfile(wolf)}>
                 <div className="wolf-img-wrap">
                   {wolf.video
                     ? <video className="wolf-video" src={`/${wolf.video}`} autoPlay loop muted playsInline
@@ -1022,6 +1027,167 @@ function LimitModal({ onClose, onSignup }) {
   )
 }
 
+// ─── Wolf Profile Page (3D Pokemon Card) ─────────────────────────────────────
+function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
+  const [flipped, setFlipped] = useState(false)
+  const cardRef = useRef(null)
+  const glareRef = useRef(null)
+  const member = PACK_MEMBERS.find(m => m.name === wolf.artist) || {}
+  const photos = lsGet(LW_VISUALS_KEY).filter(v => v.wolf === wolf.artist).slice(0, 6)
+  const covers = lsGet(LW_COVERS_KEY).filter(v => v.wolf === wolf.artist).slice(0, 6)
+
+  function handleMouseMove(e) {
+    const card = cardRef.current
+    if (!card) return
+    const rect = card.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    const centerX = rect.width / 2
+    const centerY = rect.height / 2
+    const rotateX = ((y - centerY) / centerY) * -12
+    const rotateY = ((x - centerX) / centerX) * 12
+    card.style.transform = `perspective(800px) rotateX(${rotateX}deg) rotateY(${rotateY + (flipped ? 180 : 0)}deg)`
+
+    if (glareRef.current) {
+      const gx = (x / rect.width) * 100
+      const gy = (y / rect.height) * 100
+      glareRef.current.style.background = `radial-gradient(circle at ${gx}% ${gy}%, rgba(255,255,255,0.25) 0%, transparent 60%)`
+    }
+  }
+
+  function handleMouseLeave() {
+    const card = cardRef.current
+    if (!card) return
+    card.style.transform = `perspective(800px) rotateX(0deg) rotateY(${flipped ? 180 : 0}deg)`
+    if (glareRef.current) glareRef.current.style.background = 'transparent'
+  }
+
+  function handleFlip() {
+    setFlipped(f => !f)
+    if (cardRef.current) {
+      cardRef.current.style.transform = `perspective(800px) rotateX(0deg) rotateY(${!flipped ? 180 : 0}deg)`
+    }
+  }
+
+  return (
+    <div className="profile-page" style={{ '--profile-color': wolf.color }}>
+      <LightningCanvas wolfColor={wolf.color} />
+
+      <header className="profile-header">
+        <button className="btn-outline profile-back-btn" onClick={onBack}>← Back</button>
+        <span className="profile-header-name" style={{ color: wolf.color }}>{wolf.artist}</span>
+        <button className="btn-gold profile-studio-btn" onClick={onEnterStudio}>
+          Enter Studio as {wolf.artist}
+        </button>
+      </header>
+
+      <div className="profile-card-area">
+        <div className="profile-card-container"
+          onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+          <div ref={cardRef} className={`profile-card-3d${flipped ? ' flipped' : ''}`} onClick={handleFlip}>
+
+            {/* FRONT */}
+            <div className="profile-card-face profile-card-front">
+              <div ref={glareRef} className="profile-card-glare"></div>
+              <div className="profile-card-holo"></div>
+              <div className="profile-card-video-wrap">
+                {wolf.video
+                  ? <video className="profile-card-video" src={`/${wolf.video}`} autoPlay loop muted playsInline
+                      onError={e => { e.target.style.display='none'; e.target.nextSibling && (e.target.nextSibling.style.display='block') }} />
+                  : null}
+                <img className="profile-card-img" src={`/${wolf.image}`} alt={wolf.artist}
+                  style={wolf.video ? {display:'none'} : {}} onError={e => e.target.style.display='none'} />
+              </div>
+              <div className="profile-card-info">
+                <div className="profile-card-name">{wolf.artist}</div>
+                <div className="profile-card-genre">{wolf.genre}</div>
+                {member.tag && <div className="profile-card-tag">{member.tag}</div>}
+              </div>
+              <div className="profile-card-flip-hint">Click to flip</div>
+            </div>
+
+            {/* BACK */}
+            <div className="profile-card-face profile-card-back">
+              <div className="profile-card-glare"></div>
+              <div className="profile-card-holo"></div>
+              <div className="profile-card-back-content">
+                <img className="profile-card-avatar" src={`/${member.image || wolf.image}`} alt={wolf.artist}
+                  onError={e => e.target.style.display='none'} />
+                <div className="profile-card-name">{wolf.artist}</div>
+                <div className="profile-card-genre">{member.role}</div>
+                {member.bio && <p className="profile-card-bio">{member.bio}</p>}
+                {member.tag && <div className="profile-card-tag">{member.tag}</div>}
+              </div>
+              <div className="profile-card-flip-hint">Click to flip back</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sections below the card */}
+      <div className="profile-sections">
+        {/* Bio */}
+        <section className="profile-section">
+          <h3 className="profile-section-title">About</h3>
+          <p className="profile-section-text">{member.bio || `${wolf.artist} is part of the Lightning Wolves pack.`}</p>
+        </section>
+
+        {/* Music */}
+        <section className="profile-section">
+          <h3 className="profile-section-title">Music</h3>
+          <div className="profile-section-text profile-music-placeholder">
+            <div className="empty-state"><div className="empty-icon">🎵</div><div>Tracks coming soon.</div></div>
+          </div>
+        </section>
+
+        {/* Photos */}
+        <section className="profile-section">
+          <h3 className="profile-section-title">Photos</h3>
+          {photos.length ? (
+            <div className="profile-media-grid">
+              {photos.map(p => (
+                <div key={p.id} className="profile-media-thumb">
+                  {p.type === 'video'
+                    ? <video src={p.data} muted preload="metadata" />
+                    : <img src={p.data} alt={p.name} loading="lazy" />}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state"><div className="empty-icon">📸</div><div>No photos yet.</div></div>
+          )}
+        </section>
+
+        {/* Covers */}
+        <section className="profile-section">
+          <h3 className="profile-section-title">Covers</h3>
+          {covers.length ? (
+            <div className="profile-media-grid">
+              {covers.map(c => (
+                <div key={c.id} className="profile-media-thumb">
+                  {c.type === 'video'
+                    ? <video src={c.data} muted preload="metadata" />
+                    : <img src={c.data} alt={c.name} loading="lazy" />}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state"><div className="empty-icon">🎨</div><div>No covers yet.</div></div>
+          )}
+        </section>
+
+        {isMember && (
+          <div className="profile-enter-studio">
+            <button className="btn-gold btn-full" onClick={onEnterStudio}>
+              Enter Studio as {wolf.artist} ⚡
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── Nav Bar ─────────────────────────────────────────────────────────────────
 function NavBar({ section, onNavigate, isMember }) {
   const sections = [
@@ -1129,6 +1295,7 @@ export default function App() {
   const [showLimitModal,   setShowLimitModal]   = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [testMemberMode,   setTestMemberMode]   = useState(false)
+  const [profileWolf,      setProfileWolf]      = useState(null)
 
   // Apply wolf theme CSS variables
   useEffect(() => {
@@ -1207,7 +1374,16 @@ export default function App() {
       <LightningCanvas wolfColor={wolf?.color || '#f5c518'} />
 
       {page === 'wolf-select' && (
-        <WolfSelectPage onSelectWolf={handleSelectWolf} />
+        <WolfSelectPage onSelectWolf={handleSelectWolf} onViewProfile={w => { setProfileWolf(w); setPage('profile') }} />
+      )}
+
+      {page === 'profile' && profileWolf && (
+        <WolfProfilePage
+          wolf={profileWolf}
+          isMember={profile?.role === 'member' || testMemberMode}
+          onBack={() => setPage('wolf-select')}
+          onEnterStudio={() => { handleSelectWolf(profileWolf) }}
+        />
       )}
 
       {page === 'auth' && (

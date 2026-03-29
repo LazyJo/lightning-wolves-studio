@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import LyricVideo from './LyricVideo'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
@@ -1293,6 +1294,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
 function NavBar({ section, onNavigate, isMember }) {
   const sections = [
     { id: 'studio', label: 'Studio', membersOnly: false },
+    { id: 'lyric-video', label: 'Lyric Video', membersOnly: false },
     { id: 'tracks', label: 'Tracks', membersOnly: true },
     { id: 'visuals', label: 'Visuals', membersOnly: true },
     { id: 'covers', label: 'Covers', membersOnly: true },
@@ -1366,6 +1368,7 @@ function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, o
           onChangeWolf={onChangeWolf} onShowAuth={onShowAuth} onSignOut={onSignOut}
           onOpenDashboard={onOpenDashboard} onShowLimitModal={onShowLimitModal} onShowUpgradeModal={onShowUpgradeModal} />
       )}
+      {section === 'lyric-video' && <LyricVideo wolfColor={wolf?.color} />}
       {section === 'tracks' && <TracksPage onLoadTrack={handleLoadTrack} />}
       {section === 'visuals' && (
         <GalleryPage title="VISUALS" icon="📸"

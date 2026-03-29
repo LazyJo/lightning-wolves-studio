@@ -71,7 +71,7 @@ module.exports = async function handler(req, res) {
       file: fs.createReadStream(tmpPath),
       model: 'whisper-1',
       response_format: 'verbose_json',
-      timestamp_granularities: ['segment'],
+      timestamp_granularities: ['word', 'segment'],
     });
 
     const transcriptLines = (transcription.segments || []).map((seg) => ({
@@ -79,8 +79,15 @@ module.exports = async function handler(req, res) {
       text: seg.text.trim(),
     }));
 
-    console.log(`[transcribe] success — ${transcriptLines.length} segments`);
-    return res.json({ transcriptLines });
+    // Word-level timestamps for lyric video
+    const words = (transcription.words || []).map((w) => ({
+      word: w.word,
+      start: w.start,
+      end: w.end,
+    }));
+
+    console.log(`[transcribe] success — ${transcriptLines.length} segments, ${words.length} words`);
+    return res.json({ transcriptLines, words });
 
   } catch (err) {
     console.error('[transcribe] error:', err.message);

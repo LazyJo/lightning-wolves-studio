@@ -316,37 +316,93 @@ a:hover { text-decoration: underline; }
   border-radius: 8px;
 }
 
-/* Public Card */
-.public-card {
+/* ── Lone Wolf Section ──────────────────────────────────────────────────── */
+.lone-wolf-section {
   max-width: 600px;
   margin: 0 auto;
-  background: linear-gradient(135deg, rgba(245,197,24,0.08), rgba(232,135,10,0.05));
-  border: 1px solid rgba(245, 197, 24, 0.3);
-  border-radius: 16px;
-  padding: 20px 28px;
+  padding-top: 12px;
 }
 
-.public-card-inner {
+.lone-wolf-divider {
   display: flex;
   align-items: center;
   gap: 16px;
+  margin-bottom: 20px;
 }
 
-.public-card-icon { font-size: 2rem; }
+.lone-wolf-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
 
-.public-card-title {
+.lone-wolf-divider-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.9rem;
+  color: var(--muted);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+.lone-wolf-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 24px;
+  transition: border-color 0.2s;
+}
+
+.lone-wolf-card:hover {
+  border-color: #9E9E9E;
+}
+
+.lone-wolf-icon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+.lone-wolf-img {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  opacity: 0.7;
+  filter: grayscale(0.3);
+}
+
+.lone-wolf-info { flex: 1; }
+
+.lone-wolf-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.3rem;
-  letter-spacing: 0.05em;
-  color: var(--accent);
+  font-size: 1.2rem;
+  letter-spacing: 0.06em;
+  color: #9E9E9E;
 }
 
-.public-card-desc {
+.lone-wolf-desc {
   font-size: 0.85rem;
   color: var(--muted);
+  margin-top: 2px;
 }
 
-.public-card-text { flex: 1; text-align: left; }
+.btn-lone-wolf {
+  border-color: #9E9E9E;
+  color: #9E9E9E;
+  white-space: nowrap;
+}
+
+.btn-lone-wolf:hover {
+  background: rgba(158, 158, 158, 0.1);
+  border-color: #bbb;
+  color: #ccc;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    STUDIO PAGE
@@ -432,6 +488,12 @@ a:hover { text-decoration: underline; }
   background: rgba(155, 109, 255, 0.15);
   border-color: var(--purple);
   color: var(--purple);
+}
+
+.plan-badge.lone-wolf {
+  background: rgba(158, 158, 158, 0.15);
+  border-color: #9E9E9E;
+  color: #9E9E9E;
 }
 
 /* ── Main Navigation Bar ──────────────────────────────────────────────── */
@@ -1246,6 +1308,50 @@ textarea { resize: vertical; min-height: 72px; }
   justify-content: center;
 }
 
+/* ── Upgrade Modal ─────────────────────────────────────────────────────── */
+.upgrade-modal-box {
+  max-width: 420px;
+}
+
+.upgrade-price {
+  margin: 20px 0 16px;
+}
+
+.upgrade-amount {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 3rem;
+  letter-spacing: 0.04em;
+  color: var(--wolf-color, var(--accent));
+}
+
+.upgrade-period {
+  font-size: 1rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.upgrade-perks {
+  list-style: none;
+  text-align: left;
+  max-width: 280px;
+  margin: 0 auto 28px;
+}
+
+.upgrade-perks li {
+  padding: 6px 0;
+  font-size: 0.9rem;
+  color: var(--text);
+  position: relative;
+  padding-left: 22px;
+}
+
+.upgrade-perks li::before {
+  content: '⚡';
+  position: absolute;
+  left: 0;
+  font-size: 0.75rem;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    BUTTONS
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -1312,7 +1418,8 @@ textarea { resize: vertical; min-height: 72px; }
 
   .wolf-genre-tag { font-size: 0.6rem; padding: 2px 6px; }
 
-  .public-card-inner { flex-wrap: wrap; }
+  .lone-wolf-card { flex-wrap: wrap; justify-content: center; text-align: center; }
+  .lone-wolf-info { text-align: center; }
 
   .studio-body { flex-direction: column; }
 

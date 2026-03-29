@@ -176,15 +176,22 @@
       </div>
     </div>
 
-    <!-- Public access card -->
-    <div class="public-card">
-      <div class="public-card-inner">
-        <div class="public-card-icon">⚡</div>
-        <div class="public-card-text">
-          <div class="public-card-title">Join the Pack</div>
-          <div class="public-card-desc">3 free generations/month — no commitment</div>
+    <!-- Lone Wolf access -->
+    <div class="lone-wolf-section">
+      <div class="lone-wolf-divider">
+        <span class="lone-wolf-divider-line"></span>
+        <span class="lone-wolf-divider-text">Not in the pack yet?</span>
+        <span class="lone-wolf-divider-line"></span>
+      </div>
+      <div class="lone-wolf-card">
+        <div class="lone-wolf-icon">
+          <img src="/wolf-gray.svg" alt="Lone Wolf" class="lone-wolf-img" onerror="this.parentElement.textContent='🐺'" />
         </div>
-        <button class="btn-gold" id="enter-public-studio">Enter Studio</button>
+        <div class="lone-wolf-info">
+          <div class="lone-wolf-title">Lone Wolf</div>
+          <div class="lone-wolf-desc">Try the Studio with 3 free generations — no account needed.</div>
+        </div>
+        <button class="btn-outline btn-lone-wolf" id="enter-lone-wolf">Enter as Lone Wolf</button>
       </div>
     </div>
   </main>
@@ -565,7 +572,33 @@
   </div>
 </div>
 
-<!-- ═══ LIMIT MODAL ════════════════════════════════════════════════════════ -->
+<!-- ═══ JOIN THE PACK MODAL ═════════════════════════════════════════════════ -->
+<div id="upgrade-modal" class="modal-overlay hidden">
+  <div class="modal-box upgrade-modal-box">
+    <div class="modal-icon">🐺</div>
+    <h2 class="modal-title">Join the Pack</h2>
+    <p class="modal-body">
+      You've used your <strong>3 free generations</strong>.<br/>
+      Upgrade to Wolf Pack for unlimited access.
+    </p>
+    <div class="upgrade-price">
+      <span class="upgrade-amount">$9</span>
+      <span class="upgrade-period">/month</span>
+    </div>
+    <ul class="upgrade-perks">
+      <li>Unlimited generations</li>
+      <li>Save &amp; manage your Tracks</li>
+      <li>Access Visuals, Covers &amp; The Pack</li>
+      <li>Earn 40% revenue on referrals</li>
+    </ul>
+    <div class="modal-actions">
+      <button class="btn-gold btn-full" id="upgrade-signup">JOIN THE PACK</button>
+      <button class="btn-ghost" id="upgrade-close">Not Now</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LIMIT MODAL (legacy/server-side) ══════════════════════════════════ -->
 <div id="limit-modal" class="modal-overlay hidden">
   <div class="modal-box">
     <div class="modal-icon">⚡</div>

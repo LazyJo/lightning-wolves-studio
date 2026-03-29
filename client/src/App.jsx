@@ -296,7 +296,7 @@ function WolfSelectPage({ onSelectWolf, onViewProfile, onShowAuth, onPricing }) 
   return (
     <div id="wolf-select-page" className="page">
       <header className="select-header">
-        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" className="header-logo" onError={e => e.target.style.display='none'} />
+        <img src="/logo.png" alt="Lightning Wolves" className="header-logo clickable-logo" onError={e => e.target.style.display='none'} />
         <div className="select-header-actions">
           <button className="btn-outline btn-sm" onClick={onPricing}>Pricing</button>
           <button className="btn-gold btn-sm" onClick={onShowAuth}>Sign In</button>

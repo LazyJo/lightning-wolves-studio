@@ -1775,65 +1775,45 @@ textarea { resize: vertical; min-height: 72px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   LYRIC VIDEO CREATOR
+   LYRIC VIDEO (EMBEDDED IN STUDIO)
    ═══════════════════════════════════════════════════════════════════════════ */
-.lyric-video-page { flex: 1; display: flex; flex-direction: column; overflow-y: auto; }
 
-.lv-upload-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 24px; gap: 28px; }
-.lv-upload-hero { text-align: center; }
-.lv-upload-icon { font-size: 3rem; margin-bottom: 8px; }
-.lv-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 0.08em; color: var(--lv-color, var(--accent)); }
-.lv-subtitle { color: var(--muted); font-size: 0.95rem; margin-top: 6px; }
+/* Left panel controls */
+.lv-studio-section { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 6px; }
 
-.lv-upload-zone { width: 100%; max-width: 480px; border: 2px dashed var(--border); border-radius: 16px; padding: 40px 24px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
-.lv-upload-zone:hover { border-color: var(--lv-color, var(--accent)); background: rgba(245, 197, 24, 0.03); }
-.lv-drop-icon { font-size: 2rem; margin-bottom: 8px; }
-.lv-drop-text { font-size: 1rem; color: var(--text); }
-.lv-drop-sub { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+.lv-studio-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.85rem; color: var(--text); }
+.lv-studio-toggle input[type="checkbox"] { accent-color: var(--wolf-color, var(--accent)); width: 16px; height: 16px; }
+.lv-studio-toggle-text { font-weight: 500; letter-spacing: 0.02em; }
 
-.lv-file-ready { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.lv-file-icon { font-size: 2rem; color: #3ddc84; }
-.lv-file-name { font-size: 0.95rem; color: var(--text); }
-.lv-file-size { font-size: 0.8rem; color: var(--muted); }
-.lv-process-btn { padding: 14px 36px; font-size: 1.1rem; }
+.lv-studio-options { margin-top: 10px; padding-left: 24px; }
 
-.lv-processing { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
-.lv-spinner { width: 48px; height: 48px; border: 3px solid var(--border); border-top-color: var(--lv-color, var(--accent)); border-radius: 50%; animation: lv-spin 0.8s linear infinite; }
-@keyframes lv-spin { to { transform: rotate(360deg); } }
-.lv-processing-text { font-size: 1rem; color: var(--lv-color, var(--accent)); letter-spacing: 0.04em; }
+.lv-studio-styles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 
-.lv-preview-layout { flex: 1; display: flex; gap: 0; overflow: hidden; }
-.lv-player-wrap { flex: 1; position: relative; background: #000; display: flex; align-items: center; justify-content: center; min-width: 0; }
-.lv-video { width: 100%; height: 100%; object-fit: contain; }
-.lv-canvas-overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.lv-studio-style-btn {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 0.75rem; letter-spacing: 0.04em;
+  padding: 4px 10px; border-radius: 6px; cursor: pointer;
+  background: var(--card); border: 1px solid var(--border); color: var(--muted);
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+}
+.lv-studio-style-btn:hover { border-color: var(--wolf-color, var(--accent)); color: var(--text); }
+.lv-studio-style-btn.active { border-color: var(--wolf-color, var(--accent)); color: var(--wolf-color, var(--accent)); background: rgba(245, 197, 24, 0.08); }
 
-.lv-controls { width: 320px; flex-shrink: 0; background: var(--surface); border-left: 1px solid var(--border); padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
-.lv-controls-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.06em; color: var(--lv-color, var(--accent)); }
+.lv-studio-toggle-sub { margin-top: 0; }
 
-.lv-style-grid { display: flex; flex-direction: column; gap: 8px; }
-.lv-style-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; text-align: left; cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; }
-.lv-style-card:hover { border-color: var(--lv-color, var(--accent)); }
-.lv-style-card.active { border-color: var(--lv-color, var(--accent)); box-shadow: 0 0 12px color-mix(in srgb, var(--lv-color, var(--accent)) 25%, transparent); background: color-mix(in srgb, var(--lv-color, var(--accent)) 5%, var(--card)); }
-.lv-style-name { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.06em; color: var(--text); }
-.lv-style-card.active .lv-style-name { color: var(--lv-color, var(--accent)); }
-.lv-style-desc { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+/* Right panel preview tab */
+.lv-preview-panel { display: flex; flex-direction: column; gap: 12px; padding: 0 !important; }
 
-.lv-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.lv-toggle-label { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text); cursor: pointer; }
-.lv-toggle-label input[type="checkbox"] { accent-color: var(--lv-color, var(--accent)); }
-.lv-beat-count { font-size: 0.7rem; color: var(--muted); }
+.lv-inline-player { position: relative; background: #000; border-radius: 8px; overflow: hidden; }
+.lv-inline-video { width: 100%; display: block; max-height: 400px; }
+.lv-inline-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
-.lv-stats { display: flex; gap: 16px; }
-.lv-stat { font-size: 0.8rem; color: var(--muted); }
-.lv-stat-num { color: var(--lv-color, var(--accent)); font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; margin-right: 4px; }
+.lv-inline-controls { padding: 12px 16px; }
+.lv-inline-stats { display: flex; gap: 14px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); margin-bottom: 10px; }
+.lv-inline-stats strong { color: var(--wolf-color, var(--accent)); }
+.lv-inline-actions { display: flex; gap: 8px; }
 
-.lv-actions { display: flex; flex-direction: column; gap: 8px; }
-.lv-export-btn { width: 100%; padding: 12px; font-size: 1rem; }
-.lv-reset-btn { width: 100%; }
-.lv-progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-.lv-progress-fill { height: 100%; background: var(--lv-color, var(--accent)); transition: width 0.3s ease; border-radius: 2px; }
-
-.lv-error { padding: 12px 20px; margin: 12px 20px; background: rgba(255, 68, 85, 0.1); border: 1px solid rgba(255, 68, 85, 0.3); border-radius: 8px; color: #ff4455; font-size: 0.85rem; }
+.lv-progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 8px; }
+.lv-progress-fill { height: 100%; background: var(--wolf-color, var(--accent)); transition: width 0.3s ease; border-radius: 2px; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    MOBILE RESPONSIVE

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
-import LyricVideo from './LyricVideo'
+import { LYRIC_STYLES, detectBeats, drawLyricFrame, generateASS } from './LyricVideo'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
@@ -369,6 +369,20 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
   const fileInputRef = useRef(null)
   const isLoneWolf = !user && wolf?.id === 'lone-wolf'
 
+  // Lyric Video state
+  const [lvEnabled,    setLvEnabled]    = useState(false)
+  const [lvStyle,      setLvStyle]      = useState(LYRIC_STYLES[0])
+  const [lvBeatFx,     setLvBeatFx]     = useState(true)
+  const [lvWords,      setLvWords]      = useState([])
+  const [lvSegments,   setLvSegments]   = useState([])
+  const [lvBeats,      setLvBeats]      = useState([])
+  const [lvVideoUrl,   setLvVideoUrl]   = useState(null)
+  const [lvExporting,  setLvExporting]  = useState(false)
+  const [lvExportProg, setLvExportProg] = useState(0)
+  const lvVideoRef = useRef(null)
+  const lvCanvasRef = useRef(null)
+  const lvAnimRef = useRef(null)
+
   // Restore last pack from localStorage on mount
   useEffect(() => {
     try {
@@ -401,12 +415,13 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     try {
       // ── Whisper transcription via /api/transcribe ──────────────────────
       let transcriptLines = null
+      let transcribeData = null
       if (uploadedFile) {
         setUploadInfo({ text: `Transcribing ${uploadedFile.name}…`, color: null })
         const fd = new FormData()
         fd.append('file', uploadedFile)
         const transcribeRes = await fetch('/api/transcribe', { method: 'POST', body: fd })
-        const transcribeData = await transcribeRes.json()
+        transcribeData = await transcribeRes.json()
         if (!transcribeRes.ok) {
           setUploadInfo({ text: `Transcription error: ${transcribeData.error}`, color: '#ff4455' })
           setGenerating(false)
@@ -441,6 +456,35 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
       if (isLoneWolf) incrementLoneWolfGenCount()
       setPack(json.pack)
       setMeta(json.meta)
+
+      // Lyric Video: if enabled + video file uploaded, run beat detection and build preview data
+      if (lvEnabled && uploadedFile && uploadedFile.type.startsWith('video/')) {
+        try {
+          setUploadInfo({ text: 'Analyzing beats…', color: null })
+          const detectedBeats = await detectBeats(uploadedFile)
+          setLvBeats(detectedBeats)
+
+          // Build word + segment data from transcription
+          const wordData = (transcribeData?.words || []).map(w => ({ word: w.word?.trim(), start: w.start, end: w.end })).filter(w => w.word)
+          const segData = (transcribeData?.transcriptLines || json.pack.lyrics || []).map(line => {
+            if (line.startTime !== undefined) return line
+            const parts = (line.ts || '0:00').split(':')
+            return { text: line.text, startTime: parseInt(parts[0]) * 60 + parseInt(parts[1]), endTime: 0 }
+          })
+          for (let i = 0; i < segData.length - 1; i++) segData[i].endTime = segData[i + 1].startTime
+          if (segData.length) segData[segData.length - 1].endTime = segData[segData.length - 1].startTime + 5
+
+          setLvWords(wordData)
+          setLvSegments(segData)
+          if (lvVideoUrl) URL.revokeObjectURL(lvVideoUrl)
+          setLvVideoUrl(URL.createObjectURL(uploadedFile))
+          setActiveTab('video')
+          setUploadInfo({ text: `✓ Lyric video ready · ${detectedBeats.filter(b => b.isDrop).length} beat drops`, color: '#3ddc84' })
+        } catch (beatErr) {
+          console.warn('Beat detection failed:', beatErr)
+          setUploadInfo({ text: `✓ Transcribed (beat detection skipped)`, color: '#ffaa00' })
+        }
+      }
     } catch (err) {
       setGenError(err.message)
     } finally {
@@ -479,6 +523,59 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     setSavedMsg('Saved!')
     setTimeout(() => setSavedMsg(''), 2000)
   }
+
+  // Lyric Video: canvas animation loop
+  useEffect(() => {
+    if (activeTab !== 'video' || !lvCanvasRef.current || !lvVideoRef.current || !lvSegments.length) return
+    const canvas = lvCanvasRef.current
+    const ctx = canvas.getContext('2d')
+    const video = lvVideoRef.current
+    function frame() {
+      canvas.width = video.videoWidth || 1280
+      canvas.height = video.videoHeight || 720
+      drawLyricFrame(ctx, canvas.width, canvas.height, video.currentTime, lvWords, lvSegments, lvStyle, wolf?.color || '#f5c518', lvBeats, lvBeatFx)
+      lvAnimRef.current = requestAnimationFrame(frame)
+    }
+    lvAnimRef.current = requestAnimationFrame(frame)
+    return () => { if (lvAnimRef.current) cancelAnimationFrame(lvAnimRef.current) }
+  }, [activeTab, lvWords, lvSegments, lvStyle, lvBeats, lvBeatFx, wolf?.color])
+
+  // Lyric Video: export
+  async function handleLvExport() {
+    if (!uploadedFile || !lvCanvasRef.current) return
+    setLvExporting(true); setLvExportProg(0)
+    try {
+      const { FFmpeg } = await import('https://esm.sh/@ffmpeg/ffmpeg@0.12.10')
+      const { fetchFile, toBlobURL } = await import('https://esm.sh/@ffmpeg/util@0.12.1')
+      const ffmpeg = new FFmpeg()
+      setLvExportProg(5)
+      const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm'
+      await ffmpeg.load({ coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'), wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm') })
+      setLvExportProg(15)
+      await ffmpeg.writeFile('input.mp4', await fetchFile(uploadedFile))
+      setLvExportProg(25)
+      const assContent = generateASS(lvWords, lvSegments, lvStyle, wolf?.color || '#f5c518')
+      await ffmpeg.writeFile('lyrics.ass', new TextEncoder().encode(assContent))
+      setLvExportProg(30)
+      ffmpeg.on('progress', ({ progress }) => setLvExportProg(30 + Math.floor(progress * 65)))
+      await ffmpeg.exec(['-i', 'input.mp4', '-vf', 'ass=lyrics.ass', '-c:a', 'copy', '-preset', 'fast', 'output.mp4'])
+      setLvExportProg(95)
+      const outputData = await ffmpeg.readFile('output.mp4')
+      const blob = new Blob([outputData.buffer], { type: 'video/mp4' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = `lyric-video-${Date.now()}.mp4`; a.click()
+      URL.revokeObjectURL(url)
+      setLvExportProg(100)
+      setTimeout(() => { setLvExporting(false); setLvExportProg(0) }, 2000)
+    } catch (err) {
+      setGenError(`Export failed: ${err.message}`)
+      setLvExporting(false); setLvExportProg(0)
+    }
+  }
+
+  // Cleanup lyric video URL
+  useEffect(() => { return () => { if (lvVideoUrl) URL.revokeObjectURL(lvVideoUrl) } }, [lvVideoUrl])
 
   const planBadge = isLoneWolf ? 'LONE WOLF' : (profile?.role === 'member' ? 'WOLF PACK' : (user ? 'FREE' : 'PUBLIC'))
   const planClass = isLoneWolf ? 'plan-badge lone-wolf' : (profile?.role === 'member' ? 'plan-badge member' : 'plan-badge')
@@ -539,6 +636,29 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
             <textarea rows="3" placeholder="e.g. Late night drive, introspective…" value={mood} onChange={e => setMood(e.target.value)}></textarea>
           </div>
 
+          {/* Lyric Video Section */}
+          <div className="lv-studio-section">
+            <label className="lv-studio-toggle">
+              <input type="checkbox" checked={lvEnabled} onChange={e => setLvEnabled(e.target.checked)} />
+              <span className="lv-studio-toggle-text">Auto-generate lyric video</span>
+            </label>
+            {lvEnabled && (
+              <div className="lv-studio-options">
+                <div className="lv-studio-styles">
+                  {LYRIC_STYLES.map(s => (
+                    <button key={s.id} className={`lv-studio-style-btn${lvStyle.id === s.id ? ' active' : ''}`} onClick={() => setLvStyle(s)}>
+                      {s.name}
+                    </button>
+                  ))}
+                </div>
+                <label className="lv-studio-toggle lv-studio-toggle-sub">
+                  <input type="checkbox" checked={lvBeatFx} onChange={e => setLvBeatFx(e.target.checked)} />
+                  <span className="lv-studio-toggle-text">Sync effects to beat drops</span>
+                </label>
+              </div>
+            )}
+          </div>
+
           <button className="btn-generate" onClick={handleGenerate} disabled={generating}>
             <span className="btn-lightning">⚡</span>
             <span className="btn-text">{generating ? (uploadedFile ? 'TRANSCRIBING…' : 'GENERATING…') : 'GENERATE'}</span>
@@ -577,9 +697,9 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
 
           <div className="tabs-wrap">
             <div className="tabs">
-              {['lyrics','srt','beats','prompts','tips'].map(t => (
+              {['lyrics','srt','beats','prompts','tips', ...(lvVideoUrl ? ['video'] : [])].map(t => (
                 <button key={t} className={`tab${activeTab===t?' active':''}`} onClick={() => setActiveTab(t)}>
-                  {t === 'srt' ? 'SRT' : t === 'beats' ? 'BEAT CUTS' : t === 'prompts' ? 'AI PROMPTS' : t === 'tips' ? 'VIDEO TIPS' : t.toUpperCase()}
+                  {t === 'srt' ? 'SRT' : t === 'beats' ? 'BEAT CUTS' : t === 'prompts' ? 'AI PROMPTS' : t === 'tips' ? 'VIDEO TIPS' : t === 'video' ? 'VIDEO PREVIEW' : t.toUpperCase()}
                 </button>
               ))}
             </div>
@@ -673,6 +793,32 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* VIDEO PREVIEW */}
+            {activeTab === 'video' && lvVideoUrl && (
+              <div className="tab-panel active lv-preview-panel">
+                <div className="lv-inline-player">
+                  <video ref={lvVideoRef} src={lvVideoUrl} className="lv-inline-video" controls playsInline />
+                  <canvas ref={lvCanvasRef} className="lv-inline-canvas" />
+                </div>
+                <div className="lv-inline-controls">
+                  <div className="lv-inline-stats">
+                    <span><strong>{lvWords.length}</strong> words</span>
+                    <span><strong>{lvSegments.length}</strong> lines</span>
+                    <span><strong>{lvBeats.filter(b => b.isDrop).length}</strong> beat drops</span>
+                    <span>Style: <strong>{lvStyle.name}</strong></span>
+                  </div>
+                  <div className="lv-inline-actions">
+                    <button className="btn-gold btn-sm" onClick={handleLvExport} disabled={lvExporting}>
+                      {lvExporting ? `Exporting… ${lvExportProg}%` : '⬇ Export Video'}
+                    </button>
+                  </div>
+                  {lvExporting && (
+                    <div className="lv-progress-bar"><div className="lv-progress-fill" style={{ width: `${lvExportProg}%` }}></div></div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -1294,7 +1440,6 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
 function NavBar({ section, onNavigate, isMember }) {
   const sections = [
     { id: 'studio', label: 'Studio', membersOnly: false },
-    { id: 'lyric-video', label: 'Lyric Video', membersOnly: false },
     { id: 'tracks', label: 'Tracks', membersOnly: true },
     { id: 'visuals', label: 'Visuals', membersOnly: true },
     { id: 'covers', label: 'Covers', membersOnly: true },
@@ -1368,7 +1513,6 @@ function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, o
           onChangeWolf={onChangeWolf} onShowAuth={onShowAuth} onSignOut={onSignOut}
           onOpenDashboard={onOpenDashboard} onShowLimitModal={onShowLimitModal} onShowUpgradeModal={onShowUpgradeModal} />
       )}
-      {section === 'lyric-video' && <LyricVideo wolfColor={wolf?.color} />}
       {section === 'tracks' && <TracksPage onLoadTrack={handleLoadTrack} />}
       {section === 'visuals' && (
         <GalleryPage title="VISUALS" icon="📸"

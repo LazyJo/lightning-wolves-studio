@@ -349,9 +349,26 @@ a:hover { text-decoration: underline; }
 .btn-lone-wolf { border-color: #9E9E9E; color: #9E9E9E; white-space: nowrap; }
 .btn-lone-wolf:hover { background: rgba(158, 158, 158, 0.1); border-color: #bbb; color: #ccc; }
 
-.lone-wolf-grid-card { cursor: pointer; opacity: 0.75; transition: opacity 0.2s; }
-.lone-wolf-grid-card:hover { opacity: 1; }
-.lone-wolf-emoji { font-size: 3.5rem; position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+.lone-wolf-grid-card {
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(245,197,24,0.12) 0%, rgba(232,135,10,0.08) 50%, rgba(245,197,24,0.12) 100%);
+  border: 1px solid rgba(245,197,24,0.4);
+  box-shadow: 0 0 18px rgba(245,197,24,0.15), inset 0 0 12px rgba(245,197,24,0.05);
+  animation: lone-wolf-shimmer 3s ease-in-out infinite;
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+.lone-wolf-grid-card:hover {
+  border-color: rgba(245,197,24,0.7);
+  box-shadow: 0 0 28px rgba(245,197,24,0.3), inset 0 0 16px rgba(245,197,24,0.08);
+}
+.lone-wolf-grid-card .wolf-name { color: #f5c518 !important; }
+.lone-wolf-grid-card .wolf-genre-tag { --tag-color: #f5c518 !important; color: #f5c518; border-color: rgba(245,197,24,0.5); background: rgba(245,197,24,0.12); }
+.lone-wolf-emoji { font-size: 3.5rem; position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; filter: drop-shadow(0 0 8px rgba(245,197,24,0.4)); }
+
+@keyframes lone-wolf-shimmer {
+  0%, 100% { box-shadow: 0 0 18px rgba(245,197,24,0.15), inset 0 0 12px rgba(245,197,24,0.05); }
+  50% { box-shadow: 0 0 26px rgba(245,197,24,0.25), inset 0 0 18px rgba(245,197,24,0.1); }
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    APP SHELL & NAVIGATION

@@ -1552,6 +1552,88 @@ textarea { resize: vertical; min-height: 72px; }
   object-fit: cover;
 }
 
+/* ── Acknowledgements Carousel ──────────────────────────────────────────── */
+.ack-carousel {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 8px 4px 16px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: var(--profile-color, var(--accent)) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ack-carousel::-webkit-scrollbar { height: 4px; }
+.ack-carousel::-webkit-scrollbar-track { background: transparent; }
+.ack-carousel::-webkit-scrollbar-thumb { background: var(--profile-color, var(--accent)); border-radius: 2px; }
+
+.ack-card {
+  flex: 0 0 180px;
+  scroll-snap-align: start;
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--profile-color, var(--accent)) 40%, transparent);
+  border-radius: 14px;
+  padding: 20px 16px;
+  text-align: center;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--profile-color, var(--accent)) 8%, transparent);
+}
+
+.ack-card:hover {
+  border-color: var(--profile-color, var(--accent));
+  box-shadow: 0 0 24px color-mix(in srgb, var(--profile-color, var(--accent)) 20%, transparent);
+}
+
+.ack-photo-wrap {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid color-mix(in srgb, var(--profile-color, var(--accent)) 50%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--profile-color, var(--accent)) 20%, transparent);
+  background: var(--surface);
+}
+
+.ack-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ack-photo-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  background: var(--surface);
+}
+
+.ack-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  color: var(--profile-color, var(--accent));
+  margin-bottom: 6px;
+}
+
+.ack-quote {
+  font-size: 0.8rem;
+  color: var(--text);
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.ack-context {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 6px;
+  letter-spacing: 0.04em;
+}
+
 .profile-enter-studio {
   margin-top: 40px;
   text-align: center;

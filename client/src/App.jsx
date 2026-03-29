@@ -19,7 +19,16 @@ const WOLVES = [
 const PACK_MEMBERS = [
   { name: 'Lazy Jo',        role: 'Melodic Hip-Hop', tag: 'Founder · Artist',   color: '#f5c518', image: 'wolf-yellow.png', photo: 'lazyjo-photo.jpg',
     cardBio: 'Belgian-Ghanaian artist from Brussels. Melodic flows, emotional hooks, unforgettable sound. Debut in 2018 — co-signed by Timbaland, Symba, DDG & More. 100K views and still rising.',
-    bio: 'Lazy Jo is a Belgian artist with Ghanaian roots, born in 1999 in Lomé, Togo and based in Brussels, Belgium. Immersed in music from an early age, he began shaping his sound at a young age and officially launched his career in February 2018 with his debut single "I\'m Lost." Known for his distinctive melodic flows, emotionally driven delivery, and unforgettable hooks, Lazy Jo creates music that lingers long after the first listen. His ability to craft catchy, memorable melodies has become a defining element of his artistry, setting him apart in a crowded music landscape. Driven by consistency and growth, Lazy Jo continues to evolve his sound while building a strong and authentic artistic presence. His dedication has not gone unnoticed — industry heavyweights such as Kelvyn Colt, Zaytoven, DDG, and Timbaland have recognized and supported his talent. Most recently, Lazy Jo reached a major milestone with his track "Stay Up," which surpassed 100,000 views, further cementing his rising influence and momentum within the music scene.' },
+    bio: 'Lazy Jo is a Belgian artist with Ghanaian roots, born in 1999 in Lomé, Togo and based in Brussels, Belgium. Immersed in music from an early age, he began shaping his sound at a young age and officially launched his career in February 2018 with his debut single "I\'m Lost." Known for his distinctive melodic flows, emotionally driven delivery, and unforgettable hooks, Lazy Jo creates music that lingers long after the first listen. His ability to craft catchy, memorable melodies has become a defining element of his artistry, setting him apart in a crowded music landscape. Driven by consistency and growth, Lazy Jo continues to evolve his sound while building a strong and authentic artistic presence. His dedication has not gone unnoticed — industry heavyweights such as Kelvyn Colt, Zaytoven, DDG, and Timbaland have recognized and supported his talent. Most recently, Lazy Jo reached a major milestone with his track "Stay Up," which surpassed 100,000 views, further cementing his rising influence and momentum within the music scene.',
+    acknowledgements: [
+      { name: 'Timbaland',    quote: '"This could be the best song"',             context: '',                   photo: 'timbaland.jpeg' },
+      { name: 'Symba',        quote: '"International as a M*****f****r"',          context: '',                   photo: 'symba.jpeg' },
+      { name: 'DDG',          quote: '"Next Up"',                                  context: 'On IG',             photo: 'DDG.jpeg' },
+      { name: 'Zaytoven',     quote: '"Liked Stay Up on IG"',                      context: '',                   photo: null },
+      { name: 'Kid Hazel',    quote: '"Songs was hard on ya page fam"',            context: 'DM on IG',          photo: 'kid-hazel.jpeg' },
+      { name: '6ix9ine',      quote: 'Met in real life, photo together',           context: '',                   photo: '6ix9ine.jpeg' },
+      { name: 'Kelvyn Colt',  quote: '"Go get it my G!!"',                         context: 'DM on IG',          photo: 'kelvyn-colt.jpeg' },
+    ] },
   { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png',
     bio: 'French Hip-Hop artist bringing raw energy and sharp wordplay. Representing the streets with authenticity and fire.' },
   { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png',
@@ -1132,6 +1141,27 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
           <h3 className="profile-section-title">About</h3>
           <p className="profile-section-text">{member.bio || `${wolf.artist} is part of the Lightning Wolves pack.`}</p>
         </section>
+
+        {/* Industry Acknowledgements */}
+        {member.acknowledgements?.length > 0 && (
+          <section className="profile-section">
+            <h3 className="profile-section-title">Industry Acknowledgements</h3>
+            <div className="ack-carousel">
+              {member.acknowledgements.map((ack, i) => (
+                <div key={i} className="ack-card" style={{ '--profile-color': wolf.color }}>
+                  <div className="ack-photo-wrap">
+                    {ack.photo
+                      ? <img className="ack-photo" src={`/${ack.photo}`} alt={ack.name} onError={e => e.target.parentElement.innerHTML='<div class="ack-photo-placeholder">🎤</div>'} />
+                      : <div className="ack-photo-placeholder">🎤</div>}
+                  </div>
+                  <div className="ack-name">{ack.name}</div>
+                  <div className="ack-quote">{ack.quote}</div>
+                  {ack.context && <div className="ack-context">{ack.context}</div>}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Music */}
         <section className="profile-section">

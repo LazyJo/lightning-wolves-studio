@@ -163,6 +163,13 @@ a:hover { text-decoration: underline; }
   z-index: 10;
 }
 
+.select-header-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .header-logo {
   height: 48px;
   width: auto;

@@ -248,7 +248,7 @@ function AuthPage({ supabase, onAuth, onGuest }) {
   return (
     <div id="auth-page" className="page">
       <div className="auth-container">
-        <img src="/lw-logo.png" alt="Lightning Wolves" className="auth-logo" onError={e => e.target.style.display='none'} />
+        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" className="auth-logo" onError={e => e.target.style.display='none'} />
         <div className="auth-wordmark">LIGHTNING WOLVES</div>
         <div className="auth-sub">Lyrics Studio</div>
 
@@ -292,11 +292,15 @@ function AuthPage({ supabase, onAuth, onGuest }) {
 }
 
 // ─── Wolf Select Page ─────────────────────────────────────────────────────────
-function WolfSelectPage({ onSelectWolf, onViewProfile }) {
+function WolfSelectPage({ onSelectWolf, onViewProfile, onShowAuth, onPricing }) {
   return (
     <div id="wolf-select-page" className="page">
       <header className="select-header">
-        <img src="/logo.png" alt="Lightning Wolves" className="header-logo" onError={e => e.target.style.display='none'} />
+        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" className="header-logo" onError={e => e.target.style.display='none'} />
+        <div className="select-header-actions">
+          <button className="btn-outline btn-sm" onClick={onPricing}>Pricing</button>
+          <button className="btn-gold btn-sm" onClick={onShowAuth}>Sign In</button>
+        </div>
       </header>
 
       <main className="select-main">
@@ -973,7 +977,7 @@ function PricingPage({ onBack, onSignup }) {
     <div className="pricing-page">
       <header className="pricing-header">
         <button className="btn-outline btn-sm" onClick={onBack}>← Back</button>
-        <img src="/lw-logo.png" alt="LW" style={{ height: 32, objectFit: 'contain' }} onError={e => e.target.style.display='none'} />
+        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="LW" style={{ height: 32, objectFit: 'contain' }} onError={e => e.target.style.display='none'} />
         <div style={{ width: 60 }}></div>
       </header>
 
@@ -1850,7 +1854,7 @@ export default function App() {
       <LightningCanvas wolfColor={wolf?.color || '#f5c518'} />
 
       {page === 'wolf-select' && (
-        <WolfSelectPage onSelectWolf={handleSelectWolf} onViewProfile={w => { setProfileWolf(w); setPage('profile') }} />
+        <WolfSelectPage onSelectWolf={handleSelectWolf} onViewProfile={w => { setProfileWolf(w); setPage('profile') }} onShowAuth={() => setPage('auth')} onPricing={() => setPage('pricing')} />
       )}
 
       {page === 'profile' && profileWolf && (

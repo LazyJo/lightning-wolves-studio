@@ -63,9 +63,11 @@ const PACK_MEMBERS = [
     ] },
   { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#64b5f6', image: 'drippydesigns-logo.png', emoji: null, halfColor: '#e8e8e8',
     bio: 'Creative Director behind every cover, trailer, and visual identity. Turning sound into art you can see.',
+    hideMusic: true,
     supportCards: [{ title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' }] },
   { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.png', emoji: null,
     bio: 'The eye behind the lens. Capturing the pack in motion — photos, videos, and everything in between.',
+    spotifyArtistId: '4Uagbm0Dkl6hpM96LEYCo9',
     supportCards: [{ title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' }] },
 ]
 
@@ -1572,21 +1574,23 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
         )}
 
         {/* Music */}
-        <section className="profile-section">
-          <h3 className="profile-section-title">{t('music', 'Music')}</h3>
-          {member.spotifyArtistId ? (
-            <div className="profile-spotify-embed">
-              <iframe
-                src={`https://open.spotify.com/embed/artist/${member.spotifyArtistId}?utm_source=generator&theme=0`}
-                width="100%" height="352" frameBorder="0"
-                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-                loading="lazy" style={{ borderRadius: '12px' }}
-              />
-            </div>
-          ) : (
-            <div className="empty-state"><div className="empty-icon">🎵</div><div>Tracks coming soon.</div></div>
-          )}
-        </section>
+        {!member.hideMusic && (
+          <section className="profile-section">
+            <h3 className="profile-section-title">{t('music', 'Music')}</h3>
+            {member.spotifyArtistId ? (
+              <div className="profile-spotify-embed">
+                <iframe
+                  src={`https://open.spotify.com/embed/artist/${member.spotifyArtistId}?utm_source=generator&theme=0`}
+                  width="100%" height="352" frameBorder="0"
+                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                  loading="lazy" style={{ borderRadius: '12px' }}
+                />
+              </div>
+            ) : (
+              <div className="empty-state"><div className="empty-icon">🎵</div><div>Tracks coming soon.</div></div>
+            )}
+          </section>
+        )}
 
         {/* Live Performance */}
         {member.performanceVideo && (

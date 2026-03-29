@@ -27,6 +27,7 @@ async function initSupabase() {
 // ─── App State ───────────────────────────────────────────────────────────────
 const state = {
   page: 'wolf-select',      // wolf-select | studio | dashboard | auth
+  section: 'studio',        // studio | tracks | visuals | covers | the-pack
   wolf: null,               // { id, color, artist, genre, image }
   user: null,               // Supabase user object
   profile: null,            // DB profile row
@@ -43,20 +44,79 @@ const show = el => el && el.classList.remove('hidden');
 const hide = el => el && el.classList.add('hidden');
 
 function showPage(name) {
-  ['wolf-select', 'studio', 'dashboard', 'auth'].forEach(p => {
-    const el = $(`${p}-page`) || $(`${p.replace('-select', '-select')}-page`);
+  // Hide all top-level pages
+  ['wolf-select-page', 'app-shell', 'dashboard-page', 'auth-page'].forEach(id => {
+    const el = $(id);
     if (el) hide(el);
   });
-  // Map names to element ids
-  const idMap = {
+
+  // Map page names to top-level element ids
+  const topPages = {
     'wolf-select': 'wolf-select-page',
-    'studio': 'studio-page',
     'dashboard': 'dashboard-page',
     'auth': 'auth-page',
   };
-  const el = $(idMap[name]);
-  if (el) show(el);
+
+  if (topPages[name]) {
+    const el = $(topPages[name]);
+    if (el) show(el);
+  } else {
+    // Any section inside the app-shell (studio, tracks, visuals, covers, the-pack)
+    show($('app-shell'));
+    showSection(name);
+  }
   state.page = name;
+}
+
+// ─── Section Navigation (inside app-shell) ───────────────────────────────
+const APP_SECTIONS = ['studio', 'tracks', 'visuals', 'covers', 'the-pack'];
+
+function showSection(name) {
+  APP_SECTIONS.forEach(s => {
+    const el = $(`${s}-page`);
+    if (el) hide(el);
+  });
+  const el = $(`${name}-page`);
+  if (el) show(el);
+  state.section = name;
+
+  // Update active nav link
+  document.querySelectorAll('.nav-link').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.nav === name);
+  });
+}
+
+function updateNavVisibility() {
+  const isMember = state.profile?.role === 'member';
+  document.querySelectorAll('.nav-link.members-only').forEach(btn => {
+    if (isMember) {
+      btn.classList.remove('hidden');
+    } else {
+      btn.classList.add('hidden');
+    }
+  });
+
+  // Upload zones: Visuals (Shiteux + Lazy Jo), Covers (Drippydesigns + Lazy Jo)
+  const name = (state.profile?.display_name || '').toLowerCase();
+  const wolfArtist = (state.wolf?.artist || '').toLowerCase();
+  const canUploadVisuals = name === 'shiteux' || name === 'lazy jo' || wolfArtist === 'lazy jo';
+  const canUploadCovers  = name === 'drippydesigns' || name === 'lazy jo' || wolfArtist === 'lazy jo';
+
+  const vizUpload = $('visuals-upload-zone');
+  const covUpload = $('covers-upload-zone');
+  if (vizUpload) { canUploadVisuals && isMember ? show(vizUpload) : hide(vizUpload); }
+  if (covUpload) { canUploadCovers && isMember ? show(covUpload) : hide(covUpload); }
+}
+
+function initNav() {
+  document.querySelectorAll('.nav-link').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const section = btn.dataset.nav;
+      showSection(section);
+    });
+  });
+  // Show/hide member-only links based on current role
+  updateNavVisibility();
 }
 
 // ─── Lightning Particle Canvas ───────────────────────────────────────────────
@@ -241,6 +301,15 @@ function updateStudioAuth() {
       badge.className = 'plan-badge';
     }
   }
+
+  // Update nav visibility for member-only links
+  updateNavVisibility();
+
+  // If non-member is on a members-only section, bounce to studio
+  const isMember = state.profile?.role === 'member';
+  if (!isMember && state.section !== 'studio') {
+    showSection('studio');
+  }
 }
 
 async function signOut() {
@@ -368,6 +437,7 @@ function selectWolf(wolf) {
   applyWolfTheme(wolf.color);
   loadStudio(wolf);
   showPage('studio');
+  updateNavVisibility();
 }
 
 // ─── Studio Setup ─────────────────────────────────────────────────────────────
@@ -838,6 +908,7 @@ async function init() {
   // Wire up pages
   initAuthPage();
   initWolfSelect();
+  initNav();
   initTabs();
   initGenerate();
   initUpload();

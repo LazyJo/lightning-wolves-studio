@@ -192,16 +192,16 @@
   </main>
 </div>
 
-<!-- ═══ STUDIO PAGE ════════════════════════════════════════════════════════ -->
-<div id="studio-page" class="page hidden">
+<!-- ═══ MAIN APP SHELL (shared header + nav for all inner pages) ═══════════ -->
+<div id="app-shell" class="page hidden">
 
-  <!-- Studio Header -->
+  <!-- App Header -->
   <header class="studio-header">
     <div class="studio-header-left">
       <img src="/logo.svg" alt="LW" class="studio-logo" id="studio-wolf-img"
            onerror="this.style.display='none'" />
       <div class="studio-titles">
-        <div class="studio-brand">LIGHTNING WOLVES / Lyrics Studio</div>
+        <div class="studio-brand">LIGHTNING WOLVES</div>
       </div>
     </div>
     <div class="studio-header-right">
@@ -212,6 +212,18 @@
       <button class="btn-ghost" id="studio-auth-btn">Sign In</button>
     </div>
   </header>
+
+  <!-- Navigation Bar -->
+  <nav class="main-nav" id="main-nav">
+    <button class="nav-link active" data-nav="studio">Studio</button>
+    <button class="nav-link members-only" data-nav="tracks">Tracks</button>
+    <button class="nav-link members-only" data-nav="visuals">Visuals</button>
+    <button class="nav-link members-only" data-nav="covers">Covers</button>
+    <button class="nav-link members-only" data-nav="the-pack">The Pack</button>
+  </nav>
+
+<!-- ═══ STUDIO PAGE ════════════════════════════════════════════════════════ -->
+<div id="studio-page" class="app-section">
 
   <div class="studio-body">
     <!-- LEFT PANEL -->
@@ -411,6 +423,99 @@
     </main>
   </div>
 </div>
+
+<!-- ═══ TRACKS PAGE ════════════════════════════════════════════════════════ -->
+<div id="tracks-page" class="app-section hidden">
+  <div class="section-body">
+    <div class="section-hero">
+      <div class="section-icon">🎵</div>
+      <h2 class="section-title">TRACKS</h2>
+      <p class="section-desc">Your saved packs and past generations — all in one place.</p>
+    </div>
+    <div class="empty-state">
+      <div class="empty-icon">📦</div>
+      <div>No saved tracks yet. Generate a pack in the Studio to see it here.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ VISUALS PAGE ══════════════════════════════════════════════════════ -->
+<div id="visuals-page" class="app-section hidden">
+  <div class="section-body">
+    <div class="section-hero">
+      <div class="section-icon">📸</div>
+      <h2 class="section-title">VISUALS</h2>
+      <p class="section-desc">Photo &amp; video gallery for the pack. Shiteux and Lazy Jo can upload — everyone can view.</p>
+    </div>
+    <div id="visuals-upload-zone" class="gallery-upload-zone hidden">
+      <div class="upload-icon">⬆️</div>
+      <div class="upload-text">Upload photos or videos</div>
+    </div>
+    <div class="empty-state">
+      <div class="empty-icon">🖼️</div>
+      <div>No visuals uploaded yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COVERS PAGE ═══════════════════════════════════════════════════════ -->
+<div id="covers-page" class="app-section hidden">
+  <div class="section-body">
+    <div class="section-hero">
+      <div class="section-icon">🎨</div>
+      <h2 class="section-title">COVERS</h2>
+      <p class="section-desc">Artwork &amp; trailers gallery. Drippydesigns and Lazy Jo can upload — everyone can view.</p>
+    </div>
+    <div id="covers-upload-zone" class="gallery-upload-zone hidden">
+      <div class="upload-icon">⬆️</div>
+      <div class="upload-text">Upload artwork or trailers</div>
+    </div>
+    <div class="empty-state">
+      <div class="empty-icon">🖼️</div>
+      <div>No covers uploaded yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ THE PACK PAGE ═════════════════════════════════════════════════════ -->
+<div id="the-pack-page" class="app-section hidden">
+  <div class="section-body">
+    <div class="section-hero">
+      <div class="section-icon">🐺</div>
+      <h2 class="section-title">THE PACK</h2>
+      <p class="section-desc">Crew profiles and collabs — the wolves behind the music.</p>
+    </div>
+    <div class="pack-grid">
+      <div class="pack-card" style="--card-color:#f5c518">
+        <div class="pack-avatar">🐺</div>
+        <div class="pack-name">Lazy Jo</div>
+        <div class="pack-role">Melodic Hip-Hop · Founder</div>
+      </div>
+      <div class="pack-card" style="--card-color:#e8870a">
+        <div class="pack-avatar">🐺</div>
+        <div class="pack-name">Rosakay</div>
+        <div class="pack-role">Pop / French Pop</div>
+      </div>
+      <div class="pack-card" style="--card-color:#9b6dff">
+        <div class="pack-avatar">🐺</div>
+        <div class="pack-name">Zirka</div>
+        <div class="pack-role">French Hip-Hop</div>
+      </div>
+      <div class="pack-card" style="--card-color:#ff4081">
+        <div class="pack-avatar">🎨</div>
+        <div class="pack-name">Drippydesigns</div>
+        <div class="pack-role">Artwork · Covers</div>
+      </div>
+      <div class="pack-card" style="--card-color:#00bcd4">
+        <div class="pack-avatar">📸</div>
+        <div class="pack-name">Shiteux</div>
+        <div class="pack-role">Photo · Video</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end #app-shell -->
 
 <!-- ═══ MEMBER DASHBOARD ══════════════════════════════════════════════════ -->
 <div id="dashboard-page" class="page hidden">

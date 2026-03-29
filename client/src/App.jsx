@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 const WOLVES = [
   { id: 'yellow',     color: '#f5c518', artist: 'Lazy Jo',        genre: 'Melodic Hip-Hop',   image: 'wolf-yellow.png', video: 'wolf-yellow.mp4',     locked: false },
   { id: 'purple',     color: '#9b6dff', artist: 'Zirka',          genre: 'French Hip-Hop',    image: 'wolf-purple.png', video: 'Wolf-Purple.mp4',     locked: false },
-  { id: 'orange',     color: '#e8870a', artist: 'Rosakay',        genre: 'Pop / French Pop',  image: 'wolf-orange.png', video: 'Wolf-Orange.mp4',     locked: false },
+  { id: 'orange',     color: '#e8870a', artist: 'Rosakay',        genre: 'Pop / French Pop',  image: 'wolf-orange.png', video: 'rosakay-animation.mp4', locked: false },
   { id: 'white-blue', color: '#64b5f6', artist: 'Drippydesigns',  genre: 'Covers & Trailers', image: 'wolf-white.svg',  video: 'wolf-white-blue.mp4', locked: false },
   { id: 'green',      color: '#00E64D', artist: 'Shiteux',        genre: 'Photos & Videos',   image: 'wolf-green.png',  video: 'wolf-green.mp4',      locked: false },
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
@@ -54,6 +54,10 @@ const PACK_MEMBERS = [
     spotifyArtistId: '5DaB9HZOXF1kOqxLiS2d4B',
     supportCards: [
       { title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' },
+    ],
+    contactLinks: [
+      { icon: '📸', label: 'Instagram', href: 'https://www.instagram.com/rosakay_officiel?igsh=MWkycXA1aTJkZTNpbg==' },
+      { icon: '🎵', label: 'Spotify', href: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B' },
     ] },
   { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#64b5f6', image: 'drippydesigns-logo.png', emoji: null, halfColor: '#e8e8e8',
     bio: 'Creative Director behind every cover, trailer, and visual identity. Turning sound into art you can see.',

@@ -1425,10 +1425,11 @@ textarea { resize: vertical; min-height: 72px; }
 }
 
 .profile-card-genre {
-  font-size: 0.85rem;
-  color: var(--muted);
+  font-size: 0.9rem;
+  color: var(--profile-color, var(--accent));
   letter-spacing: 0.06em;
   margin-top: 2px;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--profile-color) 40%, transparent);
 }
 
 .profile-card-tag {
@@ -1450,11 +1451,18 @@ textarea { resize: vertical; min-height: 72px; }
   left: 0;
   right: 0;
   text-align: center;
-  font-size: 0.7rem;
-  color: rgba(255,255,255,0.25);
+  font-size: 0.75rem;
+  color: var(--profile-color, var(--accent));
   letter-spacing: 0.08em;
   text-transform: uppercase;
   z-index: 8;
+  text-shadow: 0 0 10px color-mix(in srgb, var(--profile-color) 50%, transparent);
+  animation: flip-hint-pulse 2s ease-in-out infinite;
+}
+
+@keyframes flip-hint-pulse {
+  0%, 100% { opacity: 0.6; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
 }
 
 /* Back face */

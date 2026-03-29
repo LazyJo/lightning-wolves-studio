@@ -1103,7 +1103,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
                 <div className="profile-card-genre">{wolf.genre}</div>
                 {member.tag && <div className="profile-card-tag">{member.tag}</div>}
               </div>
-              <div className="profile-card-flip-hint">Click to flip</div>
+              <div className="profile-card-flip-hint">↻ Tap to flip</div>
             </div>
 
             {/* BACK */}
@@ -1118,7 +1118,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
                 {member.bio && <p className="profile-card-bio">{member.bio}</p>}
                 {member.tag && <div className="profile-card-tag">{member.tag}</div>}
               </div>
-              <div className="profile-card-flip-hint">Click to flip back</div>
+              <div className="profile-card-flip-hint">↻ Tap to flip back</div>
             </div>
           </div>
         </div>

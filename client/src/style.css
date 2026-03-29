@@ -1977,11 +1977,10 @@ textarea { resize: vertical; min-height: 72px; }
 .pricing-credit-bonus { font-size: 0.75rem; color: #3ddc84; margin-bottom: 6px; }
 
 /* Member banner */
-.pricing-member-banner { max-width: 700px; margin: 0 auto; padding: 0 24px; }
-.pricing-member-banner { display: flex; align-items: center; gap: 16px; background: var(--card); border: 1px solid rgba(245,197,24,0.2); border-radius: 14px; padding: 20px 24px; }
-.pricing-member-icon { font-size: 2rem; }
-.pricing-member-heading { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 4px; }
-.pricing-member-text { font-size: 0.9rem; color: var(--muted); }
+.pricing-member-banner { max-width: 700px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; gap: 16px; background: var(--card); border: 1px solid rgba(255,77,141,0.25); border-radius: 14px; padding: 20px 24px; }
+.pricing-member-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,77,141,0.4); flex-shrink: 0; }
+.pricing-member-heading { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.06em; color: #FF4D8D; margin-bottom: 4px; }
+.pricing-member-text { font-size: 0.9rem; color: #FFB3D1; }
 .pricing-member-link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.85rem; margin-top: 4px; padding: 0; text-decoration: underline; font-family: inherit; }
 
 /* Nav pricing link */

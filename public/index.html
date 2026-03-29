@@ -456,14 +456,30 @@
       <h2 class="section-title">VISUALS</h2>
       <p class="section-desc">Photo &amp; video gallery for the pack. Shiteux and Lazy Jo can upload — everyone can view.</p>
     </div>
-    <div id="visuals-upload-zone" class="gallery-upload-zone hidden">
-      <div class="upload-icon">⬆️</div>
-      <div class="upload-text">Upload photos or videos</div>
+
+    <!-- Upload form (Shiteux + Lazy Jo only) -->
+    <div id="visuals-upload-zone" class="gallery-upload-panel hidden">
+      <input type="file" id="visuals-file-input" accept="image/*,video/*" multiple hidden />
+      <div class="gallery-upload-row">
+        <button class="btn-outline btn-sm" id="visuals-pick-btn">Choose Files</button>
+        <select id="visuals-tag-wolf" class="gallery-tag-select">
+          <option value="">Tag a wolf…</option>
+          <option value="Lazy Jo">Lazy Jo</option>
+          <option value="Rosakay">Rosakay</option>
+          <option value="Zirka">Zirka</option>
+          <option value="Shiteux">Shiteux</option>
+          <option value="Drippydesigns">Drippydesigns</option>
+        </select>
+        <button class="btn-gold btn-sm" id="visuals-upload-btn" disabled>Upload</button>
+      </div>
+      <div id="visuals-preview" class="gallery-upload-preview hidden"></div>
     </div>
-    <div class="empty-state">
+
+    <div id="visuals-empty" class="empty-state">
       <div class="empty-icon">🖼️</div>
-      <div>No visuals uploaded yet.</div>
+      <div>No visuals yet — Shiteux will upload soon 👀</div>
     </div>
+    <div id="visuals-grid" class="gallery-grid hidden"></div>
   </div>
 </div>
 

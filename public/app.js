@@ -85,8 +85,9 @@ function showSection(name) {
     btn.classList.toggle('active', btn.dataset.nav === name);
   });
 
-  // Refresh tracks list when entering tracks page
+  // Refresh data when entering section
   if (name === 'tracks') renderTracksList();
+  if (name === 'visuals') renderVisualsGrid();
 }
 
 function updateNavVisibility() {
@@ -878,6 +879,141 @@ function initTracks() {
   $('save-track-btn').addEventListener('click', saveCurrentTrack);
 }
 
+// ─── Visuals (localStorage gallery) ──────────────────────────────────────────
+const LW_VISUALS_KEY = 'lw_visuals';
+
+function getVisuals() {
+  try { return JSON.parse(localStorage.getItem(LW_VISUALS_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveVisuals(items) {
+  localStorage.setItem(LW_VISUALS_KEY, JSON.stringify(items));
+}
+
+function deleteVisual(id) {
+  const items = getVisuals().filter(v => v.id !== id);
+  saveVisuals(items);
+  renderVisualsGrid();
+}
+
+function canUploadVisuals() {
+  const name = (state.profile?.display_name || '').toLowerCase();
+  const wolfArtist = (state.wolf?.artist || '').toLowerCase();
+  return name === 'shiteux' || name === 'lazy jo' || wolfArtist === 'lazy jo';
+}
+
+function renderVisualsGrid() {
+  const items = getVisuals();
+  const gridEl = $('visuals-grid');
+  const emptyEl = $('visuals-empty');
+
+  if (!items.length) {
+    hide(gridEl); show(emptyEl);
+    return;
+  }
+
+  hide(emptyEl); show(gridEl);
+  gridEl.innerHTML = '';
+
+  const canDelete = canUploadVisuals();
+
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+
+    const isVideo = item.type === 'video';
+    const mediaHTML = isVideo
+      ? `<video class="gallery-media" src="${item.data}" preload="metadata" muted></video>
+         <div class="gallery-play-badge">▶</div>`
+      : `<img class="gallery-media" src="${item.data}" alt="${escapeHTML(item.name)}" loading="lazy" />`;
+
+    card.innerHTML = `
+      <div class="gallery-media-wrap">${mediaHTML}</div>
+      <div class="gallery-card-footer">
+        ${item.wolf ? `<span class="gallery-wolf-tag">${escapeHTML(item.wolf)}</span>` : ''}
+        <span class="gallery-item-name">${escapeHTML(item.name)}</span>
+        ${canDelete ? `<button class="btn-ghost btn-sm gallery-delete" data-del-visual="${item.id}" title="Delete">✕</button>` : ''}
+      </div>
+    `;
+    gridEl.appendChild(card);
+
+    // Video click-to-play
+    if (isVideo) {
+      const video = card.querySelector('video');
+      const badge = card.querySelector('.gallery-play-badge');
+      card.querySelector('.gallery-media-wrap').addEventListener('click', () => {
+        if (video.paused) { video.play(); hide(badge); }
+        else { video.pause(); show(badge); }
+      });
+    }
+  });
+
+  // Wire delete
+  gridEl.querySelectorAll('[data-del-visual]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteVisual(btn.dataset.delVisual);
+    });
+  });
+}
+
+function initVisuals() {
+  const fileInput = $('visuals-file-input');
+  const pickBtn = $('visuals-pick-btn');
+  const uploadBtn = $('visuals-upload-btn');
+  const previewEl = $('visuals-preview');
+  let pendingFiles = [];
+
+  pickBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    pendingFiles = Array.from(fileInput.files);
+    if (!pendingFiles.length) { hide(previewEl); uploadBtn.disabled = true; return; }
+
+    previewEl.innerHTML = '';
+    pendingFiles.forEach(f => {
+      const tag = document.createElement('span');
+      tag.className = 'gallery-preview-tag';
+      tag.textContent = f.name;
+      previewEl.appendChild(tag);
+    });
+    show(previewEl);
+    uploadBtn.disabled = false;
+  });
+
+  uploadBtn.addEventListener('click', () => {
+    if (!pendingFiles.length) return;
+    const wolf = $('visuals-tag-wolf').value;
+    let processed = 0;
+
+    pendingFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const items = getVisuals();
+        items.unshift({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          name: file.name,
+          type: file.type.startsWith('video') ? 'video' : 'photo',
+          wolf: wolf || '',
+          data: reader.result,
+          date: new Date().toISOString(),
+        });
+        saveVisuals(items);
+        processed++;
+        if (processed === pendingFiles.length) {
+          pendingFiles = [];
+          fileInput.value = '';
+          hide(previewEl);
+          uploadBtn.disabled = true;
+          renderVisualsGrid();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+}
+
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 function initTabs() {
   document.querySelectorAll('.tab').forEach(btn => {
@@ -1082,6 +1218,7 @@ async function init() {
   initNewTrack();
   initChangeWolf();
   initTracks();
+  initVisuals();
   initDashboard();
   initModal();
   initUpgradeModal();

@@ -491,14 +491,30 @@
       <h2 class="section-title">COVERS</h2>
       <p class="section-desc">Artwork &amp; trailers gallery. Drippydesigns and Lazy Jo can upload — everyone can view.</p>
     </div>
-    <div id="covers-upload-zone" class="gallery-upload-zone hidden">
-      <div class="upload-icon">⬆️</div>
-      <div class="upload-text">Upload artwork or trailers</div>
+
+    <!-- Upload form (Drippydesigns + Lazy Jo only) -->
+    <div id="covers-upload-zone" class="gallery-upload-panel hidden">
+      <input type="file" id="covers-file-input" accept="image/*,video/*" multiple hidden />
+      <div class="gallery-upload-row">
+        <button class="btn-outline btn-sm" id="covers-pick-btn">Choose Files</button>
+        <select id="covers-tag-wolf" class="gallery-tag-select">
+          <option value="">Tag a wolf…</option>
+          <option value="Lazy Jo">Lazy Jo</option>
+          <option value="Rosakay">Rosakay</option>
+          <option value="Zirka">Zirka</option>
+          <option value="Shiteux">Shiteux</option>
+          <option value="Drippydesigns">Drippydesigns</option>
+        </select>
+        <button class="btn-gold btn-sm" id="covers-upload-btn" disabled>Upload</button>
+      </div>
+      <div id="covers-preview" class="gallery-upload-preview hidden"></div>
     </div>
-    <div class="empty-state">
-      <div class="empty-icon">🖼️</div>
-      <div>No covers uploaded yet.</div>
+
+    <div id="covers-empty" class="empty-state">
+      <div class="empty-icon">🎨</div>
+      <div>No covers yet — Drippydesigns is cooking 🎨</div>
     </div>
+    <div id="covers-grid" class="gallery-grid hidden"></div>
   </div>
 </div>
 

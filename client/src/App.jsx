@@ -256,8 +256,8 @@ function WolfSelectPage({ onSelectWolf }) {
       <main className="select-main">
         <h1 className="select-tagline">WHICH WOLF ARE YOU?</h1>
         <div className="wolf-grid">
-          {WOLVES.map(wolf => (
-            wolf.locked ? (
+          {WOLVES.map((wolf, idx) => {
+            const card = wolf.locked ? (
               <div key={wolf.id} className="wolf-card locked">
                 <div className="wolf-img-wrap locked-wrap">
                   <img src={`/${wolf.image}`} alt="Coming Soon" onError={e => e.target.parentElement.innerHTML='<div class="lock-icon">🔒</div>'} />
@@ -281,27 +281,23 @@ function WolfSelectPage({ onSelectWolf }) {
                 <div className="wolf-genre-tag" style={{'--tag-color': wolf.color}}>{wolf.genre}</div>
               </div>
             )
-          ))}
-        </div>
 
-        <div className="lone-wolf-section">
-          <div className="lone-wolf-divider">
-            <span className="lone-wolf-divider-line"></span>
-            <span className="lone-wolf-divider-text">Not in the pack yet?</span>
-            <span className="lone-wolf-divider-line"></span>
-          </div>
-          <div className="lone-wolf-card">
-            <div className="lone-wolf-icon">
-              <img src="/wolf-gray.svg" alt="Lone Wolf" className="lone-wolf-img" onError={e => e.target.parentElement.textContent='🐺'} />
-            </div>
-            <div className="lone-wolf-info">
-              <div className="lone-wolf-title">Lone Wolf</div>
-              <div className="lone-wolf-desc">Try the Studio with 3 free generations — no account needed.</div>
-            </div>
-            <button className="btn-outline btn-lone-wolf" onClick={() => onSelectWolf({ id: 'lone-wolf', color: '#9E9E9E', artist: '', genre: '', image: 'wolf-gray.svg' })}>
-              Enter as Lone Wolf
-            </button>
-          </div>
+            // Insert Lone Wolf card between position 4 (Drippydesigns) and 5 (Shiteux)
+            if (idx === 4) {
+              return [
+                <div key="lone-wolf-grid" className="wolf-card lone-wolf-grid-card" onClick={() => onSelectWolf({ id: 'lone-wolf', color: '#9E9E9E', artist: '', genre: '', image: 'wolf-gray.svg' })}>
+                  <div className="wolf-img-wrap">
+                    <img className="wolf-fallback-img lone-wolf-grid-img" src="/wolf-gray.svg" alt="Lone Wolf" onError={e => e.target.style.display='none'} />
+                    <div className="wolf-glow" style={{'--glow-color': '#9E9E9E'}}></div>
+                  </div>
+                  <div className="wolf-name" style={{color: '#9E9E9E'}}>Lone Wolf</div>
+                  <div className="wolf-genre-tag" style={{'--tag-color': '#9E9E9E'}}>3 Free Generations</div>
+                </div>,
+                card
+              ]
+            }
+            return card
+          })}
         </div>
       </main>
     </div>

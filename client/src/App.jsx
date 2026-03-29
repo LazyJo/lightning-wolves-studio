@@ -18,6 +18,7 @@ const WOLVES = [
 
 const PACK_MEMBERS = [
   { name: 'Lazy Jo',        role: 'Melodic Hip-Hop', tag: 'Founder · Artist',   color: '#f5c518', image: 'wolf-yellow.png', photo: 'lazyjo-photo.jpg',
+    cardBio: 'Belgian-Ghanaian artist from Brussels. Melodic flows, emotional hooks, unforgettable sound. Debut in 2018 — co-signed by Timbaland, Symba, DDG & More. 100K views and still rising.',
     bio: 'Lazy Jo is a Belgian artist with Ghanaian roots, born in 1999 in Lomé, Togo and based in Brussels, Belgium. Immersed in music from an early age, he began shaping his sound at a young age and officially launched his career in February 2018 with his debut single "I\'m Lost." Known for his distinctive melodic flows, emotionally driven delivery, and unforgettable hooks, Lazy Jo creates music that lingers long after the first listen. His ability to craft catchy, memorable melodies has become a defining element of his artistry, setting him apart in a crowded music landscape. Driven by consistency and growth, Lazy Jo continues to evolve his sound while building a strong and authentic artistic presence. His dedication has not gone unnoticed — industry heavyweights such as Kelvyn Colt, Zaytoven, DDG, and Timbaland have recognized and supported his talent. Most recently, Lazy Jo reached a major milestone with his track "Stay Up," which surpassed 100,000 views, further cementing his rising influence and momentum within the music scene.' },
   { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png',
     bio: 'French Hip-Hop artist bringing raw energy and sharp wordplay. Representing the streets with authenticity and fire.' },
@@ -1115,7 +1116,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
                   onError={e => e.target.style.display='none'} />
                 <div className="profile-card-name">{wolf.artist}</div>
                 <div className="profile-card-genre">{member.role}</div>
-                {member.bio && <p className="profile-card-bio">{member.bio}</p>}
+                {(member.cardBio || member.bio) && <p className="profile-card-bio">{member.cardBio || member.bio}</p>}
                 {member.tag && <div className="profile-card-tag">{member.tag}</div>}
               </div>
               <div className="profile-card-flip-hint">↻ Tap to flip back</div>

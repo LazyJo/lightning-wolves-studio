@@ -297,8 +297,8 @@ function updateStudioAuth() {
       badge.textContent = 'WOLF PACK';
       badge.className = 'plan-badge member';
     } else {
-      badge.textContent = state.user ? 'FREE' : 'PUBLIC';
-      badge.className = 'plan-badge';
+      badge.textContent = isLoneWolf() ? 'LONE WOLF' : (state.user ? 'FREE' : 'PUBLIC');
+      badge.className = isLoneWolf() ? 'plan-badge lone-wolf' : 'plan-badge';
     }
   }
 
@@ -427,8 +427,8 @@ function initWolfSelect() {
     });
   });
 
-  $('enter-public-studio').addEventListener('click', () => {
-    selectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' });
+  $('enter-lone-wolf').addEventListener('click', () => {
+    selectWolf({ id: 'lone-wolf', color: '#9E9E9E', artist: '', genre: '', image: 'wolf-gray.svg' });
   });
 }
 
@@ -564,6 +564,12 @@ async function generate() {
     return;
   }
 
+  // Lone Wolf local limit check
+  if (checkLoneWolfLimit()) {
+    showUpgradeModal();
+    return;
+  }
+
   if (state.generating) return;
   state.generating = true;
 
@@ -606,6 +612,9 @@ async function generate() {
     // Save to localStorage
     localStorage.setItem('lw_last_pack', JSON.stringify(json.pack));
     localStorage.setItem('lw_last_meta', JSON.stringify(json.meta));
+
+    // Track Lone Wolf generation count
+    if (isLoneWolf()) incrementLoneWolfGenCount();
 
     renderPack(json.pack, json.meta);
 
@@ -872,7 +881,55 @@ function initDashboard() {
   $('dash-signout-btn').addEventListener('click', signOut);
 }
 
-// ─── Limit Modal ──────────────────────────────────────────────────────────────
+// ─── Lone Wolf Generation Tracking ───────────────────────────────────────────
+const LONE_WOLF_LIMIT = 3;
+const LW_GEN_KEY = 'lw_lone_wolf_gens';
+
+function getLoneWolfGenCount() {
+  const stored = localStorage.getItem(LW_GEN_KEY);
+  if (!stored) return 0;
+  try {
+    const data = JSON.parse(stored);
+    // Reset monthly — check if same month
+    const now = new Date();
+    const key = `${now.getFullYear()}-${now.getMonth()}`;
+    if (data.month !== key) return 0;
+    return data.count || 0;
+  } catch { return 0; }
+}
+
+function incrementLoneWolfGenCount() {
+  const now = new Date();
+  const key = `${now.getFullYear()}-${now.getMonth()}`;
+  const count = getLoneWolfGenCount() + 1;
+  localStorage.setItem(LW_GEN_KEY, JSON.stringify({ month: key, count }));
+  return count;
+}
+
+function isLoneWolf() {
+  return !state.user && state.wolf?.id === 'lone-wolf';
+}
+
+function checkLoneWolfLimit() {
+  if (!isLoneWolf()) return false; // no limit for members
+  return getLoneWolfGenCount() >= LONE_WOLF_LIMIT;
+}
+
+// ─── Upgrade Modal ───────────────────────────────────────────────────────────
+function showUpgradeModal() {
+  show($('upgrade-modal'));
+}
+
+function initUpgradeModal() {
+  $('upgrade-close').addEventListener('click', () => hide($('upgrade-modal')));
+  $('upgrade-signup').addEventListener('click', () => {
+    hide($('upgrade-modal'));
+    showPage('auth');
+    document.querySelector('.auth-tab[data-tab="signup"]')?.click();
+  });
+}
+
+// ─── Limit Modal (legacy server-side) ────────────────────────────────────────
 function initModal() {
   $('modal-close').addEventListener('click', () => hide($('limit-modal')));
   $('modal-signup').addEventListener('click', () => {
@@ -917,6 +974,7 @@ async function init() {
   initChangeWolf();
   initDashboard();
   initModal();
+  initUpgradeModal();
 
   // Listen for Supabase auth state changes
   if (supabase) {

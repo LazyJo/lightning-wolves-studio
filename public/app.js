@@ -88,6 +88,7 @@ function showSection(name) {
   // Refresh data when entering section
   if (name === 'tracks') renderTracksList();
   if (name === 'visuals') renderVisualsGrid();
+  if (name === 'covers') renderCoversGrid();
 }
 
 function updateNavVisibility() {
@@ -1014,6 +1015,139 @@ function initVisuals() {
   });
 }
 
+// ─── Covers (localStorage gallery) ───────────────────────────────────────────
+const LW_COVERS_KEY = 'lw_covers';
+
+function getCovers() {
+  try { return JSON.parse(localStorage.getItem(LW_COVERS_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveCovers(items) {
+  localStorage.setItem(LW_COVERS_KEY, JSON.stringify(items));
+}
+
+function deleteCover(id) {
+  const items = getCovers().filter(v => v.id !== id);
+  saveCovers(items);
+  renderCoversGrid();
+}
+
+function canUploadCovers() {
+  const name = (state.profile?.display_name || '').toLowerCase();
+  const wolfArtist = (state.wolf?.artist || '').toLowerCase();
+  return name === 'drippydesigns' || name === 'lazy jo' || wolfArtist === 'lazy jo';
+}
+
+function renderCoversGrid() {
+  const items = getCovers();
+  const gridEl = $('covers-grid');
+  const emptyEl = $('covers-empty');
+
+  if (!items.length) {
+    hide(gridEl); show(emptyEl);
+    return;
+  }
+
+  hide(emptyEl); show(gridEl);
+  gridEl.innerHTML = '';
+
+  const canDelete = canUploadCovers();
+
+  items.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'gallery-card';
+
+    const isVideo = item.type === 'video';
+    const mediaHTML = isVideo
+      ? `<video class="gallery-media" src="${item.data}" preload="metadata" muted></video>
+         <div class="gallery-play-badge">▶</div>`
+      : `<img class="gallery-media" src="${item.data}" alt="${escapeHTML(item.name)}" loading="lazy" />`;
+
+    card.innerHTML = `
+      <div class="gallery-media-wrap">${mediaHTML}</div>
+      <div class="gallery-card-footer">
+        ${item.wolf ? `<span class="gallery-wolf-tag">${escapeHTML(item.wolf)}</span>` : ''}
+        <span class="gallery-item-name">${escapeHTML(item.name)}</span>
+        ${canDelete ? `<button class="btn-ghost btn-sm gallery-delete" data-del-cover="${item.id}" title="Delete">✕</button>` : ''}
+      </div>
+    `;
+    gridEl.appendChild(card);
+
+    if (isVideo) {
+      const video = card.querySelector('video');
+      const badge = card.querySelector('.gallery-play-badge');
+      card.querySelector('.gallery-media-wrap').addEventListener('click', () => {
+        if (video.paused) { video.play(); hide(badge); }
+        else { video.pause(); show(badge); }
+      });
+    }
+  });
+
+  gridEl.querySelectorAll('[data-del-cover]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      deleteCover(btn.dataset.delCover);
+    });
+  });
+}
+
+function initCovers() {
+  const fileInput = $('covers-file-input');
+  const pickBtn = $('covers-pick-btn');
+  const uploadBtn = $('covers-upload-btn');
+  const previewEl = $('covers-preview');
+  let pendingFiles = [];
+
+  pickBtn.addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    pendingFiles = Array.from(fileInput.files);
+    if (!pendingFiles.length) { hide(previewEl); uploadBtn.disabled = true; return; }
+
+    previewEl.innerHTML = '';
+    pendingFiles.forEach(f => {
+      const tag = document.createElement('span');
+      tag.className = 'gallery-preview-tag';
+      tag.textContent = f.name;
+      previewEl.appendChild(tag);
+    });
+    show(previewEl);
+    uploadBtn.disabled = false;
+  });
+
+  uploadBtn.addEventListener('click', () => {
+    if (!pendingFiles.length) return;
+    const wolf = $('covers-tag-wolf').value;
+    let processed = 0;
+
+    pendingFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const items = getCovers();
+        items.unshift({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          name: file.name,
+          type: file.type.startsWith('video') ? 'video' : 'photo',
+          wolf: wolf || '',
+          data: reader.result,
+          date: new Date().toISOString(),
+        });
+        saveCovers(items);
+        processed++;
+        if (processed === pendingFiles.length) {
+          pendingFiles = [];
+          fileInput.value = '';
+          hide(previewEl);
+          uploadBtn.disabled = true;
+          renderCoversGrid();
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+}
+
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 function initTabs() {
   document.querySelectorAll('.tab').forEach(btn => {
@@ -1219,6 +1353,7 @@ async function init() {
   initChangeWolf();
   initTracks();
   initVisuals();
+  initCovers();
   initDashboard();
   initModal();
   initUpgradeModal();

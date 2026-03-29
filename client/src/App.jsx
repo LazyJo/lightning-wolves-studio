@@ -13,7 +13,7 @@ const WOLVES = [
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
   { id: 'pink',   color: '#E040FB', locked: true, image: 'wolf-pink.svg'  },
-  { id: 'red',    color: '#E53935', locked: true, image: 'wolf-red.svg'   },
+  { id: 'red',    color: '#E53935', artist: 'Red Wolf',  genre: 'Coming Soon', image: 'wolf-red.png', video: 'wolf-red.mp4', locked: false },
   { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
   { id: 'white',  color: '#e8e8e8', locked: true, image: 'wolf-white.svg' },
 ]

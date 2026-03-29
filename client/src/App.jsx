@@ -7,10 +7,10 @@ const WOLVES = [
   { id: 'purple',     color: '#9b6dff', artist: 'Zirka',          genre: 'French Hip-Hop',    image: 'wolf-purple.png', video: 'Wolf-Purple.mp4',     locked: false },
   { id: 'orange',     color: '#e8870a', artist: 'Rosakay',        genre: 'Pop / French Pop',  image: 'wolf-orange.png', video: 'Wolf-Orange.mp4',     locked: false },
   { id: 'white-blue', color: '#64b5f6', artist: 'Drippydesigns',  genre: 'Visual / Creative', image: 'wolf-white.svg',  video: 'wolf-white-blue.mp4', locked: false },
+  { id: 'green',      color: '#00E64D', artist: 'Shiteux',        genre: 'Visual',            image: 'wolf-green.svg',  video: 'wolf-green.mp4',      locked: false },
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
   { id: 'pink',   color: '#E040FB', locked: true, image: 'wolf-pink.svg'  },
-  { id: 'green',  color: '#00E64D', locked: true, image: 'wolf-green.svg' },
   { id: 'red',    color: '#E53935', locked: true, image: 'wolf-red.svg'   },
   { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
 ]
@@ -20,7 +20,7 @@ const PACK_MEMBERS = [
   { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png' },
   { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png' },
   { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#ff4081', image: null, emoji: '🎨' },
-  { name: 'Shiteux',        role: 'Photo · Video',    tag: 'Visuals',            color: '#00bcd4', image: null, emoji: '📸' },
+  { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.svg', emoji: null },
 ]
 
 const WOLF_NAMES = PACK_MEMBERS.map(m => m.name)
@@ -269,7 +269,12 @@ function WolfSelectPage({ onSelectWolf }) {
             ) : (
               <div key={wolf.id} className="wolf-card active" onClick={() => onSelectWolf(wolf)}>
                 <div className="wolf-img-wrap">
-                  <video className="wolf-video" src={`/${wolf.video}`} autoPlay loop muted playsInline />
+                  {wolf.video
+                    ? <video className="wolf-video" src={`/${wolf.video}`} autoPlay loop muted playsInline
+                        onError={e => { e.target.style.display='none'; e.target.nextSibling && (e.target.nextSibling.style.display='block') }} />
+                    : null}
+                  <img className="wolf-fallback-img" src={`/${wolf.image}`} alt={wolf.artist}
+                    style={wolf.video ? {display:'none'} : {}} onError={e => e.target.style.display='none'} />
                   <div className="wolf-glow" style={{'--glow-color': wolf.color}}></div>
                 </div>
                 <div className="wolf-name">{wolf.artist}</div>
@@ -1043,11 +1048,12 @@ function NavBar({ section, onNavigate, isMember }) {
 }
 
 // ─── App Shell (header + nav + section content) ──────────────────────────────
-function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal, onShowUpgradeModal }) {
-  const isMember = profile?.role === 'member'
+function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal, onShowUpgradeModal, testMemberMode, onToggleTestMember }) {
+  const realMember = profile?.role === 'member'
+  const isMember = realMember || testMemberMode
   const isLoneWolf = !user && wolf?.id === 'lone-wolf'
-  const planBadge = isLoneWolf ? 'LONE WOLF' : (isMember ? 'WOLF PACK' : (user ? 'FREE' : 'PUBLIC'))
-  const planClass = isLoneWolf ? 'plan-badge lone-wolf' : (isMember ? 'plan-badge member' : 'plan-badge')
+  const planBadge = testMemberMode ? 'MEMBER (TEST)' : (isLoneWolf ? 'LONE WOLF' : (realMember ? 'WOLF PACK' : (user ? 'FREE' : 'PUBLIC')))
+  const planClass = testMemberMode ? 'plan-badge member' : (isLoneWolf ? 'plan-badge lone-wolf' : (realMember ? 'plan-badge member' : 'plan-badge'))
 
   const displayName = (profile?.display_name || '').toLowerCase()
   const wolfArtist = (wolf?.artist || '').toLowerCase()
@@ -1074,6 +1080,9 @@ function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, o
           <span className="artist-dot" style={{ background: wolf?.color, boxShadow: `0 0 8px ${wolf?.color}` }}></span>
           <span className="artist-name-header">{wolf?.artist || ''}</span>
           <span className={planClass}>{planBadge}</span>
+          <button className={`btn-test-member${testMemberMode ? ' active' : ''}`} onClick={onToggleTestMember}>
+            {testMemberMode ? '✓ Member Mode' : 'Member Mode'}
+          </button>
           <button className="btn-outline" onClick={onChangeWolf}>Change Wolf</button>
           {user ? (
             <>
@@ -1122,6 +1131,7 @@ export default function App() {
   const [supabase,         setSupabase]         = useState(null)
   const [showLimitModal,   setShowLimitModal]   = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [testMemberMode,   setTestMemberMode]   = useState(false)
 
   // Apply wolf theme CSS variables
   useEffect(() => {
@@ -1190,8 +1200,8 @@ export default function App() {
   }
 
   function handleNavigate(s) {
-    // Non-members can only see studio
-    if (s !== 'studio' && profile?.role !== 'member') { setSection('studio'); return }
+    const effectiveMember = profile?.role === 'member' || testMemberMode
+    if (s !== 'studio' && !effectiveMember) { setSection('studio'); return }
     setSection(s)
   }
 
@@ -1211,6 +1221,7 @@ export default function App() {
         <AppShell
           wolf={wolf} user={user} profile={profile} token={token} supabase={supabase}
           section={section} onNavigate={handleNavigate}
+          testMemberMode={testMemberMode} onToggleTestMember={() => setTestMemberMode(m => !m)}
           onChangeWolf={() => { setSection('studio'); setPage('wolf-select') }}
           onShowAuth={() => setPage('auth')}
           onSignOut={handleSignOut}

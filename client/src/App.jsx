@@ -1069,7 +1069,7 @@ function PricingPage({ onBack, onSignup }) {
 
       {/* Members banner */}
       <div className="pricing-member-banner">
-        <img src="/rosakay-photo.jpg" alt="" className="pricing-member-avatar" onError={e => e.target.style.display='none'} />
+        <img src="/wolf-rose.png" alt="" className="pricing-member-avatar" onError={e => e.target.style.display='none'} />
         <div>
           <div className="pricing-member-heading">The pack looks after its own. ⚡</div>
           <div className="pricing-member-text">Support a Lightning Wolves artist and earn free Credits.</div>

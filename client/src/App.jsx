@@ -19,7 +19,7 @@ const PACK_MEMBERS = [
   { name: 'Lazy Jo',        role: 'Melodic Hip-Hop', tag: 'Founder · Producer', color: '#f5c518', image: 'wolf-yellow.png' },
   { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png' },
   { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png' },
-  { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#ff4081', image: null, emoji: '🎨' },
+  { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#ff4081', image: 'drippydesigns-logo.png', emoji: null },
   { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.png', emoji: null },
 ]
 

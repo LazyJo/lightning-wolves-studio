@@ -248,7 +248,7 @@ function AuthPage({ supabase, onAuth, onGuest, onHome }) {
   return (
     <div id="auth-page" className="page">
       <div className="auth-container">
-        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" className="auth-logo clickable-logo" onClick={onHome} onError={e => e.target.style.display='none'} />
+        <img src="/logo.png" alt="Lightning Wolves" className="auth-logo clickable-logo" onClick={onHome} onError={e => e.target.style.display='none'} />
         <div className="auth-wordmark">LIGHTNING WOLVES</div>
         <div className="auth-sub">Lyrics Studio</div>
 

@@ -1807,6 +1807,7 @@ textarea { resize: vertical; min-height: 72px; }
 }
 .lv-studio-style-btn:hover { border-color: var(--wolf-color, var(--accent)); color: var(--text); }
 .lv-studio-style-btn.active { border-color: var(--wolf-color, var(--accent)); color: var(--wolf-color, var(--accent)); background: rgba(245, 197, 24, 0.08); }
+.lv-studio-style-btn.locked { opacity: 0.4; cursor: not-allowed; }
 
 .lv-studio-toggle-sub { margin-top: 0; }
 
@@ -1979,7 +1980,8 @@ textarea { resize: vertical; min-height: 72px; }
 .pricing-member-banner { max-width: 700px; margin: 0 auto; padding: 0 24px; }
 .pricing-member-banner { display: flex; align-items: center; gap: 16px; background: var(--card); border: 1px solid rgba(245,197,24,0.2); border-radius: 14px; padding: 20px 24px; }
 .pricing-member-icon { font-size: 2rem; }
-.pricing-member-text { font-size: 0.9rem; color: var(--text); }
+.pricing-member-heading { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.06em; color: var(--accent); margin-bottom: 4px; }
+.pricing-member-text { font-size: 0.9rem; color: var(--muted); }
 .pricing-member-link { background: none; border: none; color: var(--accent); cursor: pointer; font-size: 0.85rem; margin-top: 4px; padding: 0; text-decoration: underline; font-family: inherit; }
 
 /* Nav pricing link */

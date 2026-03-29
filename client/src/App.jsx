@@ -74,28 +74,26 @@ const WOLF_NAMES = PACK_MEMBERS.map(m => m.name)
 const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯']
 
 // ─── localStorage helpers ────────────────────────────────────────────────────
-const LONE_WOLF_LIMIT = 3
-const LW_GEN_KEY     = 'lw_lone_wolf_gens'
+const FREE_GEN_LIMIT = 3
+const LW_GEN_KEY     = 'lw_gen_count'
 const LW_TRACKS_KEY  = 'lw_saved_tracks'
 const LW_VISUALS_KEY = 'lw_visuals'
 const LW_COVERS_KEY  = 'lw_covers'
 const LW_COLLABS_KEY = 'lw_collabs'
 
-function getLoneWolfGenCount() {
-  try {
-    const data = JSON.parse(localStorage.getItem(LW_GEN_KEY))
-    if (!data) return 0
-    const now = new Date()
-    const key = `${now.getFullYear()}-${now.getMonth()}`
-    return data.month === key ? (data.count || 0) : 0
-  } catch { return 0 }
+// Free styles available to non-members
+const FREE_STYLE_IDS = ['subtitle', 'minimal']
+
+function getGenCount() {
+  try { return parseInt(localStorage.getItem(LW_GEN_KEY)) || 0 } catch { return 0 }
 }
 
-function incrementLoneWolfGenCount() {
-  const now = new Date()
-  const key = `${now.getFullYear()}-${now.getMonth()}`
-  const count = getLoneWolfGenCount() + 1
-  localStorage.setItem(LW_GEN_KEY, JSON.stringify({ month: key, count }))
+function incrementGenCount() {
+  localStorage.setItem(LW_GEN_KEY, String(getGenCount() + 1))
+}
+
+function isFreeUser(user, profile) {
+  return !user || profile?.role !== 'member'
 }
 
 function lsGet(key) { try { return JSON.parse(localStorage.getItem(key)) || [] } catch { return [] } }
@@ -248,7 +246,7 @@ function AuthPage({ supabase, onAuth, onGuest, onHome }) {
   return (
     <div id="auth-page" className="page">
       <div className="auth-container">
-        <img src="/logo.png" alt="Lightning Wolves" className="auth-logo clickable-logo" onClick={onHome} onError={e => e.target.style.display='none'} />
+        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" className="auth-logo clickable-logo" onClick={onHome} onError={e => e.target.style.display='none'} />
         <div className="auth-wordmark">LIGHTNING WOLVES</div>
         <div className="auth-sub">Lyrics Studio</div>
 
@@ -414,7 +412,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
   async function handleGenerate() {
     setGenError('')
     if (!title || !artist || !genre) { setGenError('Please fill in Song Title, Artist Name, and Genre.'); return }
-    if (isLoneWolf && getLoneWolfGenCount() >= LONE_WOLF_LIMIT) { onShowUpgradeModal(); return }
+    if (isFreeUser(user, profile) && getGenCount() >= FREE_GEN_LIMIT) { onShowUpgradeModal(); return }
     if (generating) return
     setGenerating(true)
     setPack(null); setMeta(null)
@@ -471,7 +469,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
       }
       localStorage.setItem('lw_last_pack', JSON.stringify(json.pack))
       localStorage.setItem('lw_last_meta', JSON.stringify(json.meta))
-      if (isLoneWolf) incrementLoneWolfGenCount()
+      if (isFreeUser(user, profile)) incrementGenCount()
       setPack(json.pack)
       setMeta(json.meta)
 
@@ -664,11 +662,15 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
             {lvEnabled && (
               <div className="lv-studio-options">
                 <div className="lv-studio-styles">
-                  {LYRIC_STYLES.map(s => (
-                    <button key={s.id} className={`lv-studio-style-btn${lvStyle.id === s.id ? ' active' : ''}`} onClick={() => setLvStyle(s)}>
-                      {s.name}
-                    </button>
-                  ))}
+                  {LYRIC_STYLES.map(s => {
+                    const locked = isFreeUser(user, profile) && !FREE_STYLE_IDS.includes(s.id)
+                    return (
+                      <button key={s.id} className={`lv-studio-style-btn${lvStyle.id === s.id ? ' active' : ''}${locked ? ' locked' : ''}`}
+                        onClick={() => !locked && setLvStyle(s)} title={locked ? 'Members only' : ''}>
+                        {s.name}{locked ? ' 🔒' : ''}
+                      </button>
+                    )
+                  })}
                 </div>
                 <label className="lv-studio-toggle lv-studio-toggle-sub">
                   <input type="checkbox" checked={lvBeatFx} onChange={e => setLvBeatFx(e.target.checked)} />
@@ -830,7 +832,9 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
                     <span>Style: <strong>{lvStyle.name}</strong></span>
                   </div>
                   <div className="lv-inline-actions">
-                    <button className="btn-gold btn-sm" onClick={() => setShowEditor(true)}>Open Editor</button>
+                    {isFreeUser(user, profile)
+                      ? <button className="btn-outline btn-sm" onClick={onShowUpgradeModal}>Full Editor 🔒</button>
+                      : <button className="btn-gold btn-sm" onClick={() => setShowEditor(true)}>Open Editor</button>}
                     <button className="btn-outline btn-sm" onClick={handleLvExport} disabled={lvExporting}>
                       {lvExporting ? `Exporting… ${lvExportProg}%` : '⬇ Export Video'}
                     </button>
@@ -1065,8 +1069,8 @@ function PricingPage({ onBack, onSignup }) {
       <div className="pricing-member-banner">
         <div className="pricing-member-icon">🐺</div>
         <div>
-          <div className="pricing-member-text">Lightning Wolves crew members get full access free forever.</div>
-          <button className="pricing-member-link" onClick={onSignup}>Already a member? Sign in →</button>
+          <div className="pricing-member-heading">The pack looks after its own. ⚡</div>
+          <div className="pricing-member-text">Support a Lightning Wolves artist and earn free Credits.</div>
         </div>
       </div>
 
@@ -1347,22 +1351,16 @@ function ThePackPage() {
 }
 
 // ─── Upgrade Modal ───────────────────────────────────────────────────────────
-function UpgradeModal({ onClose, onSignup }) {
+function UpgradeModal({ onClose, onSignup, onShowAuth }) {
   return (
     <div className="modal-overlay">
       <div className="modal-box upgrade-modal-box">
-        <div className="modal-icon">🐺</div>
-        <h2 className="modal-title">Join the Pack</h2>
-        <p className="modal-body">You've used your <strong>3 free generations</strong>.<br/>Upgrade to Wolf Pack for unlimited access.</p>
-        <div className="upgrade-price"><span className="upgrade-amount">$9</span><span className="upgrade-period">/month</span></div>
-        <ul className="upgrade-perks">
-          <li>Unlimited generations</li>
-          <li>Save &amp; manage your Tracks</li>
-          <li>Access Visuals, Covers &amp; The Pack</li>
-          <li>Earn 40% revenue on referrals</li>
-        </ul>
-        <div className="modal-actions" style={{ flexDirection: 'column', gap: '8px' }}>
-          <button className="btn-gold btn-full" onClick={onSignup}>GET ACCESS</button>
+        <div className="modal-icon">⚡</div>
+        <h2 className="modal-title">You've used your 3 free generations. ⚡</h2>
+        <p className="modal-body">Sign in or upgrade to keep creating lyric videos, access all styles, and unlock the full editor.</p>
+        <div className="modal-actions" style={{ flexDirection: 'column', gap: '10px' }}>
+          <button className="btn-gold btn-full" onClick={onShowAuth}>Sign In</button>
+          <button className="btn-outline btn-full" onClick={onSignup}>Get Access → Pricing</button>
           <button className="btn-ghost" onClick={onClose}>Not Now</button>
         </div>
       </div>
@@ -1668,7 +1666,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
 }
 
 // ─── Nav Bar ─────────────────────────────────────────────────────────────────
-function NavBar({ section, onNavigate, isMember, onPricing }) {
+function NavBar({ section, onNavigate, isMember, onPricing, onHome }) {
   const sections = [
     { id: 'studio', label: 'Studio', membersOnly: false },
     { id: 'tracks', label: 'Tracks', membersOnly: true },
@@ -1678,6 +1676,7 @@ function NavBar({ section, onNavigate, isMember, onPricing }) {
   ]
   return (
     <nav className="main-nav">
+      <button className="nav-link" onClick={onHome}>Home</button>
       {sections.map(s => (
         (!s.membersOnly || isMember) && (
           <button key={s.id} className={`nav-link${section === s.id ? ' active' : ''}`} onClick={() => onNavigate(s.id)}>
@@ -1738,7 +1737,7 @@ function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, o
         </div>
       </header>
 
-      <NavBar section={section} onNavigate={onNavigate} isMember={isMember} onPricing={onPricing} />
+      <NavBar section={section} onNavigate={onNavigate} isMember={isMember} onPricing={onPricing} onHome={onChangeWolf} />
 
       {section === 'studio' && (
         <StudioPage key={studioKey} wolf={wolf} user={user} profile={profile} token={token} supabase={supabase}
@@ -1904,7 +1903,8 @@ export default function App() {
 
       {showUpgradeModal && (
         <UpgradeModal onClose={() => setShowUpgradeModal(false)}
-          onSignup={() => { setShowUpgradeModal(false); setPage('pricing') }} />
+          onSignup={() => { setShowUpgradeModal(false); setPage('pricing') }}
+          onShowAuth={() => { setShowUpgradeModal(false); setPage('auth') }} />
       )}
     </>
   )

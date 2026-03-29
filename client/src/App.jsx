@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { LYRIC_STYLES, detectBeats, drawLyricFrame, generateASS } from './LyricVideo'
+import LyricEditor from './LyricEditor'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
@@ -247,7 +248,7 @@ function AuthPage({ supabase, onAuth, onGuest }) {
   return (
     <div id="auth-page" className="page">
       <div className="auth-container">
-        <img src="/logo.svg" alt="Lightning Wolves" className="auth-logo" onError={e => e.target.style.display='none'} />
+        <img src="/lw-logo.png" alt="Lightning Wolves" className="auth-logo" onError={e => e.target.style.display='none'} />
         <div className="auth-wordmark">LIGHTNING WOLVES</div>
         <div className="auth-sub">Lyrics Studio</div>
 
@@ -379,6 +380,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
   const [lvVideoUrl,   setLvVideoUrl]   = useState(null)
   const [lvExporting,  setLvExporting]  = useState(false)
   const [lvExportProg, setLvExportProg] = useState(0)
+  const [showEditor,   setShowEditor]   = useState(false)
   const lvVideoRef = useRef(null)
   const lvCanvasRef = useRef(null)
   const lvAnimRef = useRef(null)
@@ -421,9 +423,16 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
         const fd = new FormData()
         fd.append('file', uploadedFile)
         const transcribeRes = await fetch('/api/transcribe', { method: 'POST', body: fd })
+        const contentType = transcribeRes.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) {
+          const errText = await transcribeRes.text()
+          setUploadInfo({ text: `Transcription error: ${errText.slice(0, 100)}`, color: '#ff4455' })
+          setGenerating(false)
+          return
+        }
         transcribeData = await transcribeRes.json()
         if (!transcribeRes.ok) {
-          setUploadInfo({ text: `Transcription error: ${transcribeData.error}`, color: '#ff4455' })
+          setUploadInfo({ text: `Transcription error: ${transcribeData.error || 'Unknown error'}`, color: '#ff4455' })
           setGenerating(false)
           return
         }
@@ -446,6 +455,11 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
+      const genContentType = res.headers.get('content-type') || ''
+      if (!genContentType.includes('application/json')) {
+        const errText = await res.text()
+        throw new Error(errText.slice(0, 150) || 'Server returned non-JSON response')
+      }
       const json = await res.json()
       if (!res.ok) {
         if (json.error === 'LIMIT_REACHED') { onShowLimitModal(); return }
@@ -479,6 +493,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
           if (lvVideoUrl) URL.revokeObjectURL(lvVideoUrl)
           setLvVideoUrl(URL.createObjectURL(uploadedFile))
           setActiveTab('video')
+          setShowEditor(true)
           setUploadInfo({ text: `✓ Lyric video ready · ${detectedBeats.filter(b => b.isDrop).length} beat drops`, color: '#3ddc84' })
         } catch (beatErr) {
           console.warn('Beat detection failed:', beatErr)
@@ -811,7 +826,8 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
                     <span>Style: <strong>{lvStyle.name}</strong></span>
                   </div>
                   <div className="lv-inline-actions">
-                    <button className="btn-gold btn-sm" onClick={handleLvExport} disabled={lvExporting}>
+                    <button className="btn-gold btn-sm" onClick={() => setShowEditor(true)}>Open Editor</button>
+                    <button className="btn-outline btn-sm" onClick={handleLvExport} disabled={lvExporting}>
                       {lvExporting ? `Exporting… ${lvExportProg}%` : '⬇ Export Video'}
                     </button>
                   </div>
@@ -824,6 +840,20 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
           </div>
         </main>
       </div>
+
+      {showEditor && lvVideoUrl && (
+        <LyricEditor
+          videoFile={uploadedFile}
+          videoUrl={lvVideoUrl}
+          words={lvWords}
+          segments={lvSegments}
+          beats={lvBeats}
+          wolfColor={wolf?.color}
+          pack={pack}
+          meta={meta}
+          onClose={() => setShowEditor(false)}
+        />
+      )}
     </div>
   )
 }
@@ -840,6 +870,77 @@ function PromptCard({ prompt: p }) {
       <div className="prompt-section-name">{p.section}</div>
       <div className="prompt-text">{p.prompt}</div>
       <button className="prompt-copy-btn" onClick={copy}>{copied ? 'Copied!' : 'Copy'}</button>
+    </div>
+  )
+}
+
+// ─── Pricing Page ────────────────────────────────────────────────────────────
+function PricingPage({ onBack, onSignup }) {
+  return (
+    <div className="pricing-page">
+      <header className="pricing-header">
+        <button className="btn-outline btn-sm" onClick={onBack}>← Back</button>
+        <span style={{ fontFamily: 'Bebas Neue', fontSize: '1.2rem', letterSpacing: '0.06em', color: 'var(--accent)' }}>Lightning Wolves</span>
+        <div></div>
+      </header>
+
+      <div className="pricing-hero">
+        <h1 className="pricing-title">Choose Your Pack</h1>
+        <p className="pricing-subtitle">Create lyric videos that hit different.</p>
+      </div>
+
+      <div className="pricing-grid">
+        {/* FREE */}
+        <div className="pricing-card">
+          <div className="pricing-card-name">Lone Wolf</div>
+          <div className="pricing-card-price">Free</div>
+          <div className="pricing-card-period">forever</div>
+          <ul className="pricing-features">
+            <li>3 generations total</li>
+            <li>Subtitle &amp; Minimal styles</li>
+            <li>Basic lyric overlay</li>
+            <li className="disabled">Full timeline editor</li>
+            <li className="disabled">Beat drop effects</li>
+            <li className="disabled">No watermark</li>
+            <li className="disabled">All styles &amp; animations</li>
+          </ul>
+          <button className="btn-outline pricing-card-btn" onClick={onBack}>Current Plan</button>
+        </div>
+
+        {/* MEMBER */}
+        <div className="pricing-card featured">
+          <div className="pricing-card-badge">MOST POPULAR</div>
+          <div className="pricing-card-name">Wolf Pack</div>
+          <div className="pricing-card-price">$9</div>
+          <div className="pricing-card-period">/month</div>
+          <ul className="pricing-features">
+            <li>Unlimited generations</li>
+            <li>All 5 lyric styles</li>
+            <li>Full timeline editor</li>
+            <li>Beat drop effects</li>
+            <li>No watermark on export</li>
+            <li>All animations</li>
+            <li>Priority processing</li>
+          </ul>
+          <button className="btn-gold pricing-card-btn" onClick={onSignup}>Join the Pack</button>
+        </div>
+
+        {/* PRO */}
+        <div className="pricing-card">
+          <div className="pricing-card-name">Wolf Pro</div>
+          <div className="pricing-card-price">$29</div>
+          <div className="pricing-card-period">/month</div>
+          <ul className="pricing-features">
+            <li>Everything in Wolf Pack</li>
+            <li>4K export</li>
+            <li>Custom fonts</li>
+            <li>Priority support</li>
+            <li>Early access to new features</li>
+            <li>Commercial license</li>
+          </ul>
+          <button className="btn-outline pricing-card-btn" disabled style={{ opacity: 0.5 }}>Coming Soon</button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1130,8 +1231,8 @@ function UpgradeModal({ onClose, onSignup }) {
           <li>Access Visuals, Covers &amp; The Pack</li>
           <li>Earn 40% revenue on referrals</li>
         </ul>
-        <div className="modal-actions">
-          <button className="btn-gold btn-full" onClick={onSignup}>JOIN THE PACK</button>
+        <div className="modal-actions" style={{ flexDirection: 'column', gap: '8px' }}>
+          <button className="btn-gold btn-full" onClick={onSignup}>GET ACCESS</button>
           <button className="btn-ghost" onClick={onClose}>Not Now</button>
         </div>
       </div>
@@ -1657,6 +1758,13 @@ export default function App() {
           onBack={() => setPage('app')} onSignOut={handleSignOut} />
       )}
 
+      {page === 'pricing' && (
+        <PricingPage
+          onBack={() => setPage(wolf ? 'app' : 'wolf-select')}
+          onSignup={() => setPage('auth')}
+        />
+      )}
+
       {showLimitModal && (
         <LimitModal onClose={() => setShowLimitModal(false)}
           onSignup={() => { setShowLimitModal(false); setPage('auth') }} />
@@ -1664,7 +1772,7 @@ export default function App() {
 
       {showUpgradeModal && (
         <UpgradeModal onClose={() => setShowUpgradeModal(false)}
-          onSignup={() => { setShowUpgradeModal(false); setPage('auth') }} />
+          onSignup={() => { setShowUpgradeModal(false); setPage('pricing') }} />
       )}
     </>
   )

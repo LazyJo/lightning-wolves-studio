@@ -7,7 +7,7 @@ const { OpenAI } = require('openai');
 module.exports.config = {
   api: {
     bodyParser: false,
-    sizeLimit: '50mb',
+    sizeLimit: '100mb',
   },
 };
 

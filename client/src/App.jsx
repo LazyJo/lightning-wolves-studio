@@ -13,12 +13,13 @@ const WOLVES = [
   { id: 'pink',   color: '#E040FB', locked: true, image: 'wolf-pink.svg'  },
   { id: 'red',    color: '#E53935', locked: true, image: 'wolf-red.svg'   },
   { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
+  { id: 'white',  color: '#e8e8e8', locked: true, image: 'wolf-white.svg' },
 ]
 
 const PACK_MEMBERS = [
-  { name: 'Lazy Jo',        role: 'Melodic Hip-Hop', tag: 'Founder · Producer', color: '#f5c518', image: 'wolf-yellow.png' },
-  { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png' },
+  { name: 'Lazy Jo',        role: 'Melodic Hip-Hop', tag: 'Founder · Artist',   color: '#f5c518', image: 'wolf-yellow.png' },
   { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png' },
+  { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png' },
   { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#64b5f6', image: 'drippydesigns-logo.png', emoji: null, halfColor: '#e8e8e8' },
   { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.png', emoji: null },
 ]

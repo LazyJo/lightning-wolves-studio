@@ -1186,7 +1186,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
           <section className="profile-section">
             <div className="profile-section-header-row">
               <h3 className="profile-section-title">Live Performance</h3>
-              <a className="btn-gold btn-sm" href="mailto:Lazyjo.official@gmail.com">Book Lazy Jo</a>
+              <a className="btn-gold btn-sm" href="https://www.gigstarter.be/artists/lazy-jo" target="_blank" rel="noopener noreferrer">Book Lazy Jo</a>
             </div>
             <div className="profile-video-player">
               <video src="/lazyjo-performance.mp4" controls preload="metadata" playsInline
@@ -1213,36 +1213,18 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
           )}
         </section>
 
-        {/* Covers */}
-        <section className="profile-section">
-          <h3 className="profile-section-title">Covers</h3>
-          {covers.length ? (
-            <div className="profile-media-grid">
-              {covers.map(c => (
-                <div key={c.id} className="profile-media-thumb">
-                  {c.type === 'video'
-                    ? <video src={c.data} muted preload="metadata" />
-                    : <img src={c.data} alt={c.name} loading="lazy" />}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state"><div className="empty-icon">🎨</div><div>No covers yet.</div></div>
-          )}
-        </section>
-
         {/* Support */}
         {wolf.artist === 'Lazy Jo' && (
           <section className="profile-section">
             <h3 className="profile-section-title">Support</h3>
             <div className="support-grid">
-              <a className="support-card" href="https://www.even.biz/l/lazyjomusic" target="_blank" rel="noopener noreferrer">
-                <img className="support-card-img" src="/truefans.jpg" alt="True Fans Buy The Art" onError={e => e.target.style.display='none'} />
-                <div className="support-card-title">True Fans Buy The Art</div>
-              </a>
               <a className="support-card" href="https://www.even.biz/l/lightningwolves" target="_blank" rel="noopener noreferrer">
                 <img className="support-card-img" src="/logo.png" alt="Lightning Wolves Merch" onError={e => e.target.style.display='none'} />
                 <div className="support-card-title">Lightning Wolves Merch</div>
+              </a>
+              <a className="support-card" href="https://www.even.biz/l/lazyjomusic" target="_blank" rel="noopener noreferrer">
+                <img className="support-card-img" src="/truefans.jpg" alt="True Fans Buy The Art" onError={e => e.target.style.display='none'} />
+                <div className="support-card-title">True Fans Buy The Art</div>
               </a>
             </div>
           </section>

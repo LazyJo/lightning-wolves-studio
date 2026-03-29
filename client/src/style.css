@@ -1634,6 +1634,25 @@ textarea { resize: vertical; min-height: 72px; }
   letter-spacing: 0.04em;
 }
 
+.ack-link {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  color: var(--profile-color, var(--accent));
+  text-decoration: none;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--profile-color, var(--accent)) 40%, transparent);
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.ack-link:hover {
+  background: color-mix(in srgb, var(--profile-color, var(--accent)) 12%, transparent);
+  border-color: var(--profile-color, var(--accent));
+  text-decoration: none;
+}
+
 .profile-enter-studio {
   margin-top: 40px;
   text-align: center;

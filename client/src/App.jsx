@@ -28,15 +28,39 @@ const PACK_MEMBERS = [
       { name: 'Kelvyn Colt',  quote: '"Go get it my G!!"',                         context: 'DM on IG',          photo: 'kelvyn-colt.jpeg' },
       { name: 'Kid Hazel',    quote: '"Songs was hard on ya page fam"',            context: 'DM on IG',          photo: 'kid-hazel.jpeg' },
       { name: '6ix9ine',      quote: 'Met in real life, photo together',           context: 'In person',          photo: '6ix9ine.jpeg' },
+    ],
+    spotifyArtistId: '1gxwDVgOKYnTA3iq2CjLtM',
+    performanceVideo: 'lazyjo-performance.mp4',
+    bookingLink: 'https://www.gigstarter.be/artists/lazy-jo',
+    bookingLabel: 'Book Lazy Jo',
+    supportCards: [
+      { title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' },
+      { title: 'True Fans Buy The Art', image: 'truefans.jpg', link: 'https://www.even.biz/l/lazyjomusic' },
+    ],
+    contactLinks: [
+      { icon: '✉️', label: 'Lazyjo.official@gmail.com', href: 'mailto:Lazyjo.official@gmail.com' },
+      { icon: '▶️', label: 'YouTube', href: 'https://youtube.com/@lazyjo_' },
+      { icon: '📸', label: 'Instagram', href: 'https://www.instagram.com/lazyjo_' },
+      { icon: '🎵', label: 'Spotify', href: 'https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM' },
     ] },
   { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png',
-    bio: 'French Hip-Hop artist bringing raw energy and sharp wordplay. Representing the streets with authenticity and fire.' },
-  { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png',
-    bio: 'Pop and French Pop vocalist with a voice that cuts through. Bridging cultures through melody and emotion.' },
+    bio: 'French Hip-Hop artist bringing raw energy and sharp wordplay. Representing the streets with authenticity and fire.',
+    supportCards: [{ title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' }] },
+  { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png', photo: 'rosakay-photo.jpg',
+    lang: 'fr',
+    labels: { about: 'À Propos', music: 'Musique', photos: 'Photos', support: 'Support', contact: 'Contact', flipHint: 'Appuyer pour retourner', flipBack: 'Appuyer pour retourner', streamNow: 'Écouter maintenant' },
+    cardBio: 'Née à Kinshasa, élevée entre Kigali et Bruxelles. Partie de la guitare, sa voix a pris le dessus — et ne s\'est plus arrêtée. Folk, pop, R&B, variété française — portée par l\'amour sous toutes ses formes. Émotion pure, authenticité totale.',
+    bio: 'Rosakay est une jeune chanteuse née à Kinshasa, en République Démocratique du Congo, d\'origine rwandaise et congolaise. Peu après sa naissance, elle part vivre à Kigali, au Rwanda, où elle grandit jusqu\'à l\'âge de 11 ans. Elle s\'installe ensuite en Belgique, un tournant décisif dans son parcours artistique. C\'est là qu\'elle découvre la musique plus profondément. Elle commence par la guitare, avant de laisser sa voix prendre naturellement sa place. À cette période, le groupe Mumford & Sons l\'inspire particulièrement. À l\'origine, elle ne voulait faire que de la guitare, mais un jour, presque instinctivement, elle décide de chanter - et ne s\'arrêtera plus. Rosakay, c\'est une voix, de l\'émotion et de l\'authenticité. Portée par des influences allant du folk rock à la pop rock, en passant par le R&B et la variété française, elle développe un univers musical sensible et personnel. L\'amour, sous toutes ses formes, devient sa principale source d\'inspiration, qu\'elle explore à travers des chansons sincères et intimes.',
+    spotifyArtistId: '5DaB9HZOXF1kOqxLiS2d4B',
+    supportCards: [
+      { title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' },
+    ] },
   { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#64b5f6', image: 'drippydesigns-logo.png', emoji: null, halfColor: '#e8e8e8',
-    bio: 'Creative Director behind every cover, trailer, and visual identity. Turning sound into art you can see.' },
+    bio: 'Creative Director behind every cover, trailer, and visual identity. Turning sound into art you can see.',
+    supportCards: [{ title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' }] },
   { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.png', emoji: null,
-    bio: 'The eye behind the lens. Capturing the pack in motion — photos, videos, and everything in between.' },
+    bio: 'The eye behind the lens. Capturing the pack in motion — photos, videos, and everything in between.',
+    supportCards: [{ title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' }] },
 ]
 
 const WOLF_NAMES = PACK_MEMBERS.map(m => m.name)
@@ -1079,6 +1103,9 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
     }
   }
 
+  const L = member.labels || {}
+  const t = (key, fallback) => L[key] || fallback
+
   return (
     <div className="profile-page" style={{ '--profile-color': wolf.color }}>
       <LightningCanvas wolfColor={wolf.color} />
@@ -1113,7 +1140,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
                 <div className="profile-card-genre">{wolf.genre}</div>
                 {member.tag && <div className="profile-card-tag">{member.tag}</div>}
               </div>
-              <div className="profile-card-flip-hint">↻ Tap to flip</div>
+              <div className="profile-card-flip-hint">↻ {t('flipHint', 'Tap to flip')}</div>
             </div>
 
             {/* BACK */}
@@ -1128,7 +1155,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
                 {(member.cardBio || member.bio) && <p className="profile-card-bio">{member.cardBio || member.bio}</p>}
                 {member.tag && <div className="profile-card-tag">{member.tag}</div>}
               </div>
-              <div className="profile-card-flip-hint">↻ Tap to flip back</div>
+              <div className="profile-card-flip-hint">↻ {t('flipBack', 'Tap to flip back')}</div>
             </div>
           </div>
         </div>
@@ -1136,16 +1163,16 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
 
       {/* Sections below the card */}
       <div className="profile-sections">
-        {/* Bio */}
+        {/* About */}
         <section className="profile-section">
-          <h3 className="profile-section-title">About</h3>
+          <h3 className="profile-section-title">{t('about', 'About')}</h3>
           <p className="profile-section-text">{member.bio || `${wolf.artist} is part of the Lightning Wolves pack.`}</p>
         </section>
 
         {/* Industry Acknowledgements */}
         {member.acknowledgements?.length > 0 && (
           <section className="profile-section">
-            <h3 className="profile-section-title">Industry Acknowledgements</h3>
+            <h3 className="profile-section-title">{t('acknowledgements', 'Industry Acknowledgements')}</h3>
             <div className="ack-carousel">
               {member.acknowledgements.map((ack, i) => (
                 <div key={i} className="ack-card" style={{ '--profile-color': wolf.color }}>
@@ -1166,11 +1193,11 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
 
         {/* Music */}
         <section className="profile-section">
-          <h3 className="profile-section-title">Music</h3>
-          {wolf.artist === 'Lazy Jo' ? (
+          <h3 className="profile-section-title">{t('music', 'Music')}</h3>
+          {member.spotifyArtistId ? (
             <div className="profile-spotify-embed">
               <iframe
-                src="https://open.spotify.com/embed/artist/1gxwDVgOKYnTA3iq2CjLtM?utm_source=generator&theme=0"
+                src={`https://open.spotify.com/embed/artist/${member.spotifyArtistId}?utm_source=generator&theme=0`}
                 width="100%" height="352" frameBorder="0"
                 allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
                 loading="lazy" style={{ borderRadius: '12px' }}
@@ -1182,14 +1209,18 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
         </section>
 
         {/* Live Performance */}
-        {wolf.artist === 'Lazy Jo' && (
+        {member.performanceVideo && (
           <section className="profile-section">
             <div className="profile-section-header-row">
-              <h3 className="profile-section-title">Live Performance</h3>
-              <a className="btn-gold btn-sm" href="https://www.gigstarter.be/artists/lazy-jo" target="_blank" rel="noopener noreferrer">Book Lazy Jo</a>
+              <h3 className="profile-section-title">{t('livePerformance', 'Live Performance')}</h3>
+              {member.bookingLink && (
+                <a className="btn-gold btn-sm" href={member.bookingLink} target="_blank" rel="noopener noreferrer">
+                  {member.bookingLabel || t('book', 'Book')}
+                </a>
+              )}
             </div>
             <div className="profile-video-player">
-              <video src="/lazyjo-performance.mp4" controls preload="metadata" playsInline
+              <video src={`/${member.performanceVideo}`} controls preload="metadata" playsInline
                 poster={`/${member.photo || member.image}`} />
             </div>
           </section>
@@ -1197,7 +1228,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
 
         {/* Photos */}
         <section className="profile-section">
-          <h3 className="profile-section-title">Photos</h3>
+          <h3 className="profile-section-title">{t('photos', 'Photos')}</h3>
           {photos.length ? (
             <div className="profile-media-grid">
               {photos.map(p => (
@@ -1214,31 +1245,30 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
         </section>
 
         {/* Support */}
-        {wolf.artist === 'Lazy Jo' && (
+        {member.supportCards?.length > 0 && (
           <section className="profile-section">
-            <h3 className="profile-section-title">Support</h3>
+            <h3 className="profile-section-title">{t('support', 'Support')}</h3>
             <div className="support-grid">
-              <a className="support-card" href="https://www.even.biz/l/lightningwolves" target="_blank" rel="noopener noreferrer">
-                <img className="support-card-img" src="/logo.png" alt="Lightning Wolves Merch" onError={e => e.target.style.display='none'} />
-                <div className="support-card-title">Lightning Wolves Merch</div>
-              </a>
-              <a className="support-card" href="https://www.even.biz/l/lazyjomusic" target="_blank" rel="noopener noreferrer">
-                <img className="support-card-img" src="/truefans.jpg" alt="True Fans Buy The Art" onError={e => e.target.style.display='none'} />
-                <div className="support-card-title">True Fans Buy The Art</div>
-              </a>
+              {member.supportCards.map((sc, i) => (
+                <a key={i} className="support-card" href={sc.link} target="_blank" rel="noopener noreferrer">
+                  <img className="support-card-img" src={`/${sc.image}`} alt={sc.title} onError={e => e.target.style.display='none'} />
+                  <div className="support-card-title">{sc.title}</div>
+                </a>
+              ))}
             </div>
           </section>
         )}
 
         {/* Contact */}
-        {wolf.artist === 'Lazy Jo' && (
+        {member.contactLinks?.length > 0 && (
           <section className="profile-section">
-            <h3 className="profile-section-title">Contact</h3>
+            <h3 className="profile-section-title">{t('contact', 'Contact')}</h3>
             <div className="contact-links">
-              <a className="contact-link" href="mailto:Lazyjo.official@gmail.com"><span className="contact-icon">✉️</span> Lazyjo.official@gmail.com</a>
-              <a className="contact-link" href="https://youtube.com/@lazyjo_" target="_blank" rel="noopener noreferrer"><span className="contact-icon">▶️</span> YouTube</a>
-              <a className="contact-link" href="https://www.instagram.com/lazyjo_" target="_blank" rel="noopener noreferrer"><span className="contact-icon">📸</span> Instagram</a>
-              <a className="contact-link" href="https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM" target="_blank" rel="noopener noreferrer"><span className="contact-icon">🎵</span> Spotify</a>
+              {member.contactLinks.map((cl, i) => (
+                <a key={i} className="contact-link" href={cl.href} target={cl.href.startsWith('mailto') ? undefined : '_blank'} rel="noopener noreferrer">
+                  <span className="contact-icon">{cl.icon}</span> {cl.label}
+                </a>
+              ))}
             </div>
           </section>
         )}

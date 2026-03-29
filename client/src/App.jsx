@@ -7,7 +7,7 @@ const WOLVES = [
   { id: 'purple',     color: '#9b6dff', artist: 'Zirka',          genre: 'French Hip-Hop',    image: 'wolf-purple.png', video: 'Wolf-Purple.mp4',     locked: false },
   { id: 'orange',     color: '#e8870a', artist: 'Rosakay',        genre: 'Pop / French Pop',  image: 'wolf-orange.png', video: 'Wolf-Orange.mp4',     locked: false },
   { id: 'white-blue', color: '#64b5f6', artist: 'Drippydesigns',  genre: 'Visual / Creative', image: 'wolf-white.svg',  video: 'wolf-white-blue.mp4', locked: false },
-  { id: 'green',      color: '#00E64D', artist: 'Shiteux',        genre: 'Visual',            image: 'wolf-green.svg',  video: 'wolf-green.mp4',      locked: false },
+  { id: 'green',      color: '#00E64D', artist: 'Shiteux',        genre: 'Visual',            image: 'wolf-green.png',  video: 'wolf-green.mp4',      locked: false },
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
   { id: 'pink',   color: '#E040FB', locked: true, image: 'wolf-pink.svg'  },
@@ -20,7 +20,7 @@ const PACK_MEMBERS = [
   { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png' },
   { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png' },
   { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#ff4081', image: null, emoji: '🎨' },
-  { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.svg', emoji: null },
+  { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.png', emoji: null },
 ]
 
 const WOLF_NAMES = PACK_MEMBERS.map(m => m.name)

@@ -884,6 +884,146 @@ function PromptCard({ prompt: p }) {
   )
 }
 
+// ─── Task Reward System ──────────────────────────────────────────────────────
+const REWARD_TASKS = [
+  { id: 'spotify-lazyjo', type: 'spotify', label: 'Follow Lazy Jo on Spotify', credits: 25, link: 'https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM', icon: '🎵', artistId: '1gxwDVgOKYnTA3iq2CjLtM' },
+  { id: 'spotify-rosakay', type: 'spotify', label: 'Follow Rosakay on Spotify', credits: 25, link: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B', icon: '🎵', artistId: '5DaB9HZOXF1kOqxLiS2d4B' },
+  { id: 'ig-rosakay', type: 'redirect', label: 'Follow Rosakay on Instagram', credits: 20, link: 'https://www.instagram.com/rosakay_officiel', icon: '📸' },
+  { id: 'ig-lw', type: 'redirect', label: 'Follow Lightning Wolves on Instagram', credits: 20, link: 'https://www.instagram.com/lightningwolvesmusic', icon: '📸' },
+  { id: 'yt-lw', type: 'youtube', label: 'Subscribe to Lightning Wolves on YouTube', credits: 30, link: 'https://youtube.com/@lightningwolves', icon: '▶️' },
+  { id: 'share', type: 'share', label: 'Share any Lightning Wolves track', credits: 50, icon: '🔗' },
+]
+const TOTAL_TASK_CREDITS = REWARD_TASKS.reduce((s, t) => s + t.credits, 0)
+
+function getCredits() { try { return parseInt(localStorage.getItem('lw_credits')) || 0 } catch { return 0 } }
+function setCredits(n) { localStorage.setItem('lw_credits', String(n)) }
+function getCompletedTasks() { try { return JSON.parse(localStorage.getItem('lw_completed_tasks')) || [] } catch { return [] } }
+function getPendingTasks() { try { return JSON.parse(localStorage.getItem('lw_pending_tasks')) || [] } catch { return [] } }
+
+function TaskRewardSection() {
+  const [completedTasks, setCompletedTasks] = useState(() => getCompletedTasks())
+  const [pendingTasks, setPendingTasks] = useState(() => getPendingTasks())
+  const [credits, setCreds] = useState(() => getCredits())
+  const [timers, setTimers] = useState({})
+  const [shareInput, setShareInput] = useState('')
+
+  const earnedFromTasks = REWARD_TASKS.filter(t => completedTasks.includes(t.id)).reduce((s, t) => s + t.credits, 0)
+
+  function completeTask(taskId, taskCredits) {
+    if (completedTasks.includes(taskId)) return
+    const newCompleted = [...completedTasks, taskId]
+    setCompletedTasks(newCompleted)
+    localStorage.setItem('lw_completed_tasks', JSON.stringify(newCompleted))
+    const newCredits = credits + taskCredits
+    setCreds(newCredits)
+    setCredits(newCredits)
+  }
+
+  function startRedirectTimer(task) {
+    if (completedTasks.includes(task.id) || timers[task.id]) return
+    window.open(task.link, '_blank')
+    let remaining = 10
+    setTimers(t => ({ ...t, [task.id]: remaining }))
+    const interval = setInterval(() => {
+      remaining--
+      if (remaining <= 0) {
+        clearInterval(interval)
+        setTimers(t => { const n = { ...t }; delete n[task.id]; return n })
+        completeTask(task.id, task.credits)
+      } else {
+        setTimers(t => ({ ...t, [task.id]: remaining }))
+      }
+    }, 1000)
+  }
+
+  function handleSpotifyTask(task) {
+    if (completedTasks.includes(task.id)) return
+    window.open(task.link, '_blank')
+    // For now: redirect timer since OAuth requires backend setup
+    startRedirectTimerDirect(task)
+  }
+
+  function startRedirectTimerDirect(task) {
+    let remaining = 10
+    setTimers(t => ({ ...t, [task.id]: remaining }))
+    const interval = setInterval(() => {
+      remaining--
+      if (remaining <= 0) {
+        clearInterval(interval)
+        setTimers(t => { const n = { ...t }; delete n[task.id]; return n })
+        completeTask(task.id, task.credits)
+      } else {
+        setTimers(t => ({ ...t, [task.id]: remaining }))
+      }
+    }, 1000)
+  }
+
+  function handleShareSubmit() {
+    if (!shareInput.trim() || pendingTasks.includes('share')) return
+    const newPending = [...pendingTasks, 'share']
+    setPendingTasks(newPending)
+    localStorage.setItem('lw_pending_tasks', JSON.stringify(newPending))
+    setShareInput('')
+  }
+
+  function getTaskStatus(task) {
+    if (completedTasks.includes(task.id)) return 'completed'
+    if (pendingTasks.includes(task.id)) return 'pending'
+    if (timers[task.id] !== undefined) return 'timer'
+    return 'default'
+  }
+
+  function renderTaskButton(task) {
+    const status = getTaskStatus(task)
+    if (status === 'completed') return <span className="task-badge task-earned">✓ Earned</span>
+    if (status === 'pending') return <span className="task-badge task-pending">Pending ⏳</span>
+    if (status === 'timer') return <span className="task-badge task-timer">{timers[task.id]}s</span>
+    if (task.type === 'share') return null // handled separately
+    return (
+      <button className="btn-gold btn-sm task-earn-btn" onClick={() => {
+        if (task.type === 'spotify') handleSpotifyTask(task)
+        else if (task.type === 'youtube') { window.open(task.link, '_blank'); startRedirectTimerDirect(task) }
+        else if (task.type === 'redirect') startRedirectTimer(task)
+      }}>Earn</button>
+    )
+  }
+
+  return (
+    <div className="task-reward-section">
+      <div className="task-reward-header">
+        <img src="/wolf-rose.png" alt="" className="task-reward-icon" onError={e => e.target.style.display='none'} />
+        <div>
+          <div className="task-reward-heading">The pack looks after its own. ⚡</div>
+          <div className="task-reward-sub">Support a Lightning Wolves artist and earn free Credits.</div>
+        </div>
+      </div>
+
+      <div className="task-progress-wrap">
+        <div className="task-progress-label">You've earned <strong>{earnedFromTasks}</strong> / {TOTAL_TASK_CREDITS} ⚡ from tasks</div>
+        <div className="task-progress-bar"><div className="task-progress-fill" style={{ width: `${(earnedFromTasks / TOTAL_TASK_CREDITS) * 100}%` }}></div></div>
+      </div>
+
+      <div className="task-list">
+        {REWARD_TASKS.map(task => (
+          <div key={task.id} className={`task-row${getTaskStatus(task) === 'completed' ? ' completed' : ''}`}>
+            <span className="task-icon">{task.icon}</span>
+            <span className="task-label">{task.label}</span>
+            <span className="task-credits">+{task.credits} ⚡</span>
+            {task.type === 'share' && getTaskStatus(task) === 'default' ? (
+              <div className="task-share-form">
+                <input className="task-share-input" placeholder="Paste share link..." value={shareInput} onChange={e => setShareInput(e.target.value)} />
+                <button className="btn-gold btn-sm" onClick={handleShareSubmit} disabled={!shareInput.trim()}>Submit</button>
+              </div>
+            ) : renderTaskButton(task)}
+          </div>
+        ))}
+      </div>
+
+      <div className="task-credit-balance">Your balance: <strong>{credits} ⚡</strong></div>
+    </div>
+  )
+}
+
 // ─── Promo Codes ─────────────────────────────────────────────────────────────
 const PROMO_CODES = {
   'WOLFPACK':  { type: 'percent', value: 20, label: '20% off' },
@@ -1067,14 +1207,8 @@ function PricingPage({ onBack, onSignup }) {
         </div>
       </div>
 
-      {/* Members banner */}
-      <div className="pricing-member-banner">
-        <img src="/wolf-rose.png" alt="" className="pricing-member-avatar" onError={e => e.target.style.display='none'} />
-        <div>
-          <div className="pricing-member-heading">The pack looks after its own. ⚡</div>
-          <div className="pricing-member-text">Support a Lightning Wolves artist and earn free Credits.</div>
-        </div>
-      </div>
+      {/* Task Reward System */}
+      <TaskRewardSection />
 
       <div style={{ height: 60 }}></div>
     </div>
@@ -1725,6 +1859,7 @@ function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, o
         <div className="studio-header-right">
           <span className="artist-dot" style={{ background: wolf?.color, boxShadow: `0 0 8px ${wolf?.color}` }}></span>
           <span className="artist-name-header">{wolf?.artist || ''}</span>
+          <span className="nav-credits-badge">⚡ {getCredits()}</span>
           <span className={planClass}>{planBadge}</span>
           <button className={`btn-test-member${testMemberMode ? ' active' : ''}`} onClick={onToggleTestMember}>
             {testMemberMode ? '✓ Member Mode' : 'Member Mode'}

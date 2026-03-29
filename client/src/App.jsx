@@ -15,7 +15,45 @@ const WOLVES = [
   { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
 ]
 
+const PACK_MEMBERS = [
+  { name: 'Lazy Jo',        role: 'Melodic Hip-Hop', tag: 'Founder · Producer', color: '#f5c518', image: 'wolf-yellow.png' },
+  { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png' },
+  { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png' },
+  { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#ff4081', image: null, emoji: '🎨' },
+  { name: 'Shiteux',        role: 'Photo · Video',    tag: 'Visuals',            color: '#00bcd4', image: null, emoji: '📸' },
+]
+
+const WOLF_NAMES = PACK_MEMBERS.map(m => m.name)
+
 const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯']
+
+// ─── localStorage helpers ────────────────────────────────────────────────────
+const LONE_WOLF_LIMIT = 3
+const LW_GEN_KEY     = 'lw_lone_wolf_gens'
+const LW_TRACKS_KEY  = 'lw_saved_tracks'
+const LW_VISUALS_KEY = 'lw_visuals'
+const LW_COVERS_KEY  = 'lw_covers'
+const LW_COLLABS_KEY = 'lw_collabs'
+
+function getLoneWolfGenCount() {
+  try {
+    const data = JSON.parse(localStorage.getItem(LW_GEN_KEY))
+    if (!data) return 0
+    const now = new Date()
+    const key = `${now.getFullYear()}-${now.getMonth()}`
+    return data.month === key ? (data.count || 0) : 0
+  } catch { return 0 }
+}
+
+function incrementLoneWolfGenCount() {
+  const now = new Date()
+  const key = `${now.getFullYear()}-${now.getMonth()}`
+  const count = getLoneWolfGenCount() + 1
+  localStorage.setItem(LW_GEN_KEY, JSON.stringify({ month: key, count }))
+}
+
+function lsGet(key) { try { return JSON.parse(localStorage.getItem(key)) || [] } catch { return [] } }
+function lsSet(key, v) { localStorage.setItem(key, JSON.stringify(v)) }
 
 function escapeHTML(str) {
   return String(str)
@@ -241,15 +279,22 @@ function WolfSelectPage({ onSelectWolf }) {
           ))}
         </div>
 
-        <div className="public-card">
-          <div className="public-card-inner">
-            <div className="public-card-icon">⚡</div>
-            <div className="public-card-text">
-              <div className="public-card-title">Join the Pack</div>
-              <div className="public-card-desc">3 free generations/month — no commitment</div>
+        <div className="lone-wolf-section">
+          <div className="lone-wolf-divider">
+            <span className="lone-wolf-divider-line"></span>
+            <span className="lone-wolf-divider-text">Not in the pack yet?</span>
+            <span className="lone-wolf-divider-line"></span>
+          </div>
+          <div className="lone-wolf-card">
+            <div className="lone-wolf-icon">
+              <img src="/wolf-gray.svg" alt="Lone Wolf" className="lone-wolf-img" onError={e => e.target.parentElement.textContent='🐺'} />
             </div>
-            <button className="btn-gold" onClick={() => onSelectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' })}>
-              Enter Studio
+            <div className="lone-wolf-info">
+              <div className="lone-wolf-title">Lone Wolf</div>
+              <div className="lone-wolf-desc">Try the Studio with 3 free generations — no account needed.</div>
+            </div>
+            <button className="btn-outline btn-lone-wolf" onClick={() => onSelectWolf({ id: 'lone-wolf', color: '#9E9E9E', artist: '', genre: '', image: 'wolf-gray.svg' })}>
+              Enter as Lone Wolf
             </button>
           </div>
         </div>
@@ -259,7 +304,7 @@ function WolfSelectPage({ onSelectWolf }) {
 }
 
 // ─── Studio Page ──────────────────────────────────────────────────────────────
-function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal }) {
+function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal, onShowUpgradeModal }) {
   const [title,        setTitle]        = useState('')
   const [artist,       setArtist]       = useState(wolf?.artist || '')
   const [genre,        setGenre]        = useState(wolf?.genre?.split(' /')[0] || '')
@@ -274,7 +319,9 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
   const [uploadInfo,   setUploadInfo]   = useState(null)
   const [uploadedFile, setUploadedFile] = useState(null)
   const [dragover,     setDragover]     = useState(false)
+  const [savedMsg,     setSavedMsg]     = useState('')
   const fileInputRef = useRef(null)
+  const isLoneWolf = !user && wolf?.id === 'lone-wolf'
 
   // Restore last pack from localStorage on mount
   useEffect(() => {
@@ -301,6 +348,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
   async function handleGenerate() {
     setGenError('')
     if (!title || !artist || !genre) { setGenError('Please fill in Song Title, Artist Name, and Genre.'); return }
+    if (isLoneWolf && getLoneWolfGenCount() >= LONE_WOLF_LIMIT) { onShowUpgradeModal(); return }
     if (generating) return
     setGenerating(true)
     setPack(null); setMeta(null)
@@ -344,6 +392,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
       }
       localStorage.setItem('lw_last_pack', JSON.stringify(json.pack))
       localStorage.setItem('lw_last_meta', JSON.stringify(json.meta))
+      if (isLoneWolf) incrementLoneWolfGenCount()
       setPack(json.pack)
       setMeta(json.meta)
     } catch (err) {
@@ -371,35 +420,25 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     downloadText(txt, `${meta?.title || 'beats'}-cuts.txt`, 'text/plain')
   }
 
-  const planBadge = profile?.role === 'member' ? 'WOLF PACK' : (user ? 'FREE' : 'PUBLIC')
-  const planClass = profile?.role === 'member' ? 'plan-badge member' : 'plan-badge'
+  function handleSaveTrack() {
+    if (!pack || !meta) return
+    const tracks = lsGet(LW_TRACKS_KEY)
+    tracks.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      title: meta.title, artist: meta.artist, genre: meta.genre,
+      wolfId: meta.wolfId || wolf?.id, date: new Date().toISOString(),
+      pack, meta,
+    })
+    lsSet(LW_TRACKS_KEY, tracks)
+    setSavedMsg('Saved!')
+    setTimeout(() => setSavedMsg(''), 2000)
+  }
+
+  const planBadge = isLoneWolf ? 'LONE WOLF' : (profile?.role === 'member' ? 'WOLF PACK' : (user ? 'FREE' : 'PUBLIC'))
+  const planClass = isLoneWolf ? 'plan-badge lone-wolf' : (profile?.role === 'member' ? 'plan-badge member' : 'plan-badge')
 
   return (
-    <div id="studio-page" className="page">
-      <header className="studio-header">
-        <div className="studio-header-left">
-          <img src="/logo.png" alt="Lightning Wolves" className="studio-logo"
-               onError={e => e.target.style.display='none'} />
-          <div className="studio-titles">
-            <div className="studio-brand">LIGHTNING WOLVES / Lyrics Studio</div>
-          </div>
-        </div>
-        <div className="studio-header-right">
-          <span className="artist-dot" style={{ background: wolf?.color, boxShadow: `0 0 8px ${wolf?.color}` }}></span>
-          <span className="artist-name-header">{wolf?.artist || ''}</span>
-          <span className={planClass}>{planBadge}</span>
-          <button className="btn-outline" onClick={onChangeWolf}>Change Wolf</button>
-          {user ? (
-            <>
-              {profile?.role === 'member' && <button className="btn-ghost" onClick={onOpenDashboard}>Dashboard</button>}
-              <button className="btn-ghost" onClick={onSignOut}>Sign Out</button>
-            </>
-          ) : (
-            <button className="btn-ghost" onClick={onShowAuth}>Sign In</button>
-          )}
-        </div>
-      </header>
-
+    <div id="studio-section" className="app-section">
       <div className="studio-body">
         {/* LEFT PANEL */}
         <aside className="left-panel">
@@ -474,6 +513,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
                   <span className="summary-genre-badge">{meta.genre}</span>
                 </div>
               </div>
+              <button className="btn-outline btn-sm" onClick={handleSaveTrack}>{savedMsg || 'Save to Tracks'}</button>
               <button className="btn-outline btn-sm" onClick={handleNewTrack}>New Track</button>
             </div>
           )}
@@ -612,6 +652,301 @@ function PromptCard({ prompt: p }) {
   )
 }
 
+// ─── Tracks Page ─────────────────────────────────────────────────────────────
+function TracksPage({ onLoadTrack }) {
+  const [tracks, setTracks] = useState(() => lsGet(LW_TRACKS_KEY))
+
+  function handleDelete(id) {
+    const next = tracks.filter(t => t.id !== id)
+    lsSet(LW_TRACKS_KEY, next)
+    setTracks(next)
+  }
+
+  return (
+    <div className="app-section">
+      <div className="section-body">
+        <div className="section-hero">
+          <div className="section-icon">🎵</div>
+          <h2 className="section-title">TRACKS</h2>
+          <p className="section-desc">Your saved packs and past generations — all in one place.</p>
+        </div>
+        {!tracks.length ? (
+          <div className="empty-state"><div className="empty-icon">📦</div><div>No saved tracks yet. Generate a pack in the Studio and hit "Save to Tracks".</div></div>
+        ) : (
+          <div className="tracks-list">
+            {tracks.map(track => {
+              const dateStr = new Date(track.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+              return (
+                <div key={track.id} className="track-row">
+                  <div className="track-info" onClick={() => onLoadTrack(track)}>
+                    <div className="track-title">{track.title}</div>
+                    <div className="track-meta">
+                      <span>{track.artist}</span>
+                      <span className="track-genre-badge">{track.genre}</span>
+                      <span className="track-date">{dateStr}</span>
+                    </div>
+                  </div>
+                  <button className="btn-ghost btn-sm track-delete" onClick={() => handleDelete(track.id)} title="Delete">✕</button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Gallery Page (shared for Visuals + Covers) ──────────────────────────────
+function GalleryPage({ title, icon, desc, emptyText, storageKey, canUpload }) {
+  const [items, setItems] = useState(() => lsGet(storageKey))
+  const [pendingFiles, setPendingFiles] = useState([])
+  const [tagWolf, setTagWolf] = useState('')
+  const fileRef = useRef(null)
+
+  function refresh() { setItems(lsGet(storageKey)) }
+
+  function handleFilesSelected(e) {
+    setPendingFiles(Array.from(e.target.files))
+  }
+
+  function handleUpload() {
+    if (!pendingFiles.length) return
+    let processed = 0
+    pendingFiles.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const all = lsGet(storageKey)
+        all.unshift({
+          id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+          name: file.name,
+          type: file.type.startsWith('video') ? 'video' : 'photo',
+          wolf: tagWolf, data: reader.result, date: new Date().toISOString(),
+        })
+        lsSet(storageKey, all)
+        processed++
+        if (processed === pendingFiles.length) {
+          setPendingFiles([])
+          if (fileRef.current) fileRef.current.value = ''
+          refresh()
+        }
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function handleDelete(id) {
+    const next = items.filter(v => v.id !== id)
+    lsSet(storageKey, next)
+    setItems(next)
+  }
+
+  return (
+    <div className="app-section">
+      <div className="section-body">
+        <div className="section-hero">
+          <div className="section-icon">{icon}</div>
+          <h2 className="section-title">{title}</h2>
+          <p className="section-desc">{desc}</p>
+        </div>
+
+        {canUpload && (
+          <div className="gallery-upload-panel">
+            <input ref={fileRef} type="file" accept="image/*,video/*" multiple hidden onChange={handleFilesSelected} />
+            <div className="gallery-upload-row">
+              <button className="btn-outline btn-sm" onClick={() => fileRef.current?.click()}>Choose Files</button>
+              <select className="gallery-tag-select" value={tagWolf} onChange={e => setTagWolf(e.target.value)}>
+                <option value="">Tag a wolf…</option>
+                {WOLF_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+              <button className="btn-gold btn-sm" disabled={!pendingFiles.length} onClick={handleUpload}>Upload</button>
+            </div>
+            {pendingFiles.length > 0 && (
+              <div className="gallery-upload-preview">
+                {pendingFiles.map((f, i) => <span key={i} className="gallery-preview-tag">{f.name}</span>)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!items.length ? (
+          <div className="empty-state"><div className="empty-icon">🖼️</div><div>{emptyText}</div></div>
+        ) : (
+          <div className="gallery-grid">
+            {items.map(item => (
+              <GalleryCard key={item.id} item={item} canDelete={canUpload} onDelete={() => handleDelete(item.id)} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function GalleryCard({ item, canDelete, onDelete }) {
+  const [playing, setPlaying] = useState(false)
+  const videoRef = useRef(null)
+  const isVideo = item.type === 'video'
+
+  function togglePlay() {
+    if (!videoRef.current) return
+    if (videoRef.current.paused) { videoRef.current.play(); setPlaying(true) }
+    else { videoRef.current.pause(); setPlaying(false) }
+  }
+
+  return (
+    <div className="gallery-card">
+      <div className="gallery-media-wrap" onClick={isVideo ? togglePlay : undefined}>
+        {isVideo
+          ? <><video ref={videoRef} className="gallery-media" src={item.data} preload="metadata" muted />
+              {!playing && <div className="gallery-play-badge">▶</div>}</>
+          : <img className="gallery-media" src={item.data} alt={item.name} loading="lazy" />
+        }
+      </div>
+      <div className="gallery-card-footer">
+        {item.wolf && <span className="gallery-wolf-tag">{item.wolf}</span>}
+        <span className="gallery-item-name">{item.name}</span>
+        {canDelete && <button className="btn-ghost btn-sm gallery-delete" onClick={onDelete} title="Delete">✕</button>}
+      </div>
+    </div>
+  )
+}
+
+// ─── The Pack Page ───────────────────────────────────────────────────────────
+function ThePackPage() {
+  const [collabs, setCollabs]     = useState(() => lsGet(LW_COLLABS_KEY))
+  const [showForm, setShowForm]   = useState(false)
+  const [projName, setProjName]   = useState('')
+  const [checkedWolves, setCheckedWolves] = useState([])
+
+  function toggleWolf(name) {
+    setCheckedWolves(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name])
+  }
+
+  function handleSave() {
+    if (!projName.trim()) return
+    const all = lsGet(LW_COLLABS_KEY)
+    all.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name: projName.trim(), wolves: checkedWolves,
+      createdBy: 'Wolf', date: new Date().toISOString(),
+    })
+    lsSet(LW_COLLABS_KEY, all)
+    setCollabs(all)
+    setProjName(''); setCheckedWolves([]); setShowForm(false)
+  }
+
+  function handleDelete(id) {
+    const next = collabs.filter(c => c.id !== id)
+    lsSet(LW_COLLABS_KEY, next)
+    setCollabs(next)
+  }
+
+  return (
+    <div className="app-section">
+      <div className="section-body">
+        <div className="section-hero">
+          <div className="section-icon">🐺</div>
+          <h2 className="section-title">THE PACK</h2>
+          <p className="section-desc">Crew profiles and collabs — the wolves behind the music.</p>
+        </div>
+
+        <div className="pack-grid">
+          {PACK_MEMBERS.map(m => (
+            <div key={m.name} className="pack-card" style={{ '--card-color': m.color }}>
+              {m.image
+                ? <img src={`/${m.image}`} alt={m.name} className="pack-avatar-img" onError={e => e.target.outerHTML='<div class="pack-avatar">🐺</div>'} />
+                : <div className="pack-avatar">{m.emoji}</div>
+              }
+              <div className="pack-name">{m.name}</div>
+              <div className="pack-role">{m.role}</div>
+              <div className="pack-tag">{m.tag}</div>
+            </div>
+          ))}
+        </div>
+
+        <div className="collabs-section">
+          <div className="collabs-header">
+            <h3 className="collabs-title">COLLABS</h3>
+            <button className="btn-outline btn-sm" onClick={() => setShowForm(true)}>+ New Collab</button>
+          </div>
+
+          {showForm && (
+            <div className="collab-form">
+              <div className="collab-form-row">
+                <input type="text" className="collab-input" placeholder="Project name…" value={projName} onChange={e => setProjName(e.target.value)} />
+              </div>
+              <div className="collab-form-row">
+                <label className="collab-label">Tag wolves:</label>
+                <div className="collab-wolf-checks">
+                  {WOLF_NAMES.map(n => (
+                    <label key={n} className="collab-check">
+                      <input type="checkbox" checked={checkedWolves.includes(n)} onChange={() => toggleWolf(n)} /> {n}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              <div className="collab-form-actions">
+                <button className="btn-gold btn-sm" onClick={handleSave}>Save Collab</button>
+                <button className="btn-ghost btn-sm" onClick={() => { setShowForm(false); setProjName(''); setCheckedWolves([]) }}>Cancel</button>
+              </div>
+            </div>
+          )}
+
+          {!collabs.length ? (
+            <div className="empty-state"><div className="empty-icon">🤝</div><div>No collabs yet — start one and tag your wolves.</div></div>
+          ) : (
+            <div className="collabs-list">
+              {collabs.map(c => {
+                const dateStr = new Date(c.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+                return (
+                  <div key={c.id} className="collab-row">
+                    <div className="collab-info">
+                      <div className="collab-project-name">{c.name}</div>
+                      <div className="collab-meta">
+                        <span className="collab-date">{dateStr}</span>
+                        <span className="collab-by">by {c.createdBy}</span>
+                      </div>
+                      <div className="collab-wolves">
+                        {c.wolves.map(w => <span key={w} className="collab-wolf-tag">{w}</span>)}
+                      </div>
+                    </div>
+                    <button className="btn-ghost btn-sm collab-delete" onClick={() => handleDelete(c.id)} title="Delete">✕</button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Upgrade Modal ───────────────────────────────────────────────────────────
+function UpgradeModal({ onClose, onSignup }) {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-box upgrade-modal-box">
+        <div className="modal-icon">🐺</div>
+        <h2 className="modal-title">Join the Pack</h2>
+        <p className="modal-body">You've used your <strong>3 free generations</strong>.<br/>Upgrade to Wolf Pack for unlimited access.</p>
+        <div className="upgrade-price"><span className="upgrade-amount">$9</span><span className="upgrade-period">/month</span></div>
+        <ul className="upgrade-perks">
+          <li>Unlimited generations</li>
+          <li>Save &amp; manage your Tracks</li>
+          <li>Access Visuals, Covers &amp; The Pack</li>
+          <li>Earn 40% revenue on referrals</li>
+        </ul>
+        <div className="modal-actions">
+          <button className="btn-gold btn-full" onClick={onSignup}>JOIN THE PACK</button>
+          <button className="btn-ghost" onClick={onClose}>Not Now</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Dashboard Page ───────────────────────────────────────────────────────────
 function DashboardPage({ wolf, profile, token, onBack, onSignOut }) {
   const [stats, setStats] = useState(null)
@@ -685,15 +1020,108 @@ function LimitModal({ onClose, onSignup }) {
   )
 }
 
+// ─── Nav Bar ─────────────────────────────────────────────────────────────────
+function NavBar({ section, onNavigate, isMember }) {
+  const sections = [
+    { id: 'studio', label: 'Studio', membersOnly: false },
+    { id: 'tracks', label: 'Tracks', membersOnly: true },
+    { id: 'visuals', label: 'Visuals', membersOnly: true },
+    { id: 'covers', label: 'Covers', membersOnly: true },
+    { id: 'the-pack', label: 'The Pack', membersOnly: true },
+  ]
+  return (
+    <nav className="main-nav">
+      {sections.map(s => (
+        (!s.membersOnly || isMember) && (
+          <button key={s.id} className={`nav-link${section === s.id ? ' active' : ''}`} onClick={() => onNavigate(s.id)}>
+            {s.label}
+          </button>
+        )
+      ))}
+    </nav>
+  )
+}
+
+// ─── App Shell (header + nav + section content) ──────────────────────────────
+function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal, onShowUpgradeModal }) {
+  const isMember = profile?.role === 'member'
+  const isLoneWolf = !user && wolf?.id === 'lone-wolf'
+  const planBadge = isLoneWolf ? 'LONE WOLF' : (isMember ? 'WOLF PACK' : (user ? 'FREE' : 'PUBLIC'))
+  const planClass = isLoneWolf ? 'plan-badge lone-wolf' : (isMember ? 'plan-badge member' : 'plan-badge')
+
+  const displayName = (profile?.display_name || '').toLowerCase()
+  const wolfArtist = (wolf?.artist || '').toLowerCase()
+  const canUploadVisuals = displayName === 'shiteux' || displayName === 'lazy jo' || wolfArtist === 'lazy jo'
+  const canUploadCovers  = displayName === 'drippydesigns' || displayName === 'lazy jo' || wolfArtist === 'lazy jo'
+
+  const [studioKey, setStudioKey] = useState(0)
+
+  function handleLoadTrack(track) {
+    localStorage.setItem('lw_last_pack', JSON.stringify(track.pack))
+    localStorage.setItem('lw_last_meta', JSON.stringify(track.meta))
+    setStudioKey(k => k + 1)
+    onNavigate('studio')
+  }
+
+  return (
+    <div id="app-shell" className="page">
+      <header className="studio-header">
+        <div className="studio-header-left">
+          <img src="/logo.png" alt="Lightning Wolves" className="studio-logo" onError={e => e.target.style.display='none'} />
+          <div className="studio-titles"><div className="studio-brand">LIGHTNING WOLVES</div></div>
+        </div>
+        <div className="studio-header-right">
+          <span className="artist-dot" style={{ background: wolf?.color, boxShadow: `0 0 8px ${wolf?.color}` }}></span>
+          <span className="artist-name-header">{wolf?.artist || ''}</span>
+          <span className={planClass}>{planBadge}</span>
+          <button className="btn-outline" onClick={onChangeWolf}>Change Wolf</button>
+          {user ? (
+            <>
+              {isMember && <button className="btn-ghost" onClick={onOpenDashboard}>Dashboard</button>}
+              <button className="btn-ghost" onClick={onSignOut}>Sign Out</button>
+            </>
+          ) : (
+            <button className="btn-ghost" onClick={onShowAuth}>Sign In</button>
+          )}
+        </div>
+      </header>
+
+      <NavBar section={section} onNavigate={onNavigate} isMember={isMember} />
+
+      {section === 'studio' && (
+        <StudioPage key={studioKey} wolf={wolf} user={user} profile={profile} token={token} supabase={supabase}
+          onChangeWolf={onChangeWolf} onShowAuth={onShowAuth} onSignOut={onSignOut}
+          onOpenDashboard={onOpenDashboard} onShowLimitModal={onShowLimitModal} onShowUpgradeModal={onShowUpgradeModal} />
+      )}
+      {section === 'tracks' && <TracksPage onLoadTrack={handleLoadTrack} />}
+      {section === 'visuals' && (
+        <GalleryPage title="VISUALS" icon="📸"
+          desc="Photo & video gallery for the pack. Shiteux and Lazy Jo can upload — everyone can view."
+          emptyText="No visuals yet — Shiteux will upload soon 👀"
+          storageKey={LW_VISUALS_KEY} canUpload={canUploadVisuals && isMember} />
+      )}
+      {section === 'covers' && (
+        <GalleryPage title="COVERS" icon="🎨"
+          desc="Artwork & trailers gallery. Drippydesigns and Lazy Jo can upload — everyone can view."
+          emptyText="No covers yet — Drippydesigns is cooking 🎨"
+          storageKey={LW_COVERS_KEY} canUpload={canUploadCovers && isMember} />
+      )}
+      {section === 'the-pack' && <ThePackPage />}
+    </div>
+  )
+}
+
 // ─── App Root ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [page,           setPage]           = useState('wolf-select')
-  const [wolf,           setWolf]           = useState(null)
-  const [user,           setUser]           = useState(null)
-  const [profile,        setProfile]        = useState(null)
-  const [token,          setToken]          = useState(null)
-  const [supabase,       setSupabase]       = useState(null)
-  const [showLimitModal, setShowLimitModal] = useState(false)
+  const [page,             setPage]             = useState('wolf-select')
+  const [section,          setSection]          = useState('studio')
+  const [wolf,             setWolf]             = useState(null)
+  const [user,             setUser]             = useState(null)
+  const [profile,          setProfile]          = useState(null)
+  const [token,            setToken]            = useState(null)
+  const [supabase,         setSupabase]         = useState(null)
+  const [showLimitModal,   setShowLimitModal]   = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
 
   // Apply wolf theme CSS variables
   useEffect(() => {
@@ -743,20 +1171,28 @@ export default function App() {
 
   function handleSelectWolf(w) {
     setWolf(w)
-    setPage('studio')
+    setSection('studio')
+    setPage('app')
   }
 
   function handleAuth(authUser, authToken) {
     setUser(authUser)
     setToken(authToken)
     if (authUser && supabase) fetchProfile(supabase, authUser.id)
-    setPage(wolf ? 'studio' : 'wolf-select')
+    setPage(wolf ? 'app' : 'wolf-select')
   }
 
   async function handleSignOut() {
     if (supabase) await supabase.auth.signOut()
     setUser(null); setToken(null); setProfile(null)
+    setSection('studio')
     setPage('wolf-select')
+  }
+
+  function handleNavigate(s) {
+    // Non-members can only see studio
+    if (s !== 'studio' && profile?.role !== 'member') { setSection('studio'); return }
+    setSection(s)
   }
 
   return (
@@ -768,43 +1204,35 @@ export default function App() {
       )}
 
       {page === 'auth' && (
-        <AuthPage
-          supabase={supabase}
-          onAuth={handleAuth}
-          onGuest={() => setPage('wolf-select')}
-        />
+        <AuthPage supabase={supabase} onAuth={handleAuth} onGuest={() => setPage('wolf-select')} />
       )}
 
-      {page === 'studio' && (
-        <StudioPage
-          wolf={wolf}
-          user={user}
-          profile={profile}
-          token={token}
-          supabase={supabase}
-          onChangeWolf={() => setPage('wolf-select')}
+      {page === 'app' && (
+        <AppShell
+          wolf={wolf} user={user} profile={profile} token={token} supabase={supabase}
+          section={section} onNavigate={handleNavigate}
+          onChangeWolf={() => { setSection('studio'); setPage('wolf-select') }}
           onShowAuth={() => setPage('auth')}
           onSignOut={handleSignOut}
           onOpenDashboard={() => setPage('dashboard')}
           onShowLimitModal={() => setShowLimitModal(true)}
+          onShowUpgradeModal={() => setShowUpgradeModal(true)}
         />
       )}
 
       {page === 'dashboard' && (
-        <DashboardPage
-          wolf={wolf}
-          profile={profile}
-          token={token}
-          onBack={() => setPage('studio')}
-          onSignOut={handleSignOut}
-        />
+        <DashboardPage wolf={wolf} profile={profile} token={token}
+          onBack={() => setPage('app')} onSignOut={handleSignOut} />
       )}
 
       {showLimitModal && (
-        <LimitModal
-          onClose={() => setShowLimitModal(false)}
-          onSignup={() => { setShowLimitModal(false); setPage('auth') }}
-        />
+        <LimitModal onClose={() => setShowLimitModal(false)}
+          onSignup={() => { setShowLimitModal(false); setPage('auth') }} />
+      )}
+
+      {showUpgradeModal && (
+        <UpgradeModal onClose={() => setShowUpgradeModal(false)}
+          onSignup={() => { setShowUpgradeModal(false); setPage('auth') }} />
       )}
     </>
   )

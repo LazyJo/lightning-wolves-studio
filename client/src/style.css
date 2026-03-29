@@ -334,45 +334,124 @@ a:hover { text-decoration: underline; }
   border-radius: 8px;
 }
 
-/* Public Card */
-.public-card {
-  max-width: 600px;
-  margin: 0 auto;
-  background: linear-gradient(135deg, rgba(245,197,24,0.08), rgba(232,135,10,0.05));
-  border: 1px solid rgba(245, 197, 24, 0.3);
-  border-radius: 16px;
-  padding: 20px 28px;
-}
+/* ── Lone Wolf Section ──────────────────────────────────────────────────── */
+.lone-wolf-section { max-width: 600px; margin: 0 auto; padding-top: 12px; }
+.lone-wolf-divider { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.lone-wolf-divider-line { flex: 1; height: 1px; background: var(--border); }
+.lone-wolf-divider-text { font-family: 'Barlow Condensed', sans-serif; font-size: 0.9rem; color: var(--muted); white-space: nowrap; letter-spacing: 0.04em; }
+.lone-wolf-card { display: flex; align-items: center; gap: 16px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 24px; transition: border-color 0.2s; }
+.lone-wolf-card:hover { border-color: #9E9E9E; }
+.lone-wolf-icon { width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+.lone-wolf-img { width: 48px; height: 48px; object-fit: contain; opacity: 0.7; filter: grayscale(0.3); }
+.lone-wolf-info { flex: 1; }
+.lone-wolf-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; letter-spacing: 0.06em; color: #9E9E9E; }
+.lone-wolf-desc { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+.btn-lone-wolf { border-color: #9E9E9E; color: #9E9E9E; white-space: nowrap; }
+.btn-lone-wolf:hover { background: rgba(158, 158, 158, 0.1); border-color: #bbb; color: #ccc; }
 
-.public-card-inner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+/* ═══════════════════════════════════════════════════════════════════════════
+   APP SHELL & NAVIGATION
+   ═══════════════════════════════════════════════════════════════════════════ */
+#app-shell { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
-.public-card-icon { font-size: 2rem; }
+.main-nav { display: flex; align-items: center; gap: 2px; padding: 0 24px; background: var(--surface); border-bottom: 1px solid var(--border); }
+.nav-link { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.08em; color: var(--muted); background: none; border: none; padding: 10px 18px; cursor: pointer; position: relative; transition: color 0.2s; }
+.nav-link:hover { color: var(--text); }
+.nav-link.active { color: var(--wolf-color, var(--accent)); }
+.nav-link.active::after { content: ''; position: absolute; bottom: 0; left: 18px; right: 18px; height: 2px; background: var(--wolf-color, var(--accent)); border-radius: 2px 2px 0 0; }
 
-.public-card-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.3rem;
-  letter-spacing: 0.05em;
-  color: var(--accent);
-}
+.app-section { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: auto; }
 
-.public-card-desc {
-  font-size: 0.85rem;
-  color: var(--muted);
-}
+.plan-badge.lone-wolf { background: rgba(158, 158, 158, 0.15); border-color: #9E9E9E; color: #9E9E9E; }
 
-.public-card-text { flex: 1; text-align: left; }
+/* ── Section Pages ─────────────────────────────────────────────────────── */
+.section-body { flex: 1; padding: 40px 32px; max-width: 960px; margin: 0 auto; width: 100%; }
+.section-hero { text-align: center; margin-bottom: 40px; }
+.section-icon { font-size: 2.5rem; margin-bottom: 8px; }
+.section-title { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 0.08em; color: var(--wolf-color, var(--accent)); }
+.section-desc { color: var(--muted); font-size: 1rem; margin-top: 8px; max-width: 480px; margin-left: auto; margin-right: auto; }
+
+/* ── Tracks List ───────────────────────────────────────────────────────── */
+.tracks-list { display: flex; flex-direction: column; gap: 8px; }
+.track-row { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; transition: border-color 0.2s; }
+.track-row:hover { border-color: var(--wolf-color, var(--accent)); }
+.track-info { flex: 1; cursor: pointer; min-width: 0; }
+.track-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.15rem; letter-spacing: 0.04em; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track-meta { display: flex; align-items: center; gap: 10px; margin-top: 4px; font-size: 0.8rem; color: var(--muted); flex-wrap: wrap; }
+.track-genre-badge { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; background: rgba(245, 197, 24, 0.1); border: 1px solid rgba(245, 197, 24, 0.25); color: var(--wolf-color, var(--accent)); }
+.track-date { font-size: 0.75rem; color: var(--muted); }
+.track-delete { flex-shrink: 0; opacity: 0.4; font-size: 1rem; transition: opacity 0.2s, color 0.2s; }
+.track-delete:hover { opacity: 1; color: #ff4455; }
+
+/* ── Gallery (Visuals / Covers) ─────────────────────────────────────���──── */
+.gallery-upload-panel { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; margin-bottom: 24px; }
+.gallery-upload-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.gallery-tag-select { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font-family: 'Barlow Condensed', sans-serif; font-size: 0.85rem; }
+.gallery-upload-preview { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.gallery-preview-tag { font-size: 0.75rem; padding: 3px 8px; border-radius: 4px; background: rgba(245, 197, 24, 0.1); border: 1px solid rgba(245, 197, 24, 0.25); color: var(--muted); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.gallery-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; transition: border-color 0.2s; }
+.gallery-card:hover { border-color: var(--wolf-color, var(--accent)); }
+.gallery-media-wrap { position: relative; width: 100%; aspect-ratio: 1; overflow: hidden; background: var(--surface); cursor: pointer; }
+.gallery-media { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gallery-play-badge { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #fff; background: rgba(0,0,0,0.35); pointer-events: none; }
+.gallery-card-footer { display: flex; align-items: center; gap: 8px; padding: 8px 12px; min-height: 36px; }
+.gallery-wolf-tag { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; background: rgba(245, 197, 24, 0.1); border: 1px solid rgba(245, 197, 24, 0.25); color: var(--wolf-color, var(--accent)); flex-shrink: 0; }
+.gallery-item-name { flex: 1; font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gallery-delete { flex-shrink: 0; opacity: 0.35; font-size: 0.9rem; transition: opacity 0.2s, color 0.2s; }
+.gallery-delete:hover { opacity: 1; color: #ff4455; }
+
+/* ── Pack Profiles ─────────────────────────────────────────────────────── */
+.pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+.pack-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 28px 20px; text-align: center; transition: border-color 0.2s, box-shadow 0.2s; }
+.pack-card:hover { border-color: var(--card-color, var(--accent)); box-shadow: 0 0 20px color-mix(in srgb, var(--card-color, var(--accent)) 20%, transparent); }
+.pack-avatar { font-size: 2.5rem; margin-bottom: 12px; }
+.pack-avatar-img { width: 64px; height: 64px; object-fit: contain; margin-bottom: 12px; }
+.pack-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.06em; color: var(--card-color, var(--accent)); }
+.pack-role { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+.pack-tag { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 8px; padding: 3px 10px; border-radius: 4px; display: inline-block; background: rgba(245, 197, 24, 0.08); border: 1px solid rgba(245, 197, 24, 0.18); color: var(--card-color, var(--accent)); }
+
+/* ── Collabs ───────────────────────────────────────────────────────────── */
+.collabs-section { margin-top: 48px; }
+.collabs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.collabs-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 0.06em; color: var(--wolf-color, var(--accent)); }
+.collab-form { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.collab-form-row { margin-bottom: 14px; }
+.collab-form-row:last-of-type { margin-bottom: 16px; }
+.collab-input { width: 100%; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; }
+.collab-input:focus { outline: none; border-color: var(--wolf-color, var(--accent)); box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.12); }
+.collab-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 8px; display: block; }
+.collab-wolf-checks { display: flex; flex-wrap: wrap; gap: 10px; }
+.collab-check { font-size: 0.85rem; color: var(--text); display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.collab-check input[type="checkbox"] { accent-color: var(--wolf-color, var(--accent)); }
+.collab-form-actions { display: flex; gap: 10px; }
+.collabs-list { display: flex; flex-direction: column; gap: 10px; }
+.collab-row { display: flex; align-items: flex-start; gap: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; transition: border-color 0.2s; }
+.collab-row:hover { border-color: var(--wolf-color, var(--accent)); }
+.collab-info { flex: 1; min-width: 0; }
+.collab-project-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.15rem; letter-spacing: 0.04em; color: var(--text); }
+.collab-meta { display: flex; gap: 10px; font-size: 0.78rem; color: var(--muted); margin-top: 3px; }
+.collab-wolves { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.collab-wolf-tag { font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; background: rgba(245, 197, 24, 0.1); border: 1px solid rgba(245, 197, 24, 0.25); color: var(--wolf-color, var(--accent)); }
+.collab-delete { flex-shrink: 0; opacity: 0.35; font-size: 1rem; margin-top: 2px; transition: opacity 0.2s, color 0.2s; }
+.collab-delete:hover { opacity: 1; color: #ff4455; }
+
+/* ── Upgrade Modal ─────────────────────────────────────────────────────── */
+.upgrade-modal-box { max-width: 420px; }
+.upgrade-price { margin: 20px 0 16px; }
+.upgrade-amount { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; letter-spacing: 0.04em; color: var(--wolf-color, var(--accent)); }
+.upgrade-period { font-size: 1rem; color: var(--muted); letter-spacing: 0.04em; }
+.upgrade-perks { list-style: none; text-align: left; max-width: 280px; margin: 0 auto 28px; }
+.upgrade-perks li { padding: 6px 0; font-size: 0.9rem; color: var(--text); position: relative; padding-left: 22px; }
+.upgrade-perks li::before { content: '⚡'; position: absolute; left: 0; font-size: 0.75rem; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    STUDIO PAGE
    ═══════════════════════════════════════════════════════════════════════════ */
-#studio-page {
+#studio-section {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  flex: 1;
   overflow: hidden;
 }
 
@@ -1182,7 +1261,12 @@ textarea { resize: vertical; min-height: 72px; }
 
   .wolf-genre-tag { font-size: 0.6rem; padding: 2px 6px; }
 
-  .public-card-inner { flex-wrap: wrap; }
+  .lone-wolf-card { flex-wrap: wrap; justify-content: center; text-align: center; }
+  .lone-wolf-info { text-align: center; }
+
+  .main-nav { padding: 0 12px; gap: 0; overflow-x: auto; }
+  .nav-link { padding: 8px 12px; font-size: 0.9rem; white-space: nowrap; }
+  .pack-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
 
   .studio-body { flex-direction: column; }
 

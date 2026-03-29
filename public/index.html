@@ -524,32 +524,74 @@
       <h2 class="section-title">THE PACK</h2>
       <p class="section-desc">Crew profiles and collabs — the wolves behind the music.</p>
     </div>
+
+    <!-- Wolf Profiles -->
     <div class="pack-grid">
       <div class="pack-card" style="--card-color:#f5c518">
-        <div class="pack-avatar">🐺</div>
+        <img src="/wolf-yellow.svg" alt="Lazy Jo" class="pack-avatar-img" onerror="this.outerHTML='<div class=\'pack-avatar\'>🐺</div>'" />
         <div class="pack-name">Lazy Jo</div>
-        <div class="pack-role">Melodic Hip-Hop · Founder</div>
+        <div class="pack-role">Melodic Hip-Hop</div>
+        <div class="pack-tag">Founder · Producer</div>
       </div>
       <div class="pack-card" style="--card-color:#e8870a">
-        <div class="pack-avatar">🐺</div>
+        <img src="/wolf-orange.svg" alt="Rosakay" class="pack-avatar-img" onerror="this.outerHTML='<div class=\'pack-avatar\'>🐺</div>'" />
         <div class="pack-name">Rosakay</div>
         <div class="pack-role">Pop / French Pop</div>
+        <div class="pack-tag">Artist</div>
       </div>
       <div class="pack-card" style="--card-color:#9b6dff">
-        <div class="pack-avatar">🐺</div>
+        <img src="/wolf-purple.svg" alt="Zirka" class="pack-avatar-img" onerror="this.outerHTML='<div class=\'pack-avatar\'>🐺</div>'" />
         <div class="pack-name">Zirka</div>
         <div class="pack-role">French Hip-Hop</div>
+        <div class="pack-tag">Artist</div>
       </div>
       <div class="pack-card" style="--card-color:#ff4081">
         <div class="pack-avatar">🎨</div>
         <div class="pack-name">Drippydesigns</div>
         <div class="pack-role">Artwork · Covers</div>
+        <div class="pack-tag">Creative Director</div>
       </div>
       <div class="pack-card" style="--card-color:#00bcd4">
         <div class="pack-avatar">📸</div>
         <div class="pack-name">Shiteux</div>
         <div class="pack-role">Photo · Video</div>
+        <div class="pack-tag">Visuals</div>
       </div>
+    </div>
+
+    <!-- Collabs Section -->
+    <div class="collabs-section">
+      <div class="collabs-header">
+        <h3 class="collabs-title">COLLABS</h3>
+        <button class="btn-outline btn-sm" id="new-collab-btn">+ New Collab</button>
+      </div>
+
+      <!-- New Collab Form (hidden by default) -->
+      <div id="collab-form" class="collab-form hidden">
+        <div class="collab-form-row">
+          <input type="text" id="collab-name-input" class="collab-input" placeholder="Project name…" />
+        </div>
+        <div class="collab-form-row">
+          <label class="collab-label">Tag wolves:</label>
+          <div class="collab-wolf-checks" id="collab-wolf-checks">
+            <label class="collab-check"><input type="checkbox" value="Lazy Jo" /> Lazy Jo</label>
+            <label class="collab-check"><input type="checkbox" value="Rosakay" /> Rosakay</label>
+            <label class="collab-check"><input type="checkbox" value="Zirka" /> Zirka</label>
+            <label class="collab-check"><input type="checkbox" value="Drippydesigns" /> Drippydesigns</label>
+            <label class="collab-check"><input type="checkbox" value="Shiteux" /> Shiteux</label>
+          </div>
+        </div>
+        <div class="collab-form-actions">
+          <button class="btn-gold btn-sm" id="save-collab-btn">Save Collab</button>
+          <button class="btn-ghost btn-sm" id="cancel-collab-btn">Cancel</button>
+        </div>
+      </div>
+
+      <div id="collabs-empty" class="empty-state">
+        <div class="empty-icon">🤝</div>
+        <div>No collabs yet — start one and tag your wolves.</div>
+      </div>
+      <div id="collabs-list" class="collabs-list hidden"></div>
     </div>
   </div>
 </div>

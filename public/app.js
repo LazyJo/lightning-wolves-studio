@@ -89,6 +89,7 @@ function showSection(name) {
   if (name === 'tracks') renderTracksList();
   if (name === 'visuals') renderVisualsGrid();
   if (name === 'covers') renderCoversGrid();
+  if (name === 'the-pack') renderCollabsList();
 }
 
 function updateNavVisibility() {
@@ -1148,6 +1149,105 @@ function initCovers() {
   });
 }
 
+// ─── Collabs (The Pack page, localStorage) ───────────────────────────────────
+const LW_COLLABS_KEY = 'lw_collabs';
+
+function getCollabs() {
+  try { return JSON.parse(localStorage.getItem(LW_COLLABS_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveCollabsData(items) {
+  localStorage.setItem(LW_COLLABS_KEY, JSON.stringify(items));
+}
+
+function deleteCollab(id) {
+  const items = getCollabs().filter(c => c.id !== id);
+  saveCollabsData(items);
+  renderCollabsList();
+}
+
+function renderCollabsList() {
+  const items = getCollabs();
+  const listEl = $('collabs-list');
+  const emptyEl = $('collabs-empty');
+
+  if (!items.length) {
+    hide(listEl); show(emptyEl);
+    return;
+  }
+
+  hide(emptyEl); show(listEl);
+  listEl.innerHTML = '';
+
+  items.forEach(collab => {
+    const date = new Date(collab.date);
+    const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const row = document.createElement('div');
+    row.className = 'collab-row';
+    row.innerHTML = `
+      <div class="collab-info">
+        <div class="collab-project-name">${escapeHTML(collab.name)}</div>
+        <div class="collab-meta">
+          <span class="collab-date">${dateStr}</span>
+          <span class="collab-by">by ${escapeHTML(collab.createdBy || 'unknown')}</span>
+        </div>
+        <div class="collab-wolves">
+          ${collab.wolves.map(w => `<span class="collab-wolf-tag">${escapeHTML(w)}</span>`).join('')}
+        </div>
+      </div>
+      <button class="btn-ghost btn-sm collab-delete" data-del-collab="${collab.id}" title="Delete">✕</button>
+    `;
+    listEl.appendChild(row);
+  });
+
+  listEl.querySelectorAll('[data-del-collab]').forEach(btn => {
+    btn.addEventListener('click', () => deleteCollab(btn.dataset.delCollab));
+  });
+}
+
+function initCollabs() {
+  const formEl = $('collab-form');
+  const nameInput = $('collab-name-input');
+
+  $('new-collab-btn').addEventListener('click', () => {
+    show(formEl);
+  });
+
+  $('cancel-collab-btn').addEventListener('click', () => {
+    hide(formEl);
+    nameInput.value = '';
+    formEl.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+  });
+
+  $('save-collab-btn').addEventListener('click', () => {
+    const name = nameInput.value.trim();
+    if (!name) return;
+
+    const wolves = [];
+    formEl.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+      wolves.push(cb.value);
+    });
+
+    const items = getCollabs();
+    items.unshift({
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name,
+      wolves,
+      createdBy: state.profile?.display_name || state.wolf?.artist || 'Wolf',
+      date: new Date().toISOString(),
+    });
+    saveCollabsData(items);
+
+    // Reset form
+    nameInput.value = '';
+    formEl.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; });
+    hide(formEl);
+
+    renderCollabsList();
+  });
+}
+
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 function initTabs() {
   document.querySelectorAll('.tab').forEach(btn => {
@@ -1354,6 +1454,7 @@ async function init() {
   initTracks();
   initVisuals();
   initCovers();
+  initCollabs();
   initDashboard();
   initModal();
   initUpgradeModal();

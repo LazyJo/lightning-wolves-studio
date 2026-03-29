@@ -19,7 +19,7 @@ const PACK_MEMBERS = [
   { name: 'Lazy Jo',        role: 'Melodic Hip-Hop', tag: 'Founder · Producer', color: '#f5c518', image: 'wolf-yellow.png' },
   { name: 'Rosakay',        role: 'Pop / French Pop', tag: 'Artist',             color: '#e8870a', image: 'wolf-orange.png' },
   { name: 'Zirka',          role: 'French Hip-Hop',   tag: 'Artist',             color: '#9b6dff', image: 'wolf-purple.png' },
-  { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#ff4081', image: 'drippydesigns-logo.png', emoji: null },
+  { name: 'Drippydesigns',  role: 'Artwork · Covers', tag: 'Creative Director',  color: '#64b5f6', image: 'drippydesigns-logo.png', emoji: null, halfColor: '#e8e8e8' },
   { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.png', emoji: null },
 ]
 
@@ -858,12 +858,12 @@ function ThePackPage() {
 
         <div className="pack-grid">
           {PACK_MEMBERS.map(m => (
-            <div key={m.name} className="pack-card" style={{ '--card-color': m.color }}>
+            <div key={m.name} className={`pack-card${m.halfColor ? ' pack-card-half' : ''}`} style={{ '--card-color': m.color, ...(m.halfColor ? {'--card-color-2': m.halfColor} : {}) }}>
               {m.image
                 ? <img src={`/${m.image}`} alt={m.name} className="pack-avatar-img" onError={e => e.target.outerHTML='<div class="pack-avatar">🐺</div>'} />
                 : <div className="pack-avatar">{m.emoji}</div>
               }
-              <div className="pack-name">{m.name}</div>
+              <div className={`pack-name${m.halfColor ? ' pack-name-half' : ''}`}>{m.name}</div>
               <div className="pack-role">{m.role}</div>
               <div className="pack-tag">{m.tag}</div>
             </div>

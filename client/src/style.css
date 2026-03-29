@@ -417,6 +417,9 @@ a:hover { text-decoration: underline; }
 .pack-avatar { font-size: 2.5rem; margin-bottom: 12px; }
 .pack-avatar-img { width: 64px; height: 64px; object-fit: contain; margin-bottom: 12px; }
 .pack-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 0.06em; color: var(--card-color, var(--accent)); }
+.pack-name-half { background: linear-gradient(90deg, var(--card-color-2) 50%, var(--card-color) 50%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.pack-card-half:hover { border-color: var(--card-color); box-shadow: 0 0 12px color-mix(in srgb, var(--card-color) 15%, transparent), 0 0 12px color-mix(in srgb, var(--card-color-2) 15%, transparent); }
+.pack-card-half .pack-tag { background: linear-gradient(90deg, rgba(232,232,232,0.08) 50%, rgba(100,181,246,0.08) 50%); border-color: rgba(100,181,246,0.25); color: var(--card-color); }
 .pack-role { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
 .pack-tag { font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; margin-top: 8px; padding: 3px 10px; border-radius: 4px; display: inline-block; background: rgba(245, 197, 24, 0.08); border: 1px solid rgba(245, 197, 24, 0.18); color: var(--card-color, var(--accent)); }
 

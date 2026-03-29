@@ -1653,6 +1653,116 @@ textarea { resize: vertical; min-height: 72px; }
   text-decoration: none;
 }
 
+/* ── Spotify Embed ──────────────────────────────────────────────────────── */
+.profile-spotify-embed {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* ── Live Performance ──────────────────────────────────────────────────── */
+.profile-section-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--profile-color) 20%, transparent);
+}
+
+.profile-section-header-row .profile-section-title {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.profile-video-player {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.profile-video-player video {
+  width: 100%;
+  display: block;
+  max-height: 400px;
+  object-fit: cover;
+}
+
+/* ── Support Section ───────────────────────────────────────────────────── */
+.support-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.support-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid color-mix(in srgb, var(--profile-color, var(--accent)) 40%, transparent);
+  border-radius: 14px;
+  padding: 20px 16px;
+  text-decoration: none;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.support-card:hover {
+  border-color: var(--profile-color, var(--accent));
+  box-shadow: 0 0 20px color-mix(in srgb, var(--profile-color, var(--accent)) 20%, transparent);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.support-card-img {
+  width: 100%;
+  max-height: 140px;
+  object-fit: contain;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.support-card-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  color: var(--profile-color, var(--accent));
+  text-align: center;
+}
+
+/* ── Contact Section ───────────────────────────────────────────────────── */
+.contact-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contact-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.contact-link:hover {
+  border-color: var(--profile-color, var(--accent));
+  background: color-mix(in srgb, var(--profile-color, var(--accent)) 5%, var(--card));
+  text-decoration: none;
+}
+
+.contact-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
 .profile-enter-studio {
   margin-top: 40px;
   text-align: center;

@@ -1167,10 +1167,33 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
         {/* Music */}
         <section className="profile-section">
           <h3 className="profile-section-title">Music</h3>
-          <div className="profile-section-text profile-music-placeholder">
+          {wolf.artist === 'Lazy Jo' ? (
+            <div className="profile-spotify-embed">
+              <iframe
+                src="https://open.spotify.com/embed/artist/1gxwDVgOKYnTA3iq2CjLtM?utm_source=generator&theme=0"
+                width="100%" height="352" frameBorder="0"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy" style={{ borderRadius: '12px' }}
+              />
+            </div>
+          ) : (
             <div className="empty-state"><div className="empty-icon">🎵</div><div>Tracks coming soon.</div></div>
-          </div>
+          )}
         </section>
+
+        {/* Live Performance */}
+        {wolf.artist === 'Lazy Jo' && (
+          <section className="profile-section">
+            <div className="profile-section-header-row">
+              <h3 className="profile-section-title">Live Performance</h3>
+              <a className="btn-gold btn-sm" href="mailto:Lazyjo.official@gmail.com">Book Lazy Jo</a>
+            </div>
+            <div className="profile-video-player">
+              <video src="/lazyjo-performance.mp4" controls preload="metadata" playsInline
+                poster={`/${member.photo || member.image}`} />
+            </div>
+          </section>
+        )}
 
         {/* Photos */}
         <section className="profile-section">
@@ -1207,6 +1230,36 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
             <div className="empty-state"><div className="empty-icon">🎨</div><div>No covers yet.</div></div>
           )}
         </section>
+
+        {/* Support */}
+        {wolf.artist === 'Lazy Jo' && (
+          <section className="profile-section">
+            <h3 className="profile-section-title">Support</h3>
+            <div className="support-grid">
+              <a className="support-card" href="https://www.even.biz/l/lazyjomusic" target="_blank" rel="noopener noreferrer">
+                <img className="support-card-img" src="/truefans.jpg" alt="True Fans Buy The Art" onError={e => e.target.style.display='none'} />
+                <div className="support-card-title">True Fans Buy The Art</div>
+              </a>
+              <a className="support-card" href="https://www.even.biz/l/lightningwolves" target="_blank" rel="noopener noreferrer">
+                <img className="support-card-img" src="/logo.png" alt="Lightning Wolves Merch" onError={e => e.target.style.display='none'} />
+                <div className="support-card-title">Lightning Wolves Merch</div>
+              </a>
+            </div>
+          </section>
+        )}
+
+        {/* Contact */}
+        {wolf.artist === 'Lazy Jo' && (
+          <section className="profile-section">
+            <h3 className="profile-section-title">Contact</h3>
+            <div className="contact-links">
+              <a className="contact-link" href="mailto:Lazyjo.official@gmail.com"><span className="contact-icon">✉️</span> Lazyjo.official@gmail.com</a>
+              <a className="contact-link" href="https://youtube.com/@lazyjo_" target="_blank" rel="noopener noreferrer"><span className="contact-icon">▶️</span> YouTube</a>
+              <a className="contact-link" href="https://www.instagram.com/lazyjo_" target="_blank" rel="noopener noreferrer"><span className="contact-icon">📸</span> Instagram</a>
+              <a className="contact-link" href="https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM" target="_blank" rel="noopener noreferrer"><span className="contact-icon">🎵</span> Spotify</a>
+            </div>
+          </section>
+        )}
 
         {isMember && (
           <div className="profile-enter-studio">

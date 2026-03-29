@@ -643,10 +643,182 @@ a:hover { text-decoration: underline; }
   color: var(--card-color, var(--accent));
 }
 
+.pack-avatar-img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  margin-bottom: 12px;
+}
+
 .pack-role {
   color: var(--muted);
   font-size: 0.85rem;
   margin-top: 4px;
+}
+
+.pack-tag {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 8px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  background: rgba(245, 197, 24, 0.08);
+  border: 1px solid rgba(245, 197, 24, 0.18);
+  color: var(--card-color, var(--accent));
+}
+
+/* ── Collabs Section ───────────────────────────────────────────────────── */
+.collabs-section {
+  margin-top: 48px;
+}
+
+.collabs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.collabs-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.6rem;
+  letter-spacing: 0.06em;
+  color: var(--wolf-color, var(--accent));
+}
+
+.collab-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.collab-form-row {
+  margin-bottom: 14px;
+}
+
+.collab-form-row:last-of-type {
+  margin-bottom: 16px;
+}
+
+.collab-input {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.95rem;
+}
+
+.collab-input:focus {
+  outline: none;
+  border-color: var(--wolf-color, var(--accent));
+  box-shadow: 0 0 0 3px rgba(245, 197, 24, 0.12);
+}
+
+.collab-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.collab-wolf-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.collab-check {
+  font-size: 0.85rem;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.collab-check input[type="checkbox"] {
+  accent-color: var(--wolf-color, var(--accent));
+}
+
+.collab-form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.collabs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.collab-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+  transition: border-color 0.2s;
+}
+
+.collab-row:hover {
+  border-color: var(--wolf-color, var(--accent));
+}
+
+.collab-info { flex: 1; min-width: 0; }
+
+.collab-project-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.collab-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.collab-wolves {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.collab-wolf-tag {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(245, 197, 24, 0.1);
+  border: 1px solid rgba(245, 197, 24, 0.25);
+  color: var(--wolf-color, var(--accent));
+}
+
+.collab-delete {
+  flex-shrink: 0;
+  opacity: 0.35;
+  font-size: 1rem;
+  margin-top: 2px;
+  transition: opacity 0.2s, color 0.2s;
+}
+
+.collab-delete:hover {
+  opacity: 1;
+  color: #ff4455;
 }
 
 /* ── Tracks List ───────────────────────────────────────────────────────── */

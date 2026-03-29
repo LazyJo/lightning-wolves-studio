@@ -9,11 +9,11 @@ const WOLVES = [
   { id: 'purple',     color: '#9b6dff', artist: 'Zirka',          genre: 'French Hip-Hop',    image: 'wolf-purple.png', video: 'Wolf-Purple.mp4',     locked: false },
   { id: 'orange',     color: '#e8870a', artist: 'Rosakay',        genre: 'Pop / French Pop',  image: 'wolf-orange.png', video: 'rosakay-animation.mp4', locked: false },
   { id: 'white-blue', color: '#64b5f6', artist: 'Drippydesigns',  genre: 'Covers & Trailers', image: 'wolf-white.svg',  video: 'wolf-white-blue.mp4', locked: false },
+  { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon', image: 'wolf-red.png', video: 'wolf-red.mp4', locked: false },
   { id: 'green',      color: '#00E64D', artist: 'Shiteux',        genre: 'Photos & Videos',   image: 'wolf-green.png',  video: 'wolf-green.mp4',      locked: false },
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
   { id: 'pink',   color: '#E040FB', locked: true, image: 'wolf-pink.svg'  },
-  { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon', image: 'wolf-red.png', video: 'wolf-red.mp4', locked: false },
   { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
   { id: 'white',  color: '#e8e8e8', locked: true, image: 'wolf-white.svg' },
 ]

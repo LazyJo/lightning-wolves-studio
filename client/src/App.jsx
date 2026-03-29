@@ -76,26 +76,26 @@ const WOLF_NAMES = PACK_MEMBERS.map(m => m.name)
 const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯']
 
 // ─── localStorage helpers ────────────────────────────────────────────────────
-const FREE_GEN_LIMIT = 3
-const LW_GEN_KEY     = 'lw_gen_count'
+const GEN_CREDIT_COST = 10 // 10 ⚡ = 1 generation
+const FREE_STYLE_IDS = ['subtitle', 'minimal']
 const LW_TRACKS_KEY  = 'lw_saved_tracks'
 const LW_VISUALS_KEY = 'lw_visuals'
 const LW_COVERS_KEY  = 'lw_covers'
 const LW_COLLABS_KEY = 'lw_collabs'
 
-// Free styles available to non-members
-const FREE_STYLE_IDS = ['subtitle', 'minimal']
-
-function getGenCount() {
-  try { return parseInt(localStorage.getItem(LW_GEN_KEY)) || 0 } catch { return 0 }
-}
-
-function incrementGenCount() {
-  localStorage.setItem(LW_GEN_KEY, String(getGenCount() + 1))
-}
+function getCredits() { try { return parseInt(localStorage.getItem('lw_credits')) || 0 } catch { return 0 } }
+function setCreditsLS(n) { localStorage.setItem('lw_credits', String(n)) }
+function getGenCount() { try { return parseInt(localStorage.getItem('lw_gen_count')) || 0 } catch { return 0 } }
+function incrementGenCount() { localStorage.setItem('lw_gen_count', String(getGenCount() + 1)) }
 
 function isFreeUser(user, profile) {
   return !user || profile?.role !== 'member'
+}
+
+// Auto-grant 10 ⚡ on first visit
+if (!localStorage.getItem('lw_credits_init')) {
+  localStorage.setItem('lw_credits_init', '1')
+  if (!localStorage.getItem('lw_credits')) setCreditsLS(10)
 }
 
 function lsGet(key) { try { return JSON.parse(localStorage.getItem(key)) || [] } catch { return [] } }
@@ -414,7 +414,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
   async function handleGenerate() {
     setGenError('')
     if (!title || !artist || !genre) { setGenError('Please fill in Song Title, Artist Name, and Genre.'); return }
-    if (isFreeUser(user, profile) && getGenCount() >= FREE_GEN_LIMIT) { onShowUpgradeModal(); return }
+    if (isFreeUser(user, profile) && getCredits() < GEN_CREDIT_COST) { onShowUpgradeModal(); return }
     if (generating) return
     setGenerating(true)
     setPack(null); setMeta(null)
@@ -471,7 +471,10 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
       }
       localStorage.setItem('lw_last_pack', JSON.stringify(json.pack))
       localStorage.setItem('lw_last_meta', JSON.stringify(json.meta))
-      if (isFreeUser(user, profile)) incrementGenCount()
+      if (isFreeUser(user, profile)) {
+        setCreditsLS(Math.max(getCredits() - GEN_CREDIT_COST, 0))
+        incrementGenCount()
+      }
       setPack(json.pack)
       setMeta(json.meta)
 
@@ -886,17 +889,15 @@ function PromptCard({ prompt: p }) {
 
 // ─── Task Reward System ──────────────────────────────────────────────────────
 const REWARD_TASKS = [
-  { id: 'spotify-lazyjo', type: 'spotify', label: 'Follow Lazy Jo on Spotify', credits: 25, link: 'https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM', icon: '🎵', artistId: '1gxwDVgOKYnTA3iq2CjLtM' },
-  { id: 'spotify-rosakay', type: 'spotify', label: 'Follow Rosakay on Spotify', credits: 25, link: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B', icon: '🎵', artistId: '5DaB9HZOXF1kOqxLiS2d4B' },
-  { id: 'ig-rosakay', type: 'redirect', label: 'Follow Rosakay on Instagram', credits: 20, link: 'https://www.instagram.com/rosakay_officiel', icon: '📸' },
-  { id: 'ig-lw', type: 'redirect', label: 'Follow Lightning Wolves on Instagram', credits: 20, link: 'https://www.instagram.com/lightningwolvesmusic', icon: '📸' },
-  { id: 'yt-lw', type: 'youtube', label: 'Subscribe to Lightning Wolves on YouTube', credits: 30, link: 'https://youtube.com/@lightningwolves', icon: '▶️' },
-  { id: 'share', type: 'share', label: 'Share any Lightning Wolves track', credits: 50, icon: '🔗' },
+  { id: 'spotify-lazyjo', type: 'spotify', label: 'Follow Lazy Jo on Spotify', credits: 10, link: 'https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM', icon: '🎵', artistId: '1gxwDVgOKYnTA3iq2CjLtM' },
+  { id: 'spotify-rosakay', type: 'spotify', label: 'Follow Rosakay on Spotify', credits: 10, link: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B', icon: '🎵', artistId: '5DaB9HZOXF1kOqxLiS2d4B' },
+  { id: 'ig-rosakay', type: 'redirect', label: 'Follow Rosakay on Instagram', credits: 5, link: 'https://www.instagram.com/rosakay_officiel', icon: '📸' },
+  { id: 'ig-lw', type: 'redirect', label: 'Follow Lightning Wolves on Instagram', credits: 5, link: 'https://www.instagram.com/lightningwolvesmusic', icon: '📸' },
+  { id: 'yt-lw', type: 'youtube', label: 'Subscribe to Lightning Wolves on YouTube', credits: 15, link: 'https://youtube.com/@lightningwolves', icon: '▶️' },
+  { id: 'share', type: 'share', label: 'Share a Lightning Wolves track', credits: 20, icon: '🔗' },
 ]
 const TOTAL_TASK_CREDITS = REWARD_TASKS.reduce((s, t) => s + t.credits, 0)
 
-function getCredits() { try { return parseInt(localStorage.getItem('lw_credits')) || 0 } catch { return 0 } }
-function setCredits(n) { localStorage.setItem('lw_credits', String(n)) }
 function getCompletedTasks() { try { return JSON.parse(localStorage.getItem('lw_completed_tasks')) || [] } catch { return [] } }
 function getPendingTasks() { try { return JSON.parse(localStorage.getItem('lw_pending_tasks')) || [] } catch { return [] } }
 
@@ -916,7 +917,7 @@ function TaskRewardSection() {
     localStorage.setItem('lw_completed_tasks', JSON.stringify(newCompleted))
     const newCredits = credits + taskCredits
     setCreds(newCredits)
-    setCredits(newCredits)
+    setCreditsLS(newCredits)
   }
 
   function startRedirectTimer(task) {
@@ -994,7 +995,7 @@ function TaskRewardSection() {
         <img src="/wolf-rose.png" alt="" className="task-reward-icon" onError={e => e.target.style.display='none'} />
         <div>
           <div className="task-reward-heading">The pack looks after its own. ⚡</div>
-          <div className="task-reward-sub">Support a Lightning Wolves artist and earn free Credits.</div>
+          <div className="task-reward-sub">Complete tasks to earn free Lightning Credits. 10 ⚡ = 1 generation.</div>
         </div>
       </div>
 
@@ -1033,10 +1034,10 @@ const PROMO_CODES = {
 }
 
 const CREDIT_PACKS = [
-  { credits: 100, price: 3 },
-  { credits: 300, price: 8 },
-  { credits: 750, price: 18 },
-  { credits: 2000, price: 39 },
+  { credits: 100, price: 3, gens: 10 },
+  { credits: 300, price: 8, gens: 30 },
+  { credits: 750, price: 18, gens: 75 },
+  { credits: 2000, price: 39, gens: 200 },
 ]
 
 const PLANS = [
@@ -1200,6 +1201,7 @@ function PricingPage({ onBack, onSignup }) {
             <div key={cp.credits} className="pricing-credit-card">
               <div className="pricing-credit-amount">{cp.credits} ⚡</div>
               <div className="pricing-credit-price">€{cp.price}</div>
+              <div className="pricing-credit-gens">= ~{cp.gens} generations</div>
               {appliedPromo?.type === 'credits' && <div className="pricing-credit-bonus">+{appliedPromo.value} bonus ⚡</div>}
               <button className="btn-outline btn-sm pricing-btn-soon" disabled>Coming Soon</button>
             </div>
@@ -1488,15 +1490,17 @@ function ThePackPage() {
 
 // ─── Upgrade Modal ───────────────────────────────────────────────────────────
 function UpgradeModal({ onClose, onSignup, onShowAuth }) {
+  const bal = getCredits()
   return (
     <div className="modal-overlay">
       <div className="modal-box upgrade-modal-box">
         <div className="modal-icon">⚡</div>
-        <h2 className="modal-title">You've used your 3 free generations. ⚡</h2>
-        <p className="modal-body">Sign in or upgrade to keep creating lyric videos, access all styles, and unlock the full editor.</p>
+        <h2 className="modal-title">Not enough credits ⚡</h2>
+        <p className="modal-body">You need {GEN_CREDIT_COST} ⚡ per generation. Your balance: <strong>{bal} ⚡</strong><br/>Buy credits or earn them free by supporting our artists.</p>
         <div className="modal-actions" style={{ flexDirection: 'column', gap: '10px' }}>
-          <button className="btn-gold btn-full" onClick={onShowAuth}>Sign In</button>
-          <button className="btn-outline btn-full" onClick={onSignup}>Get Access → Pricing</button>
+          <button className="btn-gold btn-full" onClick={onSignup}>Buy Credits →</button>
+          <button className="btn-outline btn-full" onClick={onSignup}>Earn Free Credits →</button>
+          <button className="btn-ghost" onClick={onShowAuth}>Sign In (members = unlimited)</button>
           <button className="btn-ghost" onClick={onClose}>Not Now</button>
         </div>
       </div>
@@ -1902,6 +1906,36 @@ function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, o
 }
 
 // ─── App Root ─────────────────────────────────────────────────────────────────
+// ─── Dev Debug Panel ─────────────────────────────────────────────────────────
+function DevDebugPanel() {
+  const [open, setOpen] = useState(false)
+  const [c, setC] = useState(getCredits())
+  const refresh = () => setC(getCredits())
+  if (!open) return <button className="dev-debug-toggle" onClick={() => setOpen(true)}>🛠</button>
+  return (
+    <div className="dev-debug-panel">
+      <div className="dev-debug-header">
+        <strong>Dev Debug</strong>
+        <button onClick={() => setOpen(false)}>✕</button>
+      </div>
+      <div className="dev-debug-row">Credits: <strong>{c} ⚡</strong></div>
+      <div className="dev-debug-row">Gens used: {getGenCount()}</div>
+      <div className="dev-debug-row">Tasks: {getCompletedTasks().join(', ') || 'none'}</div>
+      <div className="dev-debug-row">Pending: {getPendingTasks().join(', ') || 'none'}</div>
+      <div className="dev-debug-actions">
+        <button onClick={() => { setCreditsLS(c + 10); refresh() }}>+10 ⚡</button>
+        <button onClick={() => { setCreditsLS(c + 100); refresh() }}>+100 ⚡</button>
+        <button onClick={() => {
+          localStorage.removeItem('lw_credits'); localStorage.removeItem('lw_credits_init')
+          localStorage.removeItem('lw_gen_count'); localStorage.removeItem('lw_completed_tasks')
+          localStorage.removeItem('lw_pending_tasks'); localStorage.removeItem('lw_promo_code')
+          refresh(); window.location.reload()
+        }}>Reset All</button>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [page,             setPage]             = useState('wolf-select')
   const [section,          setSection]          = useState('studio')
@@ -2045,6 +2079,8 @@ export default function App() {
           onSignup={() => { setShowUpgradeModal(false); setPage('pricing') }}
           onShowAuth={() => { setShowUpgradeModal(false); setPage('auth') }} />
       )}
+
+      {import.meta.env.DEV && <DevDebugPanel />}
     </>
   )
 }

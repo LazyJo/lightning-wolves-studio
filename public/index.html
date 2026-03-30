@@ -746,6 +746,40 @@
   <div class="modal-box" id="modal-box"></div>
 </div>
 
+<!-- ═══ EXPORT MODAL ═══ -->
+<div class="modal-overlay hidden" id="export-modal-overlay">
+  <div class="modal-box export-modal">
+    <div class="modal-header">
+      <h3>Export Lyric Video</h3>
+      <button class="modal-close" id="export-modal-close">&times;</button>
+    </div>
+    <div class="export-options">
+      <div class="editor-section">
+        <label>Format</label>
+        <span class="export-format-badge">MP4</span>
+      </div>
+      <div class="editor-section">
+        <label>Aspect ratio</label>
+        <div class="export-ratio-toggle">
+          <button class="ratio-btn active" data-ratio="9:16">9:16 Portrait</button>
+          <button class="ratio-btn" data-ratio="16:9">16:9 Landscape</button>
+        </div>
+      </div>
+      <div class="export-watermark-info" id="export-watermark-info">
+        <span class="export-wm-badge">Watermark: "Made with LW Studio ⚡"</span>
+        <span class="export-wm-hint">Members export without watermark</span>
+      </div>
+    </div>
+    <div class="export-progress hidden" id="export-progress">
+      <div class="export-progress-bar">
+        <div class="export-progress-fill" id="export-progress-fill"></div>
+      </div>
+      <span class="export-progress-text" id="export-progress-text">Preparing...</span>
+    </div>
+    <button class="btn-gold btn-full" id="export-start-btn">Export ⚡</button>
+  </div>
+</div>
+
 <!-- ═══ BUG REPORT MODAL ═══ -->
 <div class="modal-overlay hidden" id="bug-modal-overlay">
   <div class="modal-box bug-modal">
@@ -768,6 +802,8 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/util.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

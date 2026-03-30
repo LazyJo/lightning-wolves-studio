@@ -859,7 +859,7 @@ function initTimelineControls() {
   if (addCutBtn) addCutBtn.addEventListener('click', () => toast('Cut added at playhead position', 'info'));
   if (addWordBtn) addWordBtn.addEventListener('click', () => toast('Word added at playhead position', 'info'));
   if (editLyricsBtn) editLyricsBtn.addEventListener('click', () => toast('Lyrics editor coming soon', 'info'));
-  if (exportBtn) exportBtn.addEventListener('click', () => toast('Export coming soon', 'info'));
+  if (exportBtn) exportBtn.addEventListener('click', openExportModal);
 
   if (noCutsToggle) {
     noCutsToggle.addEventListener('change', () => {
@@ -1124,6 +1124,331 @@ function initBgPanel() {
       });
     });
   }
+}
+
+// ─── Export Modal & FFmpeg ────────────────────────────────────────────────────
+let selectedRatio = '9:16';
+
+function openExportModal() {
+  const overlay = $('export-modal-overlay');
+  if (!overlay) return;
+
+  // Update watermark info based on user status
+  const isMember = state.profile?.role === 'member' || state.profile?.role === 'admin';
+  const wmInfo = $('export-watermark-info');
+  if (wmInfo) {
+    if (isMember) {
+      wmInfo.className = 'export-watermark-info export-no-watermark';
+      wmInfo.querySelector('.export-wm-badge').textContent = 'No watermark (member)';
+      wmInfo.querySelector('.export-wm-hint').textContent = 'Your export will be clean';
+    } else {
+      wmInfo.className = 'export-watermark-info';
+      wmInfo.querySelector('.export-wm-badge').textContent = 'Watermark: "Made with LW Studio ⚡"';
+      wmInfo.querySelector('.export-wm-hint').textContent = 'Members export without watermark';
+    }
+  }
+
+  // Reset progress
+  const progress = $('export-progress');
+  if (progress) progress.classList.add('hidden');
+
+  overlay.classList.remove('hidden');
+
+  // Ratio toggle
+  document.querySelectorAll('.ratio-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedRatio = btn.dataset.ratio;
+    });
+  });
+
+  // Close
+  $('export-modal-close')?.addEventListener('click', () => overlay.classList.add('hidden'));
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.add('hidden'); });
+
+  // Start export
+  const startBtn = $('export-start-btn');
+  if (startBtn) {
+    startBtn.onclick = () => runExport();
+  }
+}
+
+async function runExport() {
+  const progress = $('export-progress');
+  const progressFill = $('export-progress-fill');
+  const progressText = $('export-progress-text');
+  const startBtn = $('export-start-btn');
+
+  if (progress) progress.classList.remove('hidden');
+  if (startBtn) { startBtn.disabled = true; startBtn.textContent = 'Exporting...'; }
+  if (progressFill) progressFill.style.width = '0%';
+  if (progressText) progressText.textContent = 'Preparing canvas frames...';
+
+  const isMember = state.profile?.role === 'member' || state.profile?.role === 'admin';
+  const isPortrait = selectedRatio === '9:16';
+  const w = isPortrait ? 1080 : 1920;
+  const h = isPortrait ? 1920 : 1080;
+
+  try {
+    // Get lyrics for rendering
+    const lyrics = state.lastPack?.lyrics || [];
+    const activePreset = document.querySelector('.preset-card.active');
+    const styleName = activePreset?.dataset.preset || 'karaoke';
+
+    // Create offscreen canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+
+    // Generate frames (30fps, ~10 seconds for demo)
+    const fps = 30;
+    const durationSec = Math.max(10, lyrics.length * 2);
+    const totalFrames = fps * durationSec;
+    const frames = [];
+
+    if (progressText) progressText.textContent = 'Rendering frames...';
+
+    for (let i = 0; i < totalFrames; i++) {
+      const t = i / fps;
+
+      // Background
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, w, h);
+
+      // Find current lyric
+      const lineIndex = Math.min(Math.floor(t / 2), lyrics.length - 1);
+      const line = lyrics[lineIndex];
+      if (line && !/^\[.+\]$/.test(line.text || '')) {
+        // Draw lyrics based on style
+        drawLyricFrame(ctx, w, h, line.text, styleName, t);
+      }
+
+      // Watermark for free users
+      if (!isMember) {
+        ctx.save();
+        ctx.font = `${Math.round(w * 0.018)}px Inter, sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.textAlign = 'right';
+        ctx.fillText('Made with LW Studio ⚡', w - 20, h - 20);
+        ctx.restore();
+      }
+
+      // Capture frame as blob
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      const buffer = await blob.arrayBuffer();
+      frames.push(new Uint8Array(buffer));
+
+      // Update progress
+      if (i % 10 === 0) {
+        const pct = Math.round((i / totalFrames) * 60);
+        if (progressFill) progressFill.style.width = `${pct}%`;
+      }
+    }
+
+    if (progressText) progressText.textContent = 'Encoding MP4 with FFmpeg...';
+    if (progressFill) progressFill.style.width = '60%';
+
+    // Try FFmpeg.wasm
+    if (window.FFmpeg && window.FFmpegUtil) {
+      await encodeWithFFmpeg(frames, w, h, fps, progressFill, progressText);
+    } else {
+      // Fallback: export as WebM via MediaRecorder from canvas
+      await exportCanvasFallback(canvas, lyrics, w, h, fps, durationSec, isMember, styleName, progressFill, progressText);
+    }
+
+    if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Export ⚡'; }
+    toast('Export complete! Download started.', 'success');
+    if (progressFill) progressFill.style.width = '100%';
+    if (progressText) progressText.textContent = 'Done!';
+
+  } catch (err) {
+    console.error('Export error:', err);
+    toast('Export failed: ' + err.message, 'error');
+    if (startBtn) { startBtn.disabled = false; startBtn.textContent = 'Export ⚡'; }
+    if (progressText) progressText.textContent = 'Failed';
+  }
+}
+
+function drawLyricFrame(ctx, w, h, text, style, t) {
+  ctx.save();
+  const fontSize = Math.round(w * 0.045);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  switch (style) {
+    case 'karaoke':
+      ctx.font = `500 ${fontSize}px Inter, sans-serif`;
+      const words = text.split(/\s+/);
+      const wordIndex = Math.floor((t % 2) / (2 / words.length));
+      let xPos = w / 2 - ctx.measureText(text).width / 2;
+      words.forEach((word, i) => {
+        ctx.fillStyle = i <= wordIndex ? '#f5c518' : 'rgba(255,255,255,0.5)';
+        ctx.fillText(word + ' ', xPos + ctx.measureText(words.slice(0, i).join(' ') + (i > 0 ? ' ' : '')).width, h / 2);
+      });
+      // Simple centered fallback
+      ctx.fillStyle = '#f5c518';
+      ctx.fillText(text, w / 2, h / 2);
+      break;
+    case 'knockout':
+    case 'ghost':
+    case 'phantom':
+    case 'eclipse':
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.font = `${style === 'ghost' ? '800' : style === 'phantom' ? 'italic 400' : '600'} ${fontSize * 1.3}px ${style === 'phantom' || style === 'eclipse' ? 'Georgia, serif' : 'Inter, sans-serif'}`;
+      ctx.fillStyle = '#000';
+      ctx.fillText(text, w / 2, h / 2);
+      break;
+    case 'glitch':
+      ctx.font = `500 ${fontSize}px monospace`;
+      ctx.fillStyle = '#f0f';
+      ctx.fillText(text, w / 2 + 2, h / 2 - 1);
+      ctx.fillStyle = '#0ff';
+      ctx.fillText(text, w / 2 - 2, h / 2 + 1);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(text, w / 2, h / 2);
+      break;
+    case 'hotpink':
+      ctx.font = `500 ${fontSize}px Inter, sans-serif`;
+      ctx.shadowColor = '#ff69b4';
+      ctx.shadowBlur = 12;
+      ctx.fillStyle = '#ff69b4';
+      ctx.fillText(text, w / 2, h / 2);
+      break;
+    case 'fly':
+      ctx.font = `600 ${fontSize}px Raleway, sans-serif`;
+      ctx.shadowColor = 'rgba(0,0,0,0.9)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      ctx.fillStyle = '#fff';
+      ctx.fillText(text, w / 2, h / 2);
+      break;
+    case 'minimal':
+      ctx.font = `400 ${Math.round(fontSize * 0.85)}px Inter, sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText(text, w / 2, h / 2);
+      break;
+    case 'subtitle':
+      ctx.font = `400 ${Math.round(fontSize * 0.9)}px Inter, sans-serif`;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      const tw = ctx.measureText(text).width;
+      ctx.fillRect(w / 2 - tw / 2 - 12, h - 80 - fontSize / 2, tw + 24, fontSize + 16);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(text, w / 2, h - 72);
+      break;
+    default: // pop
+      ctx.font = `700 ${Math.round(fontSize * 1.2)}px Inter, sans-serif`;
+      ctx.fillStyle = '#fff';
+      ctx.fillText(text, w / 2, h / 2);
+      break;
+  }
+  ctx.restore();
+}
+
+async function encodeWithFFmpeg(frames, w, h, fps, progressFill, progressText) {
+  const { FFmpeg } = window.FFmpeg;
+  const { fetchFile } = window.FFmpegUtil;
+
+  const ffmpeg = new FFmpeg();
+  await ffmpeg.load({ coreURL: 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd/ffmpeg-core.js' });
+
+  // Write frames
+  for (let i = 0; i < frames.length; i++) {
+    const name = `frame${String(i).padStart(5, '0')}.png`;
+    await ffmpeg.writeFile(name, frames[i]);
+    if (i % 20 === 0) {
+      const pct = 60 + Math.round((i / frames.length) * 30);
+      if (progressFill) progressFill.style.width = `${pct}%`;
+    }
+  }
+
+  if (progressText) progressText.textContent = 'Encoding video...';
+
+  await ffmpeg.exec([
+    '-framerate', String(fps),
+    '-i', 'frame%05d.png',
+    '-c:v', 'libx264',
+    '-pix_fmt', 'yuv420p',
+    '-preset', 'ultrafast',
+    'output.mp4'
+  ]);
+
+  if (progressFill) progressFill.style.width = '95%';
+  if (progressText) progressText.textContent = 'Preparing download...';
+
+  const data = await ffmpeg.readFile('output.mp4');
+  const blob = new Blob([data], { type: 'video/mp4' });
+  downloadBlob(blob, 'lyric-video.mp4');
+}
+
+async function exportCanvasFallback(canvas, lyrics, w, h, fps, durationSec, isMember, styleName, progressFill, progressText) {
+  if (progressText) progressText.textContent = 'Recording canvas...';
+
+  const stream = canvas.captureStream(fps);
+  const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+  const chunks = [];
+
+  recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+
+  return new Promise((resolve, reject) => {
+    recorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      downloadBlob(blob, 'lyric-video.webm');
+      resolve();
+    };
+    recorder.onerror = reject;
+    recorder.start();
+
+    const ctx = canvas.getContext('2d');
+    let frame = 0;
+    const totalFrames = fps * Math.min(durationSec, 15);
+
+    const renderFrame = () => {
+      if (frame >= totalFrames) {
+        recorder.stop();
+        return;
+      }
+      const t = frame / fps;
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, w, h);
+
+      const lineIndex = Math.min(Math.floor(t / 2), lyrics.length - 1);
+      const line = lyrics[lineIndex];
+      if (line && !/^\[.+\]$/.test(line.text || '')) {
+        drawLyricFrame(ctx, w, h, line.text, styleName, t);
+      }
+
+      if (!isMember) {
+        ctx.save();
+        ctx.font = `${Math.round(w * 0.018)}px Inter, sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.textAlign = 'right';
+        ctx.fillText('Made with LW Studio ⚡', w - 20, h - 20);
+        ctx.restore();
+      }
+
+      frame++;
+      const pct = 60 + Math.round((frame / totalFrames) * 35);
+      if (progressFill) progressFill.style.width = `${pct}%`;
+
+      requestAnimationFrame(renderFrame);
+    };
+
+    renderFrame();
+  });
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ─── Credit Modal ────────────────────────────────────────────────────────────

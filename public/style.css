@@ -2073,3 +2073,100 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 .lyric-text-word:hover { color: var(--gold); }
 .lyric-text-word.word-selected { outline: 1px dashed var(--gold); outline-offset: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   EXPORT MODAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+.export-modal { max-width: 400px; }
+
+.export-options { display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; }
+
+.export-format-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+  background: var(--base);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+
+.export-ratio-toggle {
+  display: flex;
+  gap: 6px;
+}
+
+.ratio-btn {
+  flex: 1;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  background: var(--base);
+  transition: all 0.15s;
+}
+
+.ratio-btn:hover { border-color: var(--border-light); color: var(--text-muted); }
+
+.ratio-btn.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: var(--gold-dim);
+}
+
+.export-watermark-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px;
+  background: var(--base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.export-wm-badge {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.export-wm-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.export-no-watermark {
+  border-color: var(--wolf-shiteux);
+}
+
+.export-no-watermark .export-wm-badge {
+  color: var(--wolf-shiteux);
+}
+
+.export-progress {
+  margin-bottom: 16px;
+}
+
+.export-progress-bar {
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.export-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.export-progress-text {
+  font-size: 12px;
+  color: var(--text-muted);
+}

@@ -202,6 +202,139 @@ function AuthPage({ supabase, onAuth, onGuest }) {
   )
 }
 
+// ─── Wolf Profile Data ────────────────────────────────────────────────────────
+const WOLF_PROFILES = {
+  yellow: {
+    name: 'Lazy Jo', role: 'Founder · Artist', genre: 'Melodic Hip-Hop', color: '#f5c518',
+    image: 'LightningWolfYellowTransparentBG.png',
+    bookUrl: 'https://www.gigstarter.be/artists/lazy-jo',
+    bio: `Lazy Jo is a Belgian artist with Ghanaian roots, born in 1999 in Lomé, Togo and based in Brussels, Belgium. Immersed in music from an early age, he began shaping his sound at a young age and officially launched his career in February 2018 with his debut single "I'm Lost." Known for his distinctive melodic flows, emotionally driven delivery, and unforgettable hooks, Lazy Jo creates music that lingers long after the first listen. His ability to craft catchy, memorable melodies has become a defining element of his artistry, setting him apart in a crowded music landscape. Driven by consistency and growth, Lazy Jo continues to evolve his sound while building a strong and authentic artistic presence. His dedication has not gone unnoticed — industry heavyweights such as Kelvyn Colt, Zaytoven, DDG, and Timbaland have recognized and supported his talent. Most recently, Lazy Jo reached a major milestone with his track "Stay Up," which surpassed 100,000 views, further cementing his rising influence and momentum within the music scene.`,
+    acknowledgements: [
+      { name: 'Timbaland', image: 'Timbaland.jpeg', quote: '"This could be the best song"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
+      { name: 'Symba', image: 'Symba.jpeg', quote: '"International as a M*****f*****"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
+      { name: 'DDG', image: 'DDG.jpeg', quote: '"Next Up"', link: 'https://instagram.com', linkLabel: 'Watch on Instagram', sublabel: 'On IG' },
+      { name: 'Kelvyn Colt', image: 'Kelvyn Colt.jpeg', quote: '"Lightning"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
+      { name: 'Zaytoven', image: 'Zaytoven.jpeg', quote: '"Keep going"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
+      { name: 'Kid Hazel', image: 'Kid Hazel.jpeg', quote: '"Fire"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
+    ]
+  },
+  purple: {
+    name: 'Zirka', role: 'Artist', genre: 'French Hip-Hop', color: '#9b6dff',
+    image: 'LightningWolfPurpleTransparentBG.png',
+    bio: 'French hip-hop energy with melodic punch. Zirka brings raw energy and authentic flow from the streets of France to the Lightning Wolves pack.',
+    acknowledgements: []
+  },
+  orange: {
+    name: 'Rosakay', role: 'Artist', genre: 'Pop / French Pop', color: '#ff80ab',
+    image: 'LightningWolfOrangeTransparentBG.png',
+    bio: 'Sarah Kingambo — Rosakay — brings pop with a French soul. Her melodic sensibility and emotional depth make every track feel personal and universal at once.',
+    instagram: 'https://www.instagram.com/rosakay_officiel',
+    spotify: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B',
+    acknowledgements: []
+  },
+  blue: {
+    name: 'Drippydesigns', role: 'Designer', genre: 'Visual Art', color: '#82b1ff',
+    image: 'LightningWolfGreenTransparentBG.png',
+    bio: 'The visual identity behind the pack. Drippydesigns crafts the aesthetic world of Lightning Wolves — from logos to merch to the digital presence.',
+    acknowledgements: []
+  },
+  green: {
+    name: 'Shiteux', role: 'Visuals', genre: 'Photo · Video · Beats', color: '#69f0ae',
+    image: 'LightningWolfRoseTransparentBG.png',
+    bio: `Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations 'Sin[e]' and 'Doubt Clouds' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.`,
+    acknowledgements: []
+  },
+}
+
+// ─── Wolf Profile Page ────────────────────────────────────────────────────────
+function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
+  const [flipped, setFlipped] = useState(false)
+  const profile = WOLF_PROFILES[wolf.id] || {}
+  const color = profile.color || wolf.color || '#f5c518'
+
+  return (
+    <div className="wolf-profile-page" style={{'--wp': color}}>
+      {/* Top bar */}
+      <div className="wp-topbar">
+        <button className="wp-back-btn" onClick={onBack}>← Back</button>
+        <div className="wp-topbar-right">
+          {profile.bookUrl && (
+            <a href={profile.bookUrl} target="_blank" rel="noopener noreferrer" className="wp-book-btn">
+              Book {profile.name}
+            </a>
+          )}
+          <button className="wp-enter-btn" onClick={() => onEnterStudio(wolf)}>
+            ENTER STUDIO AS {(profile.name || wolf.artist || '').toUpperCase()}
+          </button>
+        </div>
+      </div>
+
+      {/* Wolf name */}
+      <h1 className="wp-hero-name">{profile.name || wolf.artist}</h1>
+
+      {/* Flip card */}
+      <div className="wp-flip-container" onClick={() => setFlipped(!flipped)}>
+        <div className={`wp-flip-card ${flipped ? 'wp-flipped' : ''}`}>
+          <div className="wp-card-front">
+            <div className="wp-card-image-wrap">
+              <img src={`/${profile.image || wolf.image}`} alt={profile.name} />
+            </div>
+            <div className="wp-card-overlay">
+              <div className="wp-card-overlay-name">{profile.name || wolf.artist}</div>
+              <div className="wp-card-overlay-genre">{profile.genre || wolf.genre}</div>
+              <div className="wp-card-overlay-role">{profile.role}</div>
+            </div>
+            <div className="wp-card-flip-hint">↻ TAP TO FLIP</div>
+          </div>
+          <div className="wp-card-back">
+            <h3 className="wp-card-back-name">{profile.name}</h3>
+            <p className="wp-card-back-bio">{profile.bio?.substring(0, 200)}...</p>
+            <div className="wp-card-flip-hint">↻ TAP TO FLIP</div>
+          </div>
+        </div>
+      </div>
+
+      {/* About section */}
+      {profile.bio && (
+        <div className="wp-about">
+          <h2 className="wp-section-title">ABOUT</h2>
+          <p className="wp-about-text">{profile.bio}</p>
+        </div>
+      )}
+
+      {/* Industry Acknowledgements */}
+      {profile.acknowledgements && profile.acknowledgements.length > 0 && (
+        <div className="wp-acks">
+          <h2 className="wp-section-title">INDUSTRY ACKNOWLEDGEMENTS</h2>
+          <div className="wp-acks-grid">
+            {profile.acknowledgements.map((ack, i) => (
+              <div key={i} className="wp-ack-card">
+                <div className="wp-ack-img-wrap">
+                  <img src={`/${ack.image}`} alt={ack.name} />
+                </div>
+                <div className="wp-ack-name">{ack.name}</div>
+                <div className="wp-ack-quote">{ack.quote}</div>
+                {ack.sublabel && <div className="wp-ack-sublabel">{ack.sublabel}</div>}
+                <a href={ack.link} target="_blank" rel="noopener noreferrer" className="wp-ack-link">
+                  {ack.linkLabel}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Social links */}
+      {(profile.instagram || profile.spotify) && (
+        <div className="wp-socials">
+          {profile.instagram && <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className="wp-social-link">Instagram</a>}
+          {profile.spotify && <a href={profile.spotify} target="_blank" rel="noopener noreferrer" className="wp-social-link">Spotify</a>}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Wolf Select Page ─────────────────────────────────────────────────────────
 function WolfSelectPage({ onSelectWolf }) {
   return (
@@ -703,6 +836,16 @@ export default function App() {
 
   function handleSelectWolf(w) {
     setWolf(w)
+    // Public/guest goes to studio directly, named wolves go to profile
+    if (w.id === 'public') {
+      setPage('studio')
+    } else {
+      setPage('wolf-profile')
+    }
+  }
+
+  function handleEnterStudio(w) {
+    setWolf(w)
     setPage('studio')
   }
 
@@ -725,6 +868,14 @@ export default function App() {
 
       {page === 'wolf-select' && (
         <WolfSelectPage onSelectWolf={handleSelectWolf} />
+      )}
+
+      {page === 'wolf-profile' && wolf && (
+        <WolfProfilePage
+          wolf={wolf}
+          onBack={() => setPage('wolf-select')}
+          onEnterStudio={handleEnterStudio}
+        />
       )}
 
       {page === 'auth' && (

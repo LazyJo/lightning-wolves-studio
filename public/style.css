@@ -99,17 +99,18 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 .pub-nav-link:hover { color: var(--text); }
 
-.pub-nav-btn {
+.pub-nav-btn-outline {
   padding: 7px 20px;
   font-size: 13px;
-  font-weight: 500;
-  background: var(--gold);
-  color: #000;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
   border-radius: var(--radius);
-  transition: background 0.15s;
+  transition: border-color 0.15s, background 0.15s;
 }
 
-.pub-nav-btn:hover { background: var(--gold-hover); }
+.pub-nav-btn-outline:hover { border-color: #fff; background: rgba(255,255,255,0.05); }
 
 .pub-content {
   padding-top: 56px;
@@ -776,38 +777,21 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   align-items: center;
   gap: 14px;
   padding: 32px 20px 28px;
-  background: rgba(22, 22, 22, 0.95);
-  border: 1px solid rgba(50, 50, 50, 0.5);
-  border-top: 3px solid var(--wc);
+  background: rgba(25, 25, 28, 0.9);
+  border: 1px solid rgba(55, 55, 60, 0.5);
   border-radius: var(--radius-lg);
   text-align: center;
   text-decoration: none;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
   cursor: pointer;
   position: relative;
   overflow: hidden;
 }
 
-/* Bottom glow on hover */
-.wolf-select-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 0;
-  background: linear-gradient(to top, color-mix(in srgb, var(--wc) 15%, transparent), transparent);
-  transition: height 0.3s;
-  pointer-events: none;
-}
-
-.wolf-select-card:hover::after {
-  height: 60%;
-}
-
 .wolf-select-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 4px 20px color-mix(in srgb, var(--wc) 12%, transparent);
+  border-color: var(--wc);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px color-mix(in srgb, var(--wc) 15%, transparent);
 }
 
 /* ─── Wolf Image Circle ────────────────────────────────────────────────────── */
@@ -873,14 +857,13 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 /* ─── Join the Pack Card ───────────────────────────────────────────────────── */
 .wolf-select-join {
-  border: 2px dashed rgba(245, 197, 24, 0.4);
-  border-top: 2px dashed rgba(245, 197, 24, 0.4);
-  background: rgba(245, 197, 24, 0.03);
+  border: 1.5px dashed rgba(245, 197, 24, 0.35);
+  background: rgba(245, 197, 24, 0.02);
 }
 
 .wolf-select-join:hover {
   border-color: var(--gold);
-  background: rgba(245, 197, 24, 0.06);
+  box-shadow: 0 0 20px rgba(245, 197, 24, 0.1);
 }
 
 .wolf-select-join-icon {

@@ -393,13 +393,25 @@ const WOLVES = {
 };
 
 // ─── Crew Page ───────────────────────────────────────────────────────────────
+var crewParticlesStarted = false;
+
 function initCrewPage() {
-  initCrewParticles();
+  // Particles may not be ready yet (DOM mover hasn't run), so also hook hashchange
+  tryInitCrewParticles();
+  window.addEventListener('hashchange', function() {
+    var hash = (window.location.hash || '').replace(/^#\/?/, '') || 'landing';
+    if (hash === '' || hash === 'landing' || hash === 'crew') {
+      tryInitCrewParticles();
+    }
+  });
 }
 
-function initCrewParticles() {
+function tryInitCrewParticles() {
+  if (crewParticlesStarted) return;
   var canvas = document.getElementById('crew-particles');
   if (!canvas) return;
+  crewParticlesStarted = true;
+
   var ctx = canvas.getContext('2d');
   var particles = [];
 
@@ -414,10 +426,10 @@ function initCrewParticles() {
     particles.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      size: Math.random() * 2 + 0.5,
-      speedX: (Math.random() - 0.5) * 0.3,
-      speedY: (Math.random() - 0.5) * 0.3,
-      alpha: Math.random() * 0.4 + 0.1,
+      size: Math.random() * 2.5 + 0.5,
+      speedX: (Math.random() - 0.5) * 0.4,
+      speedY: (Math.random() - 0.5) * 0.4,
+      alpha: Math.random() * 0.5 + 0.15,
     });
   }
 

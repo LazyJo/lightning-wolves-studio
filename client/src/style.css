@@ -1323,6 +1323,8 @@ textarea { resize: vertical; min-height: 72px; }
 }
 
 .profile-studio-btn { white-space: nowrap; }
+.profile-book-btn { white-space: nowrap; border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.profile-book-btn:hover { background: rgba(245,197,24,0.1); text-decoration: none; }
 
 /* ── 3D Card Area ──────────────────────────────────────────────────────── */
 .profile-card-area {

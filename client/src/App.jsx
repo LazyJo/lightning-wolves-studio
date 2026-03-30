@@ -1669,6 +1669,11 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio, isMember }) {
       <header className="profile-header">
         <button className="btn-outline profile-back-btn" onClick={onBack}>← Back</button>
         <span className="profile-header-name" style={{ color: wolf.color }}>{wolf.artist}</span>
+        {member.bookingLink && (
+          <a className="btn-outline profile-book-btn" href={member.bookingLink} target="_blank" rel="noopener noreferrer">
+            Book {wolf.artist}
+          </a>
+        )}
         <button className="btn-gold profile-studio-btn" onClick={onEnterStudio}>
           Enter Studio as {wolf.artist}
         </button>

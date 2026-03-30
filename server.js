@@ -3,21 +3,35 @@ const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const os = require('os');
 const fs = require('fs');
-const Anthropic = require('@anthropic-ai/sdk');
-const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── Supabase ────────────────────────────────────────────────────────────────
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
-);
+// ─── Lazy-init clients (avoid crash if env vars missing) ─────────────────────
+let supabase = null;
+function getSupabase() {
+  if (supabase) return supabase;
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (url && key) {
+    const { createClient } = require('@supabase/supabase-js');
+    supabase = createClient(url, key);
+  }
+  return supabase;
+}
 
-// ─── Anthropic ───────────────────────────────────────────────────────────────
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+let anthropic = null;
+function getAnthropic() {
+  if (anthropic) return anthropic;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (apiKey) {
+    const Anthropic = require('@anthropic-ai/sdk');
+    anthropic = new Anthropic({ apiKey });
+  }
+  return anthropic;
+}
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
@@ -25,9 +39,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ─── Multer ───────────────────────────────────────────────────────────────────
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+// ─── Multer (use /tmp on Vercel, ./uploads locally) ──────────────────────────
+const uploadsDir = process.env.VERCEL ? os.tmpdir() : path.join(__dirname, 'uploads');
+if (!process.env.VERCEL) {
+  try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch { /* exists */ }
+}
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
@@ -49,16 +65,20 @@ const upload = multer({
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 async function getUserFromToken(req) {
+  const sb = getSupabase();
+  if (!sb) return null;
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) return null;
   const token = auth.slice(7);
-  const { data, error } = await supabase.auth.getUser(token);
+  const { data, error } = await sb.auth.getUser(token);
   if (error || !data?.user) return null;
   return data.user;
 }
 
 async function getProfile(userId) {
-  const { data } = await supabase
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data } = await sb
     .from('profiles')
     .select('*')
     .eq('id', userId)
@@ -66,7 +86,7 @@ async function getProfile(userId) {
   return data;
 }
 
-// ─── Routes ───────────────────────────────────────────────────────────────────
+// ─── Routes ──────────────────────────────────────────────────────────────────
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -95,46 +115,46 @@ app.post('/api/generate', async (req, res) => {
   try {
     const { title, artist, genre, bpm, language, mood, wolfId, token } = req.body;
 
-    // Validate required fields
     if (!title || !artist || !genre || !language) {
       return res.status(400).json({ error: 'title, artist, genre, and language are required' });
     }
 
-    // ── Auth / generation limit check ──────────────────────────────────────
+    const sb = getSupabase();
     let user = null;
     let isMember = false;
 
-    if (token) {
+    if (token && sb) {
       user = await getUserFromToken({ headers: { authorization: `Bearer ${token}` } });
       if (user) {
         const profile = await getProfile(user.id);
         isMember = profile?.role === 'member';
 
         if (!isMember) {
-          // Public user: check monthly limit (3 free)
           const now = new Date();
           const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-          const { count } = await supabase
+          const { count } = await sb
             .from('generations')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id)
             .gte('created_at', startOfMonth);
 
           if (count >= 3) {
-            return res.status(403).json({ error: 'LIMIT_REACHED', message: 'Monthly generation limit reached. Join the Pack for unlimited access!' });
+            return res.status(403).json({ error: 'LIMIT_REACHED', message: 'Monthly generation limit reached.' });
           }
         }
       }
     }
 
-    // ── Build Claude prompt ────────────────────────────────────────────────
+    const ai = getAnthropic();
+    if (!ai) {
+      return res.status(503).json({ error: 'AI service not configured. Set ANTHROPIC_API_KEY.' });
+    }
+
     const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Generate complete, authentic, emotionally resonant song content tailored precisely to the genre, language and vibe provided. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
 
     const userPrompt = buildUserPrompt({ title, artist, genre, bpm, language, mood });
 
-    // ── Call Claude ────────────────────────────────────────────────────────
-    const message = await anthropic.messages.create({
+    const message = await ai.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system: systemPrompt,
@@ -142,32 +162,23 @@ app.post('/api/generate', async (req, res) => {
     });
 
     const raw = message.content[0].type === 'text' ? message.content[0].text : '';
-
-    // Extract JSON — strip any accidental markdown fences
     const jsonStr = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
 
     let pack;
     try {
       pack = JSON.parse(jsonStr);
     } catch {
-      return res.status(500).json({ error: 'Failed to parse AI response', raw });
+      return res.status(500).json({ error: 'Failed to parse AI response' });
     }
 
-    // ── Persist generation record ──────────────────────────────────────────
-    if (user) {
-      await supabase.from('generations').insert({
-        user_id: user.id,
-        title,
-        artist,
-        genre,
-        language,
-        wolf_id: wolfId || null,
+    if (user && sb) {
+      await sb.from('generations').insert({
+        user_id: user.id, title, artist, genre, language, wolf_id: wolfId || null,
       });
 
-      // Track referral-originated generations
       const profile = await getProfile(user.id);
       if (profile?.referred_by) {
-        await supabase.from('referral_stats').insert({
+        await sb.from('referral_stats').insert({
           referrer_id: profile.referred_by,
           referred_user_id: user.id,
           generation_title: title,
@@ -182,26 +193,26 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// Signup endpoint (creates profile with promo code tracking)
+// Signup endpoint
 app.post('/api/auth/signup', async (req, res) => {
   try {
+    const sb = getSupabase();
+    if (!sb) return res.status(503).json({ error: 'Auth not configured' });
+
     const { email, password, promoCode } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
-    const { data, error } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
+    const { data, error } = await sb.auth.admin.createUser({
+      email, password, email_confirm: true,
     });
 
     if (error) return res.status(400).json({ error: error.message });
 
     const userId = data.user.id;
 
-    // Find referrer from promo code
     let referredBy = null;
     if (promoCode) {
-      const { data: referrer } = await supabase
+      const { data: referrer } = await sb
         .from('profiles')
         .select('id')
         .eq('promo_code', promoCode.toUpperCase())
@@ -209,13 +220,8 @@ app.post('/api/auth/signup', async (req, res) => {
       if (referrer) referredBy = referrer.id;
     }
 
-    // Create profile
-    await supabase.from('profiles').insert({
-      id: userId,
-      email,
-      role: 'public',
-      referred_by: referredBy,
-      generations_count: 0,
+    await sb.from('profiles').insert({
+      id: userId, email, role: 'public', referred_by: referredBy, generations_count: 0,
     });
 
     res.json({ success: true, userId });
@@ -227,6 +233,9 @@ app.post('/api/auth/signup', async (req, res) => {
 // Member dashboard data
 app.get('/api/dashboard', async (req, res) => {
   try {
+    const sb = getSupabase();
+    if (!sb) return res.status(503).json({ error: 'Not configured' });
+
     const user = await getUserFromToken(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -236,30 +245,25 @@ app.get('/api/dashboard', async (req, res) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    // Referral count this month
-    const { count: referralCount } = await supabase
+    const { count: referralCount } = await sb
       .from('referral_stats')
       .select('*', { count: 'exact', head: true })
       .eq('referrer_id', user.id)
       .gte('created_at', startOfMonth);
 
-    // Total generations by referred users
-    const { count: referredGens } = await supabase
+    const { count: referredGens } = await sb
       .from('generations')
       .select('*', { count: 'exact', head: true })
       .eq('referred_by_member', user.id);
 
-    // Own generations
-    const { count: ownGens } = await supabase
+    const { count: ownGens } = await sb
       .from('generations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
-    // Earnings estimate (simple formula: members pool 40% split by referrals)
-    const REVENUE_PER_GEN = 0.5; // $0.50 per generation estimate
+    const REVENUE_PER_GEN = 0.5;
     const totalRevenue = (referredGens || 0) * REVENUE_PER_GEN;
     const membersPoolShare = totalRevenue * 0.4;
-    // Estimate based on referral weight (simplified)
     const earningsEstimate = referralCount > 0 ? (membersPoolShare / Math.max(referralCount, 1)).toFixed(2) : '0.00';
 
     res.json({
@@ -278,10 +282,12 @@ app.get('/api/dashboard', async (req, res) => {
 
 // Verify promo code
 app.post('/api/promo/verify', async (req, res) => {
+  const sb = getSupabase();
+  if (!sb) return res.status(503).json({ error: 'Not configured' });
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: 'code required' });
 
-  const { data } = await supabase
+  const { data } = await sb
     .from('profiles')
     .select('id, email')
     .eq('promo_code', code.toUpperCase())
@@ -291,13 +297,10 @@ app.post('/api/promo/verify', async (req, res) => {
   res.json({ valid: true });
 });
 
-// Transcription endpoint (placeholder — returns word-level timestamps)
+// Transcription endpoint
 app.post('/api/transcribe', upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
-
-    // Placeholder: In production, send to Whisper API or similar
-    // For now, return a structured response indicating the feature
     res.json({
       success: true,
       words: [],
@@ -308,7 +311,7 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
   }
 });
 
-// Model health config endpoint (admin-configurable)
+// Model health config endpoint
 app.get('/api/models', (req, res) => {
   res.json({
     models: {
@@ -327,7 +330,6 @@ app.post('/api/models', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
     const profile = await getProfile(user.id);
     if (profile?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
-    // In production, save to DB. For now, acknowledge.
     res.json({ success: true, message: 'Model config updated' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -345,13 +347,16 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Lightning Wolves Studio running on port ${PORT}`);
-});
+// ─── Only listen when not on Vercel ──────────────────────────────────────────
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Lightning Wolves Studio running on port ${PORT}`);
+  });
+}
 
 module.exports = app;
 
-// ─── Prompt builder ───────────────────────────────────────────────────────────
+// ─── Prompt builder ──────────────────────────────────────────────────────────
 function buildUserPrompt({ title, artist, genre, bpm, language, mood }) {
   return `Generate a complete music production pack for the following track:
 
@@ -375,7 +380,7 @@ Return ONLY a valid JSON object with this exact structure:
     {"ts": "1:04", "label": "Flash moment", "type": "FLASH"}
   ],
   "prompts": [
-    {"section": "Intro (0:00-0:16)", "prompt": "Detailed cinematic visual prompt for Kling/Runway/PixVerse AI video generation, describing camera angles, lighting, atmosphere, movement, style for this section"},
+    {"section": "Intro (0:00-0:16)", "prompt": "Detailed cinematic visual prompt for AI video generation"},
     {"section": "Verse 1 (0:16-0:48)", "prompt": "..."}
   ],
   "tips": [

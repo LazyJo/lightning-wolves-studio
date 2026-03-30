@@ -113,8 +113,8 @@ function initCreditPill() {
 
 // ─── Router ──────────────────────────────────────────────────────────────────
 const PAGE_NAMES = {
-  landing: 'Home',
-  crew: 'Crew',
+  landing: 'Which Wolf Are You?',
+  home: 'Home',
   studio: 'Studio',
   pricing: 'Pricing',
   join: 'Join the Pack',

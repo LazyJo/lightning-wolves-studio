@@ -335,8 +335,8 @@ a:hover { text-decoration: underline; }
   align-items: center;
   gap: 16px;
   padding: 40px 24px 32px;
-  background: rgba(28, 28, 32, 0.85);
-  border: 1px solid rgba(60, 60, 65, 0.4);
+  background: rgba(35, 35, 42, 0.9);
+  border: 1px solid rgba(80, 80, 90, 0.4);
   border-radius: 16px;
   text-align: center;
   cursor: pointer;
@@ -346,26 +346,26 @@ a:hover { text-decoration: underline; }
 .wolf-card-new:hover {
   transform: translateY(-4px);
   border-color: var(--wc);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 24px color-mix(in srgb, var(--wc) 12%, transparent);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 24px color-mix(in srgb, var(--wc) 15%, transparent);
 }
 
 .wolf-card-lone {
   border-color: rgba(245, 197, 24, 0.5);
-  background: rgba(245, 197, 24, 0.08);
+  background: rgba(245, 197, 24, 0.1);
 }
-.wolf-card-lone:hover { border-color: #f5c518; background: rgba(245, 197, 24, 0.12); }
+.wolf-card-lone:hover { border-color: #f5c518; background: rgba(245, 197, 24, 0.14); }
 .wolf-card-lone .wolf-card-name { color: #f5c518; }
 
 .wolf-card-soon {
-  opacity: 0.7;
+  opacity: 0.85;
   cursor: default;
 }
 .wolf-card-soon:hover { transform: none; box-shadow: none; }
 
 .wolf-card-locked {
-  opacity: 0.35;
+  opacity: 0.4;
   cursor: not-allowed;
-  filter: grayscale(0.5);
+  filter: grayscale(0.4);
 }
 .wolf-card-locked:hover { transform: none; box-shadow: none; }
 
@@ -373,7 +373,7 @@ a:hover { text-decoration: underline; }
   font-size: 2.5rem;
   line-height: 180px;
   text-align: center;
-  opacity: 0.4;
+  opacity: 0.5;
 }
 
 .wolf-emoji-icon {
@@ -387,23 +387,23 @@ a:hover { text-decoration: underline; }
   height: 180px;
   border-radius: 50%;
   overflow: hidden;
-  background: radial-gradient(circle, rgba(30,30,35,0.9), #0d0d10);
+  background: radial-gradient(circle, rgba(40,40,48,0.9), #111118);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .wolf-card-img-circle img {
-  width: 80%;
-  height: 80%;
+  width: 82%;
+  height: 82%;
   object-fit: contain;
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--wc) 40%, transparent));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--wc) 40%, transparent)) brightness(1.1);
   transition: filter 0.3s, transform 0.3s;
 }
 
 .wolf-card-new:hover .wolf-card-img-circle img {
-  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--wc) 65%, transparent));
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--wc) 65%, transparent)) brightness(1.15);
   transform: scale(1.1);
 }
 
@@ -1327,47 +1327,69 @@ textarea { resize: vertical; min-height: 72px; }
 /* ═══════════════════════════════════════════════════════════════════════════
    MOBILE RESPONSIVE
    ═══════════════════════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
-  .wolf-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
-
-  .wolf-img-wrap { width: 70px; height: 70px; }
-
-  .wolf-name { font-size: 0.9rem; }
-
-  .wolf-genre-tag { font-size: 0.6rem; padding: 2px 6px; }
-
-  .public-card-inner { flex-wrap: wrap; }
-
-  .studio-body { flex-direction: column; }
-
-  .left-panel {
-    width: 100%;
-    min-width: unset;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    max-height: 50vh;
-  }
-
-  .right-panel { flex: 1; min-height: 50vh; }
-
-  .studio-header { flex-wrap: wrap; }
-
-  .tab { padding: 12px 14px; font-size: 0.85rem; }
-
-  .dash-grid { grid-template-columns: 1fr 1fr; }
-
-  .select-tagline { margin-bottom: 28px; }
+/* ─── Tablet ───────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .wolf-grid { gap: 12px; }
+  .wolf-grid-outer { padding: 4px; }
+  .wolf-grid-inner { padding: 8px; }
+  .wolf-card-new { padding: 28px 16px 24px; }
+  .wolf-card-img-circle { width: 140px; height: 140px; }
+  .wolf-card-name { font-size: 1.1rem; }
+  .select-tagline { font-size: clamp(2rem, 5vw, 4rem); margin-bottom: 28px; }
+  .select-main { padding: 32px 16px 60px; }
 }
 
+/* ─── Mobile landscape / small tablet ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  .wolf-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .wolf-card-img-circle { width: 120px; height: 120px; }
+  .wolf-card-new { padding: 24px 12px 20px; gap: 10px; }
+  .wolf-card-name { font-size: 1rem; }
+  .wolf-card-genre { font-size: 0.6rem; padding: 3px 10px; }
+  .wolf-emoji-icon { font-size: 3rem; line-height: 120px; }
+  .wolf-lock-icon { font-size: 2rem; line-height: 120px; }
+
+  .select-header { padding: 12px 16px; }
+  .header-logo { width: 32px; height: 32px; }
+  .nav-btn-gold { padding: 6px 14px; font-size: 0.75rem; }
+  .nav-btn-outline { padding: 5px 12px; font-size: 0.7rem; }
+  .nav-link { font-size: 0.8rem; }
+
+  .public-card-inner { flex-wrap: wrap; }
+  .studio-body { flex-direction: column; }
+  .left-panel { width: 100%; min-width: unset; border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+  .right-panel { flex: 1; min-height: 50vh; }
+  .studio-header { flex-wrap: wrap; }
+  .tab { padding: 12px 14px; font-size: 0.85rem; }
+  .dash-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ─── Mobile portrait ──────────────────────────────────────────────────────── */
 @media (max-width: 480px) {
-  .wolf-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-  .wolf-card { padding: 12px 8px; }
-  .wolf-img-wrap { width: 56px; height: 56px; }
+  .wolf-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .wolf-card-new { padding: 20px 10px 16px; gap: 8px; }
+  .wolf-card-img-circle { width: 100px; height: 100px; }
+  .wolf-card-name { font-size: 0.9rem; letter-spacing: 0.04em; }
+  .wolf-card-genre { font-size: 0.55rem; padding: 2px 8px; }
+  .wolf-emoji-icon { font-size: 2.5rem; line-height: 100px; }
+  .wolf-lock-icon { font-size: 1.5rem; line-height: 100px; }
+
+  .select-tagline { font-size: 1.8rem; letter-spacing: 0.04em; margin-bottom: 20px; }
+  .select-main { padding: 24px 12px 40px; }
+  .wolf-grid-outer { margin: 0 8px 24px; }
+  .header-right { gap: 8px; }
+  .nav-btn-gold { padding: 5px 10px; font-size: 0.7rem; }
+
   .studio-brand { font-size: 0.85rem; }
   .artist-name-header, .artist-dot { display: none; }
+}
+
+/* ─── Very small screens ───────────────────────────────────────────────────── */
+@media (max-width: 360px) {
+  .wolf-grid { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .wolf-card-img-circle { width: 80px; height: 80px; }
+  .wolf-card-new { padding: 16px 8px 12px; }
+  .select-tagline { font-size: 1.5rem; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

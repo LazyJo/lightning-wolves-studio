@@ -91,7 +91,7 @@ export function JoinPage({ onBack }) {
       </header>
 
       <div className="join-hero">
-        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="LW" className="join-logo" onError={e => e.target.style.display='none'} />
+        <img src="/logo.png" alt="LW" className="join-logo" onError={e => e.target.style.display='none'} />
         <h1 className="join-title">JOIN THE PACK</h1>
         <p className="join-tagline">Think you run with the pack? Show us what you got.</p>
       </div>

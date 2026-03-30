@@ -333,6 +333,248 @@ function initCrewPage() {
   });
 }
 
+// ─── Beat Detection (Web Audio API) ──────────────────────────────────────────
+async function detectBeats(file) {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    audioCtx.close();
+
+    // Use OfflineAudioContext for analysis
+    const offlineCtx = new OfflineAudioContext(1, audioBuffer.length, audioBuffer.sampleRate);
+    const source = offlineCtx.createBufferSource();
+    source.buffer = audioBuffer;
+
+    // Low-pass filter to isolate bass/kick frequencies
+    const filter = offlineCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 150;
+
+    source.connect(filter);
+    filter.connect(offlineCtx.destination);
+    source.start(0);
+
+    const renderedBuffer = await offlineCtx.startRendering();
+    const data = renderedBuffer.getChannelData(0);
+
+    // Analyze energy peaks
+    const sampleRate = renderedBuffer.sampleRate;
+    const windowSize = Math.floor(sampleRate * 0.05); // 50ms windows
+    const beats = [];
+    let prevEnergy = 0;
+    const threshold = 1.4; // Energy must be 1.4x previous window
+
+    for (let i = 0; i < data.length - windowSize; i += windowSize) {
+      let energy = 0;
+      for (let j = i; j < i + windowSize; j++) {
+        energy += data[j] * data[j];
+      }
+      energy /= windowSize;
+
+      if (prevEnergy > 0 && energy / prevEnergy > threshold && energy > 0.001) {
+        const timestamp = i / sampleRate;
+        // Avoid beats too close together (< 200ms)
+        if (beats.length === 0 || timestamp - beats[beats.length - 1].time > 0.2) {
+          beats.push({
+            time: timestamp,
+            ts: formatTimestamp(timestamp),
+            energy: energy
+          });
+        }
+      }
+      prevEnergy = energy || 0.0001;
+    }
+
+    // Estimate BPM from beat intervals
+    let bpm = 0;
+    if (beats.length > 2) {
+      const intervals = [];
+      for (let i = 1; i < Math.min(beats.length, 50); i++) {
+        intervals.push(beats[i].time - beats[i - 1].time);
+      }
+      const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      bpm = Math.round(60 / avgInterval);
+      // Clamp to reasonable range
+      if (bpm > 200) bpm = Math.round(bpm / 2);
+      if (bpm < 60) bpm = Math.round(bpm * 2);
+    }
+
+    return { beats, bpm, duration: audioBuffer.duration };
+  } catch (err) {
+    console.error('Beat detection failed:', err);
+    return { beats: [], bpm: 0, duration: 0 };
+  }
+}
+
+function formatTimestamp(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds % 1) * 100);
+  return `${m}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+}
+
+// ─── Beat Effect Trigger ─────────────────────────────────────────────────────
+function triggerBeatEffect(timestamp) {
+  const activeFx = document.querySelector('.fx-pill.active');
+  const effect = activeFx?.dataset.fx || 'flash';
+  const previewFrames = document.querySelectorAll('.preview-frame');
+
+  previewFrames.forEach(frame => {
+    frame.classList.remove('beat-effect-flash', 'beat-effect-zoom', 'beat-effect-shake', 'beat-effect-colorburst');
+    // Force reflow
+    void frame.offsetWidth;
+    frame.classList.add(`beat-effect-${effect}`);
+    setTimeout(() => frame.classList.remove(`beat-effect-${effect}`), 400);
+  });
+}
+
+// ─── Transcription with Retry ────────────────────────────────────────────────
+async function transcribeAudio(file, maxRetries = 3) {
+  const fd = new FormData();
+  fd.append('file', file);
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch('/api/transcribe', { method: 'POST', body: fd });
+
+      if (!res.ok) {
+        const contentType = res.headers.get('content-type') || '';
+        let errorMsg;
+        if (contentType.includes('application/json')) {
+          const json = await res.json();
+          errorMsg = json.error || 'Transcription failed';
+        } else {
+          const text = await res.text();
+          errorMsg = text || 'Transcription failed';
+        }
+
+        if (attempt < maxRetries) {
+          toast(`Transcription attempt ${attempt} failed. Retrying...`, 'error');
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+          continue;
+        }
+        throw new Error(errorMsg);
+      }
+
+      const json = await res.json();
+      return json;
+    } catch (err) {
+      if (attempt >= maxRetries) {
+        // Auto-refund credits
+        const isMember = state.profile?.role === 'member' || state.profile?.role === 'admin';
+        if (!isMember) {
+          addCredits(10);
+          toast('Transcription failed after 3 attempts. 10 ⚡ refunded.', 'error');
+        } else {
+          toast('Transcription failed after 3 attempts. ' + err.message, 'error');
+        }
+        return null;
+      }
+    }
+  }
+  return null;
+}
+
+// ─── Audio/Video Sync Verification ───────────────────────────────────────────
+function verifySyncAlignment(audioTimestamps, videoTimestamps) {
+  if (!audioTimestamps?.length || !videoTimestamps?.length) return { synced: true, drift: 0 };
+
+  // Compare first and last timestamps for drift
+  const audioDuration = audioTimestamps[audioTimestamps.length - 1];
+  const videoDuration = videoTimestamps[videoTimestamps.length - 1];
+  const drift = Math.abs(audioDuration - videoDuration);
+
+  // More than 100ms drift is noticeable
+  if (drift > 0.1) {
+    return { synced: false, drift, correction: videoDuration / audioDuration };
+  }
+
+  return { synced: true, drift: 0 };
+}
+
+function realignTimestamps(timestamps, correctionFactor) {
+  return timestamps.map(ts => ({
+    ...ts,
+    time: ts.time * correctionFactor,
+    ts: formatTimestamp(ts.time * correctionFactor)
+  }));
+}
+
+// ─── Model Health Config ─────────────────────────────────────────────────────
+const modelConfig = {
+  models: {
+    grok: { name: 'Grok Imagine', status: 'green', enabled: true, cost: 10, description: 'High reliability, sharp images (~10s)' },
+    seedance: { name: 'Seedance 2.0', status: 'yellow', enabled: false, cost: 15, description: 'Coming soon' },
+    kling: { name: 'Kling', status: 'green', enabled: true, cost: 15, description: 'Performance/motion videos' },
+  },
+  primaryModel: 'grok',
+  fallbackModel: 'kling',
+};
+
+function getModelConfig() {
+  const saved = localStorage.getItem('lw_model_config');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      Object.assign(modelConfig, parsed);
+    } catch { /* use defaults */ }
+  }
+  return modelConfig;
+}
+
+function saveModelConfig() {
+  localStorage.setItem('lw_model_config', JSON.stringify(modelConfig));
+}
+
+function getActiveModel() {
+  const config = getModelConfig();
+  const primary = config.models[config.primaryModel];
+  if (primary && primary.enabled && primary.status !== 'red') {
+    return { id: config.primaryModel, ...primary };
+  }
+  // Fallback
+  const fallback = config.models[config.fallbackModel];
+  if (fallback && fallback.enabled && fallback.status !== 'red') {
+    toast(`${primary?.name || 'Primary model'} is down. Using ${fallback.name} instead.`, 'info');
+    return { id: config.fallbackModel, ...fallback };
+  }
+  return null;
+}
+
+function updateModelHealthUI() {
+  const config = getModelConfig();
+  Object.entries(config.models).forEach(([id, model]) => {
+    const dot = $(`model-status-${id}`);
+    if (dot) {
+      dot.className = `model-status-dot model-status-${model.status}`;
+    }
+    const costEl = $(`model-cost-${id}`);
+    if (costEl) costEl.textContent = `${model.cost} ⚡`;
+
+    const row = document.querySelector(`.ai-model-row[data-model="${id}"]`);
+    if (row) {
+      row.classList.toggle('disabled', !model.enabled);
+      row.classList.toggle('active', id === config.primaryModel);
+    }
+  });
+}
+
+function initModelSelection() {
+  document.querySelectorAll('.ai-model-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const modelId = row.dataset.model;
+      const config = getModelConfig();
+      const model = config.models[modelId];
+      if (!model || !model.enabled) return;
+      config.primaryModel = modelId;
+      saveModelConfig();
+      updateModelHealthUI();
+    });
+  });
+  updateModelHealthUI();
+}
+
 // ─── Studio: Left Panel ──────────────────────────────────────────────────────
 function initStudioLeft() {
   initUpload();
@@ -518,13 +760,50 @@ async function handleGenerate() {
     }
 
     state.lastPack = json.pack;
+
+    // Run beat detection on uploaded file if available
+    const fileInput = $('file-input');
+    const uploadedRawFile = fileInput?.files?.[0];
+    if (uploadedRawFile) {
+      btnText.textContent = 'Detecting beats...';
+      const beatResult = await detectBeats(uploadedRawFile);
+      if (beatResult.beats.length > 0) {
+        // Merge detected beats into pack
+        json.pack.detectedBeats = beatResult.beats.map(b => ({
+          ts: b.ts, label: 'Beat drop', type: 'CUT'
+        }));
+        if (beatResult.bpm) {
+          json.meta.bpm = beatResult.bpm;
+          const bpmInput = $('song-bpm');
+          if (bpmInput && !bpmInput.value) bpmInput.value = beatResult.bpm;
+        }
+      }
+
+      // Verify audio/video sync if we have both timestamps
+      if (json.pack.lyrics?.length && json.pack.detectedBeats?.length) {
+        const audioTs = json.pack.detectedBeats.map(b => parseTsToSeconds(b.ts));
+        const lyricTs = json.pack.lyrics.filter(l => l.ts).map(l => parseTsToSeconds(l.ts));
+        const syncCheck = verifySyncAlignment(audioTs, lyricTs);
+        if (!syncCheck.synced) {
+          toast(`Sync drift detected (${(syncCheck.drift * 1000).toFixed(0)}ms). Auto-correcting...`, 'info');
+          json.pack.detectedBeats = realignTimestamps(
+            json.pack.detectedBeats.map(b => ({ ...b, time: parseTsToSeconds(b.ts) })),
+            syncCheck.correction
+          );
+        }
+      }
+    }
+
     renderResults(json.pack, json.meta);
     toast('Generation complete!', 'success');
 
   } catch (err) {
     // Auto-refund on server error
-    if (!isMember && state.credits >= 0) {
-      toast('Generation failed. Credits refunded.', 'error');
+    if (!isMember) {
+      addCredits(10);
+      state.genCount = Math.max(0, state.genCount - 1);
+      localStorage.setItem('lw_gen_count', state.genCount);
+      toast('Generation failed. 10 ⚡ refunded.', 'error');
     } else {
       toast(err.message, 'error');
     }
@@ -1493,6 +1772,7 @@ async function init() {
   initStudioCenter();
   initStudioRight();
   initPerWordStyling();
+  initModelSelection();
   initDownloads();
 
   // Show admin nav if admin

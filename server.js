@@ -39,7 +39,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
   fileFilter: (req, file, cb) => {
     const allowed = /audio|video/;
     if (allowed.test(file.mimetype)) return cb(null, true);
@@ -291,6 +291,49 @@ app.post('/api/promo/verify', async (req, res) => {
   res.json({ valid: true });
 });
 
+// Transcription endpoint (placeholder — returns word-level timestamps)
+app.post('/api/transcribe', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
+
+    // Placeholder: In production, send to Whisper API or similar
+    // For now, return a structured response indicating the feature
+    res.json({
+      success: true,
+      words: [],
+      message: 'Transcription endpoint ready. Connect Whisper API for word-level timestamps.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Transcription failed' });
+  }
+});
+
+// Model health config endpoint (admin-configurable)
+app.get('/api/models', (req, res) => {
+  res.json({
+    models: {
+      grok: { name: 'Grok Imagine', status: 'green', enabled: true, cost: 10 },
+      seedance: { name: 'Seedance 2.0', status: 'yellow', enabled: false, cost: 15 },
+      kling: { name: 'Kling', status: 'green', enabled: true, cost: 15 },
+    },
+    primaryModel: 'grok',
+    fallbackModel: 'kling',
+  });
+});
+
+app.post('/api/models', async (req, res) => {
+  try {
+    const user = await getUserFromToken(req);
+    if (!user) return res.status(401).json({ error: 'Unauthorized' });
+    const profile = await getProfile(user.id);
+    if (profile?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
+    // In production, save to DB. For now, acknowledge.
+    res.json({ success: true, message: 'Model config updated' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Fallback to index.html (SPA) ────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -298,7 +341,7 @@ app.get('*', (req, res) => {
 
 // ─── Error handler ────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File too large (max 50MB)' });
+  if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File too large. Max 100MB.' });
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 

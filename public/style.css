@@ -2170,3 +2170,57 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   font-size: 12px;
   color: var(--text-muted);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AI MODEL HEALTH & LIST
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ai-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.ai-model-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: var(--base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.ai-model-row:hover { border-color: var(--border-light); }
+.ai-model-row.active { border-color: var(--gold); }
+.ai-model-row.disabled { opacity: 0.4; pointer-events: none; }
+
+.model-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.model-status-green { background: #69f0ae; box-shadow: 0 0 4px rgba(105,240,174,0.4); }
+.model-status-yellow { background: #ffd740; box-shadow: 0 0 4px rgba(255,215,64,0.4); }
+.model-status-red { background: #ff5252; box-shadow: 0 0 4px rgba(255,82,82,0.4); }
+
+.model-name { font-size: 12px; color: var(--text); flex: 1; }
+
+.model-cost {
+  font-size: 11px;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+.model-badge-soon {
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 3px;
+}

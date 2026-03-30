@@ -441,7 +441,11 @@ function WolfSelectPage({ onSelectWolf }) {
           {WOLVES.map(wolf => (
             <div key={wolf.id} className="wolf-card-new" style={{'--wc': wolf.color}} onClick={() => onSelectWolf(wolf)}>
               <div className="wolf-card-img-circle">
-                <img src={`/${wolf.image}`} alt={wolf.artist} />
+                {wolf.animation ? (
+                  <video src={`/${wolf.animation}`} autoPlay loop muted playsInline className="wolf-card-circle-video" />
+                ) : (
+                  <img src={`/${wolf.image}`} alt={wolf.artist} />
+                )}
                 <div className="wolf-card-glow"></div>
               </div>
               <div className="wolf-card-name">{wolf.artist}</div>

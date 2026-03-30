@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { LYRIC_STYLES, detectBeats, drawLyricFrame, generateASS } from './LyricVideo'
 import LyricEditor from './LyricEditor'
+import { JoinPage, AdminDashboard } from './JoinPage'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
@@ -293,7 +294,7 @@ function AuthPage({ supabase, onAuth, onGuest, onHome }) {
 }
 
 // ─── Wolf Select Page ─────────────────────────────────────────────────────────
-function WolfSelectPage({ onSelectWolf, onViewProfile, onShowAuth, onPricing }) {
+function WolfSelectPage({ onSelectWolf, onViewProfile, onShowAuth, onPricing, onJoin }) {
   return (
     <div id="wolf-select-page" className="page">
       <header className="select-header">
@@ -350,13 +351,13 @@ function WolfSelectPage({ onSelectWolf, onViewProfile, onShowAuth, onPricing }) 
             // Insert "Join the Pack" card after MMJ (index 7 = pink wolf)
             if (idx === 7) {
               return [
-                <a key="join-pack" className="wolf-card join-pack-card" href="mailto:join@lightningwolves.studio">
+                <div key="join-pack" className="wolf-card join-pack-card" onClick={onJoin}>
                   <div className="join-pack-logo-wrap">
                     <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" className="join-pack-logo" onError={e => e.target.style.display='none'} />
                   </div>
                   <div className="wolf-name join-pack-name">JOIN THE PACK</div>
                   <div className="join-pack-badge">Apply to Join</div>
-                </a>,
+                </div>,
                 card
               ]
             }
@@ -1886,7 +1887,7 @@ function NavBar({ section, onNavigate, isMember, onPricing, onHome }) {
 }
 
 // ─── App Shell (header + nav + section content) ──────────────────────────────
-function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal, onShowUpgradeModal, testMemberMode, onToggleTestMember, onPricing }) {
+function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal, onShowUpgradeModal, testMemberMode, onToggleTestMember, onPricing, onAdmin }) {
   const realMember = profile?.role === 'member'
   const isMember = realMember || testMemberMode
   const isLoneWolf = !user && wolf?.id === 'lone-wolf'
@@ -1926,6 +1927,7 @@ function AppShell({ wolf, user, profile, token, supabase, section, onNavigate, o
           {user ? (
             <>
               {isMember && <button className="btn-ghost" onClick={onOpenDashboard}>Dashboard</button>}
+              {(displayName === 'lazy jo' || wolfArtist === 'lazy jo' || testMemberMode) && <button className="btn-ghost" onClick={onAdmin}>Admin</button>}
               <button className="btn-ghost" onClick={onSignOut}>Sign Out</button>
             </>
           ) : (
@@ -2086,7 +2088,7 @@ export default function App() {
       <LightningCanvas wolfColor={wolf?.color || '#f5c518'} />
 
       {page === 'wolf-select' && (
-        <WolfSelectPage onSelectWolf={handleSelectWolf} onViewProfile={w => { setProfileWolf(w); setPage('profile') }} onShowAuth={() => setPage('auth')} onPricing={() => setPage('pricing')} />
+        <WolfSelectPage onSelectWolf={handleSelectWolf} onViewProfile={w => { setProfileWolf(w); setPage('profile') }} onShowAuth={() => setPage('auth')} onPricing={() => setPage('pricing')} onJoin={() => setPage('join')} />
       )}
 
       {page === 'profile' && profileWolf && (
@@ -2114,6 +2116,7 @@ export default function App() {
           onShowLimitModal={() => setShowLimitModal(true)}
           onShowUpgradeModal={() => setShowUpgradeModal(true)}
           onPricing={() => setPage('pricing')}
+          onAdmin={() => setPage('admin')}
         />
       )}
 
@@ -2127,6 +2130,14 @@ export default function App() {
           onBack={() => setPage(wolf ? 'app' : 'wolf-select')}
           onSignup={() => setPage('auth')}
         />
+      )}
+
+      {page === 'join' && (
+        <JoinPage onBack={() => setPage('wolf-select')} />
+      )}
+
+      {page === 'admin' && (
+        <AdminDashboard onBack={() => setPage('app')} />
       )}
 
       {showLimitModal && (

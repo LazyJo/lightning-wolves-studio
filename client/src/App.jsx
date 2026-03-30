@@ -3,16 +3,11 @@ import { createClient } from '@supabase/supabase-js'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
-  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',  genre: 'Melodic Hip-Hop',  image: 'wolf-yellow.svg', locked: false },
-  { id: 'orange', color: '#e8870a', artist: 'Rosakay',  genre: 'Pop / French Pop', image: 'wolf-orange.svg', locked: false },
-  { id: 'purple', color: '#9b6dff', artist: 'Zirka',    genre: 'French Hip-Hop',   image: 'wolf-purple.svg', locked: false },
-  { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
-  { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
-  { id: 'pink',   color: '#E040FB', locked: true, image: 'wolf-pink.svg'  },
-  { id: 'green',  color: '#00E64D', locked: true, image: 'wolf-green.svg' },
-  { id: 'red',    color: '#E53935', locked: true, image: 'wolf-red.svg'   },
-  { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
-  { id: 'white',  color: '#e8e8e8', locked: true, image: 'wolf-white.svg' },
+  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',  image: 'LightningWolfYellowTransparentBG.png', animation: 'Lazy Jo Wolf Card Animation.mp4', locked: false },
+  { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',   image: 'LightningWolfPurpleTransparentBG.png', locked: false },
+  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop', image: 'LightningWolfOrangeTransparentBG.png', animation: 'Rosakay Wolf Animation.mp4', locked: false },
+  { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Visual Art',       image: 'LightningWolfGreenTransparentBG.png', locked: false },
+  { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photo · Video · Beats', image: 'LightningWolfRoseTransparentBG.png', locked: false },
 ]
 
 const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯']
@@ -212,10 +207,15 @@ function WolfSelectPage({ onSelectWolf }) {
   return (
     <div id="wolf-select-page" className="page">
       <header className="select-header">
-        <img src="/logo.svg" alt="Lightning Wolves" className="header-logo" onError={e => e.target.style.display='none'} />
-        <div className="header-brand">
-          <div className="header-title">LIGHTNING WOLVES</div>
-          <div className="header-sub">Lyrics Studio</div>
+        <a href="/" className="header-logo-link">
+          <img src="/LightningWolvesLogoTransparentBG.png" alt="Lightning Wolves" className="header-logo" onError={e => e.target.style.display='none'} />
+        </a>
+        <div className="header-right">
+          <button className="nav-btn-gold" onClick={() => onSelectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' })}>
+            Enter Studio
+          </button>
+          <span className="nav-link">Pricing</span>
+          <span className="nav-btn-outline">SIGN IN</span>
         </div>
       </header>
 
@@ -223,38 +223,22 @@ function WolfSelectPage({ onSelectWolf }) {
         <h1 className="select-tagline">WHICH WOLF ARE YOU?</h1>
         <div className="wolf-grid">
           {WOLVES.map(wolf => (
-            wolf.locked ? (
-              <div key={wolf.id} className="wolf-card locked">
-                <div className="wolf-img-wrap locked-wrap">
-                  <img src={`/${wolf.image}`} alt="Coming Soon" onError={e => e.target.parentElement.innerHTML='<div class="lock-icon">🔒</div>'} />
-                  <div className="wolf-lock-overlay">🔒</div>
-                </div>
-                <div className="wolf-name">???</div>
-                <div className="wolf-genre-tag locked-tag">Coming Soon</div>
+            <div key={wolf.id} className="wolf-card-new" style={{'--wc': wolf.color}} onClick={() => onSelectWolf(wolf)}>
+              <div className="wolf-card-img-circle">
+                <img src={`/${wolf.image}`} alt={wolf.artist} />
+                <div className="wolf-card-glow"></div>
               </div>
-            ) : (
-              <div key={wolf.id} className="wolf-card active" onClick={() => onSelectWolf(wolf)}>
-                <div className="wolf-img-wrap">
-                  <img src={`/${wolf.image}`} alt={wolf.artist} onError={e => e.target.parentElement.innerHTML='<div class="wolf-emoji">🐺</div>'} />
-                  <div className="wolf-glow" style={{'--glow-color': wolf.color}}></div>
-                </div>
-                <div className="wolf-name">{wolf.artist}</div>
-                <div className="wolf-genre-tag" style={{'--tag-color': wolf.color}}>{wolf.genre}</div>
-              </div>
-            )
-          ))}
-        </div>
-
-        <div className="public-card">
-          <div className="public-card-inner">
-            <div className="public-card-icon">⚡</div>
-            <div className="public-card-text">
-              <div className="public-card-title">Join the Pack</div>
-              <div className="public-card-desc">3 free generations/month — no commitment</div>
+              <div className="wolf-card-name">{wolf.artist}</div>
+              <div className="wolf-card-genre">{wolf.genre}</div>
             </div>
-            <button className="btn-gold" onClick={() => onSelectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' })}>
-              Enter Studio
-            </button>
+          ))}
+          <div className="wolf-card-new wolf-card-join" style={{'--wc': '#f5c518'}}
+               onClick={() => onSelectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' })}>
+            <div className="wolf-card-img-circle">
+              <div className="wolf-join-icon">+</div>
+            </div>
+            <div className="wolf-card-name">Join the Pack</div>
+            <div className="wolf-card-genre">Apply →</div>
           </div>
         </div>
       </main>

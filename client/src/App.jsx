@@ -7,9 +7,9 @@ const WOLVES = [
   { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', video: '/LazyJoWolfAnimation.mp4', locked: false },
   { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',      image: 'LightningWolfPurpleTransparentBG.png', video: '/Wolf-Purple.mp4', locked: false },
   { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', video: '/RosakayWolfAnimation.mp4', locked: false },
-  // Row 2 — Active + Lone Wolf (wolf emoji)
+  // Row 2 — Active + Lone Wolf
   { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Covers & Trailers',   image: 'LightningWolfGreenTransparentBG.png', video: '/wolf-white-blue.mp4', locked: false },
-  { id: 'lone',   color: '#f5c518', artist: 'Lone Wolf',     genre: '3 Free Generations',  image: 'LightningWolvesLogoTransparentBG.png', locked: false, isLoneWolf: true, emoji: '🐺' },
+  { id: 'lone',   color: '#f5c518', artist: 'Lone Wolf',     genre: '3 Free Generations',  image: 'LightningWolvesLogoTransparentBG.png', video: '/wolf-yellow.mp4', locked: false, isLoneWolf: true },
   { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photos & Videos',     image: 'LightningWolfGreenTransparentBG.png', video: '/Wolf-Green.mp4', locked: false },
   // Row 3 — Coming Soon with animations
   { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon',         image: 'WolfRed.png', video: '/Wolf%20-%20Red.mp4', locked: true, comingSoon: true },
@@ -17,7 +17,7 @@ const WOLVES = [
   { id: 'pink',   color: '#E040FB', artist: 'Soon Available', genre: 'Coming Soon',        image: 'PinkWolf.png', video: '/Pink%20Wolf%20Animation.mp4', locked: true, comingSoon: true },
   // Row 4 — Locked ??? + Join the Pack in middle
   { id: 'lock1',  color: '#333333', artist: '???',           genre: 'Coming Soon',         image: 'wolf-black.svg', locked: true },
-  { id: 'join',   color: '#f5c518', artist: 'Join the Pack', genre: 'Apply to Join',       image: 'LightningWolvesLogo-Nik-Transparent.png', locked: false, isJoinCard: true },
+  { id: 'join',   color: '#f5c518', artist: 'Join the Pack', genre: 'Apply to Join',       image: 'LightningWolvesLogoTransparentBG.png', locked: false, isJoinCard: true },
   { id: 'lock2',  color: '#333333', artist: '???',           genre: 'Coming Soon',         image: 'wolf-black.svg', locked: true },
 ]
 
@@ -457,7 +457,7 @@ function WolfSelectPage({ onSelectWolf }) {
                 const isJoin = wolf.isJoinCard;
                 return (
                   <div key={wolf.id}
-                    className={`wolf-card-new ${isJoin ? 'wolf-card-lone' : ''} ${isLocked ? 'wolf-card-locked' : ''} ${isComingSoon ? 'wolf-card-soon' : ''}`}
+                    className={`wolf-card-new ${(isJoin || wolf.isLoneWolf) ? 'wolf-card-lone' : ''} ${isLocked ? 'wolf-card-locked' : ''} ${isComingSoon ? 'wolf-card-soon' : ''}`}
                     style={{'--wc': wolf.color}}
                     onClick={() => {
                       if (isLocked || isComingSoon) return;
@@ -467,8 +467,6 @@ function WolfSelectPage({ onSelectWolf }) {
                     <div className="wolf-card-img-circle">
                       {isLocked ? (
                         <div className="wolf-lock-icon">🔒</div>
-                      ) : wolf.emoji ? (
-                        <div className="wolf-emoji-icon">{wolf.emoji}</div>
                       ) : wolf.video ? (
                         <>
                           <video src={wolf.video} autoPlay loop muted playsInline preload="auto"

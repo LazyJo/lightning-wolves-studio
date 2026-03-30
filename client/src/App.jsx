@@ -4,10 +4,10 @@ import { createClient } from '@supabase/supabase-js'
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
   { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',  image: 'LightningWolfYellowTransparentBG.png', animation: 'Lazy Jo Wolf Card Animation.mp4', locked: false },
-  { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',   image: 'LightningWolfPurpleTransparentBG.png', locked: false },
-  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop', image: 'LightningWolfOrangeTransparentBG.png', animation: 'Rosakay Wolf Animation.mp4', locked: false },
-  { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Visual Art',       image: 'LightningWolfGreenTransparentBG.png', locked: false },
-  { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photo · Video · Beats', image: 'LightningWolfRoseTransparentBG.png', locked: false },
+  { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',   image: 'LightningWolfPurpleTransparentBG.png', animation: 'Wolf-Purple.mp4', locked: false },
+  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop', image: 'LightningWolfOrangeTransparentBG.png', animation: 'Wolf-Orange.mp4', locked: false },
+  { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Visual Art',       image: 'LightningWolfGreenTransparentBG.png', animation: 'wolf-white-blue.mp4', locked: false },
+  { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photo · Video · Beats', image: 'LightningWolfRoseTransparentBG.png', animation: 'Pink Wolf Animation.mp4', locked: false },
 ]
 
 const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯']

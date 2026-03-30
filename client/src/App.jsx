@@ -228,6 +228,7 @@ const WOLF_PROFILES = {
   purple: {
     name: 'Zirka', role: 'Artist', genre: 'French Hip-Hop', color: '#9b6dff',
     image: 'LightningWolfPurpleTransparentBG.png',
+    animation: 'Wolf-Purple.mp4',
     bio: 'French hip-hop energy with melodic punch. Zirka brings raw energy and authentic flow from the streets of France to the Lightning Wolves pack.',
     acknowledgements: []
   },
@@ -244,12 +245,14 @@ const WOLF_PROFILES = {
   blue: {
     name: 'Drippydesigns', role: 'Designer', genre: 'Visual Art', color: '#82b1ff',
     image: 'LightningWolfGreenTransparentBG.png',
+    animation: 'wolf-white-blue.mp4',
     bio: 'The visual identity behind the pack. Drippydesigns crafts the aesthetic world of Lightning Wolves — from logos to merch to the digital presence.',
     acknowledgements: []
   },
   green: {
     name: 'Shiteux', role: 'Visuals', genre: 'Photo · Video · Beats', color: '#69f0ae',
     image: 'LightningWolfRoseTransparentBG.png',
+    animation: 'Pink Wolf Animation.mp4',
     bio: `Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations 'Sin[e]' and 'Doubt Clouds' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.`,
     acknowledgements: []
   },

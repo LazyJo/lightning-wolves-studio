@@ -126,35 +126,33 @@ const PAGE_NAMES = {
 // navigateTo — delegates to the inline router + handles wolf profiles
 function navigateTo(page, params) {
   if (page === 'wolf-profile' && params && params.wolfId) {
-    // Wolf profile: hide all, show profile page
-    document.querySelectorAll('.page').forEach(function(p) { p.style.display = 'none'; });
-    renderWolfProfile(params.wolfId);
-    var profilePage = document.getElementById('page-wolf-profile');
-    if (profilePage) profilePage.style.display = 'block';
-    state.currentPage = 'wolf-profile';
+    window.location.hash = '/crew/' + params.wolfId;
     return;
   }
-  // For normal pages, just update the hash — the inline router handles the rest
   window.location.hash = '/' + (page === 'landing' ? '' : page);
 }
 
+// Expose state for inline router
+window._lwState = state;
+
 function initRouter() {
-  // The inline <script> in index.html handles basic hash routing.
-  // This adds wolf profile support on top.
-  window.addEventListener('hashchange', function() {
+  // The inline router in index.html handles page switching.
+  // This hooks into hashchange for wolf profile rendering.
+  function onRoute() {
     var hash = (window.location.hash || '').replace(/^#\/?/, '') || 'landing';
     var parts = hash.split('/');
+
     if (parts[0] === 'crew' && parts[1]) {
-      // Wolf profile route
-      document.querySelectorAll('.page').forEach(function(p) { p.style.display = 'none'; });
       renderWolfProfile(parts[1]);
-      var profilePage = document.getElementById('page-wolf-profile');
-      if (profilePage) profilePage.style.display = 'block';
       state.currentPage = 'wolf-profile';
     } else {
       state.currentPage = parts[0] || 'landing';
     }
-  });
+  }
+
+  window.addEventListener('hashchange', onRoute);
+  window.addEventListener('load', onRoute);
+  onRoute();
 }
 
 // ─── Topbar Auth Buttons ─────────────────────────────────────────────────────

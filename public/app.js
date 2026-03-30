@@ -3,6 +3,7 @@
    Step 1: Global Layout (sidebar, topbar, routing, credits, toast)
    ═══════════════════════════════════════════════════════════════════════════ */
 'use strict';
+console.log('[LW] app.js loaded');
 
 // ─── Supabase ────────────────────────────────────────────────────────────────
 let supabase = null;
@@ -123,8 +124,10 @@ const PAGE_NAMES = {
 };
 
 function navigateTo(page, params) {
+  console.log('[LW] navigateTo:', page, params || '');
   // Get all page containers
   const allPages = document.querySelectorAll('.page');
+  console.log('[LW] found', allPages.length, 'page containers');
 
   // Hide all pages
   allPages.forEach(function(p) {
@@ -179,6 +182,7 @@ function navigateTo(page, params) {
 }
 
 function onHashChange() {
+  console.log('[LW] onHashChange, hash:', window.location.hash);
   var hash = window.location.hash.replace('#/', '') || 'landing';
   var parts = hash.split('/');
   var page = parts[0] || 'landing';
@@ -3348,8 +3352,10 @@ function mapErrorMessage(text, status) {
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 async function init() {
+  console.log('[LW] init() starting');
   // Core UI first — these must work even if network fails
   initRouter();
+  console.log('[LW] initRouter done');
   initTopbarAuth();
   initCreditPill();
   initBugReport();
@@ -3411,4 +3417,10 @@ async function init() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', init);
+// Start the app — handle both cases: DOM already loaded or not yet
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+console.log('[LW] bootstrap registered, readyState:', document.readyState);

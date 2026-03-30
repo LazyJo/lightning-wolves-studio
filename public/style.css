@@ -803,7 +803,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
    PAGE: WOLF PROFILE
    ═══════════════════════════════════════════════════════════════════════════ */
 .wolf-profile-page {
-  max-width: 800px;
+  max-width: 860px;
   margin: 0 auto;
   padding: 32px 40px 64px;
 }
@@ -811,26 +811,28 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .wp-back {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-size: 13px;
   color: var(--text-dim);
-  margin-bottom: 24px;
+  margin-bottom: 28px;
+  transition: color 0.15s;
 }
 .wp-back:hover { color: var(--text); }
 
 .wp-layout {
   display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 40px;
+  grid-template-columns: 300px 1fr;
+  gap: 48px;
   align-items: flex-start;
 }
 
 /* ─── Flip Card ────────────────────────────────────────────────────────────── */
 .wp-flip-card {
-  perspective: 800px;
-  width: 280px;
-  height: 380px;
+  perspective: 900px;
+  width: 300px;
+  height: 400px;
   cursor: pointer;
+  position: relative;
 }
 
 .wp-flip-inner {
@@ -853,92 +855,157 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   overflow: hidden;
 }
 
-.wp-flip-back {
-  transform: rotateY(180deg);
+/* ─── Front: Wolf Image + Name ─────────────────────────────────────────────── */
+.wp-flip-front {
   display: flex;
-  align-items: center;
-  padding: 24px;
+  flex-direction: column;
 }
 
-.wp-card-banner {
-  height: 200px;
+.wp-card-front-img {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--wp-color) 8%, var(--surface));
-  border-bottom: 1px solid var(--border);
+  position: relative;
+  background: radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--wp-color) 10%, transparent), var(--surface) 70%);
   overflow: hidden;
 }
 
-.wp-card-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
+.wp-card-front-img img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--wp-color) 35%, transparent));
+  transition: transform 0.3s, filter 0.3s;
 }
 
-.wp-card-initials {
-  font-size: 56px;
-  font-weight: 600;
-  letter-spacing: 3px;
-  opacity: 0.8;
+.wp-flip-card:hover .wp-card-front-img img {
+  transform: scale(1.05);
+  filter: drop-shadow(0 0 30px color-mix(in srgb, var(--wp-color) 50%, transparent));
 }
 
-.wp-card-body { padding: 20px; }
-
-.wp-role-badge {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: 500;
-  margin-bottom: 6px;
+.wp-card-front-glow {
+  position: absolute;
+  inset: -20%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--wp-color) 8%, transparent), transparent 60%);
+  pointer-events: none;
 }
 
-.wp-name {
-  font-size: 20px;
+.wp-card-front-info {
+  padding: 16px 20px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+.wp-card-front-name {
+  font-size: 18px;
   font-weight: 600;
   color: #fff;
   margin-bottom: 4px;
 }
 
-.wp-genre {
-  font-size: 13px;
-  color: var(--text-dim);
+.wp-card-front-genre {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--wp-color);
+  padding: 2px 10px;
+  border: 1px solid color-mix(in srgb, var(--wp-color) 25%, transparent);
+  border-radius: 20px;
 }
 
-.wp-bio-full {
+/* ─── Back: Full Bio ───────────────────────────────────────────────────────── */
+.wp-flip-back {
+  transform: rotateY(180deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: var(--surface);
+}
+
+.wp-flip-back-content { text-align: center; }
+
+.wp-flip-back-name {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--wp-color);
+  margin-bottom: 12px;
+}
+
+.wp-flip-back-bio {
   font-size: 14px;
   color: var(--text-muted);
-  line-height: 1.6;
+  line-height: 1.7;
 }
+
+/* ─── Flip Hint ────────────────────────────────────────────────────────────── */
+.wp-flip-hint {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.wp-flip-card:hover .wp-flip-hint { opacity: 1; }
 
 /* ─── Info Panel ───────────────────────────────────────────────────────────── */
 .wp-info {
-  padding-top: 12px;
+  padding-top: 8px;
+}
+
+.wp-role {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
 }
 
 .wp-title {
-  font-size: 32px;
+  font-size: 36px;
   font-weight: 600;
   margin-bottom: 4px;
+  line-height: 1.1;
 }
 
 .wp-subtitle {
   font-size: 14px;
   color: var(--text-dim);
   display: block;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 .wp-bio {
   font-size: 15px;
   color: var(--text-muted);
-  line-height: 1.65;
-  margin-bottom: 20px;
+  line-height: 1.7;
+  margin-bottom: 24px;
 }
 
+/* ─── Animation Video ──────────────────────────────────────────────────────── */
+.wp-animation {
+  margin-bottom: 24px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.wp-animation-video {
+  width: 100%;
+  display: block;
+  max-height: 200px;
+  object-fit: cover;
+  background: #000;
+}
+
+/* ─── Social Links ─────────────────────────────────────────────────────────── */
 .wp-socials {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 24px;
 }
 
@@ -946,7 +1013,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+  padding: 8px 16px;
   font-size: 13px;
   font-weight: 500;
   color: var(--text-muted);
@@ -956,31 +1023,23 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 
 .wp-social-link svg { width: 16px; height: 16px; }
-.wp-social-link:hover { border-color: var(--border-light); color: var(--text); }
+.wp-social-link:hover { border-color: var(--wp-color); color: var(--text); }
 
+/* ─── Buttons ──────────────────────────────────────────────────────────────── */
 .wp-buttons {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-/* Flip hint */
-.wp-flip-card::after {
-  content: 'Click to flip';
-  position: absolute;
-  bottom: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  color: var(--text-dim);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.wp-flip-card:hover::after { opacity: 1; }
-
+/* ─── Responsive ───────────────────────────────────────────────────────────── */
 @media (max-width: 700px) {
   .wp-layout { grid-template-columns: 1fr; justify-items: center; }
+  .wp-flip-card { width: 260px; height: 360px; }
   .wolf-profile-page { padding: 24px; }
+  .wp-info { text-align: center; }
+  .wp-socials { justify-content: center; }
+  .wp-buttons { justify-content: center; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

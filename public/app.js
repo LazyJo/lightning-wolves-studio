@@ -366,17 +366,32 @@ function checkReferralCode() {
 
 // ─── Wolf Data ───────────────────────────────────────────────────────────────
 const WOLVES = {
-  lazyjo:  { id: 'lazyjo',  name: 'Lazy Jo',       color: '#f5c518', genre: 'Melodic Hip-Hop',       artist: 'Lazy Jo',        role: 'Founder · Artist',
-    bio: 'Every pack needs a leader. Joeri Van Tricht — Lazy Jo — founded Lightning Wolves with a vision: build a crew where every artist wins together. Born in Belgium, his melodic hip-hop blends introspective lyricism with infectious energy. The architect of the sound, the face of the pack.' },
-  zirka:   { id: 'zirka',   name: 'Zirka',          color: '#b388ff', genre: 'French Hip-Hop',        artist: 'Zirka',          role: 'Artist',
-    bio: 'French hip-hop energy with melodic punch.' },
-  rosakay: { id: 'rosakay', name: 'Rosakay',         color: '#ff80ab', genre: 'Pop / French Pop',      artist: 'Rosakay',        role: 'Artist',
-    bio: 'Sarah Kingambo. Pop with a French soul.', image: '/Rosakay Profile.jpeg', animation: '/Rosakay Wolf Animation.mp4',
-    instagram: 'https://www.instagram.com/rosakay_officiel', spotify: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B' },
-  drippy:  { id: 'drippy',  name: 'Drippydesigns',   color: '#82b1ff', genre: 'Visual Art',            artist: 'Drippydesigns',  role: 'Designer',
-    bio: 'The visual identity behind the pack.' },
-  shiteux: { id: 'shiteux', name: 'Shiteux',         color: '#69f0ae', genre: 'Photo · Video · Beats',  artist: 'Shiteux',        role: 'Visuals',
-    bio: 'Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations \'Sin[e]\' and \'Doubt Clouds\' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.' },
+  lazyjo: {
+    id: 'lazyjo', name: 'Lazy Jo', color: '#f5c518', genre: 'Melodic Hip-Hop', artist: 'Lazy Jo', role: 'Founder · Artist',
+    wolfImg: '/LightningWolfYellowTransparentBG.png', animation: '/Lazy Jo Wolf Card Animation.mp4',
+    bio: 'Every pack needs a leader. Joeri Van Tricht — Lazy Jo — founded Lightning Wolves with a vision: build a crew where every artist wins together. Born in Belgium, his melodic hip-hop blends introspective lyricism with infectious energy. The architect of the sound, the face of the pack.'
+  },
+  zirka: {
+    id: 'zirka', name: 'Zirka', color: '#b388ff', genre: 'French Hip-Hop', artist: 'Zirka', role: 'Artist',
+    wolfImg: '/LightningWolfPurpleTransparentBG.png',
+    bio: 'French hip-hop energy with melodic punch.'
+  },
+  rosakay: {
+    id: 'rosakay', name: 'Rosakay', color: '#ff80ab', genre: 'Pop / French Pop', artist: 'Rosakay', role: 'Artist',
+    wolfImg: '/LightningWolfOrangeTransparentBG.png', image: '/Rosakay Profile.jpeg', animation: '/Rosakay Wolf Animation.mp4',
+    instagram: 'https://www.instagram.com/rosakay_officiel', spotify: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B',
+    bio: 'Sarah Kingambo. Pop with a French soul.'
+  },
+  drippy: {
+    id: 'drippy', name: 'Drippydesigns', color: '#82b1ff', genre: 'Visual Art', artist: 'Drippydesigns', role: 'Designer',
+    wolfImg: '/LightningWolfGreenTransparentBG.png',
+    bio: 'The visual identity behind the pack.'
+  },
+  shiteux: {
+    id: 'shiteux', name: 'Shiteux', color: '#69f0ae', genre: 'Photo · Video · Beats', artist: 'Shiteux', role: 'Visuals',
+    wolfImg: '/LightningWolfRoseTransparentBG.png',
+    bio: 'Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations \'Sin[e]\' and \'Doubt Clouds\' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.'
+  },
 };
 
 // ─── Crew Page ───────────────────────────────────────────────────────────────
@@ -430,86 +445,99 @@ function initCrewParticles() {
 
 // ─── Wolf Profile Page ───────────────────────────────────────────────────────
 function renderWolfProfile(wolfId) {
-  const wolf = WOLVES[wolfId];
-  const container = $('wolf-profile-content');
+  var wolf = WOLVES[wolfId];
+  var container = document.getElementById('wolf-profile-content');
   if (!wolf || !container) return;
 
-  const initials = wolf.name.split(' ').map(w => w[0]).join('').toUpperCase();
-  const hasImage = wolf.image;
-  const bannerContent = hasImage
-    ? `<img src="${wolf.image}" alt="${wolf.name}" class="wp-card-img" />`
-    : `<span class="wp-card-initials" style="color:${wolf.color}">${initials}</span>`;
+  // Wolf image for flip card front
+  var wolfImgSrc = wolf.wolfImg || '/LightningWolvesLogoTransparentBG.png';
+
+  // Animation video (Lazy Jo and Rosakay have these)
+  var animationHtml = '';
+  if (wolf.animation) {
+    animationHtml = '<div class="wp-animation"><video src="' + wolf.animation + '" autoplay loop muted playsinline class="wp-animation-video"></video></div>';
+  }
 
   // Social links
-  let socialsHtml = '';
+  var socialsHtml = '';
   if (wolf.instagram || wolf.spotify) {
     socialsHtml = '<div class="wp-socials">';
     if (wolf.instagram) {
-      socialsHtml += `<a href="${wolf.instagram}" target="_blank" rel="noopener" class="wp-social-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg> Instagram</a>`;
+      socialsHtml += '<a href="' + wolf.instagram + '" target="_blank" rel="noopener" class="wp-social-link">'
+        + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>'
+        + ' Instagram</a>';
     }
     if (wolf.spotify) {
-      socialsHtml += `<a href="${wolf.spotify}" target="_blank" rel="noopener" class="wp-social-link"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.5 17.3c-.2.3-.6.4-1 .2-2.7-1.6-6-2-10-1.1-.4.1-.7-.2-.8-.5-.1-.4.2-.7.5-.8 4.3-1 8.1-.6 11.1 1.2.3.2.4.7.2 1zm1.5-3.3c-.3.4-.8.5-1.2.3-3-1.9-7.7-2.4-11.3-1.3-.4.1-.9-.1-1-.6-.1-.4.1-.9.6-1 4.1-1.3 9.2-.7 12.6 1.5.3.2.5.7.3 1.1z"/></svg> Spotify</a>`;
+      socialsHtml += '<a href="' + wolf.spotify + '" target="_blank" rel="noopener" class="wp-social-link">'
+        + '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.5 17.3c-.2.3-.6.4-1 .2-2.7-1.6-6-2-10-1.1-.4.1-.7-.2-.8-.5-.1-.4.2-.7.5-.8 4.3-1 8.1-.6 11.1 1.2.3.2.4.7.2 1zm1.5-3.3c-.3.4-.8.5-1.2.3-3-1.9-7.7-2.4-11.3-1.3-.4.1-.9-.1-1-.6-.1-.4.1-.9.6-1 4.1-1.3 9.2-.7 12.6 1.5.3.2.5.7.3 1.1z"/></svg>'
+        + ' Spotify</a>';
     }
     socialsHtml += '</div>';
   }
 
   // Buttons
-  let buttonsHtml = '';
+  var buttonsHtml = '';
   if (wolfId === 'lazyjo') {
-    buttonsHtml += `<a href="https://www.gigstarter.be/artists/lazy-jo" target="_blank" rel="noopener" class="btn-gold">Book Lazy Jo</a>`;
+    buttonsHtml += '<a href="https://www.gigstarter.be/artists/lazy-jo" target="_blank" rel="noopener" class="btn-gold">Book Lazy Jo</a>';
   }
-  buttonsHtml += `<a href="#/studio" class="btn-outline wp-enter-studio" data-wolf="${wolfId}">Enter Studio as ${wolf.name}</a>`;
+  buttonsHtml += '<a href="#/studio" class="btn-outline wp-enter-studio" data-wolf="' + wolfId + '">Enter Studio as ' + escapeHTML(wolf.name) + '</a>';
 
-  container.innerHTML = `
-    <a href="#/crew" class="wp-back">← Back to Crew</a>
-    <div class="wp-layout">
-      <!-- Flip Card -->
-      <div class="wp-flip-card" style="--wp-color:${wolf.color}">
-        <div class="wp-flip-inner" id="wp-flip-inner">
-          <!-- Front -->
-          <div class="wp-flip-front">
-            <div class="wp-card-banner">${bannerContent}</div>
-            <div class="wp-card-body">
-              <span class="wp-role-badge" style="color:${wolf.color}">${wolf.role}</span>
-              <h2 class="wp-name">${escapeHTML(wolf.name)}</h2>
-              <span class="wp-genre">${escapeHTML(wolf.genre)}</span>
-            </div>
-          </div>
-          <!-- Back -->
-          <div class="wp-flip-back">
-            <div class="wp-card-body">
-              <h2 class="wp-name">${escapeHTML(wolf.name)}</h2>
-              <p class="wp-bio-full">${escapeHTML(wolf.bio)}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+  container.innerHTML = ''
+    + '<a href="#/crew" class="wp-back">\u2190 Back to Crew</a>'
+    + '<div class="wp-layout" style="--wp-color:' + wolf.color + '">'
 
-      <!-- Info Panel -->
-      <div class="wp-info">
-        <h1 class="wp-title" style="color:${wolf.color}">${escapeHTML(wolf.name)}</h1>
-        <span class="wp-subtitle">${escapeHTML(wolf.role)} · ${escapeHTML(wolf.genre)}</span>
-        <p class="wp-bio">${escapeHTML(wolf.bio)}</p>
-        ${socialsHtml}
-        <div class="wp-buttons">${buttonsHtml}</div>
-      </div>
-    </div>
-  `;
+    // Flip Card
+    + '  <div class="wp-flip-card">'
+    + '    <div class="wp-flip-inner" id="wp-flip-inner">'
+    + '      <div class="wp-flip-front">'
+    + '        <div class="wp-card-front-img">'
+    + '          <img src="' + wolfImgSrc + '" alt="' + escapeHTML(wolf.name) + '" />'
+    + '          <div class="wp-card-front-glow"></div>'
+    + '        </div>'
+    + '        <div class="wp-card-front-info">'
+    + '          <h2 class="wp-card-front-name">' + escapeHTML(wolf.name) + '</h2>'
+    + '          <span class="wp-card-front-genre">' + escapeHTML(wolf.genre) + '</span>'
+    + '        </div>'
+    + '      </div>'
+    + '      <div class="wp-flip-back">'
+    + '        <div class="wp-flip-back-content">'
+    + '          <h2 class="wp-flip-back-name">' + escapeHTML(wolf.name) + '</h2>'
+    + '          <p class="wp-flip-back-bio">' + escapeHTML(wolf.bio) + '</p>'
+    + '        </div>'
+    + '      </div>'
+    + '    </div>'
+    + '    <div class="wp-flip-hint">Click to flip</div>'
+    + '  </div>'
+
+    // Info Panel
+    + '  <div class="wp-info">'
+    + '    <span class="wp-role" style="color:' + wolf.color + '">' + escapeHTML(wolf.role) + '</span>'
+    + '    <h1 class="wp-title" style="color:' + wolf.color + '">' + escapeHTML(wolf.name) + '</h1>'
+    + '    <span class="wp-subtitle">' + escapeHTML(wolf.genre) + '</span>'
+    + '    <p class="wp-bio">' + escapeHTML(wolf.bio) + '</p>'
+    +      animationHtml
+    +      socialsHtml
+    + '    <div class="wp-buttons">' + buttonsHtml + '</div>'
+    + '  </div>'
+    + '</div>';
 
   // Flip card click
-  const flipInner = container.querySelector('#wp-flip-inner');
+  var flipInner = document.getElementById('wp-flip-inner');
   if (flipInner) {
-    flipInner.addEventListener('click', () => flipInner.classList.toggle('flipped'));
+    flipInner.addEventListener('click', function() {
+      flipInner.classList.toggle('flipped');
+    });
   }
 
   // Enter studio button
-  container.querySelectorAll('.wp-enter-studio').forEach(btn => {
-    btn.addEventListener('click', (e) => {
+  var studioBtns = container.querySelectorAll('.wp-enter-studio');
+  for (var i = 0; i < studioBtns.length; i++) {
+    studioBtns[i].addEventListener('click', function(e) {
       e.preventDefault();
       state.selectedWolf = wolf;
       window.location.hash = '/studio';
     });
-  });
+  }
 }
 
 // ─── Beat Detection (Web Audio API) ──────────────────────────────────────────

@@ -5,5 +5,5 @@ uploads/*
 .DS_Store
 *.log
 /dist/
-client/
+client/node_modules/
 .vercel/

@@ -1,84 +1,46 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const multer = require('multer');
 const path = require('path');
-const os = require('os');
-const fs = require('fs');
+const Anthropic = require('@anthropic-ai/sdk');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ─── Lazy-init clients (avoid crash if env vars missing) ─────────────────────
-let supabase = null;
-function getSupabase() {
-  if (supabase) return supabase;
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
-  if (url && key) {
-    const { createClient } = require('@supabase/supabase-js');
-    supabase = createClient(url, key);
-  }
-  return supabase;
-}
+// ─── Supabase ────────────────────────────────────────────────────────────────
+const supabase = process.env.SUPABASE_URL
+  ? createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
+    )
+  : null;
 
-let anthropic = null;
-function getAnthropic() {
-  if (anthropic) return anthropic;
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (apiKey) {
-    const Anthropic = require('@anthropic-ai/sdk');
-    anthropic = new Anthropic({ apiKey });
-  }
-  return anthropic;
-}
+// ─── Anthropic ───────────────────────────────────────────────────────────────
+const anthropic = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// ─── Multer (use /tmp on Vercel, ./uploads locally) ──────────────────────────
-const uploadsDir = process.env.VERCEL ? os.tmpdir() : path.join(__dirname, 'uploads');
-if (!process.env.VERCEL) {
-  try { fs.mkdirSync(uploadsDir, { recursive: true }); } catch { /* exists */ }
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, unique + path.extname(file.originalname));
-  },
-});
-
-const upload = multer({
-  storage,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB
-  fileFilter: (req, file, cb) => {
-    const allowed = /audio|video/;
-    if (allowed.test(file.mimetype)) return cb(null, true);
-    cb(new Error('Only audio and video files are allowed'));
-  },
-});
+app.use(express.static(path.join(__dirname, 'client', 'dist')));
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 async function getUserFromToken(req) {
-  const sb = getSupabase();
-  if (!sb) return null;
+  if (!supabase) return null;
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) return null;
   const token = auth.slice(7);
-  const { data, error } = await sb.auth.getUser(token);
+  const { data, error } = await supabase.auth.getUser(token);
   if (error || !data?.user) return null;
   return data.user;
 }
 
 async function getProfile(userId) {
-  const sb = getSupabase();
-  if (!sb) return null;
-  const { data } = await sb
+  if (!supabase) return null;
+  const { data } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', userId)
@@ -86,7 +48,7 @@ async function getProfile(userId) {
   return data;
 }
 
-// ─── Routes ──────────────────────────────────────────────────────────────────
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
@@ -99,70 +61,54 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// File upload
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file provided' });
-  res.json({
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    size: req.file.size,
-    mimetype: req.file.mimetype,
-  });
-});
+// Test endpoint — confirms API routing is live
+app.get('/api/test', (req, res) => res.json({ status: 'ok' }));
 
 // Main generation endpoint
 app.post('/api/generate', async (req, res) => {
   try {
     const { title, artist, genre, bpm, language, mood, wolfId, token } = req.body;
 
+    // Validate required fields
     if (!title || !artist || !genre || !language) {
       return res.status(400).json({ error: 'title, artist, genre, and language are required' });
     }
 
-    const sb = getSupabase();
+    // ── Auth / generation limit check ──────────────────────────────────────
     let user = null;
     let isMember = false;
 
-    if (token && sb) {
+    if (token) {
       user = await getUserFromToken({ headers: { authorization: `Bearer ${token}` } });
       if (user) {
         const profile = await getProfile(user.id);
         isMember = profile?.role === 'member';
 
         if (!isMember) {
+          // Public user: check monthly limit (3 free)
           const now = new Date();
           const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-          const { count } = await sb
+
+          const { count } = await supabase
             .from('generations')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', user.id)
             .gte('created_at', startOfMonth);
 
           if (count >= 3) {
-            return res.status(403).json({ error: 'LIMIT_REACHED', message: 'Monthly generation limit reached.' });
+            return res.status(403).json({ error: 'LIMIT_REACHED', message: 'Monthly generation limit reached. Join the Pack for unlimited access!' });
           }
         }
       }
     }
 
-    const ai = getAnthropic();
-    if (!ai) {
-      return res.status(503).json({ error: 'AI service not configured. Set ANTHROPIC_API_KEY.' });
-    }
+    // ── Build Claude prompt ────────────────────────────────────────────────
+    const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Generate complete, authentic, emotionally resonant song content tailored precisely to the genre, language and vibe provided. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
 
-    // Support transcription from frontend Whisper call
-    const { transcriptLines } = req.body;
-    const transcribedLyrics = Array.isArray(transcriptLines) && transcriptLines.length > 0
-      ? transcriptLines
-      : null;
+    const userPrompt = buildUserPrompt({ title, artist, genre, bpm, language, mood });
 
-    const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
-
-    const userPrompt = transcribedLyrics
-      ? buildPromptWithTranscription({ title, artist, genre, bpm, language, mood, lyrics: transcribedLyrics })
-      : buildUserPrompt({ title, artist, genre, bpm, language, mood });
-
-    const message = await ai.messages.create({
+    // ── Call Claude ────────────────────────────────────────────────────────
+    const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
       system: systemPrompt,
@@ -170,36 +116,46 @@ app.post('/api/generate', async (req, res) => {
     });
 
     const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
+    console.log('[generate] raw Claude response (first 500 chars):', raw.slice(0, 500));
 
-    // Extract JSON object, tolerating preamble or markdown fences
+    // Extract the outermost JSON object, tolerating any preamble or markdown fences
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return res.status(500).json({ error: 'Failed to parse AI response: no JSON object found' });
+      console.error('[generate] No JSON object found in response. Full raw:', raw);
+      return res.status(500).json({ error: 'Failed to parse AI response: no JSON object found', raw });
     }
 
+    // Sanitize: replace literal control characters inside JSON string values.
+    // Claude sometimes emits raw newlines/tabs inside string values which is
+    // invalid JSON — this walks the string char-by-char to fix only those cases.
     const sanitized = sanitizeJsonString(jsonMatch[0]);
 
     let pack;
     try {
       pack = JSON.parse(sanitized);
-    } catch {
-      return res.status(500).json({ error: 'Failed to parse AI response' });
+    } catch (parseErr) {
+      console.error('[generate] JSON.parse failed:', parseErr.message, '\nSanitized (first 300):', sanitized.slice(0, 300));
+      return res.status(500).json({ error: 'Failed to parse AI response', raw });
     }
 
-    // If we used transcription, lyrics come from Whisper
-    if (transcribedLyrics) pack.lyrics = transcribedLyrics;
+    // Generate SRT server-side from the lyrics array
+    pack.srt = buildSrt(pack.lyrics);
 
-    // Generate SRT server-side
-    pack.srt = buildSrt(pack.lyrics || []);
-
-    if (user && sb) {
-      await sb.from('generations').insert({
-        user_id: user.id, title, artist, genre, language, wolf_id: wolfId || null,
+    // ── Persist generation record ──────────────────────────────────────────
+    if (user) {
+      await supabase.from('generations').insert({
+        user_id: user.id,
+        title,
+        artist,
+        genre,
+        language,
+        wolf_id: wolfId || null,
       });
 
+      // Track referral-originated generations
       const profile = await getProfile(user.id);
       if (profile?.referred_by) {
-        await sb.from('referral_stats').insert({
+        await supabase.from('referral_stats').insert({
           referrer_id: profile.referred_by,
           referred_user_id: user.id,
           generation_title: title,
@@ -214,26 +170,26 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// Signup endpoint
+// Signup endpoint (creates profile with promo code tracking)
 app.post('/api/auth/signup', async (req, res) => {
   try {
-    const sb = getSupabase();
-    if (!sb) return res.status(503).json({ error: 'Auth not configured' });
-
     const { email, password, promoCode } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
-    const { data, error } = await sb.auth.admin.createUser({
-      email, password, email_confirm: true,
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
     });
 
     if (error) return res.status(400).json({ error: error.message });
 
     const userId = data.user.id;
 
+    // Find referrer from promo code
     let referredBy = null;
     if (promoCode) {
-      const { data: referrer } = await sb
+      const { data: referrer } = await supabase
         .from('profiles')
         .select('id')
         .eq('promo_code', promoCode.toUpperCase())
@@ -241,8 +197,13 @@ app.post('/api/auth/signup', async (req, res) => {
       if (referrer) referredBy = referrer.id;
     }
 
-    await sb.from('profiles').insert({
-      id: userId, email, role: 'public', referred_by: referredBy, generations_count: 0,
+    // Create profile
+    await supabase.from('profiles').insert({
+      id: userId,
+      email,
+      role: 'public',
+      referred_by: referredBy,
+      generations_count: 0,
     });
 
     res.json({ success: true, userId });
@@ -254,9 +215,6 @@ app.post('/api/auth/signup', async (req, res) => {
 // Member dashboard data
 app.get('/api/dashboard', async (req, res) => {
   try {
-    const sb = getSupabase();
-    if (!sb) return res.status(503).json({ error: 'Not configured' });
-
     const user = await getUserFromToken(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
 
@@ -266,25 +224,30 @@ app.get('/api/dashboard', async (req, res) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    const { count: referralCount } = await sb
+    // Referral count this month
+    const { count: referralCount } = await supabase
       .from('referral_stats')
       .select('*', { count: 'exact', head: true })
       .eq('referrer_id', user.id)
       .gte('created_at', startOfMonth);
 
-    const { count: referredGens } = await sb
+    // Total generations by referred users
+    const { count: referredGens } = await supabase
       .from('generations')
       .select('*', { count: 'exact', head: true })
       .eq('referred_by_member', user.id);
 
-    const { count: ownGens } = await sb
+    // Own generations
+    const { count: ownGens } = await supabase
       .from('generations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
-    const REVENUE_PER_GEN = 0.5;
+    // Earnings estimate (simple formula: members pool 40% split by referrals)
+    const REVENUE_PER_GEN = 0.5; // $0.50 per generation estimate
     const totalRevenue = (referredGens || 0) * REVENUE_PER_GEN;
     const membersPoolShare = totalRevenue * 0.4;
+    // Estimate based on referral weight (simplified)
     const earningsEstimate = referralCount > 0 ? (membersPoolShare / Math.max(referralCount, 1)).toFixed(2) : '0.00';
 
     res.json({
@@ -303,12 +266,10 @@ app.get('/api/dashboard', async (req, res) => {
 
 // Verify promo code
 app.post('/api/promo/verify', async (req, res) => {
-  const sb = getSupabase();
-  if (!sb) return res.status(503).json({ error: 'Not configured' });
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: 'code required' });
 
-  const { data } = await sb
+  const { data } = await supabase
     .from('profiles')
     .select('id, email')
     .eq('promo_code', code.toUpperCase())
@@ -318,58 +279,18 @@ app.post('/api/promo/verify', async (req, res) => {
   res.json({ valid: true });
 });
 
-// Transcription endpoint
-app.post('/api/transcribe', upload.single('file'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
-    res.json({
-      success: true,
-      words: [],
-      message: 'Transcription endpoint ready. Connect Whisper API for word-level timestamps.'
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message || 'Transcription failed' });
-  }
-});
-
-// Model health config endpoint
-app.get('/api/models', (req, res) => {
-  res.json({
-    models: {
-      grok: { name: 'Grok Imagine', status: 'green', enabled: true, cost: 10 },
-      seedance: { name: 'Seedance 2.0', status: 'yellow', enabled: false, cost: 15 },
-      kling: { name: 'Kling', status: 'green', enabled: true, cost: 15 },
-    },
-    primaryModel: 'grok',
-    fallbackModel: 'kling',
-  });
-});
-
-app.post('/api/models', async (req, res) => {
-  try {
-    const user = await getUserFromToken(req);
-    if (!user) return res.status(401).json({ error: 'Unauthorized' });
-    const profile = await getProfile(user.id);
-    if (profile?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
-    res.json({ success: true, message: 'Model config updated' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // ─── Fallback to index.html (SPA) ────────────────────────────────────────────
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
 });
 
 // ─── Error handler ────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File too large. Max 100MB.' });
+  if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File too large (max 50MB)' });
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-// ─── Only listen when not on Vercel ──────────────────────────────────────────
-if (!process.env.VERCEL) {
+if (require.main === module) {
   app.listen(PORT, () => {
     console.log(`Lightning Wolves Studio running on port ${PORT}`);
   });
@@ -377,7 +298,10 @@ if (!process.env.VERCEL) {
 
 module.exports = app;
 
-// ─── JSON sanitizer (fixes literal control chars in string values) ───────────
+// ─── JSON sanitizer ───────────────────────────────────────────────────────────
+// Walks the string character-by-character and escapes literal control characters
+// (newline, carriage return, tab) that appear inside JSON string values.
+// These are valid in JSON only as \n \r \t — Claude occasionally emits them raw.
 function sanitizeJsonString(str) {
   let result = '';
   let inString = false;
@@ -398,19 +322,24 @@ function sanitizeJsonString(str) {
 }
 
 // ─── SRT builder ─────────────────────────────────────────────────────────────
+// Converts the lyrics array [{ts:"0:16", text:"..."}] to an SRT string.
+// Each subtitle shows for 4 seconds (or until the next line).
 function buildSrt(lyrics) {
   if (!Array.isArray(lyrics) || lyrics.length === 0) return '';
+
   function tsToSeconds(ts) {
     if (!ts) return 0;
     const parts = String(ts).split(':').map(Number);
     return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0];
   }
+
   function formatSrtTime(secs) {
     const h = Math.floor(secs / 3600);
     const m = Math.floor((secs % 3600) / 60);
     const s = Math.floor(secs % 60);
     return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},000`;
   }
+
   return lyrics.map((line, i) => {
     const start = tsToSeconds(line.ts);
     const nextStart = i + 1 < lyrics.length ? tsToSeconds(lyrics[i + 1].ts) : start + 4;
@@ -419,7 +348,7 @@ function buildSrt(lyrics) {
   }).join('\n\n') + '\n\n';
 }
 
-// ─── Prompt builder ──────────────────────────────────────────────────────────
+// ─── Prompt builder ───────────────────────────────────────────────────────────
 function buildUserPrompt({ title, artist, genre, bpm, language, mood }) {
   return `Generate a music production pack for this track:
 
@@ -459,45 +388,6 @@ Rules:
 - Timestamps format: "M:SS" (e.g. "1:04")
 - beats: exactly 4 entries covering intro, verse, chorus, outro
 - prompts: exactly 3 entries, each prompt 1-2 sentences, cinematic style for ${genre}
-- tips: exactly 3 entries, specific to ${genre}
-- No literal newlines inside string values. No smart quotes. Straight ASCII only.`;
-}
-
-function buildPromptWithTranscription({ title, artist, genre, bpm, language, mood, lyrics }) {
-  const lyricsText = lyrics.map(l => `[${l.ts}] ${l.text}`).join('\n');
-  return `Generate a music production pack for this track. The lyrics have already been transcribed — do NOT generate new lyrics.
-
-Title: ${title}
-Artist: ${artist}
-Genre: ${genre}
-Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood: ${mood}` : ''}
-
-Transcribed lyrics with timestamps:
-${lyricsText}
-
-Return ONLY a JSON object with exactly this structure (no text before or after):
-{
-  "beats": [
-    {"ts": "0:00", "label": "Intro", "type": "CUT"},
-    {"ts": "0:32", "label": "Verse 1", "type": "CUT"},
-    {"ts": "1:04", "label": "Chorus", "type": "ZOOM"},
-    {"ts": "2:00", "label": "Outro", "type": "FADE"}
-  ],
-  "prompts": [
-    {"section": "Intro", "prompt": "cinematic AI video prompt for this section"},
-    {"section": "Verse", "prompt": "cinematic AI video prompt for this section"},
-    {"section": "Chorus", "prompt": "cinematic AI video prompt for this section"}
-  ],
-  "tips": [
-    {"title": "TikTok", "tip": "actionable tip for this genre on TikTok"},
-    {"title": "Reels", "tip": "actionable tip for Instagram Reels"},
-    {"title": "Shorts", "tip": "actionable tip for YouTube Shorts"}
-  ]
-}
-
-Rules:
-- Use the real lyric timestamps to place beat cuts accurately
-- prompts: exactly 3 entries, 1-2 sentences each, cinematic style for ${genre}
 - tips: exactly 3 entries, specific to ${genre}
 - No literal newlines inside string values. No smart quotes. Straight ASCII only.`;
 }

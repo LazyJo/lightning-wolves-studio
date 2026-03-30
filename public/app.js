@@ -119,11 +119,30 @@ const PAGE_NAMES = {
   join: 'Join the Pack',
   auth: 'Sign In',
   admin: 'Admin',
+  'wolf-profile': 'Crew',
 };
 
-function navigateTo(page) {
+function navigateTo(page, params) {
   // Hide all pages
   $$('.page').forEach(p => p.classList.add('hidden'));
+
+  // Wolf profile is a dynamic page
+  if (page === 'wolf-profile' && params?.wolfId) {
+    renderWolfProfile(params.wolfId);
+    const profilePage = $('page-wolf-profile');
+    if (profilePage) profilePage.classList.remove('hidden');
+    state.currentPage = 'wolf-profile';
+    const wolf = WOLVES[params.wolfId];
+    const bc = $('breadcrumb-page');
+    if (bc) bc.textContent = wolf?.name || 'Profile';
+    $$('.sidebar-icon').forEach(icon => {
+      icon.classList.remove('active');
+      if (icon.dataset.page === 'crew') icon.classList.add('active');
+    });
+    const mainContent = $('main-content');
+    if (mainContent) mainContent.scrollTop = 0;
+    return;
+  }
 
   // Show target page
   const target = $(`page-${page}`);
@@ -148,10 +167,17 @@ function navigateTo(page) {
 }
 
 function initRouter() {
-  // Handle hash changes
   function onHashChange() {
     const hash = window.location.hash.replace('#/', '') || 'landing';
-    const page = hash.split('/')[0] || 'landing';
+    const parts = hash.split('/');
+    const page = parts[0] || 'landing';
+
+    // Handle /crew/:wolfId routes
+    if (page === 'crew' && parts[1]) {
+      navigateTo('wolf-profile', { wolfId: parts[1] });
+      return;
+    }
+
     if (PAGE_NAMES[page] !== undefined) {
       navigateTo(page);
     } else {
@@ -407,22 +433,38 @@ const WOLVES = {
 
 // ─── Crew Page ───────────────────────────────────────────────────────────────
 function initCrewPage() {
-  // Enter Studio buttons
+  // Crew cards → click to wolf profile page
+  document.querySelectorAll('.crew-card[style*="--card-color"]').forEach(card => {
+    // Find the wolf ID from the enter-studio button or card content
+    const enterBtn = card.querySelector('.crew-enter-studio');
+    const wolfId = enterBtn?.dataset.wolf;
+    if (!wolfId) return;
+
+    // Make entire card clickable (except action buttons)
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-gold') || e.target.closest('.crew-social-link') || e.target.closest('.crew-bio-toggle')) return;
+      e.preventDefault();
+      window.location.hash = `/crew/${wolfId}`;
+    });
+  });
+
+  // Enter Studio buttons still go to studio
   document.querySelectorAll('.crew-enter-studio').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       const wolfId = btn.dataset.wolf;
       const wolf = WOLVES[wolfId];
-      if (wolf) {
-        state.selectedWolf = wolf;
-      }
+      if (wolf) state.selectedWolf = wolf;
       window.location.hash = '/studio';
     });
   });
 
   // Bio toggles
   document.querySelectorAll('.crew-bio-toggle').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const fullBio = btn.previousElementSibling;
       const expanded = btn.dataset.expanded === 'true';
       if (expanded) {
@@ -434,6 +476,90 @@ function initCrewPage() {
         btn.textContent = 'Read less';
         btn.dataset.expanded = 'true';
       }
+    });
+  });
+}
+
+// ─── Wolf Profile Page ───────────────────────────────────────────────────────
+function renderWolfProfile(wolfId) {
+  const wolf = WOLVES[wolfId];
+  const container = $('wolf-profile-content');
+  if (!wolf || !container) return;
+
+  const initials = wolf.name.split(' ').map(w => w[0]).join('').toUpperCase();
+  const hasImage = wolf.image;
+  const bannerContent = hasImage
+    ? `<img src="${wolf.image}" alt="${wolf.name}" class="wp-card-img" />`
+    : `<span class="wp-card-initials" style="color:${wolf.color}">${initials}</span>`;
+
+  // Social links
+  let socialsHtml = '';
+  if (wolf.instagram || wolf.spotify) {
+    socialsHtml = '<div class="wp-socials">';
+    if (wolf.instagram) {
+      socialsHtml += `<a href="${wolf.instagram}" target="_blank" rel="noopener" class="wp-social-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg> Instagram</a>`;
+    }
+    if (wolf.spotify) {
+      socialsHtml += `<a href="${wolf.spotify}" target="_blank" rel="noopener" class="wp-social-link"><svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.5 17.3c-.2.3-.6.4-1 .2-2.7-1.6-6-2-10-1.1-.4.1-.7-.2-.8-.5-.1-.4.2-.7.5-.8 4.3-1 8.1-.6 11.1 1.2.3.2.4.7.2 1zm1.5-3.3c-.3.4-.8.5-1.2.3-3-1.9-7.7-2.4-11.3-1.3-.4.1-.9-.1-1-.6-.1-.4.1-.9.6-1 4.1-1.3 9.2-.7 12.6 1.5.3.2.5.7.3 1.1z"/></svg> Spotify</a>`;
+    }
+    socialsHtml += '</div>';
+  }
+
+  // Buttons
+  let buttonsHtml = '';
+  if (wolfId === 'lazyjo') {
+    buttonsHtml += `<a href="https://www.gigstarter.be/artists/lazy-jo" target="_blank" rel="noopener" class="btn-gold">Book Lazy Jo</a>`;
+  }
+  buttonsHtml += `<a href="#/studio" class="btn-outline wp-enter-studio" data-wolf="${wolfId}">Enter Studio as ${wolf.name}</a>`;
+
+  container.innerHTML = `
+    <a href="#/crew" class="wp-back">← Back to Crew</a>
+    <div class="wp-layout">
+      <!-- Flip Card -->
+      <div class="wp-flip-card" style="--wp-color:${wolf.color}">
+        <div class="wp-flip-inner" id="wp-flip-inner">
+          <!-- Front -->
+          <div class="wp-flip-front">
+            <div class="wp-card-banner">${bannerContent}</div>
+            <div class="wp-card-body">
+              <span class="wp-role-badge" style="color:${wolf.color}">${wolf.role}</span>
+              <h2 class="wp-name">${escapeHTML(wolf.name)}</h2>
+              <span class="wp-genre">${escapeHTML(wolf.genre)}</span>
+            </div>
+          </div>
+          <!-- Back -->
+          <div class="wp-flip-back">
+            <div class="wp-card-body">
+              <h2 class="wp-name">${escapeHTML(wolf.name)}</h2>
+              <p class="wp-bio-full">${escapeHTML(wolf.bio)}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Info Panel -->
+      <div class="wp-info">
+        <h1 class="wp-title" style="color:${wolf.color}">${escapeHTML(wolf.name)}</h1>
+        <span class="wp-subtitle">${escapeHTML(wolf.role)} · ${escapeHTML(wolf.genre)}</span>
+        <p class="wp-bio">${escapeHTML(wolf.bio)}</p>
+        ${socialsHtml}
+        <div class="wp-buttons">${buttonsHtml}</div>
+      </div>
+    </div>
+  `;
+
+  // Flip card click
+  const flipInner = container.querySelector('#wp-flip-inner');
+  if (flipInner) {
+    flipInner.addEventListener('click', () => flipInner.classList.toggle('flipped'));
+  }
+
+  // Enter studio button
+  container.querySelectorAll('.wp-enter-studio').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      state.selectedWolf = wolf;
+      window.location.hash = '/studio';
     });
   });
 }
@@ -3206,13 +3332,7 @@ function mapErrorMessage(text, status) {
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 async function init() {
-  checkReferralCode();
-  initGoogleOAuth();
-  await initSupabase();
-  await checkSession();
-  if (state.user) mergeLocalStorageToAccount();
-  updateTopbarAuth();
-  updateCreditDisplay();
+  // Core UI first — these must work even if network fails
   initRouter();
   initTopbarAuth();
   initCreditPill();
@@ -3234,6 +3354,19 @@ async function init() {
   initDownloads();
   initDebugPanel();
   initOnboarding();
+  updateCreditDisplay();
+
+  // Network-dependent init (non-blocking)
+  checkReferralCode();
+  initGoogleOAuth();
+  try {
+    await initSupabase();
+    await checkSession();
+    if (state.user) mergeLocalStorageToAccount();
+  } catch (e) {
+    console.warn('Auth init failed:', e);
+  }
+  updateTopbarAuth();
 
   // Show admin nav if admin
   if (state.profile?.role === 'admin' || state.profile?.email === 'lazyjo@lightningwolves.studio') {

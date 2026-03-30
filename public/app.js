@@ -1795,6 +1795,94 @@ function applyHookToPreview(text) {
   });
 }
 
+// ─── Join the Pack ───────────────────────────────────────────────────────────
+function initJoinPage() {
+  // Role chips (multi-select)
+  document.querySelectorAll('.role-chip').forEach(chip => {
+    chip.addEventListener('click', () => chip.classList.toggle('selected'));
+  });
+
+  // Add social link (max 3)
+  const addBtn = $('add-social-link');
+  const list = $('social-links-list');
+  if (addBtn && list) {
+    addBtn.addEventListener('click', () => {
+      if (list.children.length >= 3) {
+        toast('Maximum 3 social links', 'info');
+        return;
+      }
+      const row = document.createElement('div');
+      row.className = 'social-link-row';
+      row.innerHTML = `
+        <select class="social-platform">
+          <option value="">Platform</option>
+          <option value="Instagram">Instagram</option>
+          <option value="TikTok">TikTok</option>
+          <option value="YouTube">YouTube</option>
+          <option value="Twitter/X">Twitter/X</option>
+          <option value="SoundCloud">SoundCloud</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="url" class="social-url" placeholder="https://..." />
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  // Form submission
+  const form = $('join-form');
+  if (form) form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const realName = $('join-realname')?.value.trim();
+    const artistName = $('join-artistname')?.value.trim();
+    const genre = $('join-genre')?.value.trim();
+    const skills = $('join-skills')?.value.trim();
+    const why = $('join-why')?.value.trim();
+    const musicLink = $('join-music')?.value.trim();
+
+    if (!realName || !artistName || !genre || !skills || !why) {
+      toast('Please fill in all required fields', 'error');
+      return;
+    }
+
+    // Collect roles
+    const roles = [];
+    document.querySelectorAll('.role-chip.selected').forEach(c => roles.push(c.dataset.role));
+
+    // Collect social links
+    const socials = [];
+    document.querySelectorAll('.social-link-row').forEach(row => {
+      const platform = row.querySelector('.social-platform')?.value;
+      const url = row.querySelector('.social-url')?.value.trim();
+      if (platform && url) socials.push({ platform, url });
+    });
+
+    const application = {
+      realName, artistName, genre, roles, skills, socials, musicLink, why,
+      status: 'pending',
+      appliedAt: new Date().toISOString(),
+    };
+
+    // Save to DB
+    try {
+      if (supabase) {
+        await supabase.from('applications').insert(application);
+      }
+      // Also save locally as backup
+      const saved = JSON.parse(localStorage.getItem('lw_applications') || '[]');
+      saved.push(application);
+      localStorage.setItem('lw_applications', JSON.stringify(saved));
+
+      toast('Application sent! We review every one personally.', 'success');
+      form.reset();
+      document.querySelectorAll('.role-chip.selected').forEach(c => c.classList.remove('selected'));
+    } catch (err) {
+      toast('Submission failed: ' + err.message, 'error');
+    }
+  });
+}
+
 // ─── Pricing Page ────────────────────────────────────────────────────────────
 const PROMO_CODES = {
   'WOLFPACK': { type: 'percent', value: 20, label: '20% off' },
@@ -2450,6 +2538,7 @@ async function init() {
   initPerformanceTab();
   initRemixTab();
   initHooksPanel();
+  initJoinPage();
   initPricingPage();
   initTaskRewards();
   initDownloads();

@@ -2904,3 +2904,125 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 
 .referral-stats strong { color: var(--gold); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: JOIN THE PACK
+   ═══════════════════════════════════════════════════════════════════════════ */
+.join-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 48px 40px 64px;
+}
+
+.join-title {
+  font-size: 26px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 32px;
+  line-height: 1.3;
+}
+
+.join-layout {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 32px;
+  align-items: flex-start;
+}
+
+/* ─── Join Form ────────────────────────────────────────────────────────────── */
+.join-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.join-submit { margin-top: 8px; }
+
+/* ─── Role Chips ───────────────────────────────────────────────────────────── */
+.role-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.role-chip {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-muted);
+  background: var(--surface);
+  transition: all 0.15s;
+}
+
+.role-chip:hover { border-color: var(--border-light); color: var(--text); }
+
+.role-chip.selected {
+  background: var(--gold);
+  color: #000;
+  border-color: var(--gold);
+}
+
+/* ─── Social Link Rows ─────────────────────────────────────────────────────── */
+.social-links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.social-link-row {
+  display: flex;
+  gap: 6px;
+}
+
+.social-platform {
+  width: 130px;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.social-url { flex: 1; font-size: 12px; }
+
+/* ─── Join Sidebar ─────────────────────────────────────────────────────────── */
+.join-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 60px;
+}
+
+.join-sidebar-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+}
+
+.join-sidebar-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 14px;
+}
+
+.join-sidebar-note {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+}
+
+.join-sidebar-note p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ─── Join Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .join-layout { grid-template-columns: 1fr; }
+  .join-sidebar { position: static; }
+  .join-page { padding: 32px 24px 48px; }
+}

@@ -1096,7 +1096,98 @@
   </div>
 
   <!-- PAGE: JOIN -->
-  <div class="page hidden" id="page-join"></div>
+  <div class="page hidden" id="page-join">
+    <div class="join-page">
+      <h1 class="join-title">Think you run with the wolves? Show us what you got.</h1>
+
+      <div class="join-layout">
+        <!-- Left: Application Form -->
+        <form class="join-form" id="join-form">
+          <div class="field-group">
+            <label>Real name *</label>
+            <input type="text" id="join-realname" placeholder="Your full name" required />
+          </div>
+          <div class="field-group">
+            <label>Artist name *</label>
+            <input type="text" id="join-artistname" placeholder="Your stage/artist name" required />
+          </div>
+          <div class="field-group">
+            <label>Genre / style *</label>
+            <input type="text" id="join-genre" placeholder="e.g. Melodic Hip-Hop, Pop, Lo-Fi..." required />
+          </div>
+          <div class="field-group">
+            <label>Role</label>
+            <div class="role-chips" id="role-chips">
+              <button type="button" class="role-chip" data-role="Artist">Artist</button>
+              <button type="button" class="role-chip" data-role="Photography">Photography</button>
+              <button type="button" class="role-chip" data-role="Video">Video</button>
+              <button type="button" class="role-chip" data-role="Design">Design</button>
+              <button type="button" class="role-chip" data-role="Beatmaker">Beatmaker</button>
+              <button type="button" class="role-chip" data-role="Other">Other</button>
+            </div>
+          </div>
+          <div class="field-group">
+            <label>Skills *</label>
+            <textarea id="join-skills" rows="3" placeholder="What do you bring to the pack? Production, vocals, visuals..." required></textarea>
+          </div>
+
+          <!-- Social Links (up to 3) -->
+          <div class="field-group">
+            <label>Social links <span class="label-optional">(up to 3)</span></label>
+            <div class="social-links-list" id="social-links-list">
+              <div class="social-link-row">
+                <select class="social-platform">
+                  <option value="">Platform</option>
+                  <option value="Instagram">Instagram</option>
+                  <option value="TikTok">TikTok</option>
+                  <option value="YouTube">YouTube</option>
+                  <option value="Twitter/X">Twitter/X</option>
+                  <option value="SoundCloud">SoundCloud</option>
+                  <option value="Other">Other</option>
+                </select>
+                <input type="url" class="social-url" placeholder="https://..." />
+              </div>
+            </div>
+            <button type="button" class="btn-ghost btn-sm" id="add-social-link">+ Add link</button>
+          </div>
+
+          <div class="field-group">
+            <label>Music link <span class="label-optional">(Spotify, SoundCloud, etc.)</span></label>
+            <input type="url" id="join-music" placeholder="https://open.spotify.com/artist/..." />
+          </div>
+
+          <div class="field-group">
+            <label>Why Lightning Wolves? *</label>
+            <textarea id="join-why" rows="4" placeholder="What draws you to the pack? What's your vision?" required></textarea>
+          </div>
+
+          <div class="field-group">
+            <label>Work sample <span class="label-optional">(optional — image, video, or audio)</span></label>
+            <input type="file" id="join-sample" accept="image/*,video/*,audio/*" />
+          </div>
+
+          <button type="submit" class="btn-gold btn-full join-submit">Send it ⚡</button>
+        </form>
+
+        <!-- Right: Sidebar -->
+        <div class="join-sidebar">
+          <div class="join-sidebar-card">
+            <h3 class="join-sidebar-title">Current Crew</h3>
+            <div class="wolves-list">
+              <div class="wolf-row"><span class="wolf-dot" style="background:#f5c518"></span><span class="wolf-row-name">Lazy Jo</span><span class="wolf-row-role">Founder</span></div>
+              <div class="wolf-row"><span class="wolf-dot" style="background:#b388ff"></span><span class="wolf-row-name">Zirka</span><span class="wolf-row-role">Artist</span></div>
+              <div class="wolf-row"><span class="wolf-dot" style="background:#ff80ab"></span><span class="wolf-row-name">Rosakay</span><span class="wolf-row-role">Artist</span></div>
+              <div class="wolf-row"><span class="wolf-dot" style="background:#82b1ff"></span><span class="wolf-row-name">Drippydesigns</span><span class="wolf-row-role">Designer</span></div>
+              <div class="wolf-row"><span class="wolf-dot" style="background:#69f0ae"></span><span class="wolf-row-name">Shiteux</span><span class="wolf-row-role">Visuals</span></div>
+            </div>
+          </div>
+          <div class="join-sidebar-note">
+            <p>We review every application personally.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- PAGE: AUTH -->
   <div class="page hidden" id="page-auth"></div>

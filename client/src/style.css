@@ -341,25 +341,28 @@ a:hover { text-decoration: underline; }
 
 .wolf-card-img-circle {
   position: relative;
-  width: 150px;
-  height: 150px;
+  width: 160px;
+  height: 160px;
   border-radius: 50%;
   overflow: hidden;
-  background: radial-gradient(circle, rgba(0,0,0,0.3), rgba(0,0,0,0.6));
+  background: #111115;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 30px rgba(0,0,0,0.3);
 }
 
 .wolf-card-img-circle img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  filter: drop-shadow(0 0 15px color-mix(in srgb, var(--wc) 40%, transparent));
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--wc) 50%, transparent));
   transition: filter 0.3s, transform 0.3s;
 }
 
 .wolf-card-new:hover .wolf-card-img-circle img {
-  filter: drop-shadow(0 0 25px color-mix(in srgb, var(--wc) 60%, transparent));
-  transform: scale(1.08);
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--wc) 70%, transparent));
+  transform: scale(1.12);
 }
 
 .wolf-card-glow {

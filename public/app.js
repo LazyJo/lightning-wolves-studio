@@ -333,6 +333,234 @@ function initCrewPage() {
   });
 }
 
+// ─── Studio: Left Panel ──────────────────────────────────────────────────────
+function initStudioLeft() {
+  initUpload();
+  initStylePills();
+  initLyricToggle();
+  initGenerate();
+
+  // Pre-fill artist if wolf selected
+  if (state.selectedWolf) {
+    const artistInput = $('song-artist');
+    if (artistInput) artistInput.value = state.selectedWolf.artist || '';
+  }
+}
+
+// ─── Upload ──────────────────────────────────────────────────────────────────
+function initUpload() {
+  const zone = $('upload-zone');
+  const input = $('file-input');
+  const placeholder = $('upload-placeholder');
+  const info = $('upload-info');
+  const filename = $('upload-filename');
+  const removeBtn = $('upload-remove');
+
+  if (!zone || !input) return;
+
+  zone.addEventListener('click', (e) => {
+    if (e.target === removeBtn || e.target.closest('.upload-remove')) return;
+    input.click();
+  });
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) handleFile(input.files[0]);
+  });
+
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    zone.classList.add('dragover');
+  });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      state.uploadedFile = null;
+      input.value = '';
+      info.classList.add('hidden');
+      if (placeholder) placeholder.style.display = '';
+    });
+  }
+
+  async function handleFile(file) {
+    // 100MB limit
+    if (file.size > 100 * 1024 * 1024) {
+      toast('File too large. Max 100MB.', 'error');
+      return;
+    }
+
+    const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+    filename.textContent = `${file.name} (${sizeMB} MB)`;
+    info.classList.remove('hidden');
+    if (placeholder) placeholder.style.display = 'none';
+
+    // Upload to server
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      filename.textContent = `Uploading ${file.name}...`;
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Upload failed');
+      state.uploadedFile = json;
+      filename.textContent = `${json.originalName} · ${sizeMB} MB`;
+      filename.style.color = '';
+    } catch (err) {
+      filename.textContent = `Failed: ${err.message}`;
+      filename.style.color = '#ff4455';
+      state.uploadedFile = null;
+    }
+  }
+}
+
+// ─── Style Pills ─────────────────────────────────────────────────────────────
+function initStylePills() {
+  const pills = document.querySelectorAll('.style-pill');
+  pills.forEach(pill => {
+    pill.addEventListener('click', () => {
+      pills.forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+}
+
+// ─── Lyric Video Toggle ──────────────────────────────────────────────────────
+function initLyricToggle() {
+  const toggle = $('auto-lyric-toggle');
+  const options = $('lyric-options');
+  if (!toggle || !options) return;
+
+  toggle.addEventListener('change', () => {
+    if (toggle.checked) {
+      options.classList.remove('hidden');
+    } else {
+      options.classList.add('hidden');
+    }
+  });
+}
+
+// ─── Generate ────────────────────────────────────────────────────────────────
+function initGenerate() {
+  const btn = $('generate-btn');
+  if (!btn) return;
+  btn.addEventListener('click', handleGenerate);
+}
+
+async function handleGenerate() {
+  const title = $('song-title')?.value.trim();
+  const artist = $('song-artist')?.value.trim();
+  const genre = $('song-genre')?.value;
+  const bpm = $('song-bpm')?.value.trim();
+  const language = $('song-language')?.value;
+  const mood = $('song-mood')?.value.trim();
+  const errEl = $('gen-error');
+
+  if (errEl) errEl.classList.add('hidden');
+
+  if (!title || !artist || !genre) {
+    if (errEl) { errEl.textContent = 'Please fill in Song Title, Artist Name, and Genre.'; errEl.classList.remove('hidden'); }
+    return;
+  }
+
+  // Credit check (members bypass)
+  const isMember = state.profile?.role === 'member' || state.profile?.role === 'admin';
+  if (!isMember) {
+    if (state.credits < 10) {
+      showCreditModal();
+      return;
+    }
+  }
+
+  if (state.generating) return;
+  state.generating = true;
+
+  const btn = $('generate-btn');
+  const btnText = btn.querySelector('.btn-generate-text');
+  btn.disabled = true;
+  btnText.textContent = 'Generating...';
+
+  try {
+    const body = { title, artist, genre, language, wolfId: state.selectedWolf?.id };
+    if (bpm) body.bpm = bpm;
+    if (mood) body.mood = mood;
+    if (state.token) body.token = state.token;
+
+    // Get selected style
+    const activeStyle = document.querySelector('.style-pill.active');
+    if (activeStyle) body.style = activeStyle.dataset.style;
+
+    const res = await fetch('/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    const json = await res.json();
+    if (!res.ok) {
+      if (json.error === 'LIMIT_REACHED') {
+        showCreditModal();
+        return;
+      }
+      throw new Error(json.error || 'Generation failed');
+    }
+
+    // Deduct credits (non-members)
+    if (!isMember) {
+      spendCredits(10);
+      state.genCount++;
+      localStorage.setItem('lw_gen_count', state.genCount);
+    }
+
+    state.lastPack = json.pack;
+    toast('Generation complete!', 'success');
+
+  } catch (err) {
+    // Auto-refund on server error
+    if (!isMember && state.credits >= 0) {
+      toast('Generation failed. Credits refunded.', 'error');
+    } else {
+      toast(err.message, 'error');
+    }
+    if (errEl) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Generate · 10 ⚡';
+    state.generating = false;
+  }
+}
+
+// ─── Credit Modal ────────────────────────────────────────────────────────────
+function showCreditModal() {
+  const overlay = $('modal-overlay');
+  const box = $('modal-box');
+  if (!overlay || !box) return;
+
+  box.innerHTML = `
+    <div style="text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">⚡</div>
+      <h3 style="font-size:18px;font-weight:500;margin-bottom:8px">Not enough credits</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px">
+        You need 10 ⚡ to generate. Earn credits from tasks or upgrade your plan.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a href="#/pricing" class="btn-gold btn-full" id="modal-pricing-btn">Get Access</a>
+        <button class="btn-ghost btn-full" id="modal-close-btn">Not now</button>
+      </div>
+    </div>
+  `;
+  overlay.classList.remove('hidden');
+
+  $('modal-pricing-btn')?.addEventListener('click', () => overlay.classList.add('hidden'));
+  $('modal-close-btn')?.addEventListener('click', () => overlay.classList.add('hidden'));
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.add('hidden'); }, { once: true });
+}
+
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 async function init() {
   checkReferralCode();
@@ -345,6 +573,7 @@ async function init() {
   initCreditPill();
   initBugReport();
   initCrewPage();
+  initStudioLeft();
 
   // Show admin nav if admin
   if (state.profile?.role === 'admin' || state.profile?.email === 'lazyjo@lightningwolves.studio') {

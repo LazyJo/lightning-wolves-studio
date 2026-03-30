@@ -210,118 +210,63 @@
 
   <!-- PAGE: CREW -->
   <div class="page" style="display:none" id="page-crew">
-    <div class="crew-page">
-      <div class="crew-header">
-        <h1 class="crew-title">Which Wolf Are You?</h1>
-      </div>
-      <div class="crew-grid">
+    <div class="crew-select">
+      <canvas id="crew-particles" class="crew-particles"></canvas>
+      <h1 class="crew-select-title">WHICH WOLF ARE YOU?</h1>
+      <div class="crew-select-grid">
 
-        <!-- Lazy Jo -->
-        <div class="crew-card" style="--card-color: #f5c518">
-          <div class="crew-card-banner">
-            <span class="crew-initials">LJ</span>
-            <span class="crew-role-badge">Founder · Artist</span>
+        <a href="#/crew/lazyjo" class="wolf-select-card" data-wolf="lazyjo" style="--wc:#f5c518">
+          <div class="wolf-select-img-wrap">
+            <img src="/LightningWolfYellowTransparentBG.png" alt="Lazy Jo" loading="lazy" />
+            <div class="wolf-select-glow"></div>
           </div>
-          <div class="crew-card-body">
-            <h3 class="crew-name">Lazy Jo</h3>
-            <span class="crew-genre">Melodic Hip-Hop</span>
-            <p class="crew-bio">Joeri Van Tricht. Belgian melodic hip-hop, introspective flows and melodic energy.</p>
-            <p class="crew-bio-full">Every pack needs a leader. Joeri Van Tricht — Lazy Jo — founded Lightning Wolves with a vision: build a crew where every artist wins together. Born in Belgium, his melodic hip-hop blends introspective lyricism with infectious energy. The architect of the sound, the face of the pack.</p>
-            <button class="crew-bio-toggle" data-expanded="false">Read more</button>
-            <div class="crew-buttons">
-              <a href="https://www.gigstarter.be/artists/lazy-jo" target="_blank" rel="noopener" class="btn-gold btn-sm">Book Lazy Jo</a>
-              <a href="#/studio" class="btn-outline btn-sm crew-enter-studio" data-wolf="lazyjo">Enter Studio as Lazy Jo</a>
-            </div>
-          </div>
-        </div>
+          <div class="wolf-select-name">Lazy Jo</div>
+          <div class="wolf-select-genre">Melodic Hip-Hop</div>
+        </a>
 
-        <!-- Zirka -->
-        <div class="crew-card" style="--card-color: #b388ff">
-          <div class="crew-card-banner">
-            <span class="crew-initials">ZK</span>
-            <span class="crew-role-badge">Artist</span>
+        <a href="#/crew/zirka" class="wolf-select-card" data-wolf="zirka" style="--wc:#b388ff">
+          <div class="wolf-select-img-wrap">
+            <img src="/LightningWolfPurpleTransparentBG.png" alt="Zirka" loading="lazy" />
+            <div class="wolf-select-glow"></div>
           </div>
-          <div class="crew-card-body">
-            <h3 class="crew-name">Zirka</h3>
-            <span class="crew-genre">French Hip-Hop</span>
-            <p class="crew-bio">French hip-hop energy with melodic punch.</p>
-            <div class="crew-buttons">
-              <a href="#/studio" class="btn-outline btn-sm crew-enter-studio" data-wolf="zirka">Enter Studio as Zirka</a>
-            </div>
-          </div>
-        </div>
+          <div class="wolf-select-name">Zirka</div>
+          <div class="wolf-select-genre">French Hip-Hop</div>
+        </a>
 
-        <!-- Rosakay -->
-        <div class="crew-card" style="--card-color: #ff80ab">
-          <div class="crew-card-banner">
-            <img src="/Rosakay Profile.jpeg" alt="Rosakay" class="crew-profile-img" loading="lazy" />
-            <span class="crew-role-badge">Artist</span>
+        <a href="#/crew/rosakay" class="wolf-select-card" data-wolf="rosakay" style="--wc:#ff80ab">
+          <div class="wolf-select-img-wrap">
+            <img src="/LightningWolfOrangeTransparentBG.png" alt="Rosakay" loading="lazy" />
+            <div class="wolf-select-glow"></div>
           </div>
-          <div class="crew-card-body">
-            <h3 class="crew-name">Rosakay</h3>
-            <span class="crew-genre">Pop / French Pop</span>
-            <p class="crew-bio">Sarah Kingambo. Pop with a French soul.</p>
-            <div class="crew-buttons">
-              <a href="#/studio" class="btn-outline btn-sm crew-enter-studio" data-wolf="rosakay">Enter Studio as Rosakay</a>
-              <div class="crew-socials">
-                <a href="https://www.instagram.com/rosakay_officiel" target="_blank" rel="noopener" class="crew-social-link" title="Instagram">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
-                </a>
-                <a href="https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B" target="_blank" rel="noopener" class="crew-social-link" title="Spotify">
-                  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.6 0 12 0zm5.5 17.3c-.2.3-.6.4-1 .2-2.7-1.6-6-2-10-1.1-.4.1-.7-.2-.8-.5-.1-.4.2-.7.5-.8 4.3-1 8.1-.6 11.1 1.2.3.2.4.7.2 1zm1.5-3.3c-.3.4-.8.5-1.2.3-3-1.9-7.7-2.4-11.3-1.3-.4.1-.9-.1-1-.6-.1-.4.1-.9.6-1 4.1-1.3 9.2-.7 12.6 1.5.3.2.5.7.3 1.1zm.1-3.4c-3.7-2.2-9.7-2.4-13.2-1.3-.5.2-1.1-.1-1.2-.6-.2-.5.1-1.1.6-1.2 4-1.2 10.6-1 14.8 1.5.5.3.6.9.3 1.4-.2.4-.9.6-1.3.2z"/></svg>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
+          <div class="wolf-select-name">Rosakay</div>
+          <div class="wolf-select-genre">Pop / French Pop</div>
+        </a>
 
-        <!-- Drippydesigns -->
-        <div class="crew-card" style="--card-color: #82b1ff">
-          <div class="crew-card-banner">
-            <span class="crew-initials">DD</span>
-            <span class="crew-role-badge">Designer</span>
+        <a href="#/crew/drippy" class="wolf-select-card" data-wolf="drippy" style="--wc:#82b1ff">
+          <div class="wolf-select-img-wrap">
+            <img src="/LightningWolfGreenTransparentBG.png" alt="Drippydesigns" loading="lazy" />
+            <div class="wolf-select-glow"></div>
           </div>
-          <div class="crew-card-body">
-            <h3 class="crew-name">Drippydesigns</h3>
-            <span class="crew-genre">Visual Art</span>
-            <p class="crew-bio">The visual identity behind the pack.</p>
-            <div class="crew-buttons">
-              <button class="btn-outline btn-sm btn-disabled">View Work</button>
-            </div>
-          </div>
-        </div>
+          <div class="wolf-select-name">Drippydesigns</div>
+          <div class="wolf-select-genre">Visual Art</div>
+        </a>
 
-        <!-- Shiteux -->
-        <div class="crew-card" style="--card-color: #69f0ae">
-          <div class="crew-card-banner">
-            <span class="crew-initials">SX</span>
-            <span class="crew-role-badge">Visuals</span>
+        <a href="#/crew/shiteux" class="wolf-select-card" data-wolf="shiteux" style="--wc:#69f0ae">
+          <div class="wolf-select-img-wrap">
+            <img src="/LightningWolfRoseTransparentBG.png" alt="Shiteux" loading="lazy" />
+            <div class="wolf-select-glow"></div>
           </div>
-          <div class="crew-card-body">
-            <h3 class="crew-name">Shiteux</h3>
-            <span class="crew-genre">Photo · Video · Beats</span>
-            <p class="crew-bio">The eye behind the lens. Visuals, video, beats. The one who captures the pack in motion.</p>
-            <p class="crew-bio-full">Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations 'Sin[e]' and 'Doubt Clouds' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.</p>
-            <button class="crew-bio-toggle" data-expanded="false">Read more</button>
-            <div class="crew-buttons">
-              <button class="btn-outline btn-sm btn-disabled">View Work</button>
-            </div>
-          </div>
-        </div>
+          <div class="wolf-select-name">Shiteux</div>
+          <div class="wolf-select-genre">Photo · Video · Beats</div>
+        </a>
 
-        <!-- Join the Pack CTA -->
-        <div class="crew-card crew-card-join" style="--card-color: #f5c518">
-          <div class="crew-card-banner crew-join-banner">
-            <span class="crew-join-icon">+</span>
+        <a href="#/join" class="wolf-select-card wolf-select-join" style="--wc:#f5c518">
+          <div class="wolf-select-img-wrap">
+            <div class="wolf-select-join-icon">+</div>
           </div>
-          <div class="crew-card-body">
-            <h3 class="crew-name">Join the Pack</h3>
-            <p class="crew-bio">Think you run with the wolves? Apply and show us what you got.</p>
-            <div class="crew-buttons">
-              <a href="#/join" class="btn-gold btn-sm">Apply →</a>
-            </div>
-          </div>
-        </div>
+          <div class="wolf-select-name">Join the Pack</div>
+          <div class="wolf-select-genre">Apply →</div>
+        </a>
 
       </div>
     </div>

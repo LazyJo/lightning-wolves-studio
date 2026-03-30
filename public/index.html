@@ -666,6 +666,23 @@
               <input type="color" id="highlight-color-custom" class="color-custom" value="#f5c518" title="Custom color" />
             </div>
           </div>
+          <div class="editor-section">
+            <label>Per-word styling</label>
+            <p class="editor-hint" style="margin-bottom:6px">Click a word in the lyrics to override its style.</p>
+            <div class="perword-selected hidden" id="perword-selected">
+              <span class="perword-word" id="perword-word-label"></span>
+              <div class="perword-controls">
+                <input type="color" id="perword-color" class="color-custom" value="#ffffff" title="Word color" />
+                <select id="perword-weight" class="perword-select">
+                  <option value="400">Normal</option>
+                  <option value="600">Bold</option>
+                  <option value="700">Extra Bold</option>
+                </select>
+                <button class="btn-sm btn-outline" id="perword-apply">Apply</button>
+                <button class="btn-sm btn-ghost" id="perword-clear">Clear</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- BEAT FX TAB -->

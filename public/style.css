@@ -1874,3 +1874,202 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 
 .bg-upload-zone:hover { border-color: var(--gold); }
+
+/* ─── Per-Word Styling ─────────────────────────────────────────────────────── */
+.perword-selected {
+  background: var(--base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+}
+
+.perword-word {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gold);
+  margin-bottom: 6px;
+}
+
+.perword-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.perword-select {
+  font-size: 11px;
+  padding: 3px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LYRIC STYLE ANIMATIONS (applied to preview overlays)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Karaoke: words highlight white → gold ────────────────────────────────── */
+.lyric-style-karaoke .lyric-word {
+  color: rgba(255,255,255,0.5);
+  transition: color 0.3s;
+}
+.lyric-style-karaoke .lyric-word.active { color: var(--gold); }
+
+/* ─── Pop: slam in bold, then fade ─────────────────────────────────────────── */
+.lyric-style-pop .lyric-word {
+  font-weight: 700;
+  font-size: 1.2em;
+  opacity: 0;
+  animation: pop-slam 0.6s ease forwards;
+}
+@keyframes pop-slam {
+  0% { opacity: 0; transform: scale(2); }
+  40% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.3; transform: scale(1); }
+}
+
+/* ─── Subtitle: clean bottom caption ───────────────────────────────────────── */
+.lyric-style-subtitle {
+  align-items: flex-end !important;
+  padding-bottom: 24px !important;
+}
+.lyric-style-subtitle .lyric-word {
+  font-size: 0.9em;
+  background: rgba(0,0,0,0.6);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+/* ─── Glitch: distortion on appear ─────────────────────────────────────────── */
+.lyric-style-glitch .lyric-word {
+  animation: glitch-in 0.4s ease;
+  font-family: monospace;
+}
+@keyframes glitch-in {
+  0% { opacity: 0; transform: translate(-4px, 2px); text-shadow: 2px 0 #f0f, -2px 0 #0ff; }
+  30% { opacity: 1; transform: translate(2px, -1px); text-shadow: -2px 0 #f0f, 2px 0 #0ff; }
+  60% { transform: translate(-1px, 0); text-shadow: 1px 0 #f0f, -1px 0 #0ff; }
+  100% { transform: translate(0); text-shadow: none; }
+}
+
+/* ─── Minimal: soft fade ───────────────────────────────────────────────────── */
+.lyric-style-minimal .lyric-word {
+  font-size: 0.85em;
+  font-weight: 400;
+  opacity: 0;
+  animation: minimal-fade 1.2s ease forwards;
+  color: rgba(255,255,255,0.7);
+}
+@keyframes minimal-fade {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ─── Knockout: inverted, lyrics cut through ───────────────────────────────── */
+.lyric-style-knockout {
+  background: #fff;
+  color: #000;
+  mix-blend-mode: screen;
+  font-weight: 700;
+  font-size: 1.3em;
+  text-shadow: none;
+}
+
+/* ─── HOTPINK: cyan → hot pink with glow ───────────────────────────────────── */
+.lyric-style-hotpink .lyric-word {
+  color: #00e5ff;
+  animation: hotpink-shift 0.8s ease forwards;
+}
+@keyframes hotpink-shift {
+  0% { color: #00e5ff; text-shadow: 0 0 8px rgba(0,229,255,0.5); }
+  100% { color: #ff69b4; text-shadow: 0 0 12px rgba(255,105,180,0.6); }
+}
+
+/* ─── Fly: Raleway, cinematic shadow ───────────────────────────────────────── */
+.lyric-style-fly .lyric-word {
+  font-family: 'Raleway', sans-serif;
+  font-weight: 600;
+  text-shadow: 2px 2px 8px rgba(0,0,0,0.9);
+  animation: fly-in 0.5s ease forwards;
+}
+@keyframes fly-in {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Ghost: bold knockout ─────────────────────────────────────────────────── */
+.lyric-style-ghost {
+  background: #fff;
+  color: #000;
+  mix-blend-mode: screen;
+  font-weight: 800;
+  font-size: 1.4em;
+}
+
+/* ─── Phantom: handwritten knockout ────────────────────────────────────────── */
+.lyric-style-phantom {
+  background: #fff;
+  color: #000;
+  mix-blend-mode: screen;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ─── Eclipse: elegant multi-line serif knockout ───────────────────────────── */
+.lyric-style-eclipse {
+  background: #fff;
+  color: #000;
+  mix-blend-mode: screen;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 1.1em;
+  letter-spacing: 1px;
+  line-height: 1.8;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BEAT EFFECT ANIMATIONS (triggered on beat drops)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes beat-flash {
+  0% { filter: brightness(3); }
+  100% { filter: brightness(1); }
+}
+
+@keyframes beat-zoom {
+  0% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+@keyframes beat-shake {
+  0% { transform: translate(-3px, 2px); }
+  25% { transform: translate(3px, -2px); }
+  50% { transform: translate(-2px, -1px); }
+  75% { transform: translate(2px, 1px); }
+  100% { transform: translate(0); }
+}
+
+@keyframes beat-colorburst {
+  0% { filter: hue-rotate(0deg) saturate(3); }
+  100% { filter: hue-rotate(0deg) saturate(1); }
+}
+
+.beat-effect-flash { animation: beat-flash 0.3s ease-out; }
+.beat-effect-zoom { animation: beat-zoom 0.3s ease-out; }
+.beat-effect-shake { animation: beat-shake 0.2s ease-out; }
+.beat-effect-colorburst { animation: beat-colorburst 0.4s ease-out; }
+
+/* ─── Clickable words in lyrics for per-word styling ───────────────────────── */
+.lyric-text-word {
+  cursor: pointer;
+  transition: color 0.15s;
+  display: inline;
+}
+
+.lyric-text-word:hover { color: var(--gold); }
+.lyric-text-word.word-selected { outline: 1px dashed var(--gold); outline-offset: 2px; }

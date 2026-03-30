@@ -624,8 +624,85 @@ function renderLyrics(lyrics) {
     } else {
       const div = document.createElement('div');
       div.className = 'lyric-line';
-      div.innerHTML = `<span class="lyric-ts">${escapeHTML(line.ts || '')}</span><span class="lyric-text">${escapeHTML(text)}</span>`;
+      // Split text into clickable words for per-word styling
+      const words = text.split(/(\s+)/);
+      const wordsHtml = words.map(w => {
+        if (/^\s+$/.test(w)) return w;
+        return `<span class="lyric-text-word" data-word="${escapeHTML(w)}">${escapeHTML(w)}</span>`;
+      }).join('');
+      div.innerHTML = `<span class="lyric-ts">${escapeHTML(line.ts || '')}</span><span class="lyric-text">${wordsHtml}</span>`;
       list.appendChild(div);
+    }
+  });
+
+  // Per-word click handler
+  list.querySelectorAll('.lyric-text-word').forEach(wordEl => {
+    wordEl.addEventListener('click', () => selectWordForStyling(wordEl));
+  });
+
+  // Apply current style to preview
+  applyStyleToPreview();
+}
+
+// ─── Per-Word Styling ────────────────────────────────────────────────────────
+let selectedWordEl = null;
+
+function selectWordForStyling(wordEl) {
+  // Deselect previous
+  document.querySelectorAll('.lyric-text-word.word-selected').forEach(w => w.classList.remove('word-selected'));
+  selectedWordEl = wordEl;
+  wordEl.classList.add('word-selected');
+
+  // Show per-word panel
+  const panel = $('perword-selected');
+  const label = $('perword-word-label');
+  if (panel) panel.classList.remove('hidden');
+  if (label) label.textContent = `"${wordEl.dataset.word}"`;
+}
+
+function initPerWordStyling() {
+  const applyBtn = $('perword-apply');
+  const clearBtn = $('perword-clear');
+
+  if (applyBtn) applyBtn.addEventListener('click', () => {
+    if (!selectedWordEl) return;
+    const color = $('perword-color')?.value || '#ffffff';
+    const weight = $('perword-weight')?.value || '400';
+    selectedWordEl.style.color = color;
+    selectedWordEl.style.fontWeight = weight;
+    toast('Word style applied', 'success');
+  });
+
+  if (clearBtn) clearBtn.addEventListener('click', () => {
+    if (!selectedWordEl) return;
+    selectedWordEl.style.color = '';
+    selectedWordEl.style.fontWeight = '';
+    selectedWordEl.classList.remove('word-selected');
+    const panel = $('perword-selected');
+    if (panel) panel.classList.add('hidden');
+    selectedWordEl = null;
+    toast('Word style cleared', 'info');
+  });
+}
+
+// ─── Apply Lyric Style to Preview ────────────────────────────────────────────
+function applyStyleToPreview() {
+  const activePreset = document.querySelector('.preset-card.active');
+  const style = activePreset?.dataset.preset || 'karaoke';
+  const portraitOverlay = $('preview-lyric-portrait');
+  const landscapeOverlay = $('preview-lyric-landscape');
+
+  [portraitOverlay, landscapeOverlay].forEach(overlay => {
+    if (!overlay) return;
+    // Remove all style classes
+    overlay.className = 'preview-lyric-overlay';
+    overlay.classList.add(`lyric-style-${style}`);
+
+    // Get current lyrics text for preview
+    const firstLine = document.querySelector('.lyric-text');
+    if (firstLine) {
+      const words = firstLine.textContent.split(/\s+/).filter(Boolean);
+      overlay.innerHTML = words.map(w => `<span class="lyric-word">${escapeHTML(w)} </span>`).join('');
     }
   });
 }
@@ -952,13 +1029,15 @@ function initPresetGrid() {
     card.addEventListener('click', () => {
       document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
       card.classList.add('active');
-      // Also sync the left panel style pills if matching
+      // Sync left panel style pills
       const preset = card.dataset.preset;
       const matchingPill = document.querySelector(`.style-pill[data-style="${preset}"]`);
       if (matchingPill) {
         document.querySelectorAll('.style-pill').forEach(p => p.classList.remove('active'));
         matchingPill.classList.add('active');
       }
+      // Apply to preview
+      applyStyleToPreview();
     });
   });
 }
@@ -1032,7 +1111,18 @@ function initBgPanel() {
 
   const aiBtn = $('ai-bg-btn');
   if (aiBtn) {
-    aiBtn.addEventListener('click', () => toast('AI background generation coming soon', 'info'));
+    aiBtn.addEventListener('click', () => {
+      const title = $('song-title')?.value.trim() || 'Untitled';
+      const artist = $('song-artist')?.value.trim() || 'Unknown';
+      const genre = $('song-genre')?.value || 'Hip-Hop';
+      const mood = $('song-mood')?.value.trim() || '';
+      const prompt = `Cinematic music video background for "${title}" by ${artist}. Genre: ${genre}.${mood ? ` Mood: ${mood}.` : ''} Dark, atmospheric, high contrast. 16:9 aspect ratio. No text or logos.`;
+      navigator.clipboard.writeText(prompt).then(() => {
+        toast('AI prompt copied to clipboard. Use with Grok Imagine or similar.', 'success');
+      }).catch(() => {
+        toast('AI background generation coming soon', 'info');
+      });
+    });
   }
 }
 
@@ -1077,6 +1167,7 @@ async function init() {
   initStudioLeft();
   initStudioCenter();
   initStudioRight();
+  initPerWordStyling();
   initDownloads();
 
   // Show admin nav if admin

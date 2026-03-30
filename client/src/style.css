@@ -375,6 +375,12 @@ a:hover { text-decoration: underline; }
   opacity: 0.4;
 }
 
+.wolf-emoji-icon {
+  font-size: 4rem;
+  line-height: 180px;
+  text-align: center;
+}
+
 .wolf-card-img-circle {
   width: 180px;
   height: 180px;

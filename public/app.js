@@ -275,6 +275,107 @@ async function signOut() {
   window.location.hash = '/';
 }
 
+// ─── Merge localStorage into Account on Signup ──────────────────────────────
+function mergeLocalStorageToAccount() {
+  if (!state.user) return;
+  // This runs after successful signup/signin to persist guest data
+  // Credits, tasks, referrals all transfer to the account
+  const mergeData = {
+    credits: state.credits,
+    completedTasks: state.completedTasks,
+    genCount: state.genCount,
+    referralCount: state.referralCount,
+    promoCode: state.promoCode,
+    refCode: state.refCode,
+  };
+
+  // Auto-complete signup task if not already done
+  if (!state.completedTasks.includes('signup')) {
+    state.completedTasks.push('signup');
+    localStorage.setItem('lw_completed_tasks', JSON.stringify(state.completedTasks));
+    addCredits(10);
+    toast('Welcome! +10 ⚡ signup bonus', 'success');
+  }
+
+  // If user signed up via referral, award referred user bonus
+  if (state.refCode) {
+    // The referral credit for the new user is already handled by the signup task
+    // The referrer gets credited server-side
+    toast('Referral bonus applied!', 'success');
+  }
+
+  // In production: sync to Supabase profile
+  if (supabase && state.user) {
+    supabase.from('profiles').update({
+      credits: state.credits,
+      completed_tasks: state.completedTasks,
+      generations_count: state.genCount,
+    }).eq('id', state.user.id).then(() => {}).catch(() => {});
+  }
+}
+
+// ─── Google OAuth (YouTube Verification) ─────────────────────────────────────
+function initGoogleOAuth() {
+  // Check for OAuth callback
+  const hash = window.location.hash;
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get('code') || hash.includes('access_token')) {
+    handleOAuthCallback();
+  }
+}
+
+function startYouTubeOAuth() {
+  const clientId = window.VITE_GOOGLE_CLIENT_ID || '';
+  if (!clientId) {
+    toast('Google OAuth not configured. Task marked as pending.', 'info');
+    return;
+  }
+
+  const redirectUri = window.location.origin + '/callback';
+  const scope = 'https://www.googleapis.com/auth/youtube.readonly';
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+
+  window.location.href = authUrl;
+}
+
+async function handleOAuthCallback() {
+  // Extract access token from hash fragment
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  const accessToken = hashParams.get('access_token');
+
+  if (!accessToken) return;
+
+  // Clean URL
+  window.history.replaceState(null, '', window.location.pathname);
+
+  try {
+    // Check YouTube subscriptions
+    const res = await fetch('https://www.googleapis.com/youtube/v3/subscriptions?part=snippet&mine=true&maxResults=50', {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+
+    if (!res.ok) throw new Error('Failed to fetch subscriptions');
+
+    const data = await res.json();
+    const items = data.items || [];
+
+    // Check if Lightning Wolves channel is in subscriptions
+    const isSubscribed = items.some(item => {
+      const title = (item.snippet?.title || '').toLowerCase();
+      return title.includes('lightning wolves') || title.includes('lightningwolves');
+    });
+
+    if (isSubscribed) {
+      completeTask('youtube');
+    } else {
+      toast('Lightning Wolves channel not found in your subscriptions. Subscribe and try again.', 'error');
+    }
+  } catch (err) {
+    toast('YouTube verification failed: ' + err.message, 'error');
+  }
+}
+
 // ─── Check Referral Code in URL ──────────────────────────────────────────────
 function checkReferralCode() {
   const params = new URLSearchParams(window.location.search);
@@ -1834,15 +1935,17 @@ function initTaskRewards() {
   const ytBtn = $('task-btn-youtube');
   if (ytBtn) ytBtn.addEventListener('click', () => {
     if (state.completedTasks.includes('youtube')) return;
-    // Open YouTube channel
+    // Open YouTube channel first
     window.open('https://youtube.com/@lightningwolves', '_blank');
-    // Mark as pending, start verification flow
-    markTaskPending('youtube', ytBtn);
-    // For now: simulate OAuth check with a delay
-    // In production: use Google OAuth → YouTube subscriptions.list
-    setTimeout(() => {
-      toast('YouTube subscription check: connect Google to verify', 'info');
-    }, 2000);
+    // Try Google OAuth for verification
+    const clientId = window.VITE_GOOGLE_CLIENT_ID || '';
+    if (clientId) {
+      markTaskPending('youtube', ytBtn);
+      setTimeout(() => startYouTubeOAuth(), 2000);
+    } else {
+      // No OAuth configured — use countdown fallback
+      startCountdown('youtube', ytBtn, 10);
+    }
   });
 
   // Rosakay Instagram
@@ -2328,8 +2431,10 @@ function showCreditModal() {
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 async function init() {
   checkReferralCode();
+  initGoogleOAuth();
   await initSupabase();
   await checkSession();
+  if (state.user) mergeLocalStorageToAccount();
   updateTopbarAuth();
   updateCreditDisplay();
   initRouter();
@@ -2362,12 +2467,16 @@ async function init() {
         state.user = session.user;
         state.token = session.access_token;
         await loadProfile();
+        mergeLocalStorageToAccount();
+        updateTaskUI();
+        updateReferralUI();
       } else {
         state.user = null;
         state.token = null;
         state.profile = null;
       }
       updateTopbarAuth();
+      updateCreditDisplay();
     });
   }
 }

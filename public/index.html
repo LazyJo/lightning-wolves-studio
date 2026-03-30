@@ -1193,7 +1193,87 @@
   <div class="page hidden" id="page-auth"></div>
 
   <!-- PAGE: ADMIN -->
-  <div class="page hidden" id="page-admin"></div>
+  <div class="page hidden" id="page-admin">
+    <div class="admin-page">
+      <h1 class="admin-title">Admin Dashboard</h1>
+
+      <!-- Admin Tabs -->
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-atab="applications">Applications</button>
+        <button class="admin-tab" data-atab="models">Model Health</button>
+        <button class="admin-tab" data-atab="credits-config">Credit Costs</button>
+        <button class="admin-tab" data-atab="bugs">Bug Reports</button>
+      </div>
+
+      <!-- APPLICATIONS TAB -->
+      <div class="admin-panel" id="atab-applications">
+        <!-- Stats Row -->
+        <div class="admin-stats" id="admin-stats">
+          <div class="admin-stat"><span class="admin-stat-val" id="stat-total">0</span><span class="admin-stat-label">Total</span></div>
+          <div class="admin-stat"><span class="admin-stat-val" id="stat-pending">0</span><span class="admin-stat-label">Pending</span></div>
+          <div class="admin-stat"><span class="admin-stat-val" id="stat-approved">0</span><span class="admin-stat-label">Approved</span></div>
+          <div class="admin-stat"><span class="admin-stat-val" id="stat-rejected">0</span><span class="admin-stat-label">Rejected</span></div>
+        </div>
+        <!-- Filter Bar -->
+        <div class="admin-filters" id="admin-filters">
+          <button class="admin-filter active" data-filter="all">All</button>
+          <button class="admin-filter" data-filter="pending">Pending</button>
+          <button class="admin-filter" data-filter="approved">Approved</button>
+          <button class="admin-filter" data-filter="rejected">Rejected</button>
+          <span class="admin-filter-sep"></span>
+          <button class="admin-filter" data-filter="Artist">Artist</button>
+          <button class="admin-filter" data-filter="Photography">Photo</button>
+          <button class="admin-filter" data-filter="Video">Video</button>
+          <button class="admin-filter" data-filter="Design">Design</button>
+          <button class="admin-filter" data-filter="Beatmaker">Beats</button>
+        </div>
+        <!-- Table -->
+        <div class="admin-table-wrap">
+          <table class="admin-table" id="admin-table">
+            <thead><tr><th>Name</th><th>Artist Name</th><th>Role(s)</th><th>Genre</th><th>Applied</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="admin-tbody"></tbody>
+          </table>
+          <div class="admin-empty" id="admin-empty">No applications yet.</div>
+        </div>
+      </div>
+
+      <!-- APPLICATION DETAIL (hidden by default) -->
+      <div class="admin-detail hidden" id="admin-detail">
+        <button class="btn-ghost btn-sm" id="admin-detail-back">← Back to list</button>
+        <div class="admin-detail-content" id="admin-detail-content"></div>
+      </div>
+
+      <!-- MODELS TAB -->
+      <div class="admin-panel hidden" id="atab-models">
+        <h3 class="admin-section-title">AI Model Configuration</h3>
+        <p class="admin-section-desc">Toggle models on/off and set credit cost per model. Changes take effect immediately.</p>
+        <div class="admin-model-list" id="admin-model-list"></div>
+      </div>
+
+      <!-- CREDIT COSTS TAB -->
+      <div class="admin-panel hidden" id="atab-credits-config">
+        <h3 class="admin-section-title">Credit Cost Settings</h3>
+        <p class="admin-section-desc">Set how many credits each action costs.</p>
+        <div class="admin-costs-list">
+          <div class="admin-cost-row"><span>Text generation</span><input type="number" id="cost-gen" value="10" min="1" /><span>⚡</span></div>
+          <div class="admin-cost-row"><span>AI background (Grok)</span><input type="number" id="cost-bg-grok" value="10" min="1" /><span>⚡</span></div>
+          <div class="admin-cost-row"><span>AI background (Kling)</span><input type="number" id="cost-bg-kling" value="15" min="1" /><span>⚡</span></div>
+          <div class="admin-cost-row"><span>Performance video</span><input type="number" id="cost-perf" value="20" min="1" /><span>⚡</span></div>
+          <div class="admin-cost-row"><span>Remix export</span><input type="number" id="cost-remix" value="15" min="1" /><span>⚡</span></div>
+        </div>
+        <button class="btn-gold btn-sm" id="admin-save-costs" style="margin-top:12px">Save Costs</button>
+      </div>
+
+      <!-- BUG REPORTS TAB -->
+      <div class="admin-panel hidden" id="atab-bugs">
+        <h3 class="admin-section-title">Bug Reports</h3>
+        <div class="admin-bug-list" id="admin-bug-list">
+          <div class="admin-empty">No bug reports yet.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
 </div>
 

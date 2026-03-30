@@ -238,6 +238,10 @@ function initBugReport() {
     e.preventDefault();
     const desc = $('bug-description').value.trim();
     if (!desc) return;
+    // Save to localStorage for admin
+    const bugs = JSON.parse(localStorage.getItem('lw_bug_reports') || '[]');
+    bugs.push({ description: desc, status: 'pending', reportedAt: new Date().toISOString() });
+    localStorage.setItem('lw_bug_reports', JSON.stringify(bugs));
     toast('Bug report submitted. Thank you!', 'success');
     form.reset();
     hide(overlay);
@@ -1883,6 +1887,307 @@ function initJoinPage() {
   });
 }
 
+// ─── Admin Dashboard ─────────────────────────────────────────────────────────
+function initAdminDashboard() {
+  // Admin tab switching
+  document.querySelectorAll('.admin-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.admin-panel').forEach(p => p.classList.add('hidden'));
+      const panel = $(`atab-${tab.dataset.atab}`);
+      if (panel) panel.classList.remove('hidden');
+      // Hide detail view when switching tabs
+      const detail = $('admin-detail');
+      if (detail) detail.classList.add('hidden');
+      const appPanel = $('atab-applications');
+      if (tab.dataset.atab === 'applications' && appPanel) appPanel.classList.remove('hidden');
+    });
+  });
+
+  // Filter bar
+  document.querySelectorAll('.admin-filter').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.admin-filter').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderApplications(btn.dataset.filter);
+    });
+  });
+
+  // Back from detail
+  const backBtn = $('admin-detail-back');
+  if (backBtn) backBtn.addEventListener('click', () => {
+    $('admin-detail')?.classList.add('hidden');
+    $('atab-applications')?.classList.remove('hidden');
+  });
+
+  // Save costs
+  const saveCostsBtn = $('admin-save-costs');
+  if (saveCostsBtn) saveCostsBtn.addEventListener('click', () => {
+    toast('Credit costs saved', 'success');
+  });
+
+  // Load data
+  renderApplications('all');
+  renderAdminModels();
+  renderAdminBugs();
+}
+
+function getApplications() {
+  return JSON.parse(localStorage.getItem('lw_applications') || '[]');
+}
+
+function saveApplications(apps) {
+  localStorage.setItem('lw_applications', JSON.stringify(apps));
+}
+
+function renderApplications(filter) {
+  const apps = getApplications();
+  const tbody = $('admin-tbody');
+  const empty = $('admin-empty');
+  if (!tbody) return;
+
+  // Stats
+  const total = apps.length;
+  const pending = apps.filter(a => a.status === 'pending').length;
+  const approved = apps.filter(a => a.status === 'approved').length;
+  const rejected = apps.filter(a => a.status === 'rejected').length;
+
+  const statTotal = $('stat-total');
+  const statPending = $('stat-pending');
+  const statApproved = $('stat-approved');
+  const statRejected = $('stat-rejected');
+  if (statTotal) statTotal.textContent = total;
+  if (statPending) statPending.textContent = pending;
+  if (statApproved) statApproved.textContent = approved;
+  if (statRejected) statRejected.textContent = rejected;
+
+  // Filter
+  let filtered = apps;
+  if (filter === 'pending' || filter === 'approved' || filter === 'rejected') {
+    filtered = apps.filter(a => a.status === filter);
+  } else if (filter !== 'all') {
+    filtered = apps.filter(a => (a.roles || []).includes(filter));
+  }
+
+  tbody.innerHTML = '';
+  if (filtered.length === 0) {
+    if (empty) empty.style.display = '';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+
+  filtered.forEach((app, idx) => {
+    const tr = document.createElement('tr');
+    const statusClass = `admin-status-${app.status || 'pending'}`;
+    const date = app.appliedAt ? new Date(app.appliedAt).toLocaleDateString() : '—';
+    tr.innerHTML = `
+      <td>${escapeHTML(app.realName || '')}</td>
+      <td>${escapeHTML(app.artistName || '')}</td>
+      <td>${(app.roles || []).join(', ')}</td>
+      <td>${escapeHTML(app.genre || '')}</td>
+      <td>${date}</td>
+      <td><span class="admin-status ${statusClass}">${app.status || 'pending'}</span></td>
+      <td>
+        <button class="admin-action-btn admin-action-approve" data-idx="${idx}" data-action="approved">✓</button>
+        <button class="admin-action-btn admin-action-reject" data-idx="${idx}" data-action="rejected">✗</button>
+      </td>
+    `;
+    // Click row for detail (but not action buttons)
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('.admin-action-btn')) return;
+      showApplicationDetail(idx);
+    });
+    tbody.appendChild(tr);
+  });
+
+  // Action buttons
+  tbody.querySelectorAll('.admin-action-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      const action = btn.dataset.action;
+      updateApplicationStatus(idx, action);
+    });
+  });
+}
+
+function updateApplicationStatus(idx, newStatus) {
+  const apps = getApplications();
+  if (!apps[idx]) return;
+  apps[idx].status = newStatus;
+  saveApplications(apps);
+
+  if (newStatus === 'approved') {
+    toast(`${apps[idx].artistName} approved! Welcome to the pack ⚡`, 'success');
+  } else if (newStatus === 'rejected') {
+    toast(`${apps[idx].artistName} rejected`, 'info');
+  }
+
+  renderApplications(document.querySelector('.admin-filter.active')?.dataset.filter || 'all');
+}
+
+function showApplicationDetail(idx) {
+  const apps = getApplications();
+  const app = apps[idx];
+  if (!app) return;
+
+  $('atab-applications')?.classList.add('hidden');
+  const detail = $('admin-detail');
+  const content = $('admin-detail-content');
+  if (!detail || !content) return;
+
+  detail.classList.remove('hidden');
+
+  const socials = (app.socials || []).map(s => `<a href="${escapeHTML(s.url)}" target="_blank" rel="noopener" style="color:var(--gold)">${escapeHTML(s.platform)}</a>`).join(', ') || '—';
+
+  content.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="detail-field"><div class="detail-label">Real Name</div><div class="detail-value">${escapeHTML(app.realName || '')}</div></div>
+      <div class="detail-field"><div class="detail-label">Artist Name</div><div class="detail-value">${escapeHTML(app.artistName || '')}</div></div>
+      <div class="detail-field"><div class="detail-label">Genre</div><div class="detail-value">${escapeHTML(app.genre || '')}</div></div>
+      <div class="detail-field"><div class="detail-label">Roles</div><div class="detail-value">${(app.roles || []).join(', ') || '—'}</div></div>
+      <div class="detail-field" style="grid-column:1/-1"><div class="detail-label">Skills</div><div class="detail-value">${escapeHTML(app.skills || '')}</div></div>
+      <div class="detail-field"><div class="detail-label">Social Links</div><div class="detail-value">${socials}</div></div>
+      <div class="detail-field"><div class="detail-label">Music Link</div><div class="detail-value">${app.musicLink ? `<a href="${escapeHTML(app.musicLink)}" target="_blank" rel="noopener" style="color:var(--gold)">${escapeHTML(app.musicLink)}</a>` : '—'}</div></div>
+      <div class="detail-field" style="grid-column:1/-1"><div class="detail-label">Why Lightning Wolves?</div><div class="detail-value">${escapeHTML(app.why || '')}</div></div>
+      <div class="detail-field"><div class="detail-label">Applied</div><div class="detail-value">${app.appliedAt ? new Date(app.appliedAt).toLocaleString() : '—'}</div></div>
+      <div class="detail-field"><div class="detail-label">Status</div><div class="detail-value"><span class="admin-status admin-status-${app.status || 'pending'}">${app.status || 'pending'}</span></div></div>
+    </div>
+    <div class="detail-field" style="margin-top:16px">
+      <div class="detail-label">Admin Notes</div>
+      <textarea id="admin-notes-${idx}" rows="3" placeholder="Internal notes..." style="width:100%;margin-top:4px">${escapeHTML(app.adminNotes || '')}</textarea>
+    </div>
+    <div class="detail-actions">
+      <button class="admin-action-btn admin-action-approve" id="detail-approve-${idx}">Approve ✓</button>
+      <button class="admin-action-btn admin-action-reject" id="detail-reject-${idx}">Reject ✗</button>
+      <button class="admin-action-btn admin-action-pending" id="detail-pending-${idx}">Pending</button>
+    </div>
+  `;
+
+  $(`detail-approve-${idx}`)?.addEventListener('click', () => { updateApplicationStatus(idx, 'approved'); showApplicationDetail(idx); });
+  $(`detail-reject-${idx}`)?.addEventListener('click', () => { updateApplicationStatus(idx, 'rejected'); showApplicationDetail(idx); });
+  $(`detail-pending-${idx}`)?.addEventListener('click', () => { updateApplicationStatus(idx, 'pending'); showApplicationDetail(idx); });
+
+  // Save notes on blur
+  const notesEl = $(`admin-notes-${idx}`);
+  if (notesEl) notesEl.addEventListener('blur', () => {
+    const a = getApplications();
+    if (a[idx]) { a[idx].adminNotes = notesEl.value; saveApplications(a); }
+  });
+}
+
+// ─── Admin: Model Health Config ──────────────────────────────────────────────
+function renderAdminModels() {
+  const list = $('admin-model-list');
+  if (!list) return;
+  const config = getModelConfig();
+
+  list.innerHTML = '';
+  Object.entries(config.models).forEach(([id, model]) => {
+    const card = document.createElement('div');
+    card.className = 'admin-model-card';
+    card.innerHTML = `
+      <span class="model-status-dot model-status-${model.status}"></span>
+      <div class="admin-model-info">
+        <div class="admin-model-name">${escapeHTML(model.name)}</div>
+        <div class="admin-model-desc">${escapeHTML(model.description || '')}</div>
+      </div>
+      <div class="admin-model-controls">
+        <div class="admin-model-cost"><input type="number" value="${model.cost}" min="1" data-model="${id}" class="admin-model-cost-input" /><span>⚡</span></div>
+        <select data-model="${id}" class="admin-model-status-select" style="font-size:12px;padding:4px">
+          <option value="green" ${model.status === 'green' ? 'selected' : ''}>Stable</option>
+          <option value="yellow" ${model.status === 'yellow' ? 'selected' : ''}>Degraded</option>
+          <option value="red" ${model.status === 'red' ? 'selected' : ''}>Down</option>
+        </select>
+        <label class="toggle-switch">
+          <input type="checkbox" ${model.enabled ? 'checked' : ''} data-model="${id}" class="admin-model-toggle" />
+          <span class="toggle-switch-slider"></span>
+        </label>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  // Wire change events
+  list.querySelectorAll('.admin-model-cost-input').forEach(input => {
+    input.addEventListener('change', () => {
+      const id = input.dataset.model;
+      modelConfig.models[id].cost = parseInt(input.value) || 10;
+      saveModelConfig();
+      updateModelHealthUI();
+      toast(`${modelConfig.models[id].name} cost updated to ${input.value} ⚡`, 'success');
+    });
+  });
+
+  list.querySelectorAll('.admin-model-status-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const id = sel.dataset.model;
+      modelConfig.models[id].status = sel.value;
+      saveModelConfig();
+      updateModelHealthUI();
+    });
+  });
+
+  list.querySelectorAll('.admin-model-toggle').forEach(toggle => {
+    toggle.addEventListener('change', () => {
+      const id = toggle.dataset.model;
+      modelConfig.models[id].enabled = toggle.checked;
+      saveModelConfig();
+      updateModelHealthUI();
+      toast(`${modelConfig.models[id].name} ${toggle.checked ? 'enabled' : 'disabled'}`, 'info');
+    });
+  });
+}
+
+// ─── Admin: Bug Reports ──────────────────────────────────────────────────────
+function renderAdminBugs() {
+  const list = $('admin-bug-list');
+  if (!list) return;
+
+  const bugs = JSON.parse(localStorage.getItem('lw_bug_reports') || '[]');
+  if (bugs.length === 0) {
+    list.innerHTML = '<div class="admin-empty">No bug reports yet.</div>';
+    return;
+  }
+
+  list.innerHTML = '';
+  bugs.forEach((bug, idx) => {
+    const card = document.createElement('div');
+    card.className = 'admin-bug-card';
+    card.innerHTML = `
+      <div class="admin-bug-desc">${escapeHTML(bug.description || '')}</div>
+      <div class="admin-bug-meta">Reported: ${bug.reportedAt ? new Date(bug.reportedAt).toLocaleString() : '—'} · Status: ${bug.status || 'pending'}</div>
+      <div class="admin-bug-actions">
+        <button class="admin-action-btn admin-action-approve" data-bugidx="${idx}">Confirm & Award ⚡</button>
+        <button class="admin-action-btn admin-action-reject" data-bugidx="${idx}">Dismiss</button>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  list.querySelectorAll('.admin-action-approve[data-bugidx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.bugidx);
+      bugs[idx].status = 'confirmed';
+      localStorage.setItem('lw_bug_reports', JSON.stringify(bugs));
+      addCredits(10);
+      toast('Bug confirmed! +10 ⚡ awarded to reporter', 'success');
+      renderAdminBugs();
+    });
+  });
+
+  list.querySelectorAll('.admin-action-reject[data-bugidx]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.bugidx);
+      bugs[idx].status = 'dismissed';
+      localStorage.setItem('lw_bug_reports', JSON.stringify(bugs));
+      toast('Bug dismissed', 'info');
+      renderAdminBugs();
+    });
+  });
+}
+
 // ─── Pricing Page ────────────────────────────────────────────────────────────
 const PROMO_CODES = {
   'WOLFPACK': { type: 'percent', value: 20, label: '20% off' },
@@ -2539,6 +2844,7 @@ async function init() {
   initRemixTab();
   initHooksPanel();
   initJoinPage();
+  initAdminDashboard();
   initPricingPage();
   initTaskRewards();
   initDownloads();

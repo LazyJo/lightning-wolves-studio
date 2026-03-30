@@ -406,3 +406,242 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 
 .topbar-user-name { font-weight: 500; color: var(--text); }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: LANDING
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Hero ─────────────────────────────────────────────────────────────────── */
+.landing-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  padding: 80px 40px 48px;
+  text-align: center;
+}
+
+.hero-inner { max-width: 640px; }
+
+.hero-eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 16px;
+}
+
+.hero-title {
+  font-size: 42px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: #fff;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+
+.hero-subtitle {
+  font-size: 16px;
+  color: var(--text-muted);
+  margin-bottom: 32px;
+}
+
+.hero-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* ─── Feature Grid ─────────────────────────────────────────────────────────── */
+.landing-features {
+  padding: 0 40px 48px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.feature-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.feature-icon {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold-dim);
+  border-radius: var(--radius);
+  color: var(--gold);
+}
+
+.feature-icon svg { width: 18px; height: 18px; }
+
+.feature-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.feature-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.feature-badge {
+  display: inline-block;
+  align-self: flex-start;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-top: auto;
+}
+
+.feature-badge-gold {
+  color: var(--gold);
+  border-color: rgba(245, 197, 24, 0.25);
+  background: var(--gold-dim);
+}
+
+/* ─── Bottom 2-Column ──────────────────────────────────────────────────────── */
+.landing-bottom {
+  padding: 0 40px 64px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.landing-bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.landing-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.landing-card-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 16px;
+}
+
+.landing-card-link {
+  display: inline-block;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--gold);
+  font-weight: 500;
+}
+
+.landing-card-link:hover { text-decoration: underline; }
+
+/* ─── Wolves List ──────────────────────────────────────────────────────────── */
+.wolves-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wolf-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wolf-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.wolf-row-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.wolf-row-role {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-left: auto;
+}
+
+/* ─── Steps List ───────────────────────────────────────────────────────────── */
+.steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.step-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.step-num {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gold-dim);
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.step-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.step-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ─── Responsive: features collapse ───────────────────────────────────────── */
+@media (max-width: 800px) {
+  .feature-grid { grid-template-columns: repeat(2, 1fr); }
+  .landing-bottom-grid { grid-template-columns: 1fr; }
+  .hero-title { font-size: 32px; }
+  .landing-hero { padding: 48px 24px 32px; }
+  .landing-features, .landing-bottom { padding-left: 24px; padding-right: 24px; }
+}
+
+@media (max-width: 500px) {
+  .feature-grid { grid-template-columns: 1fr; }
+  .hero-buttons { flex-direction: column; }
+  .hero-buttons .btn-outline, .hero-buttons .btn-gold { width: 100%; }
+}

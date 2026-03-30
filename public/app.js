@@ -518,6 +518,7 @@ async function handleGenerate() {
     }
 
     state.lastPack = json.pack;
+    renderResults(json.pack, json.meta);
     toast('Generation complete!', 'success');
 
   } catch (err) {
@@ -533,6 +534,397 @@ async function handleGenerate() {
     btnText.textContent = 'Generate · 10 ⚡';
     state.generating = false;
   }
+}
+
+// ─── Studio: Center Panel ────────────────────────────────────────────────────
+function initStudioCenter() {
+  initStudioTabs();
+  initTimelineControls();
+  initTimelineDropzone();
+}
+
+// ─── Studio Tab Switching ────────────────────────────────────────────────────
+function initStudioTabs() {
+  document.querySelectorAll('.studio-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.studio-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.studio-tab-panel').forEach(p => p.classList.add('hidden'));
+      const panel = $(`stab-${tab.dataset.tab}`);
+      if (panel) panel.classList.remove('hidden');
+    });
+  });
+}
+
+// ─── Render Results into Center Panel ────────────────────────────────────────
+function escapeHTML(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function renderResults(pack, meta) {
+  // Show active, hide empty
+  const empty = $('studio-empty');
+  const active = $('studio-active');
+  if (empty) empty.classList.add('hidden');
+  if (active) active.classList.remove('hidden');
+
+  // Show right panel
+  const right = $('studio-right');
+  if (right) right.classList.remove('hidden');
+
+  // Lyrics
+  renderLyrics(pack.lyrics || []);
+
+  // SRT
+  const srtText = $('srt-text');
+  if (srtText && pack.srt) srtText.textContent = pack.srt;
+
+  // Beats
+  renderBeats(pack.beats || []);
+
+  // Prompts
+  renderPrompts(pack.prompts || []);
+
+  // Tips
+  renderTips(pack.tips || []);
+
+  // Update BPM badges
+  const bpm = meta?.bpm || $('song-bpm')?.value || '--';
+  const bpmBadge = $('bpm-badge');
+  const tlBpm = $('tl-bpm');
+  if (bpmBadge) bpmBadge.textContent = `${bpm} BPM`;
+  if (tlBpm) tlBpm.textContent = `${bpm} BPM`;
+
+  // Beat count
+  const beatCount = $('beat-count-badge');
+  if (beatCount) beatCount.textContent = `${(pack.beats || []).length} drops`;
+
+  // Render timeline words
+  renderTimelineWords(pack.lyrics || []);
+
+  // Render beat markers
+  renderBeatMarkers(pack.beats || []);
+
+  // Draw waveform placeholder
+  drawWaveformPlaceholder();
+}
+
+function renderLyrics(lyrics) {
+  const list = $('lyrics-list');
+  if (!list) return;
+  list.innerHTML = '';
+  lyrics.forEach(line => {
+    const text = line.text || '';
+    const isSectionHeader = /^\[.+\]$/.test(text.trim());
+    if (isSectionHeader) {
+      const div = document.createElement('div');
+      div.className = 'lyric-section';
+      div.textContent = text.replace(/[\[\]]/g, '');
+      list.appendChild(div);
+    } else {
+      const div = document.createElement('div');
+      div.className = 'lyric-line';
+      div.innerHTML = `<span class="lyric-ts">${escapeHTML(line.ts || '')}</span><span class="lyric-text">${escapeHTML(text)}</span>`;
+      list.appendChild(div);
+    }
+  });
+}
+
+function renderBeats(beats) {
+  const tbody = $('beats-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  beats.forEach(beat => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="lyric-ts">${escapeHTML(beat.ts || '')}</span></td>
+      <td>${escapeHTML(beat.label || '')}</td>
+      <td><span class="beat-type-badge beat-type-${escapeHTML(beat.type || 'CUT')}">${escapeHTML(beat.type || 'CUT')}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderPrompts(prompts) {
+  const list = $('prompts-list');
+  if (!list) return;
+  list.innerHTML = '';
+  prompts.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'prompt-card';
+    card.innerHTML = `
+      <div class="prompt-section">${escapeHTML(p.section || '')}</div>
+      <div class="prompt-text">${escapeHTML(p.prompt || '')}</div>
+      <button class="prompt-copy" data-idx="${i}">Copy</button>
+    `;
+    list.appendChild(card);
+  });
+  list.querySelectorAll('.prompt-copy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const text = prompts[idx]?.prompt || '';
+      navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      });
+    });
+  });
+}
+
+const TIP_ICONS = ['📱','🎬','▶️','🎨','🔊','💡','🌟','🎯'];
+
+function renderTips(tips) {
+  const list = $('tips-list');
+  if (!list) return;
+  list.innerHTML = '';
+  tips.forEach((tip, i) => {
+    const card = document.createElement('div');
+    card.className = 'tip-card';
+    card.innerHTML = `
+      <div class="tip-icon">${TIP_ICONS[i % TIP_ICONS.length]}</div>
+      <div>
+        <div class="tip-title">${escapeHTML(tip.title || '')}</div>
+        <div class="tip-text">${escapeHTML(tip.tip || '')}</div>
+      </div>
+    `;
+    list.appendChild(card);
+  });
+}
+
+// ─── Timeline: Word blocks ───────────────────────────────────────────────────
+function renderTimelineWords(lyrics) {
+  const container = $('timeline-words');
+  if (!container) return;
+  container.innerHTML = '';
+  lyrics.forEach(line => {
+    if (/^\[.+\]$/.test((line.text || '').trim())) return;
+    const words = (line.text || '').split(/\s+/);
+    words.forEach(word => {
+      if (!word) return;
+      const el = document.createElement('span');
+      el.className = 'timeline-word';
+      el.textContent = word;
+      el.draggable = true;
+      container.appendChild(el);
+    });
+  });
+}
+
+// ─── Timeline: Beat markers ──────────────────────────────────────────────────
+let savedBeatMarkers = [];
+
+function renderBeatMarkers(beats) {
+  const container = $('timeline-beat-markers');
+  if (!container) return;
+  container.innerHTML = '';
+  savedBeatMarkers = beats;
+
+  if (!beats.length) return;
+
+  // Parse timestamps to seconds for positioning
+  const totalDuration = parseTsToSeconds(beats[beats.length - 1].ts) + 30;
+  beats.forEach(beat => {
+    const seconds = parseTsToSeconds(beat.ts);
+    const pct = (seconds / totalDuration) * 100;
+    const marker = document.createElement('div');
+    marker.className = 'beat-marker';
+    marker.style.left = `${pct}%`;
+    marker.title = `${beat.ts} — ${beat.label || ''}`;
+    container.appendChild(marker);
+  });
+}
+
+function parseTsToSeconds(ts) {
+  if (!ts) return 0;
+  const parts = ts.split(':');
+  if (parts.length === 2) return parseInt(parts[0]) * 60 + parseFloat(parts[1]);
+  if (parts.length === 3) return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseFloat(parts[2]);
+  return parseFloat(ts) || 0;
+}
+
+// ─── Waveform Placeholder ────────────────────────────────────────────────────
+function drawWaveformPlaceholder() {
+  const canvas = $('waveform-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.parentElement.clientWidth;
+  const w = canvas.width;
+  const h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = 'rgba(245, 197, 24, 0.15)';
+  const bars = Math.floor(w / 3);
+  for (let i = 0; i < bars; i++) {
+    const amplitude = Math.sin(i * 0.05) * 0.3 + Math.random() * 0.4 + 0.1;
+    const barH = amplitude * h;
+    const x = i * 3;
+    ctx.fillRect(x, (h - barH) / 2, 2, barH);
+  }
+}
+
+// ─── Timeline Controls ───────────────────────────────────────────────────────
+let isPlaying = false;
+let playInterval = null;
+
+function initTimelineControls() {
+  const playBtn = $('tl-play');
+  const prevBtn = $('tl-prev');
+  const nextBtn = $('tl-next');
+  const addCutBtn = $('tl-add-cut');
+  const addWordBtn = $('tl-add-word');
+  const editLyricsBtn = $('tl-edit-lyrics');
+  const noCutsToggle = $('tl-no-cuts');
+  const exportBtn = $('tl-export');
+
+  if (playBtn) playBtn.addEventListener('click', togglePlay);
+  if (prevBtn) prevBtn.addEventListener('click', () => movePlayhead(-5));
+  if (nextBtn) nextBtn.addEventListener('click', () => movePlayhead(5));
+
+  if (addCutBtn) addCutBtn.addEventListener('click', () => toast('Cut added at playhead position', 'info'));
+  if (addWordBtn) addWordBtn.addEventListener('click', () => toast('Word added at playhead position', 'info'));
+  if (editLyricsBtn) editLyricsBtn.addEventListener('click', () => toast('Lyrics editor coming soon', 'info'));
+  if (exportBtn) exportBtn.addEventListener('click', () => toast('Export coming soon', 'info'));
+
+  if (noCutsToggle) {
+    noCutsToggle.addEventListener('change', () => {
+      const markers = $('timeline-beat-markers');
+      if (!markers) return;
+      if (noCutsToggle.checked) {
+        markers.style.display = 'none';
+        toast('Cut markers hidden — one continuous slot', 'info');
+      } else {
+        markers.style.display = '';
+        toast('Cut markers restored', 'info');
+      }
+    });
+  }
+}
+
+function togglePlay() {
+  isPlaying = !isPlaying;
+  const icon = $('tl-play-icon');
+  if (isPlaying) {
+    if (icon) icon.innerHTML = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+    startPlayback();
+  } else {
+    if (icon) icon.innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+    stopPlayback();
+  }
+}
+
+function startPlayback() {
+  const playhead = $('timeline-playhead');
+  const waveform = $('timeline-waveform');
+  if (!playhead || !waveform) return;
+  const maxWidth = waveform.clientWidth;
+
+  playInterval = setInterval(() => {
+    let left = parseFloat(playhead.style.left) || 0;
+    left += 1;
+    if (left >= maxWidth) { left = 0; togglePlay(); }
+    playhead.style.left = `${left}px`;
+  }, 50);
+}
+
+function stopPlayback() {
+  if (playInterval) { clearInterval(playInterval); playInterval = null; }
+}
+
+function movePlayhead(deltaPx) {
+  const playhead = $('timeline-playhead');
+  if (!playhead) return;
+  let left = parseFloat(playhead.style.left) || 0;
+  left = Math.max(0, left + deltaPx * 10);
+  playhead.style.left = `${left}px`;
+}
+
+// ─── Timeline: Video Dropzone ────────────────────────────────────────────────
+function initTimelineDropzone() {
+  const dz = $('timeline-dropzone');
+  if (!dz) return;
+
+  dz.addEventListener('dragover', (e) => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dz.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('video/')) {
+      toast('Please drop a video file', 'error');
+      return;
+    }
+    showTrimModal(file);
+  });
+}
+
+function showTrimModal(file) {
+  const overlay = $('modal-overlay');
+  const box = $('modal-box');
+  if (!overlay || !box) return;
+
+  const url = URL.createObjectURL(file);
+  box.innerHTML = `
+    <div class="modal-header">
+      <h3>Trim Video</h3>
+      <button class="modal-close" id="trim-close">&times;</button>
+    </div>
+    <video src="${url}" style="width:100%;border-radius:var(--radius);background:#000;max-height:240px" controls></video>
+    <div style="margin-top:16px;display:flex;gap:12px;align-items:center">
+      <div class="field-group" style="flex:1">
+        <label>Start (s)</label>
+        <input type="number" id="trim-start" value="0" min="0" step="0.1" />
+      </div>
+      <div class="field-group" style="flex:1">
+        <label>End (s)</label>
+        <input type="number" id="trim-end" value="5" min="0" step="0.1" />
+      </div>
+    </div>
+    <button class="btn-gold btn-full" style="margin-top:16px" id="trim-save">Save to Timeline</button>
+  `;
+  overlay.classList.remove('hidden');
+
+  $('trim-close')?.addEventListener('click', () => { overlay.classList.add('hidden'); URL.revokeObjectURL(url); });
+  $('trim-save')?.addEventListener('click', () => {
+    const dz = $('timeline-dropzone');
+    const dzText = dz?.querySelector('.timeline-dropzone-text');
+    if (dzText) {
+      dzText.textContent = `${file.name} (trimmed)`;
+      dzText.style.color = 'var(--wolf-shiteux)';
+    }
+    overlay.classList.add('hidden');
+    toast('Video added to timeline', 'success');
+    URL.revokeObjectURL(url);
+  });
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) { overlay.classList.add('hidden'); URL.revokeObjectURL(url); } }, { once: true });
+}
+
+// ─── SRT Download ────────────────────────────────────────────────────────────
+function initDownloads() {
+  const srtBtn = $('download-srt');
+  if (srtBtn) srtBtn.addEventListener('click', () => {
+    const text = $('srt-text')?.textContent || '';
+    downloadFile(text, 'lyrics.srt', 'text/plain');
+  });
+
+  const beatsBtn = $('export-beats');
+  if (beatsBtn) beatsBtn.addEventListener('click', () => {
+    const rows = document.querySelectorAll('#beats-tbody tr');
+    let txt = 'TIMESTAMP\tLABEL\tTYPE\n';
+    rows.forEach(tr => {
+      const cells = tr.querySelectorAll('td');
+      txt += `${cells[0]?.textContent}\t${cells[1]?.textContent}\t${cells[2]?.textContent?.trim()}\n`;
+    });
+    downloadFile(txt, 'beat-cuts.txt', 'text/plain');
+  });
+}
+
+function downloadFile(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ─── Credit Modal ────────────────────────────────────────────────────────────
@@ -574,6 +966,8 @@ async function init() {
   initBugReport();
   initCrewPage();
   initStudioLeft();
+  initStudioCenter();
+  initDownloads();
 
   // Show admin nav if admin
   if (state.profile?.role === 'admin' || state.profile?.email === 'lazyjo@lightningwolves.studio') {

@@ -434,11 +434,132 @@
 
       </aside>
 
-      <!-- CENTER PANEL (placeholder for next step) -->
+      <!-- CENTER PANEL -->
       <main class="studio-center" id="studio-center">
-        <div class="studio-empty-state">
+
+        <!-- Empty state (shown before generation) -->
+        <div class="studio-empty-state" id="studio-empty">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="studio-empty-icon"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
           <p>Upload a track and hit Generate to get started.</p>
+        </div>
+
+        <!-- Active studio content (shown after generation) -->
+        <div class="studio-active hidden" id="studio-active">
+
+          <!-- Tab Bar -->
+          <div class="studio-tabs">
+            <button class="studio-tab active" data-tab="lyrics">Lyrics</button>
+            <button class="studio-tab" data-tab="srt">SRT</button>
+            <button class="studio-tab" data-tab="beats">Beat Cuts</button>
+            <button class="studio-tab" data-tab="prompts">AI Prompts</button>
+            <button class="studio-tab" data-tab="preview">Video Preview</button>
+            <button class="studio-tab" data-tab="tips">Tips</button>
+          </div>
+
+          <!-- Tab Panels -->
+          <div class="studio-tab-panels">
+
+            <!-- LYRICS -->
+            <div class="studio-tab-panel active" id="stab-lyrics">
+              <div class="lyrics-list" id="lyrics-list"></div>
+            </div>
+
+            <!-- SRT -->
+            <div class="studio-tab-panel hidden" id="stab-srt">
+              <div class="srt-actions">
+                <button class="btn-outline btn-sm" id="download-srt">Download .srt</button>
+              </div>
+              <pre class="srt-pre" id="srt-text"></pre>
+            </div>
+
+            <!-- BEAT CUTS -->
+            <div class="studio-tab-panel hidden" id="stab-beats">
+              <div class="srt-actions">
+                <button class="btn-outline btn-sm" id="export-beats">Export .txt</button>
+              </div>
+              <table class="beats-table">
+                <thead><tr><th>Timestamp</th><th>Label</th><th>Type</th></tr></thead>
+                <tbody id="beats-tbody"></tbody>
+              </table>
+            </div>
+
+            <!-- AI PROMPTS -->
+            <div class="studio-tab-panel hidden" id="stab-prompts">
+              <div class="prompts-list" id="prompts-list"></div>
+            </div>
+
+            <!-- VIDEO PREVIEW -->
+            <div class="studio-tab-panel hidden" id="stab-preview">
+              <div class="preview-area">
+                <div class="preview-badges">
+                  <span class="preview-badge" id="beat-count-badge">0 drops</span>
+                  <span class="preview-badge" id="bpm-badge">-- BPM</span>
+                </div>
+                <div class="preview-pair">
+                  <!-- 9:16 portrait -->
+                  <div class="preview-frame preview-portrait">
+                    <div class="preview-label">9:16</div>
+                    <canvas id="preview-canvas-portrait" width="270" height="480"></canvas>
+                    <div class="preview-lyric-overlay" id="preview-lyric-portrait"></div>
+                  </div>
+                  <!-- 16:9 landscape -->
+                  <div class="preview-frame preview-landscape">
+                    <div class="preview-label">16:9</div>
+                    <canvas id="preview-canvas-landscape" width="480" height="270"></canvas>
+                    <div class="preview-lyric-overlay" id="preview-lyric-landscape"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TIPS -->
+            <div class="studio-tab-panel hidden" id="stab-tips">
+              <div class="tips-list" id="tips-list"></div>
+            </div>
+
+          </div>
+
+          <!-- TIMELINE -->
+          <div class="timeline" id="timeline">
+            <div class="timeline-waveform" id="timeline-waveform">
+              <canvas id="waveform-canvas" height="60"></canvas>
+              <div class="timeline-words" id="timeline-words"></div>
+              <div class="timeline-beat-markers" id="timeline-beat-markers"></div>
+              <div class="timeline-playhead" id="timeline-playhead"></div>
+            </div>
+
+            <!-- Timeline drop zone for video -->
+            <div class="timeline-dropzone" id="timeline-dropzone">
+              <span class="timeline-dropzone-text">Drop video here</span>
+            </div>
+
+            <!-- Timeline Controls -->
+            <div class="timeline-controls">
+              <span class="tl-bpm-badge" id="tl-bpm">-- BPM</span>
+              <div class="tl-transport">
+                <button class="tl-btn" id="tl-prev" title="Previous">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                </button>
+                <button class="tl-btn tl-play" id="tl-play" title="Play/Pause">
+                  <svg viewBox="0 0 24 24" fill="currentColor" id="tl-play-icon"><polygon points="5,3 19,12 5,21"/></svg>
+                </button>
+                <button class="tl-btn" id="tl-next" title="Next">
+                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
+                </button>
+              </div>
+              <div class="tl-actions">
+                <button class="tl-btn-text" id="tl-add-cut">Add Cut</button>
+                <button class="tl-btn-text" id="tl-add-word">+ Word</button>
+                <button class="tl-btn-text" id="tl-edit-lyrics">Edit Lyrics</button>
+                <label class="tl-toggle">
+                  <input type="checkbox" id="tl-no-cuts" />
+                  <span>No Cuts</span>
+                </label>
+                <button class="tl-btn-text tl-export" id="tl-export">Export ⚡</button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
 

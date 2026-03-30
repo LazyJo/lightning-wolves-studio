@@ -880,6 +880,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
           pack={pack}
           meta={meta}
           onClose={() => setShowEditor(false)}
+          isMember={!isFreeUser(user, profile)}
         />
       )}
     </div>

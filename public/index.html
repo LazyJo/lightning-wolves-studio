@@ -44,8 +44,12 @@ document.addEventListener('DOMContentLoaded', function() {
     var el = document.getElementById(pagesToMove[i]);
     if (el && pub) pub.appendChild(el);
   }
-  // Re-run route after move
+  // Re-run route and particles after move
   if (window._lwRoute) window._lwRoute();
+  // Trigger particle init now that canvas is in visible DOM
+  setTimeout(function() {
+    if (typeof tryInitCrewParticles === 'function') tryInitCrewParticles();
+  }, 50);
 });
 </script>
 

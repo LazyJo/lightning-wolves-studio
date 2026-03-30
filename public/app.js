@@ -396,53 +396,52 @@ const WOLVES = {
 var crewParticlesStarted = false;
 
 function initCrewPage() {
-  // Particles may not be ready yet (DOM mover hasn't run), so also hook hashchange
+  // Try immediately, on hashchange, and on a delay (after DOM mover runs)
   tryInitCrewParticles();
-  window.addEventListener('hashchange', function() {
-    var hash = (window.location.hash || '').replace(/^#\/?/, '') || 'landing';
-    if (hash === '' || hash === 'landing' || hash === 'crew') {
-      tryInitCrewParticles();
-    }
-  });
+  setTimeout(tryInitCrewParticles, 100);
+  setTimeout(tryInitCrewParticles, 500);
+  window.addEventListener('hashchange', tryInitCrewParticles);
 }
 
 function tryInitCrewParticles() {
   if (crewParticlesStarted) return;
   var canvas = document.getElementById('crew-particles');
   if (!canvas) return;
+  // Make sure canvas is in the visible DOM and has dimensions
+  if (canvas.offsetWidth === 0) return;
   crewParticlesStarted = true;
 
   var ctx = canvas.getContext('2d');
   var particles = [];
+  var W, H;
 
   function resize() {
-    canvas.width = canvas.parentElement ? canvas.parentElement.clientWidth : window.innerWidth;
-    canvas.height = canvas.parentElement ? canvas.parentElement.clientHeight : window.innerHeight;
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
   }
   resize();
   window.addEventListener('resize', resize);
 
   for (var i = 0; i < 80; i++) {
     particles.push({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      size: Math.random() * 2.5 + 0.5,
-      speedX: (Math.random() - 0.5) * 0.4,
-      speedY: (Math.random() - 0.5) * 0.4,
-      alpha: Math.random() * 0.5 + 0.15,
+      x: Math.random() * W,
+      y: Math.random() * H,
+      size: Math.random() * 2 + 1,
+      speedX: (Math.random() - 0.5) * 0.3,
+      speedY: -(Math.random() * 0.4 + 0.1),
+      alpha: Math.random() * 0.5 + 0.3,
     });
   }
 
   function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, W, H);
     for (var i = 0; i < particles.length; i++) {
       var p = particles[i];
       p.x += p.speedX;
       p.y += p.speedY;
-      if (p.x < 0) p.x = canvas.width;
-      if (p.x > canvas.width) p.x = 0;
-      if (p.y < 0) p.y = canvas.height;
-      if (p.y > canvas.height) p.y = 0;
+      if (p.x < 0) p.x = W;
+      if (p.x > W) p.x = 0;
+      if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(245, 197, 24, ' + p.alpha + ')';

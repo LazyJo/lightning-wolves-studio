@@ -2985,6 +2985,187 @@ function initAuthParticles() {
   draw();
 }
 
+// ─── Dev Debug Panel ─────────────────────────────────────────────────────────
+function initDebugPanel() {
+  // Only show in dev mode (localhost or ?debug=1)
+  const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || new URLSearchParams(window.location.search).has('debug');
+  const panel = $('debug-panel');
+  if (!isDev || !panel) return;
+  panel.classList.remove('hidden');
+
+  // Toggle collapse
+  const toggle = $('debug-toggle');
+  const body = $('debug-body');
+  if (toggle && body) {
+    toggle.addEventListener('click', () => {
+      body.classList.toggle('hidden');
+      toggle.textContent = body.classList.contains('hidden') ? '+' : '−';
+    });
+  }
+
+  // Add credits
+  $('dbg-add-credits')?.addEventListener('click', () => {
+    addCredits(10);
+    updateDebugPanel();
+    toast('Debug: +10 ⚡ added', 'success');
+  });
+
+  // Simulate referral
+  $('dbg-sim-referral')?.addEventListener('click', () => {
+    state.referralCount++;
+    localStorage.setItem('lw_referral_count', state.referralCount);
+    addCredits(20);
+    updateDebugPanel();
+    updateReferralUI();
+    toast('Debug: Simulated referral signup (+20 ⚡)', 'success');
+  });
+
+  // Reset everything
+  $('dbg-reset')?.addEventListener('click', () => {
+    localStorage.clear();
+    state.credits = 0;
+    state.completedTasks = [];
+    state.pendingTasks = [];
+    state.genCount = 0;
+    state.referralCount = 0;
+    state.promoCode = '';
+    state.refCode = '';
+    updateCreditDisplay();
+    updateDebugPanel();
+    toast('Debug: All localStorage cleared', 'info');
+  });
+
+  updateDebugPanel();
+  // Refresh debug panel every 2 seconds
+  setInterval(updateDebugPanel, 2000);
+}
+
+function updateDebugPanel() {
+  const dbgCredits = $('dbg-credits');
+  const dbgTasks = $('dbg-tasks');
+  const dbgOauth = $('dbg-oauth');
+  const dbgGens = $('dbg-gens');
+  const dbgRef = $('dbg-ref');
+  const dbgRefCount = $('dbg-refcount');
+
+  if (dbgCredits) dbgCredits.textContent = state.credits;
+  if (dbgTasks) dbgTasks.textContent = state.completedTasks.length > 0 ? state.completedTasks.join(', ') : 'none';
+  if (dbgOauth) dbgOauth.textContent = state.user ? 'Signed in' : 'Guest';
+  if (dbgGens) dbgGens.textContent = state.genCount;
+  if (dbgRef) dbgRef.textContent = state.refCode || 'none';
+  if (dbgRefCount) dbgRefCount.textContent = state.referralCount;
+}
+
+// ─── Onboarding Tooltips ─────────────────────────────────────────────────────
+const ONBOARDING_STEPS = [
+  'Upload your track ⚡',
+  'We sync your lyrics automatically',
+  'Pick your style',
+  'Generate your background',
+  'Export and share',
+];
+
+function initOnboarding() {
+  // Only show once (first visit)
+  if (localStorage.getItem('lw_onboarding_done')) return;
+
+  // Only show on studio page
+  const showOnboarding = () => {
+    if (state.currentPage !== 'studio') return;
+    const overlay = $('onboarding-overlay');
+    if (!overlay) return;
+
+    let currentStep = 0;
+
+    function renderStep() {
+      const indicator = $('onboarding-step-indicator');
+      const text = $('onboarding-text');
+      const nextBtn = $('onboarding-next');
+
+      if (indicator) {
+        indicator.innerHTML = ONBOARDING_STEPS.map((_, i) =>
+          `<div class="onboarding-dot ${i === currentStep ? 'active' : ''}"></div>`
+        ).join('');
+      }
+      if (text) text.textContent = ONBOARDING_STEPS[currentStep];
+      if (nextBtn) nextBtn.textContent = currentStep === ONBOARDING_STEPS.length - 1 ? 'Done' : 'Next';
+    }
+
+    overlay.classList.remove('hidden');
+    renderStep();
+
+    $('onboarding-next')?.addEventListener('click', () => {
+      currentStep++;
+      if (currentStep >= ONBOARDING_STEPS.length) {
+        dismissOnboarding();
+      } else {
+        renderStep();
+      }
+    });
+
+    $('onboarding-skip')?.addEventListener('click', dismissOnboarding);
+  };
+
+  function dismissOnboarding() {
+    const overlay = $('onboarding-overlay');
+    if (overlay) overlay.classList.add('hidden');
+    localStorage.setItem('lw_onboarding_done', '1');
+  }
+
+  // Show when navigating to studio for the first time
+  window.addEventListener('hashchange', () => {
+    if (state.currentPage === 'studio' && !localStorage.getItem('lw_onboarding_done')) {
+      setTimeout(showOnboarding, 500);
+    }
+  });
+}
+
+// ─── Enhanced Error Handling ─────────────────────────────────────────────────
+// Wrap fetch to always return JSON errors
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+  try {
+    const res = await originalFetch.apply(this, args);
+
+    // Only intercept API calls
+    const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
+    if (!url.startsWith('/api/')) return res;
+
+    // If response is not ok and content type is not JSON, convert to JSON error
+    if (!res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        const errorMessage = mapErrorMessage(text, res.status);
+        // Return a new response with JSON body
+        return new Response(JSON.stringify({ error: errorMessage }), {
+          status: res.status,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+    return res;
+  } catch (err) {
+    // Network error
+    toast('Network error. Check your connection.', 'error');
+    throw err;
+  }
+};
+
+function mapErrorMessage(text, status) {
+  const lower = (text || '').toLowerCase();
+  if (status === 413 || lower.includes('too large') || lower.includes('limit')) {
+    return 'File too large. Max 100MB.';
+  }
+  if (lower.includes('no lyrics') || lower.includes('no speech') || lower.includes('no words')) {
+    return "Couldn't detect lyrics. Try a cleaner audio file or add lyrics manually.";
+  }
+  if (lower.includes('transcri')) {
+    return 'Transcription failed. Please try again.';
+  }
+  return text || 'Something went wrong. Please try again.';
+}
+
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 async function init() {
   checkReferralCode();
@@ -3013,6 +3194,8 @@ async function init() {
   initPricingPage();
   initTaskRewards();
   initDownloads();
+  initDebugPanel();
+  initOnboarding();
 
   // Show admin nav if admin
   if (state.profile?.role === 'admin' || state.profile?.email === 'lazyjo@lightningwolves.studio') {

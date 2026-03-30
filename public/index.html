@@ -1385,6 +1385,39 @@
   </div>
 </div>
 
+<!-- ═══ DEV DEBUG PANEL ═══ -->
+<div class="debug-panel hidden" id="debug-panel">
+  <div class="debug-header">
+    <span class="debug-title">Dev Debug</span>
+    <button class="debug-toggle" id="debug-toggle">−</button>
+  </div>
+  <div class="debug-body" id="debug-body">
+    <div class="debug-row"><span>⚡ Balance</span><span id="dbg-credits">0</span></div>
+    <div class="debug-row"><span>Tasks</span><span id="dbg-tasks">—</span></div>
+    <div class="debug-row"><span>OAuth</span><span id="dbg-oauth">—</span></div>
+    <div class="debug-row"><span>Gens used</span><span id="dbg-gens">0</span></div>
+    <div class="debug-row"><span>Ref code</span><span id="dbg-ref">—</span></div>
+    <div class="debug-row"><span>Referrals</span><span id="dbg-refcount">0</span></div>
+    <div class="debug-actions">
+      <button class="debug-btn" id="dbg-add-credits">Add 10 ⚡</button>
+      <button class="debug-btn" id="dbg-sim-referral">Sim Referral</button>
+      <button class="debug-btn debug-btn-danger" id="dbg-reset">Reset All</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ONBOARDING OVERLAY ═══ -->
+<div class="onboarding-overlay hidden" id="onboarding-overlay">
+  <div class="onboarding-tooltip" id="onboarding-tooltip">
+    <div class="onboarding-step-indicator" id="onboarding-step-indicator"></div>
+    <div class="onboarding-text" id="onboarding-text"></div>
+    <div class="onboarding-actions">
+      <button class="btn-ghost btn-sm" id="onboarding-skip">Skip</button>
+      <button class="btn-gold btn-sm" id="onboarding-next">Next</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/util.js"></script>

@@ -927,6 +927,115 @@ function downloadFile(content, filename, mime) {
   URL.revokeObjectURL(url);
 }
 
+// ─── Studio: Right Panel (Editor) ────────────────────────────────────────────
+function initStudioRight() {
+  initEditorTabs();
+  initPresetGrid();
+  initCustomizeControls();
+  initBgPanel();
+}
+
+function initEditorTabs() {
+  document.querySelectorAll('.editor-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.editor-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.editor-panel').forEach(p => p.classList.add('hidden'));
+      const panel = $(`etab-${tab.dataset.etab}`);
+      if (panel) panel.classList.remove('hidden');
+    });
+  });
+}
+
+function initPresetGrid() {
+  document.querySelectorAll('.preset-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      // Also sync the left panel style pills if matching
+      const preset = card.dataset.preset;
+      const matchingPill = document.querySelector(`.style-pill[data-style="${preset}"]`);
+      if (matchingPill) {
+        document.querySelectorAll('.style-pill').forEach(p => p.classList.remove('active'));
+        matchingPill.classList.add('active');
+      }
+    });
+  });
+}
+
+function initCustomizeControls() {
+  // Font size slider
+  const fontSlider = $('font-size-slider');
+  const fontVal = $('font-size-val');
+  if (fontSlider && fontVal) {
+    fontSlider.addEventListener('input', () => { fontVal.textContent = `${fontSlider.value}px`; });
+  }
+
+  // Blur slider
+  const blurSlider = $('bg-blur-slider');
+  const blurVal = $('bg-blur-val');
+  if (blurSlider && blurVal) {
+    blurSlider.addEventListener('input', () => { blurVal.textContent = `${blurSlider.value}px`; });
+  }
+
+  // Position pills
+  initPillGroup('.pos-pill');
+  // Animation pills
+  initPillGroup('.anim-pill');
+  // FX pills
+  initPillGroup('.fx-pill');
+
+  // Color swatches
+  initColorSwatches('text-color-presets', 'text-color-custom');
+  initColorSwatches('highlight-color-presets', 'highlight-color-custom');
+}
+
+function initPillGroup(selector) {
+  document.querySelectorAll(selector).forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll(selector).forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+}
+
+function initColorSwatches(containerId, customId) {
+  const container = $(containerId);
+  const custom = $(customId);
+  if (!container) return;
+
+  container.querySelectorAll('.color-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+      swatch.classList.add('active');
+    });
+  });
+
+  if (custom) {
+    custom.addEventListener('input', () => {
+      container.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    });
+  }
+}
+
+function initBgPanel() {
+  const zone = $('bg-upload-zone');
+  const input = $('bg-file-input');
+  if (zone && input) {
+    zone.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => {
+      if (input.files[0]) {
+        zone.innerHTML = `<span style="font-size:12px;color:var(--wolf-shiteux)">${input.files[0].name}</span>`;
+      }
+    });
+  }
+
+  const aiBtn = $('ai-bg-btn');
+  if (aiBtn) {
+    aiBtn.addEventListener('click', () => toast('AI background generation coming soon', 'info'));
+  }
+}
+
 // ─── Credit Modal ────────────────────────────────────────────────────────────
 function showCreditModal() {
   const overlay = $('modal-overlay');
@@ -967,6 +1076,7 @@ async function init() {
   initCrewPage();
   initStudioLeft();
   initStudioCenter();
+  initStudioRight();
   initDownloads();
 
   // Show admin nav if admin

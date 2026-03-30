@@ -563,8 +563,148 @@
         </div>
       </main>
 
-      <!-- RIGHT PANEL (placeholder for next step) -->
+      <!-- RIGHT PANEL — Editor -->
       <aside class="studio-right hidden" id="studio-right">
+
+        <!-- Editor Tabs -->
+        <div class="editor-tabs">
+          <button class="editor-tab active" data-etab="style">Style</button>
+          <button class="editor-tab" data-etab="customize">Customize</button>
+          <button class="editor-tab" data-etab="beat-fx">Beat FX</button>
+          <button class="editor-tab" data-etab="background">BG</button>
+        </div>
+
+        <!-- STYLE TAB -->
+        <div class="editor-panel" id="etab-style">
+          <div class="preset-grid">
+            <button class="preset-card active" data-preset="karaoke">
+              <span class="preset-preview preset-karaoke">Wolf</span>
+              <span class="preset-name">Karaoke</span>
+            </button>
+            <button class="preset-card" data-preset="pop">
+              <span class="preset-preview preset-pop">Wolf</span>
+              <span class="preset-name">Pop</span>
+            </button>
+            <button class="preset-card" data-preset="glitch">
+              <span class="preset-preview preset-glitch">Wolf</span>
+              <span class="preset-name">Glitch</span>
+            </button>
+            <button class="preset-card" data-preset="knockout">
+              <span class="preset-preview preset-knockout">Wolf</span>
+              <span class="preset-name">Knockout</span>
+            </button>
+            <button class="preset-card" data-preset="minimal">
+              <span class="preset-preview preset-minimal">Wolf</span>
+              <span class="preset-name">Minimal</span>
+            </button>
+            <button class="preset-card" data-preset="phantom">
+              <span class="preset-preview preset-phantom">Wolf</span>
+              <span class="preset-name">Phantom</span>
+            </button>
+            <button class="preset-card" data-preset="ghost">
+              <span class="preset-preview preset-ghost">Wolf</span>
+              <span class="preset-name">Ghost</span>
+            </button>
+            <button class="preset-card" data-preset="eclipse">
+              <span class="preset-preview preset-eclipse">Wolf</span>
+              <span class="preset-name">Eclipse</span>
+            </button>
+            <button class="preset-card" data-preset="hotpink">
+              <span class="preset-preview preset-hotpink">Wolf</span>
+              <span class="preset-name">HOTPINK</span>
+            </button>
+            <button class="preset-card" data-preset="fly">
+              <span class="preset-preview preset-fly">Wolf</span>
+              <span class="preset-name">Fly</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CUSTOMIZE TAB -->
+        <div class="editor-panel hidden" id="etab-customize">
+          <div class="editor-section">
+            <label>Font size</label>
+            <input type="range" id="font-size-slider" min="12" max="72" value="32" class="editor-slider" />
+            <span class="editor-slider-val" id="font-size-val">32px</span>
+          </div>
+          <div class="editor-section">
+            <label>Position</label>
+            <div class="position-pills">
+              <button class="pos-pill active" data-pos="top">Top</button>
+              <button class="pos-pill" data-pos="center">Center</button>
+              <button class="pos-pill" data-pos="bottom">Bottom</button>
+            </div>
+          </div>
+          <div class="editor-section">
+            <label>Animation</label>
+            <div class="position-pills">
+              <button class="anim-pill active" data-anim="slam">Slam</button>
+              <button class="anim-pill" data-anim="fade">Fade</button>
+              <button class="anim-pill" data-anim="glitch">Glitch</button>
+              <button class="anim-pill" data-anim="pop">Pop</button>
+              <button class="anim-pill" data-anim="typewriter">Type</button>
+            </div>
+          </div>
+          <div class="editor-section">
+            <label>Text color</label>
+            <div class="color-presets" id="text-color-presets">
+              <button class="color-swatch active" data-color="#ffffff" style="background:#ffffff"></button>
+              <button class="color-swatch" data-color="#f5c518" style="background:#f5c518"></button>
+              <button class="color-swatch" data-color="#ff80ab" style="background:#ff80ab"></button>
+              <button class="color-swatch" data-color="#82b1ff" style="background:#82b1ff"></button>
+              <button class="color-swatch" data-color="#69f0ae" style="background:#69f0ae"></button>
+              <input type="color" id="text-color-custom" class="color-custom" value="#ffffff" title="Custom color" />
+            </div>
+          </div>
+          <div class="editor-section">
+            <label>Highlight color</label>
+            <div class="color-presets" id="highlight-color-presets">
+              <button class="color-swatch active" data-color="#f5c518" style="background:#f5c518"></button>
+              <button class="color-swatch" data-color="#ff80ab" style="background:#ff80ab"></button>
+              <button class="color-swatch" data-color="#b388ff" style="background:#b388ff"></button>
+              <button class="color-swatch" data-color="#00e5ff" style="background:#00e5ff"></button>
+              <input type="color" id="highlight-color-custom" class="color-custom" value="#f5c518" title="Custom color" />
+            </div>
+          </div>
+        </div>
+
+        <!-- BEAT FX TAB -->
+        <div class="editor-panel hidden" id="etab-beat-fx">
+          <div class="editor-section">
+            <label>Effect type</label>
+            <div class="position-pills">
+              <button class="fx-pill active" data-fx="flash">Flash</button>
+              <button class="fx-pill" data-fx="zoom">Zoom</button>
+              <button class="fx-pill" data-fx="shake">Shake</button>
+              <button class="fx-pill" data-fx="colorburst">Burst</button>
+            </div>
+          </div>
+          <p class="editor-hint">Effect triggers at each detected beat drop timestamp.</p>
+        </div>
+
+        <!-- BACKGROUND TAB -->
+        <div class="editor-panel hidden" id="etab-background">
+          <div class="editor-section">
+            <label>Upload image or video</label>
+            <div class="bg-upload-zone" id="bg-upload-zone">
+              <span class="upload-sub">Click or drop</span>
+              <input type="file" id="bg-file-input" accept="image/*,video/*" hidden />
+            </div>
+          </div>
+          <div class="editor-section">
+            <button class="btn-gold btn-sm btn-full" id="ai-bg-btn">Generate with AI ⚡</button>
+          </div>
+          <div class="editor-section">
+            <label>Solid color</label>
+            <input type="color" id="bg-solid-color" class="color-custom" value="#000000" />
+          </div>
+          <div class="editor-section">
+            <label>Blur intensity</label>
+            <input type="range" id="bg-blur-slider" min="0" max="20" value="0" class="editor-slider" />
+            <span class="editor-slider-val" id="bg-blur-val">0px</span>
+          </div>
+        </div>
+
       </aside>
 
     </div>

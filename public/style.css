@@ -1592,10 +1592,285 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 /* ─── Right Panel ──────────────────────────────────────────────────────────── */
 .studio-right {
-  width: 180px;
-  min-width: 180px;
+  width: 220px;
+  min-width: 220px;
   border-left: 1px solid var(--border);
   background: var(--surface);
   overflow-y: auto;
-  padding: 16px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
+
+/* ─── Editor Tabs ──────────────────────────────────────────────────────────── */
+.editor-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.editor-tab {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-align: center;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.editor-tab:hover { color: var(--text-muted); }
+
+.editor-tab.active {
+  color: var(--gold);
+  border-bottom-color: var(--gold);
+}
+
+/* ─── Editor Panels ────────────────────────────────────────────────────────── */
+.editor-panel {
+  padding: 12px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.editor-panel.hidden { display: none; }
+
+.editor-section {
+  margin-bottom: 14px;
+}
+
+.editor-section label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.editor-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-top: 8px;
+}
+
+/* ─── Preset Grid (2x2) ───────────────────────────────────────────────────── */
+.preset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.preset-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px;
+  background: var(--base);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.preset-card:hover { border-color: var(--border-light); }
+
+.preset-card.active {
+  border-color: var(--gold);
+  background: var(--gold-dim);
+}
+
+.preset-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.preset-card.active .preset-name { color: var(--gold); }
+
+/* ─── Preset Mini Previews ─────────────────────────────────────────────────── */
+.preset-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 32px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.preset-karaoke {
+  background: #111;
+  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.preset-pop {
+  background: #111;
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.preset-glitch {
+  background: #111;
+  color: #0ff;
+  text-shadow: 2px 0 #f0f, -2px 0 #0ff;
+  font-family: monospace;
+}
+
+.preset-knockout {
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+  mix-blend-mode: screen;
+}
+
+.preset-minimal {
+  background: #111;
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.preset-phantom {
+  background: #111;
+  color: rgba(255,255,255,0.7);
+  font-style: italic;
+  font-family: 'Georgia', serif;
+}
+
+.preset-ghost {
+  background: #fff;
+  color: #000;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.preset-eclipse {
+  background: #111;
+  color: #e8e8e8;
+  font-family: 'Georgia', serif;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.preset-hotpink {
+  background: #111;
+  color: #00e5ff;
+  text-shadow: 0 0 8px #ff69b4;
+}
+
+.preset-fly {
+  background: #111;
+  color: #fff;
+  font-family: 'Raleway', sans-serif;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.8);
+  font-weight: 600;
+}
+
+/* ─── Editor Controls ──────────────────────────────────────────────────────── */
+.editor-slider {
+  width: 100%;
+  appearance: none;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+  border: none;
+  padding: 0;
+}
+
+.editor-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--gold);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.editor-slider-val {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  display: block;
+}
+
+/* ─── Position / Animation / FX Pills ──────────────────────────────────────── */
+.position-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.pos-pill, .anim-pill, .fx-pill {
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-dim);
+  background: var(--base);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.pos-pill:hover, .anim-pill:hover, .fx-pill:hover {
+  border-color: var(--border-light);
+  color: var(--text-muted);
+}
+
+.pos-pill.active, .anim-pill.active, .fx-pill.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  background: var(--gold-dim);
+}
+
+/* ─── Color Presets ────────────────────────────────────────────────────────── */
+.color-presets {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.color-swatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.color-swatch:hover { border-color: var(--border-light); }
+.color-swatch.active { border-color: var(--gold); }
+
+.color-custom {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  background: none;
+}
+
+/* ─── BG Upload Zone ───────────────────────────────────────────────────────── */
+.bg-upload-zone {
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius);
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.bg-upload-zone:hover { border-color: var(--gold); }

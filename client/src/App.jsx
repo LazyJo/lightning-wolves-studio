@@ -3,11 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
-  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',  image: 'LightningWolfYellowTransparentBG.png', animation: 'Lazy Jo Wolf Card Animation.mp4', locked: false },
-  { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',   image: 'LightningWolfPurpleTransparentBG.png', animation: 'Wolf-Purple.mp4', locked: false },
-  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop', image: 'LightningWolfOrangeTransparentBG.png', animation: 'Wolf-Orange.mp4', locked: false },
-  { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Visual Art',       image: 'LightningWolfGreenTransparentBG.png', animation: 'wolf-white-blue.mp4', locked: false },
-  { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photo · Video · Beats', image: 'LightningWolfRoseTransparentBG.png', animation: 'Pink Wolf Animation.mp4', locked: false },
+  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', animation: 'Lazy Jo Wolf Card Animation.mp4', locked: false },
+  { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',      image: 'LightningWolfPurpleTransparentBG.png', animation: 'Wolf-Purple.mp4', locked: false },
+  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', animation: 'Wolf-Orange.mp4', locked: false },
+  { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Covers & Trailers',   image: 'LightningWolfGreenTransparentBG.png', animation: 'wolf-white-blue.mp4', locked: false },
+  { id: 'lone',   color: '#f5c518', artist: 'Lone Wolf',     genre: '3 Free Generations',  image: 'LightningWolvesLogoTransparentBG.png', locked: false, isLoneWolf: true },
+  { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photos & Videos',     image: 'LightningWolfRoseTransparentBG.png', animation: 'Pink Wolf Animation.mp4', locked: false },
 ]
 
 const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯']
@@ -439,27 +440,20 @@ function WolfSelectPage({ onSelectWolf }) {
         <h1 className="select-tagline">WHICH WOLF ARE YOU?</h1>
         <div className="wolf-grid">
           {WOLVES.map(wolf => (
-            <div key={wolf.id} className="wolf-card-new" style={{'--wc': wolf.color}} onClick={() => onSelectWolf(wolf)}>
+            <div key={wolf.id}
+              className={`wolf-card-new ${wolf.isLoneWolf ? 'wolf-card-lone' : ''}`}
+              style={{'--wc': wolf.color}}
+              onClick={() => wolf.isLoneWolf
+                ? onSelectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' })
+                : onSelectWolf(wolf)
+              }>
               <div className="wolf-card-img-circle">
-                {wolf.animation ? (
-                  <video src={`/${wolf.animation}`} autoPlay loop muted playsInline className="wolf-card-circle-video" />
-                ) : (
-                  <img src={`/${wolf.image}`} alt={wolf.artist} />
-                )}
-                <div className="wolf-card-glow"></div>
+                <img src={`/${wolf.image}`} alt={wolf.artist} />
               </div>
               <div className="wolf-card-name">{wolf.artist}</div>
               <div className="wolf-card-genre">{wolf.genre}</div>
             </div>
           ))}
-          <div className="wolf-card-new wolf-card-join" style={{'--wc': '#f5c518'}}
-               onClick={() => onSelectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' })}>
-            <div className="wolf-card-img-circle">
-              <div className="wolf-join-icon">+</div>
-            </div>
-            <div className="wolf-card-name">Join the Pack</div>
-            <div className="wolf-card-genre">Apply →</div>
-          </div>
         </div>
       </main>
     </div>

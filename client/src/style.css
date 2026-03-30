@@ -316,75 +316,57 @@ a:hover { text-decoration: underline; }
   border-radius: 8px;
 }
 
-/* ─── New Cinematic Wolf Cards ──────────────────────────────────────────────── */
+/* ─── Wolf Cards ───────────────────────────────────────────────────────────── */
 .wolf-card-new {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 32px 20px 28px;
-  background: rgba(25, 25, 28, 0.9);
-  border: 1px solid rgba(55, 55, 60, 0.5);
+  gap: 16px;
+  padding: 40px 24px 32px;
+  background: rgba(28, 28, 32, 0.85);
+  border: 1px solid rgba(60, 60, 65, 0.4);
   border-radius: 16px;
   text-align: center;
   cursor: pointer;
   transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
-  position: relative;
-  overflow: hidden;
 }
 
 .wolf-card-new:hover {
   transform: translateY(-4px);
   border-color: var(--wc);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px color-mix(in srgb, var(--wc) 15%, transparent);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 24px color-mix(in srgb, var(--wc) 12%, transparent);
 }
 
+.wolf-card-lone {
+  border-color: rgba(245, 197, 24, 0.35);
+  background: rgba(245, 197, 24, 0.04);
+}
+.wolf-card-lone:hover { border-color: #f5c518; }
+
 .wolf-card-img-circle {
-  position: relative;
-  width: 160px;
-  height: 160px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
   overflow: hidden;
-  background: #111115;
+  background: radial-gradient(circle, rgba(30,30,35,0.9), #0d0d10);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 20px rgba(0,0,0,0.5), inset 0 0 30px rgba(0,0,0,0.3);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4);
 }
 
 .wolf-card-img-circle img {
-  width: 85%;
-  height: 85%;
+  width: 80%;
+  height: 80%;
   object-fit: contain;
-  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--wc) 50%, transparent));
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--wc) 40%, transparent));
   transition: filter 0.3s, transform 0.3s;
 }
 
-.wolf-card-new:hover .wolf-card-img-circle img,
-.wolf-card-new:hover .wolf-card-img-circle video {
-  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--wc) 70%, transparent));
-  transform: scale(1.12);
+.wolf-card-new:hover .wolf-card-img-circle img {
+  filter: drop-shadow(0 0 18px color-mix(in srgb, var(--wc) 65%, transparent));
+  transform: scale(1.1);
 }
-
-.wolf-card-circle-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  transition: filter 0.3s, transform 0.3s;
-}
-
-.wolf-card-glow {
-  position: absolute;
-  inset: -15px;
-  border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in srgb, var(--wc) 12%, transparent), transparent 65%);
-  pointer-events: none;
-  opacity: 0.4;
-  transition: opacity 0.3s;
-}
-
-.wolf-card-new:hover .wolf-card-glow { opacity: 1; }
 
 .wolf-card-name {
   font-family: 'Bebas Neue', sans-serif;

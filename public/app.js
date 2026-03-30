@@ -2801,24 +2801,188 @@ function showCreditModal() {
   const box = $('modal-box');
   if (!overlay || !box) return;
 
+  // Check if it's a generation limit issue (3 free) or credit issue
+  const isLimitHit = state.genCount >= 3 && !state.user;
+  const title = isLimitHit
+    ? "You've used your 3 free generations. ⚡"
+    : "Not enough credits ⚡";
+  const desc = isLimitHit
+    ? "Sign in or sign up to continue. Earn free credits from tasks!"
+    : "You need 10 ⚡ to generate. Earn credits from tasks or upgrade your plan.";
+
   box.innerHTML = `
     <div style="text-align:center">
       <div style="font-size:32px;margin-bottom:12px">⚡</div>
-      <h3 style="font-size:18px;font-weight:500;margin-bottom:8px">Not enough credits</h3>
-      <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px">
-        You need 10 ⚡ to generate. Earn credits from tasks or upgrade your plan.
-      </p>
+      <h3 style="font-size:18px;font-weight:500;margin-bottom:8px">${title}</h3>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:24px">${desc}</p>
       <div style="display:flex;flex-direction:column;gap:8px">
-        <a href="#/pricing" class="btn-gold btn-full" id="modal-pricing-btn">Get Access</a>
-        <button class="btn-ghost btn-full" id="modal-close-btn">Not now</button>
+        <a href="#/auth" class="btn-gold btn-full" id="modal-signin-btn">Sign In</a>
+        <a href="#/pricing" class="btn-outline btn-full" id="modal-pricing-btn">Get Access</a>
+        <a href="#/pricing" class="btn-ghost btn-full" id="modal-tasks-btn" style="font-size:12px">Earn free credits →</a>
       </div>
     </div>
   `;
   overlay.classList.remove('hidden');
 
+  $('modal-signin-btn')?.addEventListener('click', () => overlay.classList.add('hidden'));
   $('modal-pricing-btn')?.addEventListener('click', () => overlay.classList.add('hidden'));
-  $('modal-close-btn')?.addEventListener('click', () => overlay.classList.add('hidden'));
+  $('modal-tasks-btn')?.addEventListener('click', () => overlay.classList.add('hidden'));
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.add('hidden'); }, { once: true });
+}
+
+// ─── Auth Page ───────────────────────────────────────────────────────────────
+function initAuthPage() {
+  // Tab switching
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      const isSignin = tab.dataset.authtab === 'signin';
+      const signinForm = $('auth-signin-form');
+      const signupForm = $('auth-signup-form');
+      if (signinForm) signinForm.classList.toggle('hidden', !isSignin);
+      if (signupForm) signupForm.classList.toggle('hidden', isSignin);
+    });
+  });
+
+  // Sign In
+  const signinForm = $('auth-signin-form');
+  if (signinForm) signinForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('auth-signin-email')?.value.trim();
+    const pass = $('auth-signin-password')?.value;
+    const errEl = $('auth-signin-error');
+    if (errEl) errEl.classList.add('hidden');
+
+    if (!supabase) {
+      showAuthError(errEl, 'Auth not configured. Set up Supabase.');
+      return;
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) return showAuthError(errEl, error.message);
+
+    state.user = data.user;
+    state.token = data.session.access_token;
+    await loadProfile();
+    mergeLocalStorageToAccount();
+    updateTopbarAuth();
+    updateTaskUI();
+    toast('Signed in!', 'success');
+    window.location.hash = '/';
+  });
+
+  // Sign Up
+  const signupForm = $('auth-signup-form');
+  if (signupForm) signupForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = $('auth-signup-email')?.value.trim();
+    const pass = $('auth-signup-password')?.value;
+    const promo = $('auth-signup-promo')?.value.trim().toUpperCase();
+    const errEl = $('auth-signup-error');
+    if (errEl) errEl.classList.add('hidden');
+
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass, promoCode: promo }),
+      });
+      const json = await res.json();
+      if (!res.ok) return showAuthError(errEl, json.error);
+
+      // Apply promo code if valid
+      if (promo && PROMO_CODES[promo]) {
+        const promoData = PROMO_CODES[promo];
+        if (promoData.type === 'credits') {
+          addCredits(promoData.value);
+        }
+        localStorage.setItem('lw_promo_code', promo);
+        state.promoCode = promo;
+      }
+
+      // Auto sign in
+      if (supabase) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+        if (error) {
+          toast('Account created! Please sign in.', 'success');
+          document.querySelector('.auth-tab[data-authtab="signin"]')?.click();
+          return;
+        }
+        state.user = data.user;
+        state.token = data.session.access_token;
+        await loadProfile();
+      }
+
+      mergeLocalStorageToAccount();
+      updateTopbarAuth();
+      updateTaskUI();
+      toast('Account created! Welcome to the pack.', 'success');
+      window.location.hash = '/';
+    } catch (err) {
+      showAuthError(errEl, err.message);
+    }
+  });
+
+  // Continue as Guest
+  const guestBtn = $('auth-guest-btn');
+  if (guestBtn) guestBtn.addEventListener('click', () => {
+    window.location.hash = '/';
+  });
+
+  // Init particles
+  initAuthParticles();
+}
+
+function showAuthError(el, msg) {
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+// ─── Auth Particle Background ────────────────────────────────────────────────
+function initAuthParticles() {
+  const canvas = $('auth-particles');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    canvas.width = canvas.parentElement?.clientWidth || window.innerWidth;
+    canvas.height = canvas.parentElement?.clientHeight || window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const particles = [];
+  for (let i = 0; i < 60; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2 + 0.5,
+      speedX: (Math.random() - 0.5) * 0.3,
+      speedY: (Math.random() - 0.5) * 0.3,
+      alpha: Math.random() * 0.3 + 0.1,
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.speedX;
+      p.y += p.speedY;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(245, 197, 24, ${p.alpha})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
 }
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
@@ -2834,6 +2998,7 @@ async function init() {
   initTopbarAuth();
   initCreditPill();
   initBugReport();
+  initAuthPage();
   initCrewPage();
   initStudioLeft();
   initStudioCenter();

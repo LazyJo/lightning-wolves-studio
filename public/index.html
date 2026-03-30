@@ -1190,7 +1190,55 @@
   </div>
 
   <!-- PAGE: AUTH -->
-  <div class="page hidden" id="page-auth"></div>
+  <div class="page hidden" id="page-auth">
+    <canvas id="auth-particles" class="auth-particles"></canvas>
+    <div class="auth-page">
+      <div class="auth-container">
+        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" class="auth-logo" />
+        <div class="auth-wordmark">Lightning Wolves Studio</div>
+
+        <!-- Tabs -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-authtab="signin">Sign In</button>
+          <button class="auth-tab" data-authtab="signup">Sign Up</button>
+        </div>
+
+        <!-- Sign In Form -->
+        <form id="auth-signin-form" class="auth-form">
+          <div class="field-group">
+            <label>Email</label>
+            <input type="email" id="auth-signin-email" placeholder="your@email.com" required />
+          </div>
+          <div class="field-group">
+            <label>Password</label>
+            <input type="password" id="auth-signin-password" placeholder="••••••••" required />
+          </div>
+          <div class="auth-error hidden" id="auth-signin-error"></div>
+          <button type="submit" class="btn-gold btn-full">Sign In</button>
+        </form>
+
+        <!-- Sign Up Form -->
+        <form id="auth-signup-form" class="auth-form hidden">
+          <div class="field-group">
+            <label>Email</label>
+            <input type="email" id="auth-signup-email" placeholder="your@email.com" required />
+          </div>
+          <div class="field-group">
+            <label>Password</label>
+            <input type="password" id="auth-signup-password" placeholder="Min 8 characters" required minlength="8" />
+          </div>
+          <div class="field-group">
+            <label>Promo code <span class="label-optional">(optional)</span></label>
+            <input type="text" id="auth-signup-promo" placeholder="e.g. WOLFPACK" style="text-transform:uppercase" />
+          </div>
+          <div class="auth-error hidden" id="auth-signup-error"></div>
+          <button type="submit" class="btn-gold btn-full">Create Account</button>
+        </form>
+
+        <button class="btn-ghost btn-full auth-guest-btn" id="auth-guest-btn">Continue as Guest</button>
+      </div>
+    </div>
+  </div>
 
   <!-- PAGE: ADMIN -->
   <div class="page hidden" id="page-admin">

@@ -360,9 +360,18 @@ a:hover { text-decoration: underline; }
   transition: filter 0.3s, transform 0.3s;
 }
 
-.wolf-card-new:hover .wolf-card-img-circle img {
+.wolf-card-new:hover .wolf-card-img-circle img,
+.wolf-card-new:hover .wolf-card-img-circle video {
   filter: drop-shadow(0 0 20px color-mix(in srgb, var(--wc) 70%, transparent));
   transform: scale(1.12);
+}
+
+.wolf-card-circle-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  transition: filter 0.3s, transform 0.3s;
 }
 
 .wolf-card-glow {

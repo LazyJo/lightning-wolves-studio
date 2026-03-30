@@ -123,110 +123,38 @@ const PAGE_NAMES = {
   'wolf-profile': 'Crew',
 };
 
+// navigateTo — delegates to the inline router + handles wolf profiles
 function navigateTo(page, params) {
-  console.log('[LW] navigateTo:', page, params || '');
-  // Get all page containers
-  const allPages = document.querySelectorAll('.page');
-  console.log('[LW] found', allPages.length, 'page containers');
-
-  // Hide all pages
-  allPages.forEach(function(p) {
-    p.style.display = 'none';
-  });
-
-  // Wolf profile is a dynamic page
   if (page === 'wolf-profile' && params && params.wolfId) {
+    // Wolf profile: hide all, show profile page
+    document.querySelectorAll('.page').forEach(function(p) { p.style.display = 'none'; });
     renderWolfProfile(params.wolfId);
     var profilePage = document.getElementById('page-wolf-profile');
     if (profilePage) profilePage.style.display = 'block';
     state.currentPage = 'wolf-profile';
-    var wolf = WOLVES[params.wolfId];
-    var bc = document.getElementById('breadcrumb-page');
-    if (bc) bc.textContent = wolf ? wolf.name : 'Profile';
-    document.querySelectorAll('.sidebar-icon').forEach(function(icon) {
-      icon.classList.remove('active');
-      if (icon.dataset.page === 'crew') icon.classList.add('active');
-    });
-    var mc = document.getElementById('main-content');
-    if (mc) mc.scrollTop = 0;
     return;
   }
-
-  // Show target page
-  var target = document.getElementById('page-' + page);
-  if (target) {
-    target.style.display = 'block';
-  } else {
-    // Fallback to landing
-    var landing = document.getElementById('page-landing');
-    if (landing) landing.style.display = 'block';
-    page = 'landing';
-  }
-
-  // Update state
-  state.currentPage = page;
-
-  // Update breadcrumb
-  var bc2 = document.getElementById('breadcrumb-page');
-  if (bc2) bc2.textContent = PAGE_NAMES[page] || page;
-
-  // Update sidebar active state
-  document.querySelectorAll('.sidebar-icon').forEach(function(icon) {
-    icon.classList.remove('active');
-    if (icon.dataset.page === page) icon.classList.add('active');
-  });
-
-  // Scroll to top
-  var mc2 = document.getElementById('main-content');
-  if (mc2) mc2.scrollTop = 0;
-}
-
-function onHashChange() {
-  console.log('[LW] onHashChange, hash:', window.location.hash);
-  var hash = window.location.hash.replace('#/', '') || 'landing';
-  var parts = hash.split('/');
-  var page = parts[0] || 'landing';
-
-  // Handle /crew/:wolfId routes
-  if (page === 'crew' && parts[1]) {
-    navigateTo('wolf-profile', { wolfId: parts[1] });
-    return;
-  }
-
-  if (PAGE_NAMES[page] !== undefined) {
-    navigateTo(page);
-  } else {
-    navigateTo('landing');
-  }
+  // For normal pages, just update the hash — the inline router handles the rest
+  window.location.hash = '/' + (page === 'landing' ? '' : page);
 }
 
 function initRouter() {
-  // Listen to hash changes
-  window.addEventListener('hashchange', onHashChange);
-
-  // Also listen to page load
-  window.addEventListener('load', onHashChange);
-
-  // Handle sidebar clicks
-  document.querySelectorAll('.sidebar-icon[data-page]').forEach(function(link) {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      var page = link.dataset.page;
-      window.location.hash = '/' + (page === 'landing' ? '' : page);
-    });
+  // The inline <script> in index.html handles basic hash routing.
+  // This adds wolf profile support on top.
+  window.addEventListener('hashchange', function() {
+    var hash = (window.location.hash || '').replace(/^#\/?/, '') || 'landing';
+    var parts = hash.split('/');
+    if (parts[0] === 'crew' && parts[1]) {
+      // Wolf profile route
+      document.querySelectorAll('.page').forEach(function(p) { p.style.display = 'none'; });
+      renderWolfProfile(parts[1]);
+      var profilePage = document.getElementById('page-wolf-profile');
+      if (profilePage) profilePage.style.display = 'block';
+      state.currentPage = 'wolf-profile';
+    } else {
+      state.currentPage = parts[0] || 'landing';
+    }
   });
-
-  // Handle sidebar logo
-  var logo = document.querySelector('.sidebar-logo');
-  if (logo) {
-    logo.addEventListener('click', function(e) {
-      e.preventDefault();
-      window.location.hash = '/';
-    });
-  }
-
-  // Run initial route immediately
-  onHashChange();
 }
 
 // ─── Topbar Auth Buttons ─────────────────────────────────────────────────────
@@ -3304,91 +3232,62 @@ function initOnboarding() {
   });
 }
 
-// ─── Enhanced Error Handling ─────────────────────────────────────────────────
-// Wrap fetch to always return JSON errors
-const originalFetch = window.fetch;
-window.fetch = async function(...args) {
-  try {
-    const res = await originalFetch.apply(this, args);
-
-    // Only intercept API calls
-    const url = typeof args[0] === 'string' ? args[0] : args[0]?.url || '';
-    if (!url.startsWith('/api/')) return res;
-
-    // If response is not ok and content type is not JSON, convert to JSON error
-    if (!res.ok) {
-      const contentType = res.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        const text = await res.text();
-        const errorMessage = mapErrorMessage(text, res.status);
-        // Return a new response with JSON body
-        return new Response(JSON.stringify({ error: errorMessage }), {
-          status: res.status,
-          headers: { 'Content-Type': 'application/json' },
-        });
-      }
-    }
-    return res;
-  } catch (err) {
-    // Network error
-    toast('Network error. Check your connection.', 'error');
-    throw err;
-  }
-};
-
+// ─── Error Helpers ───────────────────────────────────────────────────────────
 function mapErrorMessage(text, status) {
   const lower = (text || '').toLowerCase();
-  if (status === 413 || lower.includes('too large') || lower.includes('limit')) {
-    return 'File too large. Max 100MB.';
-  }
-  if (lower.includes('no lyrics') || lower.includes('no speech') || lower.includes('no words')) {
-    return "Couldn't detect lyrics. Try a cleaner audio file or add lyrics manually.";
-  }
-  if (lower.includes('transcri')) {
-    return 'Transcription failed. Please try again.';
-  }
+  if (status === 413 || lower.includes('too large') || lower.includes('limit')) return 'File too large. Max 100MB.';
+  if (lower.includes('no lyrics') || lower.includes('no speech')) return "Couldn't detect lyrics. Try a cleaner audio file or add lyrics manually.";
+  if (lower.includes('transcri')) return 'Transcription failed. Please try again.';
   return text || 'Something went wrong. Please try again.';
 }
 
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 async function init() {
   console.log('[LW] init() starting');
-  // Core UI first — these must work even if network fails
-  initRouter();
-  console.log('[LW] initRouter done');
-  initTopbarAuth();
-  initCreditPill();
-  initBugReport();
-  initAuthPage();
-  initCrewPage();
-  initStudioLeft();
-  initStudioCenter();
-  initStudioRight();
-  initPerWordStyling();
-  initModelSelection();
-  initPerformanceTab();
-  initRemixTab();
-  initHooksPanel();
-  initJoinPage();
-  initAdminDashboard();
-  initPricingPage();
-  initTaskRewards();
-  initDownloads();
-  initDebugPanel();
-  initOnboarding();
-  updateCreditDisplay();
+
+  // Initialize each module in try-catch so one failure doesn't kill the rest
+  var modules = [
+    ['Router', initRouter],
+    ['TopbarAuth', initTopbarAuth],
+    ['CreditPill', initCreditPill],
+    ['BugReport', initBugReport],
+    ['AuthPage', initAuthPage],
+    ['CrewPage', initCrewPage],
+    ['StudioLeft', initStudioLeft],
+    ['StudioCenter', initStudioCenter],
+    ['StudioRight', initStudioRight],
+    ['PerWordStyling', initPerWordStyling],
+    ['ModelSelection', initModelSelection],
+    ['PerformanceTab', initPerformanceTab],
+    ['RemixTab', initRemixTab],
+    ['HooksPanel', initHooksPanel],
+    ['JoinPage', initJoinPage],
+    ['AdminDashboard', initAdminDashboard],
+    ['PricingPage', initPricingPage],
+    ['TaskRewards', initTaskRewards],
+    ['Downloads', initDownloads],
+    ['DebugPanel', initDebugPanel],
+    ['Onboarding', initOnboarding],
+    ['CreditDisplay', updateCreditDisplay],
+  ];
+
+  for (var i = 0; i < modules.length; i++) {
+    try { modules[i][1](); } catch (e) { console.error('[LW] ' + modules[i][0] + ' failed:', e); }
+  }
+
+  console.log('[LW] all modules initialized');
 
   // Network-dependent init (non-blocking)
-  checkReferralCode();
-  initGoogleOAuth();
+  try { checkReferralCode(); } catch(e) {}
+  try { initGoogleOAuth(); } catch(e) {}
   try {
     await initSupabase();
     await checkSession();
     if (state.user) mergeLocalStorageToAccount();
   } catch (e) {
-    console.warn('Auth init failed:', e);
+    console.warn('[LW] Auth init failed:', e);
   }
-  updateTopbarAuth();
+  try { updateTopbarAuth(); } catch(e) {}
 
   // Show admin nav if admin
   if (state.profile?.role === 'admin' || state.profile?.email === 'lazyjo@lightningwolves.studio') {

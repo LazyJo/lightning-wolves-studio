@@ -1427,6 +1427,56 @@
   </div>
 </div>
 
+<script>
+// ─── INLINE ROUTER (runs immediately, no dependencies) ─────────────────────
+(function() {
+  function route() {
+    var hash = (window.location.hash || '').replace(/^#\/?/, '') || 'landing';
+    var page = hash.split('/')[0] || 'landing';
+    var pages = document.querySelectorAll('.page');
+    for (var i = 0; i < pages.length; i++) {
+      pages[i].style.display = 'none';
+    }
+    var target = document.getElementById('page-' + page);
+    if (target) {
+      target.style.display = 'block';
+    } else {
+      var landing = document.getElementById('page-landing');
+      if (landing) landing.style.display = 'block';
+    }
+    // Update breadcrumb
+    var names = {landing:'Home',crew:'Crew',studio:'Studio',pricing:'Pricing',join:'Join the Pack',auth:'Sign In',admin:'Admin'};
+    var bc = document.getElementById('breadcrumb-page');
+    if (bc) bc.textContent = names[page] || page;
+    // Update sidebar
+    var icons = document.querySelectorAll('.sidebar-icon');
+    for (var j = 0; j < icons.length; j++) {
+      icons[j].classList.remove('active');
+      if (icons[j].getAttribute('data-page') === page) icons[j].classList.add('active');
+    }
+    // Scroll to top
+    var mc = document.getElementById('main-content');
+    if (mc) mc.scrollTop = 0;
+  }
+  window.addEventListener('hashchange', route);
+  window.addEventListener('load', route);
+  if (document.readyState !== 'loading') route();
+  // Wire sidebar clicks
+  document.addEventListener('click', function(e) {
+    var link = e.target.closest('.sidebar-icon[data-page]');
+    if (link) {
+      e.preventDefault();
+      var p = link.getAttribute('data-page');
+      window.location.hash = '/' + (p === 'landing' ? '' : p);
+    }
+    var logo = e.target.closest('.sidebar-logo');
+    if (logo) {
+      e.preventDefault();
+      window.location.hash = '/';
+    }
+  });
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/util.js"></script>

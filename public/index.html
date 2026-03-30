@@ -994,6 +994,104 @@
         </div>
       </div>
 
+      <!-- Task Rewards -->
+      <div class="tasks-section">
+        <div class="tasks-header-card">
+          <div class="tasks-header-text">
+            <h2 class="tasks-heading">The pack looks after its own. ⚡</h2>
+            <p class="tasks-subtext">Support a Lightning Wolves artist and earn free Credits.</p>
+            <div class="tasks-progress">
+              <div class="tasks-progress-bar">
+                <div class="tasks-progress-fill" id="tasks-progress-fill"></div>
+              </div>
+              <span class="tasks-progress-label" id="tasks-progress-label">0 / 60 ⚡ earned from tasks · 10 ⚡ = 1 generation</span>
+            </div>
+          </div>
+          <img src="/LightningWolfOrangeTransparentBG.png" alt="" class="tasks-header-img" loading="lazy" />
+        </div>
+
+        <div class="tasks-list" id="tasks-list">
+          <!-- Task 1: Signup -->
+          <div class="task-row" data-task="signup">
+            <div class="task-icon task-icon-email">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            </div>
+            <div class="task-info">
+              <div class="task-name">Sign up with email</div>
+              <div class="task-desc">Create your account to get started</div>
+            </div>
+            <span class="task-reward">+10 ⚡</span>
+            <button class="task-btn task-btn-earn" id="task-btn-signup">Earn</button>
+          </div>
+
+          <!-- Task 2: YouTube -->
+          <div class="task-row" data-task="youtube">
+            <div class="task-icon task-icon-youtube">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2c-.3-1-1-1.8-2-2.1C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.5.5c-1 .3-1.7 1.1-2 2.1C0 8.1 0 12 0 12s0 3.9.5 5.8c.3 1 1 1.8 2 2.1 1.9.5 9.5.5 9.5.5s7.6 0 9.5-.5c1-.3 1.7-1.1 2-2.1.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.5 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>
+            </div>
+            <div class="task-info">
+              <div class="task-name">Subscribe on YouTube</div>
+              <div class="task-desc">Subscribe to Lightning Wolves channel</div>
+            </div>
+            <span class="task-reward">+15 ⚡</span>
+            <button class="task-btn task-btn-earn" id="task-btn-youtube">Earn</button>
+          </div>
+
+          <!-- Task 3: Rosakay Instagram -->
+          <div class="task-row" data-task="rosakay_ig">
+            <div class="task-icon task-icon-instagram">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+            </div>
+            <div class="task-info">
+              <div class="task-name">Follow Rosakay on Instagram</div>
+              <div class="task-desc">@rosakay_officiel</div>
+            </div>
+            <span class="task-reward">+5 ⚡</span>
+            <button class="task-btn task-btn-earn" id="task-btn-rosakay_ig">Earn</button>
+          </div>
+
+          <!-- Task 4: LW Instagram -->
+          <div class="task-row" data-task="lw_ig">
+            <div class="task-icon task-icon-instagram">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
+            </div>
+            <div class="task-info">
+              <div class="task-name">Follow Lightning Wolves on Instagram</div>
+              <div class="task-desc">@lightningwolvesmusic</div>
+            </div>
+            <span class="task-reward">+5 ⚡</span>
+            <button class="task-btn task-btn-earn" id="task-btn-lw_ig">Earn</button>
+          </div>
+
+          <!-- Task 5: Referral -->
+          <div class="task-row" data-task="referral">
+            <div class="task-icon task-icon-referral">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+            </div>
+            <div class="task-info">
+              <div class="task-name">Refer a friend</div>
+              <div class="task-desc">+20 ⚡ per referral · unlimited</div>
+            </div>
+            <span class="task-reward">+20 ⚡</span>
+            <button class="task-btn task-btn-earn" id="task-btn-referral">Share</button>
+          </div>
+        </div>
+
+        <!-- Referral UI -->
+        <div class="referral-section" id="referral-section">
+          <div class="referral-link-row">
+            <span class="referral-label">Your referral link:</span>
+            <div class="referral-copy-row">
+              <input type="text" class="referral-url" id="referral-url" readonly />
+              <button class="btn-gold btn-sm" id="referral-copy-btn">Copy ⚡</button>
+            </div>
+          </div>
+          <div class="referral-stats" id="referral-stats">
+            You've referred <strong id="referral-count-display">0</strong> friends → earned <strong id="referral-earned-display">0 ⚡</strong>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 

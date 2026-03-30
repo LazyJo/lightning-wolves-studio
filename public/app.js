@@ -1811,6 +1811,169 @@ function updatePlanPrices() {
   });
 }
 
+// ─── Task Reward System ──────────────────────────────────────────────────────
+const TASKS = {
+  signup:     { reward: 10, label: 'Sign up with email' },
+  youtube:    { reward: 15, label: 'Subscribe on YouTube' },
+  rosakay_ig: { reward: 5,  label: 'Follow Rosakay on Instagram' },
+  lw_ig:      { reward: 5,  label: 'Follow Lightning Wolves on Instagram' },
+};
+
+function initTaskRewards() {
+  updateTaskUI();
+  updateReferralUI();
+
+  // Signup task
+  const signupBtn = $('task-btn-signup');
+  if (signupBtn) signupBtn.addEventListener('click', () => {
+    if (state.completedTasks.includes('signup')) return;
+    window.location.hash = '/auth';
+  });
+
+  // YouTube task
+  const ytBtn = $('task-btn-youtube');
+  if (ytBtn) ytBtn.addEventListener('click', () => {
+    if (state.completedTasks.includes('youtube')) return;
+    // Open YouTube channel
+    window.open('https://youtube.com/@lightningwolves', '_blank');
+    // Mark as pending, start verification flow
+    markTaskPending('youtube', ytBtn);
+    // For now: simulate OAuth check with a delay
+    // In production: use Google OAuth → YouTube subscriptions.list
+    setTimeout(() => {
+      toast('YouTube subscription check: connect Google to verify', 'info');
+    }, 2000);
+  });
+
+  // Rosakay Instagram
+  const rkBtn = $('task-btn-rosakay_ig');
+  if (rkBtn) rkBtn.addEventListener('click', () => {
+    if (state.completedTasks.includes('rosakay_ig')) return;
+    window.open('https://www.instagram.com/rosakay_officiel', '_blank');
+    startCountdown('rosakay_ig', rkBtn, 10);
+  });
+
+  // LW Instagram
+  const lwBtn = $('task-btn-lw_ig');
+  if (lwBtn) lwBtn.addEventListener('click', () => {
+    if (state.completedTasks.includes('lw_ig')) return;
+    window.open('https://www.instagram.com/lightningwolvesmusic', '_blank');
+    startCountdown('lw_ig', lwBtn, 10);
+  });
+
+  // Referral share
+  const refBtn = $('task-btn-referral');
+  if (refBtn) refBtn.addEventListener('click', () => {
+    const url = $('referral-url');
+    if (url) {
+      navigator.clipboard.writeText(url.value).then(() => {
+        toast('Referral link copied!', 'success');
+      });
+    }
+  });
+
+  // Referral copy button
+  const copyBtn = $('referral-copy-btn');
+  if (copyBtn) copyBtn.addEventListener('click', () => {
+    const url = $('referral-url');
+    if (url) {
+      navigator.clipboard.writeText(url.value).then(() => {
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy ⚡'; }, 1500);
+      });
+    }
+  });
+}
+
+function startCountdown(taskId, btn, seconds) {
+  let remaining = seconds;
+  btn.className = 'task-btn task-btn-countdown';
+  btn.textContent = `${remaining}s`;
+
+  const interval = setInterval(() => {
+    remaining--;
+    btn.textContent = `${remaining}s`;
+    if (remaining <= 0) {
+      clearInterval(interval);
+      btn.className = 'task-btn task-btn-earn';
+      btn.textContent = 'Claim';
+      btn.onclick = () => completeTask(taskId);
+    }
+  }, 1000);
+}
+
+function markTaskPending(taskId, btn) {
+  if (!state.pendingTasks.includes(taskId)) {
+    state.pendingTasks.push(taskId);
+    localStorage.setItem('lw_pending_tasks', JSON.stringify(state.pendingTasks));
+  }
+  btn.className = 'task-btn task-btn-pending';
+  btn.textContent = 'Pending ⏳';
+}
+
+function completeTask(taskId) {
+  if (state.completedTasks.includes(taskId)) return;
+  const task = TASKS[taskId];
+  if (!task) return;
+
+  state.completedTasks.push(taskId);
+  localStorage.setItem('lw_completed_tasks', JSON.stringify(state.completedTasks));
+
+  // Remove from pending
+  state.pendingTasks = state.pendingTasks.filter(t => t !== taskId);
+  localStorage.setItem('lw_pending_tasks', JSON.stringify(state.pendingTasks));
+
+  addCredits(task.reward);
+  toast(`${task.label} — +${task.reward} ⚡ earned!`, 'success');
+  updateTaskUI();
+}
+
+function updateTaskUI() {
+  const totalEarned = state.completedTasks.reduce((sum, id) => {
+    return sum + (TASKS[id]?.reward || 0);
+  }, 0) + (state.referralCount * 20);
+
+  // Progress bar
+  const fill = $('tasks-progress-fill');
+  const label = $('tasks-progress-label');
+  if (fill) fill.style.width = `${Math.min(100, (totalEarned / 60) * 100)}%`;
+  if (label) label.textContent = `${totalEarned} / 60 ⚡ earned from tasks · 10 ⚡ = 1 generation`;
+
+  // Update each task button state
+  Object.keys(TASKS).forEach(taskId => {
+    const btn = $(`task-btn-${taskId}`);
+    if (!btn) return;
+
+    if (state.completedTasks.includes(taskId)) {
+      btn.className = 'task-btn task-btn-earned';
+      btn.textContent = 'Earned ✓';
+      btn.onclick = null;
+    } else if (state.pendingTasks.includes(taskId)) {
+      btn.className = 'task-btn task-btn-pending';
+      btn.textContent = 'Pending ⏳';
+    }
+  });
+
+  // Auto-complete signup if user exists
+  if (state.user && !state.completedTasks.includes('signup')) {
+    completeTask('signup');
+  }
+}
+
+function updateReferralUI() {
+  // Generate referral code
+  const userId = state.user?.id || 'guest' + Math.random().toString(36).substring(2, 10);
+  const refCode = 'LW-' + userId.substring(0, 8).toUpperCase();
+
+  const urlInput = $('referral-url');
+  if (urlInput) urlInput.value = `https://lightningwolves.studio/?ref=${refCode}`;
+
+  const countDisplay = $('referral-count-display');
+  const earnedDisplay = $('referral-earned-display');
+  if (countDisplay) countDisplay.textContent = state.referralCount;
+  if (earnedDisplay) earnedDisplay.textContent = `${state.referralCount * 20} ⚡`;
+}
+
 // ─── Export Modal & FFmpeg ────────────────────────────────────────────────────
 let selectedRatio = '9:16';
 
@@ -2183,6 +2346,7 @@ async function init() {
   initRemixTab();
   initHooksPanel();
   initPricingPage();
+  initTaskRewards();
   initDownloads();
 
   // Show admin nav if admin

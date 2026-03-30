@@ -218,7 +218,7 @@ const WOLF_PROFILES = {
   yellow: {
     name: 'Lazy Jo', role: 'Founder · Artist', genre: 'Melodic Hip-Hop', color: '#f5c518',
     image: 'LightningWolfYellowTransparentBG.png',
-    animation: 'Lazy Jo Wolf Card Animation.mp4',
+    animation: 'LazyJoWolfAnimation.mp4',
     bookUrl: 'https://www.gigstarter.be/artists/lazy-jo',
     bio: `Lazy Jo is a Belgian artist with Ghanaian roots, born in 1999 in Lomé, Togo and based in Brussels, Belgium. Immersed in music from an early age, he began shaping his sound at a young age and officially launched his career in February 2018 with his debut single "I'm Lost." Known for his distinctive melodic flows, emotionally driven delivery, and unforgettable hooks, Lazy Jo creates music that lingers long after the first listen. His ability to craft catchy, memorable melodies has become a defining element of his artistry, setting him apart in a crowded music landscape. Driven by consistency and growth, Lazy Jo continues to evolve his sound while building a strong and authentic artistic presence. His dedication has not gone unnoticed — industry heavyweights such as Kelvyn Colt, Zaytoven, DDG, and Timbaland have recognized and supported his talent. Most recently, Lazy Jo reached a major milestone with his track "Stay Up," which surpassed 100,000 views, further cementing his rising influence and momentum within the music scene.`,
     spotifyEmbed: 'https://open.spotify.com/embed/artist/4BoRxUdrcgbbq1rxJvvhg7?utm_source=generator&theme=0',
@@ -246,7 +246,7 @@ const WOLF_PROFILES = {
   orange: {
     name: 'Rosakay', role: 'Artist', genre: 'Pop / French Pop', color: '#ff80ab',
     image: 'LightningWolfOrangeTransparentBG.png',
-    animation: 'Rosakay Wolf Animation.mp4',
+    animation: 'RosakayWolfAnimation.mp4',
     bio: 'Sarah Kingambo — Rosakay — brings pop with a French soul. Her melodic sensibility and emotional depth make every track feel personal and universal at once.',
     instagram: 'https://www.instagram.com/rosakay_officiel',
     spotify: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B',
@@ -263,7 +263,7 @@ const WOLF_PROFILES = {
   green: {
     name: 'Shiteux', role: 'Visuals', genre: 'Photo · Video · Beats', color: '#69f0ae',
     image: 'LightningWolfRoseTransparentBG.png',
-    animation: 'Pink Wolf Animation.mp4',
+    animation: 'PinkWolfAnimation.mp4',
     bio: `Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations 'Sin[e]' and 'Doubt Clouds' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.`,
     acknowledgements: []
   },
@@ -302,7 +302,10 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
           <div className="wp-card-front">
             <div className="wp-card-image-wrap">
               {profile.animation ? (
-                <video src={`/${profile.animation}`} autoPlay loop muted playsInline className="wp-card-video" />
+                <video src={`/${profile.animation}`} autoPlay loop muted playsInline preload="auto"
+                  ref={el => { if(el) el.play().catch(()=>{}) }}
+                  onLoadedData={e => e.target.play().catch(()=>{})}
+                  style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'inherit'}} />
               ) : (
                 <img src={`/${profile.image || wolf.image}`} alt={name} />
               )}
@@ -431,6 +434,19 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
 
 // ─── Wolf Select Page ─────────────────────────────────────────────────────────
 function WolfSelectPage({ onSelectWolf }) {
+  useEffect(() => {
+    // Force all videos to play immediately after mount
+    const vids = document.querySelectorAll('#wolf-select-page video');
+    vids.forEach(v => { v.muted = true; v.play().catch(() => {}); });
+    // Also retry after a short delay for slower loads
+    const t = setTimeout(() => {
+      document.querySelectorAll('#wolf-select-page video').forEach(v => {
+        v.muted = true; v.play().catch(() => {});
+      });
+    }, 500);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div id="wolf-select-page" className="page">
       <header className="select-header">

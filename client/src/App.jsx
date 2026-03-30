@@ -66,7 +66,8 @@ const PACK_MEMBERS = [
     hideMusic: true,
     supportCards: [{ title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' }] },
   { name: 'Shiteux',        role: 'Photos & Videos',  tag: 'Visuals',            color: '#00E64D', image: 'wolf-green.png', emoji: null,
-    bio: 'The eye behind the lens. Capturing the pack in motion — photos, videos, and everything in between.',
+    cardBio: 'The eye behind the lens. Visuals, video, beats. The one who captures the pack in motion.',
+    bio: 'Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations \'Sin[e]\' and \'Doubt Clouds\' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.',
     spotifyArtistId: '4Uagbm0Dkl6hpM96LEYCo9',
     supportCards: [{ title: 'Lightning Wolves Merch', image: 'logo.png', link: 'https://www.even.biz/l/lightningwolves' }] },
 ]

@@ -453,6 +453,8 @@
             <button class="studio-tab" data-tab="beats">Beat Cuts</button>
             <button class="studio-tab" data-tab="prompts">AI Prompts</button>
             <button class="studio-tab" data-tab="preview">Video Preview</button>
+            <button class="studio-tab" data-tab="performance">Performance</button>
+            <button class="studio-tab" data-tab="remix">Remix</button>
             <button class="studio-tab" data-tab="tips">Tips</button>
           </div>
 
@@ -508,6 +510,84 @@
                     <canvas id="preview-canvas-landscape" width="480" height="270"></canvas>
                     <div class="preview-lyric-overlay" id="preview-lyric-landscape"></div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PERFORMANCE -->
+            <div class="studio-tab-panel hidden" id="stab-performance">
+              <div class="perf-panel">
+                <h3 class="panel-title">Performance Video</h3>
+                <p class="panel-desc">Upload a 3-30 second video clip. We'll match it to your audio, sync lyrics, and generate AI-transformed variations.</p>
+                <div class="perf-upload-zone" id="perf-upload-zone">
+                  <input type="file" id="perf-file-input" accept="video/*" hidden />
+                  <div class="perf-upload-placeholder" id="perf-upload-placeholder">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><polygon points="10,8 16,12 10,16"/></svg>
+                    <span class="upload-text">Upload video (3-30s)</span>
+                    <span class="upload-sub">MP4 or MOV</span>
+                  </div>
+                </div>
+                <div class="perf-preview hidden" id="perf-preview">
+                  <video id="perf-video" class="perf-video-el" controls></video>
+                  <div class="perf-first-frame">
+                    <canvas id="perf-thumb" width="160" height="90"></canvas>
+                    <span class="perf-thumb-label">First frame (auto-extracted)</span>
+                  </div>
+                </div>
+                <div class="perf-options">
+                  <label class="toggle-row">
+                    <input type="checkbox" id="perf-match-audio" checked />
+                    <span class="toggle-label">Match to uploaded audio</span>
+                  </label>
+                  <label class="toggle-row">
+                    <input type="checkbox" id="perf-sync-lyrics" />
+                    <span class="toggle-label">Generate synced lyrics overlay</span>
+                  </label>
+                </div>
+                <button class="btn-gold btn-full" id="perf-generate-btn">Generate AI Variations ⚡</button>
+                <div class="perf-templates hidden" id="perf-templates">
+                  <div class="panel-title" style="margin-top:16px">Saved Templates</div>
+                  <p class="panel-desc">Templates saved for infinite variations.</p>
+                  <div class="perf-template-list" id="perf-template-list"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- REMIX -->
+            <div class="studio-tab-panel hidden" id="stab-remix">
+              <div class="remix-panel">
+                <h3 class="panel-title">Remix</h3>
+                <p class="panel-desc">Paste a YouTube link to auto-extract clips. AI scene detection splits into usable segments.</p>
+                <div class="field-group">
+                  <label>YouTube URL</label>
+                  <div class="remix-url-row">
+                    <input type="url" id="remix-url" placeholder="https://youtube.com/watch?v=..." />
+                    <button class="btn-gold btn-sm" id="remix-extract-btn">Extract</button>
+                  </div>
+                </div>
+                <div class="remix-segments hidden" id="remix-segments">
+                  <div class="remix-seg-header">
+                    <span class="panel-title">Segments</span>
+                    <div class="remix-seg-actions">
+                      <button class="tl-btn-text" id="remix-shuffle">Shuffle</button>
+                      <label class="tl-toggle">
+                        <input type="checkbox" id="remix-no-cuts" />
+                        <span>No Cuts</span>
+                      </label>
+                    </div>
+                  </div>
+                  <div class="remix-segment-list" id="remix-segment-list"></div>
+                  <div class="editor-section" style="margin-top:12px">
+                    <label>Lyric overlay style</label>
+                    <div class="style-pills">
+                      <button class="style-pill remix-style active" data-style="karaoke">Karaoke</button>
+                      <button class="style-pill remix-style" data-style="subtitle">Subtitle</button>
+                      <button class="style-pill remix-style" data-style="knockout">Knockout</button>
+                      <button class="style-pill remix-style" data-style="minimal">Minimal</button>
+                      <button class="style-pill remix-style" data-style="none">None</button>
+                    </div>
+                  </div>
+                  <button class="btn-gold btn-full" id="remix-export-btn">Export Remix ⚡</button>
                 </div>
               </div>
             </div>
@@ -572,6 +652,7 @@
           <button class="editor-tab" data-etab="customize">Customize</button>
           <button class="editor-tab" data-etab="beat-fx">Beat FX</button>
           <button class="editor-tab" data-etab="background">BG</button>
+          <button class="editor-tab" data-etab="hooks">Hooks</button>
         </div>
 
         <!-- STYLE TAB -->
@@ -737,6 +818,51 @@
             <label>Blur intensity</label>
             <input type="range" id="bg-blur-slider" min="0" max="20" value="0" class="editor-slider" />
             <span class="editor-slider-val" id="bg-blur-val">0px</span>
+          </div>
+        </div>
+
+        <!-- HOOKS TAB -->
+        <div class="editor-panel hidden" id="etab-hooks">
+          <div class="editor-section">
+            <label>Category</label>
+            <select id="hook-category" class="perword-select" style="width:100%">
+              <option value="all">All</option>
+              <option value="engagement">Engagement</option>
+              <option value="curiosity">Curiosity</option>
+              <option value="challenge">Challenge</option>
+              <option value="emotion">Emotion</option>
+              <option value="question">Question</option>
+              <option value="flex">Flex</option>
+              <option value="story">Story</option>
+            </select>
+          </div>
+          <div class="editor-section">
+            <label>Hook style</label>
+            <div class="style-pills">
+              <button class="style-pill hook-style-pill active" data-hstyle="bold-white">Bold</button>
+              <button class="style-pill hook-style-pill" data-hstyle="gold">Gold</button>
+              <button class="style-pill hook-style-pill" data-hstyle="outline">Outline</button>
+              <button class="style-pill hook-style-pill" data-hstyle="neon">Neon</button>
+              <button class="style-pill hook-style-pill" data-hstyle="shadow">Shadow</button>
+              <button class="style-pill hook-style-pill" data-hstyle="glitch">Glitch</button>
+              <button class="style-pill hook-style-pill" data-hstyle="handwritten">Script</button>
+              <button class="style-pill hook-style-pill" data-hstyle="minimal">Minimal</button>
+            </div>
+          </div>
+          <div class="editor-section">
+            <label class="toggle-row">
+              <input type="checkbox" id="hook-emoji-toggle" checked />
+              <span class="toggle-label">Include emojis</span>
+            </label>
+          </div>
+          <div class="editor-section">
+            <label>Custom hook</label>
+            <input type="text" id="hook-custom-text" placeholder="Type your own hook..." style="font-size:12px" />
+            <button class="btn-outline btn-sm btn-full" id="hook-add-custom" style="margin-top:4px">Add to preview</button>
+          </div>
+          <div class="editor-section">
+            <label>Pre-written hooks</label>
+            <div class="hook-list" id="hook-list"></div>
           </div>
         </div>
 

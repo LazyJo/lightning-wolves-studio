@@ -1405,6 +1405,295 @@ function initBgPanel() {
   }
 }
 
+// ─── Performance Video Tab ───────────────────────────────────────────────────
+function initPerformanceTab() {
+  const zone = $('perf-upload-zone');
+  const input = $('perf-file-input');
+  const preview = $('perf-preview');
+  const placeholder = $('perf-upload-placeholder');
+  const video = $('perf-video');
+  const thumb = $('perf-thumb');
+  const genBtn = $('perf-generate-btn');
+
+  if (!zone || !input) return;
+
+  zone.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    // Validate duration will happen after metadata loads
+    const url = URL.createObjectURL(file);
+    video.src = url;
+    video.onloadedmetadata = () => {
+      if (video.duration < 3 || video.duration > 30) {
+        toast('Video must be 3-30 seconds', 'error');
+        URL.revokeObjectURL(url);
+        return;
+      }
+      preview.classList.remove('hidden');
+      if (placeholder) placeholder.style.display = 'none';
+
+      // Extract first frame
+      video.currentTime = 0.1;
+      video.onseeked = () => {
+        const ctx = thumb.getContext('2d');
+        ctx.drawImage(video, 0, 0, thumb.width, thumb.height);
+        video.onseeked = null;
+      };
+    };
+  });
+
+  if (genBtn) genBtn.addEventListener('click', () => {
+    toast('AI performance video generation coming soon', 'info');
+    // Save template
+    const templates = $('perf-templates');
+    const list = $('perf-template-list');
+    if (templates && list) {
+      templates.classList.remove('hidden');
+      const item = document.createElement('div');
+      item.className = 'perf-template-item';
+      item.innerHTML = `<canvas class="perf-template-thumb" width="48" height="27"></canvas><span>Template ${list.children.length + 1}</span>`;
+      const ctx = item.querySelector('canvas').getContext('2d');
+      if (video.readyState >= 2) ctx.drawImage(video, 0, 0, 48, 27);
+      list.appendChild(item);
+      toast('Template saved for infinite variations', 'success');
+    }
+  });
+}
+
+// ─── Remix Tab ───────────────────────────────────────────────────────────────
+function initRemixTab() {
+  const extractBtn = $('remix-extract-btn');
+  const urlInput = $('remix-url');
+  const segmentsDiv = $('remix-segments');
+  const segmentList = $('remix-segment-list');
+  const shuffleBtn = $('remix-shuffle');
+  const noCutsToggle = $('remix-no-cuts');
+  const exportBtn = $('remix-export-btn');
+
+  if (!extractBtn) return;
+
+  extractBtn.addEventListener('click', () => {
+    const url = urlInput?.value.trim();
+    if (!url || (!url.includes('youtube.com') && !url.includes('youtu.be'))) {
+      toast('Please enter a valid YouTube URL', 'error');
+      return;
+    }
+
+    toast('Extracting clips from YouTube...', 'info');
+    // Simulate AI scene detection
+    setTimeout(() => {
+      const categories = ['Intro', 'Verse', 'Chorus', 'Bridge', 'Hook', 'Close-up', 'Wide shot', 'Transition'];
+      const segments = [];
+      const count = 6 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < count; i++) {
+        const start = i * 4;
+        segments.push({
+          label: `Scene ${i + 1}`,
+          start: `${Math.floor(start / 60)}:${String(start % 60).padStart(2, '0')}`,
+          end: `${Math.floor((start + 3 + Math.random() * 3) / 60)}:${String(Math.floor((start + 3 + Math.random() * 3) % 60)).padStart(2, '0')}`,
+          category: categories[Math.floor(Math.random() * categories.length)]
+        });
+      }
+
+      renderRemixSegments(segments);
+      if (segmentsDiv) segmentsDiv.classList.remove('hidden');
+      toast(`${segments.length} segments detected`, 'success');
+    }, 1500);
+  });
+
+  if (shuffleBtn) shuffleBtn.addEventListener('click', () => {
+    const items = Array.from(segmentList.children);
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      segmentList.appendChild(items[j]);
+    }
+    toast('Segments shuffled', 'info');
+  });
+
+  if (noCutsToggle) noCutsToggle.addEventListener('change', () => {
+    if (noCutsToggle.checked) {
+      segmentList.querySelectorAll('.remix-segment').forEach((s, i) => {
+        s.style.display = i === 0 ? '' : 'none';
+      });
+      toast('No Cuts: one continuous slot', 'info');
+    } else {
+      segmentList.querySelectorAll('.remix-segment').forEach(s => s.style.display = '');
+      toast('All segments restored', 'info');
+    }
+  });
+
+  // Remix style pills
+  document.querySelectorAll('.remix-style').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.remix-style').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+    });
+  });
+
+  if (exportBtn) exportBtn.addEventListener('click', () => toast('Remix export coming soon', 'info'));
+}
+
+function renderRemixSegments(segments) {
+  const list = $('remix-segment-list');
+  if (!list) return;
+  list.innerHTML = '';
+  segments.forEach((seg, i) => {
+    const el = document.createElement('div');
+    el.className = 'remix-segment';
+    el.draggable = true;
+    el.innerHTML = `
+      <div class="remix-seg-thumb"></div>
+      <div class="remix-seg-info">
+        <div class="remix-seg-label">${seg.label}</div>
+        <div class="remix-seg-time">${seg.start} → ${seg.end}</div>
+      </div>
+      <span class="remix-seg-category">${seg.category}</span>
+    `;
+    list.appendChild(el);
+  });
+}
+
+// ─── Text Hooks ──────────────────────────────────────────────────────────────
+const HOOKS = [
+  { text: "Wait for it...", cat: "engagement", emoji: "👀" },
+  { text: "This hit different", cat: "engagement", emoji: "🔥" },
+  { text: "Turn this up", cat: "engagement", emoji: "🔊" },
+  { text: "You need to hear this", cat: "engagement", emoji: "🎧" },
+  { text: "Put your headphones on", cat: "engagement", emoji: "🎧" },
+  { text: "Don't scroll past this", cat: "engagement", emoji: "⬇️" },
+  { text: "Save this for later", cat: "engagement", emoji: "🔖" },
+  { text: "POV: you found your new favorite song", cat: "curiosity", emoji: "✨" },
+  { text: "Nobody's talking about this artist", cat: "curiosity", emoji: "🤫" },
+  { text: "This song doesn't exist yet", cat: "curiosity", emoji: "👻" },
+  { text: "What if I told you...", cat: "curiosity", emoji: "🤔" },
+  { text: "You weren't supposed to find this", cat: "curiosity", emoji: "🔐" },
+  { text: "The song that changed everything", cat: "curiosity", emoji: "💫" },
+  { text: "Before this blows up", cat: "curiosity", emoji: "📈" },
+  { text: "Bet you can't listen without vibing", cat: "challenge", emoji: "😤" },
+  { text: "Try not to replay this", cat: "challenge", emoji: "🔁" },
+  { text: "I dare you to skip this", cat: "challenge", emoji: "⏭️" },
+  { text: "If this doesn't give you chills...", cat: "challenge", emoji: "🥶" },
+  { text: "Only real ones will get this", cat: "challenge", emoji: "💯" },
+  { text: "Rate this 1-10", cat: "challenge", emoji: "⭐" },
+  { text: "Prove me wrong", cat: "challenge", emoji: "🤷" },
+  { text: "This one's for the late nights", cat: "emotion", emoji: "🌙" },
+  { text: "When the music hits your soul", cat: "emotion", emoji: "💜" },
+  { text: "Close your eyes and feel this", cat: "emotion", emoji: "😌" },
+  { text: "The song I wrote at 3am", cat: "emotion", emoji: "🕐" },
+  { text: "Tears or chills?", cat: "emotion", emoji: "💧" },
+  { text: "This is what heartbreak sounds like", cat: "emotion", emoji: "💔" },
+  { text: "Healing energy only", cat: "emotion", emoji: "🌿" },
+  { text: "Have you ever felt like this?", cat: "question", emoji: "🤍" },
+  { text: "What genre is this?", cat: "question", emoji: "🎵" },
+  { text: "Should I drop the full version?", cat: "question", emoji: "📀" },
+  { text: "Who needs to hear this?", cat: "question", emoji: "👇" },
+  { text: "What would you title this?", cat: "question", emoji: "📝" },
+  { text: "Is this giving main character?", cat: "question", emoji: "🎬" },
+  { text: "Album or single?", cat: "question", emoji: "💿" },
+  { text: "Yeah, I made this", cat: "flex", emoji: "😎" },
+  { text: "Independent artists do it better", cat: "flex", emoji: "🐺" },
+  { text: "No label. No rules.", cat: "flex", emoji: "⚡" },
+  { text: "Built different", cat: "flex", emoji: "🏗️" },
+  { text: "From the basement to your feed", cat: "flex", emoji: "📱" },
+  { text: "This cost $0 to make", cat: "flex", emoji: "💸" },
+  { text: "Wolves don't follow sheep", cat: "flex", emoji: "🐺" },
+  { text: "Let me tell you about the time...", cat: "story", emoji: "📖" },
+  { text: "This is the song I almost deleted", cat: "story", emoji: "🗑️" },
+  { text: "The story behind this track", cat: "story", emoji: "🎤" },
+  { text: "I recorded this in one take", cat: "story", emoji: "🎙️" },
+  { text: "3 months ago I almost quit music", cat: "story", emoji: "💭" },
+  { text: "This beat found me at 2am", cat: "story", emoji: "🌃" },
+  { text: "Every word is real", cat: "story", emoji: "📜" },
+  { text: "Chapter one", cat: "story", emoji: "📕" },
+];
+
+function initHooksPanel() {
+  const hookList = $('hook-list');
+  const categorySelect = $('hook-category');
+  const emojiToggle = $('hook-emoji-toggle');
+  const customInput = $('hook-custom-text');
+  const addCustomBtn = $('hook-add-custom');
+
+  if (!hookList) return;
+
+  function renderHooks() {
+    const cat = categorySelect?.value || 'all';
+    const showEmoji = emojiToggle?.checked !== false;
+    hookList.innerHTML = '';
+
+    const filtered = cat === 'all' ? HOOKS : HOOKS.filter(h => h.cat === cat);
+    filtered.forEach((hook, i) => {
+      const el = document.createElement('div');
+      el.className = 'hook-item';
+      el.textContent = showEmoji ? `${hook.emoji} ${hook.text}` : hook.text;
+      el.addEventListener('click', () => {
+        hookList.querySelectorAll('.hook-item').forEach(h => h.classList.remove('active'));
+        el.classList.add('active');
+        applyHookToPreview(el.textContent);
+      });
+      hookList.appendChild(el);
+    });
+  }
+
+  renderHooks();
+  if (categorySelect) categorySelect.addEventListener('change', renderHooks);
+  if (emojiToggle) emojiToggle.addEventListener('change', renderHooks);
+
+  // Hook style pills
+  document.querySelectorAll('.hook-style-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.hook-style-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      // Re-apply current hook with new style
+      const activeHook = hookList.querySelector('.hook-item.active');
+      if (activeHook) applyHookToPreview(activeHook.textContent);
+    });
+  });
+
+  // Custom hook
+  if (addCustomBtn) addCustomBtn.addEventListener('click', () => {
+    const text = customInput?.value.trim();
+    if (!text) return;
+    applyHookToPreview(text);
+    toast('Custom hook added to preview', 'success');
+  });
+}
+
+function applyHookToPreview(text) {
+  const activeStyle = document.querySelector('.hook-style-pill.active');
+  const styleName = activeStyle?.dataset.hstyle || 'bold-white';
+
+  // Add hook overlay to preview frames
+  document.querySelectorAll('.preview-frame').forEach(frame => {
+    let overlay = frame.querySelector('.hook-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'hook-overlay';
+      // Make draggable
+      overlay.style.cursor = 'move';
+      let isDragging = false, startY = 0, startTop = 0;
+      overlay.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startY = e.clientY;
+        startTop = parseInt(overlay.style.top) || 12;
+        e.preventDefault();
+      });
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        const dy = e.clientY - startY;
+        overlay.style.top = `${Math.max(4, startTop + dy)}px`;
+      });
+      document.addEventListener('mouseup', () => { isDragging = false; });
+      overlay.style.pointerEvents = 'auto';
+      frame.appendChild(overlay);
+    }
+    overlay.textContent = text;
+    overlay.className = `hook-overlay hook-style-${styleName}`;
+  });
+}
+
 // ─── Export Modal & FFmpeg ────────────────────────────────────────────────────
 let selectedRatio = '9:16';
 
@@ -1773,6 +2062,9 @@ async function init() {
   initStudioRight();
   initPerWordStyling();
   initModelSelection();
+  initPerformanceTab();
+  initRemixTab();
+  initHooksPanel();
   initDownloads();
 
   // Show admin nav if admin

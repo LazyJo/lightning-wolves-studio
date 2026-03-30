@@ -746,11 +746,12 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .crew-select-title {
   position: relative;
   z-index: 1;
+  font-family: 'Anton', 'Impact', sans-serif;
   font-size: 72px;
   font-weight: 900;
-  color: #fff;
+  color: #ffffff;
   text-transform: uppercase;
-  letter-spacing: 6px;
+  letter-spacing: 3px;
   text-align: center;
   margin-bottom: 48px;
   text-shadow: 0 0 40px rgba(245, 197, 24, 0.15), 0 2px 4px rgba(0,0,0,0.5);

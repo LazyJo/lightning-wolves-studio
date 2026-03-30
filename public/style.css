@@ -268,8 +268,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   overflow-x: hidden;
 }
 
-.page { display: block; min-height: 100%; }
-.page.hidden { display: none !important; }
+.page { min-height: 100%; }
 
 /* ─── Shared Buttons ───────────────────────────────────────────────────────── */
 .btn-gold {

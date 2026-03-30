@@ -123,89 +123,105 @@ const PAGE_NAMES = {
 };
 
 function navigateTo(page, params) {
+  // Get all page containers
+  const allPages = document.querySelectorAll('.page');
+
   // Hide all pages
-  $$('.page').forEach(p => p.classList.add('hidden'));
+  allPages.forEach(function(p) {
+    p.style.display = 'none';
+  });
 
   // Wolf profile is a dynamic page
-  if (page === 'wolf-profile' && params?.wolfId) {
+  if (page === 'wolf-profile' && params && params.wolfId) {
     renderWolfProfile(params.wolfId);
-    const profilePage = $('page-wolf-profile');
-    if (profilePage) profilePage.classList.remove('hidden');
+    var profilePage = document.getElementById('page-wolf-profile');
+    if (profilePage) profilePage.style.display = 'block';
     state.currentPage = 'wolf-profile';
-    const wolf = WOLVES[params.wolfId];
-    const bc = $('breadcrumb-page');
-    if (bc) bc.textContent = wolf?.name || 'Profile';
-    $$('.sidebar-icon').forEach(icon => {
+    var wolf = WOLVES[params.wolfId];
+    var bc = document.getElementById('breadcrumb-page');
+    if (bc) bc.textContent = wolf ? wolf.name : 'Profile';
+    document.querySelectorAll('.sidebar-icon').forEach(function(icon) {
       icon.classList.remove('active');
       if (icon.dataset.page === 'crew') icon.classList.add('active');
     });
-    const mainContent = $('main-content');
-    if (mainContent) mainContent.scrollTop = 0;
+    var mc = document.getElementById('main-content');
+    if (mc) mc.scrollTop = 0;
     return;
   }
 
   // Show target page
-  const target = $(`page-${page}`);
-  if (target) target.classList.remove('hidden');
+  var target = document.getElementById('page-' + page);
+  if (target) {
+    target.style.display = 'block';
+  } else {
+    // Fallback to landing
+    var landing = document.getElementById('page-landing');
+    if (landing) landing.style.display = 'block';
+    page = 'landing';
+  }
 
   // Update state
   state.currentPage = page;
 
   // Update breadcrumb
-  const bc = $('breadcrumb-page');
-  if (bc) bc.textContent = PAGE_NAMES[page] || page;
+  var bc2 = document.getElementById('breadcrumb-page');
+  if (bc2) bc2.textContent = PAGE_NAMES[page] || page;
 
   // Update sidebar active state
-  $$('.sidebar-icon').forEach(icon => {
+  document.querySelectorAll('.sidebar-icon').forEach(function(icon) {
     icon.classList.remove('active');
     if (icon.dataset.page === page) icon.classList.add('active');
   });
 
   // Scroll to top
-  const mainContent = $('main-content');
-  if (mainContent) mainContent.scrollTop = 0;
+  var mc2 = document.getElementById('main-content');
+  if (mc2) mc2.scrollTop = 0;
+}
+
+function onHashChange() {
+  var hash = window.location.hash.replace('#/', '') || 'landing';
+  var parts = hash.split('/');
+  var page = parts[0] || 'landing';
+
+  // Handle /crew/:wolfId routes
+  if (page === 'crew' && parts[1]) {
+    navigateTo('wolf-profile', { wolfId: parts[1] });
+    return;
+  }
+
+  if (PAGE_NAMES[page] !== undefined) {
+    navigateTo(page);
+  } else {
+    navigateTo('landing');
+  }
 }
 
 function initRouter() {
-  function onHashChange() {
-    const hash = window.location.hash.replace('#/', '') || 'landing';
-    const parts = hash.split('/');
-    const page = parts[0] || 'landing';
-
-    // Handle /crew/:wolfId routes
-    if (page === 'crew' && parts[1]) {
-      navigateTo('wolf-profile', { wolfId: parts[1] });
-      return;
-    }
-
-    if (PAGE_NAMES[page] !== undefined) {
-      navigateTo(page);
-    } else {
-      navigateTo('landing');
-    }
-  }
-
+  // Listen to hash changes
   window.addEventListener('hashchange', onHashChange);
 
+  // Also listen to page load
+  window.addEventListener('load', onHashChange);
+
   // Handle sidebar clicks
-  $$('.sidebar-icon[data-page]').forEach(link => {
-    link.addEventListener('click', (e) => {
+  document.querySelectorAll('.sidebar-icon[data-page]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
       e.preventDefault();
-      const page = link.dataset.page;
-      window.location.hash = `/${page === 'landing' ? '' : page}`;
+      var page = link.dataset.page;
+      window.location.hash = '/' + (page === 'landing' ? '' : page);
     });
   });
 
   // Handle sidebar logo
-  const logo = document.querySelector('.sidebar-logo');
+  var logo = document.querySelector('.sidebar-logo');
   if (logo) {
-    logo.addEventListener('click', (e) => {
+    logo.addEventListener('click', function(e) {
       e.preventDefault();
       window.location.hash = '/';
     });
   }
 
-  // Initial route
+  // Run initial route immediately
   onHashChange();
 }
 

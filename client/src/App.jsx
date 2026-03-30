@@ -13,9 +13,9 @@ const WOLVES = [
   { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon', image: 'wolf-red.png', video: 'wolf-red.mp4', locked: false },
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
-  { id: 'pink',   color: '#E040FB', locked: true, image: 'wolf-pink.svg'  },
+  { id: 'white',  color: '#e8e8e8', artist: 'MMJ',             genre: 'Coming Soon', image: 'wolf-white.png', video: 'wolf-white.mp4', locked: false },
+  { id: 'pink',   color: '#E040FB', artist: 'Soon Available',  genre: 'Coming Soon', image: 'wolf-pink.png',  video: 'wolf-pink.mp4',  locked: false },
   { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
-  { id: 'white',  color: '#e8e8e8', locked: true, image: 'wolf-white.svg' },
 ]
 
 const PACK_MEMBERS = [
@@ -889,14 +889,35 @@ function PromptCard({ prompt: p }) {
 
 // ─── Task Reward System ──────────────────────────────────────────────────────
 const REWARD_TASKS = [
-  { id: 'spotify-lazyjo', type: 'spotify', label: 'Follow Lazy Jo on Spotify', credits: 10, link: 'https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM', icon: '🎵', artistId: '1gxwDVgOKYnTA3iq2CjLtM' },
-  { id: 'spotify-rosakay', type: 'spotify', label: 'Follow Rosakay on Spotify', credits: 10, link: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B', icon: '🎵', artistId: '5DaB9HZOXF1kOqxLiS2d4B' },
+  { id: 'signup', type: 'auto', label: 'Sign up with email', credits: 10, icon: '✉️' },
+  { id: 'yt-lw', type: 'youtube', label: 'Subscribe to Lightning Wolves on YouTube', credits: 15, link: 'https://youtube.com/@lightningwolves', icon: '▶️' },
   { id: 'ig-rosakay', type: 'redirect', label: 'Follow Rosakay on Instagram', credits: 5, link: 'https://www.instagram.com/rosakay_officiel', icon: '📸' },
   { id: 'ig-lw', type: 'redirect', label: 'Follow Lightning Wolves on Instagram', credits: 5, link: 'https://www.instagram.com/lightningwolvesmusic', icon: '📸' },
-  { id: 'yt-lw', type: 'youtube', label: 'Subscribe to Lightning Wolves on YouTube', credits: 15, link: 'https://youtube.com/@lightningwolves', icon: '▶️' },
-  { id: 'share', type: 'share', label: 'Share a Lightning Wolves track', credits: 20, icon: '🔗' },
+  { id: 'referral', type: 'referral', label: 'Invite a friend to Lightning Wolves Studio', credits: 20, icon: '🐺' },
 ]
-const TOTAL_TASK_CREDITS = REWARD_TASKS.reduce((s, t) => s + t.credits, 0)
+const MAX_TASK_CREDITS = 35 // excluding referrals (unlimited)
+
+// ─── Referral System ─────────────────────────────────────────────────────────
+function getUserRefCode() {
+  let code = localStorage.getItem('lw_my_ref_code')
+  if (!code) {
+    code = 'LW-' + Math.random().toString(36).slice(2, 10).toUpperCase()
+    localStorage.setItem('lw_my_ref_code', code)
+  }
+  return code
+}
+
+function getReferralCount() { try { return parseInt(localStorage.getItem('lw_referral_count')) || 0 } catch { return 0 } }
+function getReferralCredits() { return getReferralCount() * 20 }
+
+// Capture referral code from URL on load
+;(function captureRefCode() {
+  const params = new URLSearchParams(window.location.search)
+  const ref = params.get('ref')
+  if (ref && !localStorage.getItem('lw_ref_code')) {
+    localStorage.setItem('lw_ref_code', ref)
+  }
+})()
 
 function getCompletedTasks() { try { return JSON.parse(localStorage.getItem('lw_completed_tasks')) || [] } catch { return [] } }
 function getPendingTasks() { try { return JSON.parse(localStorage.getItem('lw_pending_tasks')) || [] } catch { return [] } }
@@ -906,9 +927,13 @@ function TaskRewardSection() {
   const [pendingTasks, setPendingTasks] = useState(() => getPendingTasks())
   const [credits, setCreds] = useState(() => getCredits())
   const [timers, setTimers] = useState({})
-  const [shareInput, setShareInput] = useState('')
+  const [refCopied, setRefCopied] = useState(false)
+  const [refCount] = useState(() => getReferralCount())
 
-  const earnedFromTasks = REWARD_TASKS.filter(t => completedTasks.includes(t.id)).reduce((s, t) => s + t.credits, 0)
+  const myRefCode = getUserRefCode()
+  const refLink = `https://lightningwolves.studio/?ref=${myRefCode}`
+  const earnedFromTasks = REWARD_TASKS.filter(t => t.type !== 'referral' && completedTasks.includes(t.id)).reduce((s, t) => s + t.credits, 0)
+  const earnedFromReferrals = getReferralCredits()
 
   function completeTask(taskId, taskCredits) {
     if (completedTasks.includes(taskId)) return
@@ -937,14 +962,10 @@ function TaskRewardSection() {
     }, 1000)
   }
 
-  function handleSpotifyTask(task) {
-    if (completedTasks.includes(task.id)) return
+  function handleYouTubeTask(task) {
+    // Google OAuth placeholder — use redirect timer for now
+    if (completedTasks.includes(task.id) || timers[task.id]) return
     window.open(task.link, '_blank')
-    // For now: redirect timer since OAuth requires backend setup
-    startRedirectTimerDirect(task)
-  }
-
-  function startRedirectTimerDirect(task) {
     let remaining = 10
     setTimers(t => ({ ...t, [task.id]: remaining }))
     const interval = setInterval(() => {
@@ -959,35 +980,36 @@ function TaskRewardSection() {
     }, 1000)
   }
 
-  function handleShareSubmit() {
-    if (!shareInput.trim() || pendingTasks.includes('share')) return
-    const newPending = [...pendingTasks, 'share']
-    setPendingTasks(newPending)
-    localStorage.setItem('lw_pending_tasks', JSON.stringify(newPending))
-    setShareInput('')
+  function copyRefLink() {
+    navigator.clipboard.writeText(refLink).then(() => {
+      setRefCopied(true)
+      setTimeout(() => setRefCopied(false), 2000)
+    })
   }
 
   function getTaskStatus(task) {
+    if (task.type === 'auto') return completedTasks.includes(task.id) ? 'completed' : 'default'
+    if (task.type === 'referral') return refCount > 0 ? 'completed' : 'default'
     if (completedTasks.includes(task.id)) return 'completed'
-    if (pendingTasks.includes(task.id)) return 'pending'
     if (timers[task.id] !== undefined) return 'timer'
     return 'default'
   }
 
   function renderTaskButton(task) {
     const status = getTaskStatus(task)
-    if (status === 'completed') return <span className="task-badge task-earned">✓ Earned</span>
-    if (status === 'pending') return <span className="task-badge task-pending">Pending ⏳</span>
+    if (status === 'completed' && task.type !== 'referral') return <span className="task-badge task-earned">✓ Earned</span>
     if (status === 'timer') return <span className="task-badge task-timer">{timers[task.id]}s</span>
-    if (task.type === 'share') return null // handled separately
+    if (task.type === 'auto') return <span className="task-badge task-pending">On signup</span>
+    if (task.type === 'referral') return null // handled inline
     return (
       <button className="btn-gold btn-sm task-earn-btn" onClick={() => {
-        if (task.type === 'spotify') handleSpotifyTask(task)
-        else if (task.type === 'youtube') { window.open(task.link, '_blank'); startRedirectTimerDirect(task) }
+        if (task.type === 'youtube') handleYouTubeTask(task)
         else if (task.type === 'redirect') startRedirectTimer(task)
       }}>Earn</button>
     )
   }
+
+  const shareMsg = encodeURIComponent(`I'm using Lightning Wolves Studio to make lyric videos 🐺⚡ Get free credits when you sign up: ${refLink}`)
 
   return (
     <div className="task-reward-section">
@@ -1000,24 +1022,37 @@ function TaskRewardSection() {
       </div>
 
       <div className="task-progress-wrap">
-        <div className="task-progress-label">You've earned <strong>{earnedFromTasks}</strong> / {TOTAL_TASK_CREDITS} ⚡ from tasks</div>
-        <div className="task-progress-bar"><div className="task-progress-fill" style={{ width: `${(earnedFromTasks / TOTAL_TASK_CREDITS) * 100}%` }}></div></div>
+        <div className="task-progress-label">You've earned <strong>{earnedFromTasks + earnedFromReferrals}</strong> ⚡ from tasks{refCount > 0 ? ` (${earnedFromReferrals} from referrals)` : ''}</div>
+        <div className="task-progress-bar"><div className="task-progress-fill" style={{ width: `${Math.min((earnedFromTasks / MAX_TASK_CREDITS) * 100, 100)}%` }}></div></div>
+        <div className="task-progress-sub">{earnedFromTasks} / {MAX_TASK_CREDITS} ⚡ from tasks{refCount > 0 ? ` + ${earnedFromReferrals} ⚡ from ${refCount} referral${refCount > 1 ? 's' : ''}` : ' · referrals: unlimited'}</div>
       </div>
 
       <div className="task-list">
         {REWARD_TASKS.map(task => (
-          <div key={task.id} className={`task-row${getTaskStatus(task) === 'completed' ? ' completed' : ''}`}>
+          <div key={task.id} className={`task-row${getTaskStatus(task) === 'completed' && task.type !== 'referral' ? ' completed' : ''}`}>
             <span className="task-icon">{task.icon}</span>
             <span className="task-label">{task.label}</span>
-            <span className="task-credits">+{task.credits} ⚡</span>
-            {task.type === 'share' && getTaskStatus(task) === 'default' ? (
-              <div className="task-share-form">
-                <input className="task-share-input" placeholder="Paste share link..." value={shareInput} onChange={e => setShareInput(e.target.value)} />
-                <button className="btn-gold btn-sm" onClick={handleShareSubmit} disabled={!shareInput.trim()}>Submit</button>
-              </div>
-            ) : renderTaskButton(task)}
+            <span className="task-credits">{task.type === 'referral' ? `+${task.credits} ⚡ each` : `+${task.credits} ⚡`}</span>
+            {renderTaskButton(task)}
           </div>
         ))}
+      </div>
+
+      {/* Referral section */}
+      <div className="task-referral-section">
+        <div className="task-referral-title">Your Referral Link</div>
+        <div className="task-referral-link-row">
+          <input className="task-referral-input" value={refLink} readOnly onClick={e => e.target.select()} />
+          <button className="btn-gold btn-sm" onClick={copyRefLink}>{refCopied ? 'Copied! ⚡' : 'Copy ⚡'}</button>
+        </div>
+        <div className="task-referral-share">
+          <span className="task-referral-share-label">Share:</span>
+          <a className="task-referral-share-btn" href={`https://twitter.com/intent/tweet?text=${shareMsg}`} target="_blank" rel="noopener noreferrer">𝕏</a>
+          <a className="task-referral-share-btn" href={`https://wa.me/?text=${shareMsg}`} target="_blank" rel="noopener noreferrer">WhatsApp</a>
+        </div>
+        {refCount > 0 && (
+          <div className="task-referral-stats">You've referred <strong>{refCount}</strong> friend{refCount > 1 ? 's' : ''} → earned <strong>{earnedFromReferrals} ⚡</strong></div>
+        )}
       </div>
 
       <div className="task-credit-balance">Your balance: <strong>{credits} ⚡</strong></div>
@@ -1921,14 +1956,20 @@ function DevDebugPanel() {
       <div className="dev-debug-row">Credits: <strong>{c} ⚡</strong></div>
       <div className="dev-debug-row">Gens used: {getGenCount()}</div>
       <div className="dev-debug-row">Tasks: {getCompletedTasks().join(', ') || 'none'}</div>
-      <div className="dev-debug-row">Pending: {getPendingTasks().join(', ') || 'none'}</div>
+      <div className="dev-debug-row">Ref code: {getUserRefCode()}</div>
+      <div className="dev-debug-row">Referrals: {getReferralCount()} ({getReferralCredits()} ⚡)</div>
+      <div className="dev-debug-row">Stored ref: {localStorage.getItem('lw_ref_code') || 'none'}</div>
       <div className="dev-debug-actions">
         <button onClick={() => { setCreditsLS(c + 10); refresh() }}>+10 ⚡</button>
         <button onClick={() => { setCreditsLS(c + 100); refresh() }}>+100 ⚡</button>
         <button onClick={() => {
-          localStorage.removeItem('lw_credits'); localStorage.removeItem('lw_credits_init')
-          localStorage.removeItem('lw_gen_count'); localStorage.removeItem('lw_completed_tasks')
-          localStorage.removeItem('lw_pending_tasks'); localStorage.removeItem('lw_promo_code')
+          const n = getReferralCount() + 1
+          localStorage.setItem('lw_referral_count', String(n))
+          setCreditsLS(c + 20); refresh()
+        }}>+1 Referral</button>
+        <button onClick={() => {
+          const keys = ['lw_credits','lw_credits_init','lw_gen_count','lw_completed_tasks','lw_pending_tasks','lw_promo_code','lw_my_ref_code','lw_referral_count','lw_ref_code']
+          keys.forEach(k => localStorage.removeItem(k))
           refresh(); window.location.reload()
         }}>Reset All</button>
       </div>

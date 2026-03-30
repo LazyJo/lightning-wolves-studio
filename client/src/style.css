@@ -2025,6 +2025,21 @@ textarea { resize: vertical; min-height: 72px; }
 .task-share-input { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font-size: 0.8rem; width: 160px; font-family: inherit; }
 .task-share-input:focus { outline: none; border-color: #FF4D8D; }
 
+.task-progress-sub { font-size: 0.7rem; color: var(--muted); margin-top: 4px; }
+
+/* Referral section */
+.task-referral-section { background: var(--card); border: 1px solid rgba(255,77,141,0.2); border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.task-referral-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.05rem; letter-spacing: 0.06em; color: #FF4D8D; margin-bottom: 8px; }
+.task-referral-link-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.task-referral-input { flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font-size: 0.8rem; font-family: monospace; }
+.task-referral-input:focus { outline: none; border-color: #FF4D8D; }
+.task-referral-share { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.task-referral-share-label { font-size: 0.8rem; color: var(--muted); }
+.task-referral-share-btn { font-size: 0.75rem; padding: 4px 12px; border-radius: 6px; background: var(--surface); border: 1px solid var(--border); color: var(--text); text-decoration: none; transition: border-color 0.2s; }
+.task-referral-share-btn:hover { border-color: #FF4D8D; color: #FF4D8D; text-decoration: none; }
+.task-referral-stats { font-size: 0.8rem; color: var(--muted); }
+.task-referral-stats strong { color: var(--accent); }
+
 .task-credit-balance { text-align: center; font-size: 0.95rem; color: var(--muted); padding: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
 .task-credit-balance strong { color: var(--accent); font-size: 1.1rem; }
 

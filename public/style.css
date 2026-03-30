@@ -49,6 +49,77 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 
 .hidden { display: none !important; }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   PUBLIC SITE LAYOUT (Landing, Crew, Wolf Profiles — no sidebar)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.public-site {
+  min-height: 100vh;
+  background: var(--base);
+}
+
+.pub-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  z-index: 100;
+  background: rgba(8, 8, 8, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(28, 28, 28, 0.6);
+}
+
+.pub-nav-logo {
+  display: flex;
+  align-items: center;
+}
+
+.pub-nav-logo img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+}
+
+.pub-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.pub-nav-link {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: color 0.15s;
+}
+
+.pub-nav-link:hover { color: var(--text); }
+
+.pub-nav-btn {
+  padding: 7px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  background: var(--gold);
+  color: #000;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+}
+
+.pub-nav-btn:hover { background: var(--gold-hover); }
+
+.pub-content {
+  padding-top: 56px;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+
+/* When studio-app is visible, hide public-site and vice versa */
+.studio-app { display: none; }
+
 /* ─── Scrollbar ────────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -259,7 +330,7 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   color: #000;
 }
 
-/* ─── Main Content Area ────────────────────────────────────────────────────── */
+/* ─── Main Content Area (studio pages — with sidebar) ──────────────────────── */
 .main-content {
   margin-left: var(--sidebar-w);
   margin-top: var(--topbar-h);
@@ -269,6 +340,9 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 
 .page { min-height: 100%; }
+
+/* Public pages: full width, no sidebar margins */
+.pub-content .page { min-height: calc(100vh - 56px); }
 
 /* ─── Shared Buttons ───────────────────────────────────────────────────────── */
 .btn-gold {

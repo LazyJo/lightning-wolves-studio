@@ -17,7 +17,6 @@ const WOLVES = [
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'join-placeholder', color: '#f5c518', locked: false, isJoinCard: true },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
-  { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
 ]
 
 const PACK_MEMBERS = [

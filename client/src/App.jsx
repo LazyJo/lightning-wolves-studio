@@ -14,6 +14,7 @@ const WOLVES = [
   { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon', image: 'wolf-red.png', video: 'wolf-red.mp4', locked: false },
   { id: 'white',  color: '#e8e8e8', artist: 'MMJ',             genre: 'Coming Soon', image: 'wolf-white.png', video: 'wolf-white.mp4', locked: false },
   { id: 'pink',   color: '#E040FB', artist: 'Soon Available',  genre: 'Coming Soon', image: 'wolf-pink.png',  video: 'wolf-pink.mp4',  locked: false },
+  { id: 'join-placeholder', color: '#f5c518', locked: false, isJoinCard: true },
   { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
   { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
   { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
@@ -309,6 +310,19 @@ function WolfSelectPage({ onSelectWolf, onViewProfile, onShowAuth, onPricing, on
         <h1 className="select-tagline">WHICH WOLF ARE YOU?</h1>
         <div className="wolf-grid">
           {WOLVES.map((wolf, idx) => {
+            // Join the Pack card
+            if (wolf.isJoinCard) {
+              return (
+                <div key="join-pack" className="wolf-card join-pack-card" onClick={onJoin}>
+                  <div className="join-pack-logo-wrap">
+                    <img src="/logo.png" alt="Lightning Wolves" className="join-pack-logo" onError={e => e.target.style.display='none'} />
+                  </div>
+                  <div className="wolf-name join-pack-name">JOIN THE PACK</div>
+                  <div className="join-pack-badge">Apply to Join</div>
+                </div>
+              )
+            }
+
             const card = wolf.locked ? (
               <div key={wolf.id} className="wolf-card locked">
                 <div className="wolf-img-wrap locked-wrap">
@@ -334,7 +348,7 @@ function WolfSelectPage({ onSelectWolf, onViewProfile, onShowAuth, onPricing, on
               </div>
             )
 
-            // Insert Lone Wolf card between position 4 (Drippydesigns) and 5 (Shiteux)
+            // Insert Lone Wolf card between Drippydesigns and Shiteux
             if (idx === 4) {
               return [
                 <div key="lone-wolf-grid" className="wolf-card lone-wolf-grid-card" onClick={() => onSelectWolf({ id: 'lone-wolf', color: '#9E9E9E', artist: '', genre: '', image: 'wolf-gray.svg' })}>
@@ -344,19 +358,6 @@ function WolfSelectPage({ onSelectWolf, onViewProfile, onShowAuth, onPricing, on
                   </div>
                   <div className="wolf-name" style={{color: '#9E9E9E'}}>Lone Wolf</div>
                   <div className="wolf-genre-tag" style={{'--tag-color': '#9E9E9E'}}>3 Free Generations</div>
-                </div>,
-                card
-              ]
-            }
-            // Insert "Join the Pack" card after MMJ (index 7 = pink wolf)
-            if (idx === 7) {
-              return [
-                <div key="join-pack" className="wolf-card join-pack-card" onClick={onJoin}>
-                  <div className="join-pack-logo-wrap">
-                    <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" className="join-pack-logo" onError={e => e.target.style.display='none'} />
-                  </div>
-                  <div className="wolf-name join-pack-name">JOIN THE PACK</div>
-                  <div className="join-pack-badge">Apply to Join</div>
                 </div>,
                 card
               ]

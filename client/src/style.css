@@ -1357,16 +1357,26 @@ textarea { resize: vertical; min-height: 72px; }
   letter-spacing: 0.08em;
 }
 
+.profile-header-actions { display: flex; gap: 10px; align-items: center; }
 .profile-studio-btn { white-space: nowrap; }
-.profile-book-btn { white-space: nowrap; border-color: var(--accent); color: var(--accent); text-decoration: none; }
+.profile-book-btn { white-space: nowrap; border-color: var(--profile-color, var(--accent)); color: var(--profile-color, var(--accent)); text-decoration: none; }
 .profile-book-btn:hover { background: rgba(245,197,24,0.1); text-decoration: none; }
+
+.profile-artist-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.8rem;
+  letter-spacing: 0.1em;
+  text-align: center;
+  padding: 28px 24px 0;
+  text-shadow: 0 0 30px color-mix(in srgb, var(--profile-color) 40%, transparent);
+}
 
 /* ── 3D Card Area ──────────────────────────────────────────────────────── */
 .profile-card-area {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 60px 24px 40px;
+  padding: 24px 24px 40px;
 }
 
 .profile-card-container {

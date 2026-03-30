@@ -646,207 +646,157 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   PAGE: CREW
+   PAGE: CREW — "Which Wolf Are You?" Selection
    ═══════════════════════════════════════════════════════════════════════════ */
 
-.crew-page {
-  padding: 48px 40px 64px;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.crew-header {
-  text-align: center;
-  margin-bottom: 40px;
-}
-
-.crew-title {
-  font-size: 32px;
-  font-weight: 600;
-  color: #fff;
-  letter-spacing: -0.3px;
-}
-
-/* ─── Crew Grid ────────────────────────────────────────────────────────────── */
-.crew-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-/* ─── Crew Card ────────────────────────────────────────────────────────────── */
-.crew-card {
-  background: var(--surface);
-  border: 1px solid var(--card-color, var(--border));
-  border-radius: var(--radius-lg);
-  overflow: hidden;
+.crew-select {
+  position: relative;
+  min-height: calc(100vh - var(--topbar-h));
   display: flex;
   flex-direction: column;
-  transition: border-color 0.2s;
+  align-items: center;
+  padding: 60px 40px 80px;
+  overflow: hidden;
 }
 
-.crew-card:hover {
-  border-color: color-mix(in srgb, var(--card-color) 60%, transparent);
+.crew-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
 }
 
-/* ─── Banner ───────────────────────────────────────────────────────────────── */
-.crew-card-banner {
+.crew-select-title {
   position: relative;
-  height: 100px;
+  z-index: 1;
+  font-size: 48px;
+  font-weight: 700;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+/* ─── Selection Grid ───────────────────────────────────────────────────────── */
+.crew-select-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  max-width: 720px;
+  width: 100%;
+}
+
+/* ─── Wolf Selection Card ──────────────────────────────────────────────────── */
+.wolf-select-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 28px 16px 24px;
+  background: rgba(13, 13, 13, 0.8);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+  text-decoration: none;
+  transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+  cursor: pointer;
+}
+
+.wolf-select-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--wc);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px color-mix(in srgb, var(--wc) 15%, transparent);
+}
+
+/* ─── Wolf Image Circle ────────────────────────────────────────────────────── */
+.wolf-select-img-wrap {
+  position: relative;
+  width: 120px;
+  height: 120px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--card-color) 10%, var(--surface));
-  border-bottom: 1px solid var(--border);
 }
 
-.crew-initials {
-  font-size: 36px;
-  font-weight: 600;
-  color: var(--card-color);
-  letter-spacing: 2px;
-  opacity: 0.9;
+.wolf-select-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--wc) 30%, transparent));
+  transition: filter 0.3s, transform 0.3s;
 }
 
-.crew-role-badge {
+.wolf-select-card:hover .wolf-select-img-wrap img {
+  filter: drop-shadow(0 0 20px color-mix(in srgb, var(--wc) 50%, transparent));
+  transform: scale(1.08);
+}
+
+.wolf-select-glow {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--card-color);
-  background: color-mix(in srgb, var(--card-color) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--card-color) 25%, transparent);
-  border-radius: 4px;
+  inset: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--wc) 8%, transparent), transparent 70%);
+  pointer-events: none;
+  transition: opacity 0.3s;
+  opacity: 0.5;
 }
 
-/* ─── Card Body ────────────────────────────────────────────────────────────── */
-.crew-card-body {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
+.wolf-select-card:hover .wolf-select-glow { opacity: 1; }
 
-.crew-name {
+/* ─── Wolf Name & Genre ────────────────────────────────────────────────────── */
+.wolf-select-name {
   font-size: 16px;
   font-weight: 500;
   color: #fff;
 }
 
-.crew-genre {
-  font-size: 12px;
-  color: var(--text-dim);
-  font-weight: 400;
-}
-
-.crew-bio {
-  font-size: 13px;
-  color: var(--text-muted);
-  line-height: 1.45;
-  margin-top: 4px;
-}
-
-/* ─── Profile Image in Banner ──────────────────────────────────────────────── */
-.crew-profile-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center top;
-}
-
-/* ─── Full Bio (expandable) ────────────────────────────────────────────────── */
-.crew-bio-full {
-  font-size: 13px;
-  color: var(--text-muted);
-  line-height: 1.5;
-  display: none;
-  margin-top: 4px;
-}
-
-.crew-bio-full.expanded { display: block; }
-
-.crew-bio-toggle {
-  font-size: 12px;
-  color: var(--gold);
+.wolf-select-genre {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 11px;
   font-weight: 500;
-  padding: 0;
-  margin-top: 2px;
-  cursor: pointer;
+  color: var(--wc);
+  border: 1px solid color-mix(in srgb, var(--wc) 25%, transparent);
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--wc) 8%, transparent);
 }
 
-.crew-bio-toggle:hover { text-decoration: underline; }
-
-/* ─── Card Buttons ─────────────────────────────────────────────────────────── */
-.crew-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 12px;
-}
-
-/* ─── Social Links ─────────────────────────────────────────────────────────── */
-.crew-socials {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-left: auto;
-}
-
-.crew-social-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius);
-  color: var(--text-dim);
-  transition: color 0.2s, background 0.2s;
-}
-
-.crew-social-link svg {
-  width: 16px;
-  height: 16px;
-}
-
-.crew-social-link:hover {
-  color: var(--text);
-  background: var(--border);
-}
-
-/* ─── Join Card ────────────────────────────────────────────────────────────── */
-.crew-card-join {
+/* ─── Join the Pack Card ───────────────────────────────────────────────────── */
+.wolf-select-join {
   border-style: dashed;
-  border-color: var(--border-light);
+  border-color: rgba(245, 197, 24, 0.3);
 }
 
-.crew-card-join:hover {
+.wolf-select-join:hover {
   border-color: var(--gold);
+  border-style: solid;
 }
 
-.crew-join-banner {
-  background: var(--gold-dim);
-}
-
-.crew-join-icon {
-  font-size: 40px;
-  font-weight: 400;
+.wolf-select-join-icon {
+  font-size: 48px;
+  font-weight: 300;
   color: var(--gold);
-  opacity: 0.7;
+  opacity: 0.6;
+  line-height: 1;
 }
+
+.wolf-select-join:hover .wolf-select-join-icon { opacity: 1; }
 
 /* ─── Crew Responsive ──────────────────────────────────────────────────────── */
-@media (max-width: 800px) {
-  .crew-grid { grid-template-columns: repeat(2, 1fr); }
-  .crew-page { padding: 32px 24px 48px; }
+@media (max-width: 700px) {
+  .crew-select-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .crew-select-title { font-size: 32px; letter-spacing: 2px; }
+  .crew-select { padding: 40px 24px 60px; }
 }
 
-@media (max-width: 500px) {
-  .crew-grid { grid-template-columns: 1fr; }
+@media (max-width: 450px) {
+  .crew-select-grid { grid-template-columns: 1fr; max-width: 280px; }
+  .crew-select-title { font-size: 24px; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

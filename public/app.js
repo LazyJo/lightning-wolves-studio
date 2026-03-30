@@ -381,51 +381,51 @@ const WOLVES = {
 
 // ─── Crew Page ───────────────────────────────────────────────────────────────
 function initCrewPage() {
-  // Crew cards → click to wolf profile page
-  document.querySelectorAll('.crew-card[style*="--card-color"]').forEach(card => {
-    // Find the wolf ID from the enter-studio button or card content
-    const enterBtn = card.querySelector('.crew-enter-studio');
-    const wolfId = enterBtn?.dataset.wolf;
-    if (!wolfId) return;
+  initCrewParticles();
+}
 
-    // Make entire card clickable (except action buttons)
-    card.style.cursor = 'pointer';
-    card.addEventListener('click', (e) => {
-      if (e.target.closest('.btn-gold') || e.target.closest('.crew-social-link') || e.target.closest('.crew-bio-toggle')) return;
-      e.preventDefault();
-      window.location.hash = `/crew/${wolfId}`;
-    });
-  });
+function initCrewParticles() {
+  var canvas = document.getElementById('crew-particles');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var particles = [];
 
-  // Enter Studio buttons still go to studio
-  document.querySelectorAll('.crew-enter-studio').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const wolfId = btn.dataset.wolf;
-      const wolf = WOLVES[wolfId];
-      if (wolf) state.selectedWolf = wolf;
-      window.location.hash = '/studio';
-    });
-  });
+  function resize() {
+    canvas.width = canvas.parentElement ? canvas.parentElement.clientWidth : window.innerWidth;
+    canvas.height = canvas.parentElement ? canvas.parentElement.clientHeight : window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
 
-  // Bio toggles
-  document.querySelectorAll('.crew-bio-toggle').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const fullBio = btn.previousElementSibling;
-      const expanded = btn.dataset.expanded === 'true';
-      if (expanded) {
-        fullBio.classList.remove('expanded');
-        btn.textContent = 'Read more';
-        btn.dataset.expanded = 'false';
-      } else {
-        fullBio.classList.add('expanded');
-        btn.textContent = 'Read less';
-        btn.dataset.expanded = 'true';
-      }
+  for (var i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: Math.random() * 2 + 0.5,
+      speedX: (Math.random() - 0.5) * 0.3,
+      speedY: (Math.random() - 0.5) * 0.3,
+      alpha: Math.random() * 0.4 + 0.1,
     });
-  });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      p.x += p.speedX;
+      p.y += p.speedY;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(245, 197, 24, ' + p.alpha + ')';
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
 }
 
 // ─── Wolf Profile Page ───────────────────────────────────────────────────────

@@ -27,6 +27,7 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'client', 'dist')));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 async function getUserFromToken(req) {

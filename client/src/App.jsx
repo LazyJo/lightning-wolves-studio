@@ -3,12 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
-  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', animation: 'Lazy Jo Wolf Card Animation.mp4', locked: false },
+  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', animation: 'wolf-yellow.mp4', locked: false },
   { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',      image: 'LightningWolfPurpleTransparentBG.png', animation: 'Wolf-Purple.mp4', locked: false },
   { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', animation: 'Wolf-Orange.mp4', locked: false },
   { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Covers & Trailers',   image: 'LightningWolfGreenTransparentBG.png', animation: 'wolf-white-blue.mp4', locked: false },
   { id: 'lone',   color: '#f5c518', artist: 'Lone Wolf',     genre: '3 Free Generations',  image: 'LightningWolvesLogoTransparentBG.png', locked: false, isLoneWolf: true },
-  { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photos & Videos',     image: 'LightningWolfRoseTransparentBG.png', animation: 'Pink Wolf Animation.mp4', locked: false },
+  { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photos & Videos',     image: 'LightningWolfRoseTransparentBG.png', animation: 'Wolf-Green.mp4', locked: false },
 ]
 
 const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯']
@@ -448,7 +448,12 @@ function WolfSelectPage({ onSelectWolf }) {
                 : onSelectWolf(wolf)
               }>
               <div className="wolf-card-img-circle">
-                <img src={`/${wolf.image}`} alt={wolf.artist} />
+                {wolf.animation ? (
+                  <video src={`/${wolf.animation}`} autoPlay loop muted playsInline
+                    style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}} />
+                ) : (
+                  <img src={`/${wolf.image}`} alt={wolf.artist} />
+                )}
               </div>
               <div className="wolf-card-name">{wolf.artist}</div>
               <div className="wolf-card-genre">{wolf.genre}</div>

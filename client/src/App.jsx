@@ -474,6 +474,8 @@ function WolfSelectPage({ onSelectWolf }) {
                           <video src={wolf.video} autoPlay loop muted playsInline preload="auto"
                             poster={`/${wolf.image}`}
                             style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}
+                            ref={el => { if(el) el.play().catch(()=>{}) }}
+                            onLoadedData={e => e.target.play().catch(()=>{})}
                             onError={e => { e.target.style.display='none'; if(e.target.nextSibling) e.target.nextSibling.style.display=''; }} />
                           <img src={`/${wolf.image}`} alt={wolf.artist} style={{display:'none'}} />
                         </>

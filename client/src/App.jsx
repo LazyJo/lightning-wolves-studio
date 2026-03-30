@@ -3,12 +3,12 @@ import { createClient } from '@supabase/supabase-js'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
-  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', video: '/Lazy%20Jo%20Wolf%20Card%20Animation.mp4', locked: false },
+  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', video: '/LazyJoWolfAnimation.mp4', locked: false },
   { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',      image: 'LightningWolfPurpleTransparentBG.png', video: '/Wolf-Purple.mp4', locked: false },
-  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', video: '/Rosakay%20Wolf%20Animation.mp4', locked: false },
+  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', video: '/RosakayWolfAnimation.mp4', locked: false },
   { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Covers & Trailers',   image: 'LightningWolfGreenTransparentBG.png', video: '/wolf-white-blue.mp4', locked: false },
   { id: 'lone',   color: '#f5c518', artist: 'Lone Wolf',     genre: '3 Free Generations',  image: 'LightningWolvesLogoTransparentBG.png', locked: false, isLoneWolf: true },
-  { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photos & Videos',     image: 'LightningWolfRoseTransparentBG.png', video: '/Pink%20Wolf%20Animation.mp4', locked: false },
+  { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photos & Videos',     image: 'LightningWolfRoseTransparentBG.png', video: '/PinkWolfAnimation.mp4', locked: false },
 ]
 
 const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯']

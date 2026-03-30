@@ -872,7 +872,130 @@
   </div>
 
   <!-- PAGE: PRICING -->
-  <div class="page hidden" id="page-pricing"></div>
+  <div class="page hidden" id="page-pricing">
+    <div class="pricing-page">
+
+      <!-- Hero -->
+      <div class="pricing-hero">
+        <h1 class="pricing-title">Choose your tier.</h1>
+        <div class="billing-toggle">
+          <button class="billing-btn active" id="billing-monthly" data-billing="monthly">Monthly</button>
+          <button class="billing-btn" id="billing-annual" data-billing="annual">Annual <span class="billing-save">Save 17%</span></button>
+        </div>
+        <div class="promo-bar">
+          <span class="promo-label">Have a promo code?</span>
+          <div class="promo-input-row">
+            <input type="text" id="promo-input" placeholder="e.g. WOLFPACK" style="text-transform:uppercase" />
+            <button class="btn-gold btn-sm" id="promo-apply-btn">Apply</button>
+          </div>
+          <div class="promo-feedback hidden" id="promo-feedback"></div>
+        </div>
+      </div>
+
+      <!-- Plans -->
+      <div class="plans-grid" id="plans-grid">
+
+        <!-- Lone Wolf -->
+        <div class="plan-card">
+          <div class="plan-header">
+            <h3 class="plan-name">Lone Wolf</h3>
+            <div class="plan-price">Free</div>
+          </div>
+          <ul class="plan-features">
+            <li>10 ⚡ on signup</li>
+            <li>3 generations lifetime</li>
+            <li>Watermarked export</li>
+            <li>Basic styles only (Subtitle, Minimal)</li>
+          </ul>
+          <button class="btn-outline btn-full btn-disabled plan-cta">Current Plan</button>
+        </div>
+
+        <!-- Starter -->
+        <div class="plan-card">
+          <div class="plan-header">
+            <h3 class="plan-name">Starter</h3>
+            <div class="plan-price"><span class="plan-currency">€</span><span class="plan-amount" data-monthly="9" data-annual="75">9</span><span class="plan-period">/mo</span></div>
+          </div>
+          <ul class="plan-features">
+            <li>100 ⚡/month</li>
+            <li>50 generations/month</li>
+            <li>No watermark</li>
+            <li>All styles + animations</li>
+            <li>Basic beat detection</li>
+          </ul>
+          <button class="btn-outline btn-full btn-disabled plan-cta">Coming Soon</button>
+        </div>
+
+        <!-- Wolf Pro -->
+        <div class="plan-card plan-card-popular">
+          <div class="plan-popular-badge">Most Popular</div>
+          <div class="plan-header">
+            <h3 class="plan-name">Wolf Pro</h3>
+            <div class="plan-price"><span class="plan-currency">€</span><span class="plan-amount" data-monthly="24" data-annual="200">24</span><span class="plan-period">/mo</span></div>
+          </div>
+          <ul class="plan-features">
+            <li>350 ⚡/month</li>
+            <li>Unlimited generations</li>
+            <li>Full timeline editor</li>
+            <li>All styles + beat drop effects</li>
+            <li>AI model access</li>
+            <li>Priority processing</li>
+          </ul>
+          <button class="btn-gold btn-full btn-disabled plan-cta">Coming Soon</button>
+        </div>
+
+        <!-- Pack Leader -->
+        <div class="plan-card">
+          <div class="plan-header">
+            <h3 class="plan-name">Pack Leader</h3>
+            <div class="plan-price"><span class="plan-currency">€</span><span class="plan-amount" data-monthly="49" data-annual="408">49</span><span class="plan-period">/mo</span></div>
+          </div>
+          <ul class="plan-features">
+            <li>Unlimited ⚡</li>
+            <li>Everything in Wolf Pro</li>
+            <li>4K export</li>
+            <li>Early AI model access</li>
+            <li>Dedicated support</li>
+            <li>Bug bounty credit rewards</li>
+          </ul>
+          <button class="btn-outline btn-full btn-disabled plan-cta">Coming Soon</button>
+        </div>
+      </div>
+
+      <!-- Lightning Credits -->
+      <div class="credits-section">
+        <h2 class="credits-title">Lightning Credits ⚡</h2>
+        <p class="credits-subtitle">No subscription needed. Top up anytime. 10 ⚡ = 1 generation.</p>
+        <div class="credits-grid">
+          <div class="credit-pack">
+            <div class="credit-pack-amount">100 ⚡</div>
+            <div class="credit-pack-price">€3</div>
+            <div class="credit-pack-info">~10 generations</div>
+            <button class="btn-outline btn-sm btn-full btn-disabled">Coming Soon</button>
+          </div>
+          <div class="credit-pack">
+            <div class="credit-pack-amount">300 ⚡</div>
+            <div class="credit-pack-price">€8</div>
+            <div class="credit-pack-info">~30 generations</div>
+            <button class="btn-outline btn-sm btn-full btn-disabled">Coming Soon</button>
+          </div>
+          <div class="credit-pack">
+            <div class="credit-pack-amount">750 ⚡</div>
+            <div class="credit-pack-price">€18</div>
+            <div class="credit-pack-info">~75 generations</div>
+            <button class="btn-outline btn-sm btn-full btn-disabled">Coming Soon</button>
+          </div>
+          <div class="credit-pack">
+            <div class="credit-pack-amount">2000 ⚡</div>
+            <div class="credit-pack-price">€39</div>
+            <div class="credit-pack-info">~200 generations</div>
+            <button class="btn-outline btn-sm btn-full btn-disabled">Coming Soon</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
   <!-- PAGE: JOIN -->
   <div class="page hidden" id="page-join"></div>

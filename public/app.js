@@ -1694,6 +1694,123 @@ function applyHookToPreview(text) {
   });
 }
 
+// ─── Pricing Page ────────────────────────────────────────────────────────────
+const PROMO_CODES = {
+  'WOLFPACK': { type: 'percent', value: 20, label: '20% off' },
+  'LAZYJO':   { type: 'percent', value: 100, label: 'Free month' },
+  'STUDIO10': { type: 'percent', value: 10, label: '10% off' },
+  'CREDITS50': { type: 'credits', value: 50, label: '+50 bonus Credits ⚡' },
+};
+
+let currentBilling = 'monthly';
+let appliedPromo = null;
+
+function initPricingPage() {
+  // Billing toggle
+  document.querySelectorAll('.billing-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.billing-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentBilling = btn.dataset.billing;
+      updatePlanPrices();
+    });
+  });
+
+  // Promo code
+  const applyBtn = $('promo-apply-btn');
+  if (applyBtn) applyBtn.addEventListener('click', applyPromoCode);
+
+  const promoInput = $('promo-input');
+  if (promoInput) promoInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') applyPromoCode();
+  });
+
+  // Restore saved promo
+  const savedPromo = localStorage.getItem('lw_promo_code');
+  if (savedPromo && PROMO_CODES[savedPromo]) {
+    appliedPromo = { code: savedPromo, ...PROMO_CODES[savedPromo] };
+    showPromoFeedback(true, PROMO_CODES[savedPromo].label);
+    updatePlanPrices();
+  }
+}
+
+function applyPromoCode() {
+  const input = $('promo-input');
+  const code = input?.value.trim().toUpperCase();
+  if (!code) return;
+
+  const promo = PROMO_CODES[code];
+  if (promo) {
+    appliedPromo = { code, ...promo };
+    localStorage.setItem('lw_promo_code', code);
+    state.promoCode = code;
+
+    if (promo.type === 'credits') {
+      addCredits(promo.value);
+      showPromoFeedback(true, `${promo.label} — credits added!`);
+    } else {
+      showPromoFeedback(true, `${promo.label} applied!`);
+    }
+    updatePlanPrices();
+  } else {
+    showPromoFeedback(false, 'Code not recognized');
+    // Shake animation
+    const row = input?.closest('.promo-input-row');
+    if (row) {
+      row.classList.add('promo-shake');
+      setTimeout(() => row.classList.remove('promo-shake'), 500);
+    }
+  }
+}
+
+function showPromoFeedback(success, message) {
+  const feedback = $('promo-feedback');
+  if (!feedback) return;
+  feedback.textContent = message;
+  feedback.className = `promo-feedback ${success ? 'promo-success' : 'promo-error'}`;
+  feedback.classList.remove('hidden');
+}
+
+function updatePlanPrices() {
+  const isAnnual = currentBilling === 'annual';
+  const discount = appliedPromo?.type === 'percent' ? appliedPromo.value : 0;
+
+  document.querySelectorAll('.plan-amount').forEach(el => {
+    const monthly = parseFloat(el.dataset.monthly);
+    const annual = parseFloat(el.dataset.annual);
+    if (isNaN(monthly)) return;
+
+    let price = isAnnual ? Math.round(annual / 12) : monthly;
+    let displayPrice = price;
+
+    if (discount > 0) {
+      displayPrice = Math.round(price * (1 - discount / 100));
+      if (discount === 100) displayPrice = 0;
+
+      // Show old price with strikethrough
+      const parent = el.closest('.plan-price');
+      let oldEl = parent?.querySelector('.plan-amount-old');
+      if (!oldEl) {
+        oldEl = document.createElement('span');
+        oldEl.className = 'plan-amount-old';
+        parent?.insertBefore(oldEl, el);
+      }
+      oldEl.textContent = `€${price}`;
+      oldEl.style.display = '';
+    } else {
+      const parent = el.closest('.plan-price');
+      const oldEl = parent?.querySelector('.plan-amount-old');
+      if (oldEl) oldEl.style.display = 'none';
+    }
+
+    el.textContent = displayPrice;
+
+    // Update period text
+    const periodEl = el.parentElement?.querySelector('.plan-period');
+    if (periodEl) periodEl.textContent = isAnnual ? '/mo (billed annually)' : '/mo';
+  });
+}
+
 // ─── Export Modal & FFmpeg ────────────────────────────────────────────────────
 let selectedRatio = '9:16';
 
@@ -2065,6 +2182,7 @@ async function init() {
   initPerformanceTab();
   initRemixTab();
   initHooksPanel();
+  initPricingPage();
   initDownloads();
 
   // Show admin nav if admin

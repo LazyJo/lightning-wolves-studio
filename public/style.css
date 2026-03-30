@@ -2445,3 +2445,262 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
 .hook-style-glitch { color: #fff; text-shadow: 2px 0 #f0f, -2px 0 #0ff; font-family: monospace; }
 .hook-style-handwritten { color: #fff; font-family: 'Georgia', serif; font-style: italic; }
 .hook-style-minimal { color: rgba(255,255,255,0.7); font-weight: 400; font-size: 12px; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: PRICING
+   ═══════════════════════════════════════════════════════════════════════════ */
+.pricing-page {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 48px 40px 64px;
+}
+
+/* ─── Hero ─────────────────────────────────────────────────────────────────── */
+.pricing-hero {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.pricing-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 20px;
+}
+
+/* ─── Billing Toggle ───────────────────────────────────────────────────────── */
+.billing-toggle {
+  display: inline-flex;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 3px;
+  margin-bottom: 20px;
+}
+
+.billing-btn {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-dim);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.billing-btn.active {
+  background: var(--gold);
+  color: #000;
+}
+
+.billing-save {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--wolf-shiteux);
+  margin-left: 4px;
+}
+
+.billing-btn.active .billing-save { color: #065f46; }
+
+/* ─── Promo Bar ────────────────────────────────────────────────────────────── */
+.promo-bar {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.promo-label {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.promo-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+.promo-input-row input {
+  width: 160px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.promo-feedback {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.promo-feedback.promo-success {
+  color: var(--wolf-shiteux);
+  background: rgba(105, 240, 174, 0.1);
+}
+
+.promo-feedback.promo-error {
+  color: #ff4455;
+  background: rgba(255, 68, 85, 0.1);
+}
+
+@keyframes promo-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.promo-shake { animation: promo-shake 0.4s ease; }
+
+/* ─── Plans Grid ───────────────────────────────────────────────────────────── */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.plan-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.plan-card-popular {
+  border-color: var(--gold);
+}
+
+.plan-popular-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 12px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #000;
+  background: var(--gold);
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.plan-header { margin-bottom: 16px; }
+
+.plan-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.plan-price {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.plan-currency { font-size: 20px; color: #fff; font-weight: 500; }
+.plan-amount { font-size: 32px; color: #fff; font-weight: 600; }
+.plan-period { color: var(--text-dim); }
+
+.plan-amount-old {
+  font-size: 16px;
+  color: var(--text-dim);
+  text-decoration: line-through;
+  margin-right: 6px;
+}
+
+/* ─── Plan Features ────────────────────────────────────────────────────────── */
+.plan-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+  flex: 1;
+}
+
+.plan-features li {
+  font-size: 13px;
+  color: var(--text-muted);
+  padding-left: 16px;
+  position: relative;
+}
+
+.plan-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--wolf-shiteux);
+  font-size: 12px;
+}
+
+.plan-cta { margin-top: auto; }
+
+/* ─── Credits Section ──────────────────────────────────────────────────────── */
+.credits-section {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.credits-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.credits-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+}
+
+.credits-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.credit-pack {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 20px 16px;
+  text-align: center;
+}
+
+.credit-pack-amount {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gold);
+  margin-bottom: 4px;
+}
+
+.credit-pack-price {
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.credit-pack-info {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+/* ─── Pricing Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .plans-grid { grid-template-columns: repeat(2, 1fr); }
+  .credits-grid { grid-template-columns: repeat(2, 1fr); }
+  .pricing-page { padding: 32px 24px 48px; }
+}
+
+@media (max-width: 500px) {
+  .plans-grid { grid-template-columns: 1fr; }
+  .credits-grid { grid-template-columns: 1fr 1fr; }
+}

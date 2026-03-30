@@ -645,3 +645,177 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   .hero-buttons { flex-direction: column; }
   .hero-buttons .btn-outline, .hero-buttons .btn-gold { width: 100%; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE: CREW
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.crew-page {
+  padding: 48px 40px 64px;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.crew-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.crew-title {
+  font-size: 32px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.3px;
+}
+
+/* ─── Crew Grid ────────────────────────────────────────────────────────────── */
+.crew-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+/* ─── Crew Card ────────────────────────────────────────────────────────────── */
+.crew-card {
+  background: var(--surface);
+  border: 1px solid var(--card-color, var(--border));
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s;
+}
+
+.crew-card:hover {
+  border-color: color-mix(in srgb, var(--card-color) 60%, transparent);
+}
+
+/* ─── Banner ───────────────────────────────────────────────────────────────── */
+.crew-card-banner {
+  position: relative;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--card-color) 10%, var(--surface));
+  border-bottom: 1px solid var(--border);
+}
+
+.crew-initials {
+  font-size: 36px;
+  font-weight: 600;
+  color: var(--card-color);
+  letter-spacing: 2px;
+  opacity: 0.9;
+}
+
+.crew-role-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--card-color);
+  background: color-mix(in srgb, var(--card-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--card-color) 25%, transparent);
+  border-radius: 4px;
+}
+
+/* ─── Card Body ────────────────────────────────────────────────────────────── */
+.crew-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.crew-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.crew-genre {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.crew-bio {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-top: 4px;
+}
+
+/* ─── Card Buttons ─────────────────────────────────────────────────────────── */
+.crew-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+/* ─── Social Links ─────────────────────────────────────────────────────────── */
+.crew-socials {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.crew-social-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius);
+  color: var(--text-dim);
+  transition: color 0.2s, background 0.2s;
+}
+
+.crew-social-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.crew-social-link:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+/* ─── Join Card ────────────────────────────────────────────────────────────── */
+.crew-card-join {
+  border-style: dashed;
+  border-color: var(--border-light);
+}
+
+.crew-card-join:hover {
+  border-color: var(--gold);
+}
+
+.crew-join-banner {
+  background: var(--gold-dim);
+}
+
+.crew-join-icon {
+  font-size: 40px;
+  font-weight: 400;
+  color: var(--gold);
+  opacity: 0.7;
+}
+
+/* ─── Crew Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 800px) {
+  .crew-grid { grid-template-columns: repeat(2, 1fr); }
+  .crew-page { padding: 32px 24px 48px; }
+}
+
+@media (max-width: 500px) {
+  .crew-grid { grid-template-columns: 1fr; }
+}

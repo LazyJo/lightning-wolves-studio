@@ -285,6 +285,30 @@ function checkReferralCode() {
   }
 }
 
+// ─── Wolf Data ───────────────────────────────────────────────────────────────
+const WOLVES = {
+  lazyjo:  { id: 'lazyjo',  name: 'Lazy Jo',        color: '#f5c518', genre: 'Melodic Hip-Hop',    artist: 'Lazy Jo' },
+  zirka:   { id: 'zirka',   name: 'Zirka',           color: '#b388ff', genre: 'French Hip-Hop',     artist: 'Zirka' },
+  rosakay: { id: 'rosakay', name: 'Rosakay',          color: '#ff80ab', genre: 'Pop / French Pop',   artist: 'Rosakay' },
+  drippy:  { id: 'drippy',  name: 'Drippydesigns',    color: '#82b1ff', genre: 'Visual Art',         artist: 'Drippydesigns' },
+  shiteux: { id: 'shiteux', name: 'Shiteux',          color: '#69f0ae', genre: 'Photo · Video · Beats', artist: 'Shiteux' },
+};
+
+// ─── Crew Page ───────────────────────────────────────────────────────────────
+function initCrewPage() {
+  document.querySelectorAll('.crew-enter-studio').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const wolfId = btn.dataset.wolf;
+      const wolf = WOLVES[wolfId];
+      if (wolf) {
+        state.selectedWolf = wolf;
+      }
+      window.location.hash = '/studio';
+    });
+  });
+}
+
 // ─── Bootstrap ───────────────────────────────────────────────────────────────
 async function init() {
   checkReferralCode();
@@ -296,6 +320,7 @@ async function init() {
   initTopbarAuth();
   initCreditPill();
   initBugReport();
+  initCrewPage();
 
   // Show admin nav if admin
   if (state.profile?.role === 'admin' || state.profile?.email === 'lazyjo@lightningwolves.studio') {

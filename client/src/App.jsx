@@ -11,10 +11,10 @@ const WOLVES = [
   { id: 'white-blue', color: '#64b5f6', artist: 'Drippydesigns',  genre: 'Covers & Trailers', image: 'wolf-white.svg',  video: 'wolf-white-blue.mp4', locked: false },
   { id: 'green',      color: '#00E64D', artist: 'Shiteux',        genre: 'Photos & Videos',   image: 'wolf-green.png',  video: 'wolf-green.mp4',      locked: false },
   { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon', image: 'wolf-red.png', video: 'wolf-red.mp4', locked: false },
-  { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
-  { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
   { id: 'white',  color: '#e8e8e8', artist: 'MMJ',             genre: 'Coming Soon', image: 'wolf-white.png', video: 'wolf-white.mp4', locked: false },
   { id: 'pink',   color: '#E040FB', artist: 'Soon Available',  genre: 'Coming Soon', image: 'wolf-pink.png',  video: 'wolf-pink.mp4',  locked: false },
+  { id: 'black',  color: '#111111', locked: true, image: 'wolf-black.svg' },
+  { id: 'blue',   color: '#2196F3', locked: true, image: 'wolf-blue.svg'  },
   { id: 'gray',   color: '#9E9E9E', locked: true, image: 'wolf-gray.svg'  },
 ]
 

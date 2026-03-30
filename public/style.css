@@ -1092,6 +1092,32 @@ select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmln
   line-height: 1.4;
 }
 
+/* ─── Generation Progress ──────────────────────────────────────────────────── */
+.gen-progress {
+  margin-top: 8px;
+}
+
+.gen-progress-bar {
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.gen-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--gold);
+  border-radius: 2px;
+  transition: width 0.5s;
+}
+
+.gen-progress-text {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
 /* ─── Center Panel ─────────────────────────────────────────────────────────── */
 .studio-center {
   flex: 1;

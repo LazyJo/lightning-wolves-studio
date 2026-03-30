@@ -832,6 +832,34 @@ async function handleGenerate() {
   btn.disabled = true;
   btnText.textContent = 'Generating...';
 
+  // Show generation progress with time estimate
+  const genProgress = $('gen-progress');
+  const genFill = $('gen-progress-fill');
+  const genText = $('gen-progress-text');
+  const estimatedSeconds = 15;
+  let elapsed = 0;
+
+  if (genProgress) genProgress.classList.remove('hidden');
+  if (genFill) genFill.style.width = '0%';
+  if (genText) genText.textContent = `Estimated: ~${estimatedSeconds}s`;
+
+  // Live countdown
+  const countdownInterval = setInterval(() => {
+    elapsed++;
+    const remaining = Math.max(0, estimatedSeconds - elapsed);
+    const pct = Math.min(90, (elapsed / estimatedSeconds) * 90);
+    if (genFill) genFill.style.width = `${pct}%`;
+
+    if (remaining > 3) {
+      if (genText) genText.textContent = `~${remaining}s remaining`;
+    } else if (remaining > 0) {
+      if (genText) genText.textContent = 'Finishing up...';
+      if (genFill) genFill.style.width = '92%';
+    } else {
+      if (genText) genText.textContent = 'Almost there...';
+    }
+  }, 1000);
+
   try {
     const body = { title, artist, genre, language, wolfId: state.selectedWolf?.id };
     if (bpm) body.bpm = bpm;
@@ -848,6 +876,8 @@ async function handleGenerate() {
       body: JSON.stringify(body),
     });
 
+    clearInterval(countdownInterval);
+
     const json = await res.json();
     if (!res.ok) {
       if (json.error === 'LIMIT_REACHED') {
@@ -856,6 +886,9 @@ async function handleGenerate() {
       }
       throw new Error(json.error || 'Generation failed');
     }
+
+    if (genFill) genFill.style.width = '100%';
+    if (genText) genText.textContent = 'Done!';
 
     // Deduct credits (non-members)
     if (!isMember) {
@@ -903,6 +936,7 @@ async function handleGenerate() {
     toast('Generation complete!', 'success');
 
   } catch (err) {
+    clearInterval(countdownInterval);
     // Auto-refund on server error
     if (!isMember) {
       addCredits(10);
@@ -913,10 +947,14 @@ async function handleGenerate() {
       toast(err.message, 'error');
     }
     if (errEl) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+    if (genText) genText.textContent = 'Failed';
+    if (genFill) genFill.style.width = '0%';
   } finally {
     btn.disabled = false;
     btnText.textContent = 'Generate · 10 ⚡';
     state.generating = false;
+    // Hide progress after a moment
+    setTimeout(() => { if (genProgress) genProgress.classList.add('hidden'); }, 3000);
   }
 }
 

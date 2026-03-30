@@ -19,7 +19,7 @@
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-top">
     <a href="#/" class="sidebar-logo" title="Lightning Wolves Studio">
-      <img src="/LightningWolvesLogoTransparentBG.png" alt="LW" />
+      <img src="/LightningWolvesLogoTransparentBG.png" alt="LW" loading="lazy" />
     </a>
     <a href="#/" class="sidebar-icon" data-page="landing" title="Home">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
@@ -430,6 +430,10 @@
           <span class="btn-generate-icon">⚡</span>
           <span class="btn-generate-text">Generate · 10 ⚡</span>
         </button>
+        <div class="gen-progress hidden" id="gen-progress">
+          <div class="gen-progress-bar"><div class="gen-progress-fill" id="gen-progress-fill"></div></div>
+          <span class="gen-progress-text" id="gen-progress-text">Estimated: ~15s</span>
+        </div>
         <div class="gen-error hidden" id="gen-error"></div>
 
       </aside>
@@ -1194,7 +1198,7 @@
     <canvas id="auth-particles" class="auth-particles"></canvas>
     <div class="auth-page">
       <div class="auth-container">
-        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" class="auth-logo" />
+        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" class="auth-logo" loading="lazy" />
         <div class="auth-wordmark">Lightning Wolves Studio</div>
 
         <!-- Tabs -->

@@ -26,8 +26,9 @@
       <img src="/LightningWolvesLogoTransparentBG.png" alt="Lightning Wolves" />
     </a>
     <div class="pub-nav-right">
+      <a href="#/studio" class="pub-nav-btn">Enter Studio</a>
       <a href="#/pricing" class="pub-nav-link">Pricing</a>
-      <a href="#/auth" class="pub-nav-btn" id="pub-signin-btn">Sign In</a>
+      <a href="#/auth" class="pub-nav-link pub-nav-signin" id="pub-signin-btn">Sign In</a>
     </div>
   </header>
 
@@ -38,7 +39,7 @@
 // Move public pages into pub-content (they're defined later in the HTML inside main-content)
 document.addEventListener('DOMContentLoaded', function() {
   var pub = document.getElementById('pub-content');
-  var pagesToMove = ['page-landing', 'page-crew', 'page-wolf-profile'];
+  var pagesToMove = ['page-landing', 'page-wolf-profile'];
   for (var i = 0; i < pagesToMove.length; i++) {
     var el = document.getElementById(pagesToMove[i]);
     if (el && pub) pub.appendChild(el);
@@ -59,10 +60,10 @@ document.addEventListener('DOMContentLoaded', function() {
       <a href="#/" class="sidebar-logo" title="Lightning Wolves Studio">
         <img src="/LightningWolvesLogoTransparentBG.png" alt="LW" loading="lazy" />
       </a>
-      <a href="#/" class="sidebar-icon" data-page="landing" title="Home">
+      <a href="#/home" class="sidebar-icon" data-page="home" title="Home">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
       </a>
-      <a href="#/crew" class="sidebar-icon" data-page="crew" title="Crew">
+      <a href="#/" class="sidebar-icon" data-page="landing" title="Crew">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
       </a>
       <a href="#/studio" class="sidebar-icon" data-page="studio" title="Studio">
@@ -110,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="main-content" id="main-content">
 
   <!-- PAGE: LANDING -->
-  <div class="page" id="page-landing">
+  <div class="page" id="page-home">
 
     <!-- Hero -->
     <section class="landing-hero">
@@ -120,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <p class="hero-subtitle">AI-powered lyric videos. Built for wolves.</p>
         <div class="hero-buttons">
           <a href="#/studio" class="btn-gold">Enter Studio</a>
-          <a href="#/crew" class="btn-outline">Meet the Pack</a>
+          <a href="#/" class="btn-outline">Meet the Pack</a>
           <a href="#/pricing" class="btn-outline">Pricing</a>
         </div>
       </div>
@@ -196,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
               <span class="wolf-row-role">Visuals</span>
             </div>
           </div>
-          <a href="#/crew" class="landing-card-link">Meet the full crew →</a>
+          <a href="#/" class="landing-card-link">Meet the full crew →</a>
         </div>
 
         <!-- Right: Getting Started -->
@@ -247,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- PAGE: CREW -->
-  <div class="page" style="display:none" id="page-crew">
+  <div class="page" style="display:none" id="page-landing">
     <div class="crew-select">
       <canvas id="crew-particles" class="crew-particles"></canvas>
       <h1 class="crew-select-title">WHICH WOLF ARE YOU?</h1>
@@ -1414,8 +1415,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // ─── INLINE ROUTER — handles public/studio split + all page switching ──────
 (function() {
-  var PUBLIC_PAGES = ['landing', 'crew', 'wolf-profile'];
-  var STUDIO_PAGES = ['studio', 'pricing', 'join', 'auth', 'admin'];
+  var PUBLIC_PAGES = ['landing', 'wolf-profile'];
+  var STUDIO_PAGES = ['home', 'studio', 'pricing', 'join', 'auth', 'admin'];
 
   function route() {
     var hash = (window.location.hash || '').replace(/^#\/?/, '') || 'landing';
@@ -1423,9 +1424,11 @@ document.addEventListener('DOMContentLoaded', function() {
     var page = parts[0] || 'landing';
     var subpage = parts[1] || '';
 
-    // Wolf profile route: crew/wolfId
+    // Wolf profile route: crew/wolfId  (e.g. #/crew/lazyjo)
     var isWolfProfile = (page === 'crew' && subpage);
     var activePage = isWolfProfile ? 'wolf-profile' : page;
+    // "crew" without subpage → go to landing (the crew selection IS the landing)
+    if (page === 'crew' && !subpage) activePage = 'landing';
 
     // Determine if public or studio layout
     var isPublic = PUBLIC_PAGES.indexOf(activePage) !== -1;
@@ -1454,7 +1457,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Breadcrumb (studio pages only)
-    var names = {studio:'Studio',pricing:'Pricing',join:'Join the Pack',auth:'Sign In',admin:'Admin'};
+    var names = {home:'Home',studio:'Studio',pricing:'Pricing',join:'Join the Pack',auth:'Sign In',admin:'Admin'};
     var bc = document.getElementById('breadcrumb-page');
     if (bc) bc.textContent = names[activePage] || 'Studio';
 

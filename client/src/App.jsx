@@ -347,6 +347,19 @@ function WolfSelectPage({ onSelectWolf, onViewProfile, onShowAuth, onPricing }) 
                 card
               ]
             }
+            // Insert "Join the Pack" card after MMJ (index 7 = pink wolf)
+            if (idx === 7) {
+              return [
+                <a key="join-pack" className="wolf-card join-pack-card" href="mailto:join@lightningwolves.studio">
+                  <div className="join-pack-logo-wrap">
+                    <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" className="join-pack-logo" onError={e => e.target.style.display='none'} />
+                  </div>
+                  <div className="wolf-name join-pack-name">JOIN THE PACK</div>
+                  <div className="join-pack-badge">Apply to Join</div>
+                </a>,
+                card
+              ]
+            }
             return card
           })}
         </div>

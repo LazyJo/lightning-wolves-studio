@@ -375,6 +375,41 @@ a:hover { text-decoration: underline; }
 .lone-wolf-grid-card .wolf-genre-tag { --tag-color: #f5c518 !important; color: #f5c518; border-color: rgba(245,197,24,0.5); background: rgba(245,197,24,0.12); }
 .lone-wolf-emoji { font-size: 3.5rem; position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; filter: drop-shadow(0 0 8px rgba(245,197,24,0.4)); }
 
+/* Join the Pack card */
+.join-pack-card {
+  cursor: pointer;
+  text-decoration: none;
+  background: linear-gradient(145deg, rgba(245,197,24,0.15) 0%, rgba(232,135,10,0.1) 50%, rgba(245,197,24,0.15) 100%);
+  border: 1px solid rgba(245,197,24,0.5) !important;
+  box-shadow: 0 0 20px rgba(245,197,24,0.12), inset 0 0 20px rgba(245,197,24,0.04);
+  animation: join-pack-glow 3s ease-in-out infinite;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.join-pack-card:hover {
+  border-color: rgba(245,197,24,0.8) !important;
+  box-shadow: 0 0 30px rgba(245,197,24,0.25), inset 0 0 24px rgba(245,197,24,0.08);
+  transform: translateY(-4px);
+  text-decoration: none;
+}
+@keyframes join-pack-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(245,197,24,0.12), inset 0 0 20px rgba(245,197,24,0.04); }
+  50% { box-shadow: 0 0 28px rgba(245,197,24,0.2), inset 0 0 24px rgba(245,197,24,0.08); }
+}
+.join-pack-logo-wrap { display: flex; align-items: center; justify-content: center; width: 90px; height: 90px; margin: 0 auto; }
+.join-pack-logo { width: 80px; height: 80px; object-fit: contain; filter: drop-shadow(0 0 12px rgba(245,197,24,0.4)); }
+.join-pack-name { color: #f5c518 !important; text-shadow: 0 0 16px rgba(245,197,24,0.4); letter-spacing: 0.1em; }
+.join-pack-badge {
+  display: inline-block;
+  margin-top: 6px;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  padding: 4px 16px;
+  border-radius: 12px;
+  background: #f5c518;
+  color: #000;
+}
+
 @keyframes lone-wolf-shimmer {
   0%, 100% { box-shadow: 0 0 18px rgba(245,197,24,0.15), inset 0 0 12px rgba(245,197,24,0.05); }
   50% { box-shadow: 0 0 26px rgba(245,197,24,0.25), inset 0 0 18px rgba(245,197,24,0.1); }

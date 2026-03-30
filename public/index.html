@@ -32,7 +32,21 @@
   </header>
 
   <!-- Public page containers -->
-  <div class="pub-content" id="pub-content">
+  <div class="pub-content" id="pub-content"></div>
+</div><!-- /public-site -->
+<script>
+// Move public pages into pub-content (they're defined later in the HTML inside main-content)
+document.addEventListener('DOMContentLoaded', function() {
+  var pub = document.getElementById('pub-content');
+  var pagesToMove = ['page-landing', 'page-crew', 'page-wolf-profile'];
+  for (var i = 0; i < pagesToMove.length; i++) {
+    var el = document.getElementById(pagesToMove[i]);
+    if (el && pub) pub.appendChild(el);
+  }
+  // Re-run route after move
+  if (window._lwRoute) window._lwRoute();
+});
+</script>
 
 <!-- ═══════════════════════════════════════════════════════════════════════════
      STUDIO APP — Studio, Pricing, Join, Admin, Auth (with sidebar)
@@ -300,9 +314,6 @@
   <div class="page" style="display:none" id="page-wolf-profile">
     <div class="wolf-profile-page" id="wolf-profile-content"></div>
   </div>
-
-  </div><!-- /pub-content -->
-</div><!-- /public-site -->
 
   <!-- PAGE: STUDIO -->
   <div class="page" style="display:none" id="page-studio">

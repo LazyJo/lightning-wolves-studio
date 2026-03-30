@@ -207,8 +207,15 @@ const WOLF_PROFILES = {
   yellow: {
     name: 'Lazy Jo', role: 'Founder · Artist', genre: 'Melodic Hip-Hop', color: '#f5c518',
     image: 'LightningWolfYellowTransparentBG.png',
+    animation: 'Lazy Jo Wolf Card Animation.mp4',
     bookUrl: 'https://www.gigstarter.be/artists/lazy-jo',
     bio: `Lazy Jo is a Belgian artist with Ghanaian roots, born in 1999 in Lomé, Togo and based in Brussels, Belgium. Immersed in music from an early age, he began shaping his sound at a young age and officially launched his career in February 2018 with his debut single "I'm Lost." Known for his distinctive melodic flows, emotionally driven delivery, and unforgettable hooks, Lazy Jo creates music that lingers long after the first listen. His ability to craft catchy, memorable melodies has become a defining element of his artistry, setting him apart in a crowded music landscape. Driven by consistency and growth, Lazy Jo continues to evolve his sound while building a strong and authentic artistic presence. His dedication has not gone unnoticed — industry heavyweights such as Kelvyn Colt, Zaytoven, DDG, and Timbaland have recognized and supported his talent. Most recently, Lazy Jo reached a major milestone with his track "Stay Up," which surpassed 100,000 views, further cementing his rising influence and momentum within the music scene.`,
+    spotifyEmbed: 'https://open.spotify.com/embed/artist/4BoRxUdrcgbbq1rxJvvhg7?utm_source=generator&theme=0',
+    performanceVideo: 'Lazy Jo Performance Video.mp4',
+    email: 'Lazyjo.official@gmail.com',
+    youtube: 'https://youtube.com/@lightningwolves',
+    instagram: 'https://instagram.com/lazyjoo_',
+    spotify: 'https://open.spotify.com/artist/4BoRxUdrcgbbq1rxJvvhg7',
     acknowledgements: [
       { name: 'Timbaland', image: 'Timbaland.jpeg', quote: '"This could be the best song"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
       { name: 'Symba', image: 'Symba.jpeg', quote: '"International as a M*****f*****"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
@@ -227,9 +234,11 @@ const WOLF_PROFILES = {
   orange: {
     name: 'Rosakay', role: 'Artist', genre: 'Pop / French Pop', color: '#ff80ab',
     image: 'LightningWolfOrangeTransparentBG.png',
+    animation: 'Rosakay Wolf Animation.mp4',
     bio: 'Sarah Kingambo — Rosakay — brings pop with a French soul. Her melodic sensibility and emotional depth make every track feel personal and universal at once.',
     instagram: 'https://www.instagram.com/rosakay_officiel',
     spotify: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B',
+    spotifyEmbed: 'https://open.spotify.com/embed/artist/5DaB9HZOXF1kOqxLiS2d4B?utm_source=generator&theme=0',
     acknowledgements: []
   },
   blue: {
@@ -251,6 +260,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
   const [flipped, setFlipped] = useState(false)
   const profile = WOLF_PROFILES[wolf.id] || {}
   const color = profile.color || wolf.color || '#f5c518'
+  const name = profile.name || wolf.artist || ''
 
   return (
     <div className="wolf-profile-page" style={{'--wp': color}}>
@@ -260,52 +270,58 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
         <div className="wp-topbar-right">
           {profile.bookUrl && (
             <a href={profile.bookUrl} target="_blank" rel="noopener noreferrer" className="wp-book-btn">
-              Book {profile.name}
+              Book {name}
             </a>
           )}
           <button className="wp-enter-btn" onClick={() => onEnterStudio(wolf)}>
-            ENTER STUDIO AS {(profile.name || wolf.artist || '').toUpperCase()}
+            ENTER STUDIO AS {name.toUpperCase()}
           </button>
         </div>
       </div>
 
       {/* Wolf name */}
-      <h1 className="wp-hero-name">{profile.name || wolf.artist}</h1>
+      <h1 className="wp-hero-name">{name}</h1>
 
-      {/* Flip card */}
+      {/* Flip card — shows animation video if available */}
       <div className="wp-flip-container" onClick={() => setFlipped(!flipped)}>
         <div className={`wp-flip-card ${flipped ? 'wp-flipped' : ''}`}>
           <div className="wp-card-front">
             <div className="wp-card-image-wrap">
-              <img src={`/${profile.image || wolf.image}`} alt={profile.name} />
+              {profile.animation ? (
+                <video src={`/${profile.animation}`} autoPlay loop muted playsInline className="wp-card-video" />
+              ) : (
+                <img src={`/${profile.image || wolf.image}`} alt={name} />
+              )}
             </div>
             <div className="wp-card-overlay">
-              <div className="wp-card-overlay-name">{profile.name || wolf.artist}</div>
+              <div className="wp-card-overlay-name">{name}</div>
               <div className="wp-card-overlay-genre">{profile.genre || wolf.genre}</div>
               <div className="wp-card-overlay-role">{profile.role}</div>
             </div>
             <div className="wp-card-flip-hint">↻ TAP TO FLIP</div>
           </div>
           <div className="wp-card-back">
-            <h3 className="wp-card-back-name">{profile.name}</h3>
-            <p className="wp-card-back-bio">{profile.bio?.substring(0, 200)}...</p>
+            <h3 className="wp-card-back-name">{name}</h3>
+            <p className="wp-card-back-bio">{(profile.bio || '').substring(0, 250)}...</p>
             <div className="wp-card-flip-hint">↻ TAP TO FLIP</div>
           </div>
         </div>
       </div>
 
-      {/* About section */}
+      {/* About */}
       {profile.bio && (
-        <div className="wp-about">
+        <div className="wp-section">
           <h2 className="wp-section-title">ABOUT</h2>
+          <div className="wp-section-divider"></div>
           <p className="wp-about-text">{profile.bio}</p>
         </div>
       )}
 
       {/* Industry Acknowledgements */}
       {profile.acknowledgements && profile.acknowledgements.length > 0 && (
-        <div className="wp-acks">
+        <div className="wp-section">
           <h2 className="wp-section-title">INDUSTRY ACKNOWLEDGEMENTS</h2>
+          <div className="wp-section-divider"></div>
           <div className="wp-acks-grid">
             {profile.acknowledgements.map((ack, i) => (
               <div key={i} className="wp-ack-card">
@@ -315,22 +331,86 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
                 <div className="wp-ack-name">{ack.name}</div>
                 <div className="wp-ack-quote">{ack.quote}</div>
                 {ack.sublabel && <div className="wp-ack-sublabel">{ack.sublabel}</div>}
-                <a href={ack.link} target="_blank" rel="noopener noreferrer" className="wp-ack-link">
-                  {ack.linkLabel}
-                </a>
+                <a href={ack.link} target="_blank" rel="noopener noreferrer" className="wp-ack-link">{ack.linkLabel}</a>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Social links */}
-      {(profile.instagram || profile.spotify) && (
-        <div className="wp-socials">
-          {profile.instagram && <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className="wp-social-link">Instagram</a>}
-          {profile.spotify && <a href={profile.spotify} target="_blank" rel="noopener noreferrer" className="wp-social-link">Spotify</a>}
+      {/* Music — Spotify embed */}
+      {profile.spotifyEmbed && (
+        <div className="wp-section">
+          <h2 className="wp-section-title">MUSIC</h2>
+          <div className="wp-section-divider"></div>
+          <div className="wp-spotify-embed">
+            <iframe src={profile.spotifyEmbed} width="100%" height="352" frameBorder="0"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy" style={{borderRadius: '12px', border: '1px solid var(--border)'}} title="Spotify" />
+          </div>
         </div>
       )}
+
+      {/* Live Performance */}
+      {profile.performanceVideo && (
+        <div className="wp-section">
+          <div className="wp-perf-header">
+            <h2 className="wp-section-title">LIVE PERFORMANCE</h2>
+            {profile.bookUrl && (
+              <a href={profile.bookUrl} target="_blank" rel="noopener noreferrer" className="wp-book-btn-sm">
+                BOOK {name.toUpperCase()}
+              </a>
+            )}
+          </div>
+          <div className="wp-section-divider"></div>
+          <video src={`/${profile.performanceVideo}`} controls className="wp-perf-video" />
+        </div>
+      )}
+
+      {/* Photos */}
+      <div className="wp-section">
+        <h2 className="wp-section-title">PHOTOS</h2>
+        <div className="wp-section-divider"></div>
+        <div className="wp-photos-empty">
+          <span>📷</span>
+          <p>No photos yet.</p>
+        </div>
+      </div>
+
+      {/* Support */}
+      <div className="wp-section">
+        <h2 className="wp-section-title">SUPPORT</h2>
+        <div className="wp-section-divider"></div>
+        <div className="wp-support-grid">
+          <div className="wp-support-card">
+            <img src="/LightningWolvesLogoTransparentBG.png" alt="Merch" className="wp-support-img" />
+            <div className="wp-support-label">LIGHTNING WOLVES MERCH</div>
+          </div>
+          <div className="wp-support-card">
+            <img src="/True Fans Buy The Art.jpeg" alt="True Fans" className="wp-support-img" />
+            <div className="wp-support-label">TRUE FANS BUY THE ART</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact */}
+      <div className="wp-section">
+        <h2 className="wp-section-title">CONTACT</h2>
+        <div className="wp-section-divider"></div>
+        <div className="wp-contact-list">
+          {profile.email && <div className="wp-contact-row"><span>✉️</span> {profile.email}</div>}
+          {profile.youtube && <a href={profile.youtube} target="_blank" rel="noopener noreferrer" className="wp-contact-row"><span>▶️</span> YouTube</a>}
+          {profile.instagram && <a href={profile.instagram} target="_blank" rel="noopener noreferrer" className="wp-contact-row"><span>📸</span> Instagram</a>}
+          {profile.spotify && <a href={profile.spotify} target="_blank" rel="noopener noreferrer" className="wp-contact-row"><span>🎵</span> Spotify</a>}
+        </div>
+      </div>
+
+      {/* Big Enter Studio button at bottom */}
+      <div className="wp-bottom-cta">
+        <button className="wp-bottom-enter" onClick={() => onEnterStudio(wolf)}>
+          ENTER STUDIO AS {name.toUpperCase()} ⚡
+        </button>
+      </div>
     </div>
   )
 }

@@ -287,15 +287,22 @@ function checkReferralCode() {
 
 // ─── Wolf Data ───────────────────────────────────────────────────────────────
 const WOLVES = {
-  lazyjo:  { id: 'lazyjo',  name: 'Lazy Jo',        color: '#f5c518', genre: 'Melodic Hip-Hop',    artist: 'Lazy Jo' },
-  zirka:   { id: 'zirka',   name: 'Zirka',           color: '#b388ff', genre: 'French Hip-Hop',     artist: 'Zirka' },
-  rosakay: { id: 'rosakay', name: 'Rosakay',          color: '#ff80ab', genre: 'Pop / French Pop',   artist: 'Rosakay' },
-  drippy:  { id: 'drippy',  name: 'Drippydesigns',    color: '#82b1ff', genre: 'Visual Art',         artist: 'Drippydesigns' },
-  shiteux: { id: 'shiteux', name: 'Shiteux',          color: '#69f0ae', genre: 'Photo · Video · Beats', artist: 'Shiteux' },
+  lazyjo:  { id: 'lazyjo',  name: 'Lazy Jo',       color: '#f5c518', genre: 'Melodic Hip-Hop',       artist: 'Lazy Jo',        role: 'Founder · Artist',
+    bio: 'Every pack needs a leader. Joeri Van Tricht — Lazy Jo — founded Lightning Wolves with a vision: build a crew where every artist wins together. Born in Belgium, his melodic hip-hop blends introspective lyricism with infectious energy. The architect of the sound, the face of the pack.' },
+  zirka:   { id: 'zirka',   name: 'Zirka',          color: '#b388ff', genre: 'French Hip-Hop',        artist: 'Zirka',          role: 'Artist',
+    bio: 'French hip-hop energy with melodic punch.' },
+  rosakay: { id: 'rosakay', name: 'Rosakay',         color: '#ff80ab', genre: 'Pop / French Pop',      artist: 'Rosakay',        role: 'Artist',
+    bio: 'Sarah Kingambo. Pop with a French soul.', image: '/Rosakay Profile.jpeg', animation: '/Rosakay Wolf Animation.mp4',
+    instagram: 'https://www.instagram.com/rosakay_officiel', spotify: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B' },
+  drippy:  { id: 'drippy',  name: 'Drippydesigns',   color: '#82b1ff', genre: 'Visual Art',            artist: 'Drippydesigns',  role: 'Designer',
+    bio: 'The visual identity behind the pack.' },
+  shiteux: { id: 'shiteux', name: 'Shiteux',         color: '#69f0ae', genre: 'Photo · Video · Beats',  artist: 'Shiteux',        role: 'Visuals',
+    bio: 'Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations \'Sin[e]\' and \'Doubt Clouds\' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.' },
 };
 
 // ─── Crew Page ───────────────────────────────────────────────────────────────
 function initCrewPage() {
+  // Enter Studio buttons
   document.querySelectorAll('.crew-enter-studio').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -305,6 +312,23 @@ function initCrewPage() {
         state.selectedWolf = wolf;
       }
       window.location.hash = '/studio';
+    });
+  });
+
+  // Bio toggles
+  document.querySelectorAll('.crew-bio-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fullBio = btn.previousElementSibling;
+      const expanded = btn.dataset.expanded === 'true';
+      if (expanded) {
+        fullBio.classList.remove('expanded');
+        btn.textContent = 'Read more';
+        btn.dataset.expanded = 'false';
+      } else {
+        fullBio.classList.add('expanded');
+        btn.textContent = 'Read less';
+        btn.dataset.expanded = 'true';
+      }
     });
   });
 }

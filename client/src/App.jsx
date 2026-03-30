@@ -227,13 +227,14 @@ const WOLF_PROFILES = {
     youtube: 'https://youtube.com/@lightningwolves',
     instagram: 'https://instagram.com/lazyjoo_',
     spotify: 'https://open.spotify.com/artist/4BoRxUdrcgbbq1rxJvvhg7',
+    profilePhoto: 'LazyJoPhoto.jpeg',
     acknowledgements: [
       { name: 'Timbaland', image: 'Timbaland.jpeg', quote: '"This could be the best song"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
       { name: 'Symba', image: 'Symba.jpeg', quote: '"International as a M*****f*****"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
       { name: 'DDG', image: 'DDG.jpeg', quote: '"Next Up"', link: 'https://instagram.com', linkLabel: 'Watch on Instagram', sublabel: 'On IG' },
-      { name: 'Kelvyn Colt', image: 'Kelvyn Colt.jpeg', quote: '"Lightning"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
+      { name: 'Kelvyn Colt', image: 'KelvynColt.jpeg', quote: '"Lightning"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
       { name: 'Zaytoven', image: 'Zaytoven.jpeg', quote: '"Keep going"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
-      { name: 'Kid Hazel', image: 'Kid Hazel.jpeg', quote: '"Fire"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
+      { name: 'Kid Hazel', image: 'KidHazel.jpeg', quote: '"Fire"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
     ]
   },
   purple: {
@@ -318,9 +319,16 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
             <div className="wp-card-flip-hint">↻ TAP TO FLIP</div>
           </div>
           <div className="wp-card-back">
+            {profile.profilePhoto && (
+              <div className="wp-card-back-photo">
+                <img src={`/${profile.profilePhoto}`} alt={name} />
+              </div>
+            )}
             <h3 className="wp-card-back-name">{name}</h3>
-            <p className="wp-card-back-bio">{(profile.bio || '').substring(0, 250)}...</p>
-            <div className="wp-card-flip-hint">↻ TAP TO FLIP</div>
+            <div className="wp-card-back-genre">{profile.genre}</div>
+            <p className="wp-card-back-bio">{(profile.bio || '').substring(0, 200)}...</p>
+            <div className="wp-card-overlay-role">{profile.role}</div>
+            <div className="wp-card-flip-hint">↻ TAP TO FLIP BACK</div>
           </div>
         </div>
       </div>
@@ -334,23 +342,27 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
         </div>
       )}
 
-      {/* Industry Acknowledgements */}
+      {/* Industry Acknowledgements — horizontal scroll */}
       {profile.acknowledgements && profile.acknowledgements.length > 0 && (
         <div className="wp-section">
           <h2 className="wp-section-title">INDUSTRY ACKNOWLEDGEMENTS</h2>
           <div className="wp-section-divider"></div>
-          <div className="wp-acks-grid">
-            {profile.acknowledgements.map((ack, i) => (
-              <div key={i} className="wp-ack-card">
-                <div className="wp-ack-img-wrap">
-                  <img src={`/${ack.image}`} alt={ack.name} />
+          <div className="wp-acks-scroll-wrap">
+            <button className="wp-acks-arrow wp-acks-left" onClick={e => { e.stopPropagation(); const s = e.target.closest('.wp-acks-scroll-wrap').querySelector('.wp-acks-row'); s.scrollBy({left:-220,behavior:'smooth'}); }}>‹</button>
+            <div className="wp-acks-row">
+              {profile.acknowledgements.map((ack, i) => (
+                <div key={i} className="wp-ack-card">
+                  <div className="wp-ack-img-wrap">
+                    <img src={`/${ack.image}`} alt={ack.name} />
+                  </div>
+                  <div className="wp-ack-name">{ack.name}</div>
+                  <div className="wp-ack-quote">{ack.quote}</div>
+                  {ack.sublabel && <div className="wp-ack-sublabel">{ack.sublabel}</div>}
+                  <a href={ack.link} target="_blank" rel="noopener noreferrer" className="wp-ack-link">{ack.linkLabel}</a>
                 </div>
-                <div className="wp-ack-name">{ack.name}</div>
-                <div className="wp-ack-quote">{ack.quote}</div>
-                {ack.sublabel && <div className="wp-ack-sublabel">{ack.sublabel}</div>}
-                <a href={ack.link} target="_blank" rel="noopener noreferrer" className="wp-ack-link">{ack.linkLabel}</a>
-              </div>
-            ))}
+              ))}
+            </div>
+            <button className="wp-acks-arrow wp-acks-right" onClick={e => { e.stopPropagation(); const s = e.target.closest('.wp-acks-scroll-wrap').querySelector('.wp-acks-row'); s.scrollBy({left:220,behavior:'smooth'}); }}>›</button>
           </div>
         </div>
       )}

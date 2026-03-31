@@ -935,33 +935,159 @@ function WolfSelectPage({ onSelectWolf, onJoinPack, onPricing, onShowAuth }) {
   )
 }
 
-// ─── Studio Page ──────────────────────────────────────────────────────────────
+// ─── Studio Shell (sidebar + topbar + sub-pages) ─────────────────────────────
 function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShowAuth, onSignOut, onOpenDashboard, onShowLimitModal }) {
-  const [title,        setTitle]        = useState('')
-  const [artist,       setArtist]       = useState(wolf?.artist || '')
-  const [genre,        setGenre]        = useState(wolf?.genre?.split(' /')[0] || '')
-  const [bpm,          setBpm]          = useState('')
-  const [language,     setLanguage]     = useState('English')
-  const [mood,         setMood]         = useState('')
-  const [generating,   setGenerating]   = useState(false)
-  const [genError,     setGenError]     = useState('')
-  const [pack,         setPack]         = useState(null)
-  const [meta,         setMeta]         = useState(null)
-  const [activeTab,    setActiveTab]    = useState('lyrics')
-  const [uploadInfo,   setUploadInfo]   = useState(null)
-  const [dragover,     setDragover]     = useState(false)
+  const [view, setView] = useState('home') // home | create
+  const color = wolf?.color || '#f5c518'
+
+  const isAdmin = profile?.role === 'admin' || (profile?.display_name || '').toLowerCase() === 'lazy jo'
+
+  return (
+    <div className="s-shell">
+      {/* Left Sidebar */}
+      <aside className="s-sidebar">
+        <div className="s-sidebar-top">
+          <button className="s-logo-btn" onClick={onChangeWolf} title="Back to Home">
+            <img src="/LightningWolvesLogoTransparentBG.png" alt="LW" className="s-logo-img"
+                 onError={e => e.target.style.display='none'} />
+          </button>
+          <nav className="s-nav">
+            <button className={`s-nav-btn ${view==='home'?'active':''}`} onClick={() => setView('home')} title="Home">
+              <span className="s-nav-icon">🏠</span><span className="s-nav-label">Home</span>
+            </button>
+            <button className={`s-nav-btn ${view==='create'?'active':''}`} onClick={() => setView('create')} title="Studio">
+              <span className="s-nav-icon">🎵</span><span className="s-nav-label">Studio</span>
+            </button>
+            <button className="s-nav-btn" onClick={onChangeWolf} title="Pricing">
+              <span className="s-nav-icon">💰</span><span className="s-nav-label">Pricing</span>
+            </button>
+            <button className="s-nav-btn" onClick={onChangeWolf} title="Join">
+              <span className="s-nav-icon">👤</span><span className="s-nav-label">Join</span>
+            </button>
+            {isAdmin && (
+              <button className="s-nav-btn" title="Admin">
+                <span className="s-nav-icon">⚙️</span><span className="s-nav-label">Admin</span>
+              </button>
+            )}
+          </nav>
+        </div>
+        <div className="s-sidebar-bottom">
+          <div className="s-credit-sidebar"><span className="s-credit-bolt">⚡</span><span className="s-credit-num">50</span></div>
+        </div>
+      </aside>
+
+      {/* Main area */}
+      <div className="s-main">
+        {/* Top Bar */}
+        <header className="s-topbar">
+          <div className="s-breadcrumb">Lightning Wolves Studio › <span>{view === 'home' ? 'Home' : 'Create'}</span></div>
+          <div className="s-topbar-right">
+            <div className="s-credit-pill"><span className="s-credit-bolt">⚡</span><span className="s-credit-num">50</span></div>
+            {user ? (
+              <>
+                {profile?.role === 'member' && <button className="btn-ghost btn-sm" onClick={onOpenDashboard}>Dashboard</button>}
+                <button className="btn-ghost btn-sm" onClick={onSignOut}>Sign Out</button>
+              </>
+            ) : (
+              <>
+                <button className="btn-outline btn-sm" onClick={onShowAuth}>Sign In</button>
+                <button className="btn-gold btn-sm" onClick={onShowAuth}>Sign Up</button>
+              </>
+            )}
+          </div>
+        </header>
+
+        {/* Content */}
+        <div className="s-content">
+          {view === 'home' && <StudioHome onStartCreating={() => setView('create')} wolfColor={color} />}
+          {view === 'create' && (
+            <StudioCreate wolf={wolf} user={user} profile={profile} token={token}
+              onShowLimitModal={onShowLimitModal} />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Studio Home ─────────────────────────────────────────────────────────────
+function StudioHome({ onStartCreating, wolfColor }) {
+  return (
+    <div className="s-home">
+      <div className="s-home-hero">
+        <h1 className="s-home-title">MAKE YOUR MUSIC<br/>IMPOSSIBLE TO IGNORE.</h1>
+        <p className="s-home-sub">AI-powered lyric videos. Built for wolves.</p>
+      </div>
+      <div className="s-feature-grid">
+        <div className="s-feature-card">
+          <div className="s-feature-icon">🎙️</div>
+          <div className="s-feature-name">Auto-Transcription</div>
+          <div className="s-feature-desc">Upload any track and get timed lyrics in seconds.</div>
+          <span className="s-badge">99.7% accurate</span>
+        </div>
+        <div className="s-feature-card">
+          <div className="s-feature-icon">✨</div>
+          <div className="s-feature-name">Lyric Styles</div>
+          <div className="s-feature-desc">Karaoke, pop, glitch, knockout — pick your vibe.</div>
+          <span className="s-badge s-badge-purple">KNOCKOUT mode</span>
+        </div>
+        <div className="s-feature-card">
+          <div className="s-feature-icon">🥁</div>
+          <div className="s-feature-name">Beat Detection</div>
+          <div className="s-feature-desc">Auto-detect BPM, drops, and cut points.</div>
+        </div>
+        <div className="s-feature-card">
+          <div className="s-feature-icon">📤</div>
+          <div className="s-feature-name">Export Ready</div>
+          <div className="s-feature-desc">SRT, beat cuts, AI prompts — ready for any editor.</div>
+        </div>
+      </div>
+      <div className="s-steps">
+        <h3 className="s-steps-title">GETTING STARTED</h3>
+        <ol className="s-steps-list">
+          <li><strong>Upload</strong> your track (audio or video, up to 100MB)</li>
+          <li><strong>Fill in</strong> song title, artist name, and genre</li>
+          <li><strong>Pick a style</strong> for your lyric video</li>
+          <li><strong>Hit Generate</strong> and watch the magic happen</li>
+          <li><strong>Export</strong> lyrics, SRT, beat cuts, or full video</li>
+        </ol>
+      </div>
+      <button className="btn-generate s-start-btn" onClick={onStartCreating}>
+        <span className="btn-text">START CREATING →</span>
+      </button>
+    </div>
+  )
+}
+
+// ─── Studio Create (3-panel editor) ──────────────────────────────────────────
+function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
+  const [title,      setTitle]      = useState('')
+  const [artist,     setArtist]     = useState(wolf?.artist || '')
+  const [genre,      setGenre]      = useState(wolf?.genre?.split(' /')[0] || '')
+  const [bpm,        setBpm]        = useState('')
+  const [language,   setLanguage]   = useState('English')
+  const [mood,       setMood]       = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [genError,   setGenError]   = useState('')
+  const [pack,       setPack]       = useState(null)
+  const [meta,       setMeta]       = useState(null)
+  const [activeTab,  setActiveTab]  = useState('lyrics')
+  const [uploadInfo, setUploadInfo] = useState(null)
+  const [dragover,   setDragover]   = useState(false)
+  const [lyricStyle, setLyricStyle] = useState('karaoke')
+  const [fontSize,   setFontSize]   = useState(32)
+  const [position,   setPosition]   = useState('center')
+  const [animation,  setAnimation]  = useState('slam')
+  const [textColor,  setTextColor]  = useState('#ffffff')
+  const [hlColor,    setHlColor]    = useState(wolf?.color || '#f5c518')
   const fileInputRef = useRef(null)
 
-  // Restore last pack from localStorage on mount
   useEffect(() => {
     try {
-      const savedPack = localStorage.getItem('lw_last_pack')
-      const savedMeta = localStorage.getItem('lw_last_meta')
-      if (savedPack && savedMeta) {
-        setPack(JSON.parse(savedPack))
-        setMeta(JSON.parse(savedMeta))
-      }
-    } catch { /* ignore */ }
+      const sp = localStorage.getItem('lw_last_pack')
+      const sm = localStorage.getItem('lw_last_meta')
+      if (sp && sm) { setPack(JSON.parse(sp)); setMeta(JSON.parse(sm)) }
+    } catch {}
   }, [])
 
   function handleFile(file) {
@@ -973,274 +1099,194 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     setGenError('')
     if (!title || !artist || !genre) { setGenError('Please fill in Song Title, Artist Name, and Genre.'); return }
     if (generating) return
-    setGenerating(true)
-    setPack(null); setMeta(null)
+    setGenerating(true); setPack(null); setMeta(null)
     try {
       const body = { title, artist, genre, language, wolfId: wolf?.id }
       if (bpm)   body.bpm  = bpm
       if (mood)  body.mood = mood
       if (token) body.token = token
-
-      const res  = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+      const res  = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const json = await res.json()
-      if (!res.ok) {
-        if (json.error === 'LIMIT_REACHED') { onShowLimitModal(); return }
-        throw new Error(json.error || 'Generation failed')
-      }
+      if (!res.ok) { if (json.error === 'LIMIT_REACHED') { onShowLimitModal(); return }; throw new Error(json.error || 'Generation failed') }
       localStorage.setItem('lw_last_pack', JSON.stringify(json.pack))
       localStorage.setItem('lw_last_meta', JSON.stringify(json.meta))
-      setPack(json.pack)
-      setMeta(json.meta)
-    } catch (err) {
-      setGenError(err.message)
-    } finally {
-      setGenerating(false)
-    }
+      setPack(json.pack); setMeta(json.meta)
+    } catch (err) { setGenError(err.message) }
+    finally { setGenerating(false) }
   }
 
   function handleNewTrack() {
-    setTitle(''); setBpm(''); setMood('')
-    setUploadInfo(null); setPack(null); setMeta(null); setGenError('')
+    setTitle(''); setBpm(''); setMood(''); setUploadInfo(null); setPack(null); setMeta(null); setGenError('')
     localStorage.removeItem('lw_last_pack'); localStorage.removeItem('lw_last_meta')
   }
 
-  function downloadSrt() {
-    if (!pack?.srt) return
-    downloadText(pack.srt, `${meta?.title || 'lyrics'}.srt`, 'text/plain')
-  }
-
-  function exportBeats() {
-    if (!pack?.beats) return
-    let txt = 'TIMESTAMP\tLABEL\tTYPE\n'
-    pack.beats.forEach(b => { txt += `${b.ts}\t${b.label}\t${b.type}\n` })
-    downloadText(txt, `${meta?.title || 'beats'}-cuts.txt`, 'text/plain')
-  }
-
-  const planBadge = profile?.role === 'member' ? 'WOLF PACK' : (user ? 'FREE' : 'PUBLIC')
-  const planClass = profile?.role === 'member' ? 'plan-badge member' : 'plan-badge'
+  const STYLES = ['karaoke','pop','subtitle','glitch','knockout','minimal']
+  const ANIMS = ['slam','fade','glitch','pop','typewriter']
+  const TABS = ['lyrics','srt','beats','prompts','preview','tips']
+  const TAB_LABELS = { lyrics:'Lyrics', srt:'SRT', beats:'Beat Cuts', prompts:'AI Prompts', preview:'Video Preview', tips:'Tips' }
 
   return (
-    <div id="studio-page" className="page">
-      <header className="studio-header">
-        <div className="studio-header-left">
-          <img src="/LightningWolvesLogoTransparentBG.png" alt="LW" className="studio-logo"
-               onError={e => e.target.style.display='none'} />
-          <div className="studio-titles">
-            <div className="studio-brand">LIGHTNING WOLVES / Lyrics Studio</div>
+    <div className="sc-layout">
+      {/* ── Left Panel (220px) ── */}
+      <aside className="sc-left">
+        <div className="field-group">
+          <label className="field-label">Reference Track</label>
+          <div className={`upload-zone${dragover?' dragover':''}`}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); setDragover(true) }}
+            onDragLeave={() => setDragover(false)}
+            onDrop={e => { e.preventDefault(); setDragover(false); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]) }}>
+            <input ref={fileInputRef} type="file" accept="audio/*,video/*" hidden
+              onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]) }} />
+            <div className="upload-icon">🎵</div>
+            <div className="upload-text">Drag &amp; drop audio or video</div>
+            <div className="upload-sub">or click to browse · max 100MB</div>
+            {uploadInfo && <div className="upload-info" style={uploadInfo.color?{color:uploadInfo.color}:{}}>{uploadInfo.text}</div>}
           </div>
         </div>
-        <div className="studio-header-right">
-          <span className="artist-dot" style={{ background: wolf?.color, boxShadow: `0 0 8px ${wolf?.color}` }}></span>
-          <span className="artist-name-header">{wolf?.artist || ''}</span>
-          <span className={planClass}>{planBadge}</span>
-          <button className="btn-outline" onClick={onChangeWolf}>Change Wolf</button>
-          {user ? (
-            <>
-              {profile?.role === 'member' && <button className="btn-ghost" onClick={onOpenDashboard}>Dashboard</button>}
-              <button className="btn-ghost" onClick={onSignOut}>Sign Out</button>
-            </>
-          ) : (
-            <button className="btn-ghost" onClick={onShowAuth}>Sign In</button>
+
+        <div className="field-group"><label className="field-label">Song Title *</label>
+          <input type="text" placeholder="e.g. Midnight Run" value={title} onChange={e => setTitle(e.target.value)} /></div>
+        <div className="field-group"><label className="field-label">Artist Name *</label>
+          <input type="text" placeholder="e.g. Lazy Jo" value={artist} onChange={e => setArtist(e.target.value)} /></div>
+        <div className="field-group"><label className="field-label">Genre *</label>
+          <select value={genre} onChange={e => setGenre(e.target.value)}>
+            <option value="">Select genre…</option>
+            {['Melodic Hip-Hop','Hip-Hop','Afrobeats','Trap','Drill','R&B','Pop','French Pop','French Hip-Hop','Dance/EDM','Amapiano','Afro-Trap','Rock','Other'].map(g => <option key={g} value={g}>{g}</option>)}
+          </select></div>
+        <div className="field-group"><label className="field-label">BPM <span className="label-optional">(optional)</span></label>
+          <input type="number" placeholder="e.g. 140" min="40" max="300" value={bpm} onChange={e => setBpm(e.target.value)} /></div>
+        <div className="field-group"><label className="field-label">Language *</label>
+          <select value={language} onChange={e => setLanguage(e.target.value)}>
+            {['English','French','Spanish','Portuguese','Arabic','Wolof','Other'].map(l => <option key={l} value={l}>{l}</option>)}
+          </select></div>
+        <div className="field-group"><label className="field-label">Mood / Vibe</label>
+          <textarea rows="2" placeholder="e.g. Late night drive, introspective…" value={mood} onChange={e => setMood(e.target.value)} /></div>
+
+        {/* Lyric Video section */}
+        <div className="sc-lv-section">
+          <label className="field-label">LYRIC VIDEO</label>
+          <div className="sc-toggle-row"><span>Auto-generate lyric video</span><label className="sc-toggle"><input type="checkbox" defaultChecked /><span className="sc-toggle-slider"></span></label></div>
+          <div className="sc-style-pills">
+            {STYLES.map(s => <button key={s} className={`sc-pill${lyricStyle===s?' active':''}`} onClick={() => setLyricStyle(s)}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>)}
+          </div>
+          <div className="sc-toggle-row"><span>Sync effects to beat drops</span><label className="sc-toggle"><input type="checkbox" defaultChecked /><span className="sc-toggle-slider"></span></label></div>
+        </div>
+
+        <button className="btn-generate" onClick={handleGenerate} disabled={generating}>
+          <span className="btn-lightning">⚡</span>
+          <span className="btn-text">{generating ? 'GENERATING…' : 'GENERATE · 10 ⚡'}</span>
+        </button>
+        {genError && <div className="gen-error">{genError}</div>}
+      </aside>
+
+      {/* ── Center Panel ── */}
+      <div className="sc-center">
+        {/* Tabs */}
+        <div className="sc-tabs">
+          {TABS.map(t => <button key={t} className={`sc-tab${activeTab===t?' active':''}`} onClick={() => setActiveTab(t)}>{TAB_LABELS[t]}</button>)}
+        </div>
+
+        {/* Preview boxes */}
+        <div className="sc-preview-area">
+          <div className="sc-preview-box sc-portrait"><div className="sc-preview-label">9:16</div><div className="sc-preview-inner">Preview</div></div>
+          <div className="sc-preview-box sc-landscape"><div className="sc-preview-label">16:9</div><div className="sc-preview-inner">Preview</div></div>
+        </div>
+
+        {/* Tab content */}
+        <div className="sc-tab-content">
+          {activeTab === 'lyrics' && (
+            !pack?.lyrics?.length
+              ? <div className="empty-state"><div className="empty-icon">🎤</div><div>Generate to see timed lyrics</div></div>
+              : <div className="lyrics-list">{pack.lyrics.map((line,i) => {
+                  const isH = /^\[.+\]$/.test((line.text||'').trim())
+                  return isH ? <div key={i} className="lyric-section-header">{line.text.replace(/[\[\]]/g,'')}</div>
+                    : <div key={i} className="lyric-row"><span className="lyric-ts">{line.ts}</span><span className="lyric-text">{line.text}</span></div>
+                })}</div>
+          )}
+          {activeTab === 'srt' && (!pack?.srt
+            ? <div className="empty-state"><div className="empty-icon">📄</div><div>SRT will appear here</div></div>
+            : <div><div className="srt-actions"><button className="btn-outline btn-sm" onClick={() => downloadText(pack.srt,`${meta?.title||'lyrics'}.srt`,'text/plain')}>⬇ Download .srt</button></div><pre className="srt-pre">{pack.srt}</pre></div>
+          )}
+          {activeTab === 'beats' && (!pack?.beats?.length
+            ? <div className="empty-state"><div className="empty-icon">🎬</div><div>Beat cuts will appear here</div></div>
+            : <div><div className="beats-actions"><button className="btn-outline btn-sm" onClick={() => {let t='TIMESTAMP\tLABEL\tTYPE\n';pack.beats.forEach(b=>{t+=`${b.ts}\t${b.label}\t${b.type}\n`});downloadText(t,`${meta?.title||'beats'}-cuts.txt`,'text/plain')}}>⬇ Export .txt</button></div>
+                <table className="beats-table"><thead><tr><th>Timestamp</th><th>Label</th><th>Type</th></tr></thead><tbody>{pack.beats.map((b,i)=><tr key={i}><td className="beat-ts">{b.ts}</td><td>{b.label}</td><td><span className={`beat-type-badge beat-type-${b.type||'CUT'}`}>{b.type||'CUT'}</span></td></tr>)}</tbody></table></div>
+          )}
+          {activeTab === 'prompts' && (!pack?.prompts?.length
+            ? <div className="empty-state"><div className="empty-icon">🎥</div><div>AI prompts will appear here</div></div>
+            : <div className="prompts-list">{pack.prompts.map((p,i) => <PromptCard key={i} prompt={p} />)}</div>
+          )}
+          {activeTab === 'preview' && <div className="empty-state"><div className="empty-icon">▶️</div><div>Video preview will render here after generation</div></div>}
+          {activeTab === 'tips' && (!pack?.tips?.length
+            ? <div className="empty-state"><div className="empty-icon">💡</div><div>Tips will appear here</div></div>
+            : <div className="tips-list">{pack.tips.map((tip,i) => <div key={i} className="tip-card"><div className="tip-icon">{TIP_ICONS[i%TIP_ICONS.length]}</div><div><div className="tip-title">{tip.title}</div><div className="tip-text">{tip.tip}</div></div></div>)}</div>
           )}
         </div>
-      </header>
 
-      <div className="studio-body">
-        {/* LEFT PANEL */}
-        <aside className="left-panel">
-          <div className="field-group">
-            <label className="field-label">Reference Track</label>
-            <div
-              className={`upload-zone${dragover ? ' dragover' : ''}`}
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={e => { e.preventDefault(); setDragover(true) }}
-              onDragLeave={() => setDragover(false)}
-              onDrop={e => { e.preventDefault(); setDragover(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
-            >
-              <input ref={fileInputRef} type="file" accept="audio/*,video/*" hidden
-                     onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]) }} />
-              <div className="upload-icon">🎵</div>
-              <div className="upload-text">Drag &amp; drop audio or video</div>
-              <div className="upload-sub">or click to browse · max 50MB</div>
-              {uploadInfo && (
-                <div className="upload-info" style={uploadInfo.color ? { color: uploadInfo.color } : {}}>
-                  {uploadInfo.text}
-                </div>
-              )}
+        {/* Timeline */}
+        <div className="sc-timeline">
+          <div className="sc-tl-wave"><span className="sc-tl-placeholder">Waveform loads after generation</span></div>
+          <div className="sc-tl-controls">
+            <span className="sc-tl-bpm">BPM: {bpm || '—'}</span>
+            <div className="sc-tl-transport">
+              <button className="sc-tl-btn">⏮</button>
+              <button className="sc-tl-btn sc-tl-play">▶</button>
+              <button className="sc-tl-btn">⏭</button>
+            </div>
+            <div className="sc-tl-actions">
+              <button className="btn-outline btn-sm">Add Cut</button>
+              <button className="btn-outline btn-sm">+ Word</button>
+              <button className="btn-outline btn-sm">Edit Lyrics</button>
+              <button className="btn-gold btn-sm">Export ⚡</button>
             </div>
           </div>
-
-          <div className="field-group"><label className="field-label">Song Title *</label>
-            <input type="text" placeholder="e.g. Midnight Run" value={title} onChange={e => setTitle(e.target.value)} /></div>
-          <div className="field-group"><label className="field-label">Artist Name *</label>
-            <input type="text" placeholder="e.g. Lazy Jo" value={artist} onChange={e => setArtist(e.target.value)} /></div>
-
-          <div className="field-group"><label className="field-label">Genre *</label>
-            <select value={genre} onChange={e => setGenre(e.target.value)}>
-              <option value="">Select genre…</option>
-              {['Melodic Hip-Hop','Hip-Hop','Afrobeats','Trap','Drill','R&B','Pop','French Pop','French Hip-Hop','Dance/EDM','Amapiano','Afro-Trap','Rock','Other'].map(g => (
-                <option key={g} value={g}>{g}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="field-group"><label className="field-label">BPM <span className="label-optional">(optional)</span></label>
-            <input type="number" placeholder="e.g. 140" min="40" max="300" value={bpm} onChange={e => setBpm(e.target.value)} /></div>
-
-          <div className="field-group"><label className="field-label">Language *</label>
-            <select value={language} onChange={e => setLanguage(e.target.value)}>
-              {['English','French','Spanish','Portuguese','Arabic','Wolof','Other'].map(l => (
-                <option key={l} value={l}>{l}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="field-group"><label className="field-label">Mood / Vibe</label>
-            <textarea rows="3" placeholder="e.g. Late night drive, introspective…" value={mood} onChange={e => setMood(e.target.value)}></textarea>
-          </div>
-
-          <button className="btn-generate" onClick={handleGenerate} disabled={generating}>
-            <span className="btn-lightning">⚡</span>
-            <span className="btn-text">{generating ? 'GENERATING…' : 'GENERATE'}</span>
-          </button>
-          {genError && <div className="gen-error">{genError}</div>}
-        </aside>
-
-        {/* RIGHT PANEL */}
-        <main className="right-panel">
-          {meta && (
-            <div className="summary-card">
-              <img className="summary-wolf" src={`/${wolf?.image || 'logo.svg'}`} alt=""
-                   onError={e => e.target.style.display='none'} />
-              <div className="summary-info">
-                <div className="summary-title">{meta.title}</div>
-                <div className="summary-meta">
-                  <span>{meta.artist}</span>
-                  <span className="summary-genre-badge">{meta.genre}</span>
-                </div>
-              </div>
-              <button className="btn-outline btn-sm" onClick={handleNewTrack}>New Track</button>
-            </div>
-          )}
-
-          {generating && (
-            <div className="waveform-wrap">
-              <div className="waveform-bar-container">
-                <span className="generating-label">Generating your pack…</span>
-                <div className="waveform">
-                  {Array.from({length: 16}).map((_, i) => <div key={i} className="waveform-bar"></div>)}
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="tabs-wrap">
-            <div className="tabs">
-              {['lyrics','srt','beats','prompts','tips'].map(t => (
-                <button key={t} className={`tab${activeTab===t?' active':''}`} onClick={() => setActiveTab(t)}>
-                  {t === 'srt' ? 'SRT' : t === 'beats' ? 'BEAT CUTS' : t === 'prompts' ? 'AI PROMPTS' : t === 'tips' ? 'VIDEO TIPS' : t.toUpperCase()}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="tab-content-wrap">
-            {/* LYRICS */}
-            {activeTab === 'lyrics' && (
-              <div className="tab-panel active">
-                {!pack?.lyrics?.length ? (
-                  <div className="empty-state"><div className="empty-icon">🎤</div><div>Generate a pack to see timed lyrics here</div></div>
-                ) : (
-                  <div className="lyrics-list">
-                    {pack.lyrics.map((line, i) => {
-                      const isHeader = /^\[.+\]$/.test((line.text||'').trim())
-                      return isHeader
-                        ? <div key={i} className="lyric-section-header">{line.text.replace(/[\[\]]/g,'')}</div>
-                        : <div key={i} className="lyric-row"><span className="lyric-ts">{line.ts}</span><span className="lyric-text">{line.text}</span></div>
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* SRT */}
-            {activeTab === 'srt' && (
-              <div className="tab-panel active">
-                {!pack?.srt ? (
-                  <div className="empty-state"><div className="empty-icon">📄</div><div>SRT subtitle file will appear here</div></div>
-                ) : (
-                  <div>
-                    <div className="srt-actions"><button className="btn-outline btn-sm" onClick={downloadSrt}>⬇ Download .srt</button></div>
-                    <pre className="srt-pre">{pack.srt}</pre>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* BEAT CUTS */}
-            {activeTab === 'beats' && (
-              <div className="tab-panel active">
-                {!pack?.beats?.length ? (
-                  <div className="empty-state"><div className="empty-icon">🎬</div><div>Beat cut timestamps will appear here</div></div>
-                ) : (
-                  <div>
-                    <div className="beats-actions"><button className="btn-outline btn-sm" onClick={exportBeats}>⬇ Export .txt</button></div>
-                    <table className="beats-table">
-                      <thead><tr><th>Timestamp</th><th>Label</th><th>Type</th></tr></thead>
-                      <tbody>
-                        {pack.beats.map((b, i) => (
-                          <tr key={i}>
-                            <td className="beat-ts">{b.ts}</td>
-                            <td>{b.label}</td>
-                            <td><span className={`beat-type-badge beat-type-${b.type||'CUT'}`}>{b.type||'CUT'}</span></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* AI PROMPTS */}
-            {activeTab === 'prompts' && (
-              <div className="tab-panel active">
-                {!pack?.prompts?.length ? (
-                  <div className="empty-state"><div className="empty-icon">🎥</div><div>AI video prompts for Kling / Runway / PixVerse will appear here</div></div>
-                ) : (
-                  <div className="prompts-list">
-                    {pack.prompts.map((p, i) => (
-                      <PromptCard key={i} prompt={p} idx={i} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* VIDEO TIPS */}
-            {activeTab === 'tips' && (
-              <div className="tab-panel active">
-                {!pack?.tips?.length ? (
-                  <div className="empty-state"><div className="empty-icon">💡</div><div>Genre-specific video tips will appear here</div></div>
-                ) : (
-                  <div className="tips-list">
-                    {pack.tips.map((tip, i) => (
-                      <div key={i} className="tip-card">
-                        <div className="tip-icon">{TIP_ICONS[i % TIP_ICONS.length]}</div>
-                        <div><div className="tip-title">{tip.title}</div><div className="tip-text">{tip.tip}</div></div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </main>
+        </div>
       </div>
+
+      {/* ── Right Panel (180px) ── */}
+      <aside className="sc-right">
+        <div className="sc-editor-section">
+          <label className="field-label">STYLE PRESETS</label>
+          <div className="sc-preset-grid">
+            {STYLES.map(s => <button key={s} className={`sc-preset${lyricStyle===s?' active':''}`} onClick={() => setLyricStyle(s)}>{s.charAt(0).toUpperCase()+s.slice(1)}</button>)}
+          </div>
+        </div>
+        <div className="sc-editor-section">
+          <label className="field-label">FONT SIZE</label>
+          <input type="range" min="12" max="72" value={fontSize} onChange={e => setFontSize(+e.target.value)} className="sc-range" />
+          <div className="sc-range-val">{fontSize}px</div>
+        </div>
+        <div className="sc-editor-section">
+          <label className="field-label">POSITION</label>
+          <div className="sc-pos-btns">
+            {['top','center','bottom'].map(p => <button key={p} className={`sc-pos-btn${position===p?' active':''}`} onClick={() => setPosition(p)}>{p.charAt(0).toUpperCase()+p.slice(1)}</button>)}
+          </div>
+        </div>
+        <div className="sc-editor-section">
+          <label className="field-label">ANIMATION</label>
+          <div className="sc-anim-pills">
+            {ANIMS.map(a => <button key={a} className={`sc-pill${animation===a?' active':''}`} onClick={() => setAnimation(a)}>{a.charAt(0).toUpperCase()+a.slice(1)}</button>)}
+          </div>
+        </div>
+        <div className="sc-editor-section">
+          <label className="field-label">TEXT COLOR</label>
+          <input type="color" value={textColor} onChange={e => setTextColor(e.target.value)} className="sc-color-input" />
+        </div>
+        <div className="sc-editor-section">
+          <label className="field-label">HIGHLIGHT COLOR</label>
+          <input type="color" value={hlColor} onChange={e => setHlColor(e.target.value)} className="sc-color-input" />
+        </div>
+        <div className="sc-editor-section">
+          <label className="field-label">BACKGROUND</label>
+          <div className="sc-bg-tabs">
+            <button className="sc-bg-tab active">Upload</button>
+            <button className="sc-bg-tab">AI</button>
+            <button className="sc-bg-tab">Solid</button>
+          </div>
+          <div className="sc-bg-drop"><span className="upload-sub">Drop image or click</span></div>
+        </div>
+      </aside>
     </div>
   )
 }

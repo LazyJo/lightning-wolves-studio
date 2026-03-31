@@ -505,6 +505,207 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
 
 // ─── Wolf Select Page ─────────────────────────────────────────────────────────
 // ─── Join the Pack Page ───────────────────────────────────────────────────────
+// ─── Pricing Page ─────────────────────────────────────────────────────────────
+const PROMO_CODES = {
+  'WOLFPACK': { type:'percent', value:20, label:'20% off' },
+  'LAZYJO':   { type:'percent', value:100, label:'Free month' },
+  'STUDIO10': { type:'percent', value:10, label:'10% off' },
+  'CREDITS50':{ type:'credits', value:50, label:'+50 bonus Credits ⚡' },
+}
+
+function PricingPage({ onBack }) {
+  const [billing, setBilling] = useState('monthly')
+  const [promo, setPromo] = useState('')
+  const [promoResult, setPromoResult] = useState(null)
+  const [appliedDiscount, setAppliedDiscount] = useState(0)
+  const [tasks, setTasks] = useState(() => JSON.parse(localStorage.getItem('lw_completed_tasks') || '[]'))
+  const [credits, setCredits] = useState(() => parseInt(localStorage.getItem('lw_credits') || '0'))
+  const [refCount] = useState(() => parseInt(localStorage.getItem('lw_referral_count') || '0'))
+  const [countdowns, setCountdowns] = useState({})
+  const canvasRef = useRef(null)
+
+  // Particles
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return
+    const ctx = canvas.getContext('2d'); let W,H,particles=[],rafId
+    function resize(){W=canvas.width=window.innerWidth;H=canvas.height=document.body.scrollHeight||window.innerHeight*5}
+    resize();window.addEventListener('resize',resize)
+    for(let i=0;i<80;i++)particles.push({x:Math.random()*W,y:Math.random()*H,s:Math.random()*2+1,dx:(Math.random()-0.5)*0.3,dy:-(Math.random()*0.3+0.1),a:Math.random()*0.4+0.3})
+    function draw(){ctx.clearRect(0,0,W,H);particles.forEach(p=>{p.x+=p.dx;p.y+=p.dy;if(p.y<-10){p.y=H+10;p.x=Math.random()*W}if(p.x<0)p.x=W;if(p.x>W)p.x=0;ctx.beginPath();ctx.arc(p.x,p.y,p.s,0,Math.PI*2);ctx.fillStyle=`rgba(245,197,24,${p.a})`;ctx.fill()});rafId=requestAnimationFrame(draw)}
+    draw();return()=>{cancelAnimationFrame(rafId);window.removeEventListener('resize',resize)}
+  },[])
+
+  const applyPromo = () => {
+    const code = promo.toUpperCase().trim()
+    const p = PROMO_CODES[code]
+    if (p) {
+      setPromoResult({ success: true, label: p.label })
+      localStorage.setItem('lw_promo_code', code)
+      if (p.type === 'percent') setAppliedDiscount(p.value)
+      if (p.type === 'credits') {
+        const newC = credits + p.value
+        setCredits(newC); localStorage.setItem('lw_credits', newC)
+      }
+    } else {
+      setPromoResult({ success: false, label: 'Code not recognized' })
+      setTimeout(() => setPromoResult(null), 3000)
+    }
+  }
+
+  const price = (monthly) => {
+    const annual = Math.round(monthly * 10)
+    const base = billing === 'annual' ? Math.round(annual/12) : monthly
+    if (appliedDiscount) return { old: base, new: Math.round(base * (1 - appliedDiscount/100)) }
+    return { old: null, new: base }
+  }
+
+  const completeTask = (id, reward) => {
+    if (tasks.includes(id)) return
+    const t = [...tasks, id]; setTasks(t); localStorage.setItem('lw_completed_tasks', JSON.stringify(t))
+    const c = credits + reward; setCredits(c); localStorage.setItem('lw_credits', c)
+  }
+
+  const startCountdown = (id, reward) => {
+    setCountdowns(c => ({...c, [id]: 10}))
+    const iv = setInterval(() => {
+      setCountdowns(c => {
+        const v = (c[id] || 0) - 1
+        if (v <= 0) { clearInterval(iv); completeTask(id, reward); return {...c, [id]: 0} }
+        return {...c, [id]: v}
+      })
+    }, 1000)
+  }
+
+  const tasksDone = tasks.reduce((s,id) => s + ({signup:10,youtube:15,rosakay_ig:5,lw_ig:5}[id]||0), 0) + refCount*20
+  const refCode = 'LW-' + (Math.random().toString(36).substring(2,10)).toUpperCase()
+
+  const PLANS = [
+    { name:'Lone Wolf', price:0, features:['10 ⚡ on signup','3 generations lifetime','Watermarked export','Basic styles (Subtitle, Minimal)'], btn:'Current Plan', popular:false },
+    { name:'Starter', price:9, features:['100 ⚡/month','50 generations/month','No watermark','All styles + animations','Basic beat detection'], btn:'Coming Soon', popular:false },
+    { name:'Wolf Pro', price:24, features:['350 ⚡/month','Unlimited generations','Full timeline editor','All styles + beat effects','AI model access','Priority processing'], btn:'Coming Soon', popular:true },
+    { name:'Pack Leader', price:49, features:['Unlimited ⚡','Everything in Wolf Pro','4K export','Early AI model access','Dedicated support','Bug bounty rewards'], btn:'Coming Soon', popular:false },
+  ]
+
+  const CREDITS = [
+    { amount:100, price:3, gens:'~10' },{ amount:300, price:8, gens:'~30' },
+    { amount:750, price:18, gens:'~75' },{ amount:2000, price:39, gens:'~200' },
+  ]
+
+  return (
+    <div className="pricing-page">
+      <canvas ref={canvasRef} className="wp-particles" />
+      <div className="pricing-content">
+        <button className="wp-back-btn" onClick={onBack} style={{marginBottom:'24px'}}>← Back</button>
+
+        {/* Promo */}
+        <div className="promo-bar">
+          <span>Have a promo code? →</span>
+          <input value={promo} onChange={e=>setPromo(e.target.value)} placeholder="e.g. WOLFPACK" style={{textTransform:'uppercase',width:'140px'}} onKeyDown={e=>{if(e.key==='Enter')applyPromo()}} />
+          <button className="btn-gold btn-sm" onClick={applyPromo}>Apply</button>
+          {promoResult && <span className={promoResult.success?'promo-ok':'promo-err'}>{promoResult.label}</span>}
+        </div>
+
+        {/* Billing toggle */}
+        <div className="billing-toggle">
+          <button className={`billing-btn ${billing==='monthly'?'active':''}`} onClick={()=>setBilling('monthly')}>Monthly</button>
+          <button className={`billing-btn ${billing==='annual'?'active':''}`} onClick={()=>setBilling('annual')}>Annual <span className="billing-save">Save 17%</span></button>
+        </div>
+
+        {/* Plans */}
+        <div className="plans-grid">
+          {PLANS.map(plan => {
+            const p = price(plan.price)
+            return (
+              <div key={plan.name} className={`plan-card ${plan.popular?'plan-popular':''}`}>
+                {plan.popular && <div className="plan-popular-badge">MOST POPULAR</div>}
+                <h3 className="plan-name">{plan.name}</h3>
+                <div className="plan-price">
+                  {plan.price===0 ? <span className="plan-amount">Free</span> : <>
+                    {p.old!==null && <span className="plan-old">€{p.old}</span>}
+                    <span className="plan-amount">€{p.new}</span><span className="plan-period">/{billing==='annual'?'mo (billed annually)':'mo'}</span>
+                  </>}
+                </div>
+                <ul className="plan-features">{plan.features.map(f=><li key={f}>{f}</li>)}</ul>
+                <button className={`btn-full ${plan.popular?'btn-gold':'btn-outline'}`} disabled>{plan.btn}</button>
+              </div>
+            )
+          })}
+        </div>
+        <p className="plans-note">10 ⚡ = 1 generation</p>
+
+        {/* Credits */}
+        <div className="credits-section">
+          <h2 className="section-heading">Lightning Credits ⚡</h2>
+          <p className="section-sub">No subscription needed. Top up anytime. 10 ⚡ = 1 generation.</p>
+          <div className="credits-grid">
+            {CREDITS.map(c=>(
+              <div key={c.amount} className="credit-pack">
+                <div className="credit-amount">{c.amount} ⚡</div>
+                <div className="credit-price">€{c.price}</div>
+                <div className="credit-gens">{c.gens} generations</div>
+                <button className="btn-outline btn-sm btn-full" disabled>Coming Soon</button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tasks */}
+        <div className="tasks-section">
+          <div className="tasks-header">
+            <div>
+              <h2 className="tasks-heading" style={{color:'#ff80ab'}}>The pack looks after its own. ⚡</h2>
+              <p className="tasks-sub">Support a Lightning Wolves artist and earn free Credits.</p>
+            </div>
+            <img src="/LightningWolfRoseTransparentBG.png" alt="" className="tasks-wolf-img" />
+          </div>
+          <div className="tasks-progress">
+            <div className="tasks-bar"><div className="tasks-fill" style={{width:`${Math.min(100,tasksDone/60*100)}%`}}></div></div>
+            <span className="tasks-label">{tasksDone} / 60 ⚡ earned · 10 ⚡ = 1 generation</span>
+          </div>
+
+          <div className="tasks-list">
+            {[
+              {id:'signup', icon:'✉️', name:'Sign up with email', desc:'Create your account', reward:10},
+              {id:'youtube', icon:'▶️', name:'Subscribe on YouTube', desc:'Lightning Wolves channel', reward:15, link:'https://youtube.com/@lightningwolves'},
+              {id:'rosakay_ig', icon:'📸', name:'Follow Rosakay on Instagram', desc:'@rosakay_officiel', reward:5, link:'https://www.instagram.com/rosakay_officiel'},
+              {id:'lw_ig', icon:'📸', name:'Follow Lightning Wolves', desc:'@lightningwolvesmusic', reward:5, link:'https://www.instagram.com/lightningwolvesmusic'},
+            ].map(task => (
+              <div key={task.id} className="task-row">
+                <span className="task-icon">{task.icon}</span>
+                <div className="task-info"><div className="task-name">{task.name}</div><div className="task-desc">{task.desc}</div></div>
+                <span className="task-reward">+{task.reward} ⚡</span>
+                {tasks.includes(task.id) ? (
+                  <span className="task-done">Earned ✓</span>
+                ) : countdowns[task.id] > 0 ? (
+                  <span className="task-countdown">{countdowns[task.id]}s</span>
+                ) : (
+                  <button className="btn-gold btn-sm" onClick={() => {
+                    if (task.link) { window.open(task.link,'_blank'); startCountdown(task.id, task.reward) }
+                    else completeTask(task.id, task.reward)
+                  }}>Earn</button>
+                )}
+              </div>
+            ))}
+            <div className="task-row">
+              <span className="task-icon">👥</span>
+              <div className="task-info"><div className="task-name">Refer a friend</div><div className="task-desc">+20 ⚡ per referral · unlimited</div></div>
+              <span className="task-reward">+20 ⚡</span>
+              <button className="btn-gold btn-sm" onClick={() => navigator.clipboard.writeText(`https://lightningwolves.studio/?ref=${refCode}`)}>Share</button>
+            </div>
+          </div>
+
+          <div className="referral-box">
+            <span>Your referral link:</span>
+            <input readOnly value={`https://lightningwolves.studio/?ref=${refCode}`} className="referral-url" />
+            <button className="btn-gold btn-sm" onClick={() => navigator.clipboard.writeText(`https://lightningwolves.studio/?ref=${refCode}`)}>Copy ⚡</button>
+          </div>
+          <p className="referral-stats">You've referred <strong>{refCount}</strong> friends → earned <strong>{refCount*20} ⚡</strong></p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function JoinPackPage({ onBack }) {
   const [form, setForm] = useState({ name:'', artist:'', genre:'', roles:[], otherRole:'', skills:'', socials:[{platform:'',url:''}], music:'', why:'' })
   const [submitted, setSubmitted] = useState(false)
@@ -629,7 +830,7 @@ function JoinPackPage({ onBack }) {
   )
 }
 
-function WolfSelectPage({ onSelectWolf, onJoinPack }) {
+function WolfSelectPage({ onSelectWolf, onJoinPack, onPricing }) {
   useEffect(() => {
     // Force all videos to play immediately — multiple retries for staggered loads
     const playAll = () => {
@@ -656,7 +857,7 @@ function WolfSelectPage({ onSelectWolf, onJoinPack }) {
           <button className="nav-btn-gold" onClick={() => onSelectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' })}>
             Enter Studio
           </button>
-          <span className="nav-link">Pricing</span>
+          <span className="nav-link" onClick={onPricing} style={{cursor:'pointer'}}>Pricing</span>
           <span className="nav-btn-outline">SIGN IN</span>
         </div>
       </header>
@@ -800,7 +1001,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     <div id="studio-page" className="page">
       <header className="studio-header">
         <div className="studio-header-left">
-          <img src={`/${wolf?.image || 'logo.svg'}`} alt="LW" className="studio-logo"
+          <img src="/LightningWolvesLogoTransparentBG.png" alt="LW" className="studio-logo"
                onError={e => e.target.style.display='none'} />
           <div className="studio-titles">
             <div className="studio-brand">LIGHTNING WOLVES / Lyrics Studio</div>
@@ -1196,11 +1397,15 @@ export default function App() {
       <LightningCanvas wolfColor={wolf?.color || '#f5c518'} />
 
       {page === 'wolf-select' && (
-        <WolfSelectPage onSelectWolf={handleSelectWolf} onJoinPack={() => setPage('join-pack')} />
+        <WolfSelectPage onSelectWolf={handleSelectWolf} onJoinPack={() => setPage('join-pack')} onPricing={() => setPage('pricing')} />
       )}
 
       {page === 'join-pack' && (
         <JoinPackPage onBack={() => setPage('wolf-select')} />
+      )}
+
+      {page === 'pricing' && (
+        <PricingPage onBack={() => setPage('wolf-select')} />
       )}
 
       {page === 'wolf-profile' && wolf && (

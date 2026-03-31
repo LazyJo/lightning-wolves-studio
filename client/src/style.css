@@ -30,6 +30,14 @@ body {
   overflow-x: hidden;
 }
 
+html { overflow-x: hidden; }
+
+*, *::before, *::after { box-sizing: border-box; }
+
+video, iframe, img { max-width: 100%; }
+
+.select-main { overflow: hidden; }
+
 h1, h2, h3, .heading {
   font-family: 'Bebas Neue', sans-serif;
   letter-spacing: 0.04em;
@@ -205,10 +213,12 @@ a:hover { text-decoration: underline; }
 /* Wolf Grid — double border frame */
 .wolf-grid-outer {
   max-width: 920px;
+  width: 100%;
   margin: 0 auto 40px;
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 16px;
   padding: 6px;
+  overflow: hidden;
 }
 
 .wolf-grid-inner {
@@ -1870,7 +1880,6 @@ textarea { resize: vertical; min-height: 72px; }
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-width: 500px;
 }
 
 .wp-contact-row {

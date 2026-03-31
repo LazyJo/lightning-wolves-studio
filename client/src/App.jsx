@@ -248,13 +248,16 @@ const WOLF_PROFILES = {
     acknowledgements: []
   },
   orange: {
-    name: 'Rosakay', role: 'Artist', genre: 'Pop / French Pop', color: '#ff9500',
+    name: 'Rosakay', role: 'Artiste', genre: 'Pop / French Pop', color: '#ff9500',
     image: 'LightningWolfOrangeTransparentBG.png',
     animation: 'RosakayWolfAnimation.mp4',
-    bio: 'Sarah Kingambo — Rosakay — brings pop with a French soul. Her melodic sensibility and emotional depth make every track feel personal and universal at once.',
+    lang: 'fr',
+    flipBio: 'Née à Kinshasa, élevée entre Kigali et la Belgique, Rosakay mêle folk rock, pop, R&B et variété française dans un univers intime et sincère. Sa voix, son émotion, son authenticité.',
+    bio: `Rosakay est une jeune chanteuse née à Kinshasa, en République Démocratique du Congo, d'origine rwandaise et congolaise. Peu après sa naissance, elle part vivre à Kigali, au Rwanda, où elle grandit jusqu'à l'âge de 11 ans. Elle s'installe ensuite en Belgique, un tournant décisif dans son parcours artistique.\n\nC'est là qu'elle découvre la musique plus profondément. Elle commence par la guitare, avant de laisser sa voix prendre naturellement sa place. À cette période, le groupe Mumford & Sons l'inspire particulièrement. À l'origine, elle ne voulait faire que de la guitare, mais un jour, presque instinctivement, elle décide de chanter - et ne s'arrêtera plus.\n\nRosakay, c'est une voix, de l'émotion et de l'authenticité.\n\nPortée par des influences allant du folk rock à la pop rock, en passant par le R&B et la variété française, elle développe un univers musical sensible et personnel.\n\nL'amour, sous toutes ses formes, devient sa principale source d'inspiration, qu'elle explore à travers des chansons sincères et intimes.`,
     instagram: 'https://www.instagram.com/rosakay_officiel',
     spotify: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B',
     spotifyEmbed: 'https://open.spotify.com/embed/artist/5DaB9HZOXF1kOqxLiS2d4B?utm_source=generator&theme=0',
+    profilePhoto: 'RosakayProfile.jpeg',
     acknowledgements: []
   },
   blue: {
@@ -266,8 +269,8 @@ const WOLF_PROFILES = {
   },
   green: {
     name: 'Shiteux', role: 'Visuals', genre: 'Photo · Video · Beats', color: '#69f0ae',
-    image: 'LightningWolfRoseTransparentBG.png',
-    animation: 'PinkWolfAnimation.mp4',
+    image: 'LightningWolfGreenTransparentBG.png',
+    animation: 'Wolf-Green.mp4',
     bio: `Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations 'Sin[e]' and 'Doubt Clouds' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.`,
     acknowledgements: []
   },
@@ -302,6 +305,25 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
     return () => { cancelAnimationFrame(rafId); window.removeEventListener('resize', resize) }
   }, [])
 
+  // French labels for Rosakay
+  const isFr = profile.lang === 'fr'
+  const L = {
+    about: isFr ? 'À PROPOS' : 'ABOUT',
+    acks: isFr ? 'RECONNAISSANCES' : 'INDUSTRY ACKNOWLEDGEMENTS',
+    music: isFr ? 'MUSIQUE' : 'MUSIC',
+    perf: isFr ? 'PERFORMANCE LIVE' : 'LIVE PERFORMANCE',
+    book: isFr ? 'Réserver' : 'Book',
+    photos: isFr ? 'PHOTOS' : 'PHOTOS',
+    support: isFr ? 'SOUTIEN' : 'SUPPORT',
+    contact: isFr ? 'CONTACT' : 'CONTACT',
+    enterStudio: isFr ? 'ENTRER EN STUDIO COMME' : 'ENTER STUDIO AS',
+    tapFlip: isFr ? '↻ APPUYEZ POUR TOURNER' : '↻ TAP TO FLIP',
+    tapFlipBack: isFr ? '↻ APPUYEZ POUR REVENIR' : '↻ TAP TO FLIP BACK',
+    noPhotos: isFr ? 'Pas encore de photos.' : 'No photos yet.',
+    merch: 'LIGHTNING WOLVES MERCH',
+    fans: 'TRUE FANS BUY THE ART',
+  }
+
   return (
     <div className="wolf-profile-page" style={{'--wp': color}}>
       <canvas ref={canvasRef} className="wp-particles" />
@@ -315,7 +337,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
             </a>
           )}
           <button className="wp-enter-btn" onClick={() => onEnterStudio(wolf)}>
-            ENTER STUDIO AS {name.toUpperCase()}
+            {L.enterStudio} {name.toUpperCase()}
           </button>
         </div>
       </div>
@@ -341,7 +363,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
               <div className="wp-card-overlay-name">{name}</div>
               <div className="wp-card-overlay-genre">{profile.genre || wolf.genre}</div>
               <div className="wp-card-overlay-role">{profile.role}</div>
-              <div className="wp-card-flip-hint">↻ TAP TO FLIP</div>
+              <div className="wp-card-flip-hint">{L.tapFlip}</div>
             </div>
           </div>
           <div className="wp-card-back">
@@ -354,7 +376,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
             <div className="wp-card-back-genre">{profile.genre}</div>
             <p className="wp-card-back-bio">{profile.flipBio || (profile.bio || '').substring(0, 200) + '...'}</p>
             <div className="wp-card-overlay-role">{profile.role}</div>
-            <div className="wp-card-flip-hint">↻ TAP TO FLIP BACK</div>
+            <div className="wp-card-flip-hint">{L.tapFlipBack}</div>
           </div>
         </div>
       </div>
@@ -362,7 +384,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
       {/* About */}
       {profile.bio && (
         <div className="wp-section">
-          <h2 className="wp-section-title">ABOUT</h2>
+          <h2 className="wp-section-title">{L.about}</h2>
           <div className="wp-section-divider"></div>
           <p className="wp-about-text">{profile.bio}</p>
         </div>
@@ -371,7 +393,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
       {/* Industry Acknowledgements — horizontal scroll */}
       {profile.acknowledgements && profile.acknowledgements.length > 0 && (
         <div className="wp-section">
-          <h2 className="wp-section-title">INDUSTRY ACKNOWLEDGEMENTS</h2>
+          <h2 className="wp-section-title">{L.acks}</h2>
           <div className="wp-section-divider"></div>
           <div className="wp-acks-scroll-wrap">
             <button className="wp-acks-arrow wp-acks-left" onClick={e => { e.stopPropagation(); const s = e.target.closest('.wp-acks-scroll-wrap').querySelector('.wp-acks-row'); s.scrollBy({left:-220,behavior:'smooth'}); }}>‹</button>
@@ -396,7 +418,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
       {/* Music — Spotify embed */}
       {profile.spotifyEmbed && (
         <div className="wp-section">
-          <h2 className="wp-section-title">MUSIC</h2>
+          <h2 className="wp-section-title">{L.music}</h2>
           <div className="wp-section-divider"></div>
           <div className="wp-spotify-embed">
             <iframe src={profile.spotifyEmbed} width="100%" height="352" frameBorder="0"
@@ -410,10 +432,10 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
       {profile.performanceVideo && (
         <div className="wp-section">
           <div className="wp-perf-header">
-            <h2 className="wp-section-title">LIVE PERFORMANCE</h2>
+            <h2 className="wp-section-title">{L.perf}</h2>
             {profile.bookUrl && (
               <a href={profile.bookUrl} target="_blank" rel="noopener noreferrer" className="wp-book-btn-sm">
-                BOOK {name.toUpperCase()}
+                {L.book.toUpperCase()} {name.toUpperCase()}
               </a>
             )}
           </div>
@@ -424,17 +446,17 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
 
       {/* Photos */}
       <div className="wp-section">
-        <h2 className="wp-section-title">PHOTOS</h2>
+        <h2 className="wp-section-title">{L.photos}</h2>
         <div className="wp-section-divider"></div>
         <div className="wp-photos-empty">
           <span>📷</span>
-          <p>No photos yet.</p>
+          <p>{L.noPhotos}</p>
         </div>
       </div>
 
       {/* Support — Merch + Fan links */}
       <div className="wp-section">
-        <h2 className="wp-section-title">SUPPORT</h2>
+        <h2 className="wp-section-title">{L.support}</h2>
         <div className="wp-section-divider"></div>
         <div className="wp-support-grid">
           {profile.merchUrl ? (
@@ -464,7 +486,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
 
       {/* Contact */}
       <div className="wp-section">
-        <h2 className="wp-section-title">CONTACT</h2>
+        <h2 className="wp-section-title">{L.contact}</h2>
         <div className="wp-section-divider"></div>
         <div className="wp-contact-list">
           {profile.email && <div className="wp-contact-row"><span>✉️</span> {profile.email}</div>}
@@ -477,7 +499,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
       {/* Big Enter Studio button at bottom */}
       <div className="wp-bottom-cta">
         <button className="wp-bottom-enter" onClick={() => onEnterStudio(wolf)}>
-          ENTER STUDIO AS {name.toUpperCase()} ⚡
+          {L.enterStudio} {name.toUpperCase()} ⚡
         </button>
       </div>
     </div>

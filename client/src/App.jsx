@@ -6,7 +6,7 @@ const WOLVES = [
   // Row 1 — Active wolves with animations
   { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', video: '/LazyJoWolfAnimation.mp4', locked: false },
   { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',      image: 'LightningWolfPurpleTransparentBG.png', video: '/Wolf-Purple.mp4', locked: false },
-  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', video: '/RosakayWolfAnimation.mp4', locked: false },
+  { id: 'orange', color: '#ff9500', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', video: '/RosakayWolfAnimation.mp4', locked: false },
   // Row 2 — Active + Lone Wolf
   { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Covers & Trailers',   image: 'LightningWolfGreenTransparentBG.png', video: '/wolf-white-blue.mp4', locked: false },
   { id: 'lone',   color: '#f5c518', artist: 'Lone Wolf',     genre: '3 Free Generations',  image: 'LightningWolvesLogoTransparentBG.png', locked: false, isLoneWolf: true, emoji: '🐺' },
@@ -248,7 +248,7 @@ const WOLF_PROFILES = {
     acknowledgements: []
   },
   orange: {
-    name: 'Rosakay', role: 'Artist', genre: 'Pop / French Pop', color: '#ff80ab',
+    name: 'Rosakay', role: 'Artist', genre: 'Pop / French Pop', color: '#ff9500',
     image: 'LightningWolfOrangeTransparentBG.png',
     animation: 'RosakayWolfAnimation.mp4',
     bio: 'Sarah Kingambo — Rosakay — brings pop with a French soul. Her melodic sensibility and emotional depth make every track feel personal and universal at once.',
@@ -289,10 +289,13 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
     let W, H, particles = [], rafId
     function resize() { W = canvas.width = window.innerWidth; H = canvas.height = canvas.parentElement?.scrollHeight || window.innerHeight * 3; }
     resize(); window.addEventListener('resize', resize)
+    // Parse wolf color to RGB for particles
+    const hexToRgb = (hex) => { const r = parseInt(hex.slice(1,3),16); const g = parseInt(hex.slice(3,5),16); const b = parseInt(hex.slice(5,7),16); return `${r},${g},${b}`; }
+    const pColor = hexToRgb(color)
     for (let i = 0; i < 120; i++) particles.push({ x: Math.random()*W, y: Math.random()*H, s: Math.random()*2+2, dx: (Math.random()-0.5)*0.3, dy: -(Math.random()*0.4+0.1), a: Math.random()*0.4+0.5 })
     function draw() {
       ctx.clearRect(0,0,W,H)
-      particles.forEach(p => { p.x+=p.dx; p.y+=p.dy; if(p.y<-10){p.y=H+10;p.x=Math.random()*W} if(p.x<0)p.x=W; if(p.x>W)p.x=0; ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2); ctx.fillStyle=`rgba(245,197,24,${p.a})`; ctx.fill() })
+      particles.forEach(p => { p.x+=p.dx; p.y+=p.dy; if(p.y<-10){p.y=H+10;p.x=Math.random()*W} if(p.x<0)p.x=W; if(p.x>W)p.x=0; ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2); ctx.fillStyle=`rgba(${pColor},${p.a})`; ctx.fill() })
       rafId = requestAnimationFrame(draw)
     }
     draw()
@@ -338,8 +341,8 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
               <div className="wp-card-overlay-name">{name}</div>
               <div className="wp-card-overlay-genre">{profile.genre || wolf.genre}</div>
               <div className="wp-card-overlay-role">{profile.role}</div>
+              <div className="wp-card-flip-hint">↻ TAP TO FLIP</div>
             </div>
-            <div className="wp-card-flip-hint">↻ TAP TO FLIP</div>
           </div>
           <div className="wp-card-back">
             {profile.profilePhoto && (

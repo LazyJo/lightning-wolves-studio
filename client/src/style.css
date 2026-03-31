@@ -1493,7 +1493,9 @@ textarea { resize: vertical; min-height: 72px; }
   letter-spacing: 0.08em;
   color: var(--wp);
   text-align: center;
-  margin: 48px 0 32px;
+  margin: 48px auto 32px;
+  max-width: 860px;
+  padding: 0 32px;
   text-shadow: 0 0 40px color-mix(in srgb, var(--wp) 30%, transparent);
 }
 

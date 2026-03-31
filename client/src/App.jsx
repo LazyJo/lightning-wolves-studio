@@ -470,16 +470,11 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
               <div className="wp-support-label">LIGHTNING WOLVES MERCH</div>
             </div>
           )}
-          {profile.fanUrl ? (
+          {profile.fanUrl && (
             <a href={profile.fanUrl} target="_blank" rel="noopener noreferrer" className="wp-support-card">
               <img src="/LazyJoPhoto.jpeg" alt="Fan Community" className="wp-support-img" style={{borderRadius:'8px'}} />
               <div className="wp-support-label">TRUE FANS BUY THE ART</div>
             </a>
-          ) : (
-            <div className="wp-support-card">
-              <img src="/LazyJoPhoto.jpeg" alt="True Fans" className="wp-support-img" style={{borderRadius:'8px'}} />
-              <div className="wp-support-label">TRUE FANS BUY THE ART</div>
-            </div>
           )}
         </div>
       </div>
@@ -507,7 +502,85 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
 }
 
 // ─── Wolf Select Page ─────────────────────────────────────────────────────────
-function WolfSelectPage({ onSelectWolf }) {
+// ─── Join the Pack Page ───────────────────────────────────────────────────────
+function JoinPackPage({ onBack }) {
+  const [form, setForm] = useState({ name:'', artist:'', genre:'', role:'', skills:'', social1:'', social2:'', music:'', why:'' })
+  const [submitted, setSubmitted] = useState(false)
+  const update = (k,v) => setForm(f => ({...f,[k]:v}))
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    const saved = JSON.parse(localStorage.getItem('lw_applications') || '[]')
+    saved.push({ ...form, status: 'pending', appliedAt: new Date().toISOString() })
+    localStorage.setItem('lw_applications', JSON.stringify(saved))
+    setSubmitted(true)
+  }
+
+  if (submitted) return (
+    <div className="join-page">
+      <div className="join-success">
+        <h2>Application Sent! ⚡</h2>
+        <p>We review every application personally. You'll hear from us soon.</p>
+        <button className="btn-gold" onClick={onBack}>← Back to Wolves</button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="join-page">
+      <div className="join-header">
+        <button className="wp-back-btn" onClick={onBack}>← Back</button>
+        <h1 className="join-title">JOIN THE PACK</h1>
+        <p className="join-sub">Think you run with the wolves? Show us what you got.</p>
+      </div>
+      <form className="join-form" onSubmit={handleSubmit}>
+        <div className="join-field">
+          <label>Real Name *</label>
+          <input required value={form.name} onChange={e => update('name',e.target.value)} placeholder="Your full name" />
+        </div>
+        <div className="join-field">
+          <label>Artist Name *</label>
+          <input required value={form.artist} onChange={e => update('artist',e.target.value)} placeholder="Your stage name" />
+        </div>
+        <div className="join-field">
+          <label>Genre / Style *</label>
+          <input required value={form.genre} onChange={e => update('genre',e.target.value)} placeholder="e.g. Melodic Hip-Hop, Pop..." />
+        </div>
+        <div className="join-field">
+          <label>Role</label>
+          <select value={form.role} onChange={e => update('role',e.target.value)}>
+            <option value="">Select...</option>
+            <option>Artist</option><option>Photography</option><option>Video</option>
+            <option>Design</option><option>Beatmaker</option><option>Other</option>
+          </select>
+        </div>
+        <div className="join-field">
+          <label>Skills *</label>
+          <textarea required value={form.skills} onChange={e => update('skills',e.target.value)} rows="3" placeholder="What do you bring to the pack?" />
+        </div>
+        <div className="join-field">
+          <label>Social Link 1</label>
+          <input value={form.social1} onChange={e => update('social1',e.target.value)} placeholder="Instagram, TikTok, YouTube..." />
+        </div>
+        <div className="join-field">
+          <label>Social Link 2</label>
+          <input value={form.social2} onChange={e => update('social2',e.target.value)} placeholder="Another link..." />
+        </div>
+        <div className="join-field">
+          <label>Music Link</label>
+          <input value={form.music} onChange={e => update('music',e.target.value)} placeholder="Spotify, SoundCloud..." />
+        </div>
+        <div className="join-field">
+          <label>Why Lightning Wolves? *</label>
+          <textarea required value={form.why} onChange={e => update('why',e.target.value)} rows="4" placeholder="What draws you to the pack?" />
+        </div>
+        <button type="submit" className="btn-gold btn-full">Send it ⚡</button>
+      </form>
+    </div>
+  )
+}
+
+function WolfSelectPage({ onSelectWolf, onJoinPack }) {
   useEffect(() => {
     // Force all videos to play immediately — multiple retries for staggered loads
     const playAll = () => {
@@ -554,7 +627,8 @@ function WolfSelectPage({ onSelectWolf }) {
                     style={{'--wc': wolf.color}}
                     onClick={() => {
                       if (isLocked || isComingSoon) return;
-                      if (isJoin) onSelectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' });
+                      if (wolf.isLoneWolf) onSelectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' });
+                      else if (isJoin) onJoinPack();
                       else onSelectWolf(wolf);
                     }}>
                     <div className="wolf-card-img-circle">
@@ -1073,7 +1147,11 @@ export default function App() {
       <LightningCanvas wolfColor={wolf?.color || '#f5c518'} />
 
       {page === 'wolf-select' && (
-        <WolfSelectPage onSelectWolf={handleSelectWolf} />
+        <WolfSelectPage onSelectWolf={handleSelectWolf} onJoinPack={() => setPage('join-pack')} />
+      )}
+
+      {page === 'join-pack' && (
+        <JoinPackPage onBack={() => setPage('wolf-select')} />
       )}
 
       {page === 'wolf-profile' && wolf && (

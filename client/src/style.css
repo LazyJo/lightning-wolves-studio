@@ -1608,13 +1608,13 @@ textarea { resize: vertical; min-height: 72px; }
   font-weight: 600;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: #f5c518;
+  color: var(--wp, #f5c518);
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
 @keyframes pulse-glow {
-  0%, 100% { text-shadow: 0 0 4px rgba(245,197,24,0.3); opacity: 0.7; }
-  50% { text-shadow: 0 0 12px rgba(245,197,24,0.8); opacity: 1; }
+  0%, 100% { text-shadow: 0 0 4px color-mix(in srgb, var(--wp, #f5c518) 30%, transparent); opacity: 0.7; }
+  50% { text-shadow: 0 0 12px color-mix(in srgb, var(--wp, #f5c518) 80%, transparent); opacity: 1; }
 }
 
 /* Subtle border pulse on flip card */
@@ -1935,3 +1935,60 @@ textarea { resize: vertical; min-height: 72px; }
   .wp-enter-btn, .wp-book-btn { font-size: 0.7rem; padding: 6px 12px; }
   .wp-acks-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   JOIN THE PACK PAGE
+   ═══════════════════════════════════════════════════════════════════════════ */
+.join-page {
+  min-height: 100vh;
+  background: var(--bg, #0a0a0c);
+  color: var(--text);
+  padding: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.join-header { max-width: 600px; margin: 0 auto 32px; text-align: center; }
+
+.join-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 2.5rem;
+  letter-spacing: 0.08em;
+  color: var(--accent, #f5c518);
+  margin: 16px 0 8px;
+}
+
+.join-sub { font-size: 0.95rem; color: var(--muted); }
+
+.join-form {
+  max-width: 600px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.join-field { display: flex; flex-direction: column; gap: 4px; }
+.join-field label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.join-field input, .join-field select, .join-field textarea {
+  padding: 10px 14px;
+  background: rgba(30,30,38,0.8);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.join-field input:focus, .join-field select:focus, .join-field textarea:focus {
+  border-color: var(--accent, #f5c518);
+}
+
+.join-success {
+  max-width: 500px;
+  margin: 80px auto;
+  text-align: center;
+}
+.join-success h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--accent); margin-bottom: 12px; }
+.join-success p { color: var(--muted); margin-bottom: 24px; }

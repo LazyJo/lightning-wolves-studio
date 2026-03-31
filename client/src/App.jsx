@@ -170,13 +170,13 @@ function AuthPage({ supabase, onAuth, onGuest }) {
   return (
     <div id="auth-page" className="page">
       <div className="auth-container">
-        <img src="/logo.svg" alt="Lightning Wolves" className="auth-logo" onError={e => e.target.style.display='none'} />
+        <img src="/LightningWolvesLogoTransparentBG.png" alt="Lightning Wolves" className="auth-logo" onError={e => e.target.style.display='none'} />
         <div className="auth-wordmark">LIGHTNING WOLVES</div>
-        <div className="auth-sub">Lyrics Studio</div>
+        <div className="auth-sub">LYRICS STUDIO</div>
 
         <div className="auth-tabs">
-          <button className={`auth-tab${tab==='login'?' active':''}`} onClick={() => setTab('login')}>Sign In</button>
-          <button className={`auth-tab${tab==='signup'?' active':''}`} onClick={() => setTab('signup')}>Sign Up</button>
+          <button className={`auth-tab${tab==='login'?' active':''}`} onClick={() => setTab('login')}>SIGN IN</button>
+          <button className={`auth-tab${tab==='signup'?' active':''}`} onClick={() => setTab('signup')}>SIGN UP</button>
         </div>
 
         {tab === 'login' && (
@@ -580,10 +580,10 @@ function PricingPage({ onBack }) {
   const refCode = 'LW-' + (Math.random().toString(36).substring(2,10)).toUpperCase()
 
   const PLANS = [
-    { name:'Lone Wolf', price:0, features:['10 ⚡ on signup','3 generations lifetime','Watermarked export','Basic styles (Subtitle, Minimal)'], btn:'Current Plan', popular:false },
-    { name:'Starter', price:9, features:['100 ⚡/month','50 generations/month','No watermark','All styles + animations','Basic beat detection'], btn:'Coming Soon', popular:false },
-    { name:'Wolf Pro', price:24, features:['350 ⚡/month','Unlimited generations','Full timeline editor','All styles + beat effects','AI model access','Priority processing'], btn:'Coming Soon', popular:true },
-    { name:'Pack Leader', price:49, features:['Unlimited ⚡','Everything in Wolf Pro','4K export','Early AI model access','Dedicated support','Bug bounty rewards'], btn:'Coming Soon', popular:false },
+    { name:'Lone Wolf', price:0, credits:'10 ⚡ on signup', features:['3 generations lifetime','Subtitle & Minimal styles','Basic lyric overlay','10 Lightning Credits ⚡'], missing:['Full timeline editor','Beat drop effects','No watermark','All styles & animations','AI model access'], btn:'Current Plan', popular:false, best:false },
+    { name:'Starter', price:9, credits:'100 ⚡/month', features:['50 generations/month','No watermark','All styles + animations','Basic beat detection','100 Credits ⚡/month'], missing:['Full timeline editor','AI model access','Priority processing'], btn:'Coming Soon', popular:false, best:false },
+    { name:'Wolf Pro', price:24, credits:'350 ⚡/month', features:['Unlimited generations','Full timeline editor','All styles + beat drop effects','AI model access','Priority processing','350 Credits ⚡/month'], missing:[], btn:'Coming Soon', popular:true, best:false },
+    { name:'Pack Leader', price:49, credits:'Unlimited ⚡', features:['Everything in Wolf Pro','4K export','Early access to new AI models','Dedicated support','Unlimited Credits ⚡'], missing:[], btn:'Coming Soon', popular:false, best:true },
   ]
 
   const CREDITS = [
@@ -597,18 +597,30 @@ function PricingPage({ onBack }) {
       <div className="pricing-content">
         <button className="wp-back-btn" onClick={onBack} style={{marginBottom:'24px'}}>← Back</button>
 
+        {/* Header */}
+        <div className="pricing-nav">
+          <img src="/LightningWolvesLogoTransparentBG.png" alt="LW" style={{height:'32px'}} />
+        </div>
+
         {/* Promo */}
         <div className="promo-bar">
-          <span>Have a promo code? →</span>
+          <span style={{color:'var(--accent)'}}>Have a promo code?</span>
           <input value={promo} onChange={e=>setPromo(e.target.value)} placeholder="e.g. WOLFPACK" style={{textTransform:'uppercase',width:'140px'}} onKeyDown={e=>{if(e.key==='Enter')applyPromo()}} />
           <button className="btn-gold btn-sm" onClick={applyPromo}>Apply</button>
           {promoResult && <span className={promoResult.success?'promo-ok':'promo-err'}>{promoResult.label}</span>}
         </div>
 
-        {/* Billing toggle */}
-        <div className="billing-toggle">
-          <button className={`billing-btn ${billing==='monthly'?'active':''}`} onClick={()=>setBilling('monthly')}>Monthly</button>
-          <button className={`billing-btn ${billing==='annual'?'active':''}`} onClick={()=>setBilling('annual')}>Annual <span className="billing-save">Save 17%</span></button>
+        {/* Title */}
+        <div className="pricing-hero">
+          <h1 className="pricing-title">CHOOSE YOUR PACK</h1>
+          <p className="pricing-sub">Create lyric videos that hit different.</p>
+        </div>
+
+        {/* Billing toggle — pill switch */}
+        <div className="billing-switch">
+          <span className={billing==='monthly'?'billing-active':''} onClick={()=>setBilling('monthly')}>Monthly</span>
+          <div className={`billing-pill ${billing==='annual'?'billing-pill-on':''}`} onClick={()=>setBilling(b=>b==='monthly'?'annual':'monthly')}><div className="billing-dot"></div></div>
+          <span className={billing==='annual'?'billing-active':''} onClick={()=>setBilling('annual')}>Annual</span>
         </div>
 
         {/* Plans */}
@@ -616,16 +628,23 @@ function PricingPage({ onBack }) {
           {PLANS.map(plan => {
             const p = price(plan.price)
             return (
-              <div key={plan.name} className={`plan-card ${plan.popular?'plan-popular':''}`}>
+              <div key={plan.name} className={`plan-card ${plan.popular?'plan-popular':''} ${plan.best?'plan-best':''}`}>
                 {plan.popular && <div className="plan-popular-badge">MOST POPULAR</div>}
+                {plan.best && <div className="plan-best-badge">BEST VALUE</div>}
                 <h3 className="plan-name">{plan.name}</h3>
                 <div className="plan-price">
-                  {plan.price===0 ? <span className="plan-amount">Free</span> : <>
+                  {plan.price===0 ? <>
+                    <span className="plan-amount">FREE</span>
+                    <div className="plan-period">forever</div>
+                  </> : <>
                     {p.old!==null && <span className="plan-old">€{p.old}</span>}
-                    <span className="plan-amount">€{p.new}</span><span className="plan-period">/{billing==='annual'?'mo (billed annually)':'mo'}</span>
+                    <span className="plan-amount">€{p.new}</span>
+                    <div className="plan-period">/month</div>
                   </>}
+                  <div className="plan-credits">{plan.credits}</div>
                 </div>
-                <ul className="plan-features">{plan.features.map(f=><li key={f}>{f}</li>)}</ul>
+                <ul className="plan-features">{plan.features.map(f=><li key={f}><span className="feat-icon">⚡</span>{f}</li>)}</ul>
+                {plan.missing.length > 0 && <ul className="plan-missing">{plan.missing.map(f=><li key={f}>{f}</li>)}</ul>}
                 <button className={`btn-full ${plan.popular?'btn-gold':'btn-outline'}`} disabled>{plan.btn}</button>
               </div>
             )
@@ -652,12 +671,13 @@ function PricingPage({ onBack }) {
         {/* Tasks */}
         <div className="tasks-section">
           <div className="tasks-header">
-            <div>
-              <h2 className="tasks-heading" style={{color:'#ff80ab'}}>The pack looks after its own. ⚡</h2>
-              <p className="tasks-sub">Support a Lightning Wolves artist and earn free Credits.</p>
-            </div>
             <img src="/LightningWolfRoseTransparentBG.png" alt="" className="tasks-wolf-img" />
+            <div>
+              <h2 className="tasks-heading" style={{color:'#ff80ab'}}>THE PACK LOOKS AFTER ITS OWN. ⚡</h2>
+              <p className="tasks-sub">Complete tasks to earn free Lightning Credits. 10 ⚡ = 1 generation.</p>
+            </div>
           </div>
+          <p className="tasks-earned">You've earned <strong>{tasksDone} ⚡</strong> from tasks</p>
           <div className="tasks-progress">
             <div className="tasks-bar"><div className="tasks-fill" style={{width:`${Math.min(100,tasksDone/60*100)}%`}}></div></div>
             <span className="tasks-label">{tasksDone} / 60 ⚡ earned · 10 ⚡ = 1 generation</span>

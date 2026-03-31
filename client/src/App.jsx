@@ -4,17 +4,17 @@ import { createClient } from '@supabase/supabase-js'
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
   // Row 1 — Active wolves with animations
-  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', video: '/LazyJoWolfAnimation.mp4', locked: false },
+  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', video: '/Lazy%20Jo%20Wolf%20Card%20Animation.mp4', locked: false },
   { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',      image: 'LightningWolfPurpleTransparentBG.png', video: '/Wolf-Purple.mp4', locked: false },
-  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', video: '/RosakayWolfAnimation.mp4', locked: false },
+  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', video: '/Rosakay%20Wolf%20Animation.mp4', locked: false },
   // Row 2 — Active + Lone Wolf
   { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Covers & Trailers',   image: 'LightningWolfGreenTransparentBG.png', video: '/wolf-white-blue.mp4', locked: false },
   { id: 'lone',   color: '#f5c518', artist: 'Lone Wolf',     genre: '3 Free Generations',  image: 'LightningWolvesLogoTransparentBG.png', locked: false, isLoneWolf: true, emoji: '🐺' },
   { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photos & Videos',     image: 'LightningWolfGreenTransparentBG.png', video: '/Wolf-Green.mp4', locked: false },
   // Row 3 — Coming Soon with animations
-  { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon',         image: 'WolfRed.png', video: '/WolfRed.mp4', locked: true, comingSoon: true },
-  { id: 'white',  color: '#e8e8e8', artist: 'MMJ',           genre: 'Coming Soon',         image: 'WhiteWolf.png', video: '/WhiteWolfAnimation.mp4', locked: true, comingSoon: true },
-  { id: 'pink',   color: '#E040FB', artist: 'Soon Available', genre: 'Coming Soon',        image: 'PinkWolf.png', video: '/PinkWolfAnimation2.mp4', locked: true, comingSoon: true },
+  { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon',         image: 'WolfRed.png', video: '/Wolf%20-%20Red.mp4', locked: true, comingSoon: true },
+  { id: 'white',  color: '#e8e8e8', artist: 'MMJ',           genre: 'Coming Soon',         image: 'WhiteWolf.png', video: '/White%20Wolf%20Animation.mp4', locked: true, comingSoon: true },
+  { id: 'pink',   color: '#E040FB', artist: 'Soon Available', genre: 'Coming Soon',        image: 'PinkWolf.png', video: '/Pink%20Wolf%20Animation.mp4', locked: true, comingSoon: true },
   // Row 4 — Locked ??? + Join the Pack in middle
   { id: 'lock1',  color: '#333333', artist: '???',           genre: 'Coming Soon',         image: 'wolf-black.svg', locked: true },
   { id: 'join',   color: '#f5c518', artist: 'Join the Pack', genre: 'Apply to Join',       image: 'LightningWolvesLogoTransparentBG.png', locked: false, isJoinCard: true },
@@ -535,15 +535,11 @@ function WolfSelectPage({ onSelectWolf }) {
                       ) : wolf.emoji ? (
                         <div className="wolf-emoji-icon">{wolf.emoji}</div>
                       ) : wolf.video ? (
-                        <>
-                          <video src={wolf.video} autoPlay loop muted playsInline preload="auto"
-                            poster={`/${wolf.image}`}
-                            style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'50%'}}
-                            ref={el => { if(el) el.play().catch(()=>{}) }}
-                            onLoadedData={e => e.target.play().catch(()=>{})}
-                            onError={e => { e.target.style.display='none'; if(e.target.nextSibling) e.target.nextSibling.style.display=''; }} />
-                          <img src={`/${wolf.image}`} alt={wolf.artist} style={{display:'none'}} />
-                        </>
+                        <video autoPlay loop muted playsInline preload="auto"
+                          onLoadedData={e => e.target.play()}
+                          style={{width:'160px',height:'160px',borderRadius:'50%',objectFit:'cover'}}>
+                          <source src={wolf.video} type="video/mp4" />
+                        </video>
                       ) : (
                         <img src={`/${wolf.image}`} alt={wolf.artist} />
                       )}

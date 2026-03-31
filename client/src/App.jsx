@@ -272,6 +272,8 @@ const WOLF_PROFILES = {
     image: 'LightningWolfGreenTransparentBG.png',
     animation: 'Wolf-Green.mp4',
     bio: `Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations 'Sin[e]' and 'Doubt Clouds' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.`,
+    spotify: 'https://open.spotify.com/artist/4Uagbm0Dkl6hpM96LEYCo9',
+    spotifyEmbed: 'https://open.spotify.com/embed/artist/4Uagbm0Dkl6hpM96LEYCo9?utm_source=generator&theme=0',
     acknowledgements: []
   },
 }
@@ -504,9 +506,25 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
 // ─── Wolf Select Page ─────────────────────────────────────────────────────────
 // ─── Join the Pack Page ───────────────────────────────────────────────────────
 function JoinPackPage({ onBack }) {
-  const [form, setForm] = useState({ name:'', artist:'', genre:'', role:'', skills:'', social1:'', social2:'', music:'', why:'' })
+  const [form, setForm] = useState({ name:'', artist:'', genre:'', roles:[], otherRole:'', skills:'', socials:[{platform:'',url:''}], music:'', why:'' })
   const [submitted, setSubmitted] = useState(false)
+  const canvasRef = useRef(null)
   const update = (k,v) => setForm(f => ({...f,[k]:v}))
+
+  // Gold particles
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return
+    const ctx = canvas.getContext('2d'); let W,H,particles=[],rafId
+    function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight*2}
+    resize();window.addEventListener('resize',resize)
+    for(let i=0;i<80;i++)particles.push({x:Math.random()*W,y:Math.random()*H,s:Math.random()*2+1,dx:(Math.random()-0.5)*0.3,dy:-(Math.random()*0.3+0.1),a:Math.random()*0.4+0.3})
+    function draw(){ctx.clearRect(0,0,W,H);particles.forEach(p=>{p.x+=p.dx;p.y+=p.dy;if(p.y<-10){p.y=H+10;p.x=Math.random()*W}if(p.x<0)p.x=W;if(p.x>W)p.x=0;ctx.beginPath();ctx.arc(p.x,p.y,p.s,0,Math.PI*2);ctx.fillStyle=`rgba(245,197,24,${p.a})`;ctx.fill()});rafId=requestAnimationFrame(draw)}
+    draw();return()=>{cancelAnimationFrame(rafId);window.removeEventListener('resize',resize)}
+  },[])
+
+  const toggleRole = (r) => setForm(f => ({...f, roles: f.roles.includes(r) ? f.roles.filter(x=>x!==r) : [...f.roles, r]}))
+  const addSocial = () => { if(form.socials.length<3) setForm(f=>({...f,socials:[...f.socials,{platform:'',url:''}]})) }
+  const updateSocial = (i,k,v) => setForm(f=>{const s=[...f.socials];s[i]={...s[i],[k]:v};return{...f,socials:s}})
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -518,6 +536,7 @@ function JoinPackPage({ onBack }) {
 
   if (submitted) return (
     <div className="join-page">
+      <canvas ref={canvasRef} className="wp-particles" />
       <div className="join-success">
         <h2>Application Sent! ⚡</h2>
         <p>We review every application personally. You'll hear from us soon.</p>
@@ -526,56 +545,86 @@ function JoinPackPage({ onBack }) {
     </div>
   )
 
+  const ROLE_OPTIONS = [
+    {id:'artist',label:'🎵 Artist'},{id:'photo',label:'📸 Photography'},{id:'video',label:'🎥 Video'},
+    {id:'design',label:'🎨 Design'},{id:'beats',label:'🎧 Beats'},{id:'other',label:'Other'}
+  ]
+
   return (
     <div className="join-page">
-      <div className="join-header">
-        <button className="wp-back-btn" onClick={onBack}>← Back</button>
-        <h1 className="join-title">JOIN THE PACK</h1>
-        <p className="join-sub">Think you run with the wolves? Show us what you got.</p>
+      <canvas ref={canvasRef} className="wp-particles" />
+      <div className="join-content">
+        <div className="join-header">
+          <button className="wp-back-btn" onClick={onBack}>← Back</button>
+          <h1 className="join-title">Think you run with the wolves?</h1>
+          <p className="join-sub">Show us what you got.</p>
+        </div>
+        <div className="join-split">
+          <form className="join-form" onSubmit={handleSubmit}>
+            <div className="join-field">
+              <label>Real Name *</label>
+              <input required value={form.name} onChange={e=>update('name',e.target.value)} placeholder="Your full name" />
+            </div>
+            <div className="join-field">
+              <label>Artist Name *</label>
+              <input required value={form.artist} onChange={e=>update('artist',e.target.value)} placeholder="Your stage/artist name" />
+            </div>
+            <div className="join-field">
+              <label>Genre / Style *</label>
+              <input required value={form.genre} onChange={e=>update('genre',e.target.value)} placeholder="e.g. Hip-Hop, R&B, Pop..." />
+            </div>
+            <div className="join-field">
+              <label>Role — pick all that apply *</label>
+              <div className="join-chips">
+                {ROLE_OPTIONS.map(r=>(
+                  <button key={r.id} type="button" className={`join-chip ${form.roles.includes(r.id)?'join-chip-active':''}`} onClick={()=>toggleRole(r.id)}>{r.label}</button>
+                ))}
+              </div>
+              {form.roles.includes('other') && <input value={form.otherRole} onChange={e=>update('otherRole',e.target.value)} placeholder="Describe your role..." style={{marginTop:'8px'}} />}
+            </div>
+            <div className="join-field">
+              <label>Your Skills *</label>
+              <textarea required value={form.skills} onChange={e=>update('skills',e.target.value)} rows="3" placeholder="Tell us what you're good at..." />
+            </div>
+            <div className="join-field">
+              <label>Social Links <span style={{opacity:0.5}}>(up to 3)</span></label>
+              {form.socials.map((s,i)=>(
+                <div key={i} className="join-social-row">
+                  <select value={s.platform} onChange={e=>updateSocial(i,'platform',e.target.value)}>
+                    <option value="">Platform</option>
+                    <option>Instagram</option><option>TikTok</option><option>Twitter/X</option><option>YouTube</option><option>Facebook</option>
+                  </select>
+                  <input value={s.url} onChange={e=>updateSocial(i,'url',e.target.value)} placeholder="https://..." />
+                </div>
+              ))}
+              {form.socials.length<3 && <button type="button" className="join-add-link" onClick={addSocial}>+ Add another</button>}
+            </div>
+            <div className="join-field">
+              <label>Music Link</label>
+              <input value={form.music} onChange={e=>update('music',e.target.value)} placeholder="Spotify, SoundCloud, Apple Music..." />
+            </div>
+            <div className="join-field">
+              <label>Why do you want to join Lightning Wolves? *</label>
+              <textarea required value={form.why} onChange={e=>update('why',e.target.value)} rows="4" placeholder="Make it count..." />
+            </div>
+            <button type="submit" className="btn-gold btn-full">Send it ⚡</button>
+          </form>
+          <div className="join-sidebar">
+            <div className="join-sidebar-card">
+              <h3 className="join-sidebar-title">The Pack</h3>
+              <div className="join-wolves-list">
+                <div className="join-wolf-row"><span className="join-wolf-dot" style={{background:'#f5c518'}}></span>Lazy Jo</div>
+                <div className="join-wolf-row"><span className="join-wolf-dot" style={{background:'#9b6dff'}}></span>Zirka</div>
+                <div className="join-wolf-row"><span className="join-wolf-dot" style={{background:'#ff9500'}}></span>Rosakay</div>
+                <div className="join-wolf-row"><span className="join-wolf-dot" style={{background:'#82b1ff'}}></span>Drippydesigns</div>
+                <div className="join-wolf-row"><span className="join-wolf-dot" style={{background:'#69f0ae'}}></span>Shiteux</div>
+              </div>
+            </div>
+            <p className="join-sidebar-note">We review every application personally.</p>
+            <p className="join-sidebar-roles">Open roles: videographer, designer, beatmaker, artist.</p>
+          </div>
+        </div>
       </div>
-      <form className="join-form" onSubmit={handleSubmit}>
-        <div className="join-field">
-          <label>Real Name *</label>
-          <input required value={form.name} onChange={e => update('name',e.target.value)} placeholder="Your full name" />
-        </div>
-        <div className="join-field">
-          <label>Artist Name *</label>
-          <input required value={form.artist} onChange={e => update('artist',e.target.value)} placeholder="Your stage name" />
-        </div>
-        <div className="join-field">
-          <label>Genre / Style *</label>
-          <input required value={form.genre} onChange={e => update('genre',e.target.value)} placeholder="e.g. Melodic Hip-Hop, Pop..." />
-        </div>
-        <div className="join-field">
-          <label>Role</label>
-          <select value={form.role} onChange={e => update('role',e.target.value)}>
-            <option value="">Select...</option>
-            <option>Artist</option><option>Photography</option><option>Video</option>
-            <option>Design</option><option>Beatmaker</option><option>Other</option>
-          </select>
-        </div>
-        <div className="join-field">
-          <label>Skills *</label>
-          <textarea required value={form.skills} onChange={e => update('skills',e.target.value)} rows="3" placeholder="What do you bring to the pack?" />
-        </div>
-        <div className="join-field">
-          <label>Social Link 1</label>
-          <input value={form.social1} onChange={e => update('social1',e.target.value)} placeholder="Instagram, TikTok, YouTube..." />
-        </div>
-        <div className="join-field">
-          <label>Social Link 2</label>
-          <input value={form.social2} onChange={e => update('social2',e.target.value)} placeholder="Another link..." />
-        </div>
-        <div className="join-field">
-          <label>Music Link</label>
-          <input value={form.music} onChange={e => update('music',e.target.value)} placeholder="Spotify, SoundCloud..." />
-        </div>
-        <div className="join-field">
-          <label>Why Lightning Wolves? *</label>
-          <textarea required value={form.why} onChange={e => update('why',e.target.value)} rows="4" placeholder="What draws you to the pack?" />
-        </div>
-        <button type="submit" className="btn-gold btn-full">Send it ⚡</button>
-      </form>
     </div>
   )
 }

@@ -1943,26 +1943,33 @@ textarea { resize: vertical; min-height: 72px; }
   min-height: 100vh;
   background: var(--bg, #0a0a0c);
   color: var(--text);
-  padding: 32px;
   position: relative;
-  z-index: 1;
 }
 
-.join-header { max-width: 600px; margin: 0 auto 32px; text-align: center; }
+.join-content { position: relative; z-index: 1; padding: 32px; }
+
+.join-header { max-width: 860px; margin: 0 auto 32px; }
 
 .join-title {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 2.5rem;
-  letter-spacing: 0.08em;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
+  letter-spacing: 0.06em;
   color: var(--accent, #f5c518);
-  margin: 16px 0 8px;
+  margin: 16px 0 6px;
 }
 
 .join-sub { font-size: 0.95rem; color: var(--muted); }
 
-.join-form {
-  max-width: 600px;
+.join-split {
+  max-width: 860px;
   margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.join-form {
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -1981,14 +1988,46 @@ textarea { resize: vertical; min-height: 72px; }
   outline: none;
   transition: border-color 0.15s;
 }
-.join-field input:focus, .join-field select:focus, .join-field textarea:focus {
-  border-color: var(--accent, #f5c518);
+.join-field input:focus, .join-field select:focus, .join-field textarea:focus { border-color: var(--accent, #f5c518); }
+
+.join-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.join-chip {
+  padding: 6px 14px; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px; color: var(--muted); background: rgba(30,30,38,0.6);
+  cursor: pointer; transition: all 0.15s;
+}
+.join-chip:hover { border-color: rgba(255,255,255,0.3); }
+.join-chip-active { background: var(--accent, #f5c518); color: #000; border-color: var(--accent); }
+
+.join-social-row { display: flex; gap: 6px; margin-bottom: 6px; }
+.join-social-row select { width: 130px; flex-shrink: 0; }
+.join-social-row input { flex: 1; }
+
+.join-add-link { font-size: 0.8rem; color: var(--accent); cursor: pointer; background: none; border: none; text-align: left; padding: 0; }
+
+.join-sidebar { position: sticky; top: 80px; }
+
+.join-sidebar-card {
+  background: rgba(30,30,38,0.7); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; padding: 20px; margin-bottom: 12px;
 }
 
+.join-sidebar-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem; color: #fff; margin-bottom: 12px; letter-spacing: 0.06em; }
+
+.join-wolves-list { display: flex; flex-direction: column; gap: 8px; }
+.join-wolf-row { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text); }
+.join-wolf-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+.join-sidebar-note { font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; }
+.join-sidebar-roles { font-size: 0.75rem; color: rgba(255,255,255,0.4); }
+
 .join-success {
-  max-width: 500px;
-  margin: 80px auto;
-  text-align: center;
+  max-width: 500px; margin: 80px auto; text-align: center; position: relative; z-index: 1;
 }
 .join-success h2 { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; color: var(--accent); margin-bottom: 12px; }
 .join-success p { color: var(--muted); margin-bottom: 24px; }
+
+@media (max-width: 700px) {
+  .join-split { grid-template-columns: 1fr; }
+  .join-sidebar { position: static; }
+}

@@ -1396,6 +1396,21 @@ textarea { resize: vertical; min-height: 72px; }
   z-index: 1;
 }
 
+.wp-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.wp-section, .wp-topbar, .wp-hero-name, .wp-flip-container, .wp-bottom-cta {
+  position: relative;
+  z-index: 1;
+}
+
 /* ─── Top Bar ──────────────────────────────────────────────────────────────── */
 .wp-topbar {
   display: flex;
@@ -1711,7 +1726,7 @@ textarea { resize: vertical; min-height: 72px; }
 
 .wp-ack-quote {
   font-size: 0.85rem;
-  color: var(--muted);
+  color: #ffffff;
   font-style: italic;
   margin-bottom: 4px;
 }

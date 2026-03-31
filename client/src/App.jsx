@@ -220,21 +220,24 @@ const WOLF_PROFILES = {
     image: 'LightningWolfYellowTransparentBG.png',
     animation: 'LazyJoWolfAnimation.mp4',
     bookUrl: 'https://www.gigstarter.be/artists/lazy-jo',
+    flipBio: 'Belgian-Ghanaian artist from Brussels. Melodic flows, emotional hooks, unforgettable sound. Debut in 2018 — co-signed by Timbaland, Symba, DDG & More. 100K views and still rising.',
     bio: `Lazy Jo is a Belgian artist with Ghanaian roots, born in 1999 in Lomé, Togo and based in Brussels, Belgium. Immersed in music from an early age, he began shaping his sound at a young age and officially launched his career in February 2018 with his debut single "I'm Lost." Known for his distinctive melodic flows, emotionally driven delivery, and unforgettable hooks, Lazy Jo creates music that lingers long after the first listen. His ability to craft catchy, memorable melodies has become a defining element of his artistry, setting him apart in a crowded music landscape. Driven by consistency and growth, Lazy Jo continues to evolve his sound while building a strong and authentic artistic presence. His dedication has not gone unnoticed — industry heavyweights such as Kelvyn Colt, Zaytoven, DDG, and Timbaland have recognized and supported his talent. Most recently, Lazy Jo reached a major milestone with his track "Stay Up," which surpassed 100,000 views, further cementing his rising influence and momentum within the music scene.`,
-    spotifyEmbed: 'https://open.spotify.com/embed/artist/4BoRxUdrcgbbq1rxJvvhg7?utm_source=generator&theme=0',
-    performanceVideo: 'Lazy Jo Performance Video.mp4',
+    spotifyEmbed: 'https://open.spotify.com/embed/artist/1gxwDVgOKYnTA3iq2CjLtM?utm_source=generator&theme=0',
+    performanceVideo: 'LazyJoPerformanceVideo.mp4',
+    merchUrl: 'https://www.even.biz/l/lightningwolves',
+    fanUrl: 'https://www.even.biz/l/lazyjomusic',
     email: 'Lazyjo.official@gmail.com',
     youtube: 'https://youtube.com/@lightningwolves',
     instagram: 'https://instagram.com/lazyjoo_',
-    spotify: 'https://open.spotify.com/artist/4BoRxUdrcgbbq1rxJvvhg7',
+    spotify: 'https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM',
     profilePhoto: 'LazyJoPhoto.jpeg',
     acknowledgements: [
-      { name: 'Timbaland', image: 'Timbaland.jpeg', quote: '"This could be the best song"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
-      { name: 'Symba', image: 'Symba.jpeg', quote: '"International as a M*****f*****"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
-      { name: 'DDG', image: 'DDG.jpeg', quote: '"Next Up"', link: 'https://instagram.com', linkLabel: 'Watch on Instagram', sublabel: 'On IG' },
-      { name: 'Kelvyn Colt', image: 'KelvynColt.jpeg', quote: '"Lightning"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
-      { name: 'Zaytoven', image: 'Zaytoven.jpeg', quote: '"Keep going"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
-      { name: 'Kid Hazel', image: 'KidHazel.jpeg', quote: '"Fire"', link: 'https://youtube.com', linkLabel: 'Watch on YouTube' },
+      { name: 'Timbaland', image: 'Timbaland.jpeg', quote: '"This could be the best song"', link: 'https://www.youtube.com/watch?v=timbaland_lazyjo', linkLabel: 'Watch on YouTube' },
+      { name: 'Symba', image: 'Symba.jpeg', quote: '"International as a M*****f*****r"', link: 'https://www.youtube.com/watch?v=symba_lazyjo', linkLabel: 'Watch on YouTube' },
+      { name: 'DDG', image: 'DDG.jpeg', quote: '"Next Up"', link: 'https://www.instagram.com/p/ddg_lazyjo', linkLabel: 'Watch on Instagram', sublabel: 'On IG' },
+      { name: 'Kelvyn Colt', image: 'KelvynColt.jpeg', quote: '"Lightning"', link: 'https://www.youtube.com/watch?v=kelvyncolt_lazyjo', linkLabel: 'Watch on YouTube' },
+      { name: 'Zaytoven', image: 'Zaytoven.jpeg', quote: '"Keep going"', link: 'https://www.youtube.com/watch?v=zaytoven_lazyjo', linkLabel: 'Watch on YouTube' },
+      { name: 'Kid Hazel', image: 'KidHazel.jpeg', quote: '"Fire"', link: 'https://www.youtube.com/watch?v=kidhazel_lazyjo', linkLabel: 'Watch on YouTube' },
     ]
   },
   purple: {
@@ -276,9 +279,29 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
   const profile = WOLF_PROFILES[wolf.id] || {}
   const color = profile.color || wolf.color || '#f5c518'
   const name = profile.name || wolf.artist || ''
+  const canvasRef = useRef(null)
+
+  // Gold particle background
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    let W, H, particles = [], rafId
+    function resize() { W = canvas.width = window.innerWidth; H = canvas.height = canvas.parentElement?.scrollHeight || window.innerHeight * 3; }
+    resize(); window.addEventListener('resize', resize)
+    for (let i = 0; i < 80; i++) particles.push({ x: Math.random()*W, y: Math.random()*H, s: Math.random()*2+0.5, dx: (Math.random()-0.5)*0.3, dy: -(Math.random()*0.4+0.1), a: Math.random()*0.5+0.2 })
+    function draw() {
+      ctx.clearRect(0,0,W,H)
+      particles.forEach(p => { p.x+=p.dx; p.y+=p.dy; if(p.y<-10){p.y=H+10;p.x=Math.random()*W} if(p.x<0)p.x=W; if(p.x>W)p.x=0; ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2); ctx.fillStyle=`rgba(245,197,24,${p.a})`; ctx.fill() })
+      rafId = requestAnimationFrame(draw)
+    }
+    draw()
+    return () => { cancelAnimationFrame(rafId); window.removeEventListener('resize', resize) }
+  }, [])
 
   return (
     <div className="wolf-profile-page" style={{'--wp': color}}>
+      <canvas ref={canvasRef} className="wp-particles" />
       {/* Top bar */}
       <div className="wp-topbar">
         <button className="wp-back-btn" onClick={onBack}>← Back</button>
@@ -326,7 +349,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
             )}
             <h3 className="wp-card-back-name">{name}</h3>
             <div className="wp-card-back-genre">{profile.genre}</div>
-            <p className="wp-card-back-bio">{(profile.bio || '').substring(0, 200)}...</p>
+            <p className="wp-card-back-bio">{profile.flipBio || (profile.bio || '').substring(0, 200) + '...'}</p>
             <div className="wp-card-overlay-role">{profile.role}</div>
             <div className="wp-card-flip-hint">↻ TAP TO FLIP BACK</div>
           </div>
@@ -406,19 +429,33 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
         </div>
       </div>
 
-      {/* Support */}
+      {/* Support — Merch + Fan links */}
       <div className="wp-section">
         <h2 className="wp-section-title">SUPPORT</h2>
         <div className="wp-section-divider"></div>
         <div className="wp-support-grid">
-          <div className="wp-support-card">
-            <img src="/LightningWolvesLogoTransparentBG.png" alt="Merch" className="wp-support-img" />
-            <div className="wp-support-label">LIGHTNING WOLVES MERCH</div>
-          </div>
-          <div className="wp-support-card">
-            <img src="/True Fans Buy The Art.jpeg" alt="True Fans" className="wp-support-img" />
-            <div className="wp-support-label">TRUE FANS BUY THE ART</div>
-          </div>
+          {profile.merchUrl ? (
+            <a href={profile.merchUrl} target="_blank" rel="noopener noreferrer" className="wp-support-card">
+              <img src="/LightningWolvesLogoTransparentBG.png" alt="Merch" className="wp-support-img" />
+              <div className="wp-support-label">LIGHTNING WOLVES MERCH</div>
+            </a>
+          ) : (
+            <div className="wp-support-card">
+              <img src="/LightningWolvesLogoTransparentBG.png" alt="Merch" className="wp-support-img" />
+              <div className="wp-support-label">LIGHTNING WOLVES MERCH</div>
+            </div>
+          )}
+          {profile.fanUrl ? (
+            <a href={profile.fanUrl} target="_blank" rel="noopener noreferrer" className="wp-support-card">
+              <img src="/LazyJoPhoto.jpeg" alt="Fan Community" className="wp-support-img" style={{borderRadius:'8px'}} />
+              <div className="wp-support-label">TRUE FANS BUY THE ART</div>
+            </a>
+          ) : (
+            <div className="wp-support-card">
+              <img src="/LazyJoPhoto.jpeg" alt="True Fans" className="wp-support-img" style={{borderRadius:'8px'}} />
+              <div className="wp-support-label">TRUE FANS BUY THE ART</div>
+            </div>
+          )}
         </div>
       </div>
 

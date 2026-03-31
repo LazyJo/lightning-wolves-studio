@@ -245,6 +245,9 @@ const WOLF_PROFILES = {
     image: 'LightningWolfPurpleTransparentBG.png',
     animation: 'Wolf-Purple.mp4',
     bio: 'French hip-hop energy with melodic punch. Zirka brings raw energy and authentic flow from the streets of France to the Lightning Wolves pack.',
+    spotify: 'https://open.spotify.com/artist/1OqzWGPZDe0jUkwS5ubUbF',
+    spotifyEmbed: 'https://open.spotify.com/embed/artist/1OqzWGPZDe0jUkwS5ubUbF?utm_source=generator&theme=0',
+    merchUrl: 'https://www.even.biz/l/lightningwolves',
     acknowledgements: []
   },
   orange: {
@@ -258,6 +261,7 @@ const WOLF_PROFILES = {
     spotify: 'https://open.spotify.com/artist/5DaB9HZOXF1kOqxLiS2d4B',
     spotifyEmbed: 'https://open.spotify.com/embed/artist/5DaB9HZOXF1kOqxLiS2d4B?utm_source=generator&theme=0',
     profilePhoto: 'RosakayProfile.jpeg',
+    merchUrl: 'https://www.even.biz/l/lightningwolves',
     acknowledgements: []
   },
   blue: {
@@ -265,6 +269,7 @@ const WOLF_PROFILES = {
     image: 'LightningWolfGreenTransparentBG.png',
     animation: 'wolf-white-blue.mp4',
     bio: 'The visual identity behind the pack. Drippydesigns crafts the aesthetic world of Lightning Wolves — from logos to merch to the digital presence.',
+    merchUrl: 'https://www.even.biz/l/lightningwolves',
     acknowledgements: []
   },
   green: {
@@ -274,6 +279,7 @@ const WOLF_PROFILES = {
     bio: `Every pack needs someone watching. Pierre Van der Heyde — Shiteux — is the one behind the camera and behind the beat. Born in Belgium in 1997, he documents the Lightning Wolves world through photos, video, and sound. From lo-fi meditations 'Sin[e]' and 'Doubt Clouds' to his evolving chillout project Behind this Luck, Shiteux moves quietly and creates loudly.`,
     spotify: 'https://open.spotify.com/artist/4Uagbm0Dkl6hpM96LEYCo9',
     spotifyEmbed: 'https://open.spotify.com/embed/artist/4Uagbm0Dkl6hpM96LEYCo9?utm_source=generator&theme=0',
+    merchUrl: 'https://www.even.biz/l/lightningwolves',
     acknowledgements: []
   },
 }
@@ -474,7 +480,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
           )}
           {profile.fanUrl && (
             <a href={profile.fanUrl} target="_blank" rel="noopener noreferrer" className="wp-support-card">
-              <img src="/LazyJoPhoto.jpeg" alt="Fan Community" className="wp-support-img" style={{borderRadius:'8px'}} />
+              <img src="/TrueFans.jpeg" alt="True Fans Buy The Art" className="wp-support-img" style={{borderRadius:'8px'}} />
               <div className="wp-support-label">TRUE FANS BUY THE ART</div>
             </a>
           )}
@@ -850,7 +856,7 @@ function JoinPackPage({ onBack }) {
   )
 }
 
-function WolfSelectPage({ onSelectWolf, onJoinPack, onPricing }) {
+function WolfSelectPage({ onSelectWolf, onJoinPack, onPricing, onShowAuth }) {
   useEffect(() => {
     // Force all videos to play immediately — multiple retries for staggered loads
     const playAll = () => {
@@ -878,7 +884,7 @@ function WolfSelectPage({ onSelectWolf, onJoinPack, onPricing }) {
             Enter Studio
           </button>
           <span className="nav-link" onClick={onPricing} style={{cursor:'pointer'}}>Pricing</span>
-          <span className="nav-btn-outline">SIGN IN</span>
+          <span className="nav-btn-outline" onClick={onShowAuth} style={{cursor:'pointer'}}>SIGN IN</span>
         </div>
       </header>
 
@@ -1417,7 +1423,7 @@ export default function App() {
       <LightningCanvas wolfColor={wolf?.color || '#f5c518'} />
 
       {page === 'wolf-select' && (
-        <WolfSelectPage onSelectWolf={handleSelectWolf} onJoinPack={() => setPage('join-pack')} onPricing={() => setPage('pricing')} />
+        <WolfSelectPage onSelectWolf={handleSelectWolf} onJoinPack={() => setPage('join-pack')} onPricing={() => setPage('pricing')} onShowAuth={() => setPage('auth')} />
       )}
 
       {page === 'join-pack' && (

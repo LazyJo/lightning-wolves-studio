@@ -4,17 +4,17 @@ import { createClient } from '@supabase/supabase-js'
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
   // Row 1 — Active wolves with animations
-  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', video: '/Lazy%20Jo%20Wolf%20Card%20Animation.mp4', locked: false },
+  { id: 'yellow', color: '#f5c518', artist: 'Lazy Jo',       genre: 'Melodic Hip-Hop',     image: 'LightningWolfYellowTransparentBG.png', video: '/LazyJoWolfAnimation.mp4', locked: false },
   { id: 'purple', color: '#9b6dff', artist: 'Zirka',         genre: 'French Hip-Hop',      image: 'LightningWolfPurpleTransparentBG.png', video: '/Wolf-Purple.mp4', locked: false },
-  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', video: '/Rosakay%20Wolf%20Animation.mp4', locked: false },
+  { id: 'orange', color: '#ff80ab', artist: 'Rosakay',       genre: 'Pop / French Pop',    image: 'LightningWolfOrangeTransparentBG.png', video: '/RosakayWolfAnimation.mp4', locked: false },
   // Row 2 — Active + Lone Wolf
   { id: 'blue',   color: '#82b1ff', artist: 'Drippydesigns', genre: 'Covers & Trailers',   image: 'LightningWolfGreenTransparentBG.png', video: '/wolf-white-blue.mp4', locked: false },
   { id: 'lone',   color: '#f5c518', artist: 'Lone Wolf',     genre: '3 Free Generations',  image: 'LightningWolvesLogoTransparentBG.png', locked: false, isLoneWolf: true, emoji: '🐺' },
   { id: 'green',  color: '#69f0ae', artist: 'Shiteux',       genre: 'Photos & Videos',     image: 'LightningWolfGreenTransparentBG.png', video: '/Wolf-Green.mp4', locked: false },
   // Row 3 — Coming Soon with animations
-  { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon',         image: 'WolfRed.png', video: '/Wolf%20-%20Red.mp4', locked: true, comingSoon: true },
-  { id: 'white',  color: '#e8e8e8', artist: 'MMJ',           genre: 'Coming Soon',         image: 'WhiteWolf.png', video: '/White%20Wolf%20Animation.mp4', locked: true, comingSoon: true },
-  { id: 'pink',   color: '#E040FB', artist: 'Soon Available', genre: 'Coming Soon',        image: 'PinkWolf.png', video: '/Pink%20Wolf%20Animation.mp4', locked: true, comingSoon: true },
+  { id: 'red',    color: '#E53935', artist: 'Hendrik Vits',  genre: 'Coming Soon',         image: 'WolfRed.png', video: '/WolfRed.mp4', locked: true, comingSoon: true },
+  { id: 'white',  color: '#e8e8e8', artist: 'MMJ',           genre: 'Coming Soon',         image: 'WhiteWolf.png', video: '/WhiteWolfAnimation.mp4', locked: true, comingSoon: true },
+  { id: 'pink',   color: '#E040FB', artist: 'Soon Available', genre: 'Coming Soon',        image: 'PinkWolf.png', video: '/PinkWolfAnimation.mp4', locked: true, comingSoon: true },
   // Row 4 — Locked ??? + Join the Pack in middle
   { id: 'lock1',  color: '#333333', artist: '???',           genre: 'Coming Soon',         image: 'wolf-black.svg', locked: true },
   { id: 'join',   color: '#f5c518', artist: 'Join the Pack', genre: 'Apply to Join',       image: 'LightningWolvesLogoTransparentBG.png', locked: false, isJoinCard: true },
@@ -289,7 +289,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
     let W, H, particles = [], rafId
     function resize() { W = canvas.width = window.innerWidth; H = canvas.height = canvas.parentElement?.scrollHeight || window.innerHeight * 3; }
     resize(); window.addEventListener('resize', resize)
-    for (let i = 0; i < 80; i++) particles.push({ x: Math.random()*W, y: Math.random()*H, s: Math.random()*2+0.5, dx: (Math.random()-0.5)*0.3, dy: -(Math.random()*0.4+0.1), a: Math.random()*0.5+0.2 })
+    for (let i = 0; i < 120; i++) particles.push({ x: Math.random()*W, y: Math.random()*H, s: Math.random()*2+2, dx: (Math.random()-0.5)*0.3, dy: -(Math.random()*0.4+0.1), a: Math.random()*0.4+0.5 })
     function draw() {
       ctx.clearRect(0,0,W,H)
       particles.forEach(p => { p.x+=p.dx; p.y+=p.dy; if(p.y<-10){p.y=H+10;p.x=Math.random()*W} if(p.x<0)p.x=W; if(p.x>W)p.x=0; ctx.beginPath(); ctx.arc(p.x,p.y,p.s,0,Math.PI*2); ctx.fillStyle=`rgba(245,197,24,${p.a})`; ctx.fill() })
@@ -398,7 +398,7 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
           <div className="wp-spotify-embed">
             <iframe src={profile.spotifyEmbed} width="100%" height="352" frameBorder="0"
               allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy" style={{borderRadius: '12px', border: '1px solid var(--border)'}} title="Spotify" />
+              loading="lazy" style={{borderRadius: '12px', marginTop: '16px'}} title="Spotify" />
           </div>
         </div>
       )}

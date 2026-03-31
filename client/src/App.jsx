@@ -543,7 +543,7 @@ function WolfSelectPage({ onSelectWolf }) {
                       ) : wolf.video ? (
                         <video autoPlay loop muted playsInline preload="auto"
                           onLoadedData={e => e.target.play()}
-                          style={{width:'160px',height:'160px',borderRadius:'50%',objectFit:'cover'}}>
+                          style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}}>
                           <source src={wolf.video} type="video/mp4" />
                         </video>
                       ) : (

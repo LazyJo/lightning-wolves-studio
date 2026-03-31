@@ -1390,7 +1390,7 @@ textarea { resize: vertical; min-height: 72px; }
    ═══════════════════════════════════════════════════════════════════════════ */
 .wolf-profile-page {
   min-height: 100vh;
-  background: #0a0800;
+  background: var(--bg, #0a0a0c);
   color: var(--text);
   position: relative;
   z-index: 1;
@@ -1406,9 +1406,29 @@ textarea { resize: vertical; min-height: 72px; }
   pointer-events: none;
 }
 
+.wp-section {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 32px 48px;
+  position: relative;
+  z-index: 1;
+}
+
 .wp-section, .wp-topbar, .wp-hero-name, .wp-flip-container, .wp-bottom-cta {
   position: relative;
   z-index: 1;
+}
+
+.wp-hero-name {
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.wp-flip-container {
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* ─── Top Bar ──────────────────────────────────────────────────────────────── */

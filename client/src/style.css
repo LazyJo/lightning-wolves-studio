@@ -1390,7 +1390,7 @@ textarea { resize: vertical; min-height: 72px; }
    ═══════════════════════════════════════════════════════════════════════════ */
 .wolf-profile-page {
   min-height: 100vh;
-  background: #000;
+  background: #0a0800;
   color: var(--text);
   position: relative;
   z-index: 1;
@@ -1566,11 +1566,28 @@ textarea { resize: vertical; min-height: 72px; }
 
 .wp-card-flip-hint {
   text-align: center;
-  padding: 8px;
-  font-size: 0.7rem;
-  letter-spacing: 0.15em;
+  padding: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--muted);
+  color: #f5c518;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { text-shadow: 0 0 4px rgba(245,197,24,0.3); opacity: 0.7; }
+  50% { text-shadow: 0 0 12px rgba(245,197,24,0.8); opacity: 1; }
+}
+
+/* Subtle border pulse on flip card */
+.wp-flip-card {
+  animation: card-border-pulse 3s ease-in-out infinite;
+}
+
+@keyframes card-border-pulse {
+  0%, 100% { box-shadow: 0 0 20px color-mix(in srgb, var(--wp) 15%, transparent); }
+  50% { box-shadow: 0 0 35px color-mix(in srgb, var(--wp) 30%, transparent); }
 }
 
 .wp-card-back {

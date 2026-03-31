@@ -487,16 +487,19 @@ function WolfProfilePage({ wolf, onBack, onEnterStudio }) {
 // ─── Wolf Select Page ─────────────────────────────────────────────────────────
 function WolfSelectPage({ onSelectWolf }) {
   useEffect(() => {
-    // Force all videos to play immediately after mount
-    const vids = document.querySelectorAll('#wolf-select-page video');
-    vids.forEach(v => { v.muted = true; v.play().catch(() => {}); });
-    // Also retry after a short delay for slower loads
-    const t = setTimeout(() => {
+    // Force all videos to play immediately — multiple retries for staggered loads
+    const playAll = () => {
       document.querySelectorAll('#wolf-select-page video').forEach(v => {
         v.muted = true; v.play().catch(() => {});
       });
-    }, 500);
-    return () => clearTimeout(t);
+    };
+    playAll();
+    const t1 = setTimeout(playAll, 100);
+    const t2 = setTimeout(playAll, 300);
+    const t3 = setTimeout(playAll, 600);
+    const t4 = setTimeout(playAll, 1000);
+    const t5 = setTimeout(playAll, 2000);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
   }, []);
 
   return (

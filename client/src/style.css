@@ -1642,12 +1642,7 @@ textarea { resize: vertical; min-height: 72px; }
   line-height: 1.7;
 }
 
-/* ─── Sections ─────────────────────────────────────────────────────────────── */
-.wp-section {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 32px 48px;
-}
+/* ─── Sections (uses wp-section from above: max-width 860px, centered) ──── */
 
 .wp-section-title {
   font-family: 'Bebas Neue', sans-serif;
@@ -1797,7 +1792,7 @@ textarea { resize: vertical; min-height: 72px; }
 
 /* ─── Spotify Embed ────────────────────────────────────────────────────────── */
 .wp-spotify-embed {
-  max-width: 600px;
+  width: 100%;
 }
 
 /* ─── Performance Video ────────────────────────────────────────────────────── */

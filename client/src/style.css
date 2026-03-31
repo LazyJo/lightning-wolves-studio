@@ -1636,11 +1636,10 @@ textarea { resize: vertical; min-height: 72px; }
 }
 
 .wp-section-divider {
-  width: 60px;
-  height: 2px;
-  background: var(--wp, #f5c518);
+  width: 100%;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
   margin: 8px 0 20px;
-  border-radius: 1px;
 }
 
 .wp-about-text {
@@ -1713,8 +1712,8 @@ textarea { resize: vertical; min-height: 72px; }
 .wp-acks-arrow:hover { color: #fff; background: rgba(255,255,255,0.1); }
 
 .wp-ack-card {
-  background: var(--card, #18181f);
-  border: 1px solid var(--border, #2a2a35);
+  background: rgba(35,35,45,0.85);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 16px;
   padding: 24px 16px;
   text-align: center;
@@ -1825,13 +1824,14 @@ textarea { resize: vertical; min-height: 72px; }
 }
 
 .wp-support-card {
-  background: var(--card, #18181f);
+  background: rgba(35,35,45,0.85);
   border: 1px solid var(--wp);
   border-radius: 16px;
   padding: 32px 24px;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.2s;
+  text-decoration: none;
 }
 
 .wp-support-img {
@@ -1853,17 +1853,18 @@ textarea { resize: vertical; min-height: 72px; }
   display: flex;
   flex-direction: column;
   gap: 8px;
+  max-width: 500px;
 }
 
 .wp-contact-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 20px;
-  background: var(--card, #18181f);
-  border: 1px solid var(--border);
+  padding: 10px 16px;
+  background: rgba(30,30,38,0.7);
+  border: 1px solid rgba(255,255,255,0.06);
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: var(--muted);
   text-decoration: none;
   transition: border-color 0.15s;

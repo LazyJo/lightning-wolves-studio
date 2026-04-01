@@ -232,12 +232,13 @@ const WOLF_PROFILES = {
     spotify: 'https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM',
     profilePhoto: 'LazyJoPhoto.jpeg',
     acknowledgements: [
-      { name: 'Timbaland', image: 'Timbaland.jpeg', quote: '"This could be the best song"', link: 'https://www.youtube.com/watch?v=timbaland_lazyjo', linkLabel: 'Watch on YouTube' },
-      { name: 'Symba', image: 'Symba.jpeg', quote: '"International as a M*****f*****r"', link: 'https://www.youtube.com/watch?v=symba_lazyjo', linkLabel: 'Watch on YouTube' },
-      { name: 'DDG', image: 'DDG.jpeg', quote: '"Next Up"', link: 'https://www.instagram.com/p/ddg_lazyjo', linkLabel: 'Watch on Instagram', sublabel: 'On IG' },
+      { name: 'Timbaland', image: 'Timbaland.jpeg', quote: '"This could be the best song"', link: 'https://www.youtube.com/watch?v=u-MHafxpqhw', linkLabel: 'Watch on YouTube' },
+      { name: 'Symba', image: 'Symba.jpeg', quote: '"International as a M*****f*****r"', link: 'https://www.youtube.com/shorts/mKTSI8Wqw5A', linkLabel: 'Watch on YouTube' },
+      { name: 'DDG', image: 'DDG.jpeg', quote: '"Next Up"', link: 'https://www.instagram.com/p/Cxf_nEFo4v5/', linkLabel: 'Watch on Instagram', sublabel: 'On IG' },
       { name: 'Kelvyn Colt', image: 'KelvynColt.jpeg', quote: '"Lightning"', link: 'https://www.youtube.com/watch?v=kelvyncolt_lazyjo', linkLabel: 'Watch on YouTube' },
-      { name: 'Zaytoven', image: 'Zaytoven.jpeg', quote: '"Keep going"', link: 'https://www.youtube.com/watch?v=zaytoven_lazyjo', linkLabel: 'Watch on YouTube' },
+      { name: 'Zaytoven', image: 'Zaytoven.jpeg', quote: '"Keep going"', link: 'https://www.instagram.com/p/Cxf_nEFo4v5/', linkLabel: 'Watch on Instagram', sublabel: 'On IG' },
       { name: 'Kid Hazel', image: 'KidHazel.jpeg', quote: '"Fire"', link: 'https://www.youtube.com/watch?v=kidhazel_lazyjo', linkLabel: 'Watch on YouTube' },
+      { name: '6IX9INE', image: '6ix9ine.jpeg', quote: '"That boy go crazy"', link: 'https://www.youtube.com/watch?v=u-MHafxpqhw', linkLabel: 'Watch on YouTube' },
     ]
   },
   purple: {

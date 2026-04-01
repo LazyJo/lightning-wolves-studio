@@ -4,13 +4,12 @@
   "outputDirectory": "client/dist",
   "functions": {
     "api/**": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "server.js"
     }
   },
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/health", "dest": "/api/index" },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+  "rewrites": [
+    { "source": "/health", "destination": "/api/index" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

@@ -51,12 +51,17 @@ async function getProfile(userId) {
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
+// Use a Router so routes work both locally (/api/generate) and on Vercel
+// serverless (/generate — Vercel strips the /api prefix for api/ functions).
+const router = express.Router();
+app.use('/api', router);
+app.use('/', router);
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Public config — exposes only safe, public-facing keys to the frontend
-app.get('/api/config', (req, res) => {
+router.get('/config', (req, res) => {
   res.json({
     supabaseUrl:     process.env.SUPABASE_URL     || null,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null,
@@ -64,10 +69,10 @@ app.get('/api/config', (req, res) => {
 });
 
 // Test endpoint — confirms API routing is live
-app.get('/api/test', (req, res) => res.json({ status: 'ok' }));
+router.get('/test', (req, res) => res.json({ status: 'ok' }));
 
 // Main generation endpoint
-app.post('/api/generate', async (req, res) => {
+router.post('/generate', async (req, res) => {
   try {
     const { title, artist, genre, bpm, language, mood, wolfId, token } = req.body;
 
@@ -178,7 +183,7 @@ app.post('/api/generate', async (req, res) => {
 });
 
 // Signup endpoint (creates profile with promo code tracking)
-app.post('/api/auth/signup', async (req, res) => {
+router.post('/auth/signup', async (req, res) => {
   try {
     const { email, password, promoCode } = req.body;
     if (!email || !password) return res.status(400).json({ error: 'email and password required' });
@@ -220,7 +225,7 @@ app.post('/api/auth/signup', async (req, res) => {
 });
 
 // Member dashboard data
-app.get('/api/dashboard', async (req, res) => {
+router.get('/dashboard', async (req, res) => {
   try {
     const user = await getUserFromToken(req);
     if (!user) return res.status(401).json({ error: 'Unauthorized' });
@@ -272,7 +277,7 @@ app.get('/api/dashboard', async (req, res) => {
 });
 
 // Verify promo code
-app.post('/api/promo/verify', async (req, res) => {
+router.post('/promo/verify', async (req, res) => {
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: 'code required' });
 

@@ -1107,7 +1107,9 @@ function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
       if (mood)  body.mood = mood
       if (token) body.token = token
       const res  = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      const json = await res.json()
+      const text = await res.text()
+      let json
+      try { json = JSON.parse(text) } catch { throw new Error(res.status === 504 ? 'Request timed out — try again' : `Server error (${res.status}): ${text.slice(0, 120) || 'empty response'}`) }
       if (!res.ok) { if (json.error === 'LIMIT_REACHED') { onShowLimitModal(); return }; throw new Error(json.error || 'Generation failed') }
       localStorage.setItem('lw_last_pack', JSON.stringify(json.pack))
       localStorage.setItem('lw_last_meta', JSON.stringify(json.meta))

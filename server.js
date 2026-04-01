@@ -76,6 +76,11 @@ app.post('/api/generate', async (req, res) => {
       return res.status(400).json({ error: 'title, artist, genre, and language are required' });
     }
 
+    // Check Anthropic is configured
+    if (!anthropic) {
+      return res.status(503).json({ error: 'AI service not configured. Please set ANTHROPIC_API_KEY.' });
+    }
+
     // ── Auth / generation limit check ──────────────────────────────────────
     let user = null;
     let isMember = false;

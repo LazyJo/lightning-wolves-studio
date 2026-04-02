@@ -1121,14 +1121,15 @@ function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
       try { json = JSON.parse(txt) } catch { throw new Error('Upload failed: invalid response') }
       if (!res.ok) throw new Error(json.error || 'Upload failed')
 
-      if (json.transcript) {
+      if (json.transcript && json.transcript.segments && json.transcript.segments.length > 0) {
         setTranscript(json.transcript)
         setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB · Transcribed (${json.transcript.segments.length} segments)`, color: '#3ddc84' })
       } else {
-        setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB · No transcription (Whisper not configured)`, color: '#ff9500' })
+        throw new Error('Transcription returned no segments')
       }
     } catch (err) {
-      setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB · Transcription failed: ${err.message}`, color: '#ff9500' })
+      setTranscript(null)
+      setUploadInfo({ text: `✗ ${file.name} — ${err.message}`, color: '#ff4455' })
     } finally {
       setUploading(false)
     }

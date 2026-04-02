@@ -97,32 +97,29 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     // Transcribe with Whisper if OpenAI is configured
     let transcript = null;
     if (openai) {
-      try {
-        console.log('[upload] transcribing with Whisper:', originalname);
-        const fileStream = fs.createReadStream(tmpPath);
-        const result = await openai.audio.transcriptions.create({
-          file: fileStream,
-          model: 'whisper-1',
-          response_format: 'verbose_json',
-          timestamp_granularities: ['word', 'segment'],
-        });
-        transcript = {
-          text: result.text,
-          segments: (result.segments || []).map(s => ({
-            start: s.start,
-            end: s.end,
-            text: s.text,
-          })),
-          language: result.language,
-          duration: result.duration,
-        };
-        console.log('[upload] transcription done, segments:', transcript.segments.length);
-      } catch (err) {
-        console.error('[upload] Whisper error:', err.message);
-        // Continue without transcript — will fall back to Claude generation
-      }
+      console.log('[upload] transcribing with Whisper:', originalname);
+      const fileStream = fs.createReadStream(tmpPath);
+      const result = await openai.audio.transcriptions.create({
+        file: fileStream,
+        model: 'whisper-1',
+        response_format: 'verbose_json',
+        timestamp_granularities: ['word', 'segment'],
+      });
+      transcript = {
+        text: result.text,
+        segments: (result.segments || []).map(s => ({
+          start: s.start,
+          end: s.end,
+          text: s.text,
+        })),
+        language: result.language,
+        duration: result.duration,
+      };
+      console.log('[upload] transcription done, segments:', transcript.segments.length);
     } else {
-      console.info('[upload] OpenAI not configured (no OPENAI_API_KEY), skipping transcription');
+      // Clean up and return error — transcription is required
+      try { fs.unlinkSync(tmpPath); } catch {}
+      return res.status(503).json({ error: 'Whisper not configured. Set OPENAI_API_KEY to enable transcription.' });
     }
 
     // Clean up temp file
@@ -184,10 +181,21 @@ router.post('/generate', async (req, res) => {
       }
     }
 
-    // ── Build Claude prompt ────────────────────────────────────────────────
-    const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Generate complete, authentic, emotionally resonant song content tailored precisely to the genre, language and vibe provided. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
+    // ── Build lyrics from transcript or error ──────────────────────────────
+    // When a transcript exists, use Whisper's real segments — never ask Claude
+    // to invent lyrics. Claude only generates beats, prompts, and tips.
+    let whisperLyrics = null;
+    if (transcript && transcript.segments && transcript.segments.length > 0) {
+      whisperLyrics = transcript.segments.map(s => ({
+        ts: formatTimestamp(s.start),
+        text: s.text.trim(),
+      }));
+    }
 
-    const userPrompt = buildUserPrompt({ title, artist, genre, bpm, language, mood, transcript });
+    // ── Build Claude prompt ────────────────────────────────────────────────
+    const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
+
+    const userPrompt = buildUserPrompt({ title, artist, genre, bpm, language, mood, hasTranscript: !!whisperLyrics });
 
     // ── Call Claude ────────────────────────────────────────────────────────
     const message = await anthropic.messages.create({
@@ -218,6 +226,11 @@ router.post('/generate', async (req, res) => {
     } catch (parseErr) {
       console.error('[generate] JSON.parse failed:', parseErr.message, '\nSanitized (first 300):', sanitized.slice(0, 300));
       return res.status(500).json({ error: 'Failed to parse AI response', raw });
+    }
+
+    // Use real Whisper lyrics — never use Claude-generated lyrics when we have a transcript
+    if (whisperLyrics) {
+      pack.lyrics = whisperLyrics;
     }
 
     // Generate SRT server-side from the lyrics array
@@ -435,35 +448,24 @@ function buildSrt(lyrics) {
 }
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
-function buildUserPrompt({ title, artist, genre, bpm, language, mood, transcript }) {
-  // If we have a real Whisper transcript, use it as the ground truth for lyrics
-  const hasTranscript = transcript && transcript.segments && transcript.segments.length > 0;
-
-  const transcriptBlock = hasTranscript
-    ? `\n\nIMPORTANT — REAL TRANSCRIPTION FROM WHISPER (use these EXACT lyrics, do NOT make up new ones):
-Full text: "${transcript.text}"
-
-Timed segments:
-${transcript.segments.map(s => `[${formatTimestamp(s.start)}] ${s.text.trim()}`).join('\n')}
-
-You MUST use the transcribed lyrics above as the "lyrics" array. Keep the exact words from the transcription. Only add section headers like [VERSE 1], [CHORUS] etc. where appropriate.`
-    : '';
+function buildUserPrompt({ title, artist, genre, bpm, language, mood, hasTranscript }) {
+  // When we have a real transcript, do NOT ask Claude for lyrics at all.
+  // Lyrics come directly from Whisper segments (overwritten server-side).
+  // Claude only generates beats, prompts, and tips.
+  const lyricsInstruction = hasTranscript
+    ? '- "lyrics": return an EMPTY array []. The real lyrics are handled separately from the transcription.'
+    : `- "lyrics": 20+ lines in ${language}, section headers like [INTRO] [VERSE 1] [CHORUS] [BRIDGE] [OUTRO], timestamps format "M:SS"`;
 
   return `Generate a music production pack for this track:
 
 Title: ${title}
 Artist: ${artist}
 Genre: ${genre}
-Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood: ${mood}` : ''}${transcriptBlock}
+Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood: ${mood}` : ''}
 
 Return ONLY a JSON object with exactly this structure (no text before or after):
 {
-  "lyrics": [
-    {"ts": "0:00", "text": "[INTRO]"},
-    {"ts": "0:08", "text": "first lyric line"},
-    {"ts": "0:16", "text": "[VERSE 1]"},
-    {"ts": "0:24", "text": "verse lyric line"}
-  ],
+  "lyrics": [],
   "beats": [
     {"ts": "0:00", "label": "Intro", "type": "CUT"},
     {"ts": "0:32", "label": "Verse 1", "type": "CUT"},
@@ -482,9 +484,9 @@ Return ONLY a JSON object with exactly this structure (no text before or after):
   ]
 }
 
-Rules:${hasTranscript ? '\n- CRITICAL: Use the EXACT transcribed lyrics above. Do NOT invent new lyrics.' : `\n- Lyrics: 20+ lines in ${language}, section headers like [INTRO] [VERSE 1] [CHORUS] [BRIDGE] [OUTRO]`}
-- Timestamps format: "M:SS" (e.g. "1:04")
-- beats: exactly 4 entries covering intro, verse, chorus, outro
+Rules:
+${lyricsInstruction}
+- beats: exactly 4 entries covering intro, verse, chorus, outro. Timestamps format "M:SS"
 - prompts: exactly 3 entries, each prompt 1-2 sentences, cinematic style for ${genre}
 - tips: exactly 3 entries, specific to ${genre}
 - No literal newlines inside string values. No smart quotes. Straight ASCII only.`;

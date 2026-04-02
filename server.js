@@ -84,38 +84,63 @@ router.get('/config', (req, res) => {
 // Test endpoint — confirms API routing is live
 router.get('/test', (req, res) => res.json({ status: 'ok' }));
 
+// Test Whisper connectivity
+router.get('/test-whisper', (req, res) => {
+  res.json({
+    openaiKeyExists: !!process.env.OPENAI_API_KEY,
+    openaiKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+    openaiClientReady: !!openai,
+    anthropicKeyExists: !!process.env.ANTHROPIC_API_KEY,
+  });
+});
+
 // Upload + Whisper transcription endpoint
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
+    console.log('[upload] OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY, 'length:', process.env.OPENAI_API_KEY?.length);
+    console.log('[upload] openai client ready:', !!openai);
+
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
     const { originalname, path: tmpPath, size, mimetype } = req.file;
     const sizeMB = (size / 1024 / 1024).toFixed(1);
+    console.log('[upload] file received:', originalname, sizeMB + 'MB', mimetype);
 
     // Transcribe with Whisper if OpenAI is configured
     let transcript = null;
     if (openai) {
-      console.log('[upload] transcribing with Whisper:', originalname);
-      const fileStream = fs.createReadStream(tmpPath);
-      const result = await openai.audio.transcriptions.create({
-        file: fileStream,
-        model: 'whisper-1',
-        response_format: 'verbose_json',
-        timestamp_granularities: ['word', 'segment'],
-      });
-      transcript = {
-        text: result.text,
-        segments: (result.segments || []).map(s => ({
-          start: s.start,
-          end: s.end,
-          text: s.text,
-        })),
-        language: result.language,
-        duration: result.duration,
-      };
-      console.log('[upload] transcription done, segments:', transcript.segments.length);
+      console.log('[upload] calling Whisper API for:', originalname);
+      try {
+        const fileStream = fs.createReadStream(tmpPath);
+        const result = await openai.audio.transcriptions.create({
+          file: fileStream,
+          model: 'whisper-1',
+          response_format: 'verbose_json',
+          timestamp_granularities: ['segment'],
+        });
+        console.log('[upload] Whisper raw result keys:', Object.keys(result));
+        console.log('[upload] Whisper text (first 200):', (result.text || '').slice(0, 200));
+        console.log('[upload] Whisper segments count:', result.segments?.length || 0);
+        transcript = {
+          text: result.text,
+          segments: (result.segments || []).map(s => ({
+            start: s.start,
+            end: s.end,
+            text: s.text,
+          })),
+          language: result.language,
+          duration: result.duration,
+        };
+        console.log('[upload] transcription done, segments:', transcript.segments.length);
+      } catch (whisperErr) {
+        console.error('[upload] Whisper API error:', whisperErr.message);
+        console.error('[upload] Whisper error details:', JSON.stringify(whisperErr.error || whisperErr.response?.data || {}, null, 2));
+        // Clean up and return the actual error
+        try { fs.unlinkSync(tmpPath); } catch {}
+        return res.status(502).json({ error: `Whisper transcription failed: ${whisperErr.message}` });
+      }
     } else {
       // Clean up and return error — transcription is required
       try { fs.unlinkSync(tmpPath); } catch {}

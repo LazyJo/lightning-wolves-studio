@@ -1185,7 +1185,7 @@ function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
               onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]) }} />
             <div className="upload-icon">🎵</div>
             <div className="upload-text">Drag &amp; drop audio or video</div>
-            <div className="upload-sub">or click to browse · max 100MB</div>
+            <div className="upload-sub">or click to browse · max 25MB</div>
             {uploadInfo && <div className="upload-info" style={uploadInfo.color?{color:uploadInfo.color}:{}}>{uploadInfo.text}</div>}
           </div>
         </div>

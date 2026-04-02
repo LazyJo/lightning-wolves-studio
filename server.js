@@ -73,8 +73,9 @@ router.get('/test', (req, res) => res.json({ status: 'ok' }));
 
 // Main generation endpoint
 router.post('/generate', async (req, res) => {
+  console.log('[generate] hit — method:', req.method, 'url:', req.url, 'originalUrl:', req.originalUrl);
   try {
-    const { title, artist, genre, bpm, language, mood, wolfId, token } = req.body;
+    const { title, artist, genre, bpm, language, mood, wolfId, token } = req.body || {};
 
     // Validate required fields
     if (!title || !artist || !genre || !language) {
@@ -291,9 +292,13 @@ router.post('/promo/verify', async (req, res) => {
   res.json({ valid: true });
 });
 
-// ─── Fallback to index.html (SPA) ────────────────────────────────────────────
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+// ─── Fallback ────────────────────────────────────────────────────────────────
+// GET: serve SPA index.html. Other methods: return JSON 404 (not 405).
+app.all('*', (req, res) => {
+  if (req.method === 'GET') {
+    return res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+  }
+  res.status(404).json({ error: `No route for ${req.method} ${req.originalUrl}` });
 });
 
 // ─── Error handler ────────────────────────────────────────────────────────────

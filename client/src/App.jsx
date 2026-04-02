@@ -1176,10 +1176,13 @@ function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
           <div className="sc-toggle-row"><span>Sync effects to beat drops</span><label className="sc-toggle"><input type="checkbox" defaultChecked /><span className="sc-toggle-slider"></span></label></div>
         </div>
 
-        <button className="btn-generate" onClick={handleGenerate} disabled={generating}>
-          <span className="btn-lightning">⚡</span>
-          <span className="btn-text">{generating ? 'GENERATING…' : 'GENERATE · 10 ⚡'}</span>
-        </button>
+        <div className="sc-gen-wrap">
+          <button className="btn-generate sc-gen-btn" onClick={handleGenerate} disabled={generating}>
+            <span className="sc-gen-bolt">⚡</span>
+            <span className="btn-text">{generating ? 'GENERATING…' : 'GENERATE'}</span>
+          </button>
+          {!generating && <div className="sc-gen-cost">— 10 ⚡ —</div>}
+        </div>
         {genError && <div className="gen-error">{genError}</div>}
       </aside>
 

@@ -1073,14 +1073,17 @@ function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
   const [pack,       setPack]       = useState(null)
   const [meta,       setMeta]       = useState(null)
   const [activeTab,  setActiveTab]  = useState('lyrics')
-  const [uploadInfo, setUploadInfo] = useState(null)
-  const [dragover,   setDragover]   = useState(false)
-  const [lyricStyle, setLyricStyle] = useState('karaoke')
-  const [fontSize,   setFontSize]   = useState(32)
-  const [position,   setPosition]   = useState('center')
-  const [animation,  setAnimation]  = useState('slam')
-  const [textColor,  setTextColor]  = useState('#ffffff')
-  const [hlColor,    setHlColor]    = useState(wolf?.color || '#f5c518')
+  const [uploadInfo,  setUploadInfo]  = useState(null)
+  const [uploading,   setUploading]   = useState(false)
+  const [transcript,  setTranscript]  = useState(null)
+  const [previewUrl,  setPreviewUrl]  = useState(null)
+  const [dragover,    setDragover]    = useState(false)
+  const [lyricStyle,  setLyricStyle]  = useState('karaoke')
+  const [fontSize,    setFontSize]    = useState(32)
+  const [position,    setPosition]    = useState('center')
+  const [animation,   setAnimation]   = useState('slam')
+  const [textColor,   setTextColor]   = useState('#ffffff')
+  const [hlColor,     setHlColor]     = useState(wolf?.color || '#f5c518')
   const fileInputRef = useRef(null)
 
   useEffect(() => {
@@ -1091,21 +1094,57 @@ function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
     } catch {}
   }, [])
 
-  function handleFile(file) {
+  // Clean up preview blob URL on unmount
+  useEffect(() => {
+    return () => { if (previewUrl) URL.revokeObjectURL(previewUrl) }
+  }, [previewUrl])
+
+  async function handleFile(file) {
     const sizeMB = (file.size / 1024 / 1024).toFixed(1)
-    setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB`, color: '#3ddc84' })
+
+    // Create local preview URL for video/audio
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    const objUrl = URL.createObjectURL(file)
+    setPreviewUrl(file.type.startsWith('video') ? objUrl : null)
+
+    // Upload to server for Whisper transcription
+    setUploading(true)
+    setUploadInfo({ text: `Uploading ${file.name} (${sizeMB} MB)…`, color: 'var(--accent)' })
+    setTranscript(null)
+
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const txt = await res.text()
+      let json
+      try { json = JSON.parse(txt) } catch { throw new Error('Upload failed: invalid response') }
+      if (!res.ok) throw new Error(json.error || 'Upload failed')
+
+      if (json.transcript) {
+        setTranscript(json.transcript)
+        setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB · Transcribed (${json.transcript.segments.length} segments)`, color: '#3ddc84' })
+      } else {
+        setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB · No transcription (Whisper not configured)`, color: '#ff9500' })
+      }
+    } catch (err) {
+      setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB · Transcription failed: ${err.message}`, color: '#ff9500' })
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function handleGenerate() {
     setGenError('')
     if (!title || !artist || !genre) { setGenError('Please fill in Song Title, Artist Name, and Genre.'); return }
-    if (generating) return
+    if (generating || uploading) return
     setGenerating(true); setPack(null); setMeta(null)
     try {
       const body = { title, artist, genre, language, wolfId: wolf?.id }
-      if (bpm)   body.bpm  = bpm
-      if (mood)  body.mood = mood
-      if (token) body.token = token
+      if (bpm)        body.bpm  = bpm
+      if (mood)       body.mood = mood
+      if (token)      body.token = token
+      if (transcript) body.transcript = transcript
       const res  = await fetch('/api/generate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       const text = await res.text()
       let json
@@ -1119,7 +1158,9 @@ function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
   }
 
   function handleNewTrack() {
-    setTitle(''); setBpm(''); setMood(''); setUploadInfo(null); setPack(null); setMeta(null); setGenError('')
+    setTitle(''); setBpm(''); setMood(''); setUploadInfo(null); setTranscript(null)
+    if (previewUrl) URL.revokeObjectURL(previewUrl); setPreviewUrl(null)
+    setPack(null); setMeta(null); setGenError('')
     localStorage.removeItem('lw_last_pack'); localStorage.removeItem('lw_last_meta')
   }
 
@@ -1177,9 +1218,9 @@ function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
         </div>
 
         <div className="sc-gen-wrap">
-          <button className="btn-generate sc-gen-btn" onClick={handleGenerate} disabled={generating}>
+          <button className="btn-generate sc-gen-btn" onClick={handleGenerate} disabled={generating || uploading}>
             <span className="sc-gen-bolt">⚡</span>
-            <span className="btn-text">{generating ? 'GENERATING…' : 'GENERATE'}</span>
+            <span className="btn-text">{uploading ? 'UPLOADING…' : generating ? 'GENERATING…' : 'GENERATE'}</span>
           </button>
           {!generating && <div className="sc-gen-cost">— 10 ⚡ —</div>}
         </div>
@@ -1195,8 +1236,18 @@ function StudioCreate({ wolf, user, profile, token, onShowLimitModal }) {
 
         {/* Preview boxes */}
         <div className="sc-preview-area">
-          <div className="sc-preview-box sc-portrait"><div className="sc-preview-label">9:16</div><div className="sc-preview-inner">Preview</div></div>
-          <div className="sc-preview-box sc-landscape"><div className="sc-preview-label">16:9</div><div className="sc-preview-inner">Preview</div></div>
+          <div className="sc-preview-box sc-portrait">
+            <div className="sc-preview-label">9:16</div>
+            {previewUrl
+              ? <video src={previewUrl} className="sc-preview-vid" autoPlay loop muted playsInline />
+              : <div className="sc-preview-inner">Preview</div>}
+          </div>
+          <div className="sc-preview-box sc-landscape">
+            <div className="sc-preview-label">16:9</div>
+            {previewUrl
+              ? <video src={previewUrl} className="sc-preview-vid" autoPlay loop muted playsInline />
+              : <div className="sc-preview-inner">Preview</div>}
+          </div>
         </div>
 
         {/* Tab content */}

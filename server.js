@@ -2,7 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
+const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -20,6 +23,16 @@ const supabase = process.env.SUPABASE_URL
 const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   : null;
+
+// ─── OpenAI (Whisper transcription) ─────────────────────────────────────────
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+  : null;
+
+// ─── Multer (file uploads) ──────────────────────────────────────────────────
+const uploadsDir = path.join(require('os').tmpdir(), 'lw-uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+const upload = multer({ dest: uploadsDir, limits: { fileSize: 100 * 1024 * 1024 } });
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
@@ -71,11 +84,67 @@ router.get('/config', (req, res) => {
 // Test endpoint — confirms API routing is live
 router.get('/test', (req, res) => res.json({ status: 'ok' }));
 
+// Upload + Whisper transcription endpoint
+router.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { originalname, path: tmpPath, size, mimetype } = req.file;
+    const sizeMB = (size / 1024 / 1024).toFixed(1);
+
+    // Transcribe with Whisper if OpenAI is configured
+    let transcript = null;
+    if (openai) {
+      try {
+        console.log('[upload] transcribing with Whisper:', originalname);
+        const fileStream = fs.createReadStream(tmpPath);
+        const result = await openai.audio.transcriptions.create({
+          file: fileStream,
+          model: 'whisper-1',
+          response_format: 'verbose_json',
+          timestamp_granularities: ['word', 'segment'],
+        });
+        transcript = {
+          text: result.text,
+          segments: (result.segments || []).map(s => ({
+            start: s.start,
+            end: s.end,
+            text: s.text,
+          })),
+          language: result.language,
+          duration: result.duration,
+        };
+        console.log('[upload] transcription done, segments:', transcript.segments.length);
+      } catch (err) {
+        console.error('[upload] Whisper error:', err.message);
+        // Continue without transcript — will fall back to Claude generation
+      }
+    } else {
+      console.info('[upload] OpenAI not configured (no OPENAI_API_KEY), skipping transcription');
+    }
+
+    // Clean up temp file
+    try { fs.unlinkSync(tmpPath); } catch {}
+
+    res.json({
+      originalName: originalname,
+      size: sizeMB,
+      mimetype,
+      transcript,
+    });
+  } catch (err) {
+    console.error('[upload] error:', err);
+    res.status(500).json({ error: err.message || 'Upload failed' });
+  }
+});
+
 // Main generation endpoint
 router.post('/generate', async (req, res) => {
   console.log('[generate] hit — method:', req.method, 'url:', req.url, 'originalUrl:', req.originalUrl);
   try {
-    const { title, artist, genre, bpm, language, mood, wolfId, token } = req.body || {};
+    const { title, artist, genre, bpm, language, mood, wolfId, token, transcript } = req.body || {};
 
     // Validate required fields
     if (!title || !artist || !genre || !language) {
@@ -118,7 +187,7 @@ router.post('/generate', async (req, res) => {
     // ── Build Claude prompt ────────────────────────────────────────────────
     const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Generate complete, authentic, emotionally resonant song content tailored precisely to the genre, language and vibe provided. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
 
-    const userPrompt = buildUserPrompt({ title, artist, genre, bpm, language, mood });
+    const userPrompt = buildUserPrompt({ title, artist, genre, bpm, language, mood, transcript });
 
     // ── Call Claude ────────────────────────────────────────────────────────
     const message = await anthropic.messages.create({
@@ -366,13 +435,26 @@ function buildSrt(lyrics) {
 }
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
-function buildUserPrompt({ title, artist, genre, bpm, language, mood }) {
+function buildUserPrompt({ title, artist, genre, bpm, language, mood, transcript }) {
+  // If we have a real Whisper transcript, use it as the ground truth for lyrics
+  const hasTranscript = transcript && transcript.segments && transcript.segments.length > 0;
+
+  const transcriptBlock = hasTranscript
+    ? `\n\nIMPORTANT — REAL TRANSCRIPTION FROM WHISPER (use these EXACT lyrics, do NOT make up new ones):
+Full text: "${transcript.text}"
+
+Timed segments:
+${transcript.segments.map(s => `[${formatTimestamp(s.start)}] ${s.text.trim()}`).join('\n')}
+
+You MUST use the transcribed lyrics above as the "lyrics" array. Keep the exact words from the transcription. Only add section headers like [VERSE 1], [CHORUS] etc. where appropriate.`
+    : '';
+
   return `Generate a music production pack for this track:
 
 Title: ${title}
 Artist: ${artist}
 Genre: ${genre}
-Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood: ${mood}` : ''}
+Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood: ${mood}` : ''}${transcriptBlock}
 
 Return ONLY a JSON object with exactly this structure (no text before or after):
 {
@@ -400,11 +482,16 @@ Return ONLY a JSON object with exactly this structure (no text before or after):
   ]
 }
 
-Rules:
-- Lyrics: 20+ lines in ${language}, section headers like [INTRO] [VERSE 1] [CHORUS] [BRIDGE] [OUTRO]
+Rules:${hasTranscript ? '\n- CRITICAL: Use the EXACT transcribed lyrics above. Do NOT invent new lyrics.' : `\n- Lyrics: 20+ lines in ${language}, section headers like [INTRO] [VERSE 1] [CHORUS] [BRIDGE] [OUTRO]`}
 - Timestamps format: "M:SS" (e.g. "1:04")
 - beats: exactly 4 entries covering intro, verse, chorus, outro
 - prompts: exactly 3 entries, each prompt 1-2 sentences, cinematic style for ${genre}
 - tips: exactly 3 entries, specific to ${genre}
 - No literal newlines inside string values. No smart quotes. Straight ASCII only.`;
+}
+
+function formatTimestamp(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${String(s).padStart(2, '0')}`;
 }

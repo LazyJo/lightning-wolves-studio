@@ -3,1511 +3,601 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Lightning Wolves Studio</title>
+  <title>Lightning Wolves Lyrics Studio</title>
   <link rel="icon" type="image/svg+xml" href="/logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600&family=Raleway:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
 
-<!-- ═══ TOAST CONTAINER ═══ -->
-<div id="toast-container"></div>
+<!-- ═══ LIGHTNING CANVAS ═══════════════════════════════════════════════════ -->
+<canvas id="lightning-canvas"></canvas>
 
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     PUBLIC SITE — Landing, Crew, Wolf Profiles (no sidebar, full width)
-     ═══════════════════════════════════════════════════════════════════════════ -->
-<div class="public-site" id="public-site">
+<!-- ═══ AUTH PAGE ══════════════════════════════════════════════════════════ -->
+<div id="auth-page" class="page hidden">
+  <div class="auth-container">
+    <img src="/logo.svg" alt="Lightning Wolves" class="auth-logo" onerror="this.style.display='none'" />
+    <div class="auth-wordmark">LIGHTNING WOLVES</div>
+    <div class="auth-sub">Lyrics Studio</div>
 
-  <!-- Public Top Nav -->
-  <header class="pub-nav">
-    <a href="#/" class="pub-nav-logo">
-      <img src="/LightningWolvesLogoTransparentBG.png" alt="Lightning Wolves" />
-    </a>
-    <div class="pub-nav-right">
-      <a href="#/pricing" class="pub-nav-link">Pricing</a>
-      <a href="#/auth" class="pub-nav-btn-outline" id="pub-signin-btn">SIGN IN</a>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Sign In</button>
+      <button class="auth-tab" data-tab="signup">Sign Up</button>
     </div>
-  </header>
 
-  <!-- Public page containers -->
-  <div class="pub-content" id="pub-content"></div>
-</div><!-- /public-site -->
-<script>
-// Move public pages into pub-content (they're defined later in the HTML inside main-content)
-document.addEventListener('DOMContentLoaded', function() {
-  var pub = document.getElementById('pub-content');
-  var pagesToMove = ['page-landing', 'page-wolf-profile'];
-  for (var i = 0; i < pagesToMove.length; i++) {
-    var el = document.getElementById(pagesToMove[i]);
-    if (el && pub) pub.appendChild(el);
-  }
-  // Re-run route and particles after move
-  if (window._lwRoute) window._lwRoute();
-  // Trigger particle init now that canvas is in visible DOM
-  setTimeout(function() {
-    if (typeof tryInitCrewParticles === 'function') tryInitCrewParticles();
-  }, 50);
-});
-</script>
-
-<!-- ═══════════════════════════════════════════════════════════════════════════
-     STUDIO APP — Studio, Pricing, Join, Admin, Auth (with sidebar)
-     ═══════════════════════════════════════════════════════════════════════════ -->
-<div class="studio-app" id="studio-app" style="display:none">
-
-  <!-- Sidebar Nav -->
-  <nav class="sidebar" id="sidebar">
-    <div class="sidebar-top">
-      <a href="#/" class="sidebar-logo" title="Lightning Wolves Studio">
-        <img src="/LightningWolvesLogoTransparentBG.png" alt="LW" loading="lazy" />
-      </a>
-      <a href="#/home" class="sidebar-icon" data-page="home" title="Home">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1h-2z"/></svg>
-      </a>
-      <a href="#/" class="sidebar-icon" data-page="landing" title="Crew">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87m-4-12a4 4 0 010 7.75"/></svg>
-      </a>
-      <a href="#/studio" class="sidebar-icon" data-page="studio" title="Studio">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-      </a>
-      <a href="#/pricing" class="sidebar-icon" data-page="pricing" title="Pricing">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      </a>
-      <a href="#/join" class="sidebar-icon" data-page="join" title="Join the Pack">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-      </a>
-    </div>
-    <div class="sidebar-bottom">
-      <div class="sidebar-divider"></div>
-      <a href="#/admin" class="sidebar-icon" data-page="admin" title="Admin" id="admin-nav-link" style="display:none">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-      </a>
-      <a href="#/bug-report" class="sidebar-icon" title="Report Bug" id="bug-report-nav">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      </a>
-    </div>
-  </nav>
-
-  <!-- Studio Topbar -->
-  <header class="topbar" id="topbar">
-    <div class="topbar-left">
-      <span class="breadcrumb">Lightning Wolves Studio <span class="breadcrumb-sep">›</span> <span id="breadcrumb-page">Studio</span></span>
-    </div>
-    <div class="topbar-right">
-      <div class="credit-pill" id="credit-pill" title="Lightning Credits">
-        <span class="credit-icon">⚡</span>
-        <span class="credit-amount" id="credit-amount">0</span>
-        <div class="credit-dropdown" id="credit-dropdown">
-          <div class="credit-dropdown-title">Lightning Credits</div>
-          <div class="credit-breakdown" id="credit-breakdown"></div>
-          <a href="#/pricing" class="credit-dropdown-link">Get more →</a>
-        </div>
-      </div>
-      <button class="btn-topbar" id="btn-signin">Sign In</button>
-      <button class="btn-topbar btn-topbar-gold" id="btn-signup">Sign Up</button>
-    </div>
-  </header>
-
-  <!-- Studio content area -->
-  <div class="main-content" id="main-content">
-
-  <!-- PAGE: LANDING -->
-  <div class="page" id="page-home">
-
-    <!-- Hero -->
-    <section class="landing-hero">
-      <div class="hero-inner">
-        <span class="hero-eyebrow">Lightning Wolves Studio</span>
-        <h1 class="hero-title">Make your music impossible to ignore.</h1>
-        <p class="hero-subtitle">AI-powered lyric videos. Built for wolves.</p>
-        <div class="hero-buttons">
-          <a href="#/studio" class="btn-gold">Enter Studio</a>
-          <a href="#/" class="btn-outline">Meet the Pack</a>
-          <a href="#/pricing" class="btn-outline">Pricing</a>
-        </div>
-      </div>
-    </section>
-
-    <!-- Feature Grid -->
-    <section class="landing-features">
-      <div class="feature-grid">
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          </div>
-          <h3 class="feature-title">Auto-transcription</h3>
-          <p class="feature-desc">Upload audio and get perfectly timed, word-level lyrics back in seconds.</p>
-          <span class="feature-badge">99.7% accurate</span>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
-          </div>
-          <h3 class="feature-title">Lyric Styles</h3>
-          <p class="feature-desc">10+ preset styles from Karaoke to Knockout. Full font, color, and animation control.</p>
-          <span class="feature-badge feature-badge-gold">Knockout mode</span>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-          </div>
-          <h3 class="feature-title">Beat Detection</h3>
-          <p class="feature-desc">Web Audio API analyzes your track and marks every beat drop automatically.</p>
-        </div>
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          </div>
-          <h3 class="feature-title">Export Ready</h3>
-          <p class="feature-desc">Burn lyrics into MP4 with FFmpeg. 9:16 or 16:9. Download instantly.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Bottom 2-column: Wolves + Getting Started -->
-    <section class="landing-bottom">
-      <div class="landing-bottom-grid">
-
-        <!-- Left: Active wolves -->
-        <div class="landing-card">
-          <h3 class="landing-card-title">The Pack</h3>
-          <div class="wolves-list">
-            <div class="wolf-row">
-              <span class="wolf-dot" style="background: #f5c518"></span>
-              <span class="wolf-row-name">Lazy Jo</span>
-              <span class="wolf-row-role">Founder · Artist</span>
-            </div>
-            <div class="wolf-row">
-              <span class="wolf-dot" style="background: #b388ff"></span>
-              <span class="wolf-row-name">Zirka</span>
-              <span class="wolf-row-role">Artist</span>
-            </div>
-            <div class="wolf-row">
-              <span class="wolf-dot" style="background: #ff80ab"></span>
-              <span class="wolf-row-name">Rosakay</span>
-              <span class="wolf-row-role">Artist</span>
-            </div>
-            <div class="wolf-row">
-              <span class="wolf-dot" style="background: #82b1ff"></span>
-              <span class="wolf-row-name">Drippydesigns</span>
-              <span class="wolf-row-role">Designer</span>
-            </div>
-            <div class="wolf-row">
-              <span class="wolf-dot" style="background: #69f0ae"></span>
-              <span class="wolf-row-name">Shiteux</span>
-              <span class="wolf-row-role">Visuals</span>
-            </div>
-          </div>
-          <a href="#/" class="landing-card-link">Meet the full crew →</a>
-        </div>
-
-        <!-- Right: Getting Started -->
-        <div class="landing-card">
-          <h3 class="landing-card-title">Getting Started</h3>
-          <div class="steps-list">
-            <div class="step-row">
-              <span class="step-num">1</span>
-              <div>
-                <div class="step-title">Upload your track</div>
-                <div class="step-desc">MP3, WAV, or video. Up to 100MB.</div>
-              </div>
-            </div>
-            <div class="step-row">
-              <span class="step-num">2</span>
-              <div>
-                <div class="step-title">We sync your lyrics</div>
-                <div class="step-desc">Auto-transcription with word-level timing.</div>
-              </div>
-            </div>
-            <div class="step-row">
-              <span class="step-num">3</span>
-              <div>
-                <div class="step-title">Pick your style</div>
-                <div class="step-desc">Karaoke, Knockout, Glitch, and more.</div>
-              </div>
-            </div>
-            <div class="step-row">
-              <span class="step-num">4</span>
-              <div>
-                <div class="step-title">Generate your background</div>
-                <div class="step-desc">AI-powered visuals matched to your sound.</div>
-              </div>
-            </div>
-            <div class="step-row">
-              <span class="step-num">5</span>
-              <div>
-                <div class="step-title">Export and share</div>
-                <div class="step-desc">Download MP4 for TikTok, Reels, and Shorts.</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-  </div>
-
-  <!-- PAGE: CREW -->
-  <div class="page" style="display:none" id="page-landing">
-    <div class="crew-select">
-      <canvas id="crew-particles" class="crew-particles"></canvas>
-      <h1 class="crew-select-title">WHICH WOLF ARE YOU?</h1>
-      <div class="crew-select-grid">
-
-        <a href="#/crew/lazyjo" class="wolf-select-card" data-wolf="lazyjo" style="--wc:#f5c518">
-          <div class="wolf-select-img-wrap">
-            <img src="/LightningWolfYellowTransparentBG.png" alt="Lazy Jo" loading="lazy" />
-            <div class="wolf-select-glow"></div>
-          </div>
-          <div class="wolf-select-name">Lazy Jo</div>
-          <div class="wolf-select-genre">Melodic Hip-Hop</div>
-        </a>
-
-        <a href="#/crew/zirka" class="wolf-select-card" data-wolf="zirka" style="--wc:#b388ff">
-          <div class="wolf-select-img-wrap">
-            <img src="/LightningWolfPurpleTransparentBG.png" alt="Zirka" loading="lazy" />
-            <div class="wolf-select-glow"></div>
-          </div>
-          <div class="wolf-select-name">Zirka</div>
-          <div class="wolf-select-genre">French Hip-Hop</div>
-        </a>
-
-        <a href="#/crew/rosakay" class="wolf-select-card" data-wolf="rosakay" style="--wc:#ff80ab">
-          <div class="wolf-select-img-wrap">
-            <img src="/LightningWolfOrangeTransparentBG.png" alt="Rosakay" loading="lazy" />
-            <div class="wolf-select-glow"></div>
-          </div>
-          <div class="wolf-select-name">Rosakay</div>
-          <div class="wolf-select-genre">Pop / French Pop</div>
-        </a>
-
-        <a href="#/crew/drippy" class="wolf-select-card" data-wolf="drippy" style="--wc:#82b1ff">
-          <div class="wolf-select-img-wrap">
-            <img src="/LightningWolfGreenTransparentBG.png" alt="Drippydesigns" loading="lazy" />
-            <div class="wolf-select-glow"></div>
-          </div>
-          <div class="wolf-select-name">Drippydesigns</div>
-          <div class="wolf-select-genre">Visual Art</div>
-        </a>
-
-        <a href="#/crew/shiteux" class="wolf-select-card" data-wolf="shiteux" style="--wc:#69f0ae">
-          <div class="wolf-select-img-wrap">
-            <img src="/LightningWolfRoseTransparentBG.png" alt="Shiteux" loading="lazy" />
-            <div class="wolf-select-glow"></div>
-          </div>
-          <div class="wolf-select-name">Shiteux</div>
-          <div class="wolf-select-genre">Photo · Video · Beats</div>
-        </a>
-
-        <a href="#/join" class="wolf-select-card wolf-select-join" style="--wc:#f5c518">
-          <div class="wolf-select-img-wrap">
-            <div class="wolf-select-join-icon">+</div>
-          </div>
-          <div class="wolf-select-name">Join the Pack</div>
-          <div class="wolf-select-genre">Apply →</div>
-        </a>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- PAGE: WOLF PROFILE (dynamic) -->
-  <div class="page" style="display:none" id="page-wolf-profile">
-    <div class="wolf-profile-page" id="wolf-profile-content"></div>
-  </div>
-
-  <!-- PAGE: STUDIO -->
-  <div class="page" style="display:none" id="page-studio">
-    <div class="studio-layout">
-
-      <!-- LEFT PANEL -->
-      <aside class="studio-left" id="studio-left">
-
-        <!-- Reference Track -->
-        <div class="studio-section">
-          <div class="studio-section-label">Reference track</div>
-          <div class="upload-zone" id="upload-zone">
-            <input type="file" id="file-input" accept=".mp3,.wav,.mp4,.mov,audio/*,video/*" hidden />
-            <div class="upload-placeholder" id="upload-placeholder">
-              <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              <span class="upload-text">Drag &amp; drop audio or video</span>
-              <span class="upload-sub">or click to browse · max 100MB</span>
-            </div>
-            <div class="upload-info hidden" id="upload-info">
-              <span class="upload-filename" id="upload-filename"></span>
-              <button class="upload-remove" id="upload-remove" title="Remove">&times;</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Track Info -->
-        <div class="studio-section">
-          <div class="studio-section-label">Track info</div>
-          <div class="field-group">
-            <label>Song title *</label>
-            <input type="text" id="song-title" placeholder="e.g. Midnight Run" required />
-          </div>
-          <div class="field-group">
-            <label>Artist name *</label>
-            <input type="text" id="song-artist" placeholder="e.g. Lazy Jo" />
-          </div>
-          <div class="field-group">
-            <label>Genre *</label>
-            <select id="song-genre">
-              <option value="">Select genre...</option>
-              <option value="Hip-Hop">Hip-Hop</option>
-              <option value="Pop">Pop</option>
-              <option value="R&B">R&amp;B</option>
-              <option value="Lo-Fi">Lo-Fi</option>
-              <option value="Afrobeats">Afrobeats</option>
-              <option value="Electronic">Electronic</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label>BPM <span class="label-optional">(optional)</span></label>
-            <input type="number" id="song-bpm" placeholder="e.g. 140" min="40" max="300" />
-          </div>
-        </div>
-
-        <!-- Language & Mood -->
-        <div class="studio-section">
-          <div class="studio-section-label">Language &amp; mood</div>
-          <div class="field-group">
-            <label>Language</label>
-            <select id="song-language">
-              <option value="English" selected>English</option>
-              <option value="French">French</option>
-              <option value="Spanish">Spanish</option>
-              <option value="Portuguese">Portuguese</option>
-              <option value="Arabic">Arabic</option>
-              <option value="Wolof">Wolof</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="field-group">
-            <label>Mood / vibe</label>
-            <textarea id="song-mood" rows="2" placeholder="e.g. Late night drive, melancholic but hopeful..."></textarea>
-          </div>
-        </div>
-
-        <!-- Lyric Video Options -->
-        <div class="studio-section studio-section-gold">
-          <div class="studio-section-label studio-section-label-gold">Lyric video</div>
-          <label class="toggle-row">
-            <input type="checkbox" id="auto-lyric-toggle" checked />
-            <span class="toggle-label">Auto-generate lyric video</span>
-          </label>
-          <div class="lyric-options" id="lyric-options">
-            <div class="style-pills" id="style-pills">
-              <button class="style-pill active" data-style="karaoke">Karaoke</button>
-              <button class="style-pill" data-style="pop">Pop</button>
-              <button class="style-pill" data-style="subtitle">Subtitle</button>
-              <button class="style-pill" data-style="glitch">Glitch</button>
-              <button class="style-pill" data-style="knockout">Knockout</button>
-              <button class="style-pill" data-style="minimal">Minimal</button>
-            </div>
-            <label class="toggle-row">
-              <input type="checkbox" id="sync-beats-toggle" checked />
-              <span class="toggle-label">Sync effects to beat drops</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Generate Button -->
-        <button class="btn-generate" id="generate-btn">
-          <span class="btn-generate-icon">⚡</span>
-          <span class="btn-generate-text">Generate · 10 ⚡</span>
-        </button>
-        <div class="gen-progress hidden" id="gen-progress">
-          <div class="gen-progress-bar"><div class="gen-progress-fill" id="gen-progress-fill"></div></div>
-          <span class="gen-progress-text" id="gen-progress-text">Estimated: ~15s</span>
-        </div>
-        <div class="gen-error hidden" id="gen-error"></div>
-
-      </aside>
-
-      <!-- CENTER PANEL -->
-      <main class="studio-center" id="studio-center">
-
-        <!-- Empty state (shown before generation) -->
-        <div class="studio-empty-state" id="studio-empty">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="studio-empty-icon"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-          <p>Upload a track and hit Generate to get started.</p>
-        </div>
-
-        <!-- Active studio content (shown after generation) -->
-        <div class="studio-active hidden" id="studio-active">
-
-          <!-- Tab Bar -->
-          <div class="studio-tabs">
-            <button class="studio-tab active" data-tab="lyrics">Lyrics</button>
-            <button class="studio-tab" data-tab="srt">SRT</button>
-            <button class="studio-tab" data-tab="beats">Beat Cuts</button>
-            <button class="studio-tab" data-tab="prompts">AI Prompts</button>
-            <button class="studio-tab" data-tab="preview">Video Preview</button>
-            <button class="studio-tab" data-tab="performance">Performance</button>
-            <button class="studio-tab" data-tab="remix">Remix</button>
-            <button class="studio-tab" data-tab="tips">Tips</button>
-          </div>
-
-          <!-- Tab Panels -->
-          <div class="studio-tab-panels">
-
-            <!-- LYRICS -->
-            <div class="studio-tab-panel active" id="stab-lyrics">
-              <div class="lyrics-list" id="lyrics-list"></div>
-            </div>
-
-            <!-- SRT -->
-            <div class="studio-tab-panel hidden" id="stab-srt">
-              <div class="srt-actions">
-                <button class="btn-outline btn-sm" id="download-srt">Download .srt</button>
-              </div>
-              <pre class="srt-pre" id="srt-text"></pre>
-            </div>
-
-            <!-- BEAT CUTS -->
-            <div class="studio-tab-panel hidden" id="stab-beats">
-              <div class="srt-actions">
-                <button class="btn-outline btn-sm" id="export-beats">Export .txt</button>
-              </div>
-              <table class="beats-table">
-                <thead><tr><th>Timestamp</th><th>Label</th><th>Type</th></tr></thead>
-                <tbody id="beats-tbody"></tbody>
-              </table>
-            </div>
-
-            <!-- AI PROMPTS -->
-            <div class="studio-tab-panel hidden" id="stab-prompts">
-              <div class="prompts-list" id="prompts-list"></div>
-            </div>
-
-            <!-- VIDEO PREVIEW -->
-            <div class="studio-tab-panel hidden" id="stab-preview">
-              <div class="preview-area">
-                <div class="preview-badges">
-                  <span class="preview-badge" id="beat-count-badge">0 drops</span>
-                  <span class="preview-badge" id="bpm-badge">-- BPM</span>
-                </div>
-                <div class="preview-pair">
-                  <!-- 9:16 portrait -->
-                  <div class="preview-frame preview-portrait">
-                    <div class="preview-label">9:16</div>
-                    <canvas id="preview-canvas-portrait" width="270" height="480"></canvas>
-                    <div class="preview-lyric-overlay" id="preview-lyric-portrait"></div>
-                  </div>
-                  <!-- 16:9 landscape -->
-                  <div class="preview-frame preview-landscape">
-                    <div class="preview-label">16:9</div>
-                    <canvas id="preview-canvas-landscape" width="480" height="270"></canvas>
-                    <div class="preview-lyric-overlay" id="preview-lyric-landscape"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- PERFORMANCE -->
-            <div class="studio-tab-panel hidden" id="stab-performance">
-              <div class="perf-panel">
-                <h3 class="panel-title">Performance Video</h3>
-                <p class="panel-desc">Upload a 3-30 second video clip. We'll match it to your audio, sync lyrics, and generate AI-transformed variations.</p>
-                <div class="perf-upload-zone" id="perf-upload-zone">
-                  <input type="file" id="perf-file-input" accept="video/*" hidden />
-                  <div class="perf-upload-placeholder" id="perf-upload-placeholder">
-                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2"/><polygon points="10,8 16,12 10,16"/></svg>
-                    <span class="upload-text">Upload video (3-30s)</span>
-                    <span class="upload-sub">MP4 or MOV</span>
-                  </div>
-                </div>
-                <div class="perf-preview hidden" id="perf-preview">
-                  <video id="perf-video" class="perf-video-el" controls></video>
-                  <div class="perf-first-frame">
-                    <canvas id="perf-thumb" width="160" height="90"></canvas>
-                    <span class="perf-thumb-label">First frame (auto-extracted)</span>
-                  </div>
-                </div>
-                <div class="perf-options">
-                  <label class="toggle-row">
-                    <input type="checkbox" id="perf-match-audio" checked />
-                    <span class="toggle-label">Match to uploaded audio</span>
-                  </label>
-                  <label class="toggle-row">
-                    <input type="checkbox" id="perf-sync-lyrics" />
-                    <span class="toggle-label">Generate synced lyrics overlay</span>
-                  </label>
-                </div>
-                <button class="btn-gold btn-full" id="perf-generate-btn">Generate AI Variations ⚡</button>
-                <div class="perf-templates hidden" id="perf-templates">
-                  <div class="panel-title" style="margin-top:16px">Saved Templates</div>
-                  <p class="panel-desc">Templates saved for infinite variations.</p>
-                  <div class="perf-template-list" id="perf-template-list"></div>
-                </div>
-              </div>
-            </div>
-
-            <!-- REMIX -->
-            <div class="studio-tab-panel hidden" id="stab-remix">
-              <div class="remix-panel">
-                <h3 class="panel-title">Remix</h3>
-                <p class="panel-desc">Paste a YouTube link to auto-extract clips. AI scene detection splits into usable segments.</p>
-                <div class="field-group">
-                  <label>YouTube URL</label>
-                  <div class="remix-url-row">
-                    <input type="url" id="remix-url" placeholder="https://youtube.com/watch?v=..." />
-                    <button class="btn-gold btn-sm" id="remix-extract-btn">Extract</button>
-                  </div>
-                </div>
-                <div class="remix-segments hidden" id="remix-segments">
-                  <div class="remix-seg-header">
-                    <span class="panel-title">Segments</span>
-                    <div class="remix-seg-actions">
-                      <button class="tl-btn-text" id="remix-shuffle">Shuffle</button>
-                      <label class="tl-toggle">
-                        <input type="checkbox" id="remix-no-cuts" />
-                        <span>No Cuts</span>
-                      </label>
-                    </div>
-                  </div>
-                  <div class="remix-segment-list" id="remix-segment-list"></div>
-                  <div class="editor-section" style="margin-top:12px">
-                    <label>Lyric overlay style</label>
-                    <div class="style-pills">
-                      <button class="style-pill remix-style active" data-style="karaoke">Karaoke</button>
-                      <button class="style-pill remix-style" data-style="subtitle">Subtitle</button>
-                      <button class="style-pill remix-style" data-style="knockout">Knockout</button>
-                      <button class="style-pill remix-style" data-style="minimal">Minimal</button>
-                      <button class="style-pill remix-style" data-style="none">None</button>
-                    </div>
-                  </div>
-                  <button class="btn-gold btn-full" id="remix-export-btn">Export Remix ⚡</button>
-                </div>
-              </div>
-            </div>
-
-            <!-- TIPS -->
-            <div class="studio-tab-panel hidden" id="stab-tips">
-              <div class="tips-list" id="tips-list"></div>
-            </div>
-
-          </div>
-
-          <!-- TIMELINE -->
-          <div class="timeline" id="timeline">
-            <div class="timeline-waveform" id="timeline-waveform">
-              <canvas id="waveform-canvas" height="60"></canvas>
-              <div class="timeline-words" id="timeline-words"></div>
-              <div class="timeline-beat-markers" id="timeline-beat-markers"></div>
-              <div class="timeline-playhead" id="timeline-playhead"></div>
-            </div>
-
-            <!-- Timeline drop zone for video -->
-            <div class="timeline-dropzone" id="timeline-dropzone">
-              <span class="timeline-dropzone-text">Drop video here</span>
-            </div>
-
-            <!-- Timeline Controls -->
-            <div class="timeline-controls">
-              <span class="tl-bpm-badge" id="tl-bpm">-- BPM</span>
-              <div class="tl-transport">
-                <button class="tl-btn" id="tl-prev" title="Previous">
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-                </button>
-                <button class="tl-btn tl-play" id="tl-play" title="Play/Pause">
-                  <svg viewBox="0 0 24 24" fill="currentColor" id="tl-play-icon"><polygon points="5,3 19,12 5,21"/></svg>
-                </button>
-                <button class="tl-btn" id="tl-next" title="Next">
-                  <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"/></svg>
-                </button>
-              </div>
-              <div class="tl-actions">
-                <button class="tl-btn-text" id="tl-add-cut">Add Cut</button>
-                <button class="tl-btn-text" id="tl-add-word">+ Word</button>
-                <button class="tl-btn-text" id="tl-edit-lyrics">Edit Lyrics</button>
-                <label class="tl-toggle">
-                  <input type="checkbox" id="tl-no-cuts" />
-                  <span>No Cuts</span>
-                </label>
-                <button class="tl-btn-text tl-export" id="tl-export">Export ⚡</button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </main>
-
-      <!-- RIGHT PANEL — Editor -->
-      <aside class="studio-right hidden" id="studio-right">
-
-        <!-- Editor Tabs -->
-        <div class="editor-tabs">
-          <button class="editor-tab active" data-etab="style">Style</button>
-          <button class="editor-tab" data-etab="customize">Customize</button>
-          <button class="editor-tab" data-etab="beat-fx">Beat FX</button>
-          <button class="editor-tab" data-etab="background">BG</button>
-          <button class="editor-tab" data-etab="hooks">Hooks</button>
-        </div>
-
-        <!-- STYLE TAB -->
-        <div class="editor-panel" id="etab-style">
-          <div class="preset-grid">
-            <button class="preset-card active" data-preset="karaoke">
-              <span class="preset-preview preset-karaoke">Wolf</span>
-              <span class="preset-name">Karaoke</span>
-            </button>
-            <button class="preset-card" data-preset="pop">
-              <span class="preset-preview preset-pop">Wolf</span>
-              <span class="preset-name">Pop</span>
-            </button>
-            <button class="preset-card" data-preset="glitch">
-              <span class="preset-preview preset-glitch">Wolf</span>
-              <span class="preset-name">Glitch</span>
-            </button>
-            <button class="preset-card" data-preset="knockout">
-              <span class="preset-preview preset-knockout">Wolf</span>
-              <span class="preset-name">Knockout</span>
-            </button>
-            <button class="preset-card" data-preset="minimal">
-              <span class="preset-preview preset-minimal">Wolf</span>
-              <span class="preset-name">Minimal</span>
-            </button>
-            <button class="preset-card" data-preset="phantom">
-              <span class="preset-preview preset-phantom">Wolf</span>
-              <span class="preset-name">Phantom</span>
-            </button>
-            <button class="preset-card" data-preset="ghost">
-              <span class="preset-preview preset-ghost">Wolf</span>
-              <span class="preset-name">Ghost</span>
-            </button>
-            <button class="preset-card" data-preset="eclipse">
-              <span class="preset-preview preset-eclipse">Wolf</span>
-              <span class="preset-name">Eclipse</span>
-            </button>
-            <button class="preset-card" data-preset="hotpink">
-              <span class="preset-preview preset-hotpink">Wolf</span>
-              <span class="preset-name">HOTPINK</span>
-            </button>
-            <button class="preset-card" data-preset="fly">
-              <span class="preset-preview preset-fly">Wolf</span>
-              <span class="preset-name">Fly</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- CUSTOMIZE TAB -->
-        <div class="editor-panel hidden" id="etab-customize">
-          <div class="editor-section">
-            <label>Font size</label>
-            <input type="range" id="font-size-slider" min="12" max="72" value="32" class="editor-slider" />
-            <span class="editor-slider-val" id="font-size-val">32px</span>
-          </div>
-          <div class="editor-section">
-            <label>Position</label>
-            <div class="position-pills">
-              <button class="pos-pill active" data-pos="top">Top</button>
-              <button class="pos-pill" data-pos="center">Center</button>
-              <button class="pos-pill" data-pos="bottom">Bottom</button>
-            </div>
-          </div>
-          <div class="editor-section">
-            <label>Animation</label>
-            <div class="position-pills">
-              <button class="anim-pill active" data-anim="slam">Slam</button>
-              <button class="anim-pill" data-anim="fade">Fade</button>
-              <button class="anim-pill" data-anim="glitch">Glitch</button>
-              <button class="anim-pill" data-anim="pop">Pop</button>
-              <button class="anim-pill" data-anim="typewriter">Type</button>
-            </div>
-          </div>
-          <div class="editor-section">
-            <label>Text color</label>
-            <div class="color-presets" id="text-color-presets">
-              <button class="color-swatch active" data-color="#ffffff" style="background:#ffffff"></button>
-              <button class="color-swatch" data-color="#f5c518" style="background:#f5c518"></button>
-              <button class="color-swatch" data-color="#ff80ab" style="background:#ff80ab"></button>
-              <button class="color-swatch" data-color="#82b1ff" style="background:#82b1ff"></button>
-              <button class="color-swatch" data-color="#69f0ae" style="background:#69f0ae"></button>
-              <input type="color" id="text-color-custom" class="color-custom" value="#ffffff" title="Custom color" />
-            </div>
-          </div>
-          <div class="editor-section">
-            <label>Highlight color</label>
-            <div class="color-presets" id="highlight-color-presets">
-              <button class="color-swatch active" data-color="#f5c518" style="background:#f5c518"></button>
-              <button class="color-swatch" data-color="#ff80ab" style="background:#ff80ab"></button>
-              <button class="color-swatch" data-color="#b388ff" style="background:#b388ff"></button>
-              <button class="color-swatch" data-color="#00e5ff" style="background:#00e5ff"></button>
-              <input type="color" id="highlight-color-custom" class="color-custom" value="#f5c518" title="Custom color" />
-            </div>
-          </div>
-          <div class="editor-section">
-            <label>Per-word styling</label>
-            <p class="editor-hint" style="margin-bottom:6px">Click a word in the lyrics to override its style.</p>
-            <div class="perword-selected hidden" id="perword-selected">
-              <span class="perword-word" id="perword-word-label"></span>
-              <div class="perword-controls">
-                <input type="color" id="perword-color" class="color-custom" value="#ffffff" title="Word color" />
-                <select id="perword-weight" class="perword-select">
-                  <option value="400">Normal</option>
-                  <option value="600">Bold</option>
-                  <option value="700">Extra Bold</option>
-                </select>
-                <button class="btn-sm btn-outline" id="perword-apply">Apply</button>
-                <button class="btn-sm btn-ghost" id="perword-clear">Clear</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- BEAT FX TAB -->
-        <div class="editor-panel hidden" id="etab-beat-fx">
-          <div class="editor-section">
-            <label>Effect type</label>
-            <div class="position-pills">
-              <button class="fx-pill active" data-fx="flash">Flash</button>
-              <button class="fx-pill" data-fx="zoom">Zoom</button>
-              <button class="fx-pill" data-fx="shake">Shake</button>
-              <button class="fx-pill" data-fx="colorburst">Burst</button>
-            </div>
-          </div>
-          <p class="editor-hint">Effect triggers at each detected beat drop timestamp.</p>
-        </div>
-
-        <!-- BACKGROUND TAB -->
-        <div class="editor-panel hidden" id="etab-background">
-          <div class="editor-section">
-            <label>Upload image or video</label>
-            <div class="bg-upload-zone" id="bg-upload-zone">
-              <span class="upload-sub">Click or drop</span>
-              <input type="file" id="bg-file-input" accept="image/*,video/*" hidden />
-            </div>
-          </div>
-          <div class="editor-section">
-            <label>AI model</label>
-            <div class="ai-model-list" id="ai-model-list">
-              <div class="ai-model-row" data-model="grok">
-                <span class="model-status-dot model-status-green" id="model-status-grok"></span>
-                <span class="model-name">Grok Imagine</span>
-                <span class="model-cost" id="model-cost-grok">10 ⚡</span>
-              </div>
-              <div class="ai-model-row" data-model="seedance">
-                <span class="model-status-dot model-status-yellow" id="model-status-seedance"></span>
-                <span class="model-name">Seedance 2.0</span>
-                <span class="model-badge-soon">Soon</span>
-              </div>
-              <div class="ai-model-row" data-model="kling">
-                <span class="model-status-dot model-status-green" id="model-status-kling"></span>
-                <span class="model-name">Kling</span>
-                <span class="model-cost" id="model-cost-kling">15 ⚡</span>
-              </div>
-            </div>
-            <button class="btn-gold btn-sm btn-full" id="ai-bg-btn">Generate with AI ⚡</button>
-          </div>
-          <div class="editor-section">
-            <label>Solid color</label>
-            <input type="color" id="bg-solid-color" class="color-custom" value="#000000" />
-          </div>
-          <div class="editor-section">
-            <label>Blur intensity</label>
-            <input type="range" id="bg-blur-slider" min="0" max="20" value="0" class="editor-slider" />
-            <span class="editor-slider-val" id="bg-blur-val">0px</span>
-          </div>
-        </div>
-
-        <!-- HOOKS TAB -->
-        <div class="editor-panel hidden" id="etab-hooks">
-          <div class="editor-section">
-            <label>Category</label>
-            <select id="hook-category" class="perword-select" style="width:100%">
-              <option value="all">All</option>
-              <option value="engagement">Engagement</option>
-              <option value="curiosity">Curiosity</option>
-              <option value="challenge">Challenge</option>
-              <option value="emotion">Emotion</option>
-              <option value="question">Question</option>
-              <option value="flex">Flex</option>
-              <option value="story">Story</option>
-            </select>
-          </div>
-          <div class="editor-section">
-            <label>Hook style</label>
-            <div class="style-pills">
-              <button class="style-pill hook-style-pill active" data-hstyle="bold-white">Bold</button>
-              <button class="style-pill hook-style-pill" data-hstyle="gold">Gold</button>
-              <button class="style-pill hook-style-pill" data-hstyle="outline">Outline</button>
-              <button class="style-pill hook-style-pill" data-hstyle="neon">Neon</button>
-              <button class="style-pill hook-style-pill" data-hstyle="shadow">Shadow</button>
-              <button class="style-pill hook-style-pill" data-hstyle="glitch">Glitch</button>
-              <button class="style-pill hook-style-pill" data-hstyle="handwritten">Script</button>
-              <button class="style-pill hook-style-pill" data-hstyle="minimal">Minimal</button>
-            </div>
-          </div>
-          <div class="editor-section">
-            <label class="toggle-row">
-              <input type="checkbox" id="hook-emoji-toggle" checked />
-              <span class="toggle-label">Include emojis</span>
-            </label>
-          </div>
-          <div class="editor-section">
-            <label>Custom hook</label>
-            <input type="text" id="hook-custom-text" placeholder="Type your own hook..." style="font-size:12px" />
-            <button class="btn-outline btn-sm btn-full" id="hook-add-custom" style="margin-top:4px">Add to preview</button>
-          </div>
-          <div class="editor-section">
-            <label>Pre-written hooks</label>
-            <div class="hook-list" id="hook-list"></div>
-          </div>
-        </div>
-
-      </aside>
-
-    </div>
-  </div>
-
-  <!-- PAGE: PRICING -->
-  <div class="page" style="display:none" id="page-pricing">
-    <div class="pricing-page">
-
-      <!-- Hero -->
-      <div class="pricing-hero">
-        <h1 class="pricing-title">Choose your tier.</h1>
-        <div class="billing-toggle">
-          <button class="billing-btn active" id="billing-monthly" data-billing="monthly">Monthly</button>
-          <button class="billing-btn" id="billing-annual" data-billing="annual">Annual <span class="billing-save">Save 17%</span></button>
-        </div>
-        <div class="promo-bar">
-          <span class="promo-label">Have a promo code?</span>
-          <div class="promo-input-row">
-            <input type="text" id="promo-input" placeholder="e.g. WOLFPACK" style="text-transform:uppercase" />
-            <button class="btn-gold btn-sm" id="promo-apply-btn">Apply</button>
-          </div>
-          <div class="promo-feedback hidden" id="promo-feedback"></div>
-        </div>
-      </div>
-
-      <!-- Plans -->
-      <div class="plans-grid" id="plans-grid">
-
-        <!-- Lone Wolf -->
-        <div class="plan-card">
-          <div class="plan-header">
-            <h3 class="plan-name">Lone Wolf</h3>
-            <div class="plan-price">Free</div>
-          </div>
-          <ul class="plan-features">
-            <li>10 ⚡ on signup</li>
-            <li>3 generations lifetime</li>
-            <li>Watermarked export</li>
-            <li>Basic styles only (Subtitle, Minimal)</li>
-          </ul>
-          <button class="btn-outline btn-full btn-disabled plan-cta">Current Plan</button>
-        </div>
-
-        <!-- Starter -->
-        <div class="plan-card">
-          <div class="plan-header">
-            <h3 class="plan-name">Starter</h3>
-            <div class="plan-price"><span class="plan-currency">€</span><span class="plan-amount" data-monthly="9" data-annual="75">9</span><span class="plan-period">/mo</span></div>
-          </div>
-          <ul class="plan-features">
-            <li>100 ⚡/month</li>
-            <li>50 generations/month</li>
-            <li>No watermark</li>
-            <li>All styles + animations</li>
-            <li>Basic beat detection</li>
-          </ul>
-          <button class="btn-outline btn-full btn-disabled plan-cta">Coming Soon</button>
-        </div>
-
-        <!-- Wolf Pro -->
-        <div class="plan-card plan-card-popular">
-          <div class="plan-popular-badge">Most Popular</div>
-          <div class="plan-header">
-            <h3 class="plan-name">Wolf Pro</h3>
-            <div class="plan-price"><span class="plan-currency">€</span><span class="plan-amount" data-monthly="24" data-annual="200">24</span><span class="plan-period">/mo</span></div>
-          </div>
-          <ul class="plan-features">
-            <li>350 ⚡/month</li>
-            <li>Unlimited generations</li>
-            <li>Full timeline editor</li>
-            <li>All styles + beat drop effects</li>
-            <li>AI model access</li>
-            <li>Priority processing</li>
-          </ul>
-          <button class="btn-gold btn-full btn-disabled plan-cta">Coming Soon</button>
-        </div>
-
-        <!-- Pack Leader -->
-        <div class="plan-card">
-          <div class="plan-header">
-            <h3 class="plan-name">Pack Leader</h3>
-            <div class="plan-price"><span class="plan-currency">€</span><span class="plan-amount" data-monthly="49" data-annual="408">49</span><span class="plan-period">/mo</span></div>
-          </div>
-          <ul class="plan-features">
-            <li>Unlimited ⚡</li>
-            <li>Everything in Wolf Pro</li>
-            <li>4K export</li>
-            <li>Early AI model access</li>
-            <li>Dedicated support</li>
-            <li>Bug bounty credit rewards</li>
-          </ul>
-          <button class="btn-outline btn-full btn-disabled plan-cta">Coming Soon</button>
-        </div>
-      </div>
-
-      <!-- Lightning Credits -->
-      <div class="credits-section">
-        <h2 class="credits-title">Lightning Credits ⚡</h2>
-        <p class="credits-subtitle">No subscription needed. Top up anytime. 10 ⚡ = 1 generation.</p>
-        <div class="credits-grid">
-          <div class="credit-pack">
-            <div class="credit-pack-amount">100 ⚡</div>
-            <div class="credit-pack-price">€3</div>
-            <div class="credit-pack-info">~10 generations</div>
-            <button class="btn-outline btn-sm btn-full btn-disabled">Coming Soon</button>
-          </div>
-          <div class="credit-pack">
-            <div class="credit-pack-amount">300 ⚡</div>
-            <div class="credit-pack-price">€8</div>
-            <div class="credit-pack-info">~30 generations</div>
-            <button class="btn-outline btn-sm btn-full btn-disabled">Coming Soon</button>
-          </div>
-          <div class="credit-pack">
-            <div class="credit-pack-amount">750 ⚡</div>
-            <div class="credit-pack-price">€18</div>
-            <div class="credit-pack-info">~75 generations</div>
-            <button class="btn-outline btn-sm btn-full btn-disabled">Coming Soon</button>
-          </div>
-          <div class="credit-pack">
-            <div class="credit-pack-amount">2000 ⚡</div>
-            <div class="credit-pack-price">€39</div>
-            <div class="credit-pack-info">~200 generations</div>
-            <button class="btn-outline btn-sm btn-full btn-disabled">Coming Soon</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Task Rewards -->
-      <div class="tasks-section">
-        <div class="tasks-header-card">
-          <div class="tasks-header-text">
-            <h2 class="tasks-heading">The pack looks after its own. ⚡</h2>
-            <p class="tasks-subtext">Support a Lightning Wolves artist and earn free Credits.</p>
-            <div class="tasks-progress">
-              <div class="tasks-progress-bar">
-                <div class="tasks-progress-fill" id="tasks-progress-fill"></div>
-              </div>
-              <span class="tasks-progress-label" id="tasks-progress-label">0 / 60 ⚡ earned from tasks · 10 ⚡ = 1 generation</span>
-            </div>
-          </div>
-          <img src="/LightningWolfOrangeTransparentBG.png" alt="" class="tasks-header-img" loading="lazy" />
-        </div>
-
-        <div class="tasks-list" id="tasks-list">
-          <!-- Task 1: Signup -->
-          <div class="task-row" data-task="signup">
-            <div class="task-icon task-icon-email">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            </div>
-            <div class="task-info">
-              <div class="task-name">Sign up with email</div>
-              <div class="task-desc">Create your account to get started</div>
-            </div>
-            <span class="task-reward">+10 ⚡</span>
-            <button class="task-btn task-btn-earn" id="task-btn-signup">Earn</button>
-          </div>
-
-          <!-- Task 2: YouTube -->
-          <div class="task-row" data-task="youtube">
-            <div class="task-icon task-icon-youtube">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2c-.3-1-1-1.8-2-2.1C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.5.5c-1 .3-1.7 1.1-2 2.1C0 8.1 0 12 0 12s0 3.9.5 5.8c.3 1 1 1.8 2 2.1 1.9.5 9.5.5 9.5.5s7.6 0 9.5-.5c1-.3 1.7-1.1 2-2.1.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.5 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>
-            </div>
-            <div class="task-info">
-              <div class="task-name">Subscribe on YouTube</div>
-              <div class="task-desc">Subscribe to Lightning Wolves channel</div>
-            </div>
-            <span class="task-reward">+15 ⚡</span>
-            <button class="task-btn task-btn-earn" id="task-btn-youtube">Earn</button>
-          </div>
-
-          <!-- Task 3: Rosakay Instagram -->
-          <div class="task-row" data-task="rosakay_ig">
-            <div class="task-icon task-icon-instagram">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
-            </div>
-            <div class="task-info">
-              <div class="task-name">Follow Rosakay on Instagram</div>
-              <div class="task-desc">@rosakay_officiel</div>
-            </div>
-            <span class="task-reward">+5 ⚡</span>
-            <button class="task-btn task-btn-earn" id="task-btn-rosakay_ig">Earn</button>
-          </div>
-
-          <!-- Task 4: LW Instagram -->
-          <div class="task-row" data-task="lw_ig">
-            <div class="task-icon task-icon-instagram">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/></svg>
-            </div>
-            <div class="task-info">
-              <div class="task-name">Follow Lightning Wolves on Instagram</div>
-              <div class="task-desc">@lightningwolvesmusic</div>
-            </div>
-            <span class="task-reward">+5 ⚡</span>
-            <button class="task-btn task-btn-earn" id="task-btn-lw_ig">Earn</button>
-          </div>
-
-          <!-- Task 5: Referral -->
-          <div class="task-row" data-task="referral">
-            <div class="task-icon task-icon-referral">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
-            </div>
-            <div class="task-info">
-              <div class="task-name">Refer a friend</div>
-              <div class="task-desc">+20 ⚡ per referral · unlimited</div>
-            </div>
-            <span class="task-reward">+20 ⚡</span>
-            <button class="task-btn task-btn-earn" id="task-btn-referral">Share</button>
-          </div>
-        </div>
-
-        <!-- Referral UI -->
-        <div class="referral-section" id="referral-section">
-          <div class="referral-link-row">
-            <span class="referral-label">Your referral link:</span>
-            <div class="referral-copy-row">
-              <input type="text" class="referral-url" id="referral-url" readonly />
-              <button class="btn-gold btn-sm" id="referral-copy-btn">Copy ⚡</button>
-            </div>
-          </div>
-          <div class="referral-stats" id="referral-stats">
-            You've referred <strong id="referral-count-display">0</strong> friends → earned <strong id="referral-earned-display">0 ⚡</strong>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- PAGE: JOIN -->
-  <div class="page" style="display:none" id="page-join">
-    <div class="join-page">
-      <h1 class="join-title">Think you run with the wolves? Show us what you got.</h1>
-
-      <div class="join-layout">
-        <!-- Left: Application Form -->
-        <form class="join-form" id="join-form">
-          <div class="field-group">
-            <label>Real name *</label>
-            <input type="text" id="join-realname" placeholder="Your full name" required />
-          </div>
-          <div class="field-group">
-            <label>Artist name *</label>
-            <input type="text" id="join-artistname" placeholder="Your stage/artist name" required />
-          </div>
-          <div class="field-group">
-            <label>Genre / style *</label>
-            <input type="text" id="join-genre" placeholder="e.g. Melodic Hip-Hop, Pop, Lo-Fi..." required />
-          </div>
-          <div class="field-group">
-            <label>Role</label>
-            <div class="role-chips" id="role-chips">
-              <button type="button" class="role-chip" data-role="Artist">Artist</button>
-              <button type="button" class="role-chip" data-role="Photography">Photography</button>
-              <button type="button" class="role-chip" data-role="Video">Video</button>
-              <button type="button" class="role-chip" data-role="Design">Design</button>
-              <button type="button" class="role-chip" data-role="Beatmaker">Beatmaker</button>
-              <button type="button" class="role-chip" data-role="Other">Other</button>
-            </div>
-          </div>
-          <div class="field-group">
-            <label>Skills *</label>
-            <textarea id="join-skills" rows="3" placeholder="What do you bring to the pack? Production, vocals, visuals..." required></textarea>
-          </div>
-
-          <!-- Social Links (up to 3) -->
-          <div class="field-group">
-            <label>Social links <span class="label-optional">(up to 3)</span></label>
-            <div class="social-links-list" id="social-links-list">
-              <div class="social-link-row">
-                <select class="social-platform">
-                  <option value="">Platform</option>
-                  <option value="Instagram">Instagram</option>
-                  <option value="TikTok">TikTok</option>
-                  <option value="YouTube">YouTube</option>
-                  <option value="Twitter/X">Twitter/X</option>
-                  <option value="SoundCloud">SoundCloud</option>
-                  <option value="Other">Other</option>
-                </select>
-                <input type="url" class="social-url" placeholder="https://..." />
-              </div>
-            </div>
-            <button type="button" class="btn-ghost btn-sm" id="add-social-link">+ Add link</button>
-          </div>
-
-          <div class="field-group">
-            <label>Music link <span class="label-optional">(Spotify, SoundCloud, etc.)</span></label>
-            <input type="url" id="join-music" placeholder="https://open.spotify.com/artist/..." />
-          </div>
-
-          <div class="field-group">
-            <label>Why Lightning Wolves? *</label>
-            <textarea id="join-why" rows="4" placeholder="What draws you to the pack? What's your vision?" required></textarea>
-          </div>
-
-          <div class="field-group">
-            <label>Work sample <span class="label-optional">(optional — image, video, or audio)</span></label>
-            <input type="file" id="join-sample" accept="image/*,video/*,audio/*" />
-          </div>
-
-          <button type="submit" class="btn-gold btn-full join-submit">Send it ⚡</button>
-        </form>
-
-        <!-- Right: Sidebar -->
-        <div class="join-sidebar">
-          <div class="join-sidebar-card">
-            <h3 class="join-sidebar-title">Current Crew</h3>
-            <div class="wolves-list">
-              <div class="wolf-row"><span class="wolf-dot" style="background:#f5c518"></span><span class="wolf-row-name">Lazy Jo</span><span class="wolf-row-role">Founder</span></div>
-              <div class="wolf-row"><span class="wolf-dot" style="background:#b388ff"></span><span class="wolf-row-name">Zirka</span><span class="wolf-row-role">Artist</span></div>
-              <div class="wolf-row"><span class="wolf-dot" style="background:#ff80ab"></span><span class="wolf-row-name">Rosakay</span><span class="wolf-row-role">Artist</span></div>
-              <div class="wolf-row"><span class="wolf-dot" style="background:#82b1ff"></span><span class="wolf-row-name">Drippydesigns</span><span class="wolf-row-role">Designer</span></div>
-              <div class="wolf-row"><span class="wolf-dot" style="background:#69f0ae"></span><span class="wolf-row-name">Shiteux</span><span class="wolf-row-role">Visuals</span></div>
-            </div>
-          </div>
-          <div class="join-sidebar-note">
-            <p>We review every application personally.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PAGE: AUTH -->
-  <div class="page" style="display:none" id="page-auth">
-    <canvas id="auth-particles" class="auth-particles"></canvas>
-    <div class="auth-page">
-      <div class="auth-container">
-        <img src="/LightningWolvesLogo-Nik-Transparent.png" alt="Lightning Wolves" class="auth-logo" loading="lazy" />
-        <div class="auth-wordmark">Lightning Wolves Studio</div>
-
-        <!-- Tabs -->
-        <div class="auth-tabs">
-          <button class="auth-tab active" data-authtab="signin">Sign In</button>
-          <button class="auth-tab" data-authtab="signup">Sign Up</button>
-        </div>
-
-        <!-- Sign In Form -->
-        <form id="auth-signin-form" class="auth-form">
-          <div class="field-group">
-            <label>Email</label>
-            <input type="email" id="auth-signin-email" placeholder="your@email.com" required />
-          </div>
-          <div class="field-group">
-            <label>Password</label>
-            <input type="password" id="auth-signin-password" placeholder="••••••••" required />
-          </div>
-          <div class="auth-error hidden" id="auth-signin-error"></div>
-          <button type="submit" class="btn-gold btn-full">Sign In</button>
-        </form>
-
-        <!-- Sign Up Form -->
-        <form id="auth-signup-form" class="auth-form hidden">
-          <div class="field-group">
-            <label>Email</label>
-            <input type="email" id="auth-signup-email" placeholder="your@email.com" required />
-          </div>
-          <div class="field-group">
-            <label>Password</label>
-            <input type="password" id="auth-signup-password" placeholder="Min 8 characters" required minlength="8" />
-          </div>
-          <div class="field-group">
-            <label>Promo code <span class="label-optional">(optional)</span></label>
-            <input type="text" id="auth-signup-promo" placeholder="e.g. WOLFPACK" style="text-transform:uppercase" />
-          </div>
-          <div class="auth-error hidden" id="auth-signup-error"></div>
-          <button type="submit" class="btn-gold btn-full">Create Account</button>
-        </form>
-
-        <button class="btn-ghost btn-full auth-guest-btn" id="auth-guest-btn">Continue as Guest</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PAGE: ADMIN -->
-  <div class="page" style="display:none" id="page-admin">
-    <div class="admin-page">
-      <h1 class="admin-title">Admin Dashboard</h1>
-
-      <!-- Admin Tabs -->
-      <div class="admin-tabs">
-        <button class="admin-tab active" data-atab="applications">Applications</button>
-        <button class="admin-tab" data-atab="models">Model Health</button>
-        <button class="admin-tab" data-atab="credits-config">Credit Costs</button>
-        <button class="admin-tab" data-atab="bugs">Bug Reports</button>
-      </div>
-
-      <!-- APPLICATIONS TAB -->
-      <div class="admin-panel" id="atab-applications">
-        <!-- Stats Row -->
-        <div class="admin-stats" id="admin-stats">
-          <div class="admin-stat"><span class="admin-stat-val" id="stat-total">0</span><span class="admin-stat-label">Total</span></div>
-          <div class="admin-stat"><span class="admin-stat-val" id="stat-pending">0</span><span class="admin-stat-label">Pending</span></div>
-          <div class="admin-stat"><span class="admin-stat-val" id="stat-approved">0</span><span class="admin-stat-label">Approved</span></div>
-          <div class="admin-stat"><span class="admin-stat-val" id="stat-rejected">0</span><span class="admin-stat-label">Rejected</span></div>
-        </div>
-        <!-- Filter Bar -->
-        <div class="admin-filters" id="admin-filters">
-          <button class="admin-filter active" data-filter="all">All</button>
-          <button class="admin-filter" data-filter="pending">Pending</button>
-          <button class="admin-filter" data-filter="approved">Approved</button>
-          <button class="admin-filter" data-filter="rejected">Rejected</button>
-          <span class="admin-filter-sep"></span>
-          <button class="admin-filter" data-filter="Artist">Artist</button>
-          <button class="admin-filter" data-filter="Photography">Photo</button>
-          <button class="admin-filter" data-filter="Video">Video</button>
-          <button class="admin-filter" data-filter="Design">Design</button>
-          <button class="admin-filter" data-filter="Beatmaker">Beats</button>
-        </div>
-        <!-- Table -->
-        <div class="admin-table-wrap">
-          <table class="admin-table" id="admin-table">
-            <thead><tr><th>Name</th><th>Artist Name</th><th>Role(s)</th><th>Genre</th><th>Applied</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="admin-tbody"></tbody>
-          </table>
-          <div class="admin-empty" id="admin-empty">No applications yet.</div>
-        </div>
-      </div>
-
-      <!-- APPLICATION DETAIL (hidden by default) -->
-      <div class="admin-detail hidden" id="admin-detail">
-        <button class="btn-ghost btn-sm" id="admin-detail-back">← Back to list</button>
-        <div class="admin-detail-content" id="admin-detail-content"></div>
-      </div>
-
-      <!-- MODELS TAB -->
-      <div class="admin-panel hidden" id="atab-models">
-        <h3 class="admin-section-title">AI Model Configuration</h3>
-        <p class="admin-section-desc">Toggle models on/off and set credit cost per model. Changes take effect immediately.</p>
-        <div class="admin-model-list" id="admin-model-list"></div>
-      </div>
-
-      <!-- CREDIT COSTS TAB -->
-      <div class="admin-panel hidden" id="atab-credits-config">
-        <h3 class="admin-section-title">Credit Cost Settings</h3>
-        <p class="admin-section-desc">Set how many credits each action costs.</p>
-        <div class="admin-costs-list">
-          <div class="admin-cost-row"><span>Text generation</span><input type="number" id="cost-gen" value="10" min="1" /><span>⚡</span></div>
-          <div class="admin-cost-row"><span>AI background (Grok)</span><input type="number" id="cost-bg-grok" value="10" min="1" /><span>⚡</span></div>
-          <div class="admin-cost-row"><span>AI background (Kling)</span><input type="number" id="cost-bg-kling" value="15" min="1" /><span>⚡</span></div>
-          <div class="admin-cost-row"><span>Performance video</span><input type="number" id="cost-perf" value="20" min="1" /><span>⚡</span></div>
-          <div class="admin-cost-row"><span>Remix export</span><input type="number" id="cost-remix" value="15" min="1" /><span>⚡</span></div>
-        </div>
-        <button class="btn-gold btn-sm" id="admin-save-costs" style="margin-top:12px">Save Costs</button>
-      </div>
-
-      <!-- BUG REPORTS TAB -->
-      <div class="admin-panel hidden" id="atab-bugs">
-        <h3 class="admin-section-title">Bug Reports</h3>
-        <div class="admin-bug-list" id="admin-bug-list">
-          <div class="admin-empty">No bug reports yet.</div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  </div><!-- /main-content -->
-</div><!-- /studio-app -->
-
-<!-- ═══ MODALS ═══ -->
-<div class="modal-overlay hidden" id="modal-overlay">
-  <div class="modal-box" id="modal-box"></div>
-</div>
-
-<!-- ═══ EXPORT MODAL ═══ -->
-<div class="modal-overlay hidden" id="export-modal-overlay">
-  <div class="modal-box export-modal">
-    <div class="modal-header">
-      <h3>Export Lyric Video</h3>
-      <button class="modal-close" id="export-modal-close">&times;</button>
-    </div>
-    <div class="export-options">
-      <div class="editor-section">
-        <label>Format</label>
-        <span class="export-format-badge">MP4</span>
-      </div>
-      <div class="editor-section">
-        <label>Aspect ratio</label>
-        <div class="export-ratio-toggle">
-          <button class="ratio-btn active" data-ratio="9:16">9:16 Portrait</button>
-          <button class="ratio-btn" data-ratio="16:9">16:9 Landscape</button>
-        </div>
-      </div>
-      <div class="export-watermark-info" id="export-watermark-info">
-        <span class="export-wm-badge">Watermark: "Made with LW Studio ⚡"</span>
-        <span class="export-wm-hint">Members export without watermark</span>
-      </div>
-    </div>
-    <div class="export-progress hidden" id="export-progress">
-      <div class="export-progress-bar">
-        <div class="export-progress-fill" id="export-progress-fill"></div>
-      </div>
-      <span class="export-progress-text" id="export-progress-text">Preparing...</span>
-    </div>
-    <button class="btn-gold btn-full" id="export-start-btn">Export ⚡</button>
-  </div>
-</div>
-
-<!-- ═══ BUG REPORT MODAL ═══ -->
-<div class="modal-overlay hidden" id="bug-modal-overlay">
-  <div class="modal-box bug-modal">
-    <div class="modal-header">
-      <h3>Report a Bug</h3>
-      <button class="modal-close" id="bug-modal-close">&times;</button>
-    </div>
-    <form id="bug-report-form">
+    <form id="login-form" class="auth-form">
       <div class="field-group">
-        <label>Describe the bug *</label>
-        <textarea id="bug-description" rows="4" placeholder="What happened? What did you expect?" required></textarea>
+        <label>Email</label>
+        <input type="email" id="login-email" placeholder="your@email.com" required />
       </div>
       <div class="field-group">
-        <label>Screenshot (optional)</label>
-        <input type="file" id="bug-screenshot" accept="image/*" />
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="••••••••" required />
       </div>
-      <button type="submit" class="btn-gold btn-full">Submit Report</button>
+      <div id="login-error" class="auth-error hidden"></div>
+      <button type="submit" class="btn-gold btn-full">SIGN IN</button>
+      <p class="auth-link">No account? <a href="#" data-switch="signup">Create one</a></p>
     </form>
+
+    <form id="signup-form" class="auth-form hidden">
+      <div class="field-group">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="your@email.com" required />
+      </div>
+      <div class="field-group">
+        <label>Password</label>
+        <input type="password" id="signup-password" placeholder="Min 8 characters" required />
+      </div>
+      <div class="field-group">
+        <label>Promo Code <span class="label-optional">(optional)</span></label>
+        <input type="text" id="signup-promo" placeholder="e.g. LAZYJO" style="text-transform:uppercase" />
+      </div>
+      <div id="signup-error" class="auth-error hidden"></div>
+      <button type="submit" class="btn-gold btn-full">CREATE ACCOUNT</button>
+      <p class="auth-link">Have an account? <a href="#" data-switch="login">Sign in</a></p>
+    </form>
+
+    <button class="btn-ghost btn-full" id="continue-as-guest">Continue as Guest</button>
   </div>
 </div>
 
-<!-- ═══ DEV DEBUG PANEL ═══ -->
-<div class="debug-panel hidden" id="debug-panel">
-  <div class="debug-header">
-    <span class="debug-title">Dev Debug</span>
-    <button class="debug-toggle" id="debug-toggle">−</button>
+<!-- ═══ WOLF SELECTION PAGE ════════════════════════════════════════════════ -->
+<div id="wolf-select-page" class="page hidden">
+  <header class="select-header">
+    <img src="/logo.svg" alt="Lightning Wolves" class="header-logo" onerror="this.style.display='none'" />
+    <div class="header-brand">
+      <div class="header-title">LIGHTNING WOLVES</div>
+      <div class="header-sub">Lyrics Studio</div>
+    </div>
+    <div class="header-actions" id="header-auth-actions">
+      <!-- filled by JS -->
+    </div>
+  </header>
+
+  <main class="select-main">
+    <h1 class="select-tagline">WHICH WOLF ARE YOU?</h1>
+
+    <div class="wolf-grid">
+      <!-- Active wolves -->
+      <div class="wolf-card active" data-wolf="yellow" data-color="#f5c518"
+           data-artist="Lazy Jo" data-genre="Melodic Hip-Hop" data-image="wolf-yellow.svg">
+        <div class="wolf-img-wrap">
+          <img src="/wolf-yellow.svg" alt="Lazy Jo" onerror="this.parentElement.innerHTML='<div class=\'wolf-emoji\'>🐺</div>'" />
+          <div class="wolf-glow" style="--glow-color:#f5c518"></div>
+        </div>
+        <div class="wolf-name">Lazy Jo</div>
+        <div class="wolf-genre-tag" style="--tag-color:#f5c518">Melodic Hip-Hop</div>
+      </div>
+
+      <div class="wolf-card active" data-wolf="orange" data-color="#e8870a"
+           data-artist="Rosakay" data-genre="Pop / French Pop" data-image="wolf-orange.svg">
+        <div class="wolf-img-wrap">
+          <img src="/wolf-orange.svg" alt="Rosakay" onerror="this.parentElement.innerHTML='<div class=\'wolf-emoji\'>🐺</div>'" />
+          <div class="wolf-glow" style="--glow-color:#e8870a"></div>
+        </div>
+        <div class="wolf-name">Rosakay</div>
+        <div class="wolf-genre-tag" style="--tag-color:#e8870a">Pop / French Pop</div>
+      </div>
+
+      <div class="wolf-card active" data-wolf="purple" data-color="#9b6dff"
+           data-artist="Zirka" data-genre="French Hip-Hop" data-image="wolf-purple.svg">
+        <div class="wolf-img-wrap">
+          <img src="/wolf-purple.svg" alt="Zirka" onerror="this.parentElement.innerHTML='<div class=\'wolf-emoji\'>🐺</div>'" />
+          <div class="wolf-glow" style="--glow-color:#9b6dff"></div>
+        </div>
+        <div class="wolf-name">Zirka</div>
+        <div class="wolf-genre-tag" style="--tag-color:#9b6dff">French Hip-Hop</div>
+      </div>
+
+      <!-- Locked wolves -->
+      <div class="wolf-card locked" data-wolf="black" data-color="#111111">
+        <div class="wolf-img-wrap locked-wrap">
+          <img src="/wolf-black.svg" alt="Coming Soon" onerror="this.parentElement.innerHTML='<div class=\'lock-icon\'>🔒</div>'" />
+          <div class="wolf-lock-overlay">🔒</div>
+        </div>
+        <div class="wolf-name">???</div>
+        <div class="wolf-genre-tag locked-tag">Coming Soon</div>
+      </div>
+
+      <div class="wolf-card locked" data-wolf="blue" data-color="#2196F3">
+        <div class="wolf-img-wrap locked-wrap">
+          <img src="/wolf-blue.svg" alt="Coming Soon" onerror="this.parentElement.innerHTML='<div class=\'lock-icon\'>🔒</div>'" />
+          <div class="wolf-lock-overlay">🔒</div>
+        </div>
+        <div class="wolf-name">???</div>
+        <div class="wolf-genre-tag locked-tag">Coming Soon</div>
+      </div>
+
+      <div class="wolf-card locked" data-wolf="pink" data-color="#E040FB">
+        <div class="wolf-img-wrap locked-wrap">
+          <img src="/wolf-pink.svg" alt="Coming Soon" onerror="this.parentElement.innerHTML='<div class=\'lock-icon\'>🔒</div>'" />
+          <div class="wolf-lock-overlay">🔒</div>
+        </div>
+        <div class="wolf-name">???</div>
+        <div class="wolf-genre-tag locked-tag">Coming Soon</div>
+      </div>
+
+      <div class="wolf-card locked" data-wolf="green" data-color="#00E64D">
+        <div class="wolf-img-wrap locked-wrap">
+          <img src="/wolf-green.svg" alt="Coming Soon" onerror="this.parentElement.innerHTML='<div class=\'lock-icon\'>🔒</div>'" />
+          <div class="wolf-lock-overlay">🔒</div>
+        </div>
+        <div class="wolf-name">???</div>
+        <div class="wolf-genre-tag locked-tag">Coming Soon</div>
+      </div>
+
+      <div class="wolf-card locked" data-wolf="red" data-color="#E53935">
+        <div class="wolf-img-wrap locked-wrap">
+          <img src="/wolf-red.svg" alt="Coming Soon" onerror="this.parentElement.innerHTML='<div class=\'lock-icon\'>🔒</div>'" />
+          <div class="wolf-lock-overlay">🔒</div>
+        </div>
+        <div class="wolf-name">???</div>
+        <div class="wolf-genre-tag locked-tag">Coming Soon</div>
+      </div>
+
+      <div class="wolf-card locked" data-wolf="gray" data-color="#9E9E9E">
+        <div class="wolf-img-wrap locked-wrap">
+          <img src="/wolf-gray.svg" alt="Coming Soon" onerror="this.parentElement.innerHTML='<div class=\'lock-icon\'>🔒</div>'" />
+          <div class="wolf-lock-overlay">🔒</div>
+        </div>
+        <div class="wolf-name">???</div>
+        <div class="wolf-genre-tag locked-tag">Coming Soon</div>
+      </div>
+
+      <div class="wolf-card locked" data-wolf="white" data-color="#e8e8e8">
+        <div class="wolf-img-wrap locked-wrap">
+          <img src="/wolf-white.svg" alt="Coming Soon" onerror="this.parentElement.innerHTML='<div class=\'lock-icon\'>🔒</div>'" />
+          <div class="wolf-lock-overlay">🔒</div>
+        </div>
+        <div class="wolf-name">???</div>
+        <div class="wolf-genre-tag locked-tag">Coming Soon</div>
+      </div>
+    </div>
+
+    <!-- Public access card -->
+    <div class="public-card">
+      <div class="public-card-inner">
+        <div class="public-card-icon">⚡</div>
+        <div class="public-card-text">
+          <div class="public-card-title">Join the Pack</div>
+          <div class="public-card-desc">3 free generations/month — no commitment</div>
+        </div>
+        <button class="btn-gold" id="enter-public-studio">Enter Studio</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ═══ STUDIO PAGE ════════════════════════════════════════════════════════ -->
+<div id="studio-page" class="page hidden">
+
+  <!-- Studio Header -->
+  <header class="studio-header">
+    <div class="studio-header-left">
+      <img src="/logo.svg" alt="LW" class="studio-logo" id="studio-wolf-img"
+           onerror="this.style.display='none'" />
+      <div class="studio-titles">
+        <div class="studio-brand">LIGHTNING WOLVES / Lyrics Studio</div>
+      </div>
+    </div>
+    <div class="studio-header-right">
+      <span class="artist-dot" id="studio-artist-dot"></span>
+      <span class="artist-name-header" id="studio-artist-name"></span>
+      <span class="plan-badge" id="studio-plan-badge">PUBLIC</span>
+      <button class="btn-outline" id="wolf-map-btn">WOLF MAP</button>
+      <button class="btn-outline" id="change-wolf-btn">Change Wolf</button>
+      <button class="btn-ghost" id="studio-auth-btn">Sign In</button>
+    </div>
+  </header>
+
+  <div class="studio-body">
+    <!-- LEFT PANEL -->
+    <aside class="left-panel">
+
+      <!-- Upload zone -->
+      <div class="field-group">
+        <label class="field-label">Reference Track</label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" accept="audio/*,video/*" hidden />
+          <div class="upload-icon">🎵</div>
+          <div class="upload-text">Drag & drop audio or video</div>
+          <div class="upload-sub">or click to browse · max 50MB</div>
+          <div class="upload-info hidden" id="upload-info"></div>
+        </div>
+      </div>
+
+      <!-- Song Title -->
+      <div class="field-group">
+        <label class="field-label">Song Title *</label>
+        <input type="text" id="song-title" placeholder="e.g. Midnight Run" />
+      </div>
+
+      <!-- Artist Name -->
+      <div class="field-group">
+        <label class="field-label">Artist Name *</label>
+        <input type="text" id="song-artist" placeholder="e.g. Lazy Jo" />
+      </div>
+
+      <!-- Genre -->
+      <div class="field-group">
+        <label class="field-label">Genre *</label>
+        <select id="song-genre">
+          <option value="">Select genre…</option>
+          <option value="Melodic Hip-Hop">Melodic Hip-Hop</option>
+          <option value="Hip-Hop">Hip-Hop</option>
+          <option value="Afrobeats">Afrobeats</option>
+          <option value="Trap">Trap</option>
+          <option value="Drill">Drill</option>
+          <option value="R&B">R&amp;B</option>
+          <option value="Pop">Pop</option>
+          <option value="French Pop">French Pop</option>
+          <option value="French Hip-Hop">French Hip-Hop</option>
+          <option value="Dance/EDM">Dance / EDM</option>
+          <option value="Amapiano">Amapiano</option>
+          <option value="Afro-Trap">Afro-Trap</option>
+          <option value="Rock">Rock</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <!-- BPM -->
+      <div class="field-group">
+        <label class="field-label">BPM <span class="label-optional">(optional)</span></label>
+        <input type="number" id="song-bpm" placeholder="e.g. 140" min="40" max="300" />
+      </div>
+
+      <!-- Language -->
+      <div class="field-group">
+        <label class="field-label">Language *</label>
+        <select id="song-language">
+          <option value="English">English</option>
+          <option value="French">French</option>
+          <option value="Spanish">Spanish</option>
+          <option value="Portuguese">Portuguese</option>
+          <option value="Arabic">Arabic</option>
+          <option value="Wolof">Wolof</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <!-- Mood -->
+      <div class="field-group">
+        <label class="field-label">Mood / Vibe</label>
+        <textarea id="song-mood" rows="3" placeholder="e.g. Late night drive, introspective, melancholic but hopeful…"></textarea>
+      </div>
+
+      <!-- Generate Button -->
+      <button class="btn-generate" id="generate-btn">
+        <span class="btn-lightning">⚡</span>
+        <span class="btn-text">GENERATE</span>
+      </button>
+
+      <div class="gen-error hidden" id="gen-error"></div>
+    </aside>
+
+    <!-- RIGHT PANEL -->
+    <main class="right-panel">
+
+      <!-- Summary card (shown after generation) -->
+      <div class="summary-card hidden" id="summary-card">
+        <img class="summary-wolf" id="summary-wolf-img" src="/logo.svg" alt=""
+             onerror="this.style.display='none'" />
+        <div class="summary-info">
+          <div class="summary-title" id="summary-title"></div>
+          <div class="summary-meta">
+            <span id="summary-artist"></span>
+            <span class="summary-genre-badge" id="summary-genre"></span>
+          </div>
+        </div>
+        <button class="btn-outline btn-sm" id="new-track-btn">New Track</button>
+      </div>
+
+      <!-- Progress Stepper -->
+      <div class="waveform-wrap hidden" id="waveform-wrap">
+        <div class="waveform-bar-container">
+          <div class="stepper" id="gen-stepper">
+            <div class="step active" data-step="1">
+              <div class="step-circle">1</div>
+              <div class="step-label">Transcribing</div>
+            </div>
+            <div class="step" data-step="2">
+              <div class="step-circle">2</div>
+              <div class="step-label">Analyzing</div>
+            </div>
+            <div class="step" data-step="3">
+              <div class="step-circle">3</div>
+              <div class="step-label">Writing</div>
+            </div>
+          </div>
+          <div class="waveform">
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+            <div class="waveform-bar"></div><div class="waveform-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs-wrap">
+        <div class="tabs">
+          <button class="tab active" data-tab="lyrics">LYRICS</button>
+          <button class="tab" data-tab="srt">SRT</button>
+          <button class="tab" data-tab="beats">BEAT CUTS</button>
+          <button class="tab" data-tab="prompts">AI PROMPTS</button>
+          <button class="tab" data-tab="tips">VIDEO TIPS</button>
+        </div>
+      </div>
+
+      <div class="tab-content-wrap">
+        <!-- LYRICS -->
+        <div class="tab-panel active" id="tab-lyrics">
+          <div class="empty-state" id="lyrics-empty">
+            <div class="empty-icon">🎤</div>
+            <div>Generate a pack to see timed lyrics here</div>
+          </div>
+          <div id="lyrics-content" class="lyrics-list hidden"></div>
+          <div id="lyrics-editor-wrap" class="hidden">
+            <div class="editor-header">
+              <span>Edit Lyrics</span>
+              <button class="btn-outline btn-sm" id="save-lyrics-btn">Save Changes</button>
+            </div>
+            <textarea id="lyrics-editor" class="lyrics-textarea"></textarea>
+          </div>
+        </div>
+
+        <!-- SRT -->
+        <div class="tab-panel hidden" id="tab-srt">
+          <div class="empty-state" id="srt-empty">
+            <div class="empty-icon">📄</div>
+            <div>SRT subtitle file will appear here</div>
+          </div>
+          <div id="srt-content" class="hidden">
+            <div class="srt-actions">
+              <button class="btn-outline btn-sm" id="download-srt">⬇ Download .srt</button>
+            </div>
+            <pre class="srt-pre" id="srt-text"></pre>
+          </div>
+        </div>
+
+        <!-- BEAT CUTS -->
+        <div class="tab-panel hidden" id="tab-beats">
+          <div class="empty-state" id="beats-empty">
+            <div class="empty-icon">🎬</div>
+            <div>Beat cut timestamps will appear here</div>
+          </div>
+          <div id="beats-content" class="hidden">
+            <div class="beats-actions">
+              <button class="btn-outline btn-sm" id="export-beats">⬇ Export .txt</button>
+            </div>
+            <table class="beats-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Label</th>
+                  <th>Type</th>
+                </tr>
+              </thead>
+              <tbody id="beats-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- AI PROMPTS -->
+        <div class="tab-panel hidden" id="tab-prompts">
+          <div class="empty-state" id="prompts-empty">
+            <div class="empty-icon">🎥</div>
+            <div>AI video prompts for Kling / Runway / PixVerse will appear here</div>
+          </div>
+          <div id="prompts-content" class="hidden prompts-list"></div>
+        </div>
+
+        <!-- VIDEO TIPS -->
+        <div class="tab-panel hidden" id="tab-tips">
+          <div class="empty-state" id="tips-empty">
+            <div class="empty-icon">💡</div>
+            <div>Genre-specific video tips will appear here</div>
+          </div>
+          <div id="tips-content" class="hidden tips-list"></div>
+        </div>
+      </div>
+    </main>
   </div>
-  <div class="debug-body" id="debug-body">
-    <div class="debug-row"><span>⚡ Balance</span><span id="dbg-credits">0</span></div>
-    <div class="debug-row"><span>Tasks</span><span id="dbg-tasks">—</span></div>
-    <div class="debug-row"><span>OAuth</span><span id="dbg-oauth">—</span></div>
-    <div class="debug-row"><span>Gens used</span><span id="dbg-gens">0</span></div>
-    <div class="debug-row"><span>Ref code</span><span id="dbg-ref">—</span></div>
-    <div class="debug-row"><span>Referrals</span><span id="dbg-refcount">0</span></div>
-    <div class="debug-actions">
-      <button class="debug-btn" id="dbg-add-credits">Add 10 ⚡</button>
-      <button class="debug-btn" id="dbg-sim-referral">Sim Referral</button>
-      <button class="debug-btn debug-btn-danger" id="dbg-reset">Reset All</button>
+</div>
+
+<!-- ═══ MEMBER DASHBOARD ══════════════════════════════════════════════════ -->
+<div id="dashboard-page" class="page hidden">
+  <header class="studio-header">
+    <div class="studio-header-left">
+      <img src="/logo.svg" alt="LW" class="studio-logo" onerror="this.style.display='none'" />
+      <div class="studio-titles">
+        <div class="studio-brand">LIGHTNING WOLVES / Member Dashboard</div>
+      </div>
+    </div>
+    <div class="studio-header-right">
+      <button class="btn-outline" id="dash-back-btn">← Studio</button>
+      <button class="btn-ghost" id="dash-signout-btn">Sign Out</button>
+    </div>
+  </header>
+
+  <div class="dashboard-body">
+    <div class="dash-wolf-hero" id="dash-wolf-hero">
+      <img src="/logo.svg" alt="" id="dash-wolf-img" onerror="this.style.display='none'" />
+      <div class="dash-wolf-name" id="dash-wolf-name"></div>
+      <div class="dash-badge">Wolf Pack Member</div>
+    </div>
+
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-card-label">Referrals This Month</div>
+        <div class="dash-card-value" id="dash-referrals">—</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-label">Packs by Referred Users</div>
+        <div class="dash-card-value" id="dash-referred-gens">—</div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-label">Your Packs Generated</div>
+        <div class="dash-card-value" id="dash-own-gens">—</div>
+      </div>
+      <div class="dash-card dash-earnings">
+        <div class="dash-card-label">Est. Earnings</div>
+        <div class="dash-card-value gold" id="dash-earnings">$—</div>
+        <div class="dash-card-sub">Revenue split: Owner 50% · Members 40% · Costs 10%</div>
+      </div>
+    </div>
+
+    <div class="promo-section">
+      <div class="promo-label">Your Promo Code</div>
+      <div class="promo-code-display" id="dash-promo-code"></div>
+      <div class="promo-copy-hint">Share this code with your fans to track referrals</div>
     </div>
   </div>
 </div>
 
-<!-- ═══ ONBOARDING OVERLAY ═══ -->
-<div class="onboarding-overlay hidden" id="onboarding-overlay">
-  <div class="onboarding-tooltip" id="onboarding-tooltip">
-    <div class="onboarding-step-indicator" id="onboarding-step-indicator"></div>
-    <div class="onboarding-text" id="onboarding-text"></div>
-    <div class="onboarding-actions">
-      <button class="btn-ghost btn-sm" id="onboarding-skip">Skip</button>
-      <button class="btn-gold btn-sm" id="onboarding-next">Next</button>
+<!-- ═══ WOLF HUB PAGE ══════════════════════════════════════════════════════ -->
+<div id="wolf-hub-page" class="page hidden">
+  <header class="studio-header">
+    <div class="studio-header-left">
+      <img src="/logo.svg" alt="LW" class="studio-logo" onerror="this.style.display='none'" />
+      <div class="studio-titles">
+        <div class="studio-brand">LIGHTNING WOLVES / Wolf Hub</div>
+      </div>
+    </div>
+    <div class="studio-header-right">
+      <button class="btn-outline" id="hub-back-btn">← Studio</button>
+    </div>
+  </header>
+
+  <div class="hub-container">
+    <!-- Centerpiece: Glowing Wolf Head -->
+    <div class="wolf-head-centerpiece" id="wolf-head-hub">
+      <div class="wolf-head-glow"></div>
+      <img src="/wolf-yellow.svg" alt="Wolf Head" class="wolf-head-img" id="hub-wolf-head" />
+      
+      <!-- Floating Country Orbs -->
+      <div class="country-orb" style="--angle: 0deg; --dist: 160px;" data-city="Paris">PARIS</div>
+      <div class="country-orb" style="--angle: 72deg; --dist: 160px;" data-city="London">LONDON</div>
+      <div class="country-orb" style="--angle: 144deg; --dist: 160px;" data-city="NYC">NYC</div>
+      <div class="country-orb" style="--angle: 216deg; --dist: 160px;" data-city="Tokyo">TOKYO</div>
+      <div class="country-orb" style="--angle: 288deg; --dist: 160px;" data-city="Berlin">BERLIN</div>
+    </div>
+
+    <!-- PS2-style "Versus" Swipe Page (Hidden by default) -->
+    <div id="swipe-stack-container" class="hidden">
+      <div class="swipe-header">
+        <button class="btn-ghost" id="close-swipe-btn">← Back to Hub</button>
+        <div class="swipe-city-title" id="current-swipe-city">PARIS</div>
+      </div>
+      
+      <div class="versus-container">
+        <!-- Left Side: Your Profile (Fixed) -->
+        <div class="versus-side versus-left">
+          <div class="versus-label">YOU</div>
+          <div class="versus-card-wrap">
+            <div class="wolf-profile-card versus-card" id="your-profile-card">
+              <div class="card-image-wrap">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=LazyJo" class="card-img" />
+                <div class="card-genre-tag">Lightning Wolf</div>
+              </div>
+              <div class="card-info">
+                <div class="card-name">Lazy Jo</div>
+                <div class="card-looking-for">Scouting for the Pack</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: VS Divider -->
+        <div class="versus-divider">VS</div>
+
+        <!-- Right Side: Lone Wolf (Swipable) -->
+        <div class="versus-side versus-right">
+          <div class="versus-label">LONE WOLF</div>
+          <div class="versus-card-wrap" id="wolf-card-stack">
+            <!-- Cards injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="swipe-actions">
+        <button class="swipe-btn pass-btn" id="pass-btn">✖</button>
+        <button class="swipe-btn howl-btn" id="howl-btn">🐺</button>
+      </div>
+    </div>
+
+    <!-- Match Animation Overlay -->
+    <div id="match-overlay" class="hidden">
+      <div class="match-lightning"></div>
+      <div class="match-content">
+        <h2 class="match-title">LIGHTNING STRIKE!</h2>
+        <p class="match-sub">You and <span id="match-name">Wolf_99</span> have matched!</p>
+        <button class="btn-gold" id="start-collab-btn">Start Collaboration</button>
+      </div>
     </div>
   </div>
 </div>
 
-<script>
-// ─── INLINE ROUTER — handles public/studio split + all page switching ──────
-(function() {
-  var PUBLIC_PAGES = ['landing', 'wolf-profile'];
-  var STUDIO_PAGES = ['home', 'studio', 'pricing', 'join', 'auth', 'admin'];
+<!-- ═══ LIMIT MODAL ════════════════════════════════════════════════════════ -->
+<div id="limit-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <div class="modal-icon">⚡</div>
+    <h2 class="modal-title">You've Hit Your Limit</h2>
+    <p class="modal-body">Free accounts get 3 generations/month.<br/>Sign up or sign in to get unlimited access as a Wolf Pack member.</p>
+    <div class="modal-actions">
+      <button class="btn-gold" id="modal-signup">Join the Pack</button>
+      <button class="btn-ghost" id="modal-close">Not Now</button>
+    </div>
+  </div>
+</div>
 
-  function route() {
-    var hash = (window.location.hash || '').replace(/^#\/?/, '') || 'landing';
-    var parts = hash.split('/');
-    var page = parts[0] || 'landing';
-    var subpage = parts[1] || '';
+<!-- ═══ MOBILE NAVIGATION ══════════════════════════════════════════════════ -->
+<nav class="mobile-nav hidden" id="mobile-nav">
+  <a href="#" class="nav-item active" id="nav-home">
+    <span class="nav-icon">🏠</span>
+    <span>Home</span>
+  </a>
+  <a href="#" class="nav-item" id="nav-studio">
+    <span class="nav-icon">🎤</span>
+    <span>Studio</span>
+  </a>
+  <a href="#" class="nav-item" id="nav-hub">
+    <span class="nav-icon">🐺</span>
+    <span>Hub</span>
+  </a>
+  <a href="#" class="nav-item" id="nav-dash">
+    <span class="nav-icon">⚡</span>
+    <span>Pack</span>
+  </a>
+</nav>
 
-    // Wolf profile route: crew/wolfId  (e.g. #/crew/lazyjo)
-    var isWolfProfile = (page === 'crew' && subpage);
-    var activePage = isWolfProfile ? 'wolf-profile' : page;
-    // "crew" without subpage → go to landing (the crew selection IS the landing)
-    if (page === 'crew' && !subpage) activePage = 'landing';
-
-    // Determine if public or studio layout
-    var isPublic = PUBLIC_PAGES.indexOf(activePage) !== -1;
-    var pubSite = document.getElementById('public-site');
-    var studioApp = document.getElementById('studio-app');
-
-    if (pubSite) pubSite.style.display = isPublic ? '' : 'none';
-    if (studioApp) studioApp.style.display = isPublic ? 'none' : '';
-
-    // Hide all pages everywhere
-    var allPages = document.querySelectorAll('.page');
-    for (var i = 0; i < allPages.length; i++) {
-      allPages[i].style.display = 'none';
-    }
-
-    // Show target page
-    var target = document.getElementById('page-' + activePage);
-    if (target) {
-      target.style.display = 'block';
-    } else {
-      // Fallback
-      var fallback = document.getElementById('page-landing');
-      if (fallback) fallback.style.display = 'block';
-      if (pubSite) pubSite.style.display = '';
-      if (studioApp) studioApp.style.display = 'none';
-    }
-
-    // Breadcrumb (studio pages only)
-    var names = {home:'Home',studio:'Studio',pricing:'Pricing',join:'Join the Pack',auth:'Sign In',admin:'Admin'};
-    var bc = document.getElementById('breadcrumb-page');
-    if (bc) bc.textContent = names[activePage] || 'Studio';
-
-    // Sidebar active state
-    var icons = document.querySelectorAll('.sidebar-icon');
-    for (var j = 0; j < icons.length; j++) {
-      icons[j].classList.remove('active');
-      if (icons[j].getAttribute('data-page') === page) icons[j].classList.add('active');
-    }
-
-    // Scroll
-    var containers = [document.getElementById('pub-content'), document.getElementById('main-content')];
-    for (var k = 0; k < containers.length; k++) {
-      if (containers[k]) containers[k].scrollTop = 0;
-    }
-
-    // Store current page for app.js
-    if (window._lwState) window._lwState.currentPage = activePage;
-  }
-
-  window.addEventListener('hashchange', route);
-  window.addEventListener('load', route);
-  if (document.readyState !== 'loading') route();
-
-  // Global click delegation for nav
-  document.addEventListener('click', function(e) {
-    var sidebarLink = e.target.closest('.sidebar-icon[data-page]');
-    if (sidebarLink) {
-      e.preventDefault();
-      var p = sidebarLink.getAttribute('data-page');
-      window.location.hash = '/' + (p === 'landing' ? '' : p);
-      return;
-    }
-    var logo = e.target.closest('.sidebar-logo') || e.target.closest('.pub-nav-logo');
-    if (logo) {
-      e.preventDefault();
-      window.location.hash = '/';
-    }
-  });
-
-  // Expose route function for app.js
-  window._lwRoute = route;
-})();
-</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/util.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>

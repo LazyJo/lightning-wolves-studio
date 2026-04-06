@@ -1,7 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install && npm run build",
-  "outputDirectory": "client/dist",
   "installCommand": "npm install",
   "functions": {
     "api/**/*.js": {
@@ -10,17 +8,9 @@
     }
   },
   "routes": [
-    { "src": "/api/test-whisper", "dest": "/api/test-whisper.js" },
-    { "src": "/api/upload", "dest": "/api/upload.js" },
-    { "src": "/api/generate", "dest": "/api/generate.js" },
-    { "src": "/api/config", "dest": "/api/config.js" },
-    { "src": "/api/test", "dest": "/api/test.js" },
-    { "src": "/api/dashboard", "dest": "/api/dashboard.js" },
-    { "src": "/api/auth/(.*)", "dest": "/api/auth/$1.js" },
-    { "src": "/api/promo/(.*)", "dest": "/api/promo/$1.js" },
     { "src": "/api/(.*)", "dest": "/api/[...path].js" },
     { "src": "/health", "dest": "/api/index.js" },
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/(.*)", "dest": "/public/$1" }
   ]
 }

@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "buildCommand": "",
   "installCommand": "npm install",
   "outputDirectory": "public",
   "functions": {

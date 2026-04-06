@@ -1420,10 +1420,9 @@ function WolfHubPage({ onBack, onCountry }) {
       model.position.sub(center.multiplyScalar(scale))
       model.position.y += 0.7
 
-      // Face forward: the model's default faces +X (right in the screenshot).
-      // Rotate -90° on Y so the snout points toward the camera (+Z).
-      model.rotation.y = -Math.PI / 2
-      baseRotationY = -Math.PI / 2
+      // Face forward: rotate +90° on Y so the snout points toward camera
+      model.rotation.y = Math.PI / 2
+      baseRotationY = Math.PI / 2
 
       scene.add(model)
     }, undefined, (err) => {

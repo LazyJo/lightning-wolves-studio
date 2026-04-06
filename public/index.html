@@ -15,6 +15,28 @@
 <!-- ═══ LIGHTNING CANVAS ═══════════════════════════════════════════════════ -->
 <canvas id="lightning-canvas"></canvas>
 
+<!-- ═══ ELITE HEADER (global, glassmorphism) ══════════════════════════════ -->
+<header class="elite-header" id="elite-header">
+  <div class="elite-header-inner">
+    <a href="#" class="elite-logo" id="elite-logo-link">
+      <img src="/logo.svg" alt="Lightning Wolves" onerror="this.style.display='none'" />
+    </a>
+    <nav class="elite-nav" id="elite-nav">
+      <a href="#" class="elite-nav-link active" data-page="wolf-select">HOME</a>
+      <a href="#" class="elite-nav-link" data-page="studio">STUDIO</a>
+      <a href="#" class="elite-nav-link" data-page="wolf-hub">WOLF HUB</a>
+    </nav>
+    <div class="elite-header-right" id="elite-header-right">
+      <button class="elite-join-btn" id="elite-join-btn">JOIN THE PACK</button>
+      <button class="elite-signin-btn" id="elite-signin-btn">SIGN IN</button>
+    </div>
+  </div>
+  <div class="elite-header-glow"></div>
+</header>
+
+<!-- ═══ LIGHTNING FLASH OVERLAY ════════════════════════════════════════════ -->
+<div id="lightning-flash" class="lightning-flash hidden"></div>
+
 <!-- ═══ AUTH PAGE ══════════════════════════════════════════════════════════ -->
 <div id="auth-page" class="page hidden">
   <div class="auth-container">
@@ -65,16 +87,7 @@
 
 <!-- ═══ WOLF SELECTION PAGE ════════════════════════════════════════════════ -->
 <div id="wolf-select-page" class="page hidden">
-  <header class="select-header">
-    <img src="/logo.svg" alt="Lightning Wolves" class="header-logo" onerror="this.style.display='none'" />
-    <div class="header-brand">
-      <div class="header-title">LIGHTNING WOLVES</div>
-      <div class="header-sub">Lyrics Studio</div>
-    </div>
-    <div class="header-actions" id="header-auth-actions">
-      <!-- filled by JS -->
-    </div>
-  </header>
+  <!-- header handled by global elite-header -->
 
   <main class="select-main">
     <h1 class="select-tagline">WHICH WOLF ARE YOU?</h1>
@@ -193,37 +206,20 @@
 <!-- ═══ STUDIO PAGE ════════════════════════════════════════════════════════ -->
 <div id="studio-page" class="page hidden">
 
-  <!-- Studio Header -->
-  <header class="studio-header">
-    <div class="studio-header-left">
-      <img src="/logo.svg" alt="LW" class="studio-logo" id="studio-wolf-img"
-           onerror="this.style.display='none'" />
-      <div class="studio-titles">
-        <div class="studio-brand">LIGHTNING WOLVES / Lyrics Studio</div>
-      </div>
-    </div>
-    <div class="studio-header-right">
-      <span class="artist-dot" id="studio-artist-dot"></span>
-      <span class="artist-name-header" id="studio-artist-name"></span>
-      <span class="plan-badge" id="studio-plan-badge">PUBLIC</span>
-      <button class="btn-outline" id="wolf-map-btn">WOLF MAP</button>
-      <button class="btn-outline" id="change-wolf-btn">Change Wolf</button>
-      <button class="btn-ghost" id="studio-auth-btn">Sign In</button>
-    </div>
-  </header>
+  <!-- header handled by global elite-header -->
 
   <div class="studio-body">
     <!-- LEFT PANEL -->
     <aside class="left-panel">
 
-      <!-- Upload zone -->
+      <!-- FEED THE WOLF Upload Zone -->
       <div class="field-group">
-        <label class="field-label">Reference Track</label>
-        <div class="upload-zone" id="upload-zone">
+        <div class="upload-zone elite" id="upload-zone">
           <input type="file" id="file-input" accept="audio/*,video/*" hidden />
+          <div class="upload-elite-label">🐺 FEED THE WOLF</div>
           <div class="upload-icon">🎵</div>
-          <div class="upload-text">Drag & drop audio or video</div>
-          <div class="upload-sub">or click to browse · max 50MB</div>
+          <div class="upload-text">Drop your track here</div>
+          <div class="upload-sub">audio or video · max 25MB</div>
           <div class="upload-info hidden" id="upload-info"></div>
         </div>
       </div>
@@ -348,10 +344,9 @@
       <div class="tabs-wrap">
         <div class="tabs">
           <button class="tab active" data-tab="lyrics">LYRICS</button>
-          <button class="tab" data-tab="srt">SRT</button>
+          <button class="tab" data-tab="srt">SRT / SUBTITLES</button>
           <button class="tab" data-tab="beats">BEAT CUTS</button>
           <button class="tab" data-tab="prompts">AI PROMPTS</button>
-          <button class="tab" data-tab="tips">VIDEO TIPS</button>
         </div>
       </div>
 
@@ -483,84 +478,12 @@
 
 <!-- ═══ WOLF HUB PAGE ══════════════════════════════════════════════════════ -->
 <div id="wolf-hub-page" class="page hidden">
-  <header class="studio-header">
-    <div class="studio-header-left">
-      <img src="/logo.svg" alt="LW" class="studio-logo" onerror="this.style.display='none'" />
-      <div class="studio-titles">
-        <div class="studio-brand">LIGHTNING WOLVES / Wolf Hub</div>
-      </div>
-    </div>
-    <div class="studio-header-right">
-      <button class="btn-outline" id="hub-back-btn">← Studio</button>
-    </div>
-  </header>
-
-  <div class="hub-container">
-    <!-- Centerpiece: Glowing Wolf Head -->
-    <div class="wolf-head-centerpiece" id="wolf-head-hub">
-      <div class="wolf-head-glow"></div>
-      <img src="/wolf-yellow.svg" alt="Wolf Head" class="wolf-head-img" id="hub-wolf-head" />
-      
-      <!-- Floating Country Orbs -->
-      <div class="country-orb" style="--angle: 0deg; --dist: 160px;" data-city="Paris">PARIS</div>
-      <div class="country-orb" style="--angle: 72deg; --dist: 160px;" data-city="London">LONDON</div>
-      <div class="country-orb" style="--angle: 144deg; --dist: 160px;" data-city="NYC">NYC</div>
-      <div class="country-orb" style="--angle: 216deg; --dist: 160px;" data-city="Tokyo">TOKYO</div>
-      <div class="country-orb" style="--angle: 288deg; --dist: 160px;" data-city="Berlin">BERLIN</div>
-    </div>
-
-    <!-- PS2-style "Versus" Swipe Page (Hidden by default) -->
-    <div id="swipe-stack-container" class="hidden">
-      <div class="swipe-header">
-        <button class="btn-ghost" id="close-swipe-btn">← Back to Hub</button>
-        <div class="swipe-city-title" id="current-swipe-city">PARIS</div>
-      </div>
-      
-      <div class="versus-container">
-        <!-- Left Side: Your Profile (Fixed) -->
-        <div class="versus-side versus-left">
-          <div class="versus-label">YOU</div>
-          <div class="versus-card-wrap">
-            <div class="wolf-profile-card versus-card" id="your-profile-card">
-              <div class="card-image-wrap">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=LazyJo" class="card-img" />
-                <div class="card-genre-tag">Lightning Wolf</div>
-              </div>
-              <div class="card-info">
-                <div class="card-name">Lazy Jo</div>
-                <div class="card-looking-for">Scouting for the Pack</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Center: VS Divider -->
-        <div class="versus-divider">VS</div>
-
-        <!-- Right Side: Lone Wolf (Swipable) -->
-        <div class="versus-side versus-right">
-          <div class="versus-label">LONE WOLF</div>
-          <div class="versus-card-wrap" id="wolf-card-stack">
-            <!-- Cards injected by JS -->
-          </div>
-        </div>
-      </div>
-
-      <div class="swipe-actions">
-        <button class="swipe-btn pass-btn" id="pass-btn">✖</button>
-        <button class="swipe-btn howl-btn" id="howl-btn">🐺</button>
-      </div>
-    </div>
-
-    <!-- Match Animation Overlay -->
-    <div id="match-overlay" class="hidden">
-      <div class="match-lightning"></div>
-      <div class="match-content">
-        <h2 class="match-title">LIGHTNING STRIKE!</h2>
-        <p class="match-sub">You and <span id="match-name">Wolf_99</span> have matched!</p>
-        <button class="btn-gold" id="start-collab-btn">Start Collaboration</button>
-      </div>
-    </div>
+  <div class="hub-placeholder">
+    <div class="hub-wolf-glow"></div>
+    <img src="/wolf-yellow.svg" alt="Wolf" class="hub-wolf-icon" />
+    <h2 class="hub-title">WOLF HUB</h2>
+    <p class="hub-sub">COMING SOON</p>
+    <p class="hub-desc">Discover wolves worldwide. Swipe. Howl. Collaborate.</p>
   </div>
 </div>
 

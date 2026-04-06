@@ -2101,3 +2101,279 @@ input:checked + .slider:before { transform: translateX(20px); }
   60% { opacity: 1; }
   100% { opacity: 0; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ELITE UPGRADE — Phase 1
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Elite Header (Glassmorphism) ─────────────────────────────────────── */
+.elite-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(10, 10, 14, 0.72);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(245, 197, 24, 0.12);
+}
+.elite-header-inner {
+  max-width: 1400px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 56px;
+}
+.elite-logo { display: flex; align-items: center; flex-shrink: 0; }
+.elite-logo img { width: 36px; height: 36px; object-fit: contain; }
+.elite-nav { display: flex; gap: 4px; }
+.elite-nav-link {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1rem;
+  letter-spacing: 0.1em; color: var(--muted); text-decoration: none;
+  padding: 18px 16px; transition: color 0.2s;
+  border-bottom: 2px solid transparent;
+}
+.elite-nav-link:hover { color: var(--text); text-decoration: none; }
+.elite-nav-link.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.elite-header-right { display: flex; align-items: center; gap: 12px; }
+.elite-join-btn {
+  background: var(--accent); color: #000; border: none;
+  font-family: 'Bebas Neue', sans-serif; font-size: 0.85rem;
+  letter-spacing: 0.1em; padding: 8px 20px; border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(245, 197, 24, 0.3), 0 0 40px rgba(245, 197, 24, 0.1);
+  transition: box-shadow 0.3s, transform 0.15s;
+}
+.elite-join-btn:hover {
+  box-shadow: 0 0 30px rgba(245, 197, 24, 0.5), 0 0 60px rgba(245, 197, 24, 0.2);
+  transform: translateY(-1px);
+}
+.elite-signin-btn {
+  background: transparent; color: var(--text);
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 6px;
+  font-family: 'Bebas Neue', sans-serif; font-size: 0.85rem;
+  letter-spacing: 0.08em; padding: 8px 16px; cursor: pointer;
+  transition: border-color 0.2s;
+}
+.elite-signin-btn:hover { border-color: var(--accent); }
+.elite-header-glow {
+  position: absolute; bottom: -1px; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent 0%, var(--accent) 50%, transparent 100%);
+  opacity: 0.5;
+  animation: headerGlow 3s ease-in-out infinite alternate;
+}
+@keyframes headerGlow { 0% { opacity: 0.3; } 100% { opacity: 0.7; } }
+
+/* Push pages below fixed header */
+.page { padding-top: 56px; }
+
+/* ── Lightning Flash Overlay ──────────────────────────────────────────── */
+.lightning-flash {
+  position: fixed; inset: 0; z-index: 9999;
+  background: white; pointer-events: none;
+}
+.lightning-flash.active {
+  animation: eliteFlash 0.5s ease-out forwards;
+}
+@keyframes eliteFlash {
+  0%   { opacity: 0.85; }
+  15%  { opacity: 0.4; }
+  30%  { opacity: 0.7; }
+  50%  { opacity: 0.2; }
+  100% { opacity: 0; display: none; }
+}
+
+/* ── Neon Flow Edge Animation (reusable) ──────────────────────────────── */
+.neon-flow {
+  position: relative; overflow: hidden;
+}
+.neon-flow::before {
+  content: ''; position: absolute; inset: -2px;
+  background: conic-gradient(from var(--neon-angle, 0deg),
+    transparent 0%, rgba(245,197,24,0.5) 10%, transparent 20%,
+    transparent 100%);
+  border-radius: inherit; z-index: 0;
+  animation: neonSpin 3s linear infinite;
+}
+.neon-flow::after {
+  content: ''; position: absolute; inset: 2px;
+  background: rgba(26, 26, 36, 0.92);
+  border-radius: inherit; z-index: 0;
+}
+.neon-flow > * { position: relative; z-index: 1; }
+@keyframes neonSpin { to { --neon-angle: 360deg; } }
+/* Fallback for browsers without @property */
+@supports not (background: conic-gradient(from 0deg, red, blue)) {
+  .neon-flow::before {
+    background: linear-gradient(135deg, rgba(245,197,24,0.3), transparent, rgba(245,197,24,0.3));
+    animation: neonPulse 2s ease-in-out infinite alternate;
+  }
+}
+@keyframes neonPulse { 0% { opacity: 0.4; } 100% { opacity: 0.8; } }
+
+/* CSS @property for animating conic-gradient angle */
+@property --neon-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes neonSpin {
+  to { --neon-angle: 360deg; }
+}
+
+/* ── Glassmorphism Panels ─────────────────────────────────────────────── */
+.glass-panel {
+  background: rgba(26, 26, 36, 0.8);
+  backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(245, 197, 24, 0.1);
+  border-radius: 12px;
+}
+
+/* Apply glass to studio panels */
+.left-panel {
+  background: rgba(26, 26, 36, 0.8) !important;
+  backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+  border-right: 1px solid rgba(245, 197, 24, 0.1) !important;
+}
+.right-panel {
+  background: rgba(10, 10, 14, 0.85) !important;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+.tabs-wrap {
+  background: rgba(26, 26, 36, 0.6);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(245, 197, 24, 0.08);
+}
+.summary-card {
+  background: rgba(26, 26, 36, 0.8) !important;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(245, 197, 24, 0.1) !important;
+}
+.tab-content-wrap {
+  background: rgba(10, 10, 14, 0.6);
+}
+
+/* ── FEED THE WOLF Upload Zone (Neon Flow) ────────────────────────────── */
+.upload-zone.elite {
+  border: none;
+  background: rgba(26, 26, 36, 0.85);
+  border-radius: 14px;
+  position: relative; overflow: hidden;
+  padding: 28px 20px;
+}
+.upload-zone.elite::before {
+  content: ''; position: absolute; inset: -2px;
+  background: conic-gradient(from var(--neon-angle, 0deg),
+    transparent 0%, rgba(245,197,24,0.6) 8%, transparent 16%,
+    transparent 100%);
+  border-radius: inherit; z-index: 0;
+  animation: neonSpin 3s linear infinite;
+}
+.upload-zone.elite::after {
+  content: ''; position: absolute; inset: 2px;
+  background: rgba(18, 18, 26, 0.95);
+  border-radius: 12px; z-index: 0;
+}
+.upload-zone.elite > * { position: relative; z-index: 1; }
+.upload-zone.elite:hover::before {
+  filter: brightness(1.5);
+}
+.upload-elite-label {
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.2rem;
+  letter-spacing: 0.2em; color: var(--accent);
+  text-align: center; margin-bottom: 8px;
+  text-shadow: 0 0 12px rgba(245,197,24,0.4);
+}
+
+/* ── Neon Flow on Result Panels ───────────────────────────────────────── */
+.tab-panel.active .prompt-card,
+.tab-panel.active .tip-card,
+.tab-panel.active .beats-table {
+  border: 1px solid rgba(245, 197, 24, 0.08);
+  box-shadow: 0 0 12px rgba(245, 197, 24, 0.04);
+}
+
+/* ── Scrollable Tabs (mobile-friendly) ────────────────────────────────── */
+.tabs {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-wrap: nowrap !important;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab { white-space: nowrap; flex-shrink: 0; }
+
+/* ── Wolf Hub Placeholder ─────────────────────────────────────────────── */
+.hub-placeholder {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; text-align: center;
+  min-height: calc(100vh - 56px); padding: 48px 24px;
+  position: relative;
+}
+.hub-wolf-glow {
+  position: absolute; width: 300px; height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245,197,24,0.25) 0%, transparent 70%);
+  animation: hubGlow 3s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes hubGlow {
+  0%   { transform: scale(0.9); opacity: 0.5; }
+  100% { transform: scale(1.1); opacity: 0.9; }
+}
+.hub-wolf-icon {
+  width: 160px; height: 160px; object-fit: contain;
+  position: relative; z-index: 1;
+  filter: drop-shadow(0 0 30px rgba(245,197,24,0.5));
+  margin-bottom: 24px;
+}
+.hub-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(3rem, 8vw, 5rem);
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  text-shadow: 0 0 40px rgba(245,197,24,0.4), 0 0 80px rgba(245,197,24,0.2);
+  position: relative; z-index: 1;
+}
+.hub-sub {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem; letter-spacing: 0.3em;
+  color: var(--muted); margin-top: 8px;
+  position: relative; z-index: 1;
+}
+.hub-desc {
+  font-size: 1rem; color: var(--muted);
+  margin-top: 16px; max-width: 400px;
+  position: relative; z-index: 1;
+}
+
+/* ── Mobile Bottom Navigation ─────────────────────────────────────────── */
+.mobile-nav {
+  display: none !important;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(10, 10, 14, 0.92);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(245, 197, 24, 0.1);
+  justify-content: space-around; align-items: center;
+  padding: 6px 0 env(safe-area-inset-bottom, 6px);
+  height: 60px;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 2px; text-decoration: none; color: var(--muted);
+  font-size: 0.65rem; letter-spacing: 0.06em;
+  text-transform: uppercase; font-family: 'Barlow Condensed', sans-serif;
+  padding: 6px 12px; transition: color 0.2s;
+}
+.nav-item .nav-icon { font-size: 1.3rem; }
+.nav-item.active { color: var(--accent); }
+.nav-item:hover { color: var(--text); text-decoration: none; }
+
+/* ── Mobile Responsive ────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .elite-nav { display: none; }
+  .elite-header-inner { height: 48px; }
+  .elite-join-btn { font-size: 0.75rem; padding: 6px 14px; }
+  .elite-signin-btn { font-size: 0.75rem; padding: 6px 12px; }
+  .page { padding-top: 48px; padding-bottom: 66px; }
+  .mobile-nav { display: flex !important; }
+  .hub-wolf-icon { width: 120px; height: 120px; }
+  .hub-wolf-glow { width: 200px; height: 200px; }
+}

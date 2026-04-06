@@ -36,7 +36,19 @@ const show = el => el && el.classList.remove('hidden');
 const hide = el => el && el.classList.add('hidden');
 
 window.showPage = function(name) {
-  ['wolf-select', 'studio', 'dashboard', 'auth'].forEach(p => {
+  // Lightning flash when entering studio
+  if (name === 'studio' && state.page !== 'studio') {
+    const flash = $('lightning-flash');
+    if (flash) {
+      flash.classList.remove('hidden', 'active');
+      void flash.offsetWidth; // force reflow
+      flash.classList.add('active');
+      setTimeout(() => { flash.classList.add('hidden'); flash.classList.remove('active'); }, 600);
+    }
+  }
+
+  // Hide all pages
+  ['wolf-select', 'studio', 'dashboard', 'auth', 'wolf-hub'].forEach(p => {
     const el = $(`${p}-page`);
     if (el) hide(el);
   });
@@ -45,6 +57,7 @@ window.showPage = function(name) {
     'studio': 'studio-page',
     'dashboard': 'dashboard-page',
     'auth': 'auth-page',
+    'wolf-hub': 'wolf-hub-page',
   };
   const el = $(idMap[name]);
   if (el) show(el);
@@ -58,7 +71,18 @@ window.showPage = function(name) {
     show(nav);
   }
 
-  // Update active nav item
+  // Update elite header nav active state
+  document.querySelectorAll('.elite-nav-link').forEach(link => {
+    link.classList.toggle('active', link.dataset.page === name);
+  });
+
+  // Update elite header auth buttons
+  const joinBtn = $('elite-join-btn');
+  const signinBtn = $('elite-signin-btn');
+  if (state.user && joinBtn) joinBtn.style.display = 'none';
+  if (state.user && signinBtn) { signinBtn.textContent = 'SIGN OUT'; }
+
+  // Update mobile nav active
   const navMap = {
     'wolf-select': 'nav-home',
     'studio': 'nav-studio',
@@ -646,24 +670,58 @@ async function init() {
     initCanvas();
     await initSupabase();
     await checkSession();
-    updateHeaderAuth();
+    initEliteHeader();
     initAuthPage();
     initWolfSelect();
     initTabs();
     initGenerate();
     initUpload();
-    initWolfMap();
-    initWolfHub();
     initMobileNav();
     const dashBack = $('dash-back-btn');
-    if (dashBack) dashBack.onclick = () => showPage('studio');
-    const changeWolf = $('change-wolf-btn');
-    if (changeWolf) changeWolf.onclick = () => showPage('wolf-select');
+    if (dashBack) dashBack.onclick = () => showPage('wolf-select');
   } catch (err) {
     console.error('[init] crashed:', err);
   }
-  // Always show wolf-select even if init partially fails
   showPage('wolf-select');
+}
+
+// ─── Elite Header Navigation ────────────────────────────────────────────────
+function initEliteHeader() {
+  // Nav links
+  document.querySelectorAll('.elite-nav-link').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = link.dataset.page;
+      if (page) showPage(page);
+    });
+  });
+
+  // Logo → home
+  const logo = $('elite-logo-link');
+  if (logo) logo.addEventListener('click', (e) => { e.preventDefault(); showPage('wolf-select'); });
+
+  // Join the Pack → auth signup
+  const joinBtn = $('elite-join-btn');
+  if (joinBtn) joinBtn.addEventListener('click', () => {
+    showPage('auth');
+    document.querySelector('.auth-tab[data-tab="signup"]')?.click();
+  });
+
+  // Sign In
+  const signinBtn = $('elite-signin-btn');
+  if (signinBtn) signinBtn.addEventListener('click', () => {
+    if (state.user) {
+      // Sign out
+      if (window.supabase) supabase.auth.signOut();
+      state.user = null; state.token = null; state.profile = null;
+      signinBtn.textContent = 'SIGN IN';
+      const jb = $('elite-join-btn');
+      if (jb) jb.style.display = '';
+      showPage('wolf-select');
+    } else {
+      showPage('auth');
+    }
+  });
 }
 
 // ─── Wolf Hub & Tinder Logic ────────────────────────────────────────────────

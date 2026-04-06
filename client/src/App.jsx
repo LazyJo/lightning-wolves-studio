@@ -1351,7 +1351,8 @@ const COUNTRY_ARTISTS = {
 function WolfHubPage({ onBack, onCountry }) {
   const [tooltip, setTooltip] = useState(null)
   const canvasRef = useRef(null)
-  const rendererRef = useRef(null)
+  const mouseRef = useRef({ x: 0, y: 0 })
+  const [zooming, setZooming] = useState(null) // country name when zooming
 
   useEffect(() => {
     const container = canvasRef.current
@@ -1371,22 +1372,31 @@ function WolfHubPage({ onBack, onCountry }) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.2
+    renderer.toneMappingExposure = 1.4
     container.appendChild(renderer.domElement)
-    rendererRef.current = renderer
 
-    // Lighting — gold wolf ambiance
-    const ambient = new THREE.AmbientLight(0x222222, 1)
-    scene.add(ambient)
-    const keyLight = new THREE.DirectionalLight(0xFFB800, 2.5)
-    keyLight.position.set(2, 3, 4)
+    // Lighting — cinematic gold with strong rim
+    scene.add(new THREE.AmbientLight(0x1a1a1a, 1.5))
+
+    const keyLight = new THREE.DirectionalLight(0xFFB800, 3)
+    keyLight.position.set(1, 3, 5)
     scene.add(keyLight)
-    const rimLight = new THREE.DirectionalLight(0xFFB800, 1.5)
-    rimLight.position.set(-2, 2, -2)
-    scene.add(rimLight)
-    const fillLight = new THREE.PointLight(0xFFB800, 0.8, 10)
-    fillLight.position.set(0, 0.5, 3)
-    scene.add(fillLight)
+
+    // Strong rim lights — edge glow on fur
+    const rimLeft = new THREE.DirectionalLight(0xFFB800, 4)
+    rimLeft.position.set(-4, 2, -3)
+    scene.add(rimLeft)
+    const rimRight = new THREE.DirectionalLight(0xFF8C00, 3)
+    rimRight.position.set(4, 1, -3)
+    scene.add(rimRight)
+    const rimTop = new THREE.DirectionalLight(0xFFD700, 2)
+    rimTop.position.set(0, 5, -2)
+    scene.add(rimTop)
+
+    // Subtle front fill
+    const fill = new THREE.PointLight(0xFFB800, 0.6, 10)
+    fill.position.set(0, 1, 4)
+    scene.add(fill)
 
     // Load GLB with Draco
     const dracoLoader = new DRACOLoader()
@@ -1395,32 +1405,66 @@ function WolfHubPage({ onBack, onCountry }) {
     gltfLoader.setDRACOLoader(dracoLoader)
 
     let model = null
+    let baseRotationY = 0
     gltfLoader.load('/Optimized_Wolf.glb', (gltf) => {
       model = gltf.scene
-      // Center and scale
       const box = new THREE.Box3().setFromObject(model)
       const center = box.getCenter(new THREE.Vector3())
       const size = box.getSize(new THREE.Vector3())
       const maxDim = Math.max(size.x, size.y, size.z)
-      const scale = 2.2 / maxDim
+      const scale = 2.4 / maxDim
       model.scale.setScalar(scale)
       model.position.sub(center.multiplyScalar(scale))
       model.position.y += 0.8
+
+      // Face forward — rotate 180° so the wolf looks at the camera
+      model.rotation.y = Math.PI
+      baseRotationY = Math.PI
+
       scene.add(model)
     }, undefined, (err) => {
       console.error('[WolfHub] GLB load error:', err)
     })
 
-    // Animate — slow rotation
+    // Mouse/touch tilt tracking
+    function onPointerMove(e) {
+      const rect = container.getBoundingClientRect()
+      mouseRef.current.x = ((e.clientX - rect.left) / rect.width - 0.5) * 2
+      mouseRef.current.y = ((e.clientY - rect.top) / rect.height - 0.5) * 2
+    }
+    container.addEventListener('pointermove', onPointerMove)
+
+    // Animate — mouse-reactive tilt, no auto-rotation
     let raf
+    let zoomProgress = 0
+    const targetCamZ = { current: 4 }
+
     function animate() {
       raf = requestAnimationFrame(animate)
-      if (model) model.rotation.y += 0.003
+
+      if (model) {
+        // Subtle tilt following mouse (max ±12°)
+        const tiltX = mouseRef.current.y * -0.2
+        const tiltY = baseRotationY + mouseRef.current.x * 0.2
+        model.rotation.x += (tiltX - model.rotation.x) * 0.05
+        model.rotation.y += (tiltY - model.rotation.y) * 0.05
+      }
+
+      // Maw zoom — camera pushes into wolf's face
+      camera.position.z += (targetCamZ.current - camera.position.z) * 0.04
+
       renderer.render(scene, camera)
     }
     animate()
 
-    // Resize
+    // Expose zoom trigger
+    container._triggerZoom = () => {
+      targetCamZ.current = 0.5 // zoom into the face
+    }
+    container._resetZoom = () => {
+      targetCamZ.current = 4
+    }
+
     function onResize() {
       const nw = container.clientWidth
       const nh = container.clientHeight
@@ -1433,14 +1477,36 @@ function WolfHubPage({ onBack, onCountry }) {
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', onResize)
+      container.removeEventListener('pointermove', onPointerMove)
       renderer.dispose()
       dracoLoader.dispose()
       if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement)
     }
   }, [])
 
+  function handleCountryClick(country) {
+    // Trigger Maw zoom
+    const container = canvasRef.current
+    if (container?._triggerZoom) container._triggerZoom()
+    setZooming(country)
+
+    // After zoom animation, navigate to country
+    setTimeout(() => {
+      if (container?._resetZoom) container._resetZoom()
+      setZooming(null)
+      onCountry(country)
+    }, 1200)
+  }
+
   return (
     <div className="wolfhub-page">
+      {/* Maw zoom overlay */}
+      {zooming && (
+        <div className="wolfhub-maw-overlay" key={zooming}>
+          <div className="wolfhub-maw-text">{zooming.toUpperCase()}</div>
+        </div>
+      )}
+
       <button className="wolfhub-back" onClick={onBack}>← Back</button>
 
       <div className="wolfhub-center">
@@ -1449,7 +1515,6 @@ function WolfHubPage({ onBack, onCountry }) {
 
         <div className="wolfhub-head-wrap">
           <div className="wolfhub-glow"></div>
-          {/* Three.js canvas container */}
           <div ref={canvasRef} className="wolfhub-3d-canvas"></div>
 
           {WOLF_HUB_DOTS.map(dot => (
@@ -1458,7 +1523,7 @@ function WolfHubPage({ onBack, onCountry }) {
               style={{ top: dot.top, left: dot.left }}
               onMouseEnter={() => setTooltip(dot.country)}
               onMouseLeave={() => setTooltip(null)}
-              onClick={() => onCountry(dot.country)}
+              onClick={() => handleCountryClick(dot.country)}
             >
               <div className="wolfhub-dot-ping"></div>
               {tooltip === dot.country && (
@@ -1525,6 +1590,109 @@ function WolfHubCountryPage({ country, onBack, onSelectWolf }) {
           <div className="wolfhub-more-wolves">More wolves coming soon</div>
         )}
       </div>
+    </div>
+  )
+}
+
+// ─── Versus Swipe Screen (PS2-style) ─────────────────────────────────────────
+const MOCK_WOLVES = [
+  { name: 'Wolf_99', genre: 'Drill', bio: 'London underground. Hard verse only.', seed: 'wolf99' },
+  { name: 'Viper_X', genre: 'Afrobeats', bio: 'Lagos to the world. Need a melodic hook.', seed: 'viperx' },
+  { name: 'Ghost_Writer', genre: 'Dark Trap', bio: 'Shadows and bass. Collab on a dark beat.', seed: 'ghost' },
+  { name: 'Luna_Soul', genre: 'R&B', bio: 'Smooth vocals, moonlight vibes.', seed: 'luna' },
+]
+
+function VersusSwipePage({ wolf, onBack }) {
+  const [deck, setDeck] = useState([...MOCK_WOLVES])
+  const [matched, setMatched] = useState(null)
+  const [swiping, setSwiping] = useState(null) // 'left' | 'right'
+
+  function swipe(dir) {
+    if (!deck.length || swiping) return
+    setSwiping(dir)
+
+    if (dir === 'right' && Math.random() > 0.5) {
+      // Match!
+      setTimeout(() => {
+        setMatched(deck[0].name)
+        setSwiping(null)
+        setDeck(d => d.slice(1))
+      }, 600)
+    } else {
+      setTimeout(() => {
+        setSwiping(null)
+        setDeck(d => d.slice(1))
+      }, 500)
+    }
+  }
+
+  const current = deck[0]
+
+  return (
+    <div className="vs-page">
+      {/* Match overlay */}
+      {matched && (
+        <div className="vs-match-overlay">
+          <div className="vs-match-flash"></div>
+          <div className="vs-match-content">
+            <h2 className="vs-match-title">PACK UNITED!</h2>
+            <p className="vs-match-sub">You and {matched} are now connected</p>
+            <button className="btn-gold" onClick={() => setMatched(null)}>Continue</button>
+          </div>
+        </div>
+      )}
+
+      <button className="wolfhub-back" onClick={onBack}>← Back to Hub</button>
+
+      <div className="vs-arena">
+        {/* YOUR card — left, tilted */}
+        <div className="vs-card-slot vs-left">
+          <div className="vs-card">
+            <div className="vs-card-img">
+              {wolf?.video ? (
+                <video autoPlay loop muted playsInline style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'12px'}}>
+                  <source src={wolf.video} type="video/mp4" />
+                </video>
+              ) : (
+                <img src={`/${wolf?.image || 'LightningWolvesLogoTransparentBG.png'}`} alt="You" />
+              )}
+            </div>
+            <div className="vs-card-name">{wolf?.artist || 'You'}</div>
+            <div className="vs-card-genre">{wolf?.genre || 'Lightning Wolf'}</div>
+          </div>
+          <div className="vs-card-label">YOU</div>
+        </div>
+
+        {/* Center HOWL */}
+        <div className="vs-center">
+          <div className="vs-howl-text">HOWL</div>
+        </div>
+
+        {/* OPPONENT card — right, tilted */}
+        <div className="vs-card-slot vs-right">
+          {current ? (
+            <div className={`vs-card ${swiping === 'left' ? 'vs-swipe-left' : ''} ${swiping === 'right' ? 'vs-swipe-right' : ''}`}>
+              <div className="vs-card-img">
+                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${current.seed}`} alt={current.name} />
+              </div>
+              <div className="vs-card-name">{current.name}</div>
+              <div className="vs-card-genre">{current.genre}</div>
+              <div className="vs-card-bio">{current.bio}</div>
+            </div>
+          ) : (
+            <div className="vs-empty">No more wolves</div>
+          )}
+          <div className="vs-card-label">LONE WOLF</div>
+        </div>
+      </div>
+
+      {/* Swipe buttons */}
+      {current && (
+        <div className="vs-actions">
+          <button className="vs-btn vs-pass" onClick={() => swipe('left')}>✖ PASS</button>
+          <button className="vs-btn vs-howl" onClick={() => swipe('right')}>🐺 HOWL</button>
+        </div>
+      )}
     </div>
   )
 }
@@ -1684,6 +1852,10 @@ export default function App() {
 
       {page === 'wolf-hub-country' && hubCountry && (
         <WolfHubCountryPage country={hubCountry} onBack={() => setPage('wolf-hub')} onSelectWolf={handleSelectWolf} />
+      )}
+
+      {page === 'versus' && (
+        <VersusSwipePage wolf={wolf} onBack={() => setPage('wolf-hub')} />
       )}
 
       {page === 'dashboard' && (

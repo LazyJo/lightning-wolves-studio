@@ -2231,28 +2231,167 @@ textarea { resize: vertical; min-height: 72px; }
 }
 
 /* Gold flash transition on dot click */
-.wolfhub-flash {
-  position:fixed; inset:0; z-index:100;
+/* Maw zoom overlay */
+.wolfhub-maw-overlay {
+  position:fixed; inset:0; z-index:200;
   display:flex; align-items:center; justify-content:center;
-  animation:hubFlash 3s ease-out forwards;
+  pointer-events:none;
+  animation:mawFade 1.2s ease-in forwards;
 }
-@keyframes hubFlash {
-  0%   { background:rgba(255,184,0,0.8); }
-  15%  { background:rgba(255,184,0,0.3); }
-  30%  { background:rgba(0,0,0,0.95); }
-  100% { background:rgba(0,0,0,0.95); opacity:0; pointer-events:none; }
+@keyframes mawFade {
+  0%   { background:transparent; }
+  40%  { background:rgba(255,184,0,0.15); }
+  70%  { background:rgba(0,0,0,0.85); }
+  100% { background:rgba(0,0,0,0.95); }
 }
-.wolfhub-flash-text {
+.wolfhub-maw-text {
   font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(1.5rem,4vw,2.5rem); letter-spacing:0.15em;
+  font-size:clamp(2rem,5vw,3.5rem); letter-spacing:0.2em;
   color:#FFB800; opacity:0;
-  animation:hubFlashText 3s ease-out forwards;
+  text-shadow:0 0 40px rgba(255,184,0,0.5);
+  animation:mawText 1.2s ease-out 0.5s forwards;
 }
-@keyframes hubFlashText {
-  0%   { opacity:0; transform:scale(0.8); }
-  35%  { opacity:1; transform:scale(1); }
-  80%  { opacity:1; }
+@keyframes mawText {
+  0%   { opacity:0; transform:scale(0.5); }
+  60%  { opacity:1; transform:scale(1.05); }
+  100% { opacity:1; transform:scale(1); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   VERSUS SWIPE SCREEN (PS2-style)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.vs-page {
+  min-height:100vh; background:#0a0a0c;
+  display:flex; flex-direction:column; align-items:center;
+  position:relative; z-index:1; overflow:hidden;
+}
+.vs-arena {
+  display:flex; align-items:center; justify-content:center;
+  gap:20px; flex:1; padding:80px 24px 40px;
+  width:100%; max-width:900px;
+}
+
+/* Card slots — 45° tilt */
+.vs-card-slot { display:flex; flex-direction:column; align-items:center; gap:12px; flex:1; max-width:280px; }
+.vs-left .vs-card  { transform:perspective(800px) rotateY(15deg) rotateZ(-3deg); }
+.vs-right .vs-card { transform:perspective(800px) rotateY(-15deg) rotateZ(3deg); }
+
+.vs-card {
+  background:var(--card,#18181f); border:2px solid rgba(255,184,0,0.2);
+  border-radius:16px; padding:20px; text-align:center;
+  transition:transform 0.5s cubic-bezier(.17,.67,.35,1.2), opacity 0.5s;
+  box-shadow:0 8px 40px rgba(0,0,0,0.6);
+}
+.vs-card:hover { border-color:rgba(255,184,0,0.5); }
+.vs-card-img {
+  width:140px; height:140px; margin:0 auto 14px;
+  border-radius:50%; overflow:hidden;
+  border:2px solid rgba(255,184,0,0.3);
+}
+.vs-card-img img { width:100%; height:100%; object-fit:cover; }
+.vs-card-name {
+  font-family:'Bebas Neue',sans-serif; font-size:1.4rem;
+  letter-spacing:0.06em; color:#f0f0f4;
+}
+.vs-card-genre {
+  font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase;
+  color:#FFB800; margin-top:4px;
+}
+.vs-card-bio {
+  font-size:0.8rem; color:#888; margin-top:8px; font-style:italic;
+}
+.vs-card-label {
+  font-family:'Bebas Neue',sans-serif; font-size:0.85rem;
+  letter-spacing:0.2em; color:#888;
+}
+
+/* Swipe animations */
+.vs-swipe-left  { transform:translateX(-200%) rotateZ(-30deg) !important; opacity:0 !important; }
+.vs-swipe-right { transform:translateX(200%) rotateZ(30deg) !important; opacity:0 !important; }
+
+/* Center HOWL */
+.vs-center {
+  display:flex; align-items:center; justify-content:center;
+  width:80px; flex-shrink:0;
+}
+.vs-howl-text {
+  font-family:'Bebas Neue',sans-serif; font-size:1.8rem;
+  letter-spacing:0.15em; color:#FFB800;
+  text-shadow:0 0 20px rgba(255,184,0,0.5), 0 0 40px rgba(255,184,0,0.2);
+  animation:howlPulse 2s ease-in-out infinite alternate;
+}
+@keyframes howlPulse {
+  0%   { text-shadow:0 0 10px rgba(255,184,0,0.3); transform:scale(1); }
+  100% { text-shadow:0 0 30px rgba(255,184,0,0.6), 0 0 60px rgba(255,184,0,0.3); transform:scale(1.08); }
+}
+
+.vs-empty {
+  color:#555; font-family:'Bebas Neue',sans-serif;
+  font-size:1.2rem; letter-spacing:0.1em;
+}
+
+/* Swipe action buttons */
+.vs-actions {
+  display:flex; gap:24px; padding:0 24px 48px;
+}
+.vs-btn {
+  font-family:'Bebas Neue',sans-serif; font-size:1.1rem;
+  letter-spacing:0.1em; padding:14px 32px; border-radius:12px;
+  border:none; cursor:pointer; transition:transform 0.2s,box-shadow 0.2s;
+}
+.vs-pass {
+  background:#2a2a35; color:#ff4455;
+  border:1px solid rgba(255,68,85,0.3);
+}
+.vs-pass:hover { transform:scale(1.05); box-shadow:0 0 20px rgba(255,68,85,0.3); }
+.vs-howl {
+  background:#FFB800; color:#000;
+  box-shadow:0 0 20px rgba(255,184,0,0.3);
+}
+.vs-howl:hover { transform:scale(1.05); box-shadow:0 0 30px rgba(255,184,0,0.5); }
+
+/* PACK UNITED match overlay */
+.vs-match-overlay {
+  position:fixed; inset:0; z-index:200;
+  display:flex; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.9);
+}
+.vs-match-flash {
+  position:absolute; inset:0;
+  background:white; opacity:0;
+  animation:vsFlash 0.6s ease-out;
+}
+@keyframes vsFlash {
+  0%   { opacity:1; }
+  30%  { opacity:0.5; }
+  50%  { opacity:0.8; }
   100% { opacity:0; }
+}
+.vs-match-content { text-align:center; position:relative; z-index:1; }
+.vs-match-title {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2.5rem,7vw,4.5rem); letter-spacing:0.15em;
+  color:#FFB800;
+  text-shadow:0 0 40px rgba(255,184,0,0.6), 0 0 80px rgba(255,184,0,0.3);
+  animation:packUnited 0.6s cubic-bezier(.17,.67,.35,1.2);
+}
+@keyframes packUnited {
+  0% { transform:scale(0.3); opacity:0; }
+  100% { transform:scale(1); opacity:1; }
+}
+.vs-match-sub {
+  color:#aaa; font-size:1rem; margin:12px 0 24px;
+  letter-spacing:0.04em;
+}
+
+/* VS responsive */
+@media (max-width:700px) {
+  .vs-arena { flex-direction:column; gap:16px; padding-top:60px; }
+  .vs-left .vs-card  { transform:perspective(800px) rotateX(5deg); }
+  .vs-right .vs-card { transform:perspective(800px) rotateX(-5deg); }
+  .vs-center { width:auto; }
+  .vs-howl-text { font-size:1.4rem; }
+  .vs-card-slot { max-width:240px; }
 }
 
 /* Footer easter egg */

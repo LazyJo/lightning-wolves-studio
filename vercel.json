@@ -1,15 +1,12 @@
 {
   "version": 2,
-  "framework": null,
-  "buildCommand": "",
-  "installCommand": "npm install",
-  "functions": {
-    "api/**/*.js": {
-      "maxDuration": 120,
-      "includeFiles": "server.js"
-    }
-  },
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  "builds": [
+    { "src": "public/**", "use": "@vercel/static" },
+    { "src": "api/**/*.js", "use": "@vercel/node", "config": { "maxDuration": 120, "includeFiles": ["server.js"] } }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/[...path].js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/public/index.html" }
   ]
 }

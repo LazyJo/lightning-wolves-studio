@@ -856,7 +856,7 @@ function JoinPackPage({ onBack }) {
   )
 }
 
-function WolfSelectPage({ onSelectWolf, onJoinPack, onPricing, onShowAuth }) {
+function WolfSelectPage({ onSelectWolf, onJoinPack, onPricing, onShowAuth, onWolfHub }) {
   useEffect(() => {
     // Force all videos to play immediately — multiple retries for staggered loads
     const playAll = () => {
@@ -931,6 +931,9 @@ function WolfSelectPage({ onSelectWolf, onJoinPack, onPricing, onShowAuth }) {
           </div>
         </div>
       </main>
+      <footer className="wolfhub-footer">
+        <span className="wolfhub-egg" onClick={onWolfHub}>🐺</span>
+      </footer>
     </div>
   )
 }
@@ -1317,6 +1320,66 @@ function DashboardPage({ wolf, profile, token, onBack, onSignOut }) {
   )
 }
 
+// ─── Wolf Hub (hidden page) ──────────────────────────────────────────────────
+const WOLF_HUB_DOTS = [
+  { country: 'Belgium', flag: '🇧🇪', top: '52%', left: '32%' },
+  { country: 'France',  flag: '🇫🇷', top: '52%', left: '68%' },
+  { country: 'USA',     flag: '🇺🇸', top: '18%', left: '25%' },
+  { country: 'UK',      flag: '🇬🇧', top: '18%', left: '75%' },
+  { country: 'Nigeria', flag: '🇳🇬', top: '68%', left: '50%' },
+  { country: 'Ghana',   flag: '🇬🇭', top: '28%', left: '50%' },
+]
+
+function WolfHubPage({ onBack }) {
+  const [flash, setFlash] = useState(null)
+  const [tooltip, setTooltip] = useState(null)
+
+  function handleDotClick(country) {
+    setFlash(country)
+    setTimeout(() => setFlash(null), 3000)
+  }
+
+  return (
+    <div className="wolfhub-page">
+      {/* Gold flash overlay */}
+      {flash && (
+        <div className="wolfhub-flash" key={flash}>
+          <div className="wolfhub-flash-text">COMING SOON — {flash.toUpperCase()}</div>
+        </div>
+      )}
+
+      <button className="wolfhub-back" onClick={onBack}>← Back</button>
+
+      <div className="wolfhub-center">
+        <h1 className="wolfhub-title">WOLF HUB</h1>
+        <p className="wolfhub-subtitle">SELECT YOUR TERRITORY</p>
+
+        <div className="wolfhub-head-wrap">
+          <div className="wolfhub-glow"></div>
+          <img src="/wolf-hub.png" alt="Wolf Hub"
+               className="wolfhub-head-img"
+               onError={e => { e.target.src = '/LightningWolvesLogoTransparentBG.png' }} />
+
+          {WOLF_HUB_DOTS.map(dot => (
+            <div key={dot.country}
+              className="wolfhub-dot"
+              style={{ top: dot.top, left: dot.left }}
+              onMouseEnter={() => setTooltip(dot.country)}
+              onMouseLeave={() => setTooltip(null)}
+              onClick={() => handleDotClick(dot.country)}
+            >
+              <div className="wolfhub-dot-ping"></div>
+              {tooltip === dot.country && (
+                <div className="wolfhub-tooltip">{dot.flag} {dot.country}</div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── Limit Modal ──────────────────────────────────────────────────────────────
 function LimitModal({ onClose, onSignup }) {
   return (
@@ -1423,7 +1486,7 @@ export default function App() {
       <LightningCanvas wolfColor={wolf?.color || '#f5c518'} />
 
       {page === 'wolf-select' && (
-        <WolfSelectPage onSelectWolf={handleSelectWolf} onJoinPack={() => setPage('join-pack')} onPricing={() => setPage('pricing')} onShowAuth={() => setPage('auth')} />
+        <WolfSelectPage onSelectWolf={handleSelectWolf} onJoinPack={() => setPage('join-pack')} onPricing={() => setPage('pricing')} onShowAuth={() => setPage('auth')} onWolfHub={() => setPage('wolf-hub')} />
       )}
 
       {page === 'join-pack' && (
@@ -1463,6 +1526,10 @@ export default function App() {
           onOpenDashboard={() => setPage('dashboard')}
           onShowLimitModal={() => setShowLimitModal(true)}
         />
+      )}
+
+      {page === 'wolf-hub' && (
+        <WolfHubPage onBack={() => setPage('wolf-select')} />
       )}
 
       {page === 'dashboard' && (

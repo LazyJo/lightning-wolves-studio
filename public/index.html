@@ -206,6 +206,7 @@
       <span class="artist-dot" id="studio-artist-dot"></span>
       <span class="artist-name-header" id="studio-artist-name"></span>
       <span class="plan-badge" id="studio-plan-badge">PUBLIC</span>
+      <button class="btn-outline" id="wolf-map-btn">WOLF MAP</button>
       <button class="btn-outline" id="change-wolf-btn">Change Wolf</button>
       <button class="btn-ghost" id="studio-auth-btn">Sign In</button>
     </div>
@@ -313,10 +314,23 @@
         <button class="btn-outline btn-sm" id="new-track-btn">New Track</button>
       </div>
 
-      <!-- Waveform loading bar -->
+      <!-- Progress Stepper -->
       <div class="waveform-wrap hidden" id="waveform-wrap">
         <div class="waveform-bar-container">
-          <span class="generating-label">Generating your pack…</span>
+          <div class="stepper" id="gen-stepper">
+            <div class="step active" data-step="1">
+              <div class="step-circle">1</div>
+              <div class="step-label">Transcribing</div>
+            </div>
+            <div class="step" data-step="2">
+              <div class="step-circle">2</div>
+              <div class="step-label">Analyzing</div>
+            </div>
+            <div class="step" data-step="3">
+              <div class="step-circle">3</div>
+              <div class="step-label">Writing</div>
+            </div>
+          </div>
           <div class="waveform">
             <div class="waveform-bar"></div><div class="waveform-bar"></div>
             <div class="waveform-bar"></div><div class="waveform-bar"></div>
@@ -349,6 +363,13 @@
             <div>Generate a pack to see timed lyrics here</div>
           </div>
           <div id="lyrics-content" class="lyrics-list hidden"></div>
+          <div id="lyrics-editor-wrap" class="hidden">
+            <div class="editor-header">
+              <span>Edit Lyrics</span>
+              <button class="btn-outline btn-sm" id="save-lyrics-btn">Save Changes</button>
+            </div>
+            <textarea id="lyrics-editor" class="lyrics-textarea"></textarea>
+          </div>
         </div>
 
         <!-- SRT -->
@@ -460,6 +481,89 @@
   </div>
 </div>
 
+<!-- ═══ WOLF HUB PAGE ══════════════════════════════════════════════════════ -->
+<div id="wolf-hub-page" class="page hidden">
+  <header class="studio-header">
+    <div class="studio-header-left">
+      <img src="/logo.svg" alt="LW" class="studio-logo" onerror="this.style.display='none'" />
+      <div class="studio-titles">
+        <div class="studio-brand">LIGHTNING WOLVES / Wolf Hub</div>
+      </div>
+    </div>
+    <div class="studio-header-right">
+      <button class="btn-outline" id="hub-back-btn">← Studio</button>
+    </div>
+  </header>
+
+  <div class="hub-container">
+    <!-- Centerpiece: Glowing Wolf Head -->
+    <div class="wolf-head-centerpiece" id="wolf-head-hub">
+      <div class="wolf-head-glow"></div>
+      <img src="/wolf-yellow.svg" alt="Wolf Head" class="wolf-head-img" id="hub-wolf-head" />
+      
+      <!-- Floating Country Orbs -->
+      <div class="country-orb" style="--angle: 0deg; --dist: 160px;" data-city="Paris">PARIS</div>
+      <div class="country-orb" style="--angle: 72deg; --dist: 160px;" data-city="London">LONDON</div>
+      <div class="country-orb" style="--angle: 144deg; --dist: 160px;" data-city="NYC">NYC</div>
+      <div class="country-orb" style="--angle: 216deg; --dist: 160px;" data-city="Tokyo">TOKYO</div>
+      <div class="country-orb" style="--angle: 288deg; --dist: 160px;" data-city="Berlin">BERLIN</div>
+    </div>
+
+    <!-- PS2-style "Versus" Swipe Page (Hidden by default) -->
+    <div id="swipe-stack-container" class="hidden">
+      <div class="swipe-header">
+        <button class="btn-ghost" id="close-swipe-btn">← Back to Hub</button>
+        <div class="swipe-city-title" id="current-swipe-city">PARIS</div>
+      </div>
+      
+      <div class="versus-container">
+        <!-- Left Side: Your Profile (Fixed) -->
+        <div class="versus-side versus-left">
+          <div class="versus-label">YOU</div>
+          <div class="versus-card-wrap">
+            <div class="wolf-profile-card versus-card" id="your-profile-card">
+              <div class="card-image-wrap">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=LazyJo" class="card-img" />
+                <div class="card-genre-tag">Lightning Wolf</div>
+              </div>
+              <div class="card-info">
+                <div class="card-name">Lazy Jo</div>
+                <div class="card-looking-for">Scouting for the Pack</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: VS Divider -->
+        <div class="versus-divider">VS</div>
+
+        <!-- Right Side: Lone Wolf (Swipable) -->
+        <div class="versus-side versus-right">
+          <div class="versus-label">LONE WOLF</div>
+          <div class="versus-card-wrap" id="wolf-card-stack">
+            <!-- Cards injected by JS -->
+          </div>
+        </div>
+      </div>
+
+      <div class="swipe-actions">
+        <button class="swipe-btn pass-btn" id="pass-btn">✖</button>
+        <button class="swipe-btn howl-btn" id="howl-btn">🐺</button>
+      </div>
+    </div>
+
+    <!-- Match Animation Overlay -->
+    <div id="match-overlay" class="hidden">
+      <div class="match-lightning"></div>
+      <div class="match-content">
+        <h2 class="match-title">LIGHTNING STRIKE!</h2>
+        <p class="match-sub">You and <span id="match-name">Wolf_99</span> have matched!</p>
+        <button class="btn-gold" id="start-collab-btn">Start Collaboration</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══ LIMIT MODAL ════════════════════════════════════════════════════════ -->
 <div id="limit-modal" class="modal-overlay hidden">
   <div class="modal-box">
@@ -472,6 +576,26 @@
     </div>
   </div>
 </div>
+
+<!-- ═══ MOBILE NAVIGATION ══════════════════════════════════════════════════ -->
+<nav class="mobile-nav hidden" id="mobile-nav">
+  <a href="#" class="nav-item active" id="nav-home">
+    <span class="nav-icon">🏠</span>
+    <span>Home</span>
+  </a>
+  <a href="#" class="nav-item" id="nav-studio">
+    <span class="nav-icon">🎤</span>
+    <span>Studio</span>
+  </a>
+  <a href="#" class="nav-item" id="nav-hub">
+    <span class="nav-icon">🐺</span>
+    <span>Hub</span>
+  </a>
+  <a href="#" class="nav-item" id="nav-dash">
+    <span class="nav-icon">⚡</span>
+    <span>Pack</span>
+  </a>
+</nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="/app.js"></script>

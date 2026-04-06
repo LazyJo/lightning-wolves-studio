@@ -4,10 +4,6 @@
 
 'use strict';
 
-// ─── Supabase client ─────────────────────────────────────────────────────────
-// Injected from window via CDN; keys fetched from meta tags or config endpoint
-// We proxy auth through the backend so the service role key stays server-side.
-// The anon key + URL are safe to expose (RLS protects data).
 let supabase = null;
 
 async function initSupabase() {
@@ -19,35 +15,31 @@ async function initSupabase() {
       supabase = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
     }
   } catch {
-    // Supabase not configured — guest-only mode
     console.info('Supabase not configured, running in guest mode');
   }
 }
 
-// ─── App State ───────────────────────────────────────────────────────────────
 const state = {
-  page: 'wolf-select',      // wolf-select | studio | dashboard | auth
-  wolf: null,               // { id, color, artist, genre, image }
-  user: null,               // Supabase user object
-  profile: null,            // DB profile row
-  token: null,              // JWT for API calls
-  lastPack: null,           // last generated result
-  lastMeta: null,           // { title, artist, genre, wolfId }
-  uploadedFile: null,       // { filename, originalName, size }
+  page: 'wolf-select',
+  wolf: null,
+  user: null,
+  profile: null,
+  token: null,
+  lastPack: null,
+  lastMeta: null,
+  uploadedFile: null,
   generating: false,
 };
 
-// ─── DOM helpers ─────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const show = el => el && el.classList.remove('hidden');
 const hide = el => el && el.classList.add('hidden');
 
-function showPage(name) {
+window.showPage = function(name) {
   ['wolf-select', 'studio', 'dashboard', 'auth'].forEach(p => {
-    const el = $(`${p}-page`) || $(`${p.replace('-select', '-select')}-page`);
+    const el = $(`${p}-page`);
     if (el) hide(el);
   });
-  // Map names to element ids
   const idMap = {
     'wolf-select': 'wolf-select-page',
     'studio': 'studio-page',
@@ -57,14 +49,30 @@ function showPage(name) {
   const el = $(idMap[name]);
   if (el) show(el);
   state.page = name;
+
+  // Handle mobile nav visibility
+  const nav = $('mobile-nav');
+  if (name === 'auth') {
+    hide(nav);
+  } else {
+    show(nav);
+  }
+
+  // Update active nav item
+  const navMap = {
+    'wolf-select': 'nav-home',
+    'studio': 'nav-studio',
+    'wolf-hub': 'nav-hub',
+    'dashboard': 'nav-dash'
+  };
+  if (navMap[name]) updateMobileNavActive(navMap[name]);
 }
 
-// ─── Lightning Particle Canvas ───────────────────────────────────────────────
+// ─── Canvas ──────────────────────────────────────────────────────────────────
 function initCanvas() {
   const canvas = $('lightning-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-
   let W, H, particles = [], bolts = [];
 
   function resize() {
@@ -74,7 +82,6 @@ function initCanvas() {
   resize();
   window.addEventListener('resize', resize);
 
-  // Particles (drifting sparks)
   class Particle {
     constructor() { this.reset(); }
     reset() {
@@ -85,8 +92,7 @@ function initCanvas() {
       this.speedY = -Math.random() * 0.6 - 0.1;
       this.life = 1;
       this.decay = Math.random() * 0.003 + 0.001;
-      const color = getComputedStyle(document.documentElement)
-        .getPropertyValue('--wolf-color').trim() || '#f5c518';
+      const color = getComputedStyle(document.documentElement).getPropertyValue('--wolf-color').trim() || '#f5c518';
       this.color = color;
     }
     update() {
@@ -99,8 +105,6 @@ function initCanvas() {
       ctx.save();
       ctx.globalAlpha = this.life * 0.35;
       ctx.fillStyle = this.color;
-      ctx.shadowBlur = 6;
-      ctx.shadowColor = this.color;
       ctx.beginPath();
       ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
       ctx.fill();
@@ -108,71 +112,14 @@ function initCanvas() {
     }
   }
 
-  // Lightning bolts (occasional flashes)
-  class Bolt {
-    constructor() { this.reset(); }
-    reset() {
-      this.x = Math.random() * W;
-      this.y = 0;
-      this.segments = [];
-      const segs = Math.floor(Math.random() * 6 + 4);
-      let cx = this.x, cy = 0;
-      for (let i = 0; i < segs; i++) {
-        cx += (Math.random() - 0.5) * 60;
-        cy += H / segs;
-        this.segments.push({ x: cx, y: cy });
-      }
-      this.life = 1;
-      this.decay = Math.random() * 0.06 + 0.04;
-      const color = getComputedStyle(document.documentElement)
-        .getPropertyValue('--wolf-color').trim() || '#f5c518';
-      this.color = color;
-    }
-    update() { this.life -= this.decay; }
-    draw() {
-      if (this.life <= 0) return;
-      ctx.save();
-      ctx.globalAlpha = this.life * 0.08;
-      ctx.strokeStyle = this.color;
-      ctx.lineWidth = 1;
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = this.color;
-      ctx.beginPath();
-      ctx.moveTo(this.x, 0);
-      this.segments.forEach(s => ctx.lineTo(s.x, s.y));
-      ctx.stroke();
-      ctx.restore();
-    }
-  }
-
-  // Init particles
   for (let i = 0; i < 80; i++) particles.push(new Particle());
 
-  let boltTimer = 0;
   function loop() {
     ctx.clearRect(0, 0, W, H);
-
-    // Particles
     particles.forEach(p => { p.update(); p.draw(); });
-
-    // Bolts
-    boltTimer++;
-    if (boltTimer > 120 + Math.random() * 180) {
-      bolts.push(new Bolt());
-      boltTimer = 0;
-    }
-    bolts = bolts.filter(b => b.life > 0);
-    bolts.forEach(b => { b.update(); b.draw(); });
-
     requestAnimationFrame(loop);
   }
   loop();
-}
-
-// ─── Wolf Theme ───────────────────────────────────────────────────────────────
-function applyWolfTheme(color) {
-  document.documentElement.style.setProperty('--wolf-color', color);
-  document.documentElement.style.setProperty('--accent', color);
 }
 
 // ─── Auth ─────────────────────────────────────────────────────────────────────
@@ -188,18 +135,13 @@ async function checkSession() {
 
 async function loadProfile() {
   if (!supabase || !state.user) return;
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', state.user.id)
-    .single();
+  const { data } = await supabase.from('profiles').select('*').eq('id', state.user.id).single();
   state.profile = data;
 }
 
 function updateHeaderAuth() {
   const actionsEl = $('header-auth-actions');
   if (!actionsEl) return;
-
   if (state.user) {
     const name = state.profile?.display_name || state.user.email;
     actionsEl.innerHTML = `
@@ -212,9 +154,7 @@ function updateHeaderAuth() {
     const soBtn = $('header-signout');
     if (soBtn) soBtn.addEventListener('click', signOut);
   } else {
-    actionsEl.innerHTML = `
-      <button class="btn-outline btn-sm" id="header-signin">Sign In</button>
-    `;
+    actionsEl.innerHTML = `<button class="btn-outline btn-sm" id="header-signin">Sign In</button>`;
     const si = $('header-signin');
     if (si) si.addEventListener('click', () => showPage('auth'));
   }
@@ -230,17 +170,6 @@ function updateStudioAuth() {
     btn.textContent = 'Sign In';
     btn.onclick = () => showPage('auth');
   }
-
-  const badge = $('studio-plan-badge');
-  if (badge) {
-    if (state.profile?.role === 'member') {
-      badge.textContent = 'WOLF PACK';
-      badge.className = 'plan-badge member';
-    } else {
-      badge.textContent = state.user ? 'FREE' : 'PUBLIC';
-      badge.className = 'plan-badge';
-    }
-  }
 }
 
 async function signOut() {
@@ -253,619 +182,596 @@ async function signOut() {
   showPage('wolf-select');
 }
 
-// ─── Auth Forms ───────────────────────────────────────────────────────────────
-function initAuthPage() {
-  // Tab switching
-  document.querySelectorAll('.auth-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tab = btn.dataset.tab;
-      document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      if (tab === 'login') {
-        show($('login-form')); hide($('signup-form'));
-      } else {
-        hide($('login-form')); show($('signup-form'));
-      }
-    });
-  });
-
-  // Switch links inside forms
-  document.querySelectorAll('[data-switch]').forEach(a => {
-    a.addEventListener('click', e => {
-      e.preventDefault();
-      const target = e.target.dataset.switch;
-      document.querySelector(`.auth-tab[data-tab="${target}"]`)?.click();
-    });
-  });
-
-  // Login
-  $('login-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const email = $('login-email').value.trim();
-    const pass  = $('login-password').value;
-    const errEl = $('login-error');
-    hide(errEl);
-    if (!supabase) return showAuthError(errEl, 'Auth not configured. Please set up Supabase.');
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error) return showAuthError(errEl, error.message);
-    state.user  = data.user;
-    state.token = data.session.access_token;
-    await loadProfile();
-    afterAuth();
-  });
-
-  // Signup
-  $('signup-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const email = $('signup-email').value.trim();
-    const pass  = $('signup-password').value;
-    const promo = $('signup-promo').value.trim().toUpperCase();
-    const errEl = $('signup-error');
-    hide(errEl);
-
-    const res = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password: pass, promoCode: promo }),
-    });
-    const json = await res.json();
-    if (!res.ok) return showAuthError(errEl, json.error);
-
-    // Auto sign-in
-    if (supabase) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-      if (error) return showAuthError(errEl, 'Account created! Please sign in.');
-      state.user  = data.user;
-      state.token = data.session.access_token;
-      await loadProfile();
-    }
-    afterAuth();
-  });
-
-  // Guest
-  $('continue-as-guest').addEventListener('click', () => {
-    showPage('wolf-select');
-  });
-}
-
-function showAuthError(el, msg) {
-  el.textContent = msg;
-  show(el);
-}
-
-function afterAuth() {
-  updateHeaderAuth();
-  updateStudioAuth();
-  if (state.wolf) {
-    showPage('studio');
-  } else {
-    showPage('wolf-select');
-  }
-}
-
 // ─── Wolf Selection ───────────────────────────────────────────────────────────
 function initWolfSelect() {
   document.querySelectorAll('.wolf-card.active').forEach(card => {
     card.addEventListener('click', () => {
       const wolf = {
-        id:     card.dataset.wolf,
-        color:  card.dataset.color,
+        id: card.dataset.wolf,
+        color: card.dataset.color,
         artist: card.dataset.artist,
-        genre:  card.dataset.genre,
-        image:  card.dataset.image,
+        genre: card.dataset.genre,
+        image: card.dataset.image
       };
-      selectWolf(wolf);
+      state.wolf = wolf;
+      applyWolfTheme(wolf.color);
+      $('studio-wolf-img').src = `/${wolf.image}`;
+      $('studio-artist-name').textContent = wolf.artist;
+      $('song-artist').value = wolf.artist;
+      $('song-genre').value = wolf.genre;
+      showPage('studio');
     });
   });
-
   $('enter-public-studio').addEventListener('click', () => {
-    selectWolf({ id: 'public', color: '#f5c518', artist: '', genre: '', image: 'logo.svg' });
+    state.wolf = { id: 'public', color: '#f5c518', artist: 'Guest', genre: 'Pop', image: 'logo.svg' };
+    applyWolfTheme('#f5c518');
+    showPage('studio');
   });
 }
 
-function selectWolf(wolf) {
-  state.wolf = wolf;
-  applyWolfTheme(wolf.color);
-  loadStudio(wolf);
-  showPage('studio');
+function applyWolfTheme(color) {
+  document.documentElement.style.setProperty('--wolf-color', color);
+  document.documentElement.style.setProperty('--accent', color);
 }
 
-// ─── Studio Setup ─────────────────────────────────────────────────────────────
-function loadStudio(wolf) {
-  // Header
-  const img = $('studio-wolf-img');
-  if (img) img.src = `/${wolf.image || 'logo.svg'}`;
-  const dotEl = $('studio-artist-dot');
-  if (dotEl) dotEl.style.background = wolf.color;
-  if (dotEl) dotEl.style.boxShadow  = `0 0 8px ${wolf.color}`;
-  const nameEl = $('studio-artist-name');
-  if (nameEl) nameEl.textContent = wolf.artist || '';
-
-  // Pre-fill artist field if wolf selected
-  if (wolf.artist) {
-    const artistInput = $('song-artist');
-    if (artistInput && !artistInput.value) artistInput.value = wolf.artist;
-  }
-
-  // Pre-select genre
-  if (wolf.genre) {
-    const genreSelect = $('song-genre');
-    if (genreSelect) {
-      for (const opt of genreSelect.options) {
-        if (opt.value === wolf.genre || wolf.genre.includes(opt.value)) {
-          genreSelect.value = opt.value;
-          break;
-        }
-      }
-    }
-  }
-
-  // Update auth UI
-  updateStudioAuth();
-
-  // Restore last pack from localStorage
-  const saved = localStorage.getItem('lw_last_pack');
-  const savedMeta = localStorage.getItem('lw_last_meta');
-  if (saved && savedMeta) {
-    try {
-      state.lastPack = JSON.parse(saved);
-      state.lastMeta = JSON.parse(savedMeta);
-      renderPack(state.lastPack, state.lastMeta);
-    } catch { /* ignore */ }
-  }
-
-  // Wolf-themed focus glow on inputs
-  document.querySelectorAll('input, select, textarea').forEach(el => {
-    el.addEventListener('focus', () => {
-      el.style.boxShadow = `0 0 0 3px ${wolf.color}22`;
-    });
-    el.addEventListener('blur', () => {
-      el.style.boxShadow = '';
-    });
-  });
-}
-
-// ─── File Upload ──────────────────────────────────────────────────────────────
+// ─── Upload ───────────────────────────────────────────────────────────────────
 function initUpload() {
-  const zone  = $('upload-zone');
+  const zone = $('upload-zone');
   const input = $('file-input');
-  const info  = $('upload-info');
+  const info = $('upload-info');
 
   zone.addEventListener('click', () => input.click());
-
-  input.addEventListener('change', () => {
-    if (input.files[0]) handleFile(input.files[0]);
-  });
-
-  zone.addEventListener('dragover', e => {
-    e.preventDefault();
-    zone.classList.add('dragover');
-  });
-
-  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-
-  zone.addEventListener('drop', e => {
-    e.preventDefault();
-    zone.classList.remove('dragover');
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
-  });
-
-  async function handleFile(file) {
-    const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-    info.textContent = `Uploading ${file.name} (${sizeMB} MB)…`;
+  input.addEventListener('change', async () => {
+    const file = input.files[0];
+    if (!file) return;
+    
+    info.textContent = `Uploading ${file.name}...`;
     show(info);
 
-    const fd = new FormData();
-    fd.append('file', file);
+    const formData = new FormData();
+    formData.append('file', file);
+
     try {
-      const res  = await fetch('/api/upload', { method: 'POST', body: fd });
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
-      state.uploadedFile = json;
-      info.textContent   = `✓ ${json.originalName} · ${sizeMB} MB`;
-      info.style.color   = '#3ddc84';
+      if (res.ok) {
+        state.uploadedFile = json;
+        info.textContent = `✓ ${file.name} ready`;
+      } else {
+        throw new Error(json.error);
+      }
     } catch (err) {
-      info.textContent = `Upload failed: ${err.message}`;
-      info.style.color = '#ff4455';
+      info.textContent = `Error: ${err.message}`;
     }
-  }
+  });
 }
 
 // ─── Generate ─────────────────────────────────────────────────────────────────
 function initGenerate() {
-  $('generate-btn').addEventListener('click', generate);
-}
+  $('generate-btn').addEventListener('click', async () => {
+    if (state.generating) return;
+    
+    const title = $('song-title').value.trim();
+    const artist = $('song-artist').value.trim();
+    const genre = $('song-genre').value;
+    const language = $('song-language').value;
+    const bpm = $('song-bpm').value;
+    const mood = $('song-mood').value.trim();
+    const errEl = $('gen-error');
 
-async function generate() {
-  const title    = $('song-title').value.trim();
-  const artist   = $('song-artist').value.trim();
-  const genre    = $('song-genre').value;
-  const bpm      = $('song-bpm').value.trim();
-  const language = $('song-language').value;
-  const mood     = $('song-mood').value.trim();
-  const errEl    = $('gen-error');
-
-  hide(errEl);
-
-  if (!title || !artist || !genre) {
-    errEl.textContent = 'Please fill in Song Title, Artist Name, and Genre.';
-    show(errEl);
-    return;
-  }
-
-  if (state.generating) return;
-  state.generating = true;
-
-  const btn = $('generate-btn');
-  btn.disabled = true;
-  btn.querySelector('.btn-text').textContent = 'GENERATING…';
-
-  // Show waveform
-  show($('waveform-wrap'));
-  hide($('summary-card'));
-
-  // Clear tabs
-  clearResults();
-
-  try {
-    const body = { title, artist, genre, language, wolfId: state.wolf?.id };
-    if (bpm)   body.bpm  = bpm;
-    if (mood)  body.mood = mood;
-    if (state.token) body.token = state.token;
-
-    const res  = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    const json = await res.json();
-
-    if (!res.ok) {
-      if (json.error === 'LIMIT_REACHED') {
-        show($('limit-modal'));
-        return;
-      }
-      throw new Error(json.error || 'Generation failed');
+    if (!title || !artist || !genre) {
+      errEl.textContent = 'Please fill in Title, Artist, and Genre';
+      show(errEl);
+      return;
     }
 
-    state.lastPack = json.pack;
-    state.lastMeta = json.meta;
+    hide(errEl);
+    state.generating = true;
+    const btn = $('generate-btn');
+    btn.disabled = true;
+    btn.querySelector('.btn-text').textContent = 'GENERATING…';
 
-    // Save to localStorage
-    localStorage.setItem('lw_last_pack', JSON.stringify(json.pack));
-    localStorage.setItem('lw_last_meta', JSON.stringify(json.meta));
+    show($('waveform-wrap'));
+    hide($('summary-card'));
+    clearResults();
+    updateStepper(1);
 
-    renderPack(json.pack, json.meta);
+    try {
+      const body = { 
+        title, artist, genre, language, 
+        wolfId: state.wolf?.id,
+        filename: state.uploadedFile?.filename
+      };
+      if (bpm) body.bpm = bpm;
+      if (mood) body.mood = mood;
+      if (state.token) body.token = state.token;
 
-  } catch (err) {
-    errEl.textContent = err.message;
-    show(errEl);
-  } finally {
-    hide($('waveform-wrap'));
-    btn.disabled = false;
-    btn.querySelector('.btn-text').textContent = 'GENERATE';
-    state.generating = false;
-  }
+      // Simulate stepper progress
+      setTimeout(() => updateStepper(2), 3000);
+      setTimeout(() => updateStepper(3), 6000);
+
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Generation failed');
+
+      state.lastPack = json.pack;
+      state.lastMeta = json.meta;
+      renderPack(json.pack, json.meta);
+
+    } catch (err) {
+      errEl.textContent = err.message;
+      show(errEl);
+    } finally {
+      hide($('waveform-wrap'));
+      btn.disabled = false;
+      btn.querySelector('.btn-text').textContent = 'GENERATE';
+      state.generating = false;
+    }
+  });
+}
+
+function updateStepper(step) {
+  document.querySelectorAll('.step').forEach(s => {
+    const sNum = parseInt(s.dataset.step);
+    s.classList.toggle('active', sNum === step);
+    s.classList.toggle('completed', sNum < step);
+  });
 }
 
 function clearResults() {
-  hide($('lyrics-content'));  show($('lyrics-empty'));
-  hide($('srt-content'));     show($('srt-empty'));
-  hide($('beats-content'));   show($('beats-empty'));
-  hide($('prompts-content')); show($('prompts-empty'));
-  hide($('tips-content'));    show($('tips-empty'));
-  $('lyrics-content').innerHTML = '';
-  $('beats-tbody').innerHTML    = '';
-  $('prompts-content').innerHTML = '';
-  $('tips-content').innerHTML    = '';
+  hide($('lyrics-content'));
+  hide($('lyrics-editor-wrap'));
+  show($('lyrics-empty'));
+  hide($('srt-content'));
+  show($('srt-empty'));
+  hide($('beats-content'));
+  show($('beats-empty'));
+  hide($('prompts-content'));
+  show($('prompts-empty'));
+  hide($('tips-content'));
+  show($('tips-empty'));
 }
 
-// ─── Render Results ───────────────────────────────────────────────────────────
 function renderPack(pack, meta) {
-  // Summary card
   const sc = $('summary-card');
-  const wolfImg = $('summary-wolf-img');
-  if (wolfImg) wolfImg.src = `/${state.wolf?.image || 'logo.svg'}`;
-  $('summary-title').textContent  = meta.title || '';
-  $('summary-artist').textContent = meta.artist || '';
-  $('summary-genre').textContent  = meta.genre  || '';
+  $('summary-wolf-img').src = `/${state.wolf?.image || 'logo.svg'}`;
+  $('summary-title').textContent = meta.title;
+  $('summary-artist').textContent = meta.artist;
+  $('summary-genre').textContent = meta.genre;
   show(sc);
 
-  // Lyrics
   renderLyrics(pack.lyrics || []);
-
-  // SRT
   if (pack.srt) {
     $('srt-text').textContent = pack.srt;
     hide($('srt-empty')); show($('srt-content'));
   }
-
-  // Beats
   renderBeats(pack.beats || []);
-
-  // Prompts
   renderPrompts(pack.prompts || []);
-
-  // Tips
   renderTips(pack.tips || []);
 }
 
 function renderLyrics(lyrics) {
   const container = $('lyrics-content');
   container.innerHTML = '';
-  let hasContent = false;
+  let textContent = '';
 
   lyrics.forEach(line => {
-    hasContent = true;
     const text = line.text || '';
-    const isSectionHeader = /^\[.+\]$/.test(text.trim());
-
-    if (isSectionHeader) {
-      const div = document.createElement('div');
-      div.className = 'lyric-section-header';
-      div.textContent = text.replace(/[\[\]]/g, '');
-      container.appendChild(div);
+    textContent += `${line.ts || ''} ${text}\n`;
+    const row = document.createElement('div');
+    row.className = /^\[.+\]$/.test(text.trim()) ? 'lyric-section-header' : 'lyric-row';
+    if (row.className === 'lyric-row') {
+      row.innerHTML = `<span class="lyric-ts">${line.ts || ''}</span><span class="lyric-text">${text}</span>`;
     } else {
-      const row = document.createElement('div');
-      row.className = 'lyric-row';
-      row.innerHTML = `
-        <span class="lyric-ts">${line.ts || ''}</span>
-        <span class="lyric-text">${escapeHTML(text)}</span>
-      `;
-      container.appendChild(row);
+      row.textContent = text.replace(/[\[\]]/g, '');
     }
+    container.appendChild(row);
   });
 
-  if (hasContent) { hide($('lyrics-empty')); show(container); }
+  $('lyrics-editor').value = textContent;
+  hide($('lyrics-empty'));
+  show(container);
+  
+  // Toggle editor on click
+  container.onclick = () => {
+    hide(container);
+    show($('lyrics-editor-wrap'));
+  };
+  
+  $('save-lyrics-btn').onclick = () => {
+    // In a real app, we'd parse this back to JSON and save
+    hide($('lyrics-editor-wrap'));
+    show(container);
+  };
 }
 
 function renderBeats(beats) {
   const tbody = $('beats-tbody');
   tbody.innerHTML = '';
-
   beats.forEach(beat => {
     const tr = document.createElement('tr');
-    const typeClass = `beat-type-${beat.type || 'CUT'}`;
     tr.innerHTML = `
-      <td class="beat-ts">${escapeHTML(beat.ts || '')}</td>
-      <td>${escapeHTML(beat.label || '')}</td>
-      <td><span class="beat-type-badge ${typeClass}">${escapeHTML(beat.type || 'CUT')}</span></td>
+      <td class="beat-ts">${beat.ts || ''}</td>
+      <td>${beat.label || ''}</td>
+      <td><span class="beat-type-badge beat-type-${beat.type || 'CUT'}">${beat.type || 'CUT'}</span></td>
     `;
     tbody.appendChild(tr);
   });
-
   if (beats.length) { hide($('beats-empty')); show($('beats-content')); }
 }
 
 function renderPrompts(prompts) {
   const container = $('prompts-content');
   container.innerHTML = '';
-
   prompts.forEach((p, i) => {
     const card = document.createElement('div');
     card.className = 'prompt-card';
     card.innerHTML = `
-      <div class="prompt-section-name">${escapeHTML(p.section || '')}</div>
-      <div class="prompt-text" id="prompt-text-${i}">${escapeHTML(p.prompt || '')}</div>
-      <button class="prompt-copy-btn" data-idx="${i}">Copy</button>
+      <div class="prompt-section-name">${p.section || ''}</div>
+      <div class="prompt-text">${p.prompt || ''}</div>
+      <button class="prompt-copy-btn" onclick="navigator.clipboard.writeText('${p.prompt.replace(/'/g, "\\'")}')">Copy</button>
     `;
     container.appendChild(card);
   });
-
-  container.querySelectorAll('.prompt-copy-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx  = parseInt(btn.dataset.idx);
-      const text = prompts[idx]?.prompt || '';
-      navigator.clipboard.writeText(text).then(() => {
-        btn.textContent = 'Copied!';
-        setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
-      });
-    });
-  });
-
   if (prompts.length) { hide($('prompts-empty')); show(container); }
 }
-
-const TIP_ICONS = ['📱', '🎬', '▶️', '🎨', '🔊', '💡', '🌟', '🎯'];
 
 function renderTips(tips) {
   const container = $('tips-content');
   container.innerHTML = '';
-
+  const icons = ['📱', '🎬', '▶️', '🎨', '🔊'];
   tips.forEach((tip, i) => {
     const card = document.createElement('div');
     card.className = 'tip-card';
     card.innerHTML = `
-      <div class="tip-icon">${TIP_ICONS[i % TIP_ICONS.length]}</div>
+      <div class="tip-icon">${icons[i % icons.length]}</div>
       <div>
-        <div class="tip-title">${escapeHTML(tip.title || '')}</div>
-        <div class="tip-text">${escapeHTML(tip.tip || '')}</div>
+        <div class="tip-title">${tip.title || ''}</div>
+        <div class="tip-text">${tip.tip || ''}</div>
       </div>
     `;
     container.appendChild(card);
   });
-
   if (tips.length) { hide($('tips-empty')); show(container); }
 }
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
 function initTabs() {
   document.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
       const target = btn.dataset.tab;
       document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      document.querySelectorAll('.tab-panel').forEach(p => {
-        p.classList.remove('active');
-        p.classList.add('hidden');
-      });
-      const panel = $(`tab-${target}`);
-      if (panel) {
-        panel.classList.remove('hidden');
-        panel.classList.add('active');
-      }
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === `tab-${target}`));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('hidden', p.id !== `tab-${target}`));
     });
   });
 }
 
-// ─── Downloads ────────────────────────────────────────────────────────────────
-function initDownloads() {
-  $('download-srt').addEventListener('click', () => {
-    const text     = $('srt-text').textContent;
-    const filename = `${state.lastMeta?.title || 'lyrics'}.srt`;
-    downloadText(text, filename, 'text/plain');
-  });
-
-  $('export-beats').addEventListener('click', () => {
-    const rows  = document.querySelectorAll('#beats-tbody tr');
-    let txt = 'TIMESTAMP\tLABEL\tTYPE\n';
-    rows.forEach(tr => {
-      const cells = tr.querySelectorAll('td');
-      txt += `${cells[0].textContent}\t${cells[1].textContent}\t${cells[2].textContent.trim()}\n`;
+function initAuthPage() {
+  document.querySelectorAll('.auth-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      document.querySelectorAll('.auth-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      $('login-form').classList.toggle('hidden', tab !== 'login');
+      $('signup-form').classList.toggle('hidden', tab !== 'signup');
     });
-    const filename = `${state.lastMeta?.title || 'beats'}-cuts.txt`;
-    downloadText(txt, filename, 'text/plain');
+  });
+  
+  $('login-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const email = $('login-email').value;
+    const password = $('login-password').value;
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      $('login-error').textContent = error.message;
+      show($('login-error'));
+    } else {
+      state.user = data.user;
+      state.token = data.session.access_token;
+      await loadProfile();
+      updateHeaderAuth();
+      updateStudioAuth();
+      showPage('wolf-select');
+    }
   });
 }
 
-function downloadText(content, filename, mime) {
-  const blob = new Blob([content], { type: mime });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-// ─── New Track ────────────────────────────────────────────────────────────────
-function initNewTrack() {
-  $('new-track-btn').addEventListener('click', () => {
-    // Clear inputs
-    $('song-title').value  = '';
-    $('song-bpm').value    = '';
-    $('song-mood').value   = '';
-    const info = $('upload-info');
-    hide(info);
-    state.uploadedFile = null;
-    state.lastPack     = null;
-    state.lastMeta     = null;
-    localStorage.removeItem('lw_last_pack');
-    localStorage.removeItem('lw_last_meta');
-    hide($('summary-card'));
-    clearResults();
-    hide($('gen-error'));
-  });
-}
-
-// ─── Change Wolf ─────────────────────────────────────────────────────────────
-function initChangeWolf() {
-  $('change-wolf-btn').addEventListener('click', () => {
-    showPage('wolf-select');
-  });
-}
-
-// ─── Dashboard ────────────────────────────────────────────────────────────────
 async function openDashboard() {
-  if (!state.user || state.profile?.role !== 'member') return;
-
   showPage('dashboard');
-
-  // Set wolf image
-  const img = $('dash-wolf-img');
-  if (img && state.wolf?.image) img.src = `/${state.wolf.image}`;
-  const nameEl = $('dash-wolf-name');
-  if (nameEl) nameEl.textContent = state.profile?.display_name || state.wolf?.artist || '';
-
-  const promoEl = $('dash-promo-code');
-  if (promoEl) promoEl.textContent = state.profile?.promo_code || '';
-
-  // Fetch stats
+  $('dash-wolf-img').src = `/${state.wolf?.image || 'logo.svg'}`;
+  $('dash-wolf-name').textContent = state.profile?.display_name || state.wolf?.artist || '';
+  $('dash-promo-code').textContent = state.profile?.promo_code || '';
   try {
-    const res  = await fetch('/api/dashboard', {
-      headers: { Authorization: `Bearer ${state.token}` },
-    });
+    const res = await fetch('/api/dashboard', { headers: { Authorization: `Bearer ${state.token}` } });
     const json = await res.json();
     if (res.ok) {
-      $('dash-referrals').textContent    = json.stats.referralCount;
+      $('dash-referrals').textContent = json.stats.referralCount;
       $('dash-referred-gens').textContent = json.stats.referredGenerations;
-      $('dash-own-gens').textContent     = json.stats.ownGenerations;
-      $('dash-earnings').textContent     = `$${json.stats.earningsEstimate}`;
+      $('dash-own-gens').textContent = json.stats.ownGenerations;
+      $('dash-earnings').textContent = `$${json.stats.earningsEstimate}`;
     }
-  } catch { /* offline */ }
+  } catch {}
 }
 
-function initDashboard() {
-  $('dash-back-btn').addEventListener('click', () => showPage('studio'));
-  $('dash-signout-btn').addEventListener('click', signOut);
+// ─── Wolf Map ────────────────────────────────────────────────────────────────
+function initWolfMap() {
+  const mapBtn = $('wolf-map-btn');
+  const backBtn = $('map-back-btn');
+  if (mapBtn) mapBtn.onclick = () => showPage('wolf-map');
+  if (backBtn) backBtn.onclick = () => showPage('studio');
+
+  // Override showPage for wolf-map
+  const originalShowPage = showPage;
+  window.showPage = (name) => {
+    if (name === 'wolf-map') {
+      ['wolf-select', 'studio', 'dashboard', 'auth'].forEach(p => hide($(`${p}-page`)));
+      show($('wolf-map-page'));
+      state.page = 'wolf-map';
+      renderWorldMap();
+      checkLabelAccess();
+    } else {
+      hide($('wolf-map-page'));
+      originalShowPage(name);
+    }
+  };
 }
 
-// ─── Limit Modal ──────────────────────────────────────────────────────────────
-function initModal() {
-  $('modal-close').addEventListener('click', () => hide($('limit-modal')));
-  $('modal-signup').addEventListener('click', () => {
-    hide($('limit-modal'));
-    showPage('auth');
-    document.querySelector('.auth-tab[data-tab="signup"]')?.click();
+function checkLabelAccess() {
+  const isLabel = state.profile?.role === 'member';
+  const toggleWrap = $('label-toggle-wrap');
+  const legendLabel = $('legend-label-item');
+  
+  if (isLabel) {
+    show(toggleWrap);
+    show(legendLabel);
+  } else {
+    hide(toggleWrap);
+    hide(legendLabel);
+  }
+}
+
+function renderWorldMap() {
+  const wrap = $('world-map-svg-wrap');
+  if (wrap.innerHTML.trim() !== '') return; // Already rendered
+
+  // Simple World Map SVG
+  wrap.innerHTML = `
+    <svg viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+      <path d="M150,150 Q200,100 300,150 T450,200 T600,150 T800,250 T900,200 L900,400 Q800,450 600,400 T400,450 T200,400 Z" fill="#2a2a35" />
+      <circle cx="200" cy="200" r="3" fill="#8888aa" class="lone-wolf-pulse" />
+      <circle cx="450" cy="250" r="3" fill="#8888aa" class="lone-wolf-pulse" />
+      <circle cx="700" cy="180" r="3" fill="#8888aa" class="lone-wolf-pulse" />
+      <circle cx="850" cy="350" r="3" fill="#8888aa" class="lone-wolf-pulse" />
+      <circle cx="300" cy="380" r="3" fill="#8888aa" class="lone-wolf-pulse" />
+    </svg>
+  `;
+
+  // Simulate live activity
+  setInterval(() => {
+    if (state.page !== 'wolf-map') return;
+    const x = Math.random() * 800 + 100;
+    const y = Math.random() * 300 + 100;
+    addMapPulse(x, y);
+  }, 4000);
+}
+
+function addMapPulse(x, y) {
+  const svg = document.querySelector('#world-map-svg-wrap svg');
+  if (!svg) return;
+
+  const isLabel = $('label-view-toggle')?.checked;
+  const color = isLabel && Math.random() > 0.7 ? 'var(--accent)' : '#8888aa';
+  const className = isLabel && Math.random() > 0.7 ? 'lightning-wolf-pulse' : 'lone-wolf-pulse';
+
+  const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  circle.setAttribute("cx", x);
+  circle.setAttribute("cy", y);
+  circle.setAttribute("r", "4");
+  circle.setAttribute("fill", color);
+  circle.classList.add(className);
+  
+  svg.appendChild(circle);
+  
+  // Show notification
+  const names = ['Wolf_99', 'Alpha_User', 'Lone_Rider', 'Beat_Maker', 'Lyric_King'];
+  const cities = ['London', 'Paris', 'New York', 'Berlin', 'Tokyo'];
+  const name = names[Math.floor(Math.random() * names.length)];
+  const city = cities[Math.floor(Math.random() * cities.length)];
+  
+  showMapNotification(name, city, isLabel && Math.random() > 0.7);
+
+  setTimeout(() => circle.remove(), 10000);
+}
+
+function showMapNotification(name, city, isLabel) {
+  const container = $('map-notifications');
+  const notif = document.createElement('div');
+  notif.className = 'map-notif';
+  if (isLabel) notif.style.borderLeftColor = 'var(--accent)';
+  
+  notif.innerHTML = `
+    <div class="notif-title">${isLabel ? '⚡ LIGHTNING STRIKE' : '🐺 NEW PACK GENERATED'}</div>
+    <div class="notif-body">${name} just dropped a track in ${city}</div>
+  `;
+  
+  container.appendChild(notif);
+  setTimeout(() => {
+    notif.style.opacity = '0';
+    notif.style.transform = 'translateX(100%)';
+    setTimeout(() => notif.remove(), 500);
+  }, 4000);
+}
+
+// ─── Mobile Nav ─────────────────────────────────────────────────────────────
+function initMobileNav() {
+  const nav = $('mobile-nav');
+  if (!nav) return;
+
+  const items = {
+    'nav-home': 'wolf-select',
+    'nav-studio': 'studio',
+    'nav-hub': 'wolf-hub',
+    'nav-dash': 'dashboard'
+  };
+
+  Object.entries(items).forEach(([id, page]) => {
+    const el = $(id);
+    if (el) {
+      el.onclick = (e) => {
+        e.preventDefault();
+        if (page === 'dashboard' && state.profile?.role !== 'member') {
+          showPage('auth');
+        } else {
+          showPage(page);
+        }
+      };
+    }
   });
 }
 
-// ─── Utility ─────────────────────────────────────────────────────────────────
-function escapeHTML(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function updateMobileNavActive(activeId) {
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.classList.toggle('active', item.id === activeId);
+  });
 }
 
-// ─── Bootstrap ────────────────────────────────────────────────────────────────
 async function init() {
-  // Canvas always runs
   initCanvas();
-
-  // Init Supabase (non-blocking)
   await initSupabase();
-
-  // Check for existing session
   await checkSession();
-
-  // Update header auth display
   updateHeaderAuth();
-
-  // Wire up pages
   initAuthPage();
   initWolfSelect();
   initTabs();
   initGenerate();
   initUpload();
-  initDownloads();
-  initNewTrack();
-  initChangeWolf();
-  initDashboard();
-  initModal();
+  initWolfMap();
+  initWolfHub();
+  initMobileNav();
+  $('dash-back-btn').onclick = () => showPage('studio');
+  $('change-wolf-btn').onclick = () => showPage('wolf-select');
+  showPage('wolf-select');
+}
 
-  // Listen for Supabase auth state changes
-  if (supabase) {
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
-        state.user  = session.user;
-        state.token = session.access_token;
-        await loadProfile();
-      } else {
-        state.user    = null;
-        state.token   = null;
-        state.profile = null;
-      }
-      updateHeaderAuth();
-      updateStudioAuth();
-    });
+// ─── Wolf Hub & Tinder Logic ────────────────────────────────────────────────
+function initWolfHub() {
+  const hub = $('wolf-hub-page');
+  if (!hub) return;
+
+  $('hub-back-btn').onclick = () => showPage('studio');
+  $('close-swipe-btn').onclick = () => {
+    hide($('swipe-stack-container'));
+    $('wolf-head-hub').classList.remove('howling');
+  };
+  $('pass-btn').onclick = () => swipeCard('left');
+  $('howl-btn').onclick = () => swipeCard('right');
+  $('start-collab-btn').onclick = () => hide($('match-overlay'));
+
+  // Country Orbs
+  document.querySelectorAll('.country-orb').forEach(orb => {
+    orb.onclick = () => {
+      const city = orb.dataset.city;
+      triggerWolfMawTransition(city);
+    };
+  });
+}
+
+function triggerWolfMawTransition(city) {
+  const head = $('wolf-head-hub');
+  head.classList.add('howling');
+  
+  // Play howl sound if available
+  // new Audio('/howl.mp3').play();
+
+  setTimeout(() => {
+    openSwipeStack(city);
+  }, 800);
+}
+
+const mockWolves = [
+  { id: 1, name: 'Wolf_99', genre: 'Drill', looking: 'Looking for a hard verse', lyrics: 'Concrete jungle where dreams are made of...' },
+  { id: 2, name: 'Viper_X', genre: 'Afrobeats', looking: 'Need a melodic hook', lyrics: 'Rhythm in my soul, fire in my eyes...' },
+  { id: 3, name: 'Ghost_Writer', genre: 'Dark Trap', looking: 'Collab on a dark beat', lyrics: 'Shadows in the night, moving out of sight...' },
+  { id: 4, name: 'Luna_Soul', genre: 'R&B', looking: 'Smooth vocals only', lyrics: 'Under the moonlight, feeling so right...' }
+];
+
+function openSwipeStack(city) {
+  $('current-swipe-city').innerText = city.toUpperCase();
+  show($('swipe-stack-container'));
+  renderCardStack();
+}
+
+function renderCardStack() {
+  const stack = $('wolf-card-stack');
+  stack.innerHTML = '';
+  
+  mockWolves.forEach((wolf, i) => {
+    const card = document.createElement('div');
+    card.className = 'wolf-profile-card versus-card';
+    card.style.zIndex = mockWolves.length - i;
+    card.style.position = 'absolute';
+    card.style.top = '0';
+    card.style.left = '0';
+    card.style.opacity = i === 0 ? '1' : '0';
+    card.style.transform = i === 0 ? 'translateX(0)' : 'translateX(100px)';
+    card.style.transition = 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    
+    card.innerHTML = `
+      <div class="card-image-wrap">
+        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${wolf.name}" class="card-img" />
+        <div class="card-genre-tag">${wolf.genre}</div>
+      </div>
+      <div class="card-info">
+        <div class="card-name">${wolf.name}</div>
+        <div class="card-looking-for">${wolf.looking}</div>
+        <div class="card-lyrics-preview">"${wolf.lyrics}"</div>
+      </div>
+    `;
+    stack.appendChild(card);
+  });
+}
+
+function swipeCard(direction) {
+  const stack = $('wolf-card-stack');
+  const card = stack.firstElementChild;
+  if (!card) return;
+
+  const x = direction === 'right' ? 1000 : -1000;
+  card.style.transform = `translateX(${x}px) rotate(${direction === 'right' ? 30 : -30}deg)`;
+  card.style.opacity = '0';
+
+  if (direction === 'right') {
+    // 1 in 3 chance of a match for demo
+    if (Math.random() > 0.6) {
+      setTimeout(() => {
+        const name = card.querySelector('.card-name').innerText;
+        $('match-name').innerText = name;
+        show($('match-overlay'));
+      }, 500);
+    }
   }
 
-  // Show wolf select as starting page
-  showPage('wolf-select');
+  setTimeout(() => {
+    card.remove();
+    
+    // Show next card
+    const nextCard = stack.firstElementChild;
+    if (nextCard) {
+      nextCard.style.opacity = '1';
+      nextCard.style.transform = 'translateX(0)';
+    } else {
+      setTimeout(() => {
+        hide($('swipe-stack-container'));
+        $('wolf-head-hub').classList.remove('howling');
+      }, 500);
+    }
+  }, 300);
 }
 
 document.addEventListener('DOMContentLoaded', init);

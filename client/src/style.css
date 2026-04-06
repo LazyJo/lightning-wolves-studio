@@ -2192,19 +2192,19 @@ textarea { resize: vertical; min-height: 72px; }
 }
 .wolfhub-dot::before {
   content:''; position:absolute; inset:0;
-  background:#FFB800; border-radius:50%;
-  box-shadow:0 0 8px rgba(255,184,0,0.6);
+  background:#ffffff; border-radius:50%;
+  box-shadow:0 0 10px rgba(255,255,255,0.5);
 }
 .wolfhub-dot-ping {
   position:absolute; inset:-4px;
-  border:2px solid #FFB800; border-radius:50%;
+  border:2px solid rgba(255,255,255,0.6); border-radius:50%;
   animation:dotPing 2s ease-out infinite;
 }
 @keyframes dotPing {
   0%   { transform:scale(1); opacity:0.8; }
   100% { transform:scale(2.2); opacity:0; }
 }
-.wolfhub-dot:hover::before { background:#fff; box-shadow:0 0 16px #FFB800; }
+.wolfhub-dot:hover::before { background:#fff; box-shadow:0 0 20px rgba(255,255,255,0.8); }
 
 /* Tooltip */
 .wolfhub-tooltip {

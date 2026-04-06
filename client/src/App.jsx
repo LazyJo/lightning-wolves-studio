@@ -1374,32 +1374,34 @@ function WolfHubPage({ onBack, onCountry }) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.6
+    renderer.toneMappingExposure = 1.1
     container.appendChild(renderer.domElement)
 
-    // Lighting — strong front light to illuminate the face
-    scene.add(new THREE.AmbientLight(0x222222, 2))
+    // Lighting — cinematic gold, avoid washing out the face
+    scene.add(new THREE.AmbientLight(0x111111, 1))
 
-    // Strong front point light — illuminates face from camera side
-    const frontLight = new THREE.PointLight(0xFFB800, 5, 15)
-    frontLight.position.set(0, 1.5, 6)
-    scene.add(frontLight)
-
-    // Fill from above-front
-    const frontFill = new THREE.DirectionalLight(0xFFD700, 2.5)
-    frontFill.position.set(0, 3, 5)
+    // Soft front fill — low intensity so textures show through
+    const frontFill = new THREE.PointLight(0xFFB800, 1.5, 12)
+    frontFill.position.set(0, 1, 5)
     scene.add(frontFill)
 
-    // Rim lights — behind wolf for edge glow
-    const rimBack = new THREE.DirectionalLight(0xFFB800, 4)
-    rimBack.position.set(0, 2, -5)
-    scene.add(rimBack)
-    const rimLeft = new THREE.DirectionalLight(0xFF8C00, 3)
-    rimLeft.position.set(-4, 3, -2)
+    // Key light — from upper-right, creates dramatic shadows on face
+    const keyLight = new THREE.DirectionalLight(0xFFB800, 3)
+    keyLight.position.set(3, 4, 3)
+    scene.add(keyLight)
+
+    // Strong side/rim lights — make the fur edges glow gold
+    const rimLeft = new THREE.DirectionalLight(0xFF8C00, 4)
+    rimLeft.position.set(-5, 2, 0)
     scene.add(rimLeft)
-    const rimRight = new THREE.DirectionalLight(0xFFD700, 2.5)
-    rimRight.position.set(4, 3, -2)
+    const rimRight = new THREE.DirectionalLight(0xFFB800, 4)
+    rimRight.position.set(5, 2, 0)
     scene.add(rimRight)
+
+    // Back rim — silhouette glow
+    const rimBack = new THREE.DirectionalLight(0xFFD700, 3)
+    rimBack.position.set(0, 3, -5)
+    scene.add(rimBack)
 
     // Load GLB with Draco
     const dracoLoader = new DRACOLoader()
@@ -1420,10 +1422,10 @@ function WolfHubPage({ onBack, onCountry }) {
       model.position.sub(center.multiplyScalar(scale))
       model.position.y += 0.7
 
-      // Model default: snout faces -Z. Rotate 180° so snout faces +Z (toward camera)
-      // Previous attempts: -90°=left, +90°=right, so 0°=back, 180°=front
-      model.rotation.y = Math.PI
-      baseRotationY = Math.PI
+      // 180° showed back of head — model faces +Z by default, camera is at +Z
+      // So 0° = face toward camera
+      model.rotation.y = 0
+      baseRotationY = 0
 
       scene.add(model)
     }, undefined, (err) => {

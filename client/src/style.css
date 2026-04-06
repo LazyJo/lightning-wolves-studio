@@ -2184,6 +2184,14 @@ textarea { resize: vertical; min-height: 72px; }
   position:relative; z-index:1;
   filter:drop-shadow(0 0 40px rgba(255,184,0,0.35));
 }
+.wolfhub-3d-canvas {
+  position:absolute; inset:0; z-index:1;
+  border-radius:inherit;
+}
+.wolfhub-3d-canvas canvas {
+  display:block; width:100% !important; height:100% !important;
+  border-radius:inherit;
+}
 
 /* Country dots */
 .wolfhub-dot {

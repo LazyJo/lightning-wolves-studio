@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import * as THREE from 'three'
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
@@ -1347,6 +1350,94 @@ const COUNTRY_ARTISTS = {
 
 function WolfHubPage({ onBack, onCountry }) {
   const [tooltip, setTooltip] = useState(null)
+  const canvasRef = useRef(null)
+  const rendererRef = useRef(null)
+
+  useEffect(() => {
+    const container = canvasRef.current
+    if (!container) return
+
+    const w = container.clientWidth
+    const h = container.clientHeight
+
+    // Scene
+    const scene = new THREE.Scene()
+    const camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100)
+    camera.position.set(0, 1.2, 4)
+    camera.lookAt(0, 0.8, 0)
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+    renderer.setSize(w, h)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.outputColorSpace = THREE.SRGBColorSpace
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.2
+    container.appendChild(renderer.domElement)
+    rendererRef.current = renderer
+
+    // Lighting — gold wolf ambiance
+    const ambient = new THREE.AmbientLight(0x222222, 1)
+    scene.add(ambient)
+    const keyLight = new THREE.DirectionalLight(0xFFB800, 2.5)
+    keyLight.position.set(2, 3, 4)
+    scene.add(keyLight)
+    const rimLight = new THREE.DirectionalLight(0xFFB800, 1.5)
+    rimLight.position.set(-2, 2, -2)
+    scene.add(rimLight)
+    const fillLight = new THREE.PointLight(0xFFB800, 0.8, 10)
+    fillLight.position.set(0, 0.5, 3)
+    scene.add(fillLight)
+
+    // Load GLB with Draco
+    const dracoLoader = new DRACOLoader()
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/')
+    const gltfLoader = new GLTFLoader()
+    gltfLoader.setDRACOLoader(dracoLoader)
+
+    let model = null
+    gltfLoader.load('/Optimized_Wolf.glb', (gltf) => {
+      model = gltf.scene
+      // Center and scale
+      const box = new THREE.Box3().setFromObject(model)
+      const center = box.getCenter(new THREE.Vector3())
+      const size = box.getSize(new THREE.Vector3())
+      const maxDim = Math.max(size.x, size.y, size.z)
+      const scale = 2.2 / maxDim
+      model.scale.setScalar(scale)
+      model.position.sub(center.multiplyScalar(scale))
+      model.position.y += 0.8
+      scene.add(model)
+    }, undefined, (err) => {
+      console.error('[WolfHub] GLB load error:', err)
+    })
+
+    // Animate — slow rotation
+    let raf
+    function animate() {
+      raf = requestAnimationFrame(animate)
+      if (model) model.rotation.y += 0.003
+      renderer.render(scene, camera)
+    }
+    animate()
+
+    // Resize
+    function onResize() {
+      const nw = container.clientWidth
+      const nh = container.clientHeight
+      camera.aspect = nw / nh
+      camera.updateProjectionMatrix()
+      renderer.setSize(nw, nh)
+    }
+    window.addEventListener('resize', onResize)
+
+    return () => {
+      cancelAnimationFrame(raf)
+      window.removeEventListener('resize', onResize)
+      renderer.dispose()
+      dracoLoader.dispose()
+      if (container.contains(renderer.domElement)) container.removeChild(renderer.domElement)
+    }
+  }, [])
 
   return (
     <div className="wolfhub-page">
@@ -1358,9 +1449,8 @@ function WolfHubPage({ onBack, onCountry }) {
 
         <div className="wolfhub-head-wrap">
           <div className="wolfhub-glow"></div>
-          <img src="/wolf-hub.png" alt="Wolf Hub"
-               className="wolfhub-head-img"
-               onError={e => { e.target.src = '/LightningWolvesLogoTransparentBG.png' }} />
+          {/* Three.js canvas container */}
+          <div ref={canvasRef} className="wolfhub-3d-canvas"></div>
 
           {WOLF_HUB_DOTS.map(dot => (
             <div key={dot.country}

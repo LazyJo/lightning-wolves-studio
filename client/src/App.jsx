@@ -1365,9 +1365,8 @@ function WolfHubPage({ onBack, onCountry }) {
     // Scene
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100)
-    // Camera positioned along +X axis to face the wolf head-on
-    // (model's snout points along -X based on side-view tests)
-    camera.position.set(5, 1, 0)
+    // Camera at standard +Z, model will be rotated to face it
+    camera.position.set(0, 1, 5)
     camera.lookAt(0, 0.7, 0)
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
@@ -1381,26 +1380,26 @@ function WolfHubPage({ onBack, onCountry }) {
     // Lighting — strong front light to illuminate the face
     scene.add(new THREE.AmbientLight(0x222222, 2))
 
-    // KEY: Strong front point light — camera side, illuminates face
+    // Strong front point light — illuminates face from camera side
     const frontLight = new THREE.PointLight(0xFFB800, 5, 15)
-    frontLight.position.set(6, 1.5, 0)
+    frontLight.position.set(0, 1.5, 6)
     scene.add(frontLight)
 
-    // Secondary front fill from above
+    // Fill from above-front
     const frontFill = new THREE.DirectionalLight(0xFFD700, 2.5)
-    frontFill.position.set(4, 3, 0)
+    frontFill.position.set(0, 3, 5)
     scene.add(frontFill)
 
-    // Rim lights — behind the wolf for edge glow
+    // Rim lights — behind wolf for edge glow
     const rimBack = new THREE.DirectionalLight(0xFFB800, 4)
-    rimBack.position.set(-5, 2, 0)
+    rimBack.position.set(0, 2, -5)
     scene.add(rimBack)
-    const rimTopLeft = new THREE.DirectionalLight(0xFF8C00, 3)
-    rimTopLeft.position.set(-2, 4, -3)
-    scene.add(rimTopLeft)
-    const rimTopRight = new THREE.DirectionalLight(0xFFD700, 2.5)
-    rimTopRight.position.set(-2, 4, 3)
-    scene.add(rimTopRight)
+    const rimLeft = new THREE.DirectionalLight(0xFF8C00, 3)
+    rimLeft.position.set(-4, 3, -2)
+    scene.add(rimLeft)
+    const rimRight = new THREE.DirectionalLight(0xFFD700, 2.5)
+    rimRight.position.set(4, 3, -2)
+    scene.add(rimRight)
 
     // Load GLB with Draco
     const dracoLoader = new DRACOLoader()
@@ -1421,9 +1420,10 @@ function WolfHubPage({ onBack, onCountry }) {
       model.position.sub(center.multiplyScalar(scale))
       model.position.y += 0.7
 
-      // No Y rotation — camera is repositioned to face the front
-      model.rotation.y = 0
-      baseRotationY = 0
+      // Model default: snout faces -Z. Rotate 180° so snout faces +Z (toward camera)
+      // Previous attempts: -90°=left, +90°=right, so 0°=back, 180°=front
+      model.rotation.y = Math.PI
+      baseRotationY = Math.PI
 
       scene.add(model)
     }, undefined, (err) => {
@@ -1440,21 +1440,20 @@ function WolfHubPage({ onBack, onCountry }) {
 
     // Animate — mouse-reactive tilt, no auto-rotation
     let raf
-    const camTarget = { x: 5, y: 1 }
+    const camTarget = { z: 5, y: 1 }
 
     function animate() {
       raf = requestAnimationFrame(animate)
 
       if (model) {
-        // Subtle tilt following mouse (max ±10°)
         const tiltX = mouseRef.current.y * -0.15
         const tiltY = baseRotationY + mouseRef.current.x * 0.15
         model.rotation.x += (tiltX - model.rotation.x) * 0.04
         model.rotation.y += (tiltY - model.rotation.y) * 0.04
       }
 
-      // Maw zoom — camera pushes along X into wolf's snout
-      camera.position.x += (camTarget.x - camera.position.x) * 0.04
+      // Maw zoom — camera pushes along Z into wolf's snout
+      camera.position.z += (camTarget.z - camera.position.z) * 0.04
       camera.position.y += (camTarget.y - camera.position.y) * 0.04
 
       renderer.render(scene, camera)
@@ -1463,11 +1462,11 @@ function WolfHubPage({ onBack, onCountry }) {
 
     // Expose zoom trigger — pushes camera into the snout along X
     container._triggerZoom = () => {
-      camTarget.x = 1.2
+      camTarget.z = 1.5
       camTarget.y = 0.7
     }
     container._resetZoom = () => {
-      camTarget.x = 5
+      camTarget.z = 5
       camTarget.y = 1
     }
 

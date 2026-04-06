@@ -642,20 +642,27 @@ function updateMobileNavActive(activeId) {
 }
 
 async function init() {
-  initCanvas();
-  await initSupabase();
-  await checkSession();
-  updateHeaderAuth();
-  initAuthPage();
-  initWolfSelect();
-  initTabs();
-  initGenerate();
-  initUpload();
-  initWolfMap();
-  initWolfHub();
-  initMobileNav();
-  $('dash-back-btn').onclick = () => showPage('studio');
-  $('change-wolf-btn').onclick = () => showPage('wolf-select');
+  try {
+    initCanvas();
+    await initSupabase();
+    await checkSession();
+    updateHeaderAuth();
+    initAuthPage();
+    initWolfSelect();
+    initTabs();
+    initGenerate();
+    initUpload();
+    initWolfMap();
+    initWolfHub();
+    initMobileNav();
+    const dashBack = $('dash-back-btn');
+    if (dashBack) dashBack.onclick = () => showPage('studio');
+    const changeWolf = $('change-wolf-btn');
+    if (changeWolf) changeWolf.onclick = () => showPage('wolf-select');
+  } catch (err) {
+    console.error('[init] crashed:', err);
+  }
+  // Always show wolf-select even if init partially fails
   showPage('wolf-select');
 }
 

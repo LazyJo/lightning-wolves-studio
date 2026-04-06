@@ -213,14 +213,17 @@
     <aside class="left-panel">
 
       <!-- FEED THE WOLF Upload Zone -->
-      <div class="field-group">
-        <div class="upload-zone elite" id="upload-zone">
-          <input type="file" id="file-input" accept="audio/*,video/*" hidden />
-          <div class="upload-elite-label">🐺 FEED THE WOLF</div>
-          <div class="upload-icon">🎵</div>
-          <div class="upload-text">Drop your track here</div>
-          <div class="upload-sub">audio or video · max 25MB</div>
-          <div class="upload-info hidden" id="upload-info"></div>
+      <div class="ftw-zone" id="upload-zone">
+        <input type="file" id="file-input" accept=".mp3,.mp4,.wav,.m4a,audio/*,video/*" hidden />
+        <div class="ftw-glow"></div>
+        <img src="/feed-the-wolf-icon.png" alt="" class="ftw-icon"
+             onerror="this.style.display='none'" />
+        <div class="ftw-title">FEED THE WOLF</div>
+        <div class="ftw-sub">Drop your track here — Whisper listens</div>
+        <div class="ftw-formats">MP3, MP4, WAV, M4A · max 25MB</div>
+        <div class="ftw-status hidden" id="upload-status">
+          <div class="ftw-pulse" id="upload-pulse"></div>
+          <span id="upload-status-text"></span>
         </div>
       </div>
 
@@ -355,16 +358,9 @@
         <div class="tab-panel active" id="tab-lyrics">
           <div class="empty-state" id="lyrics-empty">
             <div class="empty-icon">🎤</div>
-            <div>Generate a pack to see timed lyrics here</div>
+            <div>Feed the wolf a track to see real transcribed lyrics</div>
           </div>
           <div id="lyrics-content" class="lyrics-list hidden"></div>
-          <div id="lyrics-editor-wrap" class="hidden">
-            <div class="editor-header">
-              <span>Edit Lyrics</span>
-              <button class="btn-outline btn-sm" id="save-lyrics-btn">Save Changes</button>
-            </div>
-            <textarea id="lyrics-editor" class="lyrics-textarea"></textarea>
-          </div>
         </div>
 
         <!-- SRT -->
@@ -408,18 +404,9 @@
         <div class="tab-panel hidden" id="tab-prompts">
           <div class="empty-state" id="prompts-empty">
             <div class="empty-icon">🎥</div>
-            <div>AI video prompts for Kling / Runway / PixVerse will appear here</div>
+            <div>AI video prompts based on your lyrics + mood</div>
           </div>
           <div id="prompts-content" class="hidden prompts-list"></div>
-        </div>
-
-        <!-- VIDEO TIPS -->
-        <div class="tab-panel hidden" id="tab-tips">
-          <div class="empty-state" id="tips-empty">
-            <div class="empty-icon">💡</div>
-            <div>Genre-specific video tips will appear here</div>
-          </div>
-          <div id="tips-content" class="hidden tips-list"></div>
         </div>
       </div>
     </main>
@@ -501,22 +488,22 @@
 </div>
 
 <!-- ═══ MOBILE NAVIGATION ══════════════════════════════════════════════════ -->
-<nav class="mobile-nav hidden" id="mobile-nav">
-  <a href="#" class="nav-item active" id="nav-home">
-    <span class="nav-icon">🏠</span>
-    <span>Home</span>
+<nav class="mobile-nav" id="mobile-nav">
+  <a href="#" class="mnav-item active" data-page="wolf-select">
+    <span class="mnav-icon">🏠</span>
+    <span class="mnav-label">Home</span>
   </a>
-  <a href="#" class="nav-item" id="nav-studio">
-    <span class="nav-icon">🎤</span>
-    <span>Studio</span>
+  <a href="#" class="mnav-item" data-page="studio">
+    <span class="mnav-icon">🎵</span>
+    <span class="mnav-label">Studio</span>
   </a>
-  <a href="#" class="nav-item" id="nav-hub">
-    <span class="nav-icon">🐺</span>
-    <span>Hub</span>
+  <a href="#" class="mnav-item" data-page="wolf-hub">
+    <span class="mnav-icon">💰</span>
+    <span class="mnav-label">Pricing</span>
   </a>
-  <a href="#" class="nav-item" id="nav-dash">
-    <span class="nav-icon">⚡</span>
-    <span>Pack</span>
+  <a href="#" class="mnav-item" data-page="auth">
+    <span class="mnav-icon">🐺</span>
+    <span class="mnav-label">Join</span>
   </a>
 </nav>
 

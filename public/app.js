@@ -28,6 +28,7 @@ const state = {
   lastPack: null,
   lastMeta: null,
   uploadedFile: null,
+  transcript: null,
   generating: false,
 };
 
@@ -63,13 +64,9 @@ window.showPage = function(name) {
   if (el) show(el);
   state.page = name;
 
-  // Handle mobile nav visibility
-  const nav = $('mobile-nav');
-  if (name === 'auth') {
-    hide(nav);
-  } else {
-    show(nav);
-  }
+  // Mobile nav: hide on auth, show elsewhere (CSS hides on desktop)
+  const mnav = $('mobile-nav');
+  if (mnav) mnav.classList.toggle('hidden', name === 'auth');
 
   // Update elite header nav active state
   document.querySelectorAll('.elite-nav-link').forEach(link => {
@@ -83,13 +80,7 @@ window.showPage = function(name) {
   if (state.user && signinBtn) { signinBtn.textContent = 'SIGN OUT'; }
 
   // Update mobile nav active
-  const navMap = {
-    'wolf-select': 'nav-home',
-    'studio': 'nav-studio',
-    'wolf-hub': 'nav-hub',
-    'dashboard': 'nav-dash'
-  };
-  if (navMap[name]) updateMobileNavActive(navMap[name]);
+  updateMobileNavActive(name);
 }
 
 // ─── Canvas ──────────────────────────────────────────────────────────────────
@@ -219,10 +210,8 @@ function initWolfSelect() {
       };
       state.wolf = wolf;
       applyWolfTheme(wolf.color);
-      $('studio-wolf-img').src = `/${wolf.image}`;
-      $('studio-artist-name').textContent = wolf.artist;
-      $('song-artist').value = wolf.artist;
-      $('song-genre').value = wolf.genre;
+      const ai = $('song-artist'); if (ai) ai.value = wolf.artist;
+      const gi = $('song-genre'); if (gi) gi.value = wolf.genre;
       showPage('studio');
     });
   });
@@ -238,43 +227,72 @@ function applyWolfTheme(color) {
   document.documentElement.style.setProperty('--accent', color);
 }
 
-// ─── Upload ───────────────────────────────────────────────────────────────────
+// ─── Upload (Feed The Wolf → Whisper) ────────────────────────────────────────
 function initUpload() {
   const zone = $('upload-zone');
   const input = $('file-input');
-  const info = $('upload-info');
+  const statusEl = $('upload-status');
+  const statusText = $('upload-status-text');
+  const pulse = $('upload-pulse');
+
+  function setStatus(type, text) {
+    statusEl.className = 'ftw-status ' + type;
+    show(statusEl);
+    statusText.textContent = text;
+  }
 
   zone.addEventListener('click', () => input.click());
-  input.addEventListener('change', async () => {
-    const file = input.files[0];
-    if (!file) return;
-    
-    info.textContent = `Uploading ${file.name}...`;
-    show(info);
 
-    const formData = new FormData();
-    formData.append('file', file);
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = 'rgba(245,197,24,0.6)'; });
+  zone.addEventListener('dragleave', () => { zone.style.borderColor = ''; });
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file) uploadFile(file);
+  });
+
+  input.addEventListener('change', () => {
+    if (input.files[0]) uploadFile(input.files[0]);
+  });
+
+  async function uploadFile(file) {
+    if (file.size > 25 * 1024 * 1024) {
+      setStatus('error', `File too large (${(file.size/1024/1024).toFixed(1)}MB). Max 25MB.`);
+      return;
+    }
+
+    setStatus('uploading', 'Wolf is listening...');
+    state.transcript = null;
+    state.uploadedFile = null;
+
+    const fd = new FormData();
+    fd.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      const json = await res.json();
-      if (res.ok) {
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { throw new Error('Server returned invalid response'); }
+      if (!res.ok) throw new Error(json.error || 'Upload failed');
+
+      if (json.transcript && json.transcript.segments && json.transcript.segments.length > 0) {
+        state.transcript = json.transcript;
         state.uploadedFile = json;
-        info.textContent = `✓ ${file.name} ready`;
+        setStatus('success', `✓ Track consumed — ${file.name}`);
       } else {
-        throw new Error(json.error);
+        throw new Error('Whisper returned no transcription segments');
       }
     } catch (err) {
-      info.textContent = `Error: ${err.message}`;
+      setStatus('error', err.message);
     }
-  });
+  }
 }
 
-// ─── Generate ─────────────────────────────────────────────────────────────────
+// ─── Generate (real Whisper lyrics + Claude beats/prompts) ──────────────────
 function initGenerate() {
   $('generate-btn').addEventListener('click', async () => {
     if (state.generating) return;
-    
+
     const title = $('song-title').value.trim();
     const artist = $('song-artist').value.trim();
     const genre = $('song-genre').value;
@@ -301,16 +319,16 @@ function initGenerate() {
     updateStepper(1);
 
     try {
-      const body = { 
-        title, artist, genre, language, 
-        wolfId: state.wolf?.id,
-        filename: state.uploadedFile?.filename
-      };
+      const body = { title, artist, genre, language, wolfId: state.wolf?.id };
       if (bpm) body.bpm = bpm;
       if (mood) body.mood = mood;
       if (state.token) body.token = state.token;
 
-      // Simulate stepper progress
+      // Pass real Whisper transcript if available
+      if (state.transcript) {
+        body.transcript = state.transcript;
+      }
+
       setTimeout(() => updateStepper(2), 3000);
       setTimeout(() => updateStepper(3), 6000);
 
@@ -320,7 +338,11 @@ function initGenerate() {
         body: JSON.stringify(body),
       });
 
-      const json = await res.json();
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch {
+        throw new Error(res.status === 504 ? 'Request timed out — try again' : `Server error (${res.status})`);
+      }
       if (!res.ok) throw new Error(json.error || 'Generation failed');
 
       state.lastPack = json.pack;
@@ -634,34 +656,18 @@ function showMapNotification(name, city, isLabel) {
 
 // ─── Mobile Nav ─────────────────────────────────────────────────────────────
 function initMobileNav() {
-  const nav = $('mobile-nav');
-  if (!nav) return;
-
-  const items = {
-    'nav-home': 'wolf-select',
-    'nav-studio': 'studio',
-    'nav-hub': 'wolf-hub',
-    'nav-dash': 'dashboard'
-  };
-
-  Object.entries(items).forEach(([id, page]) => {
-    const el = $(id);
-    if (el) {
-      el.onclick = (e) => {
-        e.preventDefault();
-        if (page === 'dashboard' && state.profile?.role !== 'member') {
-          showPage('auth');
-        } else {
-          showPage(page);
-        }
-      };
-    }
+  document.querySelectorAll('.mnav-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = item.dataset.page;
+      if (page) showPage(page);
+    });
   });
 }
 
-function updateMobileNavActive(activeId) {
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.classList.toggle('active', item.id === activeId);
+function updateMobileNavActive(pageName) {
+  document.querySelectorAll('.mnav-item').forEach(item => {
+    item.classList.toggle('active', item.dataset.page === pageName);
   });
 }
 

@@ -1330,24 +1330,26 @@ const WOLF_HUB_DOTS = [
   { country: 'Ghana',   flag: '🇬🇭', top: '28%', left: '50%' },
 ]
 
-function WolfHubPage({ onBack }) {
-  const [flash, setFlash] = useState(null)
-  const [tooltip, setTooltip] = useState(null)
+const COUNTRY_ARTISTS = {
+  Belgium: [
+    { wolfId: 'yellow', name: 'Lazy Jo', genre: 'Melodic Hip-Hop', color: '#f5c518', image: 'LightningWolfYellowTransparentBG.png', video: '/LazyJoWolfAnimation.mp4' },
+    { wolfId: 'purple', name: 'Zirka', genre: 'French Hip-Hop', color: '#9b6dff', image: 'LightningWolfPurpleTransparentBG.png', video: '/Wolf-Purple.mp4' },
+    { wolfId: 'orange', name: 'Rosakay', genre: 'Pop / French Pop', color: '#ff9500', image: 'LightningWolfOrangeTransparentBG.png', video: '/RosakayWolfAnimation.mp4' },
+  ],
+  Ghana: [
+    { wolfId: 'yellow', name: 'Lazy Jo', genre: 'Melodic Hip-Hop', color: '#f5c518', image: 'LightningWolfYellowTransparentBG.png', video: '/LazyJoWolfAnimation.mp4', note: 'Ghanaian roots' },
+  ],
+  France: null,
+  USA: null,
+  UK: null,
+  Nigeria: null,
+}
 
-  function handleDotClick(country) {
-    setFlash(country)
-    setTimeout(() => setFlash(null), 3000)
-  }
+function WolfHubPage({ onBack, onCountry }) {
+  const [tooltip, setTooltip] = useState(null)
 
   return (
     <div className="wolfhub-page">
-      {/* Gold flash overlay */}
-      {flash && (
-        <div className="wolfhub-flash" key={flash}>
-          <div className="wolfhub-flash-text">COMING SOON — {flash.toUpperCase()}</div>
-        </div>
-      )}
-
       <button className="wolfhub-back" onClick={onBack}>← Back</button>
 
       <div className="wolfhub-center">
@@ -1366,7 +1368,7 @@ function WolfHubPage({ onBack }) {
               style={{ top: dot.top, left: dot.left }}
               onMouseEnter={() => setTooltip(dot.country)}
               onMouseLeave={() => setTooltip(null)}
-              onClick={() => handleDotClick(dot.country)}
+              onClick={() => onCountry(dot.country)}
             >
               <div className="wolfhub-dot-ping"></div>
               {tooltip === dot.country && (
@@ -1375,6 +1377,63 @@ function WolfHubPage({ onBack }) {
             </div>
           ))}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Wolf Hub Country Page ───────────────────────────────────────────────────
+function WolfHubCountryPage({ country, onBack, onSelectWolf }) {
+  const dot = WOLF_HUB_DOTS.find(d => d.country === country)
+  const artists = COUNTRY_ARTISTS[country]
+  const hasArtists = artists && artists.length > 0
+
+  function handleArtistClick(a) {
+    const wolfData = WOLVES.find(w => w.id === a.wolfId)
+    if (wolfData) onSelectWolf(wolfData)
+  }
+
+  return (
+    <div className="wolfhub-page">
+      <button className="wolfhub-back" onClick={onBack}>← Back to Wolf Hub</button>
+
+      <div className="wolfhub-country-content">
+        <div className="wolfhub-country-flag">{dot?.flag}</div>
+        <h1 className="wolfhub-title">{country.toUpperCase()}</h1>
+
+        {hasArtists ? (
+          <div className="wolfhub-artists-grid">
+            {artists.map(a => (
+              <div key={a.wolfId + a.name} className="wolfhub-artist-card" style={{'--wc': a.color}}
+                   onClick={() => handleArtistClick(a)}>
+                <div className="wolfhub-artist-img-wrap">
+                  {a.video ? (
+                    <video autoPlay loop muted playsInline preload="auto"
+                      onLoadedData={e => e.target.play().catch(()=>{})}
+                      style={{width:'100%',height:'100%',borderRadius:'50%',objectFit:'cover'}}>
+                      <source src={a.video} type="video/mp4" />
+                    </video>
+                  ) : (
+                    <img src={`/${a.image}`} alt={a.name} />
+                  )}
+                </div>
+                <div className="wolfhub-artist-name">{a.name}</div>
+                <div className="wolfhub-artist-genre">{a.genre}</div>
+                {a.note && <div className="wolfhub-artist-note">{a.note}</div>}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="wolfhub-coming-soon">
+            <div className="wolfhub-coming-icon">🐺</div>
+            <h2 className="wolfhub-coming-title">COMING SOON</h2>
+            <p className="wolfhub-coming-sub">Artists dropping soon</p>
+          </div>
+        )}
+
+        {hasArtists && country === 'Ghana' && (
+          <div className="wolfhub-more-wolves">More wolves coming soon</div>
+        )}
       </div>
     </div>
   )
@@ -1406,6 +1465,7 @@ export default function App() {
   const [token,          setToken]          = useState(null)
   const [supabase,       setSupabase]       = useState(null)
   const [showLimitModal, setShowLimitModal] = useState(false)
+  const [hubCountry,     setHubCountry]     = useState(null)
 
   // Apply wolf theme CSS variables
   useEffect(() => {
@@ -1529,7 +1589,11 @@ export default function App() {
       )}
 
       {page === 'wolf-hub' && (
-        <WolfHubPage onBack={() => setPage('wolf-select')} />
+        <WolfHubPage onBack={() => setPage('wolf-select')} onCountry={(c) => { setHubCountry(c); setPage('wolf-hub-country') }} />
+      )}
+
+      {page === 'wolf-hub-country' && hubCountry && (
+        <WolfHubCountryPage country={hubCountry} onBack={() => setPage('wolf-hub')} onSelectWolf={handleSelectWolf} />
       )}
 
       {page === 'dashboard' && (

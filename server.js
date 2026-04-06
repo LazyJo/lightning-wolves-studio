@@ -1,33 +1,62 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const Anthropic = require('@anthropic-ai/sdk');
+const { OpenAI } = require('openai');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── Supabase ────────────────────────────────────────────────────────────────
-const supabase = process.env.SUPABASE_URL
-  ? createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
-    )
-  : null;
+let supabase = null;
+if (process.env.SUPABASE_URL && (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY)) {
+  supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
+  );
+} else {
+  console.warn('Supabase not configured. Running in limited mode.');
+}
 
-// ─── Anthropic ───────────────────────────────────────────────────────────────
+// ─── AI Clients ──────────────────────────────────────────────────────────────
 const anthropic = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null;
+const openai = process.env.OPENAI_API_KEY
+  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'client', 'dist')));
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(express.static(__dirname));
+
+// ─── Multer ───────────────────────────────────────────────────────────────────
+const uploadsDir = path.join(require('os').tmpdir(), 'lw-uploads');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, uploadsDir),
+  filename: (req, file, cb) => {
+    const unique = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, unique + path.extname(file.originalname));
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB
+  fileFilter: (req, file, cb) => {
+    const allowed = /audio|video/;
+    if (allowed.test(file.mimetype)) return cb(null, true);
+    cb(new Error('Only audio and video files are allowed'));
+  },
+});
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 async function getUserFromToken(req) {
@@ -50,12 +79,34 @@ async function getProfile(userId) {
   return data;
 }
 
+// ─── Transcription Helper ─────────────────────────────────────────────────────
+async function transcribeFile(filePath) {
+  if (!openai) {
+    console.warn('[transcribe] OpenAI not configured, skipping');
+    return null;
+  }
+  try {
+    console.log('[transcribe] sending to Whisper:', filePath);
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(filePath),
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+      timestamp_granularities: ['segment'],
+    });
+    console.log('[transcribe] done, segments:', transcription.segments?.length);
+    return transcription;
+  } catch (err) {
+    console.error('[transcribe] Whisper error:', err.message);
+    return null;
+  }
+}
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// Public config — exposes only safe, public-facing keys to the frontend
+// Public config
 app.get('/api/config', (req, res) => {
   res.json({
     supabaseUrl:     process.env.SUPABASE_URL     || null,
@@ -63,31 +114,42 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// Test endpoint — confirms API routing is live
-app.get('/api/test', (req, res) => res.json({ status: 'ok' }));
+// File upload
+app.post('/api/upload', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file provided' });
+  res.json({
+    filename: req.file.filename,
+    originalName: req.file.originalname,
+    size: req.file.size,
+    mimetype: req.file.mimetype,
+  });
+});
 
 // Main generation endpoint
 app.post('/api/generate', async (req, res) => {
   try {
-    const { title, artist, genre, bpm, language, mood, wolfId, token } = req.body;
+    const { title, artist, genre, bpm, language, mood, wolfId, token, filename } = req.body;
 
     // Validate required fields
     if (!title || !artist || !genre || !language) {
       return res.status(400).json({ error: 'title, artist, genre, and language are required' });
     }
 
+    if (!anthropic) {
+      return res.status(503).json({ error: 'AI service not configured. Set ANTHROPIC_API_KEY.' });
+    }
+
     // ── Auth / generation limit check ──────────────────────────────────────
     let user = null;
     let isMember = false;
 
-    if (token) {
+    if (token && supabase) {
       user = await getUserFromToken({ headers: { authorization: `Bearer ${token}` } });
       if (user) {
         const profile = await getProfile(user.id);
         isMember = profile?.role === 'member';
 
         if (!isMember) {
-          // Public user: check monthly limit (3 free)
           const now = new Date();
           const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
@@ -104,10 +166,28 @@ app.post('/api/generate', async (req, res) => {
       }
     }
 
+    // ── Transcription ──────────────────────────────────────────────────────
+    let transcriptionText = "";
+    let segments = [];
+    if (filename) {
+      const filePath = path.join(uploadsDir, filename);
+      if (fs.existsSync(filePath)) {
+        const result = await transcribeFile(filePath);
+        if (result) {
+          transcriptionText = result.text;
+          segments = result.segments || [];
+        }
+      }
+    }
+
     // ── Build Claude prompt ────────────────────────────────────────────────
     const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Generate complete, authentic, emotionally resonant song content tailored precisely to the genre, language and vibe provided. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
 
-    const userPrompt = buildUserPrompt({ title, artist, genre, bpm, language, mood });
+    const userPrompt = buildUserPrompt({ 
+      title, artist, genre, bpm, language, mood, 
+      referenceLyrics: transcriptionText,
+      segments: segments
+    });
 
     // ── Call Claude ────────────────────────────────────────────────────────
     const message = await anthropic.messages.create({
@@ -117,34 +197,19 @@ app.post('/api/generate', async (req, res) => {
       messages: [{ role: 'user', content: userPrompt }],
     });
 
-    const raw = message.content[0]?.type === 'text' ? message.content[0].text : '';
-    console.log('[generate] raw Claude response (first 500 chars):', raw.slice(0, 500));
-
-    // Extract the outermost JSON object, tolerating any preamble or markdown fences
-    const jsonMatch = raw.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error('[generate] No JSON object found in response. Full raw:', raw);
-      return res.status(500).json({ error: 'Failed to parse AI response: no JSON object found', raw });
-    }
-
-    // Sanitize: replace literal control characters inside JSON string values.
-    // Claude sometimes emits raw newlines/tabs inside string values which is
-    // invalid JSON — this walks the string char-by-char to fix only those cases.
-    const sanitized = sanitizeJsonString(jsonMatch[0]);
+    const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+    const jsonStr = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
 
     let pack;
     try {
-      pack = JSON.parse(sanitized);
-    } catch (parseErr) {
-      console.error('[generate] JSON.parse failed:', parseErr.message, '\nSanitized (first 300):', sanitized.slice(0, 300));
+      pack = JSON.parse(jsonStr);
+    } catch {
       return res.status(500).json({ error: 'Failed to parse AI response', raw });
     }
 
-    // Generate SRT server-side from the lyrics array
-    pack.srt = buildSrt(pack.lyrics);
-
     // ── Persist generation record ──────────────────────────────────────────
-    if (user) {
+    if (user && supabase) {
+      const profile = await getProfile(user.id);
       await supabase.from('generations').insert({
         user_id: user.id,
         title,
@@ -152,16 +217,15 @@ app.post('/api/generate', async (req, res) => {
         genre,
         language,
         wolf_id: wolfId || null,
+        referred_by_member: profile?.referred_by || null
       });
 
-      // Track referral-originated generations
-      const profile = await getProfile(user.id);
       if (profile?.referred_by) {
         await supabase.from('referral_stats').insert({
           referrer_id: profile.referred_by,
           referred_user_id: user.id,
           generation_title: title,
-        }).onConflict('id').merge();
+        });
       }
     }
 
@@ -172,7 +236,7 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// Signup endpoint (creates profile with promo code tracking)
+// Signup endpoint
 app.post('/api/auth/signup', async (req, res) => {
   try {
     const { email, password, promoCode } = req.body;
@@ -187,8 +251,6 @@ app.post('/api/auth/signup', async (req, res) => {
     if (error) return res.status(400).json({ error: error.message });
 
     const userId = data.user.id;
-
-    // Find referrer from promo code
     let referredBy = null;
     if (promoCode) {
       const { data: referrer } = await supabase
@@ -199,7 +261,6 @@ app.post('/api/auth/signup', async (req, res) => {
       if (referrer) referredBy = referrer.id;
     }
 
-    // Create profile
     await supabase.from('profiles').insert({
       id: userId,
       email,
@@ -226,30 +287,25 @@ app.get('/api/dashboard', async (req, res) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    // Referral count this month
     const { count: referralCount } = await supabase
       .from('referral_stats')
       .select('*', { count: 'exact', head: true })
       .eq('referrer_id', user.id)
       .gte('created_at', startOfMonth);
 
-    // Total generations by referred users
     const { count: referredGens } = await supabase
       .from('generations')
       .select('*', { count: 'exact', head: true })
       .eq('referred_by_member', user.id);
 
-    // Own generations
     const { count: ownGens } = await supabase
       .from('generations')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id);
 
-    // Earnings estimate (simple formula: members pool 40% split by referrals)
-    const REVENUE_PER_GEN = 0.5; // $0.50 per generation estimate
+    const REVENUE_PER_GEN = 0.5;
     const totalRevenue = (referredGens || 0) * REVENUE_PER_GEN;
     const membersPoolShare = totalRevenue * 0.4;
-    // Estimate based on referral weight (simplified)
     const earningsEstimate = referralCount > 0 ? (membersPoolShare / Math.max(referralCount, 1)).toFixed(2) : '0.00';
 
     res.json({
@@ -281,115 +337,66 @@ app.post('/api/promo/verify', async (req, res) => {
   res.json({ valid: true });
 });
 
-// ─── Fallback to index.html (SPA) ────────────────────────────────────────────
+// Fallback to index.html
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ─── Error handler ────────────────────────────────────────────────────────────
+// Error handler
 app.use((err, req, res, next) => {
   if (err.code === 'LIMIT_FILE_SIZE') return res.status(413).json({ error: 'File too large (max 50MB)' });
   res.status(500).json({ error: err.message || 'Internal server error' });
 });
 
-if (require.main === module) {
-  app.listen(PORT, () => {
-    console.log(`Lightning Wolves Studio running on port ${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`Lightning Wolves Studio running on port ${PORT}`);
+});
 
 module.exports = app;
 
-// ─── JSON sanitizer ───────────────────────────────────────────────────────────
-// Walks the string character-by-character and escapes literal control characters
-// (newline, carriage return, tab) that appear inside JSON string values.
-// These are valid in JSON only as \n \r \t — Claude occasionally emits them raw.
-function sanitizeJsonString(str) {
-  let result = '';
-  let inString = false;
-  let escaped = false;
-  for (let i = 0; i < str.length; i++) {
-    const ch = str[i];
-    if (escaped) { result += ch; escaped = false; continue; }
-    if (ch === '\\' && inString) { result += ch; escaped = true; continue; }
-    if (ch === '"') { inString = !inString; result += ch; continue; }
-    if (inString) {
-      if (ch === '\n') { result += '\\n'; continue; }
-      if (ch === '\r') { result += '\\r'; continue; }
-      if (ch === '\t') { result += '\\t'; continue; }
-    }
-    result += ch;
-  }
-  return result;
-}
-
-// ─── SRT builder ─────────────────────────────────────────────────────────────
-// Converts the lyrics array [{ts:"0:16", text:"..."}] to an SRT string.
-// Each subtitle shows for 4 seconds (or until the next line).
-function buildSrt(lyrics) {
-  if (!Array.isArray(lyrics) || lyrics.length === 0) return '';
-
-  function tsToSeconds(ts) {
-    if (!ts) return 0;
-    const parts = String(ts).split(':').map(Number);
-    return parts.length === 2 ? parts[0] * 60 + parts[1] : parts[0];
-  }
-
-  function formatSrtTime(secs) {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = Math.floor(secs % 60);
-    return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')},000`;
-  }
-
-  return lyrics.map((line, i) => {
-    const start = tsToSeconds(line.ts);
-    const nextStart = i + 1 < lyrics.length ? tsToSeconds(lyrics[i + 1].ts) : start + 4;
-    const end = Math.max(start + 1, nextStart);
-    return `${i + 1}\n${formatSrtTime(start)} --> ${formatSrtTime(end)}\n${line.text}`;
-  }).join('\n\n') + '\n\n';
-}
-
 // ─── Prompt builder ───────────────────────────────────────────────────────────
-function buildUserPrompt({ title, artist, genre, bpm, language, mood }) {
-  return `Generate a music production pack for this track:
+function buildUserPrompt({ title, artist, genre, bpm, language, mood, referenceLyrics, segments }) {
+  let prompt = `Generate a complete music production pack for the following track:
 
-Title: ${title}
+Track Title: ${title}
 Artist: ${artist}
 Genre: ${genre}
-Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood: ${mood}` : ''}
+Language: ${language}${bpm ? `\nBPM: ${bpm}` : ''}${mood ? `\nMood/Vibe: ${mood}` : ''}`;
 
-Return ONLY a JSON object with exactly this structure (no text before or after):
+  if (referenceLyrics) {
+    prompt += `\n\nREFERENCE LYRICS (Transcribed from audio):
+${referenceLyrics}
+
+IMPORTANT: The user has provided a reference track. Your job is to:
+1. Use the transcribed lyrics as the primary source. Fix any transcription errors and format them properly.
+2. Maintain the original meaning and flow of the reference lyrics.
+3. If the transcription is incomplete, expand it in the same style.
+4. Align the timestamps in the JSON 'lyrics' and 'srt' fields with the actual timing of the reference track.`;
+  }
+
+  prompt += `\n\nReturn ONLY a valid JSON object with this exact structure:
 {
   "lyrics": [
     {"ts": "0:00", "text": "[INTRO]"},
-    {"ts": "0:08", "text": "first lyric line"},
-    {"ts": "0:16", "text": "[VERSE 1]"},
-    {"ts": "0:24", "text": "verse lyric line"}
+    {"ts": "0:05", "text": "lyric line here"}
   ],
+  "srt": "1\\n00:00:00,000 --> 00:00:05,000\\nLyric line here\\n\\n",
   "beats": [
-    {"ts": "0:00", "label": "Intro", "type": "CUT"},
-    {"ts": "0:32", "label": "Verse 1", "type": "CUT"},
-    {"ts": "1:04", "label": "Chorus", "type": "ZOOM"},
-    {"ts": "2:00", "label": "Outro", "type": "FADE"}
+    {"ts": "0:00", "label": "Intro start", "type": "CUT"},
+    {"ts": "0:16", "label": "Verse 1 drop", "type": "CUT"}
   ],
   "prompts": [
-    {"section": "Intro", "prompt": "cinematic AI video prompt for this section"},
-    {"section": "Verse", "prompt": "cinematic AI video prompt for this section"},
-    {"section": "Chorus", "prompt": "cinematic AI video prompt for this section"}
+    {"section": "Intro (0:00-0:16)", "prompt": "Detailed cinematic visual prompt..."}
   ],
   "tips": [
-    {"title": "TikTok", "tip": "actionable tip for this genre on TikTok"},
-    {"title": "Reels", "tip": "actionable tip for Instagram Reels"},
-    {"title": "Shorts", "tip": "actionable tip for YouTube Shorts"}
+    {"title": "TikTok Hook", "tip": "..."}
   ]
 }
 
-Rules:
-- Lyrics: 20+ lines in ${language}, section headers like [INTRO] [VERSE 1] [CHORUS] [BRIDGE] [OUTRO]
-- Timestamps format: "M:SS" (e.g. "1:04")
-- beats: exactly 4 entries covering intro, verse, chorus, outro
-- prompts: exactly 3 entries, each prompt 1-2 sentences, cinematic style for ${genre}
-- tips: exactly 3 entries, specific to ${genre}
-- No literal newlines inside string values. No smart quotes. Straight ASCII only.`;
+Requirements:
+- Write authentic ${genre} lyrics in ${language}.
+- SRT must be properly formatted.
+- All content must be in ${language}.`;
+
+  return prompt;
 }

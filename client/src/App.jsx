@@ -1324,13 +1324,14 @@ function DashboardPage({ wolf, profile, token, onBack, onSignOut }) {
 }
 
 // ─── Wolf Hub (hidden page) ──────────────────────────────────────────────────
+// Dot positions mapped for a FRONT-FACING wolf head
 const WOLF_HUB_DOTS = [
-  { country: 'Belgium', flag: '🇧🇪', top: '52%', left: '32%' },
-  { country: 'France',  flag: '🇫🇷', top: '52%', left: '68%' },
-  { country: 'USA',     flag: '🇺🇸', top: '18%', left: '25%' },
-  { country: 'UK',      flag: '🇬🇧', top: '18%', left: '75%' },
-  { country: 'Nigeria', flag: '🇳🇬', top: '68%', left: '50%' },
-  { country: 'Ghana',   flag: '🇬🇭', top: '28%', left: '50%' },
+  { country: 'Ghana',   flag: '🇬🇭', top: '18%', left: '50%' },  // forehead center
+  { country: 'USA',     flag: '🇺🇸', top: '32%', left: '30%' },  // left eye
+  { country: 'UK',      flag: '🇬🇧', top: '32%', left: '70%' },  // right eye
+  { country: 'Belgium', flag: '🇧🇪', top: '50%', left: '28%' },  // left cheek
+  { country: 'France',  flag: '🇫🇷', top: '50%', left: '72%' },  // right cheek
+  { country: 'Nigeria', flag: '🇳🇬', top: '62%', left: '50%' },  // snout / nose
 ]
 
 const COUNTRY_ARTISTS = {
@@ -1364,39 +1365,41 @@ function WolfHubPage({ onBack, onCountry }) {
     // Scene
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100)
-    camera.position.set(0, 1.2, 4)
-    camera.lookAt(0, 0.8, 0)
+    // Camera aimed at where the snout will be (center of face)
+    camera.position.set(0, 1, 4.5)
+    camera.lookAt(0, 0.7, 0)
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setSize(w, h)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.4
+    renderer.toneMappingExposure = 1.6
     container.appendChild(renderer.domElement)
 
-    // Lighting — cinematic gold with strong rim
-    scene.add(new THREE.AmbientLight(0x1a1a1a, 1.5))
+    // Lighting — strong front light to illuminate the face
+    scene.add(new THREE.AmbientLight(0x222222, 2))
 
-    const keyLight = new THREE.DirectionalLight(0xFFB800, 3)
-    keyLight.position.set(1, 3, 5)
-    scene.add(keyLight)
+    // KEY: Strong front point light — illuminates face + prismatic textures
+    const frontLight = new THREE.PointLight(0xFFB800, 5, 12)
+    frontLight.position.set(0, 1.2, 5)
+    scene.add(frontLight)
 
-    // Strong rim lights — edge glow on fur
-    const rimLeft = new THREE.DirectionalLight(0xFFB800, 4)
-    rimLeft.position.set(-4, 2, -3)
+    // Secondary front fill from slightly above
+    const frontFill = new THREE.DirectionalLight(0xFFD700, 2.5)
+    frontFill.position.set(0, 3, 4)
+    scene.add(frontFill)
+
+    // Rim lights — edge glow on fur silhouette
+    const rimLeft = new THREE.DirectionalLight(0xFFB800, 3.5)
+    rimLeft.position.set(-4, 2, -2)
     scene.add(rimLeft)
     const rimRight = new THREE.DirectionalLight(0xFF8C00, 3)
-    rimRight.position.set(4, 1, -3)
+    rimRight.position.set(4, 1, -2)
     scene.add(rimRight)
     const rimTop = new THREE.DirectionalLight(0xFFD700, 2)
-    rimTop.position.set(0, 5, -2)
+    rimTop.position.set(0, 5, -1)
     scene.add(rimTop)
-
-    // Subtle front fill
-    const fill = new THREE.PointLight(0xFFB800, 0.6, 10)
-    fill.position.set(0, 1, 4)
-    scene.add(fill)
 
     // Load GLB with Draco
     const dracoLoader = new DRACOLoader()
@@ -1415,11 +1418,12 @@ function WolfHubPage({ onBack, onCountry }) {
       const scale = 2.4 / maxDim
       model.scale.setScalar(scale)
       model.position.sub(center.multiplyScalar(scale))
-      model.position.y += 0.8
+      model.position.y += 0.7
 
-      // Face forward — rotate 180° so the wolf looks at the camera
-      model.rotation.y = Math.PI
-      baseRotationY = Math.PI
+      // Face forward: the model's default faces +X (right in the screenshot).
+      // Rotate -90° on Y so the snout points toward the camera (+Z).
+      model.rotation.y = -Math.PI / 2
+      baseRotationY = -Math.PI / 2
 
       scene.add(model)
     }, undefined, (err) => {
@@ -1436,33 +1440,35 @@ function WolfHubPage({ onBack, onCountry }) {
 
     // Animate — mouse-reactive tilt, no auto-rotation
     let raf
-    let zoomProgress = 0
-    const targetCamZ = { current: 4 }
+    const camTarget = { z: 4.5, y: 1 }
 
     function animate() {
       raf = requestAnimationFrame(animate)
 
       if (model) {
-        // Subtle tilt following mouse (max ±12°)
-        const tiltX = mouseRef.current.y * -0.2
-        const tiltY = baseRotationY + mouseRef.current.x * 0.2
-        model.rotation.x += (tiltX - model.rotation.x) * 0.05
-        model.rotation.y += (tiltY - model.rotation.y) * 0.05
+        // Subtle tilt following mouse (max ±10°)
+        const tiltX = mouseRef.current.y * -0.15
+        const tiltY = baseRotationY + mouseRef.current.x * 0.15
+        model.rotation.x += (tiltX - model.rotation.x) * 0.04
+        model.rotation.y += (tiltY - model.rotation.y) * 0.04
       }
 
-      // Maw zoom — camera pushes into wolf's face
-      camera.position.z += (targetCamZ.current - camera.position.z) * 0.04
+      // Maw zoom — camera pushes into wolf's snout
+      camera.position.z += (camTarget.z - camera.position.z) * 0.04
+      camera.position.y += (camTarget.y - camera.position.y) * 0.04
 
       renderer.render(scene, camera)
     }
     animate()
 
-    // Expose zoom trigger
+    // Expose zoom trigger — pushes camera into the snout
     container._triggerZoom = () => {
-      targetCamZ.current = 0.5 // zoom into the face
+      camTarget.z = 1.0
+      camTarget.y = 0.7
     }
     container._resetZoom = () => {
-      targetCamZ.current = 4
+      camTarget.z = 4.5
+      camTarget.y = 1
     }
 
     function onResize() {

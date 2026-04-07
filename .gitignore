@@ -1,10 +1,6 @@
 node_modules/
 client/node_modules/
 client/dist/
-client/public/*.mp4
-client/public/*.glb
-client/public/*.jpeg
-client/public/*.JPG.jpeg
 .env
 uploads/*
 !uploads/.gitkeep

@@ -14,6 +14,8 @@ import WolfHubPage from "./components/WolfHubPage";
 import StudioPage from "./components/StudioPage";
 import AuthPage from "./components/AuthPage";
 import JoinPackPage from "./components/JoinPackPage";
+import CreateProfilePage from "./components/CreateProfilePage";
+import VersusPage from "./components/VersusPage";
 import type { Wolf } from "./data/wolves";
 
 type Page =
@@ -23,11 +25,21 @@ type Page =
   | { type: "wolf-hub" }
   | { type: "studio"; wolf: Wolf | null }
   | { type: "auth" }
-  | { type: "join-pack" };
+  | { type: "join-pack" }
+  | { type: "create-profile" }
+  | { type: "versus"; territory?: string };
+
+interface UserProfile {
+  name: string;
+  photo: string;
+  genre: string;
+  country: string;
+}
 
 export default function App() {
   const [page, setPage] = useState<Page>({ type: "home" });
   const [wolfColor, setWolfColor] = useState("#f5c518");
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const goHome = useCallback(() => {
     setPage({ type: "home" });
@@ -48,9 +60,14 @@ export default function App() {
   }, []);
 
   const goToWolfHub = useCallback(() => {
-    setPage({ type: "wolf-hub" });
+    // If no profile created yet, go to create profile first
+    if (!userProfile) {
+      setPage({ type: "create-profile" });
+    } else {
+      setPage({ type: "wolf-hub" });
+    }
     window.scrollTo(0, 0);
-  }, []);
+  }, [userProfile]);
 
   const goToStudio = useCallback((wolf?: Wolf) => {
     setPage({ type: "studio", wolf: wolf || null });
@@ -68,7 +85,20 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
-  // Handle wolf card clicks - active go to profile, special (Lone Wolf) go to studio, CTA go to join
+  const goToVersus = useCallback((territory?: string) => {
+    setPage({ type: "versus", territory });
+    window.scrollTo(0, 0);
+  }, []);
+
+  const handleProfileComplete = useCallback(
+    (profile: { photo: string; name: string; genre: string; country: string }) => {
+      setUserProfile(profile);
+      setPage({ type: "wolf-hub" });
+      window.scrollTo(0, 0);
+    },
+    []
+  );
+
   const handleWolfSelect = useCallback(
     (wolf: Wolf) => {
       if (wolf.status === "cta") {
@@ -98,7 +128,8 @@ export default function App() {
           <motion.div
             key={
               page.type +
-              (page.type === "wolf-profile" ? page.wolf.id : "")
+              (page.type === "wolf-profile" ? page.wolf.id : "") +
+              (page.type === "versus" ? page.territory : "")
             }
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -126,7 +157,11 @@ export default function App() {
             {page.type === "pricing" && <PricingPage onBack={goHome} />}
 
             {page.type === "wolf-hub" && (
-              <WolfHubPage onBack={goHome} onSelectWolf={goToProfile} />
+              <WolfHubPage
+                onBack={goHome}
+                onSelectWolf={goToProfile}
+                onVersus={goToVersus}
+              />
             )}
 
             {page.type === "studio" && (
@@ -139,6 +174,21 @@ export default function App() {
 
             {page.type === "join-pack" && (
               <JoinPackPage onBack={goHome} />
+            )}
+
+            {page.type === "create-profile" && (
+              <CreateProfilePage
+                onBack={goHome}
+                onComplete={handleProfileComplete}
+              />
+            )}
+
+            {page.type === "versus" && (
+              <VersusPage
+                onBack={() => setPage({ type: "wolf-hub" })}
+                territory={page.territory}
+                userProfile={userProfile || undefined}
+              />
             )}
           </motion.div>
         </AnimatePresence>

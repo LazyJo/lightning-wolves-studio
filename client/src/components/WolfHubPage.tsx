@@ -11,6 +11,7 @@ import type { Territory, Wolf } from "../data/wolves";
 interface Props {
   onBack: () => void;
   onSelectWolf: (wolf: Wolf) => void;
+  onVersus?: (territory?: string) => void;
 }
 
 function WolfScene({
@@ -172,7 +173,7 @@ function WolfScene({
   return null;
 }
 
-export default function WolfHubPage({ onBack, onSelectWolf }: Props) {
+export default function WolfHubPage({ onBack, onSelectWolf, onVersus }: Props) {
   const [selectedTerritory, setSelectedTerritory] =
     useState<Territory | null>(null);
   const [zooming, setZooming] = useState(false);
@@ -437,6 +438,16 @@ export default function WolfHubPage({ onBack, onSelectWolf }: Props) {
                     )
                   )}
                 </div>
+                {/* Versus button */}
+                {onVersus && (
+                  <button
+                    onClick={() => onVersus(selectedTerritory?.name)}
+                    className="mt-5 w-full rounded-xl bg-wolf-gold py-3 font-bold tracking-wider text-black transition-all hover:bg-wolf-amber"
+                    style={{ fontFamily: "var(--font-heading)" }}
+                  >
+                    ⚡ START VERSUS SWIPE
+                  </button>
+                )}
               ) : (
                 <div className="py-12 text-center">
                   <MapPin

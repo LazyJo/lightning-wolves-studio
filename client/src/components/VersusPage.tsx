@@ -196,9 +196,9 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 0, 1, 0] }}
           transition={{ duration: 0.8, times: [0, 0.1, 0.2, 0.3, 1] }}
-          className="absolute inset-0 bg-wolf-gold/10"
+          className="pointer-events-none absolute inset-0 bg-wolf-gold/10"
         />
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-center px-6">
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="relative z-10 text-center px-6">
           <motion.div initial={{ scale: 0 }} animate={{ scale: [0, 1.3, 1] }} transition={{ duration: 0.8 }}>
             <Zap size={60} className="mx-auto text-wolf-gold" />
           </motion.div>

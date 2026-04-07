@@ -443,10 +443,11 @@ export default function WolfHubPage({ onBack, onSelectWolf, onVersus }: Props) {
                 {onVersus && (
                   <button
                     onClick={() => onVersus(selectedTerritory?.name)}
-                    className="mt-5 w-full rounded-xl bg-wolf-gold py-3 font-bold tracking-wider text-black transition-all hover:bg-wolf-amber"
-                    style={{ fontFamily: "var(--font-heading)" }}
+                    className="group relative mt-5 w-full overflow-hidden rounded-xl py-3 font-bold tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20"
+                    style={{ fontFamily: "var(--font-heading)", background: "linear-gradient(135deg, #9b6dff 0%, #f5c518 50%, #E040FB 100%)" }}
                   >
-                    ⚡ START VERSUS SWIPE
+                    <span className="relative z-10">🐺 START VERSUS SWIPE</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                   </button>
                 )}
                 </>

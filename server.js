@@ -291,6 +291,123 @@ app.post('/api/promo/verify', async (req, res) => {
   res.json({ valid: true });
 });
 
+// ─── Wolf Vision: Visual Generation ──────────────────────────────────────────
+
+// Model registry with credit costs
+const VISION_MODELS = {
+  'nanobanana-pro':     { name: 'NanoBanana Pro',       credits: 15, status: 'access' },
+  'nanobanana':         { name: 'NanoBanana',           credits: 10, status: 'access' },
+  'grok-imagine':       { name: 'Grok Imagine',        credits: 15, status: 'access' },
+  'sora-2':             { name: 'Sora 2',              credits: 20, status: 'legacy' },
+  'kling-3':            { name: 'Kling 3.0',           credits: 20, status: 'coming-soon' },
+  'kling-motion':       { name: 'Kling Motion Control', credits: 15, status: 'access' },
+  'seedream-4.5':       { name: 'Seedream 4.5',        credits: 12, status: 'access' },
+  'seedance-2':         { name: 'Seedance 2.0',        credits: 18, status: 'coming-soon' },
+};
+
+// Get available models
+app.get('/api/models', (req, res) => {
+  const models = Object.entries(VISION_MODELS).map(([id, model]) => ({
+    id,
+    ...model,
+  }));
+  res.json({ models });
+});
+
+// Get user credits
+app.get('/api/credits', async (req, res) => {
+  try {
+    const user = await getUserFromToken(req);
+    if (!user) return res.json({ credits: 100, isGuest: true }); // guest default
+
+    const profile = await getProfile(user.id);
+    res.json({
+      credits: profile?.wolf_credits ?? 100,
+      isGuest: false,
+      displayName: profile?.display_name || profile?.email,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Generate visuals (placeholder — will connect to Replicate/Fal.ai later)
+app.post('/api/generate-visuals', async (req, res) => {
+  try {
+    const { modelId, prompt, type, token } = req.body;
+
+    if (!modelId || !prompt) {
+      return res.status(400).json({ error: 'modelId and prompt are required' });
+    }
+
+    const model = VISION_MODELS[modelId];
+    if (!model) {
+      return res.status(400).json({ error: 'Invalid model ID' });
+    }
+
+    if (model.status === 'coming-soon') {
+      return res.status(400).json({ error: 'COMING_SOON', message: `${model.name} is coming soon!` });
+    }
+
+    // Check credits
+    let user = null;
+    let credits = 100; // guest default
+
+    if (token) {
+      user = await getUserFromToken({ headers: { authorization: `Bearer ${token}` } });
+      if (user) {
+        const profile = await getProfile(user.id);
+        credits = profile?.wolf_credits ?? 0;
+      }
+    }
+
+    if (credits < model.credits) {
+      return res.status(403).json({
+        error: 'INSUFFICIENT_CREDITS',
+        message: `Not enough credits. Need ${model.credits}, have ${credits}.`,
+        needed: model.credits,
+        current: credits,
+      });
+    }
+
+    // Deduct credits
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ wolf_credits: credits - model.credits })
+        .eq('id', user.id);
+
+      // Log the visual generation
+      await supabase.from('visual_generations').insert({
+        user_id: user.id,
+        model_id: modelId,
+        prompt,
+        type: type || 'scene',
+        credits_used: model.credits,
+        status: 'completed', // placeholder — will be 'processing' when real APIs connected
+      });
+    }
+
+    // Placeholder response — will be replaced with actual API call
+    res.json({
+      success: true,
+      generation: {
+        id: `gen_${Date.now()}`,
+        model: model.name,
+        prompt,
+        type: type || 'scene',
+        creditsUsed: model.credits,
+        remainingCredits: credits - model.credits,
+        status: 'completed',
+        message: `${model.name} generation queued. Connect external API (Replicate/Fal.ai) to enable real generation.`,
+      },
+    });
+  } catch (err) {
+    console.error('Generate visuals error:', err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
 // ─── Fallback to index.html (SPA) ────────────────────────────────────────────
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));

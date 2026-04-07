@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import RemixViewComponent from "./studio/RemixView";
+import WolfVisionPanelComponent from "./studio/WolfVisionPanel";
 import TemplateViewComponent from "./studio/TemplateView";
 import ScenesViewComponent from "./studio/ScenesView";
 import PerformanceViewComponent from "./studio/PerformanceView";
@@ -751,6 +752,11 @@ export default function StudioPage({ wolf, onBack }: Props) {
                 ))}
               </div>
             </motion.div>
+
+            {/* Wolf Vision Panel */}
+            <div className="mt-8">
+              <WolfVisionPanelComponent />
+            </div>
 
             {/* Quick links */}
             <div className="mt-6 grid gap-4 md:grid-cols-2">

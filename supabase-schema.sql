@@ -13,8 +13,33 @@ CREATE TABLE IF NOT EXISTS profiles (
   promo_code      TEXT UNIQUE,                    -- e.g. 'LAZYJO'
   referred_by     UUID REFERENCES profiles(id),   -- member who referred this user
   generations_count INT NOT NULL DEFAULT 0,
+  wolf_credits    INT NOT NULL DEFAULT 100,           -- Wolf Vision credits (10 = 1 generation)
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Visual generations table
+CREATE TABLE IF NOT EXISTS visual_generations (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID REFERENCES profiles(id),
+  model_id        TEXT NOT NULL,                       -- 'nanobanana-pro', 'grok-imagine', etc.
+  prompt          TEXT NOT NULL,
+  type            TEXT NOT NULL DEFAULT 'scene',       -- 'scene' | 'cover-art' | 'performance'
+  credits_used    INT NOT NULL DEFAULT 15,
+  status          TEXT NOT NULL DEFAULT 'pending',     -- 'pending' | 'processing' | 'completed' | 'failed'
+  result_url      TEXT,                                -- URL to generated media
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE visual_generations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "visual_gen_select_own" ON visual_generations
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "visual_gen_service_all" ON visual_generations
+  FOR ALL USING (auth.role() = 'service_role');
+
+-- Migration: add wolf_credits to existing profiles table
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS wolf_credits INT NOT NULL DEFAULT 100;
 
 -- Generations table
 CREATE TABLE IF NOT EXISTS generations (

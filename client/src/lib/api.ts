@@ -1,5 +1,52 @@
 const API = "";
 
+// ─── Wolf Vision: Models + Credits ───────────────────────────────────────────
+
+export interface VisionModel {
+  id: string;
+  name: string;
+  credits: number;
+  status: "access" | "legacy" | "coming-soon";
+}
+
+export async function getModels(): Promise<VisionModel[]> {
+  try {
+    const res = await fetch(`${API}/api/models`);
+    const data = await res.json();
+    return data.models || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getCredits(): Promise<{ credits: number; isGuest: boolean }> {
+  try {
+    const res = await fetch(`${API}/api/credits`);
+    return res.json();
+  } catch {
+    return { credits: 100, isGuest: true };
+  }
+}
+
+export async function generateVisuals(params: {
+  modelId: string;
+  prompt: string;
+  type?: string;
+}): Promise<{ success: boolean; generation: any }> {
+  const res = await fetch(`${API}/api/generate-visuals`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Generation failed" }));
+    throw new Error(err.error || err.message || "Generation failed");
+  }
+  return res.json();
+}
+
+// ─── Core API ────────────────────────────────────────────────────────────────
+
 export interface GenerationPack {
   lyrics: { ts: string; text: string }[];
   srt: string;

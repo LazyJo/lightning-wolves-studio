@@ -1619,52 +1619,125 @@ function WolfHubCountryPage({ country, onBack, onSelectWolf }) {
   )
 }
 
-// ─── Create Wolf Profile Modal ───────────────────────────────────────────────
-function CreateProfileModal({ onSave, onClose }) {
+// ─── Join The Pack — Hinge-Style Onboarding Gate ─────────────────────────────
+function JoinPackGate({ onComplete, onSkip }) {
+  const [step, setStep] = useState(1) // 1=photo+name, 2=prompts, 3=howl
   const [name, setName] = useState('')
   const [genre, setGenre] = useState('')
-  const [lookingFor, setLookingFor] = useState('')
   const [imgUrl, setImgUrl] = useState('')
+  const [prompt1, setPrompt1] = useState('')
+  const [prompt2, setPrompt2] = useState('')
+  const [howlText, setHowlText] = useState('')
+  const [unlocking, setUnlocking] = useState(false)
 
   function handlePhoto(e) {
     const file = e.target.files[0]
     if (file) setImgUrl(URL.createObjectURL(file))
   }
 
-  return (
-    <div className="modal-overlay">
-      <div className="modal-box wolf-profile-modal">
-        <h2 className="modal-title">CREATE YOUR WOLF PROFILE</h2>
-        <div className="wolf-profile-form">
-          <div className="wpf-photo" onClick={() => document.getElementById('wpf-photo-input').click()}>
-            {imgUrl ? <img src={imgUrl} alt="Profile" /> : <span>📷 Upload Photo</span>}
-            <input id="wpf-photo-input" type="file" accept="image/*" hidden onChange={handlePhoto} />
-          </div>
-          <div className="field-group"><label className="field-label">WOLF NAME *</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your artist name" /></div>
-          <div className="field-group"><label className="field-label">GENRE *</label>
-            <select value={genre} onChange={e => setGenre(e.target.value)}>
-              <option value="">Select genre…</option>
-              {['Hip-Hop','Drill','Afrobeats','R&B','Trap','Pop','French Hip-Hop','Amapiano','Rock','Other'].map(g => <option key={g} value={g}>{g}</option>)}
-            </select></div>
-          <div className="field-group"><label className="field-label">LOOKING FOR</label>
-            <input type="text" value={lookingFor} onChange={e => setLookingFor(e.target.value)} placeholder="e.g. Need a hard Drill verse" /></div>
-          <div className="modal-actions">
-            <button className="btn-gold" disabled={!name || !genre} onClick={() => onSave({ name, genre, lookingFor, image: imgUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}` })}>
-              CREATE PROFILE
-            </button>
-            <button className="btn-ghost" onClick={onClose}>Cancel</button>
-          </div>
+  function handleSubmit() {
+    setUnlocking(true)
+    setTimeout(() => {
+      onComplete({
+        name, genre, image: imgUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
+        prompts: { flowLike: prompt1, lookingFor: prompt2 },
+        howlSnippet: howlText,
+      })
+    }, 2000)
+  }
+
+  if (unlocking) {
+    return (
+      <div className="jpgate-unlock">
+        <div className="jpgate-flash"></div>
+        <div className="jpgate-unlock-content">
+          <div className="jpgate-unlock-bolt">⚡</div>
+          <h2 className="jpgate-unlock-title">WELCOME TO THE PACK</h2>
+          <p className="jpgate-unlock-sub">{name.toUpperCase()}</p>
         </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="jpgate-overlay">
+      <div className="jpgate-modal">
+        <div className="jpgate-header">
+          <img src="/LightningWolvesLogoTransparentBG.png" alt="" className="jpgate-logo" onError={e=>e.target.style.display='none'} />
+          <h1 className="jpgate-title">JOIN THE PACK</h1>
+          <p className="jpgate-sub">Create your Wolf Profile to enter the Hub</p>
+        </div>
+
+        <div className="jpgate-steps">
+          <div className={`jpgate-step-dot ${step >= 1 ? 'active' : ''}`}>1</div>
+          <div className={`jpgate-step-line ${step >= 2 ? 'active' : ''}`}></div>
+          <div className={`jpgate-step-dot ${step >= 2 ? 'active' : ''}`}>2</div>
+          <div className={`jpgate-step-line ${step >= 3 ? 'active' : ''}`}></div>
+          <div className={`jpgate-step-dot ${step >= 3 ? 'active' : ''}`}>3</div>
+        </div>
+
+        {step === 1 && (
+          <div className="jpgate-form">
+            <div className="wpf-photo" onClick={() => document.getElementById('jpgate-photo').click()}>
+              {imgUrl ? <img src={imgUrl} alt="" /> : <span>📷<br/>TAP TO UPLOAD</span>}
+              <input id="jpgate-photo" type="file" accept="image/*" hidden onChange={handlePhoto} />
+            </div>
+            <div className="field-group"><label className="field-label">WOLF NAME *</label>
+              <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your artist name" /></div>
+            <div className="field-group"><label className="field-label">GENRE *</label>
+              <select value={genre} onChange={e => setGenre(e.target.value)}>
+                <option value="">Select your sound…</option>
+                {['Melodic Hip-Hop','Hip-Hop','Drill','Afrobeats','R&B','Trap','Pop','French Hip-Hop','French Pop','Amapiano','Dark Trap','Rock','Other'].map(g => <option key={g} value={g}>{g}</option>)}
+              </select></div>
+            <button className="btn-gold btn-full" disabled={!name || !genre} onClick={() => setStep(2)}>NEXT →</button>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div className="jpgate-form">
+            <div className="jpgate-prompt-card">
+              <label className="jpgate-prompt-label">🎤 MY FLOW IS LIKE...</label>
+              <input type="text" value={prompt1} onChange={e => setPrompt1(e.target.value)} placeholder='e.g. "Lazy Jo meets Drake vibes"' />
+            </div>
+            <div className="jpgate-prompt-card">
+              <label className="jpgate-prompt-label">🐺 I'M LOOKING FOR A WOLF WHO...</label>
+              <input type="text" value={prompt2} onChange={e => setPrompt2(e.target.value)} placeholder='e.g. "Can drop a hard Drill verse in 24h"' />
+            </div>
+            <div className="jpgate-nav">
+              <button className="btn-ghost" onClick={() => setStep(1)}>← Back</button>
+              <button className="btn-gold" disabled={!prompt1 && !prompt2} onClick={() => setStep(3)}>NEXT →</button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className="jpgate-form">
+            <div className="jpgate-prompt-card">
+              <label className="jpgate-prompt-label">🔊 THE HOWL — Your Best Bar</label>
+              <textarea value={howlText} onChange={e => setHowlText(e.target.value)} rows={3}
+                placeholder='Drop your hardest lyric or describe your sound…' />
+            </div>
+            <div className="jpgate-nav">
+              <button className="btn-ghost" onClick={() => setStep(2)}>← Back</button>
+              <button className="jpgate-submit" onClick={handleSubmit}>
+                ⚡ BECOME A LONE WOLF
+              </button>
+            </div>
+          </div>
+        )}
+
+        <button className="jpgate-skip" onClick={onSkip}>Skip for now →</button>
       </div>
     </div>
   )
 }
 
 // ─── Pack Chat Window ────────────────────────────────────────────────────────
-function PackChatWindow({ matchName, onClose }) {
+function PackChatWindow({ matchName, wolfProfile, onClose }) {
+  const genre = wolfProfile?.genre || 'music'
   const [messages, setMessages] = useState([
-    { from: 'system', text: `⚡ You and ${matchName} are now connected. Start your collab!` }
+    { from: 'system', text: `⚡ PACK UNITED! You and ${matchName} matched.` },
+    { from: 'system', text: `💡 Collab starter: "Yo! Our vibes match. Let's create a ${genre} track together!"` }
   ])
   const [input, setInput] = useState('')
 
@@ -1703,56 +1776,57 @@ function PackChatWindow({ matchName, onClose }) {
 
 // ─── Versus Swipe Screen (PS2-style) ─────────────────────────────────────────
 const MOCK_WOLVES = [
-  { name: 'Wolf_99', genre: 'Drill', bio: 'London underground. Hard verse only.', seed: 'wolf99', potential: 87, gens: 24 },
-  { name: 'Viper_X', genre: 'Afrobeats', bio: 'Lagos to the world. Need a melodic hook.', seed: 'viperx', potential: 72, gens: 12 },
-  { name: 'Ghost_Writer', genre: 'Dark Trap', bio: 'Shadows and bass. Collab on a dark beat.', seed: 'ghost', potential: 91, gens: 38 },
-  { name: 'Luna_Soul', genre: 'R&B', bio: 'Smooth vocals, moonlight vibes.', seed: 'luna', potential: 68, gens: 8 },
+  { name: 'Wolf_99', genre: 'Drill', seed: 'wolf99', potential: 87, gens: 24,
+    flowLike: 'Pop Smoke meets UK energy', lookingFor: 'Producer with dark 808s', howl: '"Walk in the room, they already know the name..."' },
+  { name: 'Viper_X', genre: 'Afrobeats', seed: 'viperx', potential: 72, gens: 12,
+    flowLike: 'Burna Boy x Wizkid fusion', lookingFor: 'Melodic hook writer for a summer anthem', howl: '"Sun go down, rhythm still alive..."' },
+  { name: 'Ghost_Writer', genre: 'Dark Trap', seed: 'ghost', potential: 91, gens: 38,
+    flowLike: 'Travis Scott in a haunted cathedral', lookingFor: 'Vocalist for a cinematic intro', howl: '"Shadows don\'t sleep, neither do I..."' },
+  { name: 'Luna_Soul', genre: 'R&B', seed: 'luna', potential: 68, gens: 8,
+    flowLike: 'SZA meets French elegance', lookingFor: 'Beat maker with smooth jazz samples', howl: '"Under the moonlight, I found my frequency..."' },
+  { name: 'Blitz_MC', genre: 'Grime', seed: 'blitz', potential: 79, gens: 19,
+    flowLike: 'Skepta energy with Stormzy depth', lookingFor: 'Anyone ready to clash on a beat', howl: '"Step to the mic, no second takes..."' },
 ]
 
-function VersusSwipePage({ wolf, city, onBack, profile }) {
+function VersusSwipePage({ wolf, city, onBack, profile, wolfProfile }) {
   const [deck, setDeck] = useState([...MOCK_WOLVES])
   const [matched, setMatched] = useState(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [swiping, setSwiping] = useState(null)
   const [howlActive, setHowlActive] = useState(false)
+  const [superHowled, setSuperHowled] = useState({})
   const [scouted, setScouted] = useState({})
 
   const isMember = profile?.role === 'member'
-  const isLabel = isMember // label owner = member for now
+  const wp = wolfProfile // user's wolf profile data
 
   function swipe(dir) {
     if (!deck.length || swiping) return
     setSwiping(dir)
-
     if (dir === 'right') {
-      // HOWL animation
       setHowlActive(true)
       const isMatch = Math.random() > 0.4
       setTimeout(() => {
         setHowlActive(false)
-        if (isMatch) {
-          setMatched(deck[0].name)
-        }
+        if (isMatch) setMatched(deck[0].name)
         setSwiping(null)
         setDeck(d => d.slice(1))
       }, 800)
     } else {
-      setTimeout(() => {
-        setSwiping(null)
-        setDeck(d => d.slice(1))
-      }, 500)
+      setTimeout(() => { setSwiping(null); setDeck(d => d.slice(1)) }, 500)
     }
   }
 
-  function scoutWolf(name) {
-    setScouted(s => ({ ...s, [name]: true }))
+  function superHowl() {
+    if (!deck.length) return
+    setSuperHowled(s => ({ ...s, [deck[0].name]: true }))
+    swipe('right')
   }
 
   const current = deck[0]
 
   return (
     <div className="vs-page">
-      {/* Match overlay → PACK UNITED */}
       {matched && !chatOpen && (
         <div className="vs-match-overlay">
           <div className="vs-match-flash"></div>
@@ -1760,25 +1834,26 @@ function VersusSwipePage({ wolf, city, onBack, profile }) {
             <h2 className="vs-match-title">PACK UNITED!</h2>
             <p className="vs-match-sub">You and {matched} are now connected</p>
             <button className="btn-gold" onClick={() => setChatOpen(true)}>Start Collaboration</button>
-            <button className="btn-ghost" onClick={() => { setMatched(null) }} style={{marginTop:'8px'}}>Later</button>
+            <button className="btn-ghost" onClick={() => setMatched(null)} style={{marginTop:'8px'}}>Later</button>
           </div>
         </div>
       )}
 
-      {/* Pack Chat */}
       {chatOpen && matched && (
-        <PackChatWindow matchName={matched} onClose={() => { setChatOpen(false); setMatched(null) }} />
+        <PackChatWindow matchName={matched} wolfProfile={wp} onClose={() => { setChatOpen(false); setMatched(null) }} />
       )}
 
       <button className="wolfhub-back" onClick={onBack}>← Back to Hub</button>
       {city && <div className="vs-city-badge">{WOLF_HUB_DOTS.find(d => d.country === city)?.flag} {city.toUpperCase()}</div>}
 
       <div className="vs-arena">
-        {/* YOUR card */}
+        {/* YOUR card — populated from wolfProfile */}
         <div className="vs-card-slot vs-left">
           <div className="vs-card">
             <div className="vs-card-img">
-              {wolf?.video ? (
+              {wp?.image ? (
+                <img src={wp.image} alt={wp.name} />
+              ) : wolf?.video ? (
                 <video autoPlay loop muted playsInline style={{width:'100%',height:'100%',objectFit:'cover',borderRadius:'12px'}}>
                   <source src={wolf.video} type="video/mp4" />
                 </video>
@@ -1786,20 +1861,28 @@ function VersusSwipePage({ wolf, city, onBack, profile }) {
                 <img src={`/${wolf?.image || 'LightningWolvesLogoTransparentBG.png'}`} alt="You" />
               )}
             </div>
-            <div className="vs-card-name">{wolf?.artist || 'You'}</div>
-            <div className="vs-card-genre">{wolf?.genre || 'Lightning Wolf'}</div>
+            <div className="vs-card-name">{wp?.name || wolf?.artist || 'You'}</div>
+            <div className="vs-card-genre">{wp?.genre || wolf?.genre || 'Lightning Wolf'}</div>
+            {wp?.prompts?.flowLike && <div className="vs-prompt">🎤 {wp.prompts.flowLike}</div>}
+            {wp?.howlSnippet && <div className="vs-howl-snippet">"{wp.howlSnippet}"</div>}
           </div>
           <div className="vs-card-label">YOU</div>
         </div>
 
-        {/* Center HOWL / PACK UNITED */}
+        {/* Center — HOWL + Super-Howl */}
         <div className="vs-center">
           <div className={`vs-howl-text ${howlActive ? 'vs-howl-active' : ''}`}>
             {howlActive ? '⚡' : 'HOWL'}
           </div>
+          {current && (
+            <button className={`vs-super-howl ${superHowled[current?.name] ? 'used' : ''}`}
+              onClick={superHowl} disabled={superHowled[current?.name]} title="Super-Howl — Priority notification">
+              ⚡
+            </button>
+          )}
         </div>
 
-        {/* OPPONENT card */}
+        {/* OPPONENT card — Hinge-style prompts */}
         <div className="vs-card-slot vs-right">
           {current ? (
             <div className={`vs-card ${swiping === 'left' ? 'vs-swipe-left' : ''} ${swiping === 'right' ? 'vs-swipe-right' : ''}`}>
@@ -1808,20 +1891,27 @@ function VersusSwipePage({ wolf, city, onBack, profile }) {
               </div>
               <div className="vs-card-name">{current.name}</div>
               <div className="vs-card-genre">{current.genre}</div>
-              <div className="vs-card-bio">{current.bio}</div>
+              {superHowled[current.name] && <div className="vs-super-badge">⚡ SUPER-HOWL SENT</div>}
 
-              {/* Label View: extra data */}
-              {isLabel && (
+              {/* Hinge-style prompts */}
+              {current.flowLike && <div className="vs-prompt">🎤 <em>My flow is like...</em> {current.flowLike}</div>}
+              {current.lookingFor && <div className="vs-prompt">🐺 <em>Looking for...</em> {current.lookingFor}</div>}
+              {current.howl && (
+                <div className="vs-howl-snippet">
+                  <span className="vs-howl-play">▶</span> {current.howl}
+                </div>
+              )}
+
+              {/* Label Scout data */}
+              {isMember && (
                 <div className="vs-label-data">
                   <div className="vs-label-stat">🎯 Potential: <strong>{current.potential}</strong></div>
-                  <div className="vs-label-stat">⚡ Generations: <strong>{current.gens}</strong></div>
+                  <div className="vs-label-stat">⚡ Gens: <strong>{current.gens}</strong></div>
                   {!scouted[current.name] ? (
-                    <button className="vs-scout-btn" onClick={(e) => { e.stopPropagation(); scoutWolf(current.name) }}>
+                    <button className="vs-scout-btn" onClick={(e) => { e.stopPropagation(); setScouted(s => ({...s, [current.name]: true})) }}>
                       🐺 SCOUT — Invite to Label
                     </button>
-                  ) : (
-                    <div className="vs-scouted">✓ INVITATION SENT</div>
-                  )}
+                  ) : <div className="vs-scouted">✓ INVITATION SENT</div>}
                 </div>
               )}
             </div>
@@ -1832,7 +1922,6 @@ function VersusSwipePage({ wolf, city, onBack, profile }) {
         </div>
       </div>
 
-      {/* Swipe buttons */}
       {current && (
         <div className="vs-actions">
           <button className="vs-btn vs-pass" onClick={() => swipe('left')}>✖ PASS</button>
@@ -1870,6 +1959,8 @@ export default function App() {
   const [supabase,       setSupabase]       = useState(null)
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [hubCountry,     setHubCountry]     = useState(null)
+  const [wolfProfile,    setWolfProfile]    = useState(null)  // Hinge-style profile
+  const [showJoinGate,   setShowJoinGate]   = useState(false)
 
   // Apply wolf theme CSS variables
   useEffect(() => {
@@ -1950,7 +2041,8 @@ export default function App() {
       <LightningCanvas wolfColor={wolf?.color || '#f5c518'} />
 
       {page === 'wolf-select' && (
-        <WolfSelectPage onSelectWolf={handleSelectWolf} onJoinPack={() => setPage('join-pack')} onPricing={() => setPage('pricing')} onShowAuth={() => setPage('auth')} onWolfHub={() => setPage('wolf-hub')} />
+        <WolfSelectPage onSelectWolf={handleSelectWolf} onJoinPack={() => setPage('join-pack')} onPricing={() => setPage('pricing')} onShowAuth={() => setPage('auth')}
+          onWolfHub={() => { if (wolfProfile) { setPage('wolf-hub') } else { setShowJoinGate(true) } }} />
       )}
 
       {page === 'join-pack' && (
@@ -2006,7 +2098,7 @@ export default function App() {
       )}
 
       {page === 'versus' && (
-        <VersusSwipePage wolf={wolf} city={hubCountry} onBack={() => setPage('wolf-hub')} profile={profile} />
+        <VersusSwipePage wolf={wolf} city={hubCountry} onBack={() => setPage('wolf-hub')} profile={profile} wolfProfile={wolfProfile} />
       )}
 
       {page === 'dashboard' && (
@@ -2023,6 +2115,13 @@ export default function App() {
         <LimitModal
           onClose={() => setShowLimitModal(false)}
           onSignup={() => { setShowLimitModal(false); setPage('auth') }}
+        />
+      )}
+
+      {showJoinGate && (
+        <JoinPackGate
+          onComplete={(wp) => { setWolfProfile(wp); setShowJoinGate(false); setPage('wolf-hub') }}
+          onSkip={() => { setShowJoinGate(false); setPage('wolf-hub') }}
         />
       )}
     </>

@@ -238,23 +238,35 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
           {activeMatch ? (
             /* ── Chat View ── */
             <div>
-              <div className="mb-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: `${activeMatch.profile.color}15` }}>
-                  <img src={activeMatch.profile.avatar} alt="" className="h-6 w-6" />
+              {/* Chat header */}
+              <div className="mb-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 backdrop-blur-lg">
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full border-2"
+                      style={{ borderColor: `${activeMatch.profile.color}40`, background: `${activeMatch.profile.color}10` }}>
+                      <img src={activeMatch.profile.avatar} alt="" className="h-7 w-7" />
+                    </div>
+                    <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-wolf-card bg-green-500" />
+                  </div>
+                  <div className="flex-1">
+                    <h2 className="font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>{activeMatch.profile.name}</h2>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={{ backgroundColor: `${activeMatch.profile.color}15`, color: activeMatch.profile.color }}>
+                        {activeMatch.profile.genre}
+                      </span>
+                      <span className="text-[10px] text-wolf-muted">{activeMatch.profile.country}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => setConfirmUnmatch(activeMatch.profile.id)}
+                    className="rounded-lg p-2 text-wolf-muted/40 transition-all hover:bg-red-500/10 hover:text-red-400">
+                    <Trash2 size={14} />
+                  </button>
+                  <button onClick={() => setActiveMatch(null)}
+                    className="rounded-lg p-2 text-wolf-muted/40 transition-all hover:bg-white/5 hover:text-white">
+                    <X size={14} />
+                  </button>
                 </div>
-                <div className="flex-1">
-                  <h2 className="font-bold text-white">{activeMatch.profile.name}</h2>
-                  <span className="text-xs text-wolf-muted">{activeMatch.profile.genre} · {activeMatch.profile.country}</span>
-                </div>
-                <button
-                  onClick={() => setConfirmUnmatch(activeMatch.profile.id)}
-                  className="rounded-lg border border-wolf-border/30 p-2 text-wolf-muted hover:border-red-500/30 hover:text-red-400"
-                >
-                  <Trash2 size={14} />
-                </button>
-                <button onClick={() => setActiveMatch(null)} className="rounded-lg border border-wolf-border/30 p-2 text-wolf-muted hover:text-white">
-                  <X size={14} />
-                </button>
               </div>
 
               {/* Unmatch confirmation */}
@@ -272,93 +284,130 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
               )}
 
               {/* Messages */}
-              <div className="mb-4 h-[400px] overflow-y-auto rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 backdrop-blur-lg">
+              <div className="mb-4 flex h-[400px] flex-col gap-3 overflow-y-auto rounded-2xl border border-white/[0.04] bg-wolf-surface/30 p-5">
                 {activeMatch.messages.map((msg, i) => (
                   <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className={`mb-3 ${msg.from === "You" ? "text-right" : msg.from === "system" ? "text-center" : "text-left"}`}>
+                    className={`flex ${msg.from === "You" ? "justify-end" : msg.from === "system" ? "justify-center" : "justify-start"}`}>
                     {msg.from === "system" ? (
-                      <span className="inline-block rounded-full bg-wolf-gold/10 px-3 py-1 text-xs text-wolf-gold">{msg.text}</span>
+                      <span className="rounded-full bg-wolf-gold/10 px-4 py-1.5 text-[10px] font-medium text-wolf-gold">{msg.text}</span>
                     ) : (
-                      <div className={`inline-block max-w-[80%] rounded-2xl px-4 py-2.5 ${msg.from === "You" ? "bg-wolf-gold text-black" : "bg-wolf-surface text-white"}`}>
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-[10px] font-semibold opacity-60">{msg.from}</p>
-                          <p className="text-[9px] opacity-40">{msg.time}</p>
-                        </div>
-                        <p className="text-sm">{msg.text}</p>
+                      <div className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                        msg.from === "You"
+                          ? "rounded-br-md bg-wolf-gold text-black"
+                          : "rounded-bl-md border border-white/[0.06] bg-white/[0.04] text-white"
+                      }`}>
+                        <p className="text-sm leading-relaxed">{msg.text}</p>
+                        <p className={`mt-1 text-[9px] ${msg.from === "You" ? "text-black/40" : "text-wolf-muted/50"}`}>{msg.time}</p>
                       </div>
                     )}
                   </motion.div>
                 ))}
               </div>
 
+              {/* Chat input */}
               <div className="flex gap-2">
                 <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendChat()}
-                  placeholder="Start the collab..."
-                  className="flex-1 rounded-xl border border-wolf-border/30 bg-wolf-card px-4 py-3 text-sm text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/40 focus:outline-none" />
-                <button onClick={sendChat} className="rounded-xl bg-wolf-gold px-4 py-3 text-black"><Send size={16} /></button>
+                  placeholder="Type a message..."
+                  className="flex-1 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-5 py-3.5 text-sm text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/30 focus:outline-none" />
+                <button onClick={sendChat}
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-wolf-gold text-black transition-all hover:bg-wolf-amber">
+                  <Send size={16} />
+                </button>
               </div>
             </div>
           ) : (
             /* ── Matches List ── */
             <div>
-              <h2 className="mb-6 text-xl font-bold tracking-wider text-white" style={{ fontFamily: "var(--font-heading)" }}>
-                YOUR <span className="text-wolf-gold">MATCHES</span>
-                <span className="ml-2 rounded-full bg-wolf-gold/10 px-2.5 py-0.5 text-sm text-wolf-gold">{matches.length}</span>
-              </h2>
+              <div className="mb-8 text-center">
+                <h2 className="text-2xl font-bold tracking-wider text-white" style={{ fontFamily: "var(--font-heading)" }}>
+                  YOUR <span className="text-wolf-gold">MATCHES</span>
+                </h2>
+                <p className="mt-1 text-sm text-wolf-muted">{matches.length} {matches.length === 1 ? "connection" : "connections"}</p>
+              </div>
 
               {matches.length === 0 ? (
-                <div className="rounded-2xl border border-wolf-border/20 bg-wolf-card p-12 text-center">
-                  <Users size={32} className="mx-auto mb-3 text-wolf-muted/30" />
-                  <p className="text-wolf-muted">No matches yet</p>
-                  <p className="mt-1 text-sm text-wolf-muted/50">Keep swiping to find your pack!</p>
+                <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-16 text-center backdrop-blur-lg">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-wolf-gold/5">
+                    <Users size={28} className="text-wolf-muted/30" />
+                  </div>
+                  <p className="text-lg font-semibold text-white">No matches yet</p>
+                  <p className="mt-2 text-sm text-wolf-muted">Keep swiping to find your pack!</p>
+                  <button onClick={() => setShowMatches(false)}
+                    className="mt-6 rounded-xl bg-wolf-gold px-6 py-2.5 text-sm font-bold text-black">
+                    Start Swiping
+                  </button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {matches.map((match) => (
+                <div className="space-y-2">
+                  {matches.map((match, i) => (
                     <motion.div
                       key={match.profile.id}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 15 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="group relative"
+                      transition={{ delay: i * 0.05 }}
                     >
                       <button
                         onClick={() => setActiveMatch(match)}
-                        className="flex w-full items-center gap-4 rounded-xl border border-wolf-border/20 bg-wolf-card p-4 text-left transition-all hover:border-wolf-gold/20"
+                        className="group flex w-full items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-left transition-all hover:border-wolf-gold/15 hover:bg-white/[0.04]"
                       >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full"
-                          style={{ background: `${match.profile.color}15` }}>
-                          <img src={match.profile.avatar} alt="" className="h-7 w-7" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-white">{match.profile.name}</h3>
-                            <span className="text-[10px] text-wolf-muted">{match.matchedAt}</span>
+                        {/* Avatar with online dot */}
+                        <div className="relative">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full border-2"
+                            style={{ borderColor: `${match.profile.color}30`, background: `${match.profile.color}10` }}>
+                            <img src={match.profile.avatar} alt="" className="h-8 w-8" />
                           </div>
-                          <p className="truncate text-xs text-wolf-muted">
+                          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-wolf-bg bg-green-500" />
+                        </div>
+
+                        {/* Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
+                              {match.profile.name}
+                            </h3>
+                            <span className="rounded-full px-2 py-0.5 text-[9px] font-medium"
+                              style={{ backgroundColor: `${match.profile.color}12`, color: match.profile.color }}>
+                              {match.profile.genre}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 truncate text-xs text-wolf-muted">
                             {match.messages[match.messages.length - 1]?.text}
                           </p>
                         </div>
-                        <ChevronRight size={16} className="text-wolf-muted" />
+
+                        {/* Right side */}
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[10px] text-wolf-muted/50">{match.matchedAt}</span>
+                          <div className="flex items-center gap-1">
+                            <Zap size={10} className="text-wolf-gold" />
+                            <span className="text-[10px] text-wolf-gold">Matched</span>
+                          </div>
+                        </div>
+
+                        {/* Hover arrow */}
+                        <ChevronRight size={16} className="text-wolf-muted/20 transition-all group-hover:text-wolf-gold" />
                       </button>
 
-                      {/* Swipe to unmatch hint */}
-                      <button
-                        onClick={() => setConfirmUnmatch(match.profile.id)}
-                        className="absolute right-2 top-2 rounded p-1 text-wolf-muted/0 transition-all group-hover:text-wolf-muted hover:!text-red-400"
-                      >
-                        <Trash2 size={12} />
-                      </button>
+                      {/* Long press / swipe unmatch */}
+                      <div className="mt-1 flex justify-end px-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmUnmatch(match.profile.id); }}
+                          className="text-[10px] text-wolf-muted/30 transition-all hover:text-red-400"
+                        >
+                          Unmatch
+                        </button>
+                      </div>
 
                       {confirmUnmatch === match.profile.id && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                          className="mt-1 overflow-hidden rounded-lg border border-red-500/20 bg-red-500/5 p-3 text-center">
-                          <p className="mb-2 text-xs text-red-400">Unmatch {match.profile.name}?</p>
+                          className="mt-1 overflow-hidden rounded-xl border border-red-500/20 bg-red-500/5 p-4 text-center">
+                          <p className="mb-3 text-sm text-red-400">Unmatch {match.profile.name}?</p>
                           <div className="flex justify-center gap-2">
                             <button onClick={() => handleUnmatch(match.profile.id)}
-                              className="rounded-lg bg-red-500 px-3 py-1.5 text-xs font-semibold text-white">Unmatch</button>
+                              className="rounded-lg bg-red-500 px-4 py-2 text-xs font-semibold text-white">Unmatch</button>
                             <button onClick={() => setConfirmUnmatch(null)}
-                              className="rounded-lg border border-wolf-border/30 px-3 py-1.5 text-xs text-wolf-muted">Cancel</button>
+                              className="rounded-lg border border-wolf-border/30 px-4 py-2 text-xs text-wolf-muted">Cancel</button>
                           </div>
                         </motion.div>
                       )}

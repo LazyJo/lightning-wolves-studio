@@ -21,7 +21,7 @@ export default function WolfGrid({ onSelectWolf }: Props) {
             Choose Your Wolf
           </p>
           <h2
-            className="text-3xl font-bold tracking-wider text-white md:text-5xl"
+            className="text-2xl font-bold tracking-wider text-white sm:text-3xl md:text-5xl"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             THE PACK
@@ -33,14 +33,14 @@ export default function WolfGrid({ onSelectWolf }: Props) {
         </motion.div>
 
         {/* Decorative frame */}
-        <div className="relative mt-12 rounded-2xl border border-wolf-border/30 bg-wolf-surface/30 p-4 backdrop-blur-sm md:p-8">
+        <div className="relative mt-8 rounded-2xl border border-wolf-border/30 bg-wolf-surface/30 p-2 backdrop-blur-sm sm:mt-12 sm:p-4 md:p-8">
           {/* Corner accents */}
           <div className="absolute -top-px -left-px h-6 w-6 border-t-2 border-l-2 border-wolf-gold/40 rounded-tl-2xl" />
           <div className="absolute -top-px -right-px h-6 w-6 border-t-2 border-r-2 border-wolf-gold/40 rounded-tr-2xl" />
           <div className="absolute -bottom-px -left-px h-6 w-6 border-b-2 border-l-2 border-wolf-gold/40 rounded-bl-2xl" />
           <div className="absolute -bottom-px -right-px h-6 w-6 border-b-2 border-r-2 border-wolf-gold/40 rounded-br-2xl" />
 
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4">
             {wolves.map((wolf, i) => (
               <WolfCard
                 key={wolf.id}

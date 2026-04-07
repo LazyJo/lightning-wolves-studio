@@ -17,7 +17,7 @@ export default function Hero({ onStudio }: Props) {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, type: "spring", stiffness: 80 }}
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-5 py-2 text-sm font-medium text-wolf-gold"
+          className="mb-4 inline-flex items-center gap-2 rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-4 py-1.5 text-xs font-medium text-wolf-gold sm:mb-6 sm:px-5 sm:py-2 sm:text-sm"
         >
           <Zap size={14} className="fill-wolf-gold" />
           AI-Powered Lyrics Studio
@@ -27,7 +27,7 @@ export default function Hero({ onStudio }: Props) {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="mx-auto max-w-4xl text-5xl font-bold leading-[1.1] tracking-wider text-white md:text-7xl lg:text-8xl"
+          className="mx-auto max-w-4xl text-3xl font-bold leading-[1.1] tracking-wider text-white sm:text-5xl md:text-7xl lg:text-8xl"
           style={{ fontFamily: "var(--font-heading)" }}
         >
           WHICH WOLF{" "}
@@ -40,7 +40,7 @@ export default function Hero({ onStudio }: Props) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="mx-auto mt-6 max-w-xl text-lg text-wolf-muted md:text-xl"
+          className="mx-auto mt-4 max-w-xl text-sm text-wolf-muted sm:mt-6 sm:text-lg md:text-xl"
         >
           Pick your wolf. Enter the studio. Create something legendary.
         </motion.p>

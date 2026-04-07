@@ -36,7 +36,7 @@ export default function CTA({ onStudio }: Props) {
             </motion.div>
 
             <h2
-              className="text-3xl font-bold tracking-wide text-white md:text-4xl lg:text-5xl"
+              className="text-2xl font-bold tracking-wide text-white sm:text-3xl md:text-4xl lg:text-5xl"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               READY TO{" "}

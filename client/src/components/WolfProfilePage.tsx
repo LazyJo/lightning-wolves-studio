@@ -53,11 +53,11 @@ export default function WolfProfilePage({ wolf, onBack, onStudio }: Props) {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="flex flex-col items-center gap-8 md:flex-row md:items-start"
+          className="flex flex-col items-center gap-6 sm:gap-8 md:flex-row md:items-start"
         >
           {/* Wolf video/image */}
           <div
-            className="relative h-64 w-64 shrink-0 overflow-hidden rounded-3xl border-2 md:h-80 md:w-80"
+            className="relative h-48 w-48 shrink-0 overflow-hidden rounded-3xl border-2 sm:h-64 sm:w-64 md:h-80 md:w-80"
             style={{ borderColor: `${wolf.color}40` }}
           >
             {wolf.video ? (
@@ -92,7 +92,7 @@ export default function WolfProfilePage({ wolf, onBack, onStudio }: Props) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-4xl font-bold tracking-wider text-white md:text-5xl"
+              className="text-2xl font-bold tracking-wider text-white sm:text-4xl md:text-5xl"
               style={{ fontFamily: "var(--font-heading)" }}
             >
               {wolf.artist}

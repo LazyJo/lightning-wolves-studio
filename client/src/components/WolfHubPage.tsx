@@ -231,7 +231,7 @@ export default function WolfHubPage({ onBack, onSelectWolf }: Props) {
             Territory Map
           </p>
           <h1
-            className="text-5xl font-bold tracking-wider text-white md:text-6xl"
+            className="text-3xl font-bold tracking-wider text-white sm:text-5xl md:text-6xl"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             WOLF MAP
@@ -305,7 +305,7 @@ export default function WolfHubPage({ onBack, onSelectWolf }: Props) {
 
                     {/* Orb */}
                     <span
-                      className="relative flex h-10 w-10 items-center justify-center rounded-full border text-xs font-bold transition-all"
+                      className="relative flex h-7 w-7 items-center justify-center rounded-full border text-[10px] font-bold transition-all sm:h-10 sm:w-10 sm:text-xs"
                       style={{
                         backgroundColor:
                           t.artists.length > 0

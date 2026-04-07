@@ -628,7 +628,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
                 )}
                 <div>
                   <h1
-                    className="text-2xl font-bold tracking-wider text-white md:text-3xl"
+                    className="text-xl font-bold tracking-wider text-white sm:text-2xl md:text-3xl"
                     style={{ fontFamily: "var(--font-heading)" }}
                   >
                     {wolf ? `${wolf.artist.toUpperCase()}'S` : "LYRICS"}{" "}
@@ -645,7 +645,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
             </motion.div>
 
             {/* Tool Grid */}
-            <div className="grid gap-5 lg:grid-cols-[1fr_1fr_1fr]">
+            <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr]">
               {/* Remix — large featured card */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}

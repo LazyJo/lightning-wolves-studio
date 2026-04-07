@@ -39,7 +39,7 @@ export default function Features() {
             The Ecosystem
           </p>
           <h2
-            className="text-3xl font-bold tracking-wider text-white md:text-5xl"
+            className="text-2xl font-bold tracking-wider text-white sm:text-3xl md:text-5xl"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             HOW IT WORKS

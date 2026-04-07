@@ -37,7 +37,7 @@ export default function WolfCard({ wolf, index, onClick }: Props) {
             : undefined
       }
       onClick={() => isClickable && onClick?.(wolf)}
-      className={`group relative flex flex-col items-center rounded-2xl border p-6 transition-all duration-300 ${
+      className={`group relative flex flex-col items-center rounded-2xl border p-3 transition-all duration-300 sm:p-6 ${
         wolf.status === "cta"
           ? "cursor-pointer border-dashed border-wolf-gold/40 bg-wolf-gold/5 hover:border-wolf-gold/60 hover:bg-wolf-gold/10"
           : wolf.status === "special"
@@ -63,7 +63,7 @@ export default function WolfCard({ wolf, index, onClick }: Props) {
 
       {/* Wolf avatar */}
       <div
-        className="relative mb-4 flex h-28 w-28 items-center justify-center overflow-hidden rounded-full md:h-36 md:w-36"
+        className="relative mb-3 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full sm:mb-4 sm:h-28 sm:w-28 md:h-36 md:w-36"
         style={{
           background: isFullyLocked
             ? "radial-gradient(circle, #1a1a1f 0%, #0a0a0c 100%)"
@@ -114,7 +114,7 @@ export default function WolfCard({ wolf, index, onClick }: Props) {
 
       {/* Artist name */}
       <h3
-        className={`mb-1 text-center text-lg tracking-wider md:text-xl ${
+        className={`mb-1 text-center text-xs tracking-wider sm:text-lg md:text-xl ${
           wolf.status === "special"
             ? "text-wolf-gold"
             : isFullyLocked
@@ -128,7 +128,7 @@ export default function WolfCard({ wolf, index, onClick }: Props) {
 
       {/* Genre pill */}
       <span
-        className="rounded-full px-3 py-1 text-xs font-medium"
+        className="rounded-full px-2 py-0.5 text-[10px] font-medium sm:px-3 sm:py-1 sm:text-xs"
         style={{
           backgroundColor: isFullyLocked ? "#2a2a3520" : `${wolf.color}15`,
           color: isFullyLocked ? "#666" : wolf.color,

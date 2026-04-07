@@ -28,7 +28,7 @@ export default function Navbar({ onPricing, onWolfHub, onHome, onStudio, onAuth 
             className="h-8 w-8"
           />
           <span
-            className="text-sm font-bold tracking-[0.15em] text-white md:text-base"
+            className="hidden text-sm font-bold tracking-[0.15em] text-white sm:block md:text-base"
             style={{ fontFamily: "var(--font-heading)" }}
           >
             LIGHTNING{" "}

@@ -142,7 +142,7 @@ export default function App() {
                 <WolfGrid onSelectWolf={handleWolfSelect} />
                 <Features />
                 <FeaturedArtists />
-                <CTA onStudio={() => goToStudio()} />
+                <CTA onStudio={() => goToStudio()} onWolfMap={goToWolfHub} />
               </>
             )}
 

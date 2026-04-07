@@ -3,9 +3,10 @@ import { Zap } from "lucide-react";
 
 interface Props {
   onStudio?: () => void;
+  onWolfMap?: () => void;
 }
 
-export default function CTA({ onStudio }: Props) {
+export default function CTA({ onStudio, onWolfMap }: Props) {
   return (
     <section className="py-24">
       <div className="mx-auto max-w-6xl px-6">
@@ -62,12 +63,18 @@ export default function CTA({ onStudio }: Props) {
                 <Zap size={16} className="fill-black" />
                 Enter the Studio
               </button>
-              <a
-                href="#"
-                className="rounded-lg border border-wolf-gold/30 px-8 py-4 font-semibold text-wolf-gold transition-all hover:bg-wolf-gold/10"
+              <button
+                onClick={onWolfMap}
+                className="group relative overflow-hidden rounded-lg px-8 py-4 font-semibold text-white transition-all hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20"
+                style={{ background: "linear-gradient(135deg, #9b6dff 0%, #f5c518 50%, #E040FB 100%)", padding: "1px" }}
               >
-                Join the Pack
-              </a>
+                <span className="relative z-10 flex items-center gap-2 rounded-[7px] bg-wolf-bg/90 px-7 py-[15px] backdrop-blur-sm transition-all group-hover:bg-wolf-bg/70">
+                  <span className="bg-gradient-to-r from-[#9b6dff] via-[#f5c518] to-[#E040FB] bg-clip-text text-transparent">
+                    Wolf Map
+                  </span>
+                  <span className="animate-pulse-glow text-base">🐺</span>
+                </span>
+              </button>
             </motion.div>
           </div>
         </motion.div>

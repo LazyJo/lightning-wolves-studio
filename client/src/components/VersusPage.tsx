@@ -207,13 +207,13 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
             className="mt-4 text-3xl font-bold tracking-wider text-white sm:text-4xl"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            PACK <span className="text-wolf-gold">UNITED!</span>
+            PACK <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">UNITED!</span>
           </motion.h1>
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-3 text-wolf-muted">
             You and <span className="font-semibold text-white">{showMatchAnim.name}</span> are now connected
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.2 }} className="mt-8 flex flex-col items-center gap-3">
-            <button onClick={() => handleMatchAction("chat")} className="rounded-xl bg-wolf-gold px-8 py-3 font-bold text-black">
+            <button onClick={() => handleMatchAction("chat")} className="rounded-xl bg-gradient-to-r from-purple-500 via-wolf-gold to-pink-500 px-8 py-3 font-bold text-black">
               <MessageSquare size={16} className="mr-2 inline" />Start Collaboration
             </button>
             <button onClick={() => handleMatchAction("keep")} className="text-sm text-wolf-muted hover:text-white">
@@ -309,9 +309,9 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
                 <input value={chatInput} onChange={(e) => setChatInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendChat()}
                   placeholder="Type a message..."
-                  className="flex-1 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-5 py-3.5 text-sm text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/30 focus:outline-none" />
+                  className="flex-1 rounded-2xl border border-purple-500/15 bg-white/[0.03] px-5 py-3.5 text-sm text-white placeholder:text-wolf-muted/40 focus:border-purple-500/30 focus:outline-none" />
                 <button onClick={sendChat}
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-wolf-gold text-black transition-all hover:bg-wolf-amber">
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-purple-500 to-wolf-gold text-black transition-all hover:opacity-90">
                   <Send size={16} />
                 </button>
               </div>
@@ -321,7 +321,7 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
             <div>
               <div className="mb-8 text-center">
                 <h2 className="text-2xl font-bold tracking-wider text-white" style={{ fontFamily: "var(--font-heading)" }}>
-                  YOUR <span className="text-wolf-gold">MATCHES</span>
+                  YOUR <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">MATCHES</span>
                 </h2>
                 <p className="mt-1 text-sm text-wolf-muted">{matches.length} {matches.length === 1 ? "connection" : "connections"}</p>
               </div>
@@ -349,7 +349,7 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
                     >
                       <button
                         onClick={() => setActiveMatch(match)}
-                        className="group flex w-full items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 text-left transition-all hover:border-wolf-gold/15 hover:bg-white/[0.04]"
+                        className="group flex w-full items-center gap-4 rounded-2xl border border-purple-500/10 bg-gradient-to-r from-purple-500/[0.03] to-transparent p-4 text-left transition-all hover:border-purple-500/25 hover:from-purple-500/[0.06]"
                       >
                         {/* Avatar with online dot */}
                         <div className="relative">
@@ -436,7 +436,7 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
           <motion.button
             initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
             onClick={() => setShowMatches(true)}
-            className="relative inline-flex items-center gap-2 rounded-xl border border-wolf-border/30 bg-wolf-card px-4 py-2 text-sm text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold"
+            className="relative inline-flex items-center gap-2 rounded-xl border border-purple-500/30 bg-purple-500/5 px-4 py-2 text-sm text-purple-300 transition-all hover:border-purple-400/50 hover:text-purple-200"
           >
             <MessageSquare size={14} />
             Matches
@@ -450,7 +450,7 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 text-center">
           <h1 className="text-2xl font-bold tracking-wider text-white sm:text-3xl" style={{ fontFamily: "var(--font-heading)" }}>
-            VERSUS <span className="text-wolf-gold">SWIPE</span>
+            VERSUS <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">SWIPE</span>
           </h1>
           {territory && <p className="mt-1 text-xs uppercase tracking-wider text-wolf-muted">Scouting in {territory}</p>}
         </motion.div>
@@ -494,7 +494,7 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
                   }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: direction ? 0.3 : 0.5 }}
-                  className="absolute inset-0 cursor-grab overflow-hidden rounded-3xl border border-wolf-border/20 bg-wolf-card active:cursor-grabbing"
+                  className="absolute inset-0 cursor-grab overflow-hidden rounded-3xl border border-purple-500/20 bg-gradient-to-b from-purple-500/5 to-wolf-card active:cursor-grabbing"
                 >
                   {/* HOWL / PASS overlays */}
                   <motion.div style={{ opacity: howlOpacity }}
@@ -558,7 +558,7 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
               </motion.button>
               <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
                 onClick={handleSuperHowl}
-                className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-wolf-gold/40 bg-wolf-gold/10 text-wolf-gold hover:bg-wolf-gold/20">
+                className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-purple-500/40 bg-gradient-to-br from-purple-500/10 to-wolf-gold/10 text-wolf-gold hover:from-purple-500/20 hover:to-wolf-gold/20">
                 <Zap size={28} className="fill-wolf-gold" />
               </motion.button>
               <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}

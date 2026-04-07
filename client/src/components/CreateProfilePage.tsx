@@ -95,7 +95,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
             style={{ fontFamily: "var(--font-heading)" }}
           >
             YOU&apos;RE IN THE{" "}
-            <span className="text-wolf-gold">PACK</span>
+            <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">PACK</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -127,7 +127,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           onClick={step > 0 ? () => setStep(step - 1) : onBack}
-          className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
+          className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-purple-400"
         >
           <ArrowLeft size={16} />
           {step > 0 ? "Back" : "Cancel"}
@@ -140,9 +140,9 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
               <div
                 className={`flex h-9 w-9 items-center justify-center rounded-full border-2 text-sm transition-all ${
                   i < step
-                    ? "border-transparent bg-wolf-gold text-black"
+                    ? "border-transparent bg-gradient-to-r from-purple-500 to-wolf-gold text-black"
                     : i === step
-                      ? "border-wolf-gold bg-wolf-gold/10 text-wolf-gold"
+                      ? "border-purple-500 bg-purple-500/10 text-purple-400"
                       : "border-wolf-border/30 text-wolf-muted"
                 }`}
               >
@@ -151,7 +151,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
               {i < steps.length - 1 && (
                 <div
                   className={`mx-2 h-0.5 w-8 rounded ${
-                    i < step ? "bg-wolf-gold" : "bg-wolf-border/20"
+                    i < step ? "bg-gradient-to-r from-purple-500 to-wolf-gold" : "bg-wolf-border/20"
                   }`}
                 />
               )}
@@ -167,14 +167,14 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              className="rounded-2xl border border-wolf-border/30 bg-wolf-card p-8"
+              className="rounded-2xl border border-purple-500/20 bg-gradient-to-b from-purple-500/5 to-wolf-card p-8"
             >
               <h2
                 className="mb-2 text-center text-2xl font-bold tracking-wider text-white"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 CREATE YOUR{" "}
-                <span className="text-wolf-gold">PROFILE</span>
+                <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">PROFILE</span>
               </h2>
               <p className="mb-8 text-center text-sm text-wolf-muted">
                 Show the pack who you are
@@ -209,7 +209,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                     value={profile.name}
                     onChange={(e) => update("name", e.target.value)}
                     placeholder="Your stage name"
-                    className="w-full rounded-lg border border-wolf-border/30 bg-wolf-surface py-3 pl-10 pr-4 text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/40 focus:outline-none"
+                    className="w-full rounded-lg border border-wolf-border/30 bg-wolf-surface py-3 pl-10 pr-4 text-white placeholder:text-wolf-muted/40 focus:border-purple-500/40 focus:outline-none"
                   />
                 </div>
               </div>
@@ -222,7 +222,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                 <select
                   value={profile.genre}
                   onChange={(e) => update("genre", e.target.value)}
-                  className="w-full rounded-lg border border-wolf-border/30 bg-wolf-surface px-4 py-3 text-white focus:border-wolf-gold/40 focus:outline-none"
+                  className="w-full rounded-lg border border-wolf-border/30 bg-wolf-surface px-4 py-3 text-white focus:border-purple-500/40 focus:outline-none"
                 >
                   <option value="">Select genre</option>
                   {["Hip-Hop", "R&B", "Pop", "French Hip-Hop", "Afrobeats", "Drill", "Trap", "Lo-Fi", "Rock", "Electronic", "Producer"].map((g) => (
@@ -242,7 +242,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                     value={profile.country}
                     onChange={(e) => update("country", e.target.value)}
                     placeholder="Belgium, France, Ghana..."
-                    className="w-full rounded-lg border border-wolf-border/30 bg-wolf-surface py-3 pl-10 pr-4 text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/40 focus:outline-none"
+                    className="w-full rounded-lg border border-wolf-border/30 bg-wolf-surface py-3 pl-10 pr-4 text-white placeholder:text-wolf-muted/40 focus:border-purple-500/40 focus:outline-none"
                   />
                 </div>
               </div>
@@ -256,14 +256,14 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              className="rounded-2xl border border-wolf-border/30 bg-wolf-card p-8"
+              className="rounded-2xl border border-purple-500/20 bg-gradient-to-b from-purple-500/5 to-wolf-card p-8"
             >
               <h2
                 className="mb-2 text-center text-2xl font-bold tracking-wider text-white"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 WOLF{" "}
-                <span className="text-wolf-gold">PROMPTS</span>
+                <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">PROMPTS</span>
               </h2>
               <p className="mb-8 text-center text-sm text-wolf-muted">
                 Let other wolves know your vibe
@@ -279,7 +279,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                   onChange={(e) => update("flowLike", e.target.value)}
                   placeholder="Drake meets Burna Boy with a Brussels twist..."
                   rows={2}
-                  className="w-full resize-none rounded-lg border border-wolf-border/30 bg-wolf-surface p-4 text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/40 focus:outline-none"
+                  className="w-full resize-none rounded-lg border border-wolf-border/30 bg-wolf-surface p-4 text-white placeholder:text-wolf-muted/40 focus:border-purple-500/40 focus:outline-none"
                 />
               </div>
 
@@ -293,7 +293,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                   onChange={(e) => update("lookingFor", e.target.value)}
                   placeholder="Can bring hard-hitting beats and isn't afraid to experiment..."
                   rows={2}
-                  className="w-full resize-none rounded-lg border border-wolf-border/30 bg-wolf-surface p-4 text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/40 focus:outline-none"
+                  className="w-full resize-none rounded-lg border border-wolf-border/30 bg-wolf-surface p-4 text-white placeholder:text-wolf-muted/40 focus:border-purple-500/40 focus:outline-none"
                 />
               </div>
             </motion.div>
@@ -306,14 +306,14 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
-              className="rounded-2xl border border-wolf-border/30 bg-wolf-card p-8"
+              className="rounded-2xl border border-purple-500/20 bg-gradient-to-b from-purple-500/5 to-wolf-card p-8"
             >
               <h2
                 className="mb-2 text-center text-2xl font-bold tracking-wider text-white"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 THE{" "}
-                <span className="text-wolf-gold">HOWL</span>
+                <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">HOWL</span>
               </h2>
               <p className="mb-8 text-center text-sm text-wolf-muted">
                 Drop your hardest bar. This is what other wolves hear first.
@@ -334,7 +334,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                   onChange={(e) => update("howl", e.target.value)}
                   placeholder="Lightning in my veins, wolves don't run in vain / Every mic I touch turns into gold and flame..."
                   rows={3}
-                  className="w-full resize-none rounded-lg border border-wolf-gold/20 bg-wolf-gold/5 p-4 text-wolf-gold placeholder:text-wolf-gold/30 focus:border-wolf-gold/40 focus:outline-none"
+                  className="w-full resize-none rounded-lg border border-wolf-gold/20 bg-wolf-gold/5 p-4 text-wolf-gold placeholder:text-wolf-gold/30 focus:border-purple-500/40 focus:outline-none"
                 />
               </div>
             </motion.div>
@@ -349,7 +349,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
           disabled={!canProceed()}
           className={`mt-6 w-full rounded-xl py-3.5 font-bold tracking-wider transition-all ${
             canProceed()
-              ? "bg-wolf-gold text-black hover:bg-wolf-amber"
+              ? "bg-gradient-to-r from-purple-500 via-wolf-gold to-pink-500 text-black hover:opacity-90"
               : "cursor-not-allowed bg-wolf-border/30 text-wolf-muted"
           }`}
           style={{ fontFamily: "var(--font-heading)" }}

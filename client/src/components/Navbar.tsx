@@ -1,0 +1,129 @@
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { Menu, X, Zap } from "lucide-react";
+
+interface Props {
+  onPricing: () => void;
+  onWolfHub: () => void;
+  onHome: () => void;
+  onStudio: () => void;
+  onAuth: () => void;
+}
+
+export default function Navbar({ onPricing, onWolfHub, onHome, onStudio, onAuth }: Props) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  return (
+    <motion.nav
+      initial={{ y: -80 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+      className="fixed top-0 right-0 left-0 z-50 border-b border-wolf-border/20 bg-wolf-bg/70 backdrop-blur-xl"
+    >
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <button onClick={onHome} className="flex items-center gap-3">
+          <img
+            src="/LightningWolvesLogoTransparentBG.png"
+            alt="Lightning Wolves"
+            className="h-8 w-8"
+          />
+          <span
+            className="text-sm font-bold tracking-[0.15em] text-white md:text-base"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            LIGHTNING{" "}
+            <span className="text-wolf-gold">WOLVES</span>
+          </span>
+        </button>
+
+        <div className="hidden items-center gap-8 md:flex">
+          <button
+            onClick={onHome}
+            className="text-sm tracking-wide text-wolf-muted transition-colors hover:text-wolf-gold"
+          >
+            Home
+          </button>
+          <button
+            onClick={onPricing}
+            className="text-sm tracking-wide text-wolf-muted transition-colors hover:text-wolf-gold"
+          >
+            Pricing
+          </button>
+          <button
+            onClick={onWolfHub}
+            className="text-sm tracking-wide text-wolf-muted transition-colors hover:text-wolf-gold"
+          >
+            Wolf Map
+          </button>
+          <button
+            onClick={onAuth}
+            className="rounded-lg border border-wolf-border/40 px-4 py-2.5 text-sm font-medium text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-white"
+          >
+            Sign In
+          </button>
+          <button
+            onClick={onStudio}
+            className="inline-flex items-center gap-2 rounded-lg bg-wolf-gold px-5 py-2.5 text-sm font-semibold text-black transition-all hover:bg-wolf-amber hover:shadow-lg hover:shadow-wolf-gold/20"
+          >
+            <Zap size={14} className="fill-black" />
+            Enter Studio
+          </button>
+        </div>
+
+        <button
+          className="text-white md:hidden"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden border-t border-wolf-border/20 md:hidden"
+          >
+            <div className="flex flex-col gap-4 px-6 py-6">
+              <button
+                onClick={() => { onHome(); setMobileOpen(false); }}
+                className="text-left text-wolf-muted transition-colors hover:text-wolf-gold"
+              >
+                Home
+              </button>
+              <button
+                onClick={() => { onPricing(); setMobileOpen(false); }}
+                className="text-left text-wolf-muted transition-colors hover:text-wolf-gold"
+              >
+                Pricing
+              </button>
+              <button
+                onClick={() => { onWolfHub(); setMobileOpen(false); }}
+                className="text-left text-wolf-muted transition-colors hover:text-wolf-gold"
+              >
+                Wolf Map
+              </button>
+              <button
+                onClick={() => { onAuth(); setMobileOpen(false); }}
+                className="text-left text-wolf-muted transition-colors hover:text-wolf-gold"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => { onStudio(); setMobileOpen(false); }}
+                className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-wolf-gold px-5 py-2.5 font-semibold text-black"
+              >
+                <Zap size={14} className="fill-black" />
+                Enter Studio
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.nav>
+  );
+}

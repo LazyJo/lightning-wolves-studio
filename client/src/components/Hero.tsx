@@ -1,0 +1,89 @@
+import { motion } from "motion/react";
+import { ChevronDown, Zap } from "lucide-react";
+
+interface Props {
+  onStudio?: () => void;
+}
+
+export default function Hero({ onStudio }: Props) {
+  return (
+    <section className="relative flex min-h-screen items-center justify-center overflow-hidden">
+      {/* Radial gradient overlays */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(245,197,24,0.06),_transparent_60%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(245,197,24,0.03),_transparent_40%)]" />
+
+      <div className="relative z-10 px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, type: "spring", stiffness: 80 }}
+          className="mb-6 inline-flex items-center gap-2 rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-5 py-2 text-sm font-medium text-wolf-gold"
+        >
+          <Zap size={14} className="fill-wolf-gold" />
+          AI-Powered Lyrics Studio
+        </motion.div>
+
+        <motion.h1
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          className="mx-auto max-w-4xl text-5xl font-bold leading-[1.1] tracking-wider text-white md:text-7xl lg:text-8xl"
+          style={{ fontFamily: "var(--font-heading)" }}
+        >
+          WHICH WOLF{" "}
+          <span className="bg-gradient-to-r from-wolf-gold to-wolf-amber bg-clip-text text-transparent">
+            ARE YOU?
+          </span>
+        </motion.h1>
+
+        <motion.p
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mx-auto mt-6 max-w-xl text-lg text-wolf-muted md:text-xl"
+        >
+          Pick your wolf. Enter the studio. Create something legendary.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+        >
+          <a
+            href="#wolves"
+            className="group inline-flex items-center gap-2 rounded-lg bg-wolf-gold px-8 py-3.5 font-semibold text-black transition-all hover:bg-wolf-amber hover:shadow-lg hover:shadow-wolf-gold/25"
+          >
+            Choose Your Wolf
+            <ChevronDown
+              size={18}
+              className="transition-transform group-hover:translate-y-0.5"
+            />
+          </a>
+          <a
+            href="#features"
+            className="inline-flex items-center rounded-lg border border-wolf-border px-8 py-3.5 font-semibold text-wolf-text transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5"
+          >
+            How It Works
+          </a>
+        </motion.div>
+      </div>
+
+      {/* Scroll indicator */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+      >
+        <motion.div
+          animate={{ y: [0, 8, 0] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+        >
+          <ChevronDown size={24} className="text-wolf-muted" />
+        </motion.div>
+      </motion.div>
+    </section>
+  );
+}

@@ -1,0 +1,793 @@
+import { useState, useRef, useCallback } from "react";
+import RemixViewComponent from "./studio/RemixView";
+import TemplateViewComponent from "./studio/TemplateView";
+import ScenesViewComponent from "./studio/ScenesView";
+import PerformanceViewComponent from "./studio/PerformanceView";
+import CoverArtViewComponent from "./studio/CoverArtView";
+import { motion, AnimatePresence } from "motion/react";
+import {
+  ArrowLeft,
+  Upload,
+  Music,
+  FileText,
+  Scissors,
+  Video,
+  Loader2,
+  CheckCircle,
+  Zap,
+  Play,
+  Copy,
+  Download,
+  X,
+  Shuffle,
+  Image,
+  Wand2,
+  Film,
+  Youtube,
+  Sparkles,
+  LayoutGrid,
+  ArrowRight,
+} from "lucide-react";
+import type { Wolf } from "../data/wolves";
+
+interface Props {
+  wolf: Wolf | null;
+  onBack: () => void;
+}
+
+type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art";
+type Tab = "lyrics" | "srt" | "beats" | "prompts";
+
+// Demo content
+const DEMO_LYRICS = `[Verse 1]
+Under city lights, we chase the glow
+Every step we take, the world will know
+Shadows fall behind us, we don't look back
+Lightning in our veins, staying on track
+
+[Chorus]
+We are the wolves, howling at the moon
+Running through the fire, never too soon
+Electric hearts beating, gold in our eyes
+We are the pack, we will rise
+
+[Verse 2]
+Brussels to the world, we break the mold
+Stories left untold, hearts made of gold
+Every mic we touch turns into flame
+Lightning Wolves forever, remember the name`;
+
+const DEMO_SRT = `1
+00:00:02,000 --> 00:00:05,500
+Under city lights, we chase the glow
+
+2
+00:00:05,500 --> 00:00:09,000
+Every step we take, the world will know
+
+3
+00:00:09,000 --> 00:00:12,500
+Shadows fall behind us, we don't look back
+
+4
+00:00:12,500 --> 00:00:16,000
+Lightning in our veins, staying on track
+
+5
+00:00:18,000 --> 00:00:21,500
+We are the wolves, howling at the moon
+
+6
+00:00:21,500 --> 00:00:25,000
+Running through the fire, never too soon`;
+
+const DEMO_BEATS = `BEAT MAP — 120 BPM
+
+00:00  |  INTRO — Slow fade in, ambient pad
+00:08  |  CUT — Hard cut to verse, drums enter
+00:16  |  ZOOM — Camera push on artist face
+00:24  |  FLASH — Beat drop hit, strobe effect
+00:32  |  CUT — Switch to wide shot
+00:48  |  FADE — Transition to chorus
+00:52  |  FLASH — Chorus hit, full energy
+01:04  |  CUT — Bridge section, pull back
+01:16  |  ZOOM — Final chorus push
+01:28  |  FADE — Outro, slow dissolve`;
+
+const DEMO_PROMPTS = `SCENE 1 — VERSE 1 (0:00-0:16)
+Cinematic urban night. Artist walks through neon-lit Brussels streets.
+Camera: Steadicam follow, low angle. Color grade: Teal and gold.
+
+SCENE 2 — CHORUS (0:16-0:32)
+Wide rooftop shot, city skyline behind. Artist performing to camera.
+Camera: Drone pullback reveal. Color grade: High contrast, golden hour.
+
+SCENE 3 — VERSE 2 (0:32-0:48)
+Studio session intercut with live performance. Split-screen moments.
+Camera: Handheld, intimate. Color grade: Warm amber tones.
+
+SOCIAL TIPS:
+TikTok: Use 15s clip of chorus with trending transition
+Reels: BTS studio footage + final video side-by-side
+YouTube Shorts: Full chorus with lyric overlay animation`;
+
+const tools = [
+  {
+    id: "remix" as View,
+    title: "Remix",
+    description: "Import a YouTube link or upload footage and auto-generate a lyric video with AI. The fastest way to create content.",
+    icon: Shuffle,
+    color: "#f5c518",
+    popular: true,
+    tags: ["YouTube import", "Auto scene detect", "Shuffle clips"],
+  },
+  {
+    id: "template" as View,
+    title: "New Template",
+    description: "Upload your song and set lyric timing to build your reusable video base.",
+    icon: Music,
+    color: "#ff6b9d",
+    popular: false,
+  },
+  {
+    id: "scenes" as View,
+    title: "Scenes",
+    description: "Generate AI video clips from text prompts in any visual style.",
+    icon: Film,
+    color: "#69f0ae",
+    popular: false,
+    badge: "AI",
+  },
+  {
+    id: "performance" as View,
+    title: "Performance",
+    description: "Style-transfer your own footage with motion control AI for unique visuals.",
+    icon: Video,
+    color: "#E040FB",
+    popular: false,
+    badge: "AI",
+  },
+  {
+    id: "cover-art" as View,
+    title: "Cover Art",
+    description: "Generate AI album artwork and visual assets for your music releases.",
+    icon: Image,
+    color: "#82b1ff",
+    popular: false,
+  },
+];
+
+const steps = [
+  {
+    num: 1,
+    title: "Create a Template",
+    description: "Upload your song, adjust lyric spelling and timing. This becomes your reusable base for generating.",
+    color: "#69f0ae",
+  },
+  {
+    num: 2,
+    title: "Pick Your Method",
+    description: "Remix real footage, generate AI Scenes, or use Performance for style transfer.",
+    color: "#f5c518",
+  },
+  {
+    num: 3,
+    title: "Generate & Export",
+    description: "AI creates your video. Review clips, regenerate any you don't love, then export.",
+    color: "#E040FB",
+  },
+];
+
+// Generation sub-page
+function GenerationView({
+  tool,
+  wolf,
+  onBack,
+}: {
+  tool: View;
+  wolf: Wolf | null;
+  onBack: () => void;
+}) {
+  const [step, setStep] = useState<string>("upload");
+  const [activeTab, setActiveTab] = useState<Tab>("lyrics");
+  const [title, setTitle] = useState("");
+  const [genre, setGenre] = useState(wolf?.genre || "Hip-Hop");
+  const [language, setLanguage] = useState("English");
+  const [fileName, setFileName] = useState("");
+  const [fileUrl, setFileUrl] = useState("");
+  const [fileType, setFileType] = useState<"audio" | "video" | "">("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const accentColor = wolf?.color || "#f5c518";
+  const toolInfo = tools.find((t) => t.id === tool);
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        setFileName(file.name);
+        const url = URL.createObjectURL(file);
+        setFileUrl(url);
+        setFileType(file.type.startsWith("video") ? "video" : "audio");
+      }
+    },
+    []
+  );
+
+  const clearFile = useCallback(() => {
+    if (fileUrl) URL.revokeObjectURL(fileUrl);
+    setFileName("");
+    setFileUrl("");
+    setFileType("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, [fileUrl]);
+
+  const handleGenerate = useCallback(async () => {
+    if (!fileName && !youtubeUrl && !prompt) return;
+    setIsGenerating(true);
+    setStep("transcribing");
+    await new Promise((r) => setTimeout(r, 1500));
+    setStep("analyzing");
+    await new Promise((r) => setTimeout(r, 1500));
+    setStep("writing");
+    await new Promise((r) => setTimeout(r, 2000));
+    setStep("done");
+    setIsGenerating(false);
+  }, [fileName, youtubeUrl, prompt]);
+
+  const copyToClipboard = useCallback((text: string) => {
+    navigator.clipboard.writeText(text);
+  }, []);
+
+  const STEPS = [
+    { id: "upload", label: "Upload", icon: Upload },
+    { id: "transcribing", label: "Transcribing", icon: Music },
+    { id: "analyzing", label: "Analyzing", icon: Scissors },
+    { id: "writing", label: "Generating", icon: Wand2 },
+    { id: "done", label: "Complete", icon: CheckCircle },
+  ];
+
+  const currentStepIndex = STEPS.findIndex((s) => s.id === step);
+
+  const tabs: { id: Tab; label: string; icon: typeof Music }[] = [
+    { id: "lyrics", label: "LYRICS", icon: Music },
+    { id: "srt", label: "SRT", icon: FileText },
+    { id: "beats", label: "BEAT CUTS", icon: Scissors },
+    { id: "prompts", label: "AI PROMPTS", icon: Video },
+  ];
+
+  const tabContent: Record<Tab, string> = {
+    lyrics: DEMO_LYRICS,
+    srt: DEMO_SRT,
+    beats: DEMO_BEATS,
+    prompts: DEMO_PROMPTS,
+  };
+
+  const hasInput = !!fileName || !!youtubeUrl || !!prompt;
+
+  return (
+    <div>
+      {/* Back + title */}
+      <motion.button
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        onClick={onBack}
+        className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
+      >
+        <ArrowLeft size={16} />
+        Back to Dashboard
+      </motion.button>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-8 flex items-center gap-3"
+      >
+        {toolInfo && (
+          <div
+            className="flex h-10 w-10 items-center justify-center rounded-xl"
+            style={{ backgroundColor: `${toolInfo.color}15` }}
+          >
+            <toolInfo.icon size={20} style={{ color: toolInfo.color }} />
+          </div>
+        )}
+        <div>
+          <h2
+            className="text-2xl font-bold tracking-wider text-white"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {toolInfo?.title.toUpperCase()}
+          </h2>
+          <p className="text-xs text-wolf-muted">{toolInfo?.description}</p>
+        </div>
+      </motion.div>
+
+      {/* Progress stepper */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="mb-8 flex items-center justify-between rounded-xl border border-wolf-border/20 bg-wolf-card/50 px-6 py-4"
+      >
+        {STEPS.map((s, i) => (
+          <div key={s.id} className="flex items-center">
+            <div className="flex flex-col items-center">
+              <div
+                className={`flex h-9 w-9 items-center justify-center rounded-full border-2 transition-all duration-500 ${
+                  i < currentStepIndex
+                    ? "border-transparent bg-wolf-gold text-black"
+                    : i === currentStepIndex
+                      ? "border-wolf-gold bg-wolf-gold/10 text-wolf-gold"
+                      : "border-wolf-border/30 text-wolf-muted/40"
+                }`}
+              >
+                {i < currentStepIndex ? (
+                  <CheckCircle size={16} />
+                ) : i === currentStepIndex && isGenerating ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <s.icon size={16} />
+                )}
+              </div>
+              <span
+                className={`mt-1 text-[9px] font-medium uppercase tracking-wider ${
+                  i <= currentStepIndex ? "text-wolf-gold" : "text-wolf-muted/30"
+                }`}
+              >
+                {s.label}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div
+                className={`mx-1.5 h-0.5 w-6 rounded transition-colors duration-500 md:w-12 ${
+                  i < currentStepIndex ? "bg-wolf-gold" : "bg-wolf-border/15"
+                }`}
+              />
+            )}
+          </div>
+        ))}
+      </motion.div>
+
+      <AnimatePresence mode="wait">
+        {step === "upload" && (
+          <motion.div
+            key="upload"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="space-y-5"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*,video/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+
+            {/* YouTube input for Remix */}
+            {tool === "remix" && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
+                  YouTube URL
+                </label>
+                <div className="relative">
+                  <Youtube size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-red-400" />
+                  <input
+                    type="url"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=..."
+                    className="w-full rounded-lg border border-wolf-border/30 bg-wolf-card py-3 pl-10 pr-4 text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/40 focus:outline-none"
+                  />
+                </div>
+                <p className="mt-2 text-center text-xs text-wolf-muted/50">— or upload a file —</p>
+              </div>
+            )}
+
+            {/* Prompt input for Scenes / Cover Art */}
+            {(tool === "scenes" || tool === "cover-art") && (
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
+                  {tool === "scenes" ? "Scene Prompt" : "Cover Art Prompt"}
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder={
+                    tool === "scenes"
+                      ? "Describe your scene: A wolf running through golden lightning in a dark forest..."
+                      : "Describe your cover: A golden wolf silhouette against a dark sky with lightning bolts..."
+                  }
+                  rows={3}
+                  className="w-full resize-none rounded-lg border border-wolf-border/30 bg-wolf-card p-4 text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/40 focus:outline-none"
+                />
+              </div>
+            )}
+
+            {/* File upload */}
+            {fileUrl && fileType === "video" ? (
+              <div className="overflow-hidden rounded-xl border border-wolf-border/30 bg-wolf-card">
+                <video src={fileUrl} controls className="max-h-[300px] w-full bg-black" />
+                <div className="flex items-center justify-between border-t border-wolf-border/20 px-4 py-2.5">
+                  <div className="flex items-center gap-2">
+                    <Video size={14} className="text-wolf-gold" />
+                    <span className="text-sm text-white">{fileName}</span>
+                  </div>
+                  <button onClick={clearFile} className="text-xs text-wolf-muted hover:text-red-400">
+                    <X size={12} className="mr-1 inline" />Remove
+                  </button>
+                </div>
+              </div>
+            ) : fileUrl && fileType === "audio" ? (
+              <div className="rounded-xl border border-wolf-border/30 bg-wolf-card p-5">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-wolf-gold/10">
+                    <Music size={18} className="text-wolf-gold" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-white">{fileName}</p>
+                    <p className="text-xs text-wolf-muted">Audio loaded</p>
+                  </div>
+                  <button onClick={clearFile} className="text-xs text-wolf-muted hover:text-red-400">
+                    <X size={12} className="mr-1 inline" />Remove
+                  </button>
+                </div>
+                <audio src={fileUrl} controls className="w-full" />
+              </div>
+            ) : (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="group cursor-pointer rounded-xl border-2 border-dashed border-wolf-border/30 bg-wolf-card/50 p-10 text-center transition-all hover:border-wolf-gold/40 hover:bg-wolf-gold/5"
+              >
+                <Upload size={32} className="mx-auto mb-3 text-wolf-muted transition-colors group-hover:text-wolf-gold" />
+                <p className="text-white">Drop your audio or video here</p>
+                <p className="mt-1 text-xs text-wolf-muted">MP3, WAV, MP4, MOV — up to 50MB</p>
+              </div>
+            )}
+
+            {/* Options row */}
+            <div className="grid gap-4 md:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-wolf-muted">Title</label>
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Track name"
+                  className="w-full rounded-lg border border-wolf-border/30 bg-wolf-card px-4 py-2.5 text-sm text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/40 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-wolf-muted">Genre</label>
+                <select
+                  value={genre}
+                  onChange={(e) => setGenre(e.target.value)}
+                  className="w-full rounded-lg border border-wolf-border/30 bg-wolf-card px-4 py-2.5 text-sm text-white focus:border-wolf-gold/40 focus:outline-none"
+                >
+                  {["Hip-Hop", "R&B", "Pop", "French Hip-Hop", "Afrobeats", "Drill", "Trap", "Lo-Fi"].map((g) => (
+                    <option key={g}>{g}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wider text-wolf-muted">Language</label>
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="w-full rounded-lg border border-wolf-border/30 bg-wolf-card px-4 py-2.5 text-sm text-white focus:border-wolf-gold/40 focus:outline-none"
+                >
+                  {["English", "French", "Dutch", "Spanish"].map((l) => (
+                    <option key={l}>{l}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <motion.button
+              whileHover={hasInput ? { scale: 1.01 } : undefined}
+              whileTap={hasInput ? { scale: 0.99 } : undefined}
+              onClick={handleGenerate}
+              disabled={!hasInput}
+              className={`w-full rounded-xl py-3.5 font-bold tracking-wider transition-all ${
+                hasInput
+                  ? "bg-wolf-gold text-black shadow-lg shadow-wolf-gold/20 hover:bg-wolf-amber"
+                  : "cursor-not-allowed bg-wolf-border/30 text-wolf-muted"
+              }`}
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              <Zap size={16} className="mr-2 inline" />
+              GENERATE
+            </motion.button>
+          </motion.div>
+        )}
+
+        {isGenerating && (
+          <motion.div key="gen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-16 text-center">
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+              className="mx-auto mb-5 h-14 w-14"
+            >
+              <Zap size={56} style={{ color: accentColor }} />
+            </motion.div>
+            <p className="text-lg text-white" style={{ fontFamily: "var(--font-display)" }}>
+              {step === "transcribing" && "TRANSCRIBING AUDIO..."}
+              {step === "analyzing" && "ANALYZING BEATS..."}
+              {step === "writing" && "GENERATING CONTENT..."}
+            </p>
+            <p className="mt-2 text-sm text-wolf-muted">This usually takes 15-30 seconds</p>
+          </motion.div>
+        )}
+
+        {step === "done" && !isGenerating && (
+          <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
+            <div className="flex gap-1 rounded-xl bg-wolf-card p-1">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-semibold uppercase tracking-wider transition-all ${
+                    activeTab === tab.id ? "bg-wolf-gold text-black" : "text-wolf-muted hover:text-white"
+                  }`}
+                >
+                  <tab.icon size={13} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="rounded-xl border border-wolf-border/30 bg-wolf-card"
+              >
+                <div className="flex items-center justify-between border-b border-wolf-border/20 px-5 py-2.5">
+                  <span className="text-xs font-medium uppercase tracking-wider text-wolf-muted">
+                    {tabs.find((t) => t.id === activeTab)?.label}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => copyToClipboard(tabContent[activeTab])}
+                      className="inline-flex items-center gap-1 rounded-lg border border-wolf-border/30 px-2.5 py-1 text-xs text-wolf-muted hover:border-wolf-gold/30 hover:text-wolf-gold"
+                    >
+                      <Copy size={11} /> Copy
+                    </button>
+                    <button className="inline-flex items-center gap-1 rounded-lg border border-wolf-border/30 px-2.5 py-1 text-xs text-wolf-muted hover:border-wolf-gold/30 hover:text-wolf-gold">
+                      <Download size={11} /> Export
+                    </button>
+                  </div>
+                </div>
+                <pre className="max-h-[400px] overflow-y-auto p-5 text-sm leading-relaxed text-slate-300 whitespace-pre-wrap">
+                  {tabContent[activeTab]}
+                </pre>
+              </motion.div>
+            </AnimatePresence>
+
+            <button
+              onClick={() => { setStep("upload"); clearFile(); setYoutubeUrl(""); setPrompt(""); }}
+              className="w-full rounded-xl border border-wolf-border/30 py-3 text-sm font-semibold text-wolf-muted hover:border-wolf-gold/30 hover:text-wolf-gold"
+            >
+              Generate Another
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// Main Studio Page
+export default function StudioPage({ wolf, onBack }: Props) {
+  const [view, setView] = useState<View>("dashboard");
+  const accentColor = wolf?.color || "#f5c518";
+
+  return (
+    <div className="min-h-screen pt-20">
+      <div
+        className="fixed inset-0 z-0"
+        style={{ background: `radial-gradient(ellipse at 50% 30%, ${accentColor}05, transparent 60%)` }}
+      />
+
+      <div className="relative z-10 mx-auto max-w-6xl px-6 pb-24">
+        {view === "dashboard" ? (
+          <>
+            {/* Header */}
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              onClick={onBack}
+              className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
+            >
+              <ArrowLeft size={16} />
+              Back
+            </motion.button>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-10 flex items-center justify-between"
+            >
+              <div className="flex items-center gap-4">
+                {wolf && (
+                  <div
+                    className="h-12 w-12 shrink-0 overflow-hidden rounded-full border-2"
+                    style={{ borderColor: `${accentColor}40` }}
+                  >
+                    {wolf.video ? (
+                      <video src={wolf.video} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+                    ) : (
+                      <img src={wolf.image} alt={wolf.artist} className="h-full w-full p-1" />
+                    )}
+                  </div>
+                )}
+                <div>
+                  <h1
+                    className="text-2xl font-bold tracking-wider text-white md:text-3xl"
+                    style={{ fontFamily: "var(--font-heading)" }}
+                  >
+                    {wolf ? `${wolf.artist.toUpperCase()}'S` : "LYRICS"}{" "}
+                    <span style={{ color: accentColor }}>STUDIO</span>
+                  </h1>
+                  <p className="text-sm text-wolf-muted">Create AI-powered music videos & content</p>
+                </div>
+              </div>
+              <div className="hidden items-center gap-2 rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-4 py-2 md:flex">
+                <Zap size={14} className="text-wolf-gold" />
+                <span className="text-sm font-medium text-wolf-gold">10 Credits</span>
+                <span className="text-xs text-wolf-muted">/ 50</span>
+              </div>
+            </motion.div>
+
+            {/* Tool Grid */}
+            <div className="grid gap-5 lg:grid-cols-[1fr_1fr_1fr]">
+              {/* Remix — large featured card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                whileHover={{ y: -4 }}
+                onClick={() => setView("remix")}
+                className="group cursor-pointer rounded-2xl border border-wolf-gold/20 bg-gradient-to-br from-wolf-gold/8 to-wolf-card p-7 lg:row-span-2"
+              >
+                <span className="mb-4 inline-block rounded-full bg-wolf-gold px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-black">
+                  Most Popular
+                </span>
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-wolf-gold/15">
+                  <Shuffle size={24} className="text-wolf-gold" />
+                </div>
+                <h3 className="mb-2 text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
+                  Remix
+                </h3>
+                <p className="mb-5 text-sm leading-relaxed text-wolf-muted">
+                  Import YouTube footage and auto-generate a lyric video. The fastest way to create content — and the quality is the highest.
+                </p>
+                <div className="mb-5 flex flex-wrap gap-2">
+                  {["YouTube import", "Auto scene detect", "Shuffle clips"].map((tag) => (
+                    <span key={tag} className="rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-3 py-1 text-xs text-wolf-gold">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-wolf-gold transition-all group-hover:gap-2.5">
+                  Try Remix <ArrowRight size={14} />
+                </span>
+              </motion.div>
+
+              {/* Other tools — 2x2 grid */}
+              {tools.slice(1).map((tool, i) => (
+                <motion.div
+                  key={tool.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.15 + i * 0.05 }}
+                  whileHover={{ y: -4 }}
+                  onClick={() => setView(tool.id)}
+                  className="group cursor-pointer rounded-2xl border border-wolf-border/20 bg-wolf-card p-6 transition-all hover:border-wolf-border/40"
+                >
+                  <div className="mb-3 flex items-center gap-3">
+                    <div
+                      className="flex h-9 w-9 items-center justify-center rounded-lg"
+                      style={{ backgroundColor: `${tool.color}12` }}
+                    >
+                      <tool.icon size={18} style={{ color: tool.color }} />
+                    </div>
+                    <h3 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
+                      {tool.title}
+                    </h3>
+                    {tool.badge && (
+                      <span className="rounded-full border border-wolf-border/30 px-2 py-0.5 text-[9px] font-semibold text-wolf-muted">
+                        {tool.badge}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mb-4 text-sm text-wolf-muted">{tool.description}</p>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-wolf-muted transition-all group-hover:gap-2.5 group-hover:text-wolf-gold">
+                    Open <ArrowRight size={13} />
+                  </span>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* How It Works */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-12 rounded-2xl border border-wolf-border/20 bg-wolf-card/50 p-8"
+            >
+              <div className="mb-6 flex items-center gap-2">
+                <Sparkles size={16} className="text-wolf-gold" />
+                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-wolf-muted">
+                  How It Works
+                </span>
+              </div>
+              <div className="grid gap-5 md:grid-cols-3">
+                {steps.map((s, i) => (
+                  <motion.div
+                    key={s.num}
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="rounded-xl border border-wolf-border/15 bg-wolf-surface/50 p-5"
+                  >
+                    <div className="mb-3 flex items-center gap-3">
+                      <span
+                        className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-black"
+                        style={{ backgroundColor: s.color }}
+                      >
+                        {s.num}
+                      </span>
+                      <h4 className="font-bold text-white">{s.title}</h4>
+                    </div>
+                    <p className="text-sm leading-relaxed text-wolf-muted">{s.description}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* Quick links */}
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="flex items-center justify-between rounded-xl border border-wolf-border/20 bg-wolf-card/50 px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <LayoutGrid size={18} className="text-wolf-gold" />
+                  <div>
+                    <p className="text-sm font-semibold text-white">Templates</p>
+                    <p className="text-xs text-wolf-muted">View and manage your templates</p>
+                  </div>
+                </div>
+                <ArrowRight size={16} className="text-wolf-muted" />
+              </div>
+              <div className="flex items-center justify-between rounded-xl border border-wolf-border/20 bg-wolf-card/50 px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <Zap size={18} className="text-wolf-gold" />
+                  <div>
+                    <p className="text-sm font-semibold text-white">Get More Credits</p>
+                    <p className="text-xs text-wolf-muted">Upgrade your plan for unlimited access</p>
+                  </div>
+                </div>
+                <ArrowRight size={16} className="text-wolf-muted" />
+              </div>
+            </div>
+          </>
+        ) : view === "remix" ? (
+          <RemixViewComponent onBack={() => setView("dashboard")} />
+        ) : view === "template" ? (
+          <TemplateViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
+        ) : view === "scenes" ? (
+          <ScenesViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
+        ) : view === "performance" ? (
+          <PerformanceViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
+        ) : view === "cover-art" ? (
+          <CoverArtViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
+        ) : null}
+      </div>
+    </div>
+  );
+}

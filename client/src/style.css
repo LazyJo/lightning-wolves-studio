@@ -2570,3 +2570,103 @@ textarea { resize: vertical; min-height: 72px; }
   text-shadow:0 0 12px rgba(255,184,0,0.4);
   z-index:10;
 }
+
+/* HOWL active state — lightning burst */
+.vs-howl-active {
+  font-size:3rem !important;
+  color:#fff !important;
+  text-shadow:0 0 40px #FFB800,0 0 80px #FFB800,0 0 120px #FF8C00 !important;
+  animation:howlBurst 0.8s ease-out !important;
+}
+@keyframes howlBurst {
+  0%   { transform:scale(0.5); opacity:0; }
+  30%  { transform:scale(2); opacity:1; }
+  60%  { transform:scale(1.5); }
+  100% { transform:scale(1); }
+}
+
+/* ── Label View Scout Data ────────────────────────────────────────────── */
+.vs-label-data {
+  margin-top:12px; padding-top:10px;
+  border-top:1px solid rgba(255,184,0,0.15);
+}
+.vs-label-stat {
+  font-size:0.75rem; color:#aaa; margin:4px 0;
+}
+.vs-label-stat strong { color:#FFB800; }
+.vs-scout-btn {
+  margin-top:8px; width:100%;
+  background:rgba(255,184,0,0.15); border:1px solid #FFB800;
+  color:#FFB800; font-family:'Bebas Neue',sans-serif;
+  font-size:0.8rem; letter-spacing:0.1em;
+  padding:8px 12px; border-radius:8px; cursor:pointer;
+  transition:background 0.2s,transform 0.15s;
+}
+.vs-scout-btn:hover { background:rgba(255,184,0,0.3); transform:translateY(-1px); }
+.vs-scouted {
+  margin-top:8px; font-size:0.75rem; color:#3ddc84;
+  letter-spacing:0.08em; text-align:center;
+}
+
+/* ── Pack Chat ────────────────────────────────────────────────────────── */
+.pack-chat {
+  position:fixed; bottom:20px; right:20px; z-index:300;
+  width:360px; max-height:480px;
+  background:rgba(20,20,28,0.92);
+  backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+  border:1px solid rgba(255,184,0,0.2);
+  border-radius:16px; overflow:hidden;
+  display:flex; flex-direction:column;
+  box-shadow:0 8px 40px rgba(0,0,0,0.6);
+}
+.pack-chat-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px;
+  background:rgba(255,184,0,0.08);
+  border-bottom:1px solid rgba(255,184,0,0.15);
+}
+.pack-chat-title {
+  font-family:'Bebas Neue',sans-serif; font-size:0.9rem;
+  letter-spacing:0.1em; color:#FFB800;
+}
+.pack-chat-messages {
+  flex:1; overflow-y:auto; padding:12px 16px;
+  display:flex; flex-direction:column; gap:8px;
+  min-height:200px; max-height:300px;
+}
+.pack-chat-msg { font-size:0.85rem; line-height:1.4; }
+.pack-chat-system { color:#888; font-style:italic; text-align:center; font-size:0.78rem; }
+.pack-chat-you { text-align:right; }
+.pack-chat-them { text-align:left; }
+.pack-chat-sender { display:block; font-size:0.65rem; color:#888; letter-spacing:0.06em; text-transform:uppercase; margin-bottom:2px; }
+.pack-chat-you .pack-chat-text { background:rgba(255,184,0,0.15); color:#f0f0f4; padding:6px 12px; border-radius:12px 12px 2px 12px; display:inline-block; }
+.pack-chat-them .pack-chat-text { background:rgba(255,255,255,0.06); color:#f0f0f4; padding:6px 12px; border-radius:12px 12px 12px 2px; display:inline-block; }
+.pack-chat-input {
+  display:flex; gap:8px; padding:10px 12px;
+  border-top:1px solid rgba(255,184,0,0.1);
+}
+.pack-chat-input input {
+  flex:1; background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1); border-radius:8px;
+  color:#f0f0f4; padding:8px 12px; font-size:0.85rem;
+  outline:none;
+}
+.pack-chat-input input:focus { border-color:rgba(255,184,0,0.3); }
+
+/* ── Create Wolf Profile Modal ────────────────────────────────────────── */
+.wolf-profile-modal { max-width:420px; }
+.wolf-profile-form { display:flex; flex-direction:column; gap:14px; margin-top:16px; }
+.wpf-photo {
+  width:100px; height:100px; border-radius:50%;
+  background:rgba(255,255,255,0.05); border:2px dashed rgba(255,184,0,0.3);
+  display:flex; align-items:center; justify-content:center;
+  margin:0 auto; cursor:pointer; overflow:hidden;
+  color:#888; font-size:0.75rem; text-align:center;
+  transition:border-color 0.2s;
+}
+.wpf-photo:hover { border-color:#FFB800; }
+.wpf-photo img { width:100%; height:100%; object-fit:cover; }
+
+@media (max-width:500px) {
+  .pack-chat { left:10px; right:10px; width:auto; bottom:10px; }
+}

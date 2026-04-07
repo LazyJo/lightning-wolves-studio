@@ -1619,30 +1619,123 @@ function WolfHubCountryPage({ country, onBack, onSelectWolf }) {
   )
 }
 
+// ─── Create Wolf Profile Modal ───────────────────────────────────────────────
+function CreateProfileModal({ onSave, onClose }) {
+  const [name, setName] = useState('')
+  const [genre, setGenre] = useState('')
+  const [lookingFor, setLookingFor] = useState('')
+  const [imgUrl, setImgUrl] = useState('')
+
+  function handlePhoto(e) {
+    const file = e.target.files[0]
+    if (file) setImgUrl(URL.createObjectURL(file))
+  }
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-box wolf-profile-modal">
+        <h2 className="modal-title">CREATE YOUR WOLF PROFILE</h2>
+        <div className="wolf-profile-form">
+          <div className="wpf-photo" onClick={() => document.getElementById('wpf-photo-input').click()}>
+            {imgUrl ? <img src={imgUrl} alt="Profile" /> : <span>📷 Upload Photo</span>}
+            <input id="wpf-photo-input" type="file" accept="image/*" hidden onChange={handlePhoto} />
+          </div>
+          <div className="field-group"><label className="field-label">WOLF NAME *</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="Your artist name" /></div>
+          <div className="field-group"><label className="field-label">GENRE *</label>
+            <select value={genre} onChange={e => setGenre(e.target.value)}>
+              <option value="">Select genre…</option>
+              {['Hip-Hop','Drill','Afrobeats','R&B','Trap','Pop','French Hip-Hop','Amapiano','Rock','Other'].map(g => <option key={g} value={g}>{g}</option>)}
+            </select></div>
+          <div className="field-group"><label className="field-label">LOOKING FOR</label>
+            <input type="text" value={lookingFor} onChange={e => setLookingFor(e.target.value)} placeholder="e.g. Need a hard Drill verse" /></div>
+          <div className="modal-actions">
+            <button className="btn-gold" disabled={!name || !genre} onClick={() => onSave({ name, genre, lookingFor, image: imgUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}` })}>
+              CREATE PROFILE
+            </button>
+            <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Pack Chat Window ────────────────────────────────────────────────────────
+function PackChatWindow({ matchName, onClose }) {
+  const [messages, setMessages] = useState([
+    { from: 'system', text: `⚡ You and ${matchName} are now connected. Start your collab!` }
+  ])
+  const [input, setInput] = useState('')
+
+  function send() {
+    if (!input.trim()) return
+    setMessages(m => [...m, { from: 'you', text: input.trim() }])
+    setInput('')
+    // Simulate reply
+    setTimeout(() => {
+      setMessages(m => [...m, { from: matchName, text: "Yo, let's cook something crazy! 🔥" }])
+    }, 1500)
+  }
+
+  return (
+    <div className="pack-chat">
+      <div className="pack-chat-header">
+        <span className="pack-chat-title">🐺 PACK CHAT — {matchName}</span>
+        <button className="btn-ghost btn-sm" onClick={onClose}>✕</button>
+      </div>
+      <div className="pack-chat-messages">
+        {messages.map((m, i) => (
+          <div key={i} className={`pack-chat-msg pack-chat-${m.from === 'you' ? 'you' : m.from === 'system' ? 'system' : 'them'}`}>
+            {m.from !== 'system' && <span className="pack-chat-sender">{m.from === 'you' ? 'You' : m.from}</span>}
+            <span className="pack-chat-text">{m.text}</span>
+          </div>
+        ))}
+      </div>
+      <div className="pack-chat-input">
+        <input type="text" value={input} onChange={e => setInput(e.target.value)}
+          placeholder="Type your message…" onKeyDown={e => e.key === 'Enter' && send()} />
+        <button className="btn-gold btn-sm" onClick={send}>Send</button>
+      </div>
+    </div>
+  )
+}
+
 // ─── Versus Swipe Screen (PS2-style) ─────────────────────────────────────────
 const MOCK_WOLVES = [
-  { name: 'Wolf_99', genre: 'Drill', bio: 'London underground. Hard verse only.', seed: 'wolf99' },
-  { name: 'Viper_X', genre: 'Afrobeats', bio: 'Lagos to the world. Need a melodic hook.', seed: 'viperx' },
-  { name: 'Ghost_Writer', genre: 'Dark Trap', bio: 'Shadows and bass. Collab on a dark beat.', seed: 'ghost' },
-  { name: 'Luna_Soul', genre: 'R&B', bio: 'Smooth vocals, moonlight vibes.', seed: 'luna' },
+  { name: 'Wolf_99', genre: 'Drill', bio: 'London underground. Hard verse only.', seed: 'wolf99', potential: 87, gens: 24 },
+  { name: 'Viper_X', genre: 'Afrobeats', bio: 'Lagos to the world. Need a melodic hook.', seed: 'viperx', potential: 72, gens: 12 },
+  { name: 'Ghost_Writer', genre: 'Dark Trap', bio: 'Shadows and bass. Collab on a dark beat.', seed: 'ghost', potential: 91, gens: 38 },
+  { name: 'Luna_Soul', genre: 'R&B', bio: 'Smooth vocals, moonlight vibes.', seed: 'luna', potential: 68, gens: 8 },
 ]
 
-function VersusSwipePage({ wolf, city, onBack }) {
+function VersusSwipePage({ wolf, city, onBack, profile }) {
   const [deck, setDeck] = useState([...MOCK_WOLVES])
   const [matched, setMatched] = useState(null)
-  const [swiping, setSwiping] = useState(null) // 'left' | 'right'
+  const [chatOpen, setChatOpen] = useState(false)
+  const [swiping, setSwiping] = useState(null)
+  const [howlActive, setHowlActive] = useState(false)
+  const [scouted, setScouted] = useState({})
+
+  const isMember = profile?.role === 'member'
+  const isLabel = isMember // label owner = member for now
 
   function swipe(dir) {
     if (!deck.length || swiping) return
     setSwiping(dir)
 
-    if (dir === 'right' && Math.random() > 0.5) {
-      // Match!
+    if (dir === 'right') {
+      // HOWL animation
+      setHowlActive(true)
+      const isMatch = Math.random() > 0.4
       setTimeout(() => {
-        setMatched(deck[0].name)
+        setHowlActive(false)
+        if (isMatch) {
+          setMatched(deck[0].name)
+        }
         setSwiping(null)
         setDeck(d => d.slice(1))
-      }, 600)
+      }, 800)
     } else {
       setTimeout(() => {
         setSwiping(null)
@@ -1651,27 +1744,37 @@ function VersusSwipePage({ wolf, city, onBack }) {
     }
   }
 
+  function scoutWolf(name) {
+    setScouted(s => ({ ...s, [name]: true }))
+  }
+
   const current = deck[0]
 
   return (
     <div className="vs-page">
-      {/* Match overlay */}
-      {matched && (
+      {/* Match overlay → PACK UNITED */}
+      {matched && !chatOpen && (
         <div className="vs-match-overlay">
           <div className="vs-match-flash"></div>
           <div className="vs-match-content">
             <h2 className="vs-match-title">PACK UNITED!</h2>
             <p className="vs-match-sub">You and {matched} are now connected</p>
-            <button className="btn-gold" onClick={() => setMatched(null)}>Continue</button>
+            <button className="btn-gold" onClick={() => setChatOpen(true)}>Start Collaboration</button>
+            <button className="btn-ghost" onClick={() => { setMatched(null) }} style={{marginTop:'8px'}}>Later</button>
           </div>
         </div>
+      )}
+
+      {/* Pack Chat */}
+      {chatOpen && matched && (
+        <PackChatWindow matchName={matched} onClose={() => { setChatOpen(false); setMatched(null) }} />
       )}
 
       <button className="wolfhub-back" onClick={onBack}>← Back to Hub</button>
       {city && <div className="vs-city-badge">{WOLF_HUB_DOTS.find(d => d.country === city)?.flag} {city.toUpperCase()}</div>}
 
       <div className="vs-arena">
-        {/* YOUR card — left, tilted */}
+        {/* YOUR card */}
         <div className="vs-card-slot vs-left">
           <div className="vs-card">
             <div className="vs-card-img">
@@ -1689,12 +1792,14 @@ function VersusSwipePage({ wolf, city, onBack }) {
           <div className="vs-card-label">YOU</div>
         </div>
 
-        {/* Center HOWL */}
+        {/* Center HOWL / PACK UNITED */}
         <div className="vs-center">
-          <div className="vs-howl-text">HOWL</div>
+          <div className={`vs-howl-text ${howlActive ? 'vs-howl-active' : ''}`}>
+            {howlActive ? '⚡' : 'HOWL'}
+          </div>
         </div>
 
-        {/* OPPONENT card — right, tilted */}
+        {/* OPPONENT card */}
         <div className="vs-card-slot vs-right">
           {current ? (
             <div className={`vs-card ${swiping === 'left' ? 'vs-swipe-left' : ''} ${swiping === 'right' ? 'vs-swipe-right' : ''}`}>
@@ -1704,9 +1809,24 @@ function VersusSwipePage({ wolf, city, onBack }) {
               <div className="vs-card-name">{current.name}</div>
               <div className="vs-card-genre">{current.genre}</div>
               <div className="vs-card-bio">{current.bio}</div>
+
+              {/* Label View: extra data */}
+              {isLabel && (
+                <div className="vs-label-data">
+                  <div className="vs-label-stat">🎯 Potential: <strong>{current.potential}</strong></div>
+                  <div className="vs-label-stat">⚡ Generations: <strong>{current.gens}</strong></div>
+                  {!scouted[current.name] ? (
+                    <button className="vs-scout-btn" onClick={(e) => { e.stopPropagation(); scoutWolf(current.name) }}>
+                      🐺 SCOUT — Invite to Label
+                    </button>
+                  ) : (
+                    <div className="vs-scouted">✓ INVITATION SENT</div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
-            <div className="vs-empty">No more wolves</div>
+            <div className="vs-empty">No more wolves in {city || 'this territory'}</div>
           )}
           <div className="vs-card-label">LONE WOLF</div>
         </div>
@@ -1886,7 +2006,7 @@ export default function App() {
       )}
 
       {page === 'versus' && (
-        <VersusSwipePage wolf={wolf} city={hubCountry} onBack={() => setPage('wolf-hub')} />
+        <VersusSwipePage wolf={wolf} city={hubCountry} onBack={() => setPage('wolf-hub')} profile={profile} />
       )}
 
       {page === 'dashboard' && (

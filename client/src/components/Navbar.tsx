@@ -51,12 +51,15 @@ export default function Navbar({ onPricing, onWolfHub, onHome, onStudio, onAuth 
           </button>
           <button
             onClick={onWolfHub}
-            className="group relative overflow-hidden rounded-lg border border-purple-500/30 bg-gradient-to-r from-purple-500/10 to-wolf-gold/10 px-4 py-2 text-sm font-semibold text-white transition-all hover:border-purple-400/50 hover:shadow-lg hover:shadow-purple-500/10"
+            className="group relative overflow-hidden rounded-lg px-4 py-2 text-sm font-bold text-white transition-all hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20"
+            style={{ background: "linear-gradient(135deg, #9b6dff 0%, #f5c518 50%, #E040FB 100%)", padding: "1px" }}
           >
-            <span className="relative z-10 flex items-center gap-1.5">
-              🐺 Wolf Map
+            <span className="relative z-10 flex items-center gap-1.5 rounded-[7px] bg-wolf-bg/90 px-4 py-[7px] backdrop-blur-sm transition-all group-hover:bg-wolf-bg/70">
+              <span className="animate-pulse-glow text-base">🐺</span>
+              <span className="bg-gradient-to-r from-[#9b6dff] via-[#f5c518] to-[#E040FB] bg-clip-text text-transparent">
+                Wolf Map
+              </span>
             </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-wolf-gold/10 to-purple-500/0 opacity-0 transition-opacity group-hover:opacity-100" />
           </button>
           <button
             onClick={onAuth}

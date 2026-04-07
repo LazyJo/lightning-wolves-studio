@@ -2487,3 +2487,86 @@ textarea { resize: vertical; min-height: 72px; }
   font-size:0.9rem; color:#666;
   font-style:italic; letter-spacing:0.04em;
 }
+
+/* ── Label View Toggle ────────────────────────────────────────────────── */
+.wolfhub-label-toggle {
+  position:absolute; top:24px; right:24px;
+  display:flex; align-items:center; gap:10px; z-index:10;
+}
+.wolfhub-label-text {
+  font-family:'Bebas Neue',sans-serif; font-size:0.8rem;
+  letter-spacing:0.15em; color:#FFB800;
+  text-shadow:0 0 10px rgba(255,184,0,0.3);
+}
+.wolfhub-label-switch {
+  position:relative; width:40px; height:22px;
+}
+.wolfhub-label-switch input { opacity:0; width:0; height:0; position:absolute; }
+.wolfhub-label-slider {
+  position:absolute; inset:0; background:#2a2a35;
+  border-radius:22px; cursor:pointer; transition:background 0.3s;
+  border:1px solid rgba(255,184,0,0.2);
+}
+.wolfhub-label-slider::after {
+  content:''; position:absolute; width:16px; height:16px;
+  left:3px; top:2px; background:#888; border-radius:50%;
+  transition:transform 0.3s,background 0.3s;
+}
+.wolfhub-label-switch input:checked + .wolfhub-label-slider {
+  background:rgba(255,184,0,0.3); border-color:#FFB800;
+}
+.wolfhub-label-switch input:checked + .wolfhub-label-slider::after {
+  transform:translateX(18px); background:#FFB800;
+  box-shadow:0 0 8px rgba(255,184,0,0.6);
+}
+
+/* ── Lightning Charge Effect (Label View active) ──────────────────────── */
+.wolfhub-charged .wolfhub-glow {
+  background:radial-gradient(circle,rgba(255,184,0,0.4) 0%,transparent 60%) !important;
+  animation:chargedPulse 1s ease-in-out infinite alternate !important;
+}
+@keyframes chargedPulse {
+  0%   { transform:scale(0.95); opacity:0.7; }
+  100% { transform:scale(1.15); opacity:1; }
+}
+.wolfhub-lightning-charge {
+  position:absolute; inset:-20px; z-index:2; pointer-events:none;
+  border-radius:50%;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,184,0,0.4) 0%, transparent 30%),
+    radial-gradient(circle at 70% 80%, rgba(255,184,0,0.3) 0%, transparent 25%),
+    radial-gradient(circle at 50% 50%, rgba(255,220,0,0.15) 0%, transparent 50%);
+  animation:lightningCrackle 0.8s ease-in-out infinite alternate;
+}
+@keyframes lightningCrackle {
+  0%   { opacity:0.6; transform:scale(1); }
+  50%  { opacity:1; transform:scale(1.02); }
+  100% { opacity:0.7; transform:scale(0.98); }
+}
+
+/* ── VS Neon Flow Cards ───────────────────────────────────────────────── */
+.vs-card {
+  position:relative; overflow:hidden;
+}
+.vs-card::before {
+  content:''; position:absolute; inset:-2px;
+  background:conic-gradient(from var(--neon-angle,0deg),transparent,rgba(255,184,0,0.4) 10%,transparent 20%);
+  border-radius:inherit; z-index:0;
+  animation:vsNeonSpin 3s linear infinite;
+}
+.vs-card::after {
+  content:''; position:absolute; inset:2px;
+  background:#18181f; border-radius:14px; z-index:0;
+}
+.vs-card > * { position:relative; z-index:1; }
+@property --neon-angle { syntax:'<angle>'; initial-value:0deg; inherits:false; }
+@keyframes vsNeonSpin { to { --neon-angle:360deg; } }
+
+/* VS city badge */
+.vs-city-badge {
+  position:absolute; top:24px; left:50%; transform:translateX(-50%);
+  font-family:'Bebas Neue',sans-serif; font-size:1.1rem;
+  letter-spacing:0.2em; color:#FFB800;
+  text-shadow:0 0 12px rgba(255,184,0,0.4);
+  z-index:10;
+}

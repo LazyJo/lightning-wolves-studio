@@ -1349,11 +1349,13 @@ const COUNTRY_ARTISTS = {
   Nigeria: null,
 }
 
-function WolfHubPage({ onBack, onCountry }) {
+function WolfHubPage({ onBack, onCountry, onVersus, profile }) {
   const [tooltip, setTooltip] = useState(null)
   const canvasRef = useRef(null)
   const mouseRef = useRef({ x: 0, y: 0 })
-  const [zooming, setZooming] = useState(null) // country name when zooming
+  const [zooming, setZooming] = useState(null)
+  const [labelView, setLabelView] = useState(false)
+  const isMember = profile?.role === 'member' // country name when zooming
 
   useEffect(() => {
     const container = canvasRef.current
@@ -1492,16 +1494,20 @@ function WolfHubPage({ onBack, onCountry }) {
   }, [])
 
   function handleCountryClick(country) {
-    // Trigger Maw zoom
     const container = canvasRef.current
     if (container?._triggerZoom) container._triggerZoom()
     setZooming(country)
 
-    // After zoom animation, navigate to country
+    // After Maw zoom: countries with artists → Versus swipe, others → country page
+    const hasArtists = COUNTRY_ARTISTS[country] && COUNTRY_ARTISTS[country].length > 0
     setTimeout(() => {
       if (container?._resetZoom) container._resetZoom()
       setZooming(null)
-      onCountry(country)
+      if (hasArtists) {
+        onVersus(country)
+      } else {
+        onCountry(country)
+      }
     }, 1200)
   }
 
@@ -1516,12 +1522,24 @@ function WolfHubPage({ onBack, onCountry }) {
 
       <button className="wolfhub-back" onClick={onBack}>← Back</button>
 
+      {/* Label View toggle — only for members */}
+      {isMember && (
+        <div className="wolfhub-label-toggle">
+          <label className="wolfhub-label-switch">
+            <input type="checkbox" checked={labelView} onChange={e => setLabelView(e.target.checked)} />
+            <span className="wolfhub-label-slider"></span>
+          </label>
+          <span className="wolfhub-label-text">LABEL VIEW</span>
+        </div>
+      )}
+
       <div className="wolfhub-center">
         <h1 className="wolfhub-title">WOLF HUB</h1>
         <p className="wolfhub-subtitle">SELECT YOUR TERRITORY</p>
 
-        <div className="wolfhub-head-wrap">
+        <div className={`wolfhub-head-wrap ${labelView ? 'wolfhub-charged' : ''}`}>
           <div className="wolfhub-glow"></div>
+          {labelView && <div className="wolfhub-lightning-charge"></div>}
           <div ref={canvasRef} className="wolfhub-3d-canvas"></div>
 
           {WOLF_HUB_DOTS.map(dot => (
@@ -1609,7 +1627,7 @@ const MOCK_WOLVES = [
   { name: 'Luna_Soul', genre: 'R&B', bio: 'Smooth vocals, moonlight vibes.', seed: 'luna' },
 ]
 
-function VersusSwipePage({ wolf, onBack }) {
+function VersusSwipePage({ wolf, city, onBack }) {
   const [deck, setDeck] = useState([...MOCK_WOLVES])
   const [matched, setMatched] = useState(null)
   const [swiping, setSwiping] = useState(null) // 'left' | 'right'
@@ -1650,6 +1668,7 @@ function VersusSwipePage({ wolf, onBack }) {
       )}
 
       <button className="wolfhub-back" onClick={onBack}>← Back to Hub</button>
+      {city && <div className="vs-city-badge">{WOLF_HUB_DOTS.find(d => d.country === city)?.flag} {city.toUpperCase()}</div>}
 
       <div className="vs-arena">
         {/* YOUR card — left, tilted */}
@@ -1854,7 +1873,12 @@ export default function App() {
       )}
 
       {page === 'wolf-hub' && (
-        <WolfHubPage onBack={() => setPage('wolf-select')} onCountry={(c) => { setHubCountry(c); setPage('wolf-hub-country') }} />
+        <WolfHubPage
+          onBack={() => setPage('wolf-select')}
+          onCountry={(c) => { setHubCountry(c); setPage('wolf-hub-country') }}
+          onVersus={(c) => { setHubCountry(c); setPage('versus') }}
+          profile={profile}
+        />
       )}
 
       {page === 'wolf-hub-country' && hubCountry && (
@@ -1862,7 +1886,7 @@ export default function App() {
       )}
 
       {page === 'versus' && (
-        <VersusSwipePage wolf={wolf} onBack={() => setPage('wolf-hub')} />
+        <VersusSwipePage wolf={wolf} city={hubCountry} onBack={() => setPage('wolf-hub')} />
       )}
 
       {page === 'dashboard' && (

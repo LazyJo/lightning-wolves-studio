@@ -86,7 +86,7 @@ export const wolves: Wolf[] = [
         },
         {
           name: "Zaytoven",
-          quote: "Next Up",
+          quote: "Liked the post",
           photo: "/Zaytoven.jpeg",
           link: "https://www.instagram.com/p/Cxf_nEFo4v5/",
           platform: "Instagram",

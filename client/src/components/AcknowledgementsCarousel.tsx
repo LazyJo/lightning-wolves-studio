@@ -85,22 +85,23 @@ export default function AcknowledgementsCarousel({
             </p>
 
             {/* Platform link */}
-            <span
-              className="mt-3 inline-flex items-center gap-1 text-xs transition-colors group-hover:text-wolf-gold"
-              style={{ color: `${color}80` }}
-            >
-              {isDM ? (
-                <>
-                  <span className="rounded-full bg-purple-500/15 px-2 py-0.5 text-[9px] font-bold text-purple-400">DM</span>
-                  {ack.platform}
-                </>
-              ) : (
-                <>
-                  <ExternalLink size={12} />
-                  Watch on {ack.platform}
-                </>
-              )}
-            </span>
+            {isDM ? (
+              <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-purple-500/15 px-3 py-1 text-xs font-semibold text-purple-400">
+                💬 {ack.platform}
+              </span>
+            ) : (
+              <span
+                className="mt-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all group-hover:scale-105"
+                style={{
+                  backgroundColor: `${color}20`,
+                  color: color,
+                  border: `1px solid ${color}30`,
+                }}
+              >
+                <ExternalLink size={11} />
+                Watch on {ack.platform}
+              </span>
+            )}
           </motion.div>
           );
         })}

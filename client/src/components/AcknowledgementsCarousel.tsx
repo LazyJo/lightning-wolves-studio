@@ -45,17 +45,19 @@ export default function AcknowledgementsCarousel({
         className="flex gap-4 overflow-x-auto px-8 pb-4 scrollbar-none"
         style={{ scrollbarWidth: "none" }}
       >
-        {acknowledgements.map((ack, i) => (
-          <motion.a
+        {acknowledgements.map((ack, i) => {
+          const isDM = ack.platform.includes("DM");
+          const Wrapper = ack.link ? "a" : "div";
+          const wrapperProps = ack.link ? { href: ack.link, target: "_blank", rel: "noopener noreferrer" } : {};
+          return (
+          <motion.div
             key={ack.name}
-            href={ack.link}
-            target="_blank"
-            rel="noopener noreferrer"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
-            className="group flex w-[280px] shrink-0 flex-col items-center rounded-2xl border border-wolf-border/30 bg-wolf-card p-6 transition-shadow hover:shadow-lg hover:shadow-black/30"
+            onClick={() => ack.link && window.open(ack.link, "_blank")}
+            className={`group flex w-[280px] shrink-0 flex-col items-center rounded-2xl border border-wolf-border/30 bg-wolf-card p-6 transition-shadow hover:shadow-lg hover:shadow-black/30 ${ack.link ? "cursor-pointer" : ""}`}
           >
             {/* Photo */}
             <div
@@ -87,11 +89,21 @@ export default function AcknowledgementsCarousel({
               className="mt-3 inline-flex items-center gap-1 text-xs transition-colors group-hover:text-wolf-gold"
               style={{ color: `${color}80` }}
             >
-              <ExternalLink size={12} />
-              Watch on {ack.platform}
+              {isDM ? (
+                <>
+                  <span className="rounded-full bg-purple-500/15 px-2 py-0.5 text-[9px] font-bold text-purple-400">DM</span>
+                  {ack.platform}
+                </>
+              ) : (
+                <>
+                  <ExternalLink size={12} />
+                  Watch on {ack.platform}
+                </>
+              )}
             </span>
-          </motion.a>
-        ))}
+          </motion.div>
+          );
+        })}
       </div>
     </div>
   );

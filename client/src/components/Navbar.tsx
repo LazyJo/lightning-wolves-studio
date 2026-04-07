@@ -36,28 +36,28 @@ export default function Navbar({ onPricing, onWolfHub, onHome, onStudio, onAuth 
           </span>
         </button>
 
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           <button
             onClick={onHome}
-            className="text-sm tracking-wide text-wolf-muted transition-colors hover:text-wolf-gold"
+            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
           >
             Home
           </button>
           <button
             onClick={onPricing}
-            className="text-sm tracking-wide text-wolf-muted transition-colors hover:text-wolf-gold"
+            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
           >
             Pricing
           </button>
           <button
             onClick={onWolfHub}
-            className="text-sm tracking-wide text-wolf-muted transition-colors hover:text-wolf-gold"
+            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
           >
             Wolf Map
           </button>
           <button
             onClick={onAuth}
-            className="rounded-lg border border-wolf-border/40 px-4 py-2.5 text-sm font-medium text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-white"
+            className="rounded-lg border border-wolf-gold/30 bg-wolf-gold/5 px-4 py-2 text-sm font-semibold text-wolf-gold transition-all hover:bg-wolf-gold/15"
           >
             Sign In
           </button>

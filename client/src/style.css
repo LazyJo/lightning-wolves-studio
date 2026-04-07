@@ -10,10 +10,16 @@
   --border:   #2a2a35;
   --text:     #f0f0f4;
   --muted:    #8888aa;
-  --accent:   #f5c518;   /* gold — overridden per wolf */
-  --accent2:  #e8870a;   /* amber */
+  --accent:   #f5c518;
+  --accent2:  #e8870a;
   --purple:   #9b6dff;
-  --wolf-color: #f5c518; /* per-wolf override */
+  --wolf-color: #f5c518;
+  --font-heading: 'Syncopate', 'Bebas Neue', sans-serif;
+  --font-body: 'Inter', 'Barlow Condensed', sans-serif;
+  --font-display: 'Bebas Neue', sans-serif;
+  --glass-bg: rgba(18, 18, 26, 0.75);
+  --glass-border: rgba(255, 184, 0, 0.1);
+  --gold-glow: 0 0 20px rgba(255, 184, 0, 0.15);
 }
 
 /* ── Reset & Base ──────────────────────────────────────────────────────── */
@@ -24,10 +30,12 @@ html { font-size: 16px; scroll-behavior: smooth; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Barlow Condensed', sans-serif;
+  font-family: var(--font-body);
   font-weight: 400;
   min-height: 100vh;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html { overflow-x: hidden; }
@@ -37,6 +45,71 @@ html { overflow-x: hidden; }
 video, iframe, img { max-width: 100%; }
 
 .select-main { overflow: hidden; }
+
+/* ── Elite Typography ─────────────────────────────────────────────────── */
+h1, h2, h3, .heading, .select-tagline, .wolfhub-title, .hub-title,
+.vs-match-title, .jpgate-title, .jpgate-unlock-title,
+.wolfhub-coming-title, .wp-hero-name, .section-title {
+  font-family: var(--font-heading) !important;
+}
+/* Display text (buttons, badges, labels) keep Bebas */
+.btn-gold, .btn-generate, .nav-btn-gold, .nav-btn-outline,
+.field-label, .tab, .vs-card-label, .wolfhub-subtitle,
+.jpgate-sub, .jpgate-prompt-label, .vs-card-genre,
+.wolfhub-artist-genre, .wolf-card-genre {
+  font-family: var(--font-display);
+}
+/* Body text uses Inter */
+p, span, div, input, select, textarea, button, a {
+  font-family: var(--font-body);
+}
+
+/* ── Elite Glassmorphism & Micro-interactions ─────────────────────────── */
+.wolf-card-new, .vs-card, .pack-chat, .jpgate-modal,
+.modal-box, .wolfhub-artist-card, .jpgate-prompt-card {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+              box-shadow 0.3s ease,
+              border-color 0.3s ease;
+}
+
+/* Gold gradient text for key headings */
+.select-tagline, .wolfhub-title, .vs-match-title, .jpgate-title {
+  background: linear-gradient(135deg, #FFD700, #FFB800, #FF8C00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Subtle hover lift on all cards */
+.wolf-card-new:hover, .wolfhub-artist-card:hover {
+  box-shadow: var(--gold-glow), 0 12px 40px rgba(0,0,0,0.4);
+}
+
+/* Gold focus rings */
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px rgba(255, 184, 0, 0.15) !important;
+  outline: none;
+}
+
+/* Smooth page transitions */
+.page, .wolfhub-page, .vs-page {
+  animation: pageIn 0.4s ease-out;
+}
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Button micro-interactions */
+.btn-gold, .btn-generate, .nav-btn-gold {
+  transition: transform 0.15s ease, box-shadow 0.25s ease;
+}
+.btn-gold:active, .btn-generate:active, .nav-btn-gold:active {
+  transform: scale(0.97);
+}
 
 h1, h2, h3, .heading {
   font-family: 'Bebas Neue', sans-serif;

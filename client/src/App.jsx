@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js'
+import gsap from 'gsap'
+import { MapPin, Music, User, Zap, ArrowLeft, X, Heart, Star, Send, Camera, Globe, Shield, ChevronRight, Play } from 'lucide-react'
 
 // ─── Wolf data ────────────────────────────────────────────────────────────────
 const WOLVES = [
@@ -1444,8 +1446,6 @@ function WolfHubPage({ onBack, onCountry, onVersus, profile }) {
 
     // Animate — mouse-reactive tilt, no auto-rotation
     let raf
-    const camTarget = { z: 5, y: 1 }
-
     function animate() {
       raf = requestAnimationFrame(animate)
 
@@ -1456,22 +1456,17 @@ function WolfHubPage({ onBack, onCountry, onVersus, profile }) {
         model.rotation.y += (tiltY - model.rotation.y) * 0.04
       }
 
-      // Maw zoom — camera pushes along Z into wolf's snout
-      camera.position.z += (camTarget.z - camera.position.z) * 0.04
-      camera.position.y += (camTarget.y - camera.position.y) * 0.04
-
+      // GSAP handles camera zoom — just render
       renderer.render(scene, camera)
     }
     animate()
 
-    // Expose zoom trigger — pushes camera into the snout along X
+    // GSAP-powered Maw zoom — cinematic ease
     container._triggerZoom = () => {
-      camTarget.z = 1.5
-      camTarget.y = 0.7
+      gsap.to(camera.position, { z: 1.5, y: 0.7, duration: 1.2, ease: 'power3.inOut' })
     }
     container._resetZoom = () => {
-      camTarget.z = 5
-      camTarget.y = 1
+      gsap.to(camera.position, { z: 5, y: 1, duration: 0.8, ease: 'power2.out' })
     }
 
     function onResize() {
@@ -1520,7 +1515,7 @@ function WolfHubPage({ onBack, onCountry, onVersus, profile }) {
         </div>
       )}
 
-      <button className="wolfhub-back" onClick={onBack}>← Back</button>
+      <button className="wolfhub-back" onClick={onBack}><ArrowLeft size={16} /> Back</button>
 
       {/* Label View toggle — only for members */}
       {isMember && (
@@ -1575,7 +1570,7 @@ function WolfHubCountryPage({ country, onBack, onSelectWolf }) {
 
   return (
     <div className="wolfhub-page">
-      <button className="wolfhub-back" onClick={onBack}>← Back to Wolf Hub</button>
+      <button className="wolfhub-back" onClick={onBack}><ArrowLeft size={16} /> Back to Wolf Hub</button>
 
       <div className="wolfhub-country-content">
         <div className="wolfhub-country-flag">{dot?.flag}</div>
@@ -1679,7 +1674,7 @@ function JoinPackGate({ onComplete, onSkip }) {
         {step === 1 && (
           <div className="jpgate-form">
             <div className="wpf-photo" onClick={() => document.getElementById('jpgate-photo').click()}>
-              {imgUrl ? <img src={imgUrl} alt="" /> : <span>📷<br/>TAP TO UPLOAD</span>}
+              {imgUrl ? <img src={imgUrl} alt="" /> : <span><Camera size={24} /><br/>TAP TO UPLOAD</span>}
               <input id="jpgate-photo" type="file" accept="image/*" hidden onChange={handlePhoto} />
             </div>
             <div className="field-group"><label className="field-label">WOLF NAME *</label>
@@ -1696,11 +1691,11 @@ function JoinPackGate({ onComplete, onSkip }) {
         {step === 2 && (
           <div className="jpgate-form">
             <div className="jpgate-prompt-card">
-              <label className="jpgate-prompt-label">🎤 MY FLOW IS LIKE...</label>
+              <label className="jpgate-prompt-label"><Music size={14} /> MY FLOW IS LIKE...</label>
               <input type="text" value={prompt1} onChange={e => setPrompt1(e.target.value)} placeholder='e.g. "Lazy Jo meets Drake vibes"' />
             </div>
             <div className="jpgate-prompt-card">
-              <label className="jpgate-prompt-label">🐺 I'M LOOKING FOR A WOLF WHO...</label>
+              <label className="jpgate-prompt-label"><User size={14} /> I'M LOOKING FOR A WOLF WHO...</label>
               <input type="text" value={prompt2} onChange={e => setPrompt2(e.target.value)} placeholder='e.g. "Can drop a hard Drill verse in 24h"' />
             </div>
             <div className="jpgate-nav">
@@ -1713,7 +1708,7 @@ function JoinPackGate({ onComplete, onSkip }) {
         {step === 3 && (
           <div className="jpgate-form">
             <div className="jpgate-prompt-card">
-              <label className="jpgate-prompt-label">🔊 THE HOWL — Your Best Bar</label>
+              <label className="jpgate-prompt-label"><Zap size={14} /> THE HOWL — Your Best Bar</label>
               <textarea value={howlText} onChange={e => setHowlText(e.target.value)} rows={3}
                 placeholder='Drop your hardest lyric or describe your sound…' />
             </div>
@@ -1798,7 +1793,22 @@ function VersusSwipePage({ wolf, city, onBack, profile, wolfProfile }) {
   const [scouted, setScouted] = useState({})
 
   const isMember = profile?.role === 'member'
-  const wp = wolfProfile // user's wolf profile data
+  const wp = wolfProfile
+  const matchRef = useRef(null)
+
+  // GSAP-powered PACK UNITED animation
+  useEffect(() => {
+    if (matched && !chatOpen && matchRef.current) {
+      const el = matchRef.current
+      const title = el.querySelector('.vs-match-title')
+      const sub = el.querySelector('.vs-match-sub')
+      const btns = el.querySelectorAll('button')
+      gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: 0.3 })
+      if (title) gsap.fromTo(title, { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.7, delay: 0.3, ease: 'back.out(2)' })
+      if (sub) gsap.fromTo(sub, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, delay: 0.7 })
+      btns.forEach((btn, i) => gsap.fromTo(btn, { y: 15, opacity: 0 }, { y: 0, opacity: 1, duration: 0.4, delay: 0.9 + i * 0.1 }))
+    }
+  }, [matched, chatOpen])
 
   function swipe(dir) {
     if (!deck.length || swiping) return
@@ -1828,7 +1838,7 @@ function VersusSwipePage({ wolf, city, onBack, profile, wolfProfile }) {
   return (
     <div className="vs-page">
       {matched && !chatOpen && (
-        <div className="vs-match-overlay">
+        <div className="vs-match-overlay" ref={matchRef}>
           <div className="vs-match-flash"></div>
           <div className="vs-match-content">
             <h2 className="vs-match-title">PACK UNITED!</h2>
@@ -1843,7 +1853,7 @@ function VersusSwipePage({ wolf, city, onBack, profile, wolfProfile }) {
         <PackChatWindow matchName={matched} wolfProfile={wp} onClose={() => { setChatOpen(false); setMatched(null) }} />
       )}
 
-      <button className="wolfhub-back" onClick={onBack}>← Back to Hub</button>
+      <button className="wolfhub-back" onClick={onBack}><ArrowLeft size={16} /> Back to Hub</button>
       {city && <div className="vs-city-badge">{WOLF_HUB_DOTS.find(d => d.country === city)?.flag} {city.toUpperCase()}</div>}
 
       <div className="vs-arena">
@@ -1877,7 +1887,7 @@ function VersusSwipePage({ wolf, city, onBack, profile, wolfProfile }) {
           {current && (
             <button className={`vs-super-howl ${superHowled[current?.name] ? 'used' : ''}`}
               onClick={superHowl} disabled={superHowled[current?.name]} title="Super-Howl — Priority notification">
-              ⚡
+              <Zap size={20} />
             </button>
           )}
         </div>
@@ -1898,7 +1908,7 @@ function VersusSwipePage({ wolf, city, onBack, profile, wolfProfile }) {
               {current.lookingFor && <div className="vs-prompt">🐺 <em>Looking for...</em> {current.lookingFor}</div>}
               {current.howl && (
                 <div className="vs-howl-snippet">
-                  <span className="vs-howl-play">▶</span> {current.howl}
+                  <Play size={14} className="vs-howl-play" /> {current.howl}
                 </div>
               )}
 
@@ -1909,7 +1919,7 @@ function VersusSwipePage({ wolf, city, onBack, profile, wolfProfile }) {
                   <div className="vs-label-stat">⚡ Gens: <strong>{current.gens}</strong></div>
                   {!scouted[current.name] ? (
                     <button className="vs-scout-btn" onClick={(e) => { e.stopPropagation(); setScouted(s => ({...s, [current.name]: true})) }}>
-                      🐺 SCOUT — Invite to Label
+                      <Shield size={14} /> SCOUT — Invite to Label
                     </button>
                   ) : <div className="vs-scouted">✓ INVITATION SENT</div>}
                 </div>
@@ -1924,8 +1934,8 @@ function VersusSwipePage({ wolf, city, onBack, profile, wolfProfile }) {
 
       {current && (
         <div className="vs-actions">
-          <button className="vs-btn vs-pass" onClick={() => swipe('left')}>✖ PASS</button>
-          <button className="vs-btn vs-howl" onClick={() => swipe('right')}>🐺 HOWL</button>
+          <button className="vs-btn vs-pass" onClick={() => swipe('left')}><X size={18} /> PASS</button>
+          <button className="vs-btn vs-howl" onClick={() => swipe('right')}><Heart size={18} /> HOWL</button>
         </div>
       )}
     </div>

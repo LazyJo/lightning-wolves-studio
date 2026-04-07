@@ -51,9 +51,12 @@ export default function Navbar({ onPricing, onWolfHub, onHome, onStudio, onAuth 
           </button>
           <button
             onClick={onWolfHub}
-            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
+            className="group relative overflow-hidden rounded-lg border border-purple-500/30 bg-gradient-to-r from-purple-500/10 to-wolf-gold/10 px-4 py-2 text-sm font-semibold text-white transition-all hover:border-purple-400/50 hover:shadow-lg hover:shadow-purple-500/10"
           >
-            Wolf Map
+            <span className="relative z-10 flex items-center gap-1.5">
+              🐺 Wolf Map
+            </span>
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-wolf-gold/10 to-purple-500/0 opacity-0 transition-opacity group-hover:opacity-100" />
           </button>
           <button
             onClick={onAuth}

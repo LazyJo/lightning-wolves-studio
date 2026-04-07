@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import RemixViewComponent from "./studio/RemixView";
 import WolfVisionPanelComponent from "./studio/WolfVisionPanel";
+import { useCredits, tierLabel, tierColor } from "../lib/useCredits";
 import TemplateViewComponent from "./studio/TemplateView";
 import ScenesViewComponent from "./studio/ScenesView";
 import PerformanceViewComponent from "./studio/PerformanceView";
@@ -587,6 +588,8 @@ function GenerationView({
 export default function StudioPage({ wolf, onBack }: Props) {
   const [view, setView] = useState<View>("dashboard");
   const accentColor = wolf?.color || "#f5c518";
+  const { plan, deductCredits } = useCredits();
+  const tColor = tierColor(plan.tier);
 
   return (
     <div className="min-h-screen pt-20">
@@ -638,10 +641,18 @@ export default function StudioPage({ wolf, onBack }: Props) {
                   <p className="text-sm text-wolf-muted">Create AI-powered music videos & content</p>
                 </div>
               </div>
-              <div className="hidden items-center gap-2 rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-4 py-2 md:flex">
-                <Zap size={14} className="text-wolf-gold" />
-                <span className="text-sm font-medium text-wolf-gold">10 Credits</span>
-                <span className="text-xs text-wolf-muted">/ 50</span>
+              <div className="hidden items-center gap-2 md:flex">
+                <span
+                  className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase"
+                  style={{ backgroundColor: `${tColor}15`, color: tColor }}
+                >
+                  {tierLabel(plan.tier)}
+                </span>
+                <div className="flex items-center gap-1.5 rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-3 py-1.5">
+                  <Zap size={12} className="text-wolf-gold" />
+                  <span className="text-sm font-bold text-wolf-gold">{plan.credits}</span>
+                  <span className="text-[10px] text-wolf-muted">credits</span>
+                </div>
               </div>
             </motion.div>
 
@@ -755,7 +766,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
 
             {/* Wolf Vision Panel */}
             <div className="mt-8">
-              <WolfVisionPanelComponent />
+              <WolfVisionPanelComponent plan={plan} onGenerate={(id, cost) => deductCredits(cost)} />
             </div>
 
             {/* Quick links */}

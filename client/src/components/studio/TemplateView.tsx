@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, Upload, Music, FileText, Scissors, Save, CheckCircle, Loader2, Zap, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, Music, FileText, Scissors, Save, CheckCircle, Loader2, Zap, AlertCircle, Wifi, WifiOff } from "lucide-react";
 import { uploadFile, generate, type GenerationPack } from "../../lib/api";
 import GenerationResults from "./GenerationResults";
 
@@ -21,7 +21,15 @@ export default function TemplateView({ onBack, wolf }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GenerationPack | null>(null);
+  const [serverOnline, setServerOnline] = useState<boolean | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Check server status
+  useEffect(() => {
+    fetch("/health")
+      .then((r) => r.ok ? setServerOnline(true) : setServerOnline(false))
+      .catch(() => setServerOnline(false));
+  }, []);
 
   const steps = [
     { label: "Audio", icon: Music, description: "Upload & select 15s clip" },
@@ -92,6 +100,39 @@ export default function TemplateView({ onBack, wolf }: Props) {
         <span className="text-white">CREATE </span>
         <span className="text-wolf-gold">TEMPLATE</span>
       </motion.h1>
+
+      {/* Server status */}
+      {serverOnline === false && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-6 rounded-xl border border-orange-500/20 bg-orange-500/5 p-4"
+        >
+          <div className="flex items-center gap-3">
+            <WifiOff size={18} className="shrink-0 text-orange-400" />
+            <div>
+              <p className="text-sm font-semibold text-orange-400">Server not connected</p>
+              <p className="mt-0.5 text-xs text-wolf-muted">
+                To generate real content, start the server:{" "}
+                <code className="rounded bg-wolf-surface px-1.5 py-0.5 text-[10px] text-white">cd lightning-wolves-studio && node server.js</code>
+              </p>
+              <p className="mt-1 text-[10px] text-wolf-muted">
+                Requires ANTHROPIC_API_KEY in your .env file
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+      {serverOnline === true && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="mb-6 flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-3"
+        >
+          <Wifi size={14} className="text-green-400" />
+          <span className="text-xs text-green-400">Server connected — ready to generate</span>
+        </motion.div>
+      )}
 
       {/* Error message */}
       {error && (

@@ -314,17 +314,19 @@ app.get('/api/models', (req, res) => {
   res.json({ models });
 });
 
-// Get user credits
+// Get user credits + plan tier
 app.get('/api/credits', async (req, res) => {
   try {
     const user = await getUserFromToken(req);
-    if (!user) return res.json({ credits: 100, isGuest: true }); // guest default
+    if (!user) return res.json({ credits: 100, tier: 'free', isGuest: true });
 
     const profile = await getProfile(user.id);
     res.json({
       credits: profile?.wolf_credits ?? 100,
+      tier: profile?.tier || 'free',
       isGuest: false,
       displayName: profile?.display_name || profile?.email,
+      role: profile?.role,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -386,6 +386,7 @@ export default function WolfHubPage({ onBack, onSelectWolf, onVersus }: Props) {
               </div>
 
               {territoryWolves(selectedTerritory).length > 0 ? (
+                <>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {territoryWolves(selectedTerritory).map(
                     (wolf, i) => (
@@ -448,6 +449,7 @@ export default function WolfHubPage({ onBack, onSelectWolf, onVersus }: Props) {
                     ⚡ START VERSUS SWIPE
                   </button>
                 )}
+                </>
               ) : (
                 <div className="py-12 text-center">
                   <MapPin

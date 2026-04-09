@@ -114,71 +114,19 @@ TikTok: Use 15s clip of chorus with trending transition
 Reels: BTS studio footage + final video side-by-side
 YouTube Shorts: Full chorus with lyric overlay animation`;
 
-const tools = [
-  {
-    id: "remix" as View,
-    title: "Remix",
-    description: "Import a YouTube link or upload footage and auto-generate a lyric video with AI. The fastest way to create content.",
-    icon: Shuffle,
-    color: "#f5c518",
-    popular: true,
-    tags: ["YouTube import", "Auto scene detect", "Shuffle clips"],
-  },
-  {
-    id: "template" as View,
-    title: "New Template",
-    description: "Upload your song and set lyric timing to build your reusable video base.",
-    icon: Music,
-    color: "#ff6b9d",
-    popular: false,
-  },
-  {
-    id: "scenes" as View,
-    title: "Scenes",
-    description: "Generate AI video clips from text prompts in any visual style.",
-    icon: Film,
-    color: "#69f0ae",
-    popular: false,
-    badge: "AI",
-  },
-  {
-    id: "performance" as View,
-    title: "Performance",
-    description: "Style-transfer your own footage with motion control AI for unique visuals.",
-    icon: Video,
-    color: "#E040FB",
-    popular: false,
-    badge: "AI",
-  },
-  {
-    id: "cover-art" as View,
-    title: "Cover Art",
-    description: "Generate AI album artwork and visual assets for your music releases.",
-    icon: Image,
-    color: "#82b1ff",
-    popular: false,
-  },
+// Tool/step definitions use i18n keys - titles/descriptions resolved at render time
+const toolDefs = [
+  { id: "remix" as View, titleKey: "studio.remix", descKey: "studio.remixDesc", icon: Shuffle, color: "#f5c518", popular: true, tags: ["YouTube import", "Auto scene detect", "Shuffle clips"] },
+  { id: "template" as View, titleKey: "studio.newTemplate", descKey: "studio.newTemplateDesc", icon: Music, color: "#ff6b9d" },
+  { id: "scenes" as View, titleKey: "studio.scenes", descKey: "studio.scenesDesc", icon: Film, color: "#69f0ae", badge: "AI" },
+  { id: "performance" as View, titleKey: "studio.performance", descKey: "studio.performanceDesc", icon: Video, color: "#E040FB", badge: "AI" },
+  { id: "cover-art" as View, titleKey: "studio.coverArt", descKey: "studio.coverArtDesc", icon: Image, color: "#82b1ff" },
 ];
 
-const steps = [
-  {
-    num: 1,
-    title: "Create a Template",
-    description: "Upload your song, adjust lyric spelling and timing. This becomes your reusable base for generating.",
-    color: "#69f0ae",
-  },
-  {
-    num: 2,
-    title: "Pick Your Method",
-    description: "Remix real footage, generate AI Scenes, or use Performance for style transfer.",
-    color: "#f5c518",
-  },
-  {
-    num: 3,
-    title: "Generate & Export",
-    description: "AI creates your video. Review clips, regenerate any you don't love, then export.",
-    color: "#E040FB",
-  },
+const stepDefs = [
+  { num: 1, titleKey: "studio.step1", descKey: "studio.step1Desc", color: "#69f0ae" },
+  { num: 2, titleKey: "studio.step2", descKey: "studio.step2Desc", color: "#f5c518" },
+  { num: 3, titleKey: "studio.step3", descKey: "studio.step3Desc", color: "#E040FB" },
 ];
 
 // Generation sub-page
@@ -205,7 +153,8 @@ function GenerationView({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const accentColor = wolf?.color || "#f5c518";
-  const toolInfo = tools.find((t) => t.id === tool);
+  const toolInfo = toolDefs.find((td) => td.id === tool);
+  const { t } = useI18n();
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -302,9 +251,9 @@ function GenerationView({
             className="text-2xl font-bold tracking-wider text-white"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            {toolInfo?.title.toUpperCase()}
+            {toolInfo ? t(toolInfo.titleKey).toUpperCase() : ""}
           </h2>
-          <p className="text-xs text-wolf-muted">{toolInfo?.description}</p>
+          <p className="text-xs text-wolf-muted">{toolInfo ? t(toolInfo.descKey) : ""}</p>
         </div>
       </motion.div>
 
@@ -679,7 +628,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
                   Remix
                 </h3>
                 <p className="mb-5 text-sm leading-relaxed text-wolf-muted">
-                  Import YouTube footage and auto-generate a lyric video. The fastest way to create content — and the quality is the highest.
+                  {t("studio.remixDesc")}
                 </p>
                 <div className="mb-5 flex flex-wrap gap-2">
                   {["YouTube import", "Auto scene detect", "Shuffle clips"].map((tag) => (
@@ -694,33 +643,33 @@ export default function StudioPage({ wolf, onBack }: Props) {
               </motion.div>
 
               {/* Other tools — 2x2 grid */}
-              {tools.slice(1).map((tool, i) => (
+              {toolDefs.slice(1).map((td, i) => (
                 <motion.div
-                  key={tool.id}
+                  key={td.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.15 + i * 0.05 }}
                   whileHover={{ y: -4 }}
-                  onClick={() => setView(tool.id)}
+                  onClick={() => setView(td.id)}
                   className="group cursor-pointer rounded-2xl border border-wolf-border/20 bg-wolf-card p-6 transition-all hover:border-wolf-border/40"
                 >
                   <div className="mb-3 flex items-center gap-3">
                     <div
                       className="flex h-9 w-9 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: `${tool.color}12` }}
+                      style={{ backgroundColor: `${td.color}12` }}
                     >
-                      <tool.icon size={18} style={{ color: tool.color }} />
+                      <td.icon size={18} style={{ color: td.color }} />
                     </div>
                     <h3 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
-                      {tool.title}
+                      {t(td.titleKey)}
                     </h3>
-                    {tool.badge && (
+                    {td.badge && (
                       <span className="rounded-full border border-wolf-border/30 px-2 py-0.5 text-[9px] font-semibold text-wolf-muted">
-                        {tool.badge}
+                        {td.badge}
                       </span>
                     )}
                   </div>
-                  <p className="mb-4 text-sm text-wolf-muted">{tool.description}</p>
+                  <p className="mb-4 text-sm text-wolf-muted">{t(td.descKey)}</p>
                   <span className="inline-flex items-center gap-1.5 text-sm font-medium text-wolf-muted transition-all group-hover:gap-2.5 group-hover:text-wolf-gold">
                     {t("studio.open")} <ArrowRight size={13} />
                   </span>
@@ -742,7 +691,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
                 </span>
               </div>
               <div className="grid gap-5 md:grid-cols-3">
-                {steps.map((s, i) => (
+                {stepDefs.map((s, i) => (
                   <motion.div
                     key={s.num}
                     initial={{ opacity: 0, y: 10 }}
@@ -758,9 +707,9 @@ export default function StudioPage({ wolf, onBack }: Props) {
                       >
                         {s.num}
                       </span>
-                      <h4 className="font-bold text-white">{s.title}</h4>
+                      <h4 className="font-bold text-white">{t(s.titleKey)}</h4>
                     </div>
-                    <p className="text-sm leading-relaxed text-wolf-muted">{s.description}</p>
+                    <p className="text-sm leading-relaxed text-wolf-muted">{t(s.descKey)}</p>
                   </motion.div>
                 ))}
               </div>

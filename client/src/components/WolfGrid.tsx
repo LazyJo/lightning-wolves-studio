@@ -2,12 +2,15 @@ import { motion } from "motion/react";
 import WolfCard from "./WolfCard";
 import { wolves } from "../data/wolves";
 import type { Wolf } from "../data/wolves";
+import { useI18n } from "../lib/i18n";
 
 interface Props {
   onSelectWolf?: (wolf: Wolf) => void;
 }
 
 export default function WolfGrid({ onSelectWolf }: Props) {
+  const { t } = useI18n();
+
   return (
     <section id="wolves" className="relative py-24">
       <div className="mx-auto max-w-6xl px-6">
@@ -18,17 +21,16 @@ export default function WolfGrid({ onSelectWolf }: Props) {
           className="mb-4 text-center"
         >
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-wolf-gold">
-            Choose Your Wolf
+            {t("grid.label")}
           </p>
           <h2
             className="text-2xl font-bold tracking-wider text-white sm:text-3xl md:text-5xl"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            THE PACK
+            {t("grid.title")}
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-wolf-muted">
-            Each wolf represents a unique artist and style. Pick yours to enter
-            the studio and start creating.
+            {t("grid.subtitle")}
           </p>
         </motion.div>
 

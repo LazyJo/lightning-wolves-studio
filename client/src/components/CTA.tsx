@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { Zap } from "lucide-react";
+import { useI18n } from "../lib/i18n";
 
 interface Props {
   onStudio?: () => void;
@@ -7,6 +8,8 @@ interface Props {
 }
 
 export default function CTA({ onStudio, onWolfMap }: Props) {
+  const { t } = useI18n();
+
   return (
     <section className="py-24">
       <div className="mx-auto max-w-6xl px-6">
@@ -40,13 +43,12 @@ export default function CTA({ onStudio, onWolfMap }: Props) {
               className="text-2xl font-bold tracking-wide text-white sm:text-3xl md:text-4xl lg:text-5xl"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              READY TO{" "}
-              <span className="text-wolf-gold">HOWL?</span>
+              {t("cta.title1")}{" "}
+              <span className="text-wolf-gold">{t("cta.title2")}</span>
             </h2>
 
             <p className="mx-auto mt-4 max-w-lg text-lg text-wolf-muted">
-              Join the pack. Create with AI. Connect with artists worldwide.
-              Your wolf is waiting.
+              {t("cta.subtitle")}
             </p>
 
             <motion.div
@@ -61,7 +63,7 @@ export default function CTA({ onStudio, onWolfMap }: Props) {
                 className="inline-flex items-center gap-2 rounded-lg bg-wolf-gold px-8 py-4 font-semibold text-black transition-all hover:bg-wolf-amber hover:shadow-xl hover:shadow-wolf-gold/25"
               >
                 <Zap size={16} className="fill-black" />
-                Enter the Studio
+                {t("cta.studio")}
               </button>
               <button
                 onClick={onWolfMap}

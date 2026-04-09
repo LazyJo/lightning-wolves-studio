@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X, Zap, Globe } from "lucide-react";
+import { useI18n, LANGUAGES } from "../lib/i18n";
 
 interface Props {
   onPricing: () => void;
@@ -12,6 +13,8 @@ interface Props {
 
 export default function Navbar({ onPricing, onWolfHub, onHome, onStudio, onAuth }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const { lang, setLang, t } = useI18n();
 
   return (
     <motion.nav
@@ -41,13 +44,13 @@ export default function Navbar({ onPricing, onWolfHub, onHome, onStudio, onAuth 
             onClick={onHome}
             className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
           >
-            Home
+            {t("nav.home")}
           </button>
           <button
             onClick={onPricing}
             className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
           >
-            Pricing
+            {t("nav.pricing")}
           </button>
           <button
             onClick={onWolfHub}
@@ -65,14 +68,48 @@ export default function Navbar({ onPricing, onWolfHub, onHome, onStudio, onAuth 
             onClick={onAuth}
             className="rounded-lg border border-wolf-gold/30 bg-wolf-gold/5 px-4 py-2 text-sm font-semibold text-wolf-gold transition-all hover:bg-wolf-gold/15"
           >
-            Sign In
+            {t("nav.signIn")}
           </button>
+
+          {/* Language switcher */}
+          <div className="relative">
+            <button
+              onClick={() => setLangOpen(!langOpen)}
+              className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm transition-all hover:border-wolf-gold/30"
+            >
+              <span>{LANGUAGES.find((l) => l.code === lang)?.flag}</span>
+              <Globe size={13} className="text-wolf-muted" />
+            </button>
+            <AnimatePresence>
+              {langOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -5, scale: 0.95 }}
+                  className="absolute right-0 top-full mt-2 w-40 overflow-hidden rounded-xl border border-white/[0.06] bg-wolf-card/95 py-1 shadow-xl backdrop-blur-xl"
+                >
+                  {LANGUAGES.map((l) => (
+                    <button
+                      key={l.code}
+                      onClick={() => { setLang(l.code); setLangOpen(false); }}
+                      className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-sm transition-all hover:bg-wolf-gold/10 ${lang === l.code ? "text-wolf-gold" : "text-white"}`}
+                    >
+                      <span>{l.flag}</span>
+                      <span>{l.label}</span>
+                      {lang === l.code && <span className="ml-auto text-wolf-gold">✓</span>}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <button
             onClick={onStudio}
             className="inline-flex items-center gap-2 rounded-lg bg-wolf-gold px-5 py-2.5 text-sm font-semibold text-black transition-all hover:bg-wolf-amber hover:shadow-lg hover:shadow-wolf-gold/20"
           >
             <Zap size={14} className="fill-black" />
-            Enter Studio
+            {t("nav.enterStudio")}
           </button>
         </div>
 

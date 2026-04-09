@@ -2,8 +2,10 @@ import { useRef } from "react";
 import { motion } from "motion/react";
 import { activeWolves } from "../data/wolves";
 import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { useI18n } from "../lib/i18n";
 
 export default function FeaturedArtists() {
+  const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const scroll = (dir: "left" | "right") => {
@@ -25,13 +27,13 @@ export default function FeaturedArtists() {
         >
           <div>
             <p className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-wolf-gold">
-              The Roster
+              {t("artists.label")}
             </p>
             <h2
               className="text-2xl font-bold tracking-wider text-white sm:text-3xl md:text-5xl"
               style={{ fontFamily: "var(--font-heading)" }}
             >
-              MEET THE WOLVES
+              {t("artists.title")}
             </h2>
           </div>
           <div className="hidden gap-2 md:flex">
@@ -116,7 +118,7 @@ export default function FeaturedArtists() {
                   {wolf.genre}
                 </span>
                 <button className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-wolf-border/30 py-2.5 text-xs font-medium text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold">
-                  View Profile
+                  {t("artists.viewProfile")}
                   <ExternalLink size={12} />
                 </button>
               </div>

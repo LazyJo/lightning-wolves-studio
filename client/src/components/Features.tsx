@@ -1,31 +1,31 @@
 import { motion } from "motion/react";
 import { Mic, Users, TrendingUp } from "lucide-react";
-
-const features = [
-  {
-    icon: Mic,
-    title: "Create",
-    description:
-      "Upload your track, pick your wolf, and get AI-generated lyrics, SRT subtitles, beat cuts, and cinematic video prompts.",
-    accent: "#f5c518",
-  },
-  {
-    icon: Users,
-    title: "Connect",
-    description:
-      "Discover artists worldwide through the Versus swipe system. Match with collaborators who share your vibe and start creating together.",
-    accent: "#9b6dff",
-  },
-  {
-    icon: TrendingUp,
-    title: "Conquer",
-    description:
-      "Join the Lightning Wolves roster. Get featured across territories, build your fanbase, and grow your career with real label infrastructure.",
-    accent: "#69f0ae",
-  },
-];
+import { useI18n } from "../lib/i18n";
 
 export default function Features() {
+  const { t } = useI18n();
+
+  const features = [
+    {
+      icon: Mic,
+      title: t("features.create"),
+      description: t("features.createDesc"),
+      accent: "#f5c518",
+    },
+    {
+      icon: Users,
+      title: t("features.connect"),
+      description: t("features.connectDesc"),
+      accent: "#9b6dff",
+    },
+    {
+      icon: TrendingUp,
+      title: t("features.conquer"),
+      description: t("features.conquerDesc"),
+      accent: "#69f0ae",
+    },
+  ];
+
   return (
     <section id="features" className="py-24">
       <div className="mx-auto max-w-6xl px-6">
@@ -36,13 +36,13 @@ export default function Features() {
           className="mb-16 text-center"
         >
           <p className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-wolf-gold">
-            The Ecosystem
+            {t("features.label")}
           </p>
           <h2
             className="text-2xl font-bold tracking-wider text-white sm:text-3xl md:text-5xl"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            HOW IT WORKS
+            {t("features.title")}
           </h2>
         </motion.div>
 

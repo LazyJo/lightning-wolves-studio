@@ -1,10 +1,13 @@
 import { motion } from "motion/react";
+import { useI18n } from "../lib/i18n";
 
 interface Props {
   onWolfHub: () => void;
 }
 
 export default function Footer({ onWolfHub }: Props) {
+  const { t } = useI18n();
+
   return (
     <footer className="border-t border-wolf-border/20 py-16">
       <div className="mx-auto max-w-6xl px-6">
@@ -29,13 +32,13 @@ export default function Footer({ onWolfHub }: Props) {
               </span>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-wolf-muted">
-              AI-powered lyrics studio and global artist ecosystem. By Lazy Jo.
+              {t("footer.desc")}
             </p>
           </div>
 
           <div>
             <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-wolf-muted">
-              Studio
+              {t("footer.studio")}
             </h4>
             <ul className="space-y-3">
               {["Lyrics Studio", "Pricing", "Wolf Map"].map((link) => (
@@ -53,7 +56,7 @@ export default function Footer({ onWolfHub }: Props) {
 
           <div>
             <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-wolf-muted">
-              Community
+              {t("footer.community")}
             </h4>
             <ul className="space-y-3">
               {["Join the Pack", "Versus Swipe", "Territories"].map((link) => (
@@ -71,7 +74,7 @@ export default function Footer({ onWolfHub }: Props) {
 
           <div>
             <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-wolf-muted">
-              Connect
+              {t("footer.connect")}
             </h4>
             <ul className="space-y-3">
               {["Instagram", "TikTok", "Spotify"].map((link) => (
@@ -90,8 +93,7 @@ export default function Footer({ onWolfHub }: Props) {
 
         <div className="mt-16 flex items-center justify-between border-t border-wolf-border/20 pt-8">
           <p className="text-xs text-wolf-muted/50">
-            &copy; {new Date().getFullYear()} Lightning Wolves Studio. All
-            rights reserved.
+            &copy; {new Date().getFullYear()} Lightning Wolves Studio. {t("footer.rights")}
           </p>
           {/* Easter egg: Wolf Map access */}
           <button

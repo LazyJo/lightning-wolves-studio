@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import RemixViewComponent from "./studio/RemixView";
 import WolfVisionPanelComponent from "./studio/WolfVisionPanel";
 import { useCredits, tierLabel, tierColor } from "../lib/useCredits";
+import { useI18n } from "../lib/i18n";
 import TemplateViewComponent from "./studio/TemplateView";
 import ScenesViewComponent from "./studio/ScenesView";
 import PerformanceViewComponent from "./studio/PerformanceView";
@@ -590,6 +591,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
   const accentColor = wolf?.color || "#f5c518";
   const { plan, deductCredits } = useCredits();
   const tColor = tierColor(plan.tier);
+  const { t } = useI18n();
 
   return (
     <div className="min-h-screen pt-20">
@@ -638,7 +640,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
                     {wolf ? `${wolf.artist.toUpperCase()}'S` : "LYRICS"}{" "}
                     <span style={{ color: accentColor }}>STUDIO</span>
                   </h1>
-                  <p className="text-sm text-wolf-muted">Create AI-powered music videos & content</p>
+                  <p className="text-sm text-wolf-muted">{t("studio.subtitle")}</p>
                 </div>
               </div>
               <div className="hidden items-center gap-2 md:flex">
@@ -668,7 +670,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
                 className="group cursor-pointer rounded-2xl border border-wolf-gold/20 bg-gradient-to-br from-wolf-gold/8 to-wolf-card p-7 lg:row-span-2"
               >
                 <span className="mb-4 inline-block rounded-full bg-wolf-gold px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-black">
-                  Most Popular
+                  {t("studio.mostPopular")}
                 </span>
                 <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-wolf-gold/15">
                   <Shuffle size={24} className="text-wolf-gold" />
@@ -687,7 +689,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
                   ))}
                 </div>
                 <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-wolf-gold transition-all group-hover:gap-2.5">
-                  Try Remix <ArrowRight size={14} />
+                  {t("studio.tryRemix")} <ArrowRight size={14} />
                 </span>
               </motion.div>
 
@@ -720,7 +722,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
                   </div>
                   <p className="mb-4 text-sm text-wolf-muted">{tool.description}</p>
                   <span className="inline-flex items-center gap-1.5 text-sm font-medium text-wolf-muted transition-all group-hover:gap-2.5 group-hover:text-wolf-gold">
-                    Open <ArrowRight size={13} />
+                    {t("studio.open")} <ArrowRight size={13} />
                   </span>
                 </motion.div>
               ))}
@@ -736,7 +738,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
               <div className="mb-6 flex items-center gap-2">
                 <Sparkles size={16} className="text-wolf-gold" />
                 <span className="text-xs font-semibold uppercase tracking-[0.3em] text-wolf-muted">
-                  How It Works
+                  {t("studio.howItWorks")}
                 </span>
               </div>
               <div className="grid gap-5 md:grid-cols-3">
@@ -775,7 +777,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
                 <div className="flex items-center gap-3">
                   <LayoutGrid size={18} className="text-wolf-gold" />
                   <div>
-                    <p className="text-sm font-semibold text-white">Templates</p>
+                    <p className="text-sm font-semibold text-white">{t("studio.templates")}</p>
                     <p className="text-xs text-wolf-muted">View and manage your templates</p>
                   </div>
                 </div>
@@ -785,8 +787,8 @@ export default function StudioPage({ wolf, onBack }: Props) {
                 <div className="flex items-center gap-3">
                   <Zap size={18} className="text-wolf-gold" />
                   <div>
-                    <p className="text-sm font-semibold text-white">Get More Credits</p>
-                    <p className="text-xs text-wolf-muted">Upgrade your plan for unlimited access</p>
+                    <p className="text-sm font-semibold text-white">{t("studio.getMoreCredits")}</p>
+                    <p className="text-xs text-wolf-muted">{t("studio.upgradeDesc")}</p>
                   </div>
                 </div>
                 <ArrowRight size={16} className="text-wolf-muted" />

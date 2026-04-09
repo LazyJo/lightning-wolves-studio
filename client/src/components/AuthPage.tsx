@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Zap, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { useI18n } from "../lib/i18n";
 
 interface Props {
   onBack: () => void;
@@ -8,6 +9,7 @@ interface Props {
 }
 
 export default function AuthPage({ onBack, onSuccess }: Props) {
+  const { t } = useI18n();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -80,12 +82,12 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
             className="mb-1 text-center text-2xl font-bold tracking-wider text-white"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            {mode === "signin" ? "WELCOME BACK" : "JOIN THE PACK"}
+            {mode === "signin" ? t("auth.welcomeBack") : t("auth.joinPack")}
           </h1>
           <p className="mb-8 text-center text-sm text-wolf-muted">
             {mode === "signin"
-              ? "Sign in to your account"
-              : "Create your Lightning Wolves account"}
+              ? t("auth.signInSubtitle")
+              : t("auth.signUpSubtitle")}
           </p>
 
           {/* Mode toggle */}
@@ -98,7 +100,7 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
                   : "text-wolf-muted"
               }`}
             >
-              Sign In
+              {t("auth.signIn")}
             </button>
             <button
               onClick={() => setMode("signup")}
@@ -108,7 +110,7 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
                   : "text-wolf-muted"
               }`}
             >
-              Sign Up
+              {t("auth.signUp")}
             </button>
           </div>
 
@@ -121,7 +123,7 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
                 exit={{ opacity: 0, height: 0 }}
               >
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
-                  Wolf Name
+                  {t("auth.wolfName")}
                 </label>
                 <div className="relative">
                   <User
@@ -142,7 +144,7 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
             {/* Email */}
             <div>
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
-                Email
+                {t("auth.email")}
               </label>
               <div className="relative">
                 <Mail
@@ -162,7 +164,7 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
             {/* Password */}
             <div>
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
-                Password
+                {t("auth.password")}
               </label>
               <div className="relative">
                 <Lock
@@ -193,9 +195,9 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
                 animate={{ opacity: 1, height: "auto" }}
               >
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
-                  Promo Code{" "}
+                  {t("auth.promoCode")}{" "}
                   <span className="normal-case text-wolf-muted/50">
-                    (optional)
+                    ({t("auth.optional")})
                   </span>
                 </label>
                 <div className="relative">
@@ -230,12 +232,12 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
               {loading ? (
                 <span className="inline-flex items-center gap-2">
                   <Zap size={16} className="animate-spin fill-black" />
-                  {mode === "signin" ? "Signing in..." : "Creating account..."}
+                  {mode === "signin" ? `${t("auth.signIn")}...` : `${t("auth.createAccount")}...`}
                 </span>
               ) : mode === "signin" ? (
-                "Sign In"
+                t("auth.signIn")
               ) : (
-                "Create Account"
+                t("auth.createAccount")
               )}
             </motion.button>
           </form>
@@ -244,7 +246,7 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
           {mode === "signin" && (
             <p className="mt-6 text-center text-xs text-wolf-muted">
               <button className="text-wolf-gold hover:underline">
-                Forgot password?
+                {t("auth.forgotPassword")}
               </button>
             </p>
           )}

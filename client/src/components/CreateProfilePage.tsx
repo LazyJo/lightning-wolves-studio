@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { useI18n } from "../lib/i18n";
 import {
   ArrowLeft,
   ArrowRight,
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export default function CreateProfilePage({ onBack, onComplete }: Props) {
+  const { t } = useI18n();
   const [step, setStep] = useState(0);
   const [profile, setProfile] = useState<ProfileData>({
     photo: "",
@@ -94,8 +96,8 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
             className="mt-6 text-3xl font-bold tracking-wider text-white"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            YOU&apos;RE IN THE{" "}
-            <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">PACK</span>
+            {t("createProfile.youreIn1")}{" "}
+            <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">{t("createProfile.youreIn2")}</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0 }}
@@ -173,11 +175,11 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                 className="mb-2 text-center text-2xl font-bold tracking-wider text-white"
                 style={{ fontFamily: "var(--font-heading)" }}
               >
-                CREATE YOUR{" "}
-                <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">PROFILE</span>
+                {t("createProfile.title1")}{" "}
+                <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">{t("createProfile.title2")}</span>
               </h2>
               <p className="mb-8 text-center text-sm text-wolf-muted">
-                Show the pack who you are
+                {t("createProfile.subtitle")}
               </p>
 
               {/* Photo upload */}
@@ -201,7 +203,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
               {/* Name */}
               <div className="mb-4">
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
-                  Artist Name *
+                  {t("createProfile.artistName")} *
                 </label>
                 <div className="relative">
                   <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-wolf-muted" />
@@ -217,7 +219,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
               {/* Genre */}
               <div className="mb-4">
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
-                  Genre *
+                  {t("createProfile.genre")} *
                 </label>
                 <select
                   value={profile.genre}
@@ -234,7 +236,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
               {/* Country */}
               <div>
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
-                  Country *
+                  {t("createProfile.country")} *
                 </label>
                 <div className="relative">
                   <Globe size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-wolf-muted" />
@@ -263,16 +265,16 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 WOLF{" "}
-                <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">PROMPTS</span>
+                <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">{t("createProfile.prompts")}</span>
               </h2>
               <p className="mb-8 text-center text-sm text-wolf-muted">
-                Let other wolves know your vibe
+                {t("createProfile.subtitle")}
               </p>
 
               {/* Flow prompt */}
               <div className="mb-6">
                 <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-                  <span className="text-lg">🎤</span> My flow is like...
+                  <span className="text-lg">🎤</span> {t("createProfile.flowLike")}
                 </label>
                 <textarea
                   value={profile.flowLike}
@@ -286,7 +288,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
               {/* Looking for prompt */}
               <div>
                 <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-                  <span className="text-lg">🐺</span> I&apos;m looking for a wolf who...
+                  <span className="text-lg">🐺</span> {t("createProfile.lookingFor")}
                 </label>
                 <textarea
                   value={profile.lookingFor}
@@ -313,10 +315,10 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 THE{" "}
-                <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">HOWL</span>
+                <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">{t("createProfile.howl")}</span>
               </h2>
               <p className="mb-8 text-center text-sm text-wolf-muted">
-                Drop your hardest bar. This is what other wolves hear first.
+                {t("createProfile.howlSubtitle")}
               </p>
 
               <div className="mb-4 flex justify-center">
@@ -327,7 +329,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
 
               <div>
                 <label className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-                  <span>▶️</span> Your best lyric snippet
+                  <span>▶️</span> {t("createProfile.yourBestLyric")}
                 </label>
                 <textarea
                   value={profile.howl}
@@ -355,9 +357,9 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
           style={{ fontFamily: "var(--font-heading)" }}
         >
           {step === 2 ? (
-            <><Zap size={16} className="mr-2 inline" />ENTER THE PACK</>
+            <><Zap size={16} className="mr-2 inline" />{t("createProfile.enterPack")}</>
           ) : (
-            <>CONTINUE <ArrowRight size={16} className="ml-2 inline" /></>
+            <>{t("createProfile.continue")} <ArrowRight size={16} className="ml-2 inline" /></>
           )}
         </motion.button>
       </div>

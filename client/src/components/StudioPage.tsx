@@ -745,7 +745,7 @@ export default function StudioPage({ wolf, onBack }: Props) {
             </div>
           </>
         ) : view === "remix" ? (
-          <RemixViewComponent onBack={() => setView("dashboard")} />
+          <RemixViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "template" ? (
           <TemplateViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "scenes" ? (

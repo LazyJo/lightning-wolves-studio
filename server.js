@@ -128,6 +128,11 @@ app.post('/api/generate', async (req, res) => {
       }
     }
 
+    // ── Check API key ──────────────────────────────────────────────────────
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured. Add it in Vercel Environment Variables or .env file.' });
+    }
+
     // ── Build Claude prompt ────────────────────────────────────────────────
     const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Generate complete, authentic, emotionally resonant song content tailored precisely to the genre, language and vibe provided. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
 

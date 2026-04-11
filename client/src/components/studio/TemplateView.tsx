@@ -71,15 +71,18 @@ export default function TemplateView({ onBack, wolf }: Props) {
     setError("");
 
     try {
-      // Upload file
-      if (fileObj) await uploadFile(fileObj);
+      // Try to upload file (may fail on serverless/Vercel — that's ok)
+      if (fileObj) {
+        try { await uploadFile(fileObj); } catch {}
+      }
 
-      // Generate lyrics via AI
+      // Generate lyrics, beats, prompts via Claude AI
       const res = await generate({
         title: title || fileName,
         artist: wolf?.artist || "Lone Wolf",
         genre,
         language,
+        mood: `Selected ${selectedDuration}s clip starting at ${Math.floor(regionStart)}s. Track: ${fileName}`,
         wolfId: wolf?.id,
       });
 

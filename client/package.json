@@ -15,7 +15,8 @@
     "motion": "^12.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "three": "^0.183.2"
+    "three": "^0.183.2",
+    "wavesurfer.js": "^7.12.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

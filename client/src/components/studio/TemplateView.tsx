@@ -8,6 +8,7 @@ import {
 import { useI18n } from "../../lib/i18n";
 import { uploadFile, generate, type GenerationPack } from "../../lib/api";
 import GenerationResults from "./GenerationResults";
+import WaveformSelector from "./WaveformSelector";
 
 interface Props {
   onBack: () => void;
@@ -35,6 +36,8 @@ export default function TemplateView({ onBack, wolf }: Props) {
   const [result, setResult] = useState<GenerationPack | null>(null);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
   const [selectionConfirmed, setSelectionConfirmed] = useState(false);
+  const [regionStart, setRegionStart] = useState(0);
+  const [regionEnd, setRegionEnd] = useState(15);
   const fileRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -220,29 +223,22 @@ export default function TemplateView({ onBack, wolf }: Props) {
                         )}
                       </div>
 
-                      {/* Audio element */}
-                      <div className="relative mb-3 rounded-lg bg-black/30 p-4">
-                        <audio ref={audioRef} src={fileUrl} onLoadedMetadata={handleAudioLoaded}
-                          controls={!selectionConfirmed} className="w-full" />
-                      </div>
+                      {/* Hidden audio for metadata */}
+                      <audio ref={audioRef} src={fileUrl} onLoadedMetadata={handleAudioLoaded} className="hidden" />
 
                       {!selectionConfirmed && (
                         <>
-                          {/* Waveform placeholder */}
-                          <div className="mb-3 rounded-lg border border-wolf-border/10 bg-wolf-bg/50 p-2">
-                            <p className="text-[9px] text-wolf-muted/50">
-                              Drag selection to reposition · Ctrl+scroll to zoom
-                            </p>
-                            <div className="mt-1 flex h-10 items-end gap-[1px]">
-                              {Array.from({ length: 60 }).map((_, j) => (
-                                <div key={j} className="flex-1 rounded-t bg-wolf-muted/20"
-                                  style={{ height: `${Math.random() * 100}%`, backgroundColor: j < (selectedDuration / (duration || 30)) * 60 ? "#f5c51840" : undefined }} />
-                              ))}
-                            </div>
-                          </div>
+                          {/* Real waveform with draggable region */}
+                          <WaveformSelector
+                            audioUrl={fileUrl}
+                            duration={duration}
+                            selectedDuration={selectedDuration}
+                            color={wolf?.color || "#f5c518"}
+                            onRegionChange={(start, end) => { setRegionStart(start); setRegionEnd(end); }}
+                          />
 
                           {/* Duration selector */}
-                          <div className="flex items-center gap-2">
+                          <div className="mt-3 flex items-center gap-2">
                             <span className="text-[10px] text-wolf-muted">Duration</span>
                             {durationOptions.map((d) => (
                               <button key={d.value} onClick={() => !d.locked && setSelectedDuration(d.value)}
@@ -274,6 +270,14 @@ export default function TemplateView({ onBack, wolf }: Props) {
                             </select>
                           </div>
                         </>
+                      )}
+
+                      {selectionConfirmed && (
+                        <div className="mt-2 rounded-lg bg-wolf-surface p-3">
+                          <p className="text-[10px] text-wolf-muted">
+                            Selected: {Math.floor(regionStart / 60)}:{Math.floor(regionStart % 60).toString().padStart(2, "0")} — {Math.floor(regionEnd / 60)}:{Math.floor(regionEnd % 60).toString().padStart(2, "0")} ({selectedDuration}s)
+                          </p>
+                        </div>
                       )}
                     </div>
 

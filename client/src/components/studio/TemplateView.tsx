@@ -217,6 +217,7 @@ export default function TemplateView({ onBack, wolf }: Props) {
   const [result, setResult] = useState<GenerationPack | null>(null);
   const [serverOnline, setServerOnline] = useState<boolean | null>(null);
   const [selectionConfirmed, setSelectionConfirmed] = useState(false);
+  const [templateSaved, setTemplateSaved] = useState(false);
   const [regionStart, setRegionStart] = useState(0);
   const [regionEnd, setRegionEnd] = useState(15);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -347,7 +348,7 @@ export default function TemplateView({ onBack, wolf }: Props) {
     { value: 30, label: "30s", locked: true },
   ];
 
-  if (result && activeStep === 2) {
+  if (result && templateSaved) {
     return (
       <div>
         <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} onClick={onBack}
@@ -356,7 +357,7 @@ export default function TemplateView({ onBack, wolf }: Props) {
         </motion.button>
         <div className="space-y-6">
           <GenerationResults pack={result} accentColor={wolf?.color} />
-          <button onClick={() => { setResult(null); setActiveStep(0); setFileName(""); setFileUrl(""); setFileObj(null); setLyrics(""); setLyricsBlocks([]); setSelectionConfirmed(false); }}
+          <button onClick={() => { setResult(null); setActiveStep(0); setFileName(""); setFileUrl(""); setFileObj(null); setLyrics(""); setLyricsBlocks([]); setSelectionConfirmed(false); setTemplateSaved(false); }}
             className="w-full rounded-xl border border-wolf-border/30 py-3 text-sm font-semibold text-wolf-muted hover:text-wolf-gold">
             {t("studio.createAnother")}
           </button>
@@ -586,7 +587,7 @@ export default function TemplateView({ onBack, wolf }: Props) {
                     result={result}
                     lyrics={lyrics}
                     audioUrl={fileUrl}
-                    onSave={() => setActiveStep(2)}
+                    onSave={() => setTemplateSaved(true)}
                     accentColor={wolf?.color || "#f5c518"}
                   />
                 ) : (

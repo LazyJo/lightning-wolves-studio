@@ -16,6 +16,90 @@ interface Props {
   wolf?: { artist: string; genre: string; color: string; id: string } | null;
 }
 
+// Animated transcription loading screen
+function TranscribingLoader({ onManualFallback }: { onManualFallback: () => void }) {
+  const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const [phase, setPhase] = useState("Analyzing waveform...");
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsed((e) => e + 1);
+      setProgress((p) => {
+        if (p < 30) { setPhase("Analyzing waveform..."); return p + 2; }
+        if (p < 60) { setPhase("Detecting speech patterns..."); return p + 1.5; }
+        if (p < 85) { setPhase("Transcribing lyrics..."); return p + 0.8; }
+        if (p < 95) { setPhase("Finalizing..."); return p + 0.3; }
+        return p;
+      });
+    }, 500);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatElapsed = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+
+  return (
+    <div className="min-h-[300px] rounded-xl border border-purple-500/20 bg-gradient-to-b from-purple-500/5 to-wolf-card p-6">
+      {/* Header */}
+      <div className="mb-6 flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/10">
+          <Music size={18} className="text-purple-400" />
+        </div>
+        <div>
+          <p className="text-sm font-bold text-white">Transcribing...</p>
+        </div>
+      </div>
+
+      {/* Animated waveform */}
+      <div className="mb-4 flex items-center justify-center gap-[3px] py-4">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <motion.div
+            key={i}
+            animate={{
+              height: [8, 16 + Math.random() * 24, 8],
+              opacity: [0.4, 1, 0.4],
+            }}
+            transition={{
+              repeat: Infinity,
+              duration: 0.8 + Math.random() * 0.6,
+              delay: i * 0.05,
+              ease: "easeInOut",
+            }}
+            className="w-[3px] rounded-full bg-gradient-to-t from-purple-600 to-blue-400"
+            style={{ height: 8 }}
+          />
+        ))}
+      </div>
+
+      <p className="mb-6 text-center text-sm text-white">Transcribing your lyrics...</p>
+
+      {/* Progress bar */}
+      <div className="mb-2 flex items-center justify-between text-[10px]">
+        <span className="font-semibold uppercase tracking-wider text-wolf-muted">Progress</span>
+        <span className="font-bold text-purple-400">{Math.floor(progress)}%</span>
+      </div>
+      <div className="mb-2 h-2 overflow-hidden rounded-full bg-wolf-border/20">
+        <motion.div
+          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.5 }}
+        />
+      </div>
+      <p className="mb-1 text-center text-[10px] text-wolf-muted">{phase}</p>
+      <p className="mb-4 text-center text-xs font-mono text-wolf-muted">{formatElapsed(elapsed)}</p>
+      <p className="mb-4 text-center text-[10px] text-wolf-muted/50">Usually takes 5-15 seconds</p>
+
+      {/* Manual fallback */}
+      <button
+        onClick={onManualFallback}
+        className="w-full text-center text-xs text-wolf-muted/50 transition-colors hover:text-purple-400"
+      >
+        Type lyrics manually instead
+      </button>
+    </div>
+  );
+}
+
 export default function TemplateView({ onBack, wolf }: Props) {
   const { t } = useI18n();
   const [activeStep, setActiveStep] = useState(0);
@@ -384,11 +468,12 @@ export default function TemplateView({ onBack, wolf }: Props) {
                     }}
                   />
                 ) : activeStep >= 1 && transcribing ? (
-                  <div className="flex min-h-[200px] flex-col items-center justify-center">
-                    <Loader2 size={28} className="mb-3 animate-spin text-purple-400" />
-                    <p className="text-sm text-white">Transcribing your audio...</p>
-                    <p className="mt-1 text-xs text-wolf-muted">AI is listening and generating lyrics</p>
-                  </div>
+                  <TranscribingLoader onManualFallback={() => {
+                    setTranscribing(false);
+                    setLyricsBlocks(["Type your lyrics here"]);
+                    setLyrics("Type your lyrics here");
+                    setActiveStep(1);
+                  }} />
                 ) : (
                   <div className="flex min-h-[200px] flex-col items-center justify-center">
                     <FileText size={32} className="mb-2 text-wolf-muted/20" />

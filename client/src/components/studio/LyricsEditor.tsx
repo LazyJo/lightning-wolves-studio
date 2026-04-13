@@ -65,6 +65,7 @@ export default function LyricsEditor({
   });
 
   const [mode, setMode] = useState<"edit" | "retime" | "language" | "manual">("edit");
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1.0);
   const [editingWord, setEditingWord] = useState<{ blockIdx: number; wordIdx: number } | null>(null);
   const [editValue, setEditValue] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
@@ -162,10 +163,18 @@ export default function LyricsEditor({
     setRetimeIndex(0);
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
+      audioRef.current.playbackRate = playbackSpeed;
       audioRef.current.play();
       setIsPlaying(true);
     }
-  }, []);
+  }, [playbackSpeed]);
+
+  // Update playback speed when changed
+  useEffect(() => {
+    if (audioRef.current && mode === "retime") {
+      audioRef.current.playbackRate = playbackSpeed;
+    }
+  }, [playbackSpeed, mode]);
 
   const stopRetime = useCallback(() => {
     setMode("edit");
@@ -293,8 +302,45 @@ export default function LyricsEditor({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="rounded-xl border border-purple-500/20 bg-wolf-surface/30 p-6 text-center"
+            className="rounded-xl border border-purple-500/20 bg-gradient-to-b from-purple-500/5 to-wolf-surface/30 p-6 text-center"
           >
+            {/* Speed control */}
+            <div className="mb-4 flex items-center justify-center gap-2">
+              <span className="text-[10px] text-wolf-muted">Speed:</span>
+              {[
+                { label: "Slower", value: 0.5 },
+                { label: "Slow", value: 0.75 },
+                { label: "Normal", value: 1.0 },
+                { label: "Fast", value: 1.25 },
+              ].map((s) => (
+                <button
+                  key={s.label}
+                  onClick={() => setPlaybackSpeed(s.value)}
+                  className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
+                    playbackSpeed === s.value
+                      ? "bg-purple-500 text-white"
+                      : "text-wolf-muted hover:text-white"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {/* RE-TIME LYRICS heading */}
+            <h3
+              className="mb-4 text-lg font-bold uppercase tracking-wider"
+              style={{ color: accentColor, fontFamily: "var(--font-heading)" }}
+            >
+              RE-TIME LYRICS
+            </h3>
+
+            {/* Clock icon */}
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2"
+              style={{ borderColor: `${accentColor}40`, background: `${accentColor}10` }}>
+              <Clock size={28} style={{ color: accentColor }} />
+            </div>
+
             {/* Coming up preview */}
             <p className="mb-1 text-[10px] uppercase tracking-[0.3em] text-wolf-muted">Coming Up</p>
             <motion.p

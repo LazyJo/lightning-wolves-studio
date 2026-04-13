@@ -140,7 +140,7 @@ app.post('/api/generate', async (req, res) => {
 
     // ── Call Claude ────────────────────────────────────────────────────────
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514',
       max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],

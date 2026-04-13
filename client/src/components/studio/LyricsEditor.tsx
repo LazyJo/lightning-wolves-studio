@@ -327,20 +327,6 @@ export default function LyricsEditor({
               ))}
             </div>
 
-            {/* RE-TIME LYRICS heading */}
-            <h3
-              className="mb-4 text-lg font-bold uppercase tracking-wider"
-              style={{ color: accentColor, fontFamily: "var(--font-heading)" }}
-            >
-              RE-TIME LYRICS
-            </h3>
-
-            {/* Clock icon */}
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border-2"
-              style={{ borderColor: `${accentColor}40`, background: `${accentColor}10` }}>
-              <Clock size={28} style={{ color: accentColor }} />
-            </div>
-
             {/* Coming up preview */}
             <p className="mb-1 text-[10px] uppercase tracking-[0.3em] text-wolf-muted">Coming Up</p>
             <motion.p
@@ -352,10 +338,50 @@ export default function LyricsEditor({
             >
               {getRetimeWord(0) || "Done!"}
             </motion.p>
-            <p className="mb-6 text-sm text-wolf-muted">{getRetimeWord(1)}</p>
+            <p className="mb-4 text-sm text-wolf-muted">{getRetimeWord(1)}</p>
+
+            {/* Back / Resume buttons */}
+            <div className="mb-4 flex items-center justify-center gap-3">
+              <button
+                onClick={() => setRetimeIndex((i) => Math.max(0, i - 1))}
+                disabled={retimeIndex === 0}
+                className="flex items-center gap-1 rounded-lg border border-wolf-border/30 px-4 py-2 text-xs text-wolf-muted transition-all hover:text-white disabled:opacity-30"
+              >
+                ‹ Back
+              </button>
+              <button
+                onClick={() => {
+                  if (audioRef.current) {
+                    if (isPlaying) {
+                      audioRef.current.pause();
+                      setIsPlaying(false);
+                    } else {
+                      audioRef.current.playbackRate = playbackSpeed;
+                      audioRef.current.play();
+                      setIsPlaying(true);
+                    }
+                  }
+                }}
+                className={`flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold transition-all ${
+                  isPlaying
+                    ? "border border-wolf-border/30 bg-wolf-card text-white"
+                    : "bg-green-500 text-black"
+                }`}
+              >
+                {isPlaying ? (
+                  <><Pause size={14} /> Pause</>
+                ) : (
+                  <><Play size={14} className="ml-0.5" /> Resume</>
+                )}
+              </button>
+            </div>
 
             {/* Progress */}
-            <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-wolf-border/20">
+            <div className="mb-1 flex items-center justify-between text-[10px]">
+              <span className="font-semibold uppercase tracking-wider text-wolf-muted">Progress</span>
+              <span style={{ color: accentColor }}>{retimeIndex} / {totalWords} words</span>
+            </div>
+            <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-wolf-border/20">
               <div
                 className="h-full rounded-full transition-all"
                 style={{
@@ -364,22 +390,30 @@ export default function LyricsEditor({
                 }}
               />
             </div>
-            <p className="mb-4 text-[10px] text-wolf-muted">
-              {retimeIndex} / {totalWords} words timed
-            </p>
 
-            {/* Tap instruction */}
-            <div className="mb-4 rounded-xl border border-wolf-border/20 bg-wolf-card px-4 py-3">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-sm text-white">Tap</span>
-                <span className="rounded border border-wolf-border/30 bg-wolf-surface px-2 py-0.5 text-xs text-wolf-muted">
-                  <ArrowDown size={12} className="inline" /> Space
-                </span>
-                <span className="text-sm text-white">when each word starts</span>
+            {/* Status message */}
+            {!isPlaying && retimeIndex < totalWords && (
+              <p className="mb-3 text-xs text-wolf-muted">
+                Paused — Press{" "}
+                <span className="rounded border border-wolf-border/30 bg-wolf-surface px-1.5 py-0.5 text-[10px]">Space</span>
+                {" "}to resume
+              </p>
+            )}
+
+            {isPlaying && (
+              <div className="mb-3 rounded-lg border border-wolf-border/20 bg-wolf-card px-4 py-2.5">
+                <div className="flex items-center justify-center gap-2">
+                  <span className="text-sm text-white">Tap</span>
+                  <span className="rounded border border-wolf-border/30 bg-wolf-surface px-2 py-0.5 text-xs text-wolf-muted">
+                    <ArrowDown size={12} className="inline" /> Space
+                  </span>
+                  <span className="text-sm text-white">when each word starts</span>
+                </div>
+                <p className="mt-1 text-[10px] text-wolf-muted">Hold the key for longer words</p>
               </div>
-              <p className="mt-1 text-[10px] text-wolf-muted">Hold the key for longer words</p>
-            </div>
+            )}
 
+            {/* Bottom buttons */}
             {retimeIndex >= totalWords ? (
               <button
                 onClick={stopRetime}
@@ -388,12 +422,28 @@ export default function LyricsEditor({
                 <Check size={14} className="mr-2 inline" /> Timing Complete!
               </button>
             ) : (
-              <button
-                onClick={stopRetime}
-                className="w-full rounded-xl border border-wolf-border/30 py-2 text-sm text-wolf-muted hover:text-white"
-              >
-                Cancel Re-Time
-              </button>
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={stopRetime}
+                  className="text-sm text-wolf-muted hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setRetimeIndex(0);
+                    if (audioRef.current) {
+                      audioRef.current.currentTime = 0;
+                      audioRef.current.playbackRate = playbackSpeed;
+                      audioRef.current.play();
+                      setIsPlaying(true);
+                    }
+                  }}
+                  className="flex items-center gap-1.5 text-sm text-wolf-muted hover:text-white"
+                >
+                  <RotateCcw size={13} /> Restart
+                </button>
+              </div>
             )}
           </motion.div>
         )}

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft, Upload, Music, FileText, Scissors, Save, CheckCircle,
   Loader2, Zap, AlertCircle, Wifi, WifiOff, Play, Pause, X, Check,
-  RotateCcw, Globe, Edit3,
+  RotateCcw, Globe, Edit3, ChevronDown,
 } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 import { uploadFile, generate, transcribeAudio, type GenerationPack } from "../../lib/api";
@@ -14,6 +14,183 @@ import LyricsEditor from "./LyricsEditor";
 interface Props {
   onBack: () => void;
   wolf?: { artist: string; genre: string; color: string; id: string } | null;
+}
+
+// Cut Markers step with lyric preview
+function CutMarkersStep({ result, lyrics, audioUrl, onSave, accentColor }: {
+  result: GenerationPack;
+  lyrics: string;
+  audioUrl: string;
+  onSave: () => void;
+  accentColor: string;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [currentLyric, setCurrentLyric] = useState("");
+  const audioRefCM = useRef<HTMLAudioElement>(null);
+
+  // Track time and show current lyric
+  useEffect(() => {
+    const audio = audioRefCM.current;
+    if (!audio) return;
+    const update = () => {
+      setCurrentTime(audio.currentTime);
+      // Find which lyric line matches current time
+      if (result.lyrics) {
+        for (let i = result.lyrics.length - 1; i >= 0; i--) {
+          const ts = result.lyrics[i].ts;
+          const parts = ts.split(":");
+          const sec = parseInt(parts[0]) * 60 + parseInt(parts[1] || "0");
+          if (audio.currentTime >= sec) {
+            setCurrentLyric(result.lyrics[i].text);
+            break;
+          }
+        }
+      }
+    };
+    audio.addEventListener("timeupdate", update);
+    return () => audio.removeEventListener("timeupdate", update);
+  }, [result.lyrics]);
+
+  const togglePlay = () => {
+    if (!audioRefCM.current) return;
+    if (playing) {
+      audioRefCM.current.pause();
+    } else {
+      audioRefCM.current.play();
+    }
+    setPlaying(!playing);
+  };
+
+  const lyricLines = lyrics.split("\n").filter(Boolean);
+
+  return (
+    <div>
+      <audio ref={audioRefCM} src={audioUrl} onEnded={() => setPlaying(false)} />
+
+      {/* Lyric video preview */}
+      <div className="relative mb-4 overflow-hidden rounded-xl border border-wolf-border/20 bg-black" style={{ aspectRatio: "16/9" }}>
+        {/* Background gradient */}
+        <div className="absolute inset-0" style={{
+          background: `radial-gradient(ellipse at center, ${accentColor}15, transparent 70%)`
+        }} />
+
+        {/* Animated text overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+          {playing ? (
+            <motion.p
+              key={currentLyric}
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center text-lg font-bold uppercase tracking-wider text-white sm:text-2xl"
+              style={{ fontFamily: "var(--font-display)", textShadow: `0 0 30px ${accentColor}40` }}
+            >
+              {currentLyric || "..."}
+            </motion.p>
+          ) : (
+            <>
+              <Scissors size={32} className="mb-3" style={{ color: accentColor }} />
+              <p className="text-sm font-semibold text-white">Lyrics Transcribed</p>
+              <p className="mt-1 text-xs text-wolf-muted">Your lyrics have been automatically transcribed and are ready to preview</p>
+              <button onClick={togglePlay}
+                className="mt-4 flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-bold text-black"
+                style={{ backgroundColor: accentColor }}>
+                <Play size={14} /> READY FOR PREVIEW
+              </button>
+            </>
+          )}
+        </div>
+
+        {/* Play/pause overlay when playing */}
+        {playing && (
+          <button onClick={togglePlay}
+            className="absolute bottom-3 left-3 rounded-full bg-black/60 p-2 text-white backdrop-blur-sm">
+            <Pause size={14} />
+          </button>
+        )}
+
+        {/* Time indicator */}
+        {playing && (
+          <div className="absolute bottom-3 right-3 rounded bg-black/60 px-2 py-0.5 font-mono text-[10px] text-white backdrop-blur-sm">
+            {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, "0")}
+          </div>
+        )}
+      </div>
+
+      {/* Waveform with beat markers */}
+      {result.beats && (
+        <div className="mb-4">
+          {/* Mini waveform bar */}
+          <div className="relative mb-2 h-10 overflow-hidden rounded-lg border border-wolf-border/10 bg-wolf-surface/30">
+            {/* Playhead */}
+            <div className="absolute inset-y-0 z-10 w-0.5 bg-white transition-all"
+              style={{ left: `${(currentTime / 15) * 100}%` }} />
+
+            {/* Beat marker lines */}
+            {result.beats.map((b, j) => {
+              const parts = b.ts.split(":");
+              const sec = parseInt(parts[0]) * 60 + parseInt(parts[1] || "0");
+              return (
+                <div key={j} className="absolute inset-y-0 w-0.5"
+                  style={{
+                    left: `${(sec / 15) * 100}%`,
+                    backgroundColor: b.type === "CUT" ? "#ef4444" : b.type === "ZOOM" ? "#3b82f6" : b.type === "FADE" ? "#a855f7" : accentColor,
+                  }} />
+              );
+            })}
+
+            {/* Fake waveform bars */}
+            <div className="flex h-full items-end gap-[1px] px-1">
+              {Array.from({ length: 80 }).map((_, j) => (
+                <div key={j} className="flex-1 rounded-t" style={{
+                  height: `${20 + Math.random() * 70}%`,
+                  backgroundColor: `${accentColor}30`,
+                }} />
+              ))}
+            </div>
+          </div>
+
+          {/* Beat controls */}
+          <div className="flex items-center gap-2 text-[10px]">
+            <div className="flex items-center gap-1 rounded border border-wolf-border/20 px-2 py-1">
+              <span style={{ color: accentColor }}>Zoom</span>
+              <input type="range" min={1} max={5} defaultValue={1} className="h-1 w-12 accent-wolf-gold" />
+              <span className="text-wolf-muted">1.0×</span>
+            </div>
+            <div className="flex-1" />
+            <span className="rounded border border-wolf-border/20 px-2 py-1 text-wolf-muted">Space play</span>
+            <span className="rounded border border-wolf-border/20 px-2 py-1 text-wolf-muted">M cut</span>
+            <span className="rounded border border-wolf-border/20 px-2 py-1 text-wolf-muted">⌘Z undo</span>
+          </div>
+        </div>
+      )}
+
+      {/* Beat markers list */}
+      {result.beats && (
+        <div className="mb-4 max-h-[120px] space-y-1 overflow-y-auto rounded-lg border border-wolf-border/10 bg-wolf-surface/30 p-2">
+          {result.beats.map((b, j) => (
+            <div key={j} className="flex items-center gap-2 text-[10px]">
+              <span className="w-10 rounded bg-wolf-gold/20 px-1.5 py-0.5 text-center font-mono text-wolf-gold">{b.ts}</span>
+              <span className={`w-12 rounded px-1.5 py-0.5 text-center text-[9px] font-bold ${
+                b.type === "CUT" ? "bg-red-500/20 text-red-400" :
+                b.type === "ZOOM" ? "bg-blue-500/20 text-blue-400" :
+                b.type === "FADE" ? "bg-purple-500/20 text-purple-400" :
+                "bg-wolf-gold/20 text-wolf-gold"
+              }`}>{b.type}</span>
+              <span className="flex-1 truncate text-wolf-muted">{b.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button onClick={onSave}
+        className="w-full rounded-xl py-2.5 text-sm font-bold text-black" style={{ backgroundColor: accentColor }}>
+        <Save size={14} className="mr-2 inline" />
+        Save Template
+      </button>
+    </div>
+  );
 }
 
 // Animated transcription loading screen
@@ -487,35 +664,13 @@ export default function TemplateView({ onBack, wolf }: Props) {
             {i === 2 && (
               <div className="min-h-[250px]">
                 {activeStep >= 2 && result ? (
-                  <div className="text-center">
-                    <CheckCircle size={32} className="mx-auto mb-3 text-wolf-gold" />
-                    <p className="mb-2 text-sm font-semibold text-white">{t("studio.templateGenerated")}</p>
-                    <p className="mb-3 text-xs text-wolf-muted">{t("studio.resultsReady")}</p>
-
-                    {/* Show beat markers preview */}
-                    {result.beats && (
-                      <div className="mb-4 space-y-1 rounded-lg border border-wolf-border/10 bg-wolf-surface/50 p-3 text-left">
-                        {result.beats.slice(0, 5).map((b, j) => (
-                          <div key={j} className="flex items-center gap-2 text-[10px]">
-                            <span className="rounded bg-wolf-gold/20 px-1.5 py-0.5 font-mono text-wolf-gold">{b.ts}</span>
-                            <span className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
-                              b.type === "CUT" ? "bg-red-500/20 text-red-400" :
-                              b.type === "ZOOM" ? "bg-blue-500/20 text-blue-400" :
-                              b.type === "FADE" ? "bg-purple-500/20 text-purple-400" :
-                              "bg-wolf-gold/20 text-wolf-gold"
-                            }`}>{b.type}</span>
-                            <span className="text-wolf-muted">{b.label}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <button onClick={() => setActiveStep(2)}
-                      className="w-full rounded-lg bg-wolf-gold py-2.5 text-sm font-semibold text-black">
-                      <Save size={14} className="mr-2 inline" />
-                      {t("studio.saveTemplate")}
-                    </button>
-                  </div>
+                  <CutMarkersStep
+                    result={result}
+                    lyrics={lyrics}
+                    audioUrl={fileUrl}
+                    onSave={() => setActiveStep(2)}
+                    accentColor={wolf?.color || "#f5c518"}
+                  />
                 ) : (
                   <div className="flex min-h-[200px] flex-col items-center justify-center">
                     <Scissors size={32} className="mb-2 text-wolf-muted/20" />

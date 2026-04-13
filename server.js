@@ -148,14 +148,30 @@ app.post('/api/generate', async (req, res) => {
 
     const raw = message.content[0].type === 'text' ? message.content[0].text : '';
 
-    // Extract JSON — strip any accidental markdown fences
-    const jsonStr = raw.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/```\s*$/i, '').trim();
-
+    // Robust JSON extraction — handle markdown fences, extra text, etc.
     let pack;
     try {
-      pack = JSON.parse(jsonStr);
+      // Try direct parse first
+      pack = JSON.parse(raw.trim());
     } catch {
-      return res.status(500).json({ error: 'Failed to parse AI response', raw });
+      try {
+        // Strip markdown fences
+        const stripped = raw.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+        pack = JSON.parse(stripped);
+      } catch {
+        try {
+          // Find JSON object in the response (between first { and last })
+          const firstBrace = raw.indexOf('{');
+          const lastBrace = raw.lastIndexOf('}');
+          if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+            pack = JSON.parse(raw.substring(firstBrace, lastBrace + 1));
+          } else {
+            return res.status(500).json({ error: 'Failed to parse AI response. Please try again.' });
+          }
+        } catch {
+          return res.status(500).json({ error: 'Failed to parse AI response. Please try again.' });
+        }
+      }
     }
 
     // ── Persist generation record ──────────────────────────────────────────

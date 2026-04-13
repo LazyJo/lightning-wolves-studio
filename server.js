@@ -75,11 +75,12 @@ async function getProfile(userId) {
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
-// Public config — exposes only safe, public-facing keys to the frontend
+// Public config — exposes keys needed by the frontend
 app.get('/api/config', (req, res) => {
   res.json({
     supabaseUrl:     process.env.SUPABASE_URL     || null,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null,
+    openaiKey:       process.env.OPENAI_API_KEY    || null,
   });
 });
 

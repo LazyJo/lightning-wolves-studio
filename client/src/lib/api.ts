@@ -57,15 +57,56 @@ export interface TranscribeResult {
 }
 
 export async function transcribeAudio(file: File, language: string = "English"): Promise<TranscribeResult> {
+  // Try server-side first (works locally with large files)
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("language", language);
+    const res = await fetch(`${API}/api/transcribe`, { method: "POST", body: formData });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.text) return data;
+    }
+  } catch {}
+
+  // Fallback: call OpenAI Whisper directly from browser
+  // First get the API key from the server config
+  const configRes = await fetch(`${API}/api/config`);
+  const config = await configRes.json();
+
+  if (!config.openaiKey) {
+    throw new Error("Whisper transcription not available. OPENAI_API_KEY not configured.");
+  }
+
+  const langCode = language === "French" ? "fr" : language === "Dutch" ? "nl" : language === "Spanish" ? "es" : "en";
+
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("language", language);
-  const res = await fetch(`${API}/api/transcribe`, { method: "POST", body: formData });
+  formData.append("model", "whisper-1");
+  formData.append("response_format", "verbose_json");
+  formData.append("language", langCode);
+  formData.append("timestamp_granularities[]", "segment");
+
+  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${config.openaiKey}` },
+    body: formData,
+  });
+
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Transcription failed" }));
-    throw new Error(err.error || "Transcription failed");
+    const err = await res.json().catch(() => ({ error: { message: "Transcription failed" } }));
+    throw new Error(err.error?.message || "Transcription failed");
   }
-  return res.json();
+
+  const data = await res.json();
+  return {
+    success: true,
+    text: data.text,
+    segments: data.segments || [],
+    words: data.words || [],
+    language: data.language || langCode,
+    duration: data.duration || 0,
+  };
 }
 
 // ─── Core API ────────────────────────────────────────────────────────────────

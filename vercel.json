@@ -3,6 +3,11 @@
   "buildCommand": "cp -r public/* client/public/ 2>/dev/null; cp *.mp4 client/public/ 2>/dev/null; cp *.png client/public/ 2>/dev/null; cp *.jpeg client/public/ 2>/dev/null; cd client && npm install && npm run build",
   "outputDirectory": "client/dist",
   "framework": null,
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" }
   ]

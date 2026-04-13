@@ -56,57 +56,116 @@ export interface TranscribeResult {
   duration: number;
 }
 
-export async function transcribeAudio(file: File, language: string = "English"): Promise<TranscribeResult> {
-  // Try server-side first (works locally with large files)
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("language", language);
-    const res = await fetch(`${API}/api/transcribe`, { method: "POST", body: formData });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.success && data.text) return data;
-    }
-  } catch {}
-
-  // Fallback: call OpenAI Whisper directly from browser
-  // First get the API key from the server config
-  const configRes = await fetch(`${API}/api/config`);
-  const config = await configRes.json();
-
-  if (!config.openaiKey) {
-    throw new Error("Whisper transcription not available. OPENAI_API_KEY not configured.");
+// Compress audio to webm/opus in the browser (WAV is too big for serverless)
+async function compressAudio(file: File): Promise<File> {
+  // If already compressed format, skip
+  if (file.type.includes("mp3") || file.type.includes("mpeg") || file.type.includes("ogg") || file.type.includes("webm")) {
+    return file;
   }
 
-  const langCode = language === "French" ? "fr" : language === "Dutch" ? "nl" : language === "Spanish" ? "es" : "en";
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    audio.src = URL.createObjectURL(file);
+
+    audio.onloadedmetadata = async () => {
+      try {
+        const audioCtx = new AudioContext();
+        const arrayBuffer = await file.arrayBuffer();
+        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+        // Create offline context to render
+        const offlineCtx = new OfflineAudioContext(
+          audioBuffer.numberOfChannels,
+          audioBuffer.length,
+          audioBuffer.sampleRate
+        );
+        const source = offlineCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(offlineCtx.destination);
+        source.start();
+
+        const rendered = await offlineCtx.startRendering();
+
+        // Encode as WAV but smaller (16-bit mono downmix)
+        const numChannels = 1; // mono
+        const sampleRate = Math.min(rendered.sampleRate, 16000); // 16kHz is enough for speech
+        const length = Math.floor(rendered.length * sampleRate / rendered.sampleRate);
+
+        // Simple downsample + mono mix
+        const samples = new Float32Array(length);
+        const ratio = rendered.sampleRate / sampleRate;
+        for (let i = 0; i < length; i++) {
+          const srcIdx = Math.floor(i * ratio);
+          let sum = 0;
+          for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
+            sum += rendered.getChannelData(ch)[srcIdx] || 0;
+          }
+          samples[i] = sum / rendered.numberOfChannels;
+        }
+
+        // Encode as 16-bit PCM WAV
+        const buffer = new ArrayBuffer(44 + samples.length * 2);
+        const view = new DataView(buffer);
+        const writeString = (offset: number, str: string) => {
+          for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+        };
+        writeString(0, "RIFF");
+        view.setUint32(4, 36 + samples.length * 2, true);
+        writeString(8, "WAVE");
+        writeString(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); // PCM
+        view.setUint16(22, numChannels, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * numChannels * 2, true);
+        view.setUint16(32, numChannels * 2, true);
+        view.setUint16(34, 16, true);
+        writeString(36, "data");
+        view.setUint32(40, samples.length * 2, true);
+        for (let i = 0; i < samples.length; i++) {
+          const s = Math.max(-1, Math.min(1, samples[i]));
+          view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+        }
+
+        const blob = new Blob([buffer], { type: "audio/wav" });
+        const compressed = new File([blob], file.name.replace(/\.\w+$/, ".wav"), { type: "audio/wav" });
+
+        audioCtx.close();
+        URL.revokeObjectURL(audio.src);
+        resolve(compressed);
+      } catch (err) {
+        URL.revokeObjectURL(audio.src);
+        resolve(file); // fallback to original
+      }
+    };
+
+    audio.onerror = () => {
+      URL.revokeObjectURL(audio.src);
+      resolve(file); // fallback
+    };
+  });
+}
+
+export async function transcribeAudio(file: File, language: string = "English"): Promise<TranscribeResult> {
+  // Compress audio to reduce file size (WAV→small WAV mono 16kHz)
+  const compressed = await compressAudio(file);
+  console.log(`Audio compressed: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(compressed.size / 1024 / 1024).toFixed(1)}MB`);
 
   const formData = new FormData();
-  formData.append("file", file);
-  formData.append("model", "whisper-1");
-  formData.append("response_format", "verbose_json");
-  formData.append("language", langCode);
-  formData.append("timestamp_granularities[]", "segment");
+  formData.append("file", compressed);
+  formData.append("language", language);
 
-  const res = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${config.openaiKey}` },
-    body: formData,
-  });
-
+  const res = await fetch(`${API}/api/transcribe`, { method: "POST", body: formData });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: { message: "Transcription failed" } }));
-    throw new Error(err.error?.message || "Transcription failed");
+    const err = await res.json().catch(() => ({ error: "Transcription failed" }));
+    throw new Error(err.error || "Transcription failed");
   }
 
   const data = await res.json();
-  return {
-    success: true,
-    text: data.text,
-    segments: data.segments || [],
-    words: data.words || [],
-    language: data.language || langCode,
-    duration: data.duration || 0,
-  };
+  if (!data.success || !data.text) {
+    throw new Error("Transcription returned empty result");
+  }
+  return data;
 }
 
 // ─── Core API ────────────────────────────────────────────────────────────────

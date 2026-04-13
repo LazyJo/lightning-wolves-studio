@@ -95,26 +95,35 @@ export default function TemplateView({ onBack, wolf }: Props) {
         }
       }
 
-      // Step 2: Generate beats, prompts, SRT via Claude (using REAL lyrics if available)
+      // Step 2: Generate beats, prompts, SRT via Claude
+      // Keep the lyrics prompt short to avoid parse failures
+      const lyricsSnippet = realLyrics ? realLyrics.substring(0, 200) : "";
+
       const res = await generate({
         title: title || fileName,
         artist: wolf?.artist || "Lone Wolf",
         genre,
         language,
-        mood: realLyrics
-          ? `REAL TRANSCRIBED LYRICS (use these exact lyrics, do NOT make up new ones):\n${realLyrics}\n\nGenerate beat cuts, SRT, video prompts, and social tips based on these actual lyrics.`
-          : `Selected ${selectedDuration}s clip starting at ${Math.floor(regionStart)}s. Track: ${fileName}`,
+        mood: lyricsSnippet
+          ? `Use these real lyrics as basis: "${lyricsSnippet}..."`
+          : `Track: ${fileName}, ${selectedDuration}s clip`,
         wolfId: wolf?.id,
       });
 
-      // If Whisper gave us real lyrics, override Claude's generated ones
-      if (realLyrics && res.pack.lyrics) {
-        // Keep Claude's timestamps but use real lyrics text
-        const realLines = realLyrics.split(/[.!?\n]+/).map((s) => s.trim()).filter(Boolean);
+      // If Whisper gave us real lyrics, override Claude's generated lyrics
+      if (realLyrics) {
+        const realLines = realLyrics.split(/[.!?\n,]+/).map((s) => s.trim()).filter(Boolean);
         res.pack.lyrics = realLines.map((line, i) => ({
-          ts: res.pack.lyrics[i]?.ts || `${Math.floor(i * 4 / 60)}:${String(Math.floor(i * 4) % 60).padStart(2, "0")}`,
+          ts: `${Math.floor(i * 3 / 60)}:${String(Math.floor(i * 3) % 60).padStart(2, "0")}`,
           text: line,
         }));
+        // Also fix the SRT with real lyrics
+        res.pack.srt = realLines.map((line, i) => {
+          const startSec = i * 3;
+          const endSec = startSec + 3;
+          const fmt = (s: number) => `00:${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")},000`;
+          return `${i + 1}\n${fmt(startSec)} --> ${fmt(endSec)}\n${line}`;
+        }).join("\n\n");
       }
 
       if (!realLyrics && res.pack.lyrics) {

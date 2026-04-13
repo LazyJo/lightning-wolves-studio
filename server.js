@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
+const OpenAI = require('openai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,6 +19,9 @@ const supabase = createClient(
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// ─── OpenAI (Whisper) ────────────────────────────────────────────────────────
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
@@ -88,6 +92,44 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
     size: req.file.size,
     mimetype: req.file.mimetype,
   });
+});
+
+// ─── Whisper Transcription ──────────────────────────────────────────────────
+app.post('/api/transcribe', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
+    if (!openai) return res.status(500).json({ error: 'OPENAI_API_KEY not configured. Add it in Vercel Environment Variables.' });
+
+    const filePath = req.file.path;
+
+    // Call Whisper API
+    const transcription = await openai.audio.transcriptions.create({
+      file: fs.createReadStream(filePath),
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+      timestamp_granularities: ['word', 'segment'],
+      language: req.body.language === 'French' ? 'fr' :
+                req.body.language === 'Dutch' ? 'nl' :
+                req.body.language === 'Spanish' ? 'es' : 'en',
+    });
+
+    // Clean up uploaded file
+    try { fs.unlinkSync(filePath); } catch {}
+
+    res.json({
+      success: true,
+      text: transcription.text,
+      segments: transcription.segments || [],
+      words: transcription.words || [],
+      language: transcription.language,
+      duration: transcription.duration,
+    });
+  } catch (err) {
+    console.error('Transcribe error:', err);
+    // Clean up file on error
+    if (req.file?.path) try { fs.unlinkSync(req.file.path); } catch {}
+    res.status(500).json({ error: err.message || 'Transcription failed' });
+  }
 });
 
 // Main generation endpoint

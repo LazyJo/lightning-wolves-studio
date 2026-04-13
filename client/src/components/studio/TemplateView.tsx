@@ -6,7 +6,7 @@ import {
   RotateCcw, Globe, Edit3,
 } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
-import { uploadFile, generate, type GenerationPack } from "../../lib/api";
+import { uploadFile, generate, transcribeAudio, type GenerationPack } from "../../lib/api";
 import GenerationResults from "./GenerationResults";
 import WaveformSelector from "./WaveformSelector";
 
@@ -71,22 +71,53 @@ export default function TemplateView({ onBack, wolf }: Props) {
     setError("");
 
     try {
-      // Try to upload file (may fail on serverless/Vercel — that's ok)
+      let realLyrics = "";
+
+      // Step 1: Transcribe with Whisper (real lyrics from audio)
       if (fileObj) {
-        try { await uploadFile(fileObj); } catch {}
+        try {
+          const transcription = await transcribeAudio(fileObj, language);
+          realLyrics = transcription.text;
+
+          // Show transcribed words as blocks
+          if (transcription.segments?.length) {
+            const blocks = transcription.segments.map((s) => s.text.trim());
+            setLyricsBlocks(blocks);
+            setLyrics(blocks.join("\n"));
+          } else if (realLyrics) {
+            const lines = realLyrics.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean);
+            setLyricsBlocks(lines);
+            setLyrics(lines.join("\n"));
+          }
+        } catch (whisperErr: any) {
+          console.warn("Whisper transcription failed, falling back to AI generation:", whisperErr.message);
+          // Whisper failed — will fall back to Claude generation below
+        }
       }
 
-      // Generate lyrics, beats, prompts via Claude AI
+      // Step 2: Generate beats, prompts, SRT via Claude (using REAL lyrics if available)
       const res = await generate({
         title: title || fileName,
         artist: wolf?.artist || "Lone Wolf",
         genre,
         language,
-        mood: `Selected ${selectedDuration}s clip starting at ${Math.floor(regionStart)}s. Track: ${fileName}`,
+        mood: realLyrics
+          ? `REAL TRANSCRIBED LYRICS (use these exact lyrics, do NOT make up new ones):\n${realLyrics}\n\nGenerate beat cuts, SRT, video prompts, and social tips based on these actual lyrics.`
+          : `Selected ${selectedDuration}s clip starting at ${Math.floor(regionStart)}s. Track: ${fileName}`,
         wolfId: wolf?.id,
       });
 
-      if (res.pack.lyrics) {
+      // If Whisper gave us real lyrics, override Claude's generated ones
+      if (realLyrics && res.pack.lyrics) {
+        // Keep Claude's timestamps but use real lyrics text
+        const realLines = realLyrics.split(/[.!?\n]+/).map((s) => s.trim()).filter(Boolean);
+        res.pack.lyrics = realLines.map((line, i) => ({
+          ts: res.pack.lyrics[i]?.ts || `${Math.floor(i * 4 / 60)}:${String(Math.floor(i * 4) % 60).padStart(2, "0")}`,
+          text: line,
+        }));
+      }
+
+      if (!realLyrics && res.pack.lyrics) {
         const lyricText = res.pack.lyrics.map((l) => l.text).filter((t) => !t.startsWith("["));
         setLyricsBlocks(lyricText);
         setLyrics(lyricText.join("\n"));

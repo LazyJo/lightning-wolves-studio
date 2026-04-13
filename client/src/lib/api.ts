@@ -45,6 +45,29 @@ export async function generateVisuals(params: {
   return res.json();
 }
 
+// ─── Whisper Transcription ───────────────────────────────────────────────────
+
+export interface TranscribeResult {
+  success: boolean;
+  text: string;
+  segments: { start: number; end: number; text: string }[];
+  words: { word: string; start: number; end: number }[];
+  language: string;
+  duration: number;
+}
+
+export async function transcribeAudio(file: File, language: string = "English"): Promise<TranscribeResult> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("language", language);
+  const res = await fetch(`${API}/api/transcribe`, { method: "POST", body: formData });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Transcription failed" }));
+    throw new Error(err.error || "Transcription failed");
+  }
+  return res.json();
+}
+
 // ─── Core API ────────────────────────────────────────────────────────────────
 
 export interface GenerationPack {

@@ -9,6 +9,7 @@ import { useI18n } from "../../lib/i18n";
 import { uploadFile, generate, transcribeAudio, type GenerationPack } from "../../lib/api";
 import GenerationResults from "./GenerationResults";
 import WaveformSelector from "./WaveformSelector";
+import LyricsEditor from "./LyricsEditor";
 
 interface Props {
   onBack: () => void;
@@ -30,6 +31,7 @@ export default function TemplateView({ onBack, wolf }: Props) {
   const [lyrics, setLyrics] = useState("");
   const [lyricsBlocks, setLyricsBlocks] = useState<string[]>([]);
   const [editingLyrics, setEditingLyrics] = useState(false);
+  const [segments, setSegments] = useState<{ start: number; end: number; text: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [error, setError] = useState("");
@@ -81,6 +83,7 @@ export default function TemplateView({ onBack, wolf }: Props) {
 
           // Show transcribed words as blocks
           if (transcription.segments?.length) {
+            setSegments(transcription.segments);
             const blocks = transcription.segments.map((s) => s.text.trim());
             setLyricsBlocks(blocks);
             setLyrics(blocks.join("\n"));
@@ -360,56 +363,26 @@ export default function TemplateView({ onBack, wolf }: Props) {
             {i === 1 && (
               <div className="min-h-[250px]">
                 {activeStep >= 1 && lyricsBlocks.length > 0 ? (
-                  <div>
-                    {/* Edit lyrics header */}
-                    <div className="mb-3 flex items-center justify-between rounded-lg border border-purple-500/20 bg-purple-500/5 p-3">
-                      <div className="flex items-center gap-2">
-                        <Edit3 size={14} className="text-purple-400" />
-                        <div>
-                          <p className="text-sm font-semibold text-white">Edit Lyrics</p>
-                          <p className="text-[10px] text-wolf-muted">{lyricsBlocks.length} words · {Math.ceil(lyricsBlocks.length / 6)} blocks</p>
-                        </div>
-                      </div>
-                      <button onClick={() => setEditingLyrics(!editingLyrics)}
-                        className="text-wolf-muted hover:text-white"><X size={14} /></button>
-                    </div>
-
-                    <div className="mb-3 rounded-lg border border-wolf-gold/15 bg-wolf-gold/5 px-3 py-2 text-[10px] text-wolf-gold">
-                      Perfect your lyrics once — they'll be saved for all future videos
-                    </div>
-
-                    {/* Lyrics blocks */}
-                    {editingLyrics ? (
-                      <textarea value={lyrics} onChange={(e) => { setLyrics(e.target.value); setLyricsBlocks(e.target.value.split("\n").filter(Boolean)); }}
-                        className="w-full resize-none rounded-lg border border-wolf-border/20 bg-wolf-surface p-3 text-sm text-white focus:border-purple-500/30 focus:outline-none"
-                        rows={8} />
-                    ) : (
-                      <div className="mb-3 space-y-2">
-                        {lyricsBlocks.slice(0, 12).map((word, j) => (
-                          <div key={j} className="rounded-lg border border-wolf-border/10 bg-wolf-surface/50 px-3 py-1.5">
-                            <p className="text-[9px] text-wolf-muted/50">BLOCK {Math.floor(j / 3) + 1}</p>
-                            <div className="flex flex-wrap gap-1.5 mt-1">
-                              {word.split(" ").map((w, k) => (
-                                <span key={k} className="rounded bg-wolf-border/20 px-2 py-0.5 text-xs text-white">{w}</span>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Action buttons */}
-                    <div className="flex gap-2">
-                      <button onClick={() => setEditingLyrics(!editingLyrics)}
-                        className="flex-1 rounded-lg border border-wolf-border/20 py-2 text-xs text-wolf-muted hover:text-white">
-                        {editingLyrics ? <><RotateCcw size={10} className="mr-1 inline" /> Re-Time</> : <><Edit3 size={10} className="mr-1 inline" /> Re-enter manually</>}
-                      </button>
-                      <button onClick={handleDoneEditing}
-                        className="flex-1 rounded-lg bg-purple-500 py-2 text-xs font-bold text-white hover:bg-purple-400">
-                        <Check size={10} className="mr-1 inline" /> Done
-                      </button>
-                    </div>
-                  </div>
+                  <LyricsEditor
+                    lyrics={lyrics}
+                    segments={segments}
+                    audioUrl={fileUrl}
+                    language={language}
+                    accentColor={wolf?.color || "#9b6dff"}
+                    onDone={(editedLyrics, editedBlocks) => {
+                      setLyrics(editedLyrics);
+                      setLyricsBlocks(editedLyrics.split("\n").filter(Boolean));
+                      handleDoneEditing();
+                    }}
+                    onRetranscribe={(newLang) => {
+                      setLanguage(newLang);
+                      setActiveStep(0);
+                      setSelectionConfirmed(false);
+                      setLyricsBlocks([]);
+                      setLyrics("");
+                      setSegments([]);
+                    }}
+                  />
                 ) : activeStep >= 1 && transcribing ? (
                   <div className="flex min-h-[200px] flex-col items-center justify-center">
                     <Loader2 size={28} className="mb-3 animate-spin text-purple-400" />

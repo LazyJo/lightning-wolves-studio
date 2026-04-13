@@ -95,26 +95,29 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // ─── Whisper Transcription ──────────────────────────────────────────────────
-app.post('/api/transcribe', upload.single('file'), async (req, res) => {
+// Use memory storage for serverless (Vercel has read-only filesystem)
+const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+
+app.post('/api/transcribe', memUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
     if (!openai) return res.status(500).json({ error: 'OPENAI_API_KEY not configured. Add it in Vercel Environment Variables.' });
 
-    const filePath = req.file.path;
+    // Create a File-like object from the buffer for OpenAI SDK
+    const file = new File([req.file.buffer], req.file.originalname, { type: req.file.mimetype });
 
-    // Call Whisper API
+    const langCode = req.body.language === 'French' ? 'fr' :
+                     req.body.language === 'Dutch' ? 'nl' :
+                     req.body.language === 'Spanish' ? 'es' : 'en';
+
+    // Call Whisper API with buffer
     const transcription = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(filePath),
+      file: file,
       model: 'whisper-1',
       response_format: 'verbose_json',
-      timestamp_granularities: ['word', 'segment'],
-      language: req.body.language === 'French' ? 'fr' :
-                req.body.language === 'Dutch' ? 'nl' :
-                req.body.language === 'Spanish' ? 'es' : 'en',
+      timestamp_granularities: ['segment'],
+      language: langCode,
     });
-
-    // Clean up uploaded file
-    try { fs.unlinkSync(filePath); } catch {}
 
     res.json({
       success: true,
@@ -126,8 +129,6 @@ app.post('/api/transcribe', upload.single('file'), async (req, res) => {
     });
   } catch (err) {
     console.error('Transcribe error:', err);
-    // Clean up file on error
-    if (req.file?.path) try { fs.unlinkSync(req.file.path); } catch {}
     res.status(500).json({ error: err.message || 'Transcription failed' });
   }
 });

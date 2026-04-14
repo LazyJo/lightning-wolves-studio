@@ -169,14 +169,23 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
     }
   }, [initialLyrics]);
 
-  // Fallback timer for lyrics cycling (when playing without video or with video that has no timeupdate)
+  // Lyrics cycling timer — works with or without video
   useEffect(() => {
     if (!initialLyrics || !isPlaying) return;
     const lines = initialLyrics.split("\n").filter(Boolean);
+    const totalDuration = 15; // seconds for full lyrics cycle
     const interval = setInterval(() => {
-      const idx = Math.min(Math.floor((currentTime / 15) * lines.length), lines.length - 1);
-      setCurrentLyric(lines[idx] || "");
-      setCurrentTime((t) => t + 0.1);
+      setCurrentTime((t) => {
+        const newT = t + 0.1;
+        if (newT >= totalDuration) {
+          // Loop back
+          if (previewVideoRef.current) previewVideoRef.current.currentTime = 0;
+          return 0;
+        }
+        const idx = Math.min(Math.floor((newT / totalDuration) * lines.length), lines.length - 1);
+        setCurrentLyric(lines[idx] || "");
+        return newT;
+      });
     }, 100);
     return () => clearInterval(interval);
   }, [isPlaying, initialLyrics, currentTime]);
@@ -368,7 +377,7 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
 
           {/* Video Preview — always shows lyrics on black, video overlays on top */}
           <div className={`relative mx-auto overflow-hidden rounded-2xl border border-wolf-border/20 bg-black ${
-            aspectRatio === "9:16" ? "aspect-[9/16] max-h-[450px]" : "aspect-video w-full"
+            aspectRatio === "9:16" ? "aspect-[9/16] max-h-[500px] mx-auto" : "aspect-video w-full"
           }`}>
             {/* Video layer (on top of black) */}
             {slots.find((s) => s.clip)?.clip?.url && (
@@ -430,7 +439,7 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
                 {isPlaying ? <Pause size={14} className="text-white" /> : <Play size={14} className="text-white" />}
               </button>
               <span className="font-mono text-[10px] text-wolf-muted">
-                {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, "0")} / 0:15
+                {Math.floor(Math.min(currentTime, 15) / 60)}:{String(Math.floor(Math.min(currentTime, 15) % 60)).padStart(2, "0")} / 0:15
               </span>
             </div>
           )}

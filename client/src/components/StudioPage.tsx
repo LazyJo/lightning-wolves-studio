@@ -537,6 +537,7 @@ function GenerationView({
 // Main Studio Page
 export default function StudioPage({ wolf, onBack }: Props) {
   const [view, setView] = useState<View>("dashboard");
+  const [savedLyrics, setSavedLyrics] = useState("");
   const accentColor = wolf?.color || "#f5c518";
   const { plan, deductCredits } = useCredits();
   const tColor = tierColor(plan.tier);
@@ -745,9 +746,9 @@ export default function StudioPage({ wolf, onBack }: Props) {
             </div>
           </>
         ) : view === "remix" ? (
-          <RemixViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
+          <RemixViewComponent onBack={() => setView("dashboard")} wolf={wolf} lyrics={savedLyrics} />
         ) : view === "template" ? (
-          <TemplateViewComponent onBack={() => setView("dashboard")} onGoToRemix={() => setView("remix")} wolf={wolf} />
+          <TemplateViewComponent onBack={() => setView("dashboard")} onGoToRemix={(lyrics) => { if (lyrics) setSavedLyrics(lyrics); setView("remix"); }} wolf={wolf} />
         ) : view === "scenes" ? (
           <ScenesViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "performance" ? (

@@ -144,9 +144,26 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
     }
   }, [filledSlots, slots, title, wolf, genre]);
 
-  // Lyrics sync
+  // Lyrics sync — use video timeupdate
   useEffect(() => {
-    if (!initialLyrics || !isPlaying) return;
+    const video = previewVideoRef.current;
+    if (!video || !initialLyrics) return;
+
+    const lines = initialLyrics.split("\n").filter(Boolean);
+    const onTime = () => {
+      const t = video.currentTime;
+      setCurrentTime(t);
+      const duration = video.duration || 15;
+      const idx = Math.min(Math.floor((t / duration) * lines.length), lines.length - 1);
+      setCurrentLyric(lines[idx] || "");
+    };
+    video.addEventListener("timeupdate", onTime);
+    return () => video.removeEventListener("timeupdate", onTime);
+  }, [initialLyrics]);
+
+  // Fallback timer if no video ref
+  useEffect(() => {
+    if (!initialLyrics || !isPlaying || previewVideoRef.current) return;
     const lines = initialLyrics.split("\n").filter(Boolean);
     const interval = setInterval(() => {
       const idx = Math.min(Math.floor((currentTime / 15) * lines.length), lines.length - 1);
@@ -363,7 +380,7 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
             )}
 
             {/* Lyrics overlay */}
-            {currentLyric && isPlaying && (
+            {currentLyric && (
               <motion.div
                 key={currentLyric}
                 initial={{ opacity: 0, y: 10 }}

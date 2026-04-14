@@ -161,9 +161,17 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
     return () => video.removeEventListener("timeupdate", onTime);
   }, [initialLyrics]);
 
-  // Fallback timer if no video ref
+  // Set initial lyric on mount
   useEffect(() => {
-    if (!initialLyrics || !isPlaying || previewVideoRef.current) return;
+    if (initialLyrics) {
+      const lines = initialLyrics.split("\n").filter(Boolean);
+      if (lines.length > 0) setCurrentLyric(lines[0]);
+    }
+  }, [initialLyrics]);
+
+  // Fallback timer for lyrics cycling (when playing without video or with video that has no timeupdate)
+  useEffect(() => {
+    if (!initialLyrics || !isPlaying) return;
     const lines = initialLyrics.split("\n").filter(Boolean);
     const interval = setInterval(() => {
       const idx = Math.min(Math.floor((currentTime / 15) * lines.length), lines.length - 1);
@@ -358,46 +366,50 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
             ))}
           </div>
 
-          {/* Video Preview */}
+          {/* Video Preview — always shows lyrics on black, video overlays on top */}
           <div className={`relative mx-auto overflow-hidden rounded-2xl border border-wolf-border/20 bg-black ${
             aspectRatio === "9:16" ? "aspect-[9/16] max-h-[450px]" : "aspect-video w-full"
           }`}>
-            {/* Video from first filled slot */}
-            {slots.find((s) => s.clip)?.clip?.url ? (
+            {/* Video layer (on top of black) */}
+            {slots.find((s) => s.clip)?.clip?.url && (
               <video
                 ref={previewVideoRef}
                 src={slots.find((s) => s.clip)?.clip?.url}
                 muted loop
-                className="h-full w-full object-cover"
+                className="absolute inset-0 h-full w-full object-cover"
               />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center">
+            )}
+
+            {/* Lyrics — ALWAYS visible on the preview (black bg or over video) */}
+            <div className="absolute inset-0 flex items-center justify-center p-6">
+              {initialLyrics ? (
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={currentLyric || "idle"}
+                    initial={{ opacity: 0, y: 15, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="text-center text-xl font-bold uppercase text-white sm:text-2xl"
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      textShadow: `0 0 30px ${accentColor}60, 0 0 60px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8)`,
+                    }}
+                  >
+                    {currentLyric || initialLyrics.split("\n")[0] || "♪"}
+                  </motion.p>
+                </AnimatePresence>
+              ) : (
                 <div className="text-center">
                   <Film size={28} className="mx-auto mb-2 text-wolf-muted/20" />
-                  <p className="text-xs text-wolf-muted">Import clips to preview</p>
+                  <p className="text-xs text-wolf-muted">Create a template first to see lyrics here</p>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Lyrics overlay */}
-            {currentLyric && (
-              <motion.div
-                key={currentLyric}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute inset-x-0 bottom-16 px-4 text-center"
-              >
-                <p className="text-lg font-bold uppercase text-white"
-                  style={{ fontFamily: "var(--font-display)", textShadow: `0 0 20px ${accentColor}60, 0 2px 4px rgba(0,0,0,0.8)` }}>
-                  {currentLyric}
-                </p>
-              </motion.div>
-            )}
-
-            {/* Play/Pause center button */}
-            {!isPlaying && slots.some((s) => s.clip) && (
+            {/* Play/Pause button */}
+            {!isPlaying && (
               <button onClick={() => { setIsPlaying(true); setCurrentTime(0); previewVideoRef.current?.play(); }}
-                className="absolute inset-0 flex items-center justify-center">
+                className="absolute inset-0 z-20 flex items-center justify-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm">
                   <Play size={24} className="ml-1 text-white" />
                 </div>
@@ -405,8 +417,8 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
             )}
           </div>
 
-          {/* Playback controls */}
-          {slots.some((s) => s.clip) && (
+          {/* Playback controls — always show if there are lyrics */}
+          {(initialLyrics || slots.some((s) => s.clip)) && (
             <div className="mt-2 flex items-center gap-3 px-1">
               <button onClick={() => { setCurrentTime(0); if (previewVideoRef.current) previewVideoRef.current.currentTime = 0; }}>
                 <RotateCcw size={14} className="text-wolf-muted hover:text-white" />

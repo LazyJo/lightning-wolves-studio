@@ -1,43 +1,74 @@
-import { useState, useRef, useCallback } from "react";
-import { motion, AnimatePresence, Reorder } from "motion/react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft, Upload, Shuffle, Download, Play, Pause, Clock,
   Zap, LayoutGrid, Film, X, Loader2, CheckCircle, Music,
-  Video, AlertCircle,
+  Video, AlertCircle, Plus, FolderOpen, RotateCcw, ChevronUp, ChevronDown,
 } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
-import { uploadFile, generate, type GenerationPack, formatLyrics, formatBeats, formatPrompts } from "../../lib/api";
+import { uploadFile, generate, type GenerationPack } from "../../lib/api";
 import GenerationResults from "./GenerationResults";
 
 interface Clip {
   id: string;
   name: string;
   duration: string;
+  durationSec: number;
   file?: File;
   url?: string;
-  type: "video" | "audio" | "placeholder";
+  type: "video" | "audio";
+  category?: string;
+}
+
+interface TimelineSlot {
+  id: string;
+  clip: Clip | null;
+  duration: string;
 }
 
 interface Props {
   onBack: () => void;
   wolf?: { artist: string; genre: string; color: string; id: string } | null;
+  lyrics?: string;
 }
 
-export default function RemixView({ onBack, wolf }: Props) {
+const CATEGORIES = ["All Categories", "Performance", "B-Roll", "Vibes", "City"];
+const SLOT_COLORS = ["#f5c518", "#69f0ae", "#E040FB", "#82b1ff", "#ff6b9d", "#ff9500", "#9b6dff"];
+
+export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props) {
   const { t } = useI18n();
   const [clips, setClips] = useState<Clip[]>([]);
-  const [timeline, setTimeline] = useState<Clip[]>([]);
-  const [selectedClip, setSelectedClip] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [slots, setSlots] = useState<TimelineSlot[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState("All Categories");
+  const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16">("9:16");
   const [title, setTitle] = useState("");
   const [genre, setGenre] = useState(wolf?.genre || "Hip-Hop");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [currentLyric, setCurrentLyric] = useState("");
+  const [controlsOpen, setControlsOpen] = useState(true);
   const [exporting, setExporting] = useState(false);
-  const [exported, setExported] = useState(false);
   const [result, setResult] = useState<GenerationPack | null>(null);
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const previewVideoRef = useRef<HTMLVideoElement>(null);
+
+  const accentColor = wolf?.color || "#f5c518";
+  const filledSlots = slots.filter((s) => s.clip).length;
+  const totalSlots = slots.length;
+
+  // Generate initial timeline slots when clips are added
+  useEffect(() => {
+    if (clips.length > 0 && slots.length === 0) {
+      const newSlots: TimelineSlot[] = Array.from({ length: 7 }).map((_, i) => ({
+        id: `slot-${i}`,
+        clip: clips[i] || null,
+        duration: clips[i] ? clips[i].duration : "2.5s",
+      }));
+      setSlots(newSlots);
+    }
+  }, [clips, slots.length]);
 
   const handleImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -46,99 +77,93 @@ export default function RemixView({ onBack, wolf }: Props) {
       id: `clip-${Date.now()}-${i}`,
       name: f.name.replace(/\.[^/.]+$/, ""),
       duration: "...",
+      durationSec: 0,
       file: f,
       url: URL.createObjectURL(f),
       type: f.type.startsWith("video") ? "video" : "audio",
+      category: "Unsorted",
     }));
     setClips((prev) => [...prev, ...newClips]);
-    // Auto-add to timeline
-    setTimeline((prev) => [...prev, ...newClips]);
+
     // Get durations
     newClips.forEach((clip) => {
       if (clip.url) {
-        const el = document.createElement(clip.type === "video" ? "video" : "audio");
+        const el = document.createElement("video");
         el.src = clip.url;
         el.onloadedmetadata = () => {
-          const dur = `${el.duration.toFixed(1)}s`;
-          setClips((prev) => prev.map((c) => c.id === clip.id ? { ...c, duration: dur } : c));
-          setTimeline((prev) => prev.map((c) => c.id === clip.id ? { ...c, duration: dur } : c));
+          const dur = el.duration;
+          setClips((prev) => prev.map((c) => c.id === clip.id ? { ...c, duration: `${dur.toFixed(1)}s`, durationSec: dur } : c));
         };
       }
     });
     if (fileRef.current) fileRef.current.value = "";
   }, []);
 
-  const removeClip = useCallback((id: string) => {
-    setClips((prev) => prev.filter((c) => c.id !== id));
-    setTimeline((prev) => prev.filter((c) => c.id !== id));
-    if (selectedClip === id) setSelectedClip(null);
-  }, [selectedClip]);
+  const shuffleSlots = useCallback(() => {
+    if (clips.length === 0) return;
+    const shuffled = [...clips].sort(() => Math.random() - 0.5);
+    setSlots((prev) => prev.map((slot, i) => ({
+      ...slot,
+      clip: shuffled[i % shuffled.length] || null,
+    })));
+  }, [clips]);
 
-  const shuffleTimeline = useCallback(() => {
-    setTimeline((prev) => {
-      const shuffled = [...prev];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      return shuffled;
-    });
+  const assignClipToSlot = useCallback((slotId: string) => {
+    if (!selectedClipId) return;
+    const clip = clips.find((c) => c.id === selectedClipId);
+    if (!clip) return;
+    setSlots((prev) => prev.map((s) => s.id === slotId ? { ...s, clip } : s));
+    setSelectedClipId(null);
+  }, [selectedClipId, clips]);
+
+  const removeFromSlot = useCallback((slotId: string) => {
+    setSlots((prev) => prev.map((s) => s.id === slotId ? { ...s, clip: null } : s));
   }, []);
 
-  const addToTimeline = useCallback((clip: Clip) => {
-    if (!timeline.find((c) => c.id === clip.id)) {
-      setTimeline((prev) => [...prev, clip]);
-    }
-  }, [timeline]);
+  // Preview: play the selected slot's video
+  const activeSlotClip = slots.find((s) => s.clip && isPlaying)?.clip;
 
   const handleExport = useCallback(async () => {
+    if (filledSlots === 0) return;
     setExporting(true);
     setError("");
     try {
-      // Upload all clip files
-      for (const clip of clips) {
-        if (clip.file) {
-          await uploadFile(clip.file);
-        }
-      }
-      // Generate lyrics/beats/prompts for the remix
       const res = await generate({
         title: title || "Remix Project",
         artist: wolf?.artist || "Lightning Wolves",
         genre,
         language: "English",
-        mood: `Remix with ${clips.length} clips, ${aspectRatio} aspect ratio. Clips: ${clips.map((c) => c.name).join(", ")}`,
+        mood: `Remix with ${filledSlots} clips. Clips: ${slots.filter((s) => s.clip).map((s) => s.clip!.name).join(", ")}`,
         wolfId: wolf?.id,
       });
       setResult(res.pack);
-      setExported(true);
     } catch (err: any) {
-      setError(err.message || "Export failed. Make sure the server is running.");
+      setError(err.message || "Export failed");
     } finally {
       setExporting(false);
     }
-  }, [clips, title, wolf, genre, aspectRatio]);
+  }, [filledSlots, slots, title, wolf, genre]);
 
-  const previewClip = clips.find((c) => c.id === selectedClip);
+  // Lyrics sync
+  useEffect(() => {
+    if (!initialLyrics || !isPlaying) return;
+    const lines = initialLyrics.split("\n").filter(Boolean);
+    const interval = setInterval(() => {
+      const idx = Math.min(Math.floor((currentTime / 15) * lines.length), lines.length - 1);
+      setCurrentLyric(lines[idx] || "");
+      setCurrentTime((t) => t + 0.1);
+    }, 100);
+    return () => clearInterval(interval);
+  }, [isPlaying, initialLyrics, currentTime]);
 
   if (result) {
     return (
       <div>
-        <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} onClick={() => { setResult(null); setExported(false); }}
+        <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} onClick={() => setResult(null)}
           className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted hover:text-wolf-gold">
-          <ArrowLeft size={16} /> {t("studio.backDashboard")}
+          <ArrowLeft size={16} /> Back
         </motion.button>
-        <div className="space-y-6">
-          <div className="flex items-center gap-2 rounded-xl border border-green-500/20 bg-green-500/5 px-4 py-3">
-            <CheckCircle size={16} className="text-green-400" />
-            <span className="text-sm text-green-400">Remix exported successfully! Production pack ready.</span>
-          </div>
-          <GenerationResults pack={result} accentColor={wolf?.color} />
-          <button onClick={() => { setResult(null); setExported(false); setClips([]); setTimeline([]); }}
-            className="w-full rounded-xl border border-wolf-border/30 py-3 text-sm font-semibold text-wolf-muted hover:text-wolf-gold">
-            {t("studio.generateAnother")}
-          </button>
-        </div>
+        <GenerationResults pack={result} accentColor={accentColor} />
       </div>
     );
   }
@@ -146,206 +171,313 @@ export default function RemixView({ onBack, wolf }: Props) {
   return (
     <div>
       <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} onClick={onBack}
-        className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted hover:text-wolf-gold">
+        className="mb-4 inline-flex items-center gap-2 text-sm text-wolf-muted hover:text-wolf-gold">
         <ArrowLeft size={16} /> {t("studio.backDashboard")}
       </motion.button>
 
       {error && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="mb-4 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+        <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
           <AlertCircle size={16} />{error}
-        </motion.div>
+        </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
-        {/* Left: Clip Library + Controls */}
+      <div className="grid gap-4 lg:grid-cols-[380px_1fr]">
+        {/* ═══ LEFT: Clip Library ═══ */}
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-          className="rounded-2xl border border-wolf-border/20 bg-wolf-card p-5">
-          <h2 className="mb-1 text-2xl text-wolf-gold" style={{ fontFamily: "var(--font-display)" }}>
-            {t("studio.remix")}
-          </h2>
-          <p className="mb-4 text-xs text-wolf-muted">{t("studio.remixDesc")}</p>
+          className="flex flex-col rounded-2xl border border-wolf-border/20 bg-wolf-card">
 
-          {/* Title + Genre */}
-          <div className="mb-4 grid grid-cols-2 gap-2">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("studio.trackTitle")}
-              className="rounded-lg border border-wolf-border/20 bg-wolf-surface px-3 py-2 text-xs text-white placeholder:text-wolf-muted/40 focus:border-wolf-gold/30 focus:outline-none" />
-            <select value={genre} onChange={(e) => setGenre(e.target.value)}
-              className="rounded-lg border border-wolf-border/20 bg-wolf-surface px-3 py-2 text-xs text-white focus:outline-none">
-              {["Hip-Hop", "R&B", "Pop", "French Hip-Hop", "Afrobeats", "Drill", "Trap", "Lo-Fi"].map((g) => (
-                <option key={g}>{g}</option>
-              ))}
-            </select>
+          {/* Header */}
+          <div className="border-b border-wolf-border/10 p-4">
+            <h2 className="mb-1 text-xl font-bold" style={{ color: accentColor, fontFamily: "var(--font-display)" }}>
+              Remix
+            </h2>
+            <p className="text-[10px] text-wolf-muted">{t("studio.remixDesc")}</p>
           </div>
 
-          {/* Clip Library header */}
-          <div className="mb-3 flex items-center justify-between">
+          {/* Clip library header */}
+          <div className="flex items-center justify-between border-b border-wolf-border/10 px-4 py-2.5">
             <div className="flex items-center gap-2">
-              <LayoutGrid size={14} className="text-wolf-muted" />
-              <span className="text-xs font-semibold uppercase tracking-wider text-wolf-muted">{t("studio.clipLibrary")}</span>
-              <span className="text-[10px] text-wolf-muted/50">{clips.length} clips</span>
+              <LayoutGrid size={13} className="text-wolf-muted" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-wolf-muted">Clip Library</span>
+              <span className="text-[10px] text-wolf-muted/50">{clips.length}</span>
             </div>
-            <input ref={fileRef} type="file" accept="video/*,audio/*" multiple onChange={handleImport} className="hidden" />
+            <input ref={fileRef} type="file" accept="video/*" multiple onChange={handleImport} className="hidden" />
             <button onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-1 text-xs text-wolf-gold hover:underline">
-              <Upload size={12} /> {t("studio.import")}
+              className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: accentColor }}>
+              <Upload size={12} /> Import
             </button>
           </div>
 
-          {/* Clip grid */}
-          {clips.length === 0 ? (
-            <div onClick={() => fileRef.current?.click()}
-              className="mb-5 cursor-pointer rounded-xl border-2 border-dashed border-wolf-border/30 p-8 text-center transition-all hover:border-wolf-gold/40">
-              <Upload size={28} className="mx-auto mb-2 text-wolf-muted" />
-              <p className="text-sm text-white">{t("studio.dropAudio")}</p>
-              <p className="mt-1 text-xs text-wolf-muted">{t("studio.fileTypes")}</p>
-            </div>
-          ) : (
-            <div className="mb-5 grid grid-cols-3 gap-2">
-              {clips.map((clip) => (
-                <motion.div
-                  key={clip.id}
-                  layout
-                  whileHover={{ scale: 1.05 }}
-                  onClick={() => { setSelectedClip(clip.id); addToTimeline(clip); }}
-                  className={`group relative cursor-pointer overflow-hidden rounded-lg border transition-all ${
-                    selectedClip === clip.id ? "border-wolf-gold shadow-lg shadow-wolf-gold/10" : "border-wolf-border/20"
-                  }`}
-                >
-                  <div className="relative aspect-video bg-gradient-to-br from-wolf-surface to-wolf-card">
-                    {clip.type === "video" && clip.url ? (
-                      <video src={clip.url} muted className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center">
-                        <Music size={16} className="text-wolf-muted/30" />
-                      </div>
-                    )}
-                    <span className="absolute bottom-1 right-1 flex items-center gap-0.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] text-white">
-                      <Clock size={8} /> {clip.duration}
-                    </span>
-                    {/* Remove button */}
-                    <button onClick={(e) => { e.stopPropagation(); removeClip(clip.id); }}
-                      className="absolute right-1 top-1 rounded bg-black/60 p-0.5 text-white/0 transition-all group-hover:text-white">
-                      <X size={10} />
-                    </button>
-                  </div>
-                  <p className="truncate px-1.5 py-1 text-[10px] text-wolf-muted">{clip.name}</p>
-                </motion.div>
-              ))}
-              {/* Add more button */}
+          {/* Categories */}
+          <div className="flex gap-1.5 overflow-x-auto border-b border-wolf-border/10 px-4 py-2">
+            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
+              className="rounded-lg border border-wolf-border/20 bg-wolf-surface px-2 py-1 text-[10px] text-white focus:outline-none">
+              {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+            </select>
+            <select className="rounded-lg border border-wolf-border/20 bg-wolf-surface px-2 py-1 text-[10px] text-white focus:outline-none">
+              <option>Newest</option>
+              <option>Oldest</option>
+              <option>Name</option>
+            </select>
+            <button onClick={() => fileRef.current?.click()}
+              className="rounded-lg border border-wolf-border/20 px-1.5 py-1 text-wolf-muted hover:text-white">
+              <Plus size={12} />
+            </button>
+          </div>
+
+          {/* Clips grid */}
+          <div className="flex-1 overflow-y-auto p-3">
+            {clips.length === 0 ? (
               <div onClick={() => fileRef.current?.click()}
-                className="flex cursor-pointer items-center justify-center rounded-lg border border-dashed border-wolf-border/20 transition-all hover:border-wolf-gold/30">
-                <Upload size={16} className="text-wolf-muted/30" />
-              </div>
-            </div>
-          )}
-
-          {/* Controls */}
-          <div className="rounded-xl border border-wolf-border/20 bg-wolf-surface/50 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-wolf-muted">{t("studio.controls")}</span>
-              <span className="text-xs text-wolf-muted">{timeline.length}/{clips.length}</span>
-            </div>
-
-            {/* Progress bar */}
-            <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-wolf-border/20">
-              <div className="h-full rounded-full bg-gradient-to-r from-wolf-gold to-green-500"
-                style={{ width: `${clips.length > 0 ? (timeline.length / clips.length) * 100 : 0}%` }} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={shuffleTimeline} disabled={timeline.length < 2}
-                className="flex items-center justify-center gap-2 rounded-xl border border-wolf-border/30 py-3 text-sm font-semibold text-white transition-all hover:border-wolf-gold/30 disabled:opacity-30">
-                <Shuffle size={14} /> {t("studio.shuffle")}
-              </button>
-              <button onClick={handleExport} disabled={clips.length === 0 || exporting}
-                className="flex items-center justify-center gap-2 rounded-xl bg-wolf-gold py-3 text-sm font-bold text-black transition-all hover:bg-wolf-amber disabled:opacity-30">
-                {exporting ? (
-                  <><Loader2 size={14} className="animate-spin" /> {t("studio.generating")}</>
-                ) : (
-                  <>
-                    <Download size={14} /> {t("studio.export")}
-                    <span className="rounded bg-black/20 px-1.5 py-0.5 text-[10px]">
-                      <Zap size={8} className="mr-0.5 inline" />15
-                    </span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Right: Video Preview */}
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col">
-          {/* Aspect ratio toggle */}
-          <div className="mb-3 flex justify-end gap-1">
-            {(["16:9", "9:16"] as const).map((r) => (
-              <button key={r} onClick={() => setAspectRatio(r)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  aspectRatio === r ? "bg-wolf-gold text-black" : "text-wolf-muted"
-                }`}>{r}</button>
-            ))}
-          </div>
-
-          {/* Preview */}
-          <div className={`relative mx-auto flex items-center justify-center overflow-hidden rounded-2xl border border-wolf-border/20 bg-wolf-card ${
-            aspectRatio === "9:16" ? "aspect-[9/16] max-h-[500px]" : "aspect-video w-full"
-          }`}>
-            {previewClip?.url && previewClip.type === "video" ? (
-              <video ref={videoRef} src={previewClip.url} controls={isPlaying} autoPlay={isPlaying} loop muted
-                className="h-full w-full object-cover" onClick={() => setIsPlaying(!isPlaying)} />
-            ) : previewClip?.url && previewClip.type === "audio" ? (
-              <div className="p-6 text-center">
-                <Music size={40} className="mx-auto mb-3 text-wolf-gold" />
-                <p className="text-sm text-white">{previewClip.name}</p>
-                <audio src={previewClip.url} controls className="mt-3 w-full" />
+                className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-wolf-border/20 p-8 text-center transition-all hover:border-wolf-gold/30">
+                <Upload size={24} className="mb-2 text-wolf-muted" />
+                <p className="text-xs text-white">Import video clips</p>
+                <p className="mt-1 text-[10px] text-wolf-muted">MP4, MOV, WebM</p>
               </div>
             ) : (
-              <div className="text-center p-6">
-                <Film size={32} className="mx-auto mb-3 text-wolf-muted/30" />
-                <p className="text-sm text-wolf-muted">
-                  {clips.length === 0 ? "Import clips to get started" : "Select a clip to preview"}
-                </p>
-              </div>
+              <>
+                {/* Category clips */}
+                <div className="mb-3 grid grid-cols-3 gap-2">
+                  {clips.filter((c) => selectedCategory === "All Categories" || c.category === selectedCategory).map((clip) => (
+                    <motion.div
+                      key={clip.id}
+                      layout
+                      whileHover={{ scale: 1.05 }}
+                      onClick={() => setSelectedClipId(clip.id === selectedClipId ? null : clip.id)}
+                      className={`group relative cursor-pointer overflow-hidden rounded-lg border transition-all ${
+                        selectedClipId === clip.id ? `border-2 shadow-lg` : "border-wolf-border/20"
+                      }`}
+                      style={selectedClipId === clip.id ? { borderColor: accentColor, boxShadow: `0 0 10px ${accentColor}20` } : {}}
+                    >
+                      <div className="relative aspect-video bg-wolf-surface">
+                        {clip.url && clip.type === "video" ? (
+                          <video src={clip.url} muted className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <Film size={14} className="text-wolf-muted/30" />
+                          </div>
+                        )}
+                        <span className="absolute bottom-1 right-1 rounded bg-black/70 px-1 py-0.5 text-[8px] text-white">
+                          <Clock size={7} className="mr-0.5 inline" />{clip.duration}
+                        </span>
+                        <button onClick={(e) => { e.stopPropagation(); setClips((prev) => prev.filter((c) => c.id !== clip.id)); }}
+                          className="absolute right-0.5 top-0.5 rounded bg-black/50 p-0.5 text-white/0 group-hover:text-white">
+                          <X size={8} />
+                        </button>
+                      </div>
+                      <p className="truncate px-1 py-0.5 text-[9px] text-wolf-muted">{clip.name}</p>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Unsorted section */}
+                {clips.filter((c) => c.category === "Unsorted").length > 0 && (
+                  <div className="mb-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <div className="h-px flex-1 bg-wolf-border/10" />
+                      <span className="text-[9px] uppercase tracking-wider text-wolf-muted/50">Unsorted</span>
+                      <div className="h-px flex-1 bg-wolf-border/10" />
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
+          {/* Controls */}
+          <div className="border-t border-wolf-border/10 p-3">
+            <button onClick={() => setControlsOpen(!controlsOpen)}
+              className="mb-2 flex w-full items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <FolderOpen size={13} className="text-wolf-muted" />
+                <span className="font-semibold uppercase tracking-wider text-wolf-muted">Controls</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-wolf-muted/50">{filledSlots}/{totalSlots}</span>
+                {controlsOpen ? <ChevronUp size={12} className="text-wolf-muted" /> : <ChevronDown size={12} className="text-wolf-muted" />}
+              </div>
+            </button>
+
+            {controlsOpen && (
+              <>
+                {/* Progress */}
+                <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-wolf-border/20">
+                  <div className="h-full rounded-full transition-all" style={{
+                    width: `${totalSlots > 0 ? (filledSlots / totalSlots) * 100 : 0}%`,
+                    background: `linear-gradient(90deg, ${accentColor}, #69f0ae)`,
+                  }} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={shuffleSlots} disabled={clips.length === 0}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-wolf-border/30 py-2.5 text-xs font-semibold text-white hover:border-wolf-gold/30 disabled:opacity-30">
+                    <Shuffle size={13} /> Shuffle
+                  </button>
+                  <button onClick={handleExport} disabled={filledSlots === 0 || exporting}
+                    className="flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold text-black disabled:opacity-30"
+                    style={{ backgroundColor: accentColor }}>
+                    {exporting ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                    Export
+                    <span className="rounded bg-black/15 px-1 py-0.5 text-[9px]"><Zap size={7} className="inline" /> 15</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </motion.div>
+
+        {/* ═══ RIGHT: Preview + Timeline ═══ */}
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex flex-col">
+
+          {/* Aspect ratio toggle */}
+          <div className="mb-2 flex justify-end gap-1">
+            {(["16:9", "9:16"] as const).map((r) => (
+              <button key={r} onClick={() => setAspectRatio(r)}
+                className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
+                  aspectRatio === r ? "text-black" : "text-wolf-muted"
+                }`} style={aspectRatio === r ? { backgroundColor: accentColor } : {}}>
+                {r}
+              </button>
+            ))}
+          </div>
+
+          {/* Video Preview */}
+          <div className={`relative mx-auto overflow-hidden rounded-2xl border border-wolf-border/20 bg-black ${
+            aspectRatio === "9:16" ? "aspect-[9/16] max-h-[450px]" : "aspect-video w-full"
+          }`}>
+            {/* Video from first filled slot */}
+            {slots.find((s) => s.clip)?.clip?.url ? (
+              <video
+                ref={previewVideoRef}
+                src={slots.find((s) => s.clip)?.clip?.url}
+                muted loop
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <div className="text-center">
+                  <Film size={28} className="mx-auto mb-2 text-wolf-muted/20" />
+                  <p className="text-xs text-wolf-muted">Import clips to preview</p>
+                </div>
+              </div>
+            )}
+
+            {/* Lyrics overlay */}
+            {currentLyric && isPlaying && (
+              <motion.div
+                key={currentLyric}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="absolute inset-x-0 bottom-16 px-4 text-center"
+              >
+                <p className="text-lg font-bold uppercase text-white"
+                  style={{ fontFamily: "var(--font-display)", textShadow: `0 0 20px ${accentColor}60, 0 2px 4px rgba(0,0,0,0.8)` }}>
+                  {currentLyric}
+                </p>
+              </motion.div>
+            )}
+
+            {/* Play/Pause center button */}
+            {!isPlaying && slots.some((s) => s.clip) && (
+              <button onClick={() => { setIsPlaying(true); setCurrentTime(0); previewVideoRef.current?.play(); }}
+                className="absolute inset-0 flex items-center justify-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm">
+                  <Play size={24} className="ml-1 text-white" />
+                </div>
+              </button>
+            )}
+          </div>
+
+          {/* Playback controls */}
+          {slots.some((s) => s.clip) && (
+            <div className="mt-2 flex items-center gap-3 px-1">
+              <button onClick={() => { setCurrentTime(0); if (previewVideoRef.current) previewVideoRef.current.currentTime = 0; }}>
+                <RotateCcw size={14} className="text-wolf-muted hover:text-white" />
+              </button>
+              <button onClick={() => {
+                setIsPlaying(!isPlaying);
+                if (previewVideoRef.current) isPlaying ? previewVideoRef.current.pause() : previewVideoRef.current.play();
+              }}>
+                {isPlaying ? <Pause size={14} className="text-white" /> : <Play size={14} className="text-white" />}
+              </button>
+              <span className="font-mono text-[10px] text-wolf-muted">
+                {Math.floor(currentTime / 60)}:{String(Math.floor(currentTime % 60)).padStart(2, "0")} / 0:15
+              </span>
+            </div>
+          )}
+
+          {/* Colored timeline bar */}
+          {slots.length > 0 && (
+            <div className="mt-2 flex h-3 overflow-hidden rounded-full">
+              {slots.map((slot, i) => (
+                <div
+                  key={slot.id}
+                  className="h-full transition-all"
+                  style={{
+                    flex: 1,
+                    backgroundColor: slot.clip ? SLOT_COLORS[i % SLOT_COLORS.length] : "#2a2a35",
+                    opacity: slot.clip ? 1 : 0.3,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Info notice */}
-          {clips.length > 0 && (
-            <div className="mt-3 rounded-xl border border-wolf-gold/20 bg-wolf-gold/5 px-4 py-2.5 text-center text-xs text-wolf-gold">
+          {filledSlots > 0 && (
+            <div className="mt-2 rounded-lg border px-3 py-1.5 text-center text-[10px]"
+              style={{ borderColor: `${accentColor}30`, color: accentColor, backgroundColor: `${accentColor}08` }}>
               The preview may lag during playback — your export will be a perfectly smooth HD video!
             </div>
           )}
 
-          {/* Timeline */}
-          {timeline.length > 0 && (
-            <div className="mt-4">
-              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-wolf-muted">Timeline ({timeline.length} clips)</p>
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {timeline.map((clip, i) => (
-                  <motion.div key={clip.id} layout
-                    onClick={() => setSelectedClip(clip.id)}
-                    className={`shrink-0 cursor-pointer overflow-hidden rounded-lg border transition-all ${
-                      selectedClip === clip.id ? "border-wolf-gold" : "border-wolf-gold/20"
-                    }`}>
-                    <div className="relative h-20 w-16 bg-gradient-to-br from-wolf-surface to-wolf-card">
-                      {clip.type === "video" && clip.url ? (
-                        <video src={clip.url} muted className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <Music size={12} className="text-wolf-muted/30" />
-                        </div>
-                      )}
-                      <span className="absolute left-1 top-1 flex h-5 w-5 items-center justify-center rounded bg-wolf-gold/20 text-[9px] font-bold text-wolf-gold">
-                        {String.fromCharCode(65 + i)}{i + 1}
-                      </span>
-                      <span className="absolute bottom-1 right-1 text-[8px] text-wolf-muted">{clip.duration}</span>
-                    </div>
-                  </motion.div>
-                ))}
+          {/* Progress */}
+          {slots.length > 0 && (
+            <div className="mt-2 flex items-center justify-between">
+              <div className="h-1 flex-1 overflow-hidden rounded-full bg-wolf-border/20">
+                <div className="h-full rounded-full" style={{
+                  width: `${(filledSlots / totalSlots) * 100}%`,
+                  background: `linear-gradient(90deg, ${accentColor}, #69f0ae)`,
+                }} />
               </div>
+              <span className="ml-2 text-[10px] text-wolf-muted">{filledSlots}/{totalSlots}</span>
             </div>
           )}
+
+          {/* Timeline slots */}
+          <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+            {slots.map((slot, i) => (
+              <div
+                key={slot.id}
+                onClick={() => slot.clip ? removeFromSlot(slot.id) : assignClipToSlot(slot.id)}
+                className={`shrink-0 cursor-pointer overflow-hidden rounded-lg border transition-all ${
+                  slot.clip ? "" : "border-dashed border-wolf-border/30 hover:border-wolf-gold/30"
+                }`}
+                style={slot.clip ? { borderColor: SLOT_COLORS[i % SLOT_COLORS.length] + "50" } : {}}
+              >
+                <div className="relative h-20 w-20 bg-wolf-surface">
+                  {slot.clip?.url ? (
+                    <>
+                      <video src={slot.clip.url} muted className="h-full w-full object-cover" />
+                      <span className="absolute left-1 top-1 flex h-4 w-4 items-center justify-center rounded text-[8px] font-bold text-black"
+                        style={{ backgroundColor: SLOT_COLORS[i % SLOT_COLORS.length] }}>
+                        {i + 1}
+                      </span>
+                      <span className="absolute bottom-1 right-1 text-[7px] text-white">{slot.clip.duration}</span>
+                    </>
+                  ) : (
+                    <div className="flex h-full w-full flex-col items-center justify-center">
+                      <span className="mb-0.5 text-[9px] font-bold text-wolf-muted">{i + 1}</span>
+                      <LayoutGrid size={14} className="mb-0.5 text-wolf-muted/20" />
+                      <span className="text-[7px] text-wolf-muted/40">
+                        {selectedClipId ? "Tap to place" : "Drop video"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
         </motion.div>
       </div>
     </div>

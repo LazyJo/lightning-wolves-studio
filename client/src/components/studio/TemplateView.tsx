@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft, Upload, Music, FileText, Scissors, Save, CheckCircle,
   Loader2, Zap, AlertCircle, Wifi, WifiOff, Play, Pause, X, Check,
-  RotateCcw, Globe, Edit3, ChevronDown,
+  RotateCcw, Globe, Edit3, ChevronDown, Shuffle, LayoutGrid, Film,
 } from "lucide-react";
 import { useI18n } from "../../lib/i18n";
 import { uploadFile, generate, transcribeAudio, type GenerationPack } from "../../lib/api";
@@ -13,6 +13,7 @@ import LyricsEditor from "./LyricsEditor";
 
 interface Props {
   onBack: () => void;
+  onGoToRemix?: () => void;
   wolf?: { artist: string; genre: string; color: string; id: string } | null;
 }
 
@@ -208,7 +209,7 @@ function TranscribingLoader({ onManualFallback }: { onManualFallback: () => void
   );
 }
 
-export default function TemplateView({ onBack, wolf }: Props) {
+export default function TemplateView({ onBack, onGoToRemix, wolf }: Props) {
   const { t } = useI18n();
   const [activeStep, setActiveStep] = useState(0);
   const [fileName, setFileName] = useState("");
@@ -363,18 +364,92 @@ export default function TemplateView({ onBack, wolf }: Props) {
 
   if (result && templateSaved) {
     return (
-      <div>
-        <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} onClick={onBack}
-          className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted hover:text-wolf-gold">
-          <ArrowLeft size={16} /> {t("studio.backDashboard")}
-        </motion.button>
-        <div className="space-y-6">
-          <GenerationResults pack={result} accentColor={wolf?.color} />
-          <button onClick={() => { setResult(null); setActiveStep(0); setFileName(""); setFileUrl(""); setFileObj(null); setLyrics(""); setLyricsBlocks([]); setSelectionConfirmed(false); setTemplateSaved(false); }}
-            className="w-full rounded-xl border border-wolf-border/30 py-3 text-sm font-semibold text-wolf-muted hover:text-wolf-gold">
-            {t("studio.createAnother")}
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 100 }}
+          className="w-full max-w-md rounded-3xl border border-white/[0.06] bg-gradient-to-b from-purple-500/5 to-wolf-card p-8 text-center backdrop-blur-xl"
+        >
+          {/* Icon */}
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: [0, 1.2, 1] }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl"
+            style={{ background: `linear-gradient(135deg, ${wolf?.color || "#9b6dff"}, #f5c518)` }}
+          >
+            <Shuffle size={28} className="text-black" />
+          </motion.div>
+
+          {/* Heading */}
+          <motion.h2
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="mb-2 text-xl font-bold text-white"
+          >
+            Your template is ready —
+            <br />
+            now let's find your visuals.
+          </motion.h2>
+
+          {/* Description */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="mb-8 text-sm leading-relaxed text-wolf-muted"
+          >
+            Lightning Wolves pulls clips from your library and fills your template's slots automatically.
+            Upload your own clips or import them — they're saved to your account forever.
+            Hit Shuffle to fill your video, then refine it before you export.
+          </motion.p>
+
+          {/* Steps */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="mb-8 space-y-3"
+          >
+            {[
+              { num: 1, icon: LayoutGrid, text: "Build your clip library" },
+              { num: 2, icon: Shuffle, text: "Hit Shuffle to fill slots" },
+              { num: 3, icon: Film, text: "Refine & export" },
+            ].map((step) => (
+              <div key={step.num} className="flex items-center gap-3 rounded-xl border border-white/[0.04] bg-white/[0.02] px-4 py-3">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-wolf-gold text-xs font-bold text-black">
+                  {step.num}
+                </span>
+                <step.icon size={16} className="text-wolf-muted" />
+                <span className="text-sm text-white">{step.text}</span>
+              </div>
+            ))}
+          </motion.div>
+
+          {/* CTA */}
+          <motion.button
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={onGoToRemix || onBack}
+            className="w-full rounded-xl py-3.5 text-base font-bold text-black"
+            style={{ background: `linear-gradient(135deg, ${wolf?.color || "#f5c518"}, #f5c518)` }}
+          >
+            Let's go
+          </motion.button>
+
+          {/* Secondary */}
+          <button
+            onClick={onBack}
+            className="mt-4 text-sm text-wolf-muted hover:text-white"
+          >
+            Back to Dashboard
           </button>
-        </div>
+        </motion.div>
       </div>
     );
   }

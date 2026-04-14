@@ -17,10 +17,11 @@ interface Props {
 }
 
 // Cut Markers step — lyric video preview screen
-function CutMarkersStep({ result, lyrics, audioUrl, onSave, accentColor }: {
+function CutMarkersStep({ result, lyrics, audioUrl, segments, onSave, accentColor }: {
   result: GenerationPack;
   lyrics: string;
   audioUrl: string;
+  segments: { start: number; end: number; text: string }[];
   onSave: () => void;
   accentColor: string;
 }) {
@@ -33,21 +34,33 @@ function CutMarkersStep({ result, lyrics, audioUrl, onSave, accentColor }: {
     const audio = audioRefCM.current;
     if (!audio) return;
     const update = () => {
-      setCurrentTime(audio.currentTime);
-      if (result.lyrics) {
-        for (let i = result.lyrics.length - 1; i >= 0; i--) {
-          const parts = result.lyrics[i].ts.split(":");
-          const sec = parseInt(parts[0]) * 60 + parseInt(parts[1] || "0");
-          if (audio.currentTime >= sec) {
-            setCurrentLyric(result.lyrics[i].text);
+      const t = audio.currentTime;
+      setCurrentTime(t);
+
+      // Use real Whisper segments for accurate sync
+      if (segments.length > 0) {
+        let found = "";
+        for (let i = segments.length - 1; i >= 0; i--) {
+          if (t >= segments[i].start && t <= segments[i].end) {
+            found = segments[i].text.trim();
+            break;
+          } else if (t >= segments[i].start) {
+            found = segments[i].text.trim();
             break;
           }
         }
+        setCurrentLyric(found);
+      } else {
+        // Fallback to lyrics lines evenly spaced
+        const lines = lyrics.split("\n").filter(Boolean);
+        const duration = audio.duration || 15;
+        const lineIdx = Math.min(Math.floor((t / duration) * lines.length), lines.length - 1);
+        setCurrentLyric(lines[lineIdx] || "");
       }
     };
     audio.addEventListener("timeupdate", update);
     return () => audio.removeEventListener("timeupdate", update);
-  }, [result.lyrics]);
+  }, [segments, lyrics]);
 
   const togglePlay = () => {
     if (!audioRefCM.current) return;
@@ -587,6 +600,7 @@ export default function TemplateView({ onBack, wolf }: Props) {
                     result={result}
                     lyrics={lyrics}
                     audioUrl={fileUrl}
+                    segments={segments}
                     onSave={() => setTemplateSaved(true)}
                     accentColor={wolf?.color || "#f5c518"}
                   />

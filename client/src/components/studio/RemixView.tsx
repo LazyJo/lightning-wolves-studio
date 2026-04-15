@@ -420,26 +420,52 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
               )}
             </div>
 
-            {/* Play/Pause button */}
-            {!isPlaying && (
-              <button onClick={() => { setIsPlaying(true); setCurrentTime(0); previewVideoRef.current?.play(); }}
-                className="absolute inset-0 z-20 flex items-center justify-center">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm">
-                  <Play size={24} className="ml-1 text-white" />
+            {/* Play/Pause click area */}
+            <button
+              onClick={() => {
+                const video = previewVideoRef.current;
+                if (isPlaying) {
+                  video?.pause();
+                  setIsPlaying(false);
+                } else {
+                  setCurrentTime(0);
+                  if (video) {
+                    video.currentTime = 0;
+                    video.play().catch(() => {});
+                  }
+                  setIsPlaying(true);
+                }
+              }}
+              className="absolute inset-0 z-20"
+            >
+              {!isPlaying && (
+                <div className="flex h-full w-full items-center justify-center">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/40 backdrop-blur-sm">
+                    <Play size={24} className="ml-1 text-white" />
+                  </div>
                 </div>
-              </button>
-            )}
+              )}
+            </button>
           </div>
 
-          {/* Playback controls — always show if there are lyrics */}
+          {/* Playback controls */}
           {(initialLyrics || slots.some((s) => s.clip)) && (
             <div className="mt-2 flex items-center gap-3 px-1">
-              <button onClick={() => { setCurrentTime(0); if (previewVideoRef.current) previewVideoRef.current.currentTime = 0; }}>
+              <button onClick={() => {
+                setCurrentTime(0);
+                if (previewVideoRef.current) previewVideoRef.current.currentTime = 0;
+              }}>
                 <RotateCcw size={14} className="text-wolf-muted hover:text-white" />
               </button>
               <button onClick={() => {
-                setIsPlaying(!isPlaying);
-                if (previewVideoRef.current) isPlaying ? previewVideoRef.current.pause() : previewVideoRef.current.play();
+                const video = previewVideoRef.current;
+                if (isPlaying) {
+                  video?.pause();
+                  setIsPlaying(false);
+                } else {
+                  if (video) video.play().catch(() => {});
+                  setIsPlaying(true);
+                }
               }}>
                 {isPlaying ? <Pause size={14} className="text-white" /> : <Play size={14} className="text-white" />}
               </button>

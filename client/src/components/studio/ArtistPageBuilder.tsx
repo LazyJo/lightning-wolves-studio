@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft, Plus, X, Globe, Music, Video, Instagram, Youtube,
-  ExternalLink, Save, Smartphone, CheckCircle,
+  ExternalLink, Save, Smartphone, CheckCircle, Camera,
 } from "lucide-react";
 import { useArtistPage } from "../../lib/useArtistPage";
 
@@ -32,6 +32,19 @@ export default function ArtistPageBuilder({ onBack, wolf }: Props) {
   const [newVideoTitle, setNewVideoTitle] = useState("");
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const [saved, setSaved] = useState(false);
+  const photoRef = useRef<HTMLInputElement>(null);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        update({ photoUrl: reader.result });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const themeColor = data.themeColor || wolf?.color || "#f5c518";
   const displayName = data.displayName || wolf?.artist || "Your Name";
@@ -74,6 +87,45 @@ export default function ArtistPageBuilder({ onBack, wolf }: Props) {
             <textarea value={data.bio} onChange={(e) => update({ bio: e.target.value })}
               placeholder="Tell the world who you are..." rows={3}
               className="w-full resize-none rounded-lg border border-wolf-border/20 bg-wolf-surface p-3 text-sm text-white placeholder:text-wolf-muted/40 focus:outline-none" />
+          </div>
+
+          {/* Profile Photo */}
+          <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
+            <label className="mb-3 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">Profile Photo</label>
+            <input ref={photoRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+            <div className="flex items-center gap-4">
+              <div
+                onClick={() => photoRef.current?.click()}
+                className="group relative h-20 w-20 shrink-0 cursor-pointer overflow-hidden rounded-full border-2 transition-all hover:opacity-80"
+                style={{ borderColor: `${themeColor}50` }}
+              >
+                {data.photoUrl ? (
+                  <img src={data.photoUrl} alt="Profile" className="h-full w-full object-cover" />
+                ) : wolf?.image ? (
+                  <img src={wolf.image} alt="" className="h-full w-full p-2" />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-wolf-surface">
+                    <span className="text-2xl">🐺</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                  <Camera size={18} className="text-white" />
+                </div>
+              </div>
+              <div className="flex-1">
+                <button onClick={() => photoRef.current?.click()}
+                  className="rounded-lg border border-wolf-border/30 px-4 py-2 text-xs font-medium text-white transition-all hover:border-wolf-gold/30">
+                  Upload Photo
+                </button>
+                {data.photoUrl && (
+                  <button onClick={() => update({ photoUrl: "" })}
+                    className="ml-2 text-xs text-wolf-muted hover:text-red-400">
+                    Remove
+                  </button>
+                )}
+                <p className="mt-1 text-[10px] text-wolf-muted">JPG, PNG or GIF. Recommended 400x400px.</p>
+              </div>
+            </div>
           </div>
 
           {/* Wolf Color Theme */}
@@ -224,7 +276,9 @@ export default function ArtistPageBuilder({ onBack, wolf }: Props) {
                 {/* Avatar */}
                 <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2"
                   style={{ borderColor: themeColor }}>
-                  {wolf?.image ? (
+                  {data.photoUrl ? (
+                    <img src={data.photoUrl} alt="" className="h-full w-full object-cover" />
+                  ) : wolf?.image ? (
                     <img src={wolf.image} alt="" className="h-full w-full p-1" />
                   ) : (
                     <span className="text-3xl">🐺</span>

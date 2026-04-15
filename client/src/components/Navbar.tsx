@@ -10,6 +10,7 @@ const STUDIO_TOOLS = [
   { id: "scenes", label: "Scenes", icon: Film },
   { id: "performance", label: "Performance", icon: Video },
   { id: "cover-art", label: "Cover Art", icon: Image },
+  { id: "pricing", label: "Pricing", icon: Zap },
 ];
 
 interface Props {

@@ -128,7 +128,10 @@ export default function App() {
           onAuth={goToAuth}
           isInStudio={page.type === "studio"}
           studioView={studioView}
-          onStudioNav={(view) => { setStudioView(view); window.scrollTo(0, 0); }}
+          onStudioNav={(view) => {
+            if (view === "pricing") { goToPricing(); return; }
+            setStudioView(view); window.scrollTo(0, 0);
+          }}
           credits={plan.credits}
           tier={plan.tier}
           wolfColor={wolfColor}
@@ -180,7 +183,10 @@ export default function App() {
                 onBack={goHome}
                 onWolfHub={goToWolfHub}
                 studioView={studioView}
-                onStudioNav={(v) => { setStudioView(v); window.scrollTo(0, 0); }}
+                onStudioNav={(v) => {
+                  if (v === "pricing") { goToPricing(); return; }
+                  setStudioView(v); window.scrollTo(0, 0);
+                }}
               />
             )}
 

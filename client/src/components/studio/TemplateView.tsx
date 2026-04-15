@@ -18,18 +18,28 @@ interface Props {
 }
 
 // Cut Markers step — lyric video preview screen
-function CutMarkersStep({ result, lyrics, audioUrl, segments, onSave, accentColor }: {
+function CutMarkersStep({ result, lyrics, audioUrl, segments, onSave, accentColor, regionStart = 0, regionEnd }: {
   result: GenerationPack;
   lyrics: string;
   audioUrl: string;
   segments: { start: number; end: number; text: string }[];
   onSave: () => void;
   accentColor: string;
+  regionStart?: number;
+  regionEnd?: number;
 }) {
   const [playing, setPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(regionStart);
   const [currentLyric, setCurrentLyric] = useState("");
   const audioRefCM = useRef<HTMLAudioElement>(null);
+
+  // Set audio to start at region start when loaded
+  useEffect(() => {
+    const audio = audioRefCM.current;
+    if (audio && regionStart > 0) {
+      audio.currentTime = regionStart;
+    }
+  }, [regionStart]);
 
   useEffect(() => {
     const audio = audioRefCM.current;
@@ -37,6 +47,14 @@ function CutMarkersStep({ result, lyrics, audioUrl, segments, onSave, accentColo
     const update = () => {
       const t = audio.currentTime;
       setCurrentTime(t);
+
+      // Stop at region end
+      if (regionEnd && t >= regionEnd) {
+        audio.pause();
+        audio.currentTime = regionStart;
+        setPlaying(false);
+        return;
+      }
 
       // Use real Whisper segments for accurate sync
       if (segments.length > 0) {
@@ -61,12 +79,19 @@ function CutMarkersStep({ result, lyrics, audioUrl, segments, onSave, accentColo
     };
     audio.addEventListener("timeupdate", update);
     return () => audio.removeEventListener("timeupdate", update);
-  }, [segments, lyrics]);
+  }, [segments, lyrics, regionStart, regionEnd]);
 
   const togglePlay = () => {
     if (!audioRefCM.current) return;
-    if (playing) audioRefCM.current.pause();
-    else audioRefCM.current.play();
+    if (playing) {
+      audioRefCM.current.pause();
+    } else {
+      // Always start from region start
+      if (audioRefCM.current.currentTime < regionStart || (regionEnd && audioRefCM.current.currentTime >= regionEnd)) {
+        audioRefCM.current.currentTime = regionStart;
+      }
+      audioRefCM.current.play();
+    }
     setPlaying(!playing);
   };
 
@@ -109,7 +134,7 @@ function CutMarkersStep({ result, lyrics, audioUrl, segments, onSave, accentColo
         </div>
 
         {/* Rewind button */}
-        <button onClick={(e) => { e.stopPropagation(); if (audioRefCM.current) audioRefCM.current.currentTime = 0; }}
+        <button onClick={(e) => { e.stopPropagation(); if (audioRefCM.current) { audioRefCM.current.currentTime = regionStart; setCurrentTime(regionStart); } }}
           className="absolute bottom-3 left-3 rounded-full border border-white/10 bg-black/50 p-2 text-white/60 backdrop-blur-sm hover:text-white">
           <RotateCcw size={12} />
         </button>
@@ -678,6 +703,8 @@ export default function TemplateView({ onBack, onGoToRemix, wolf }: Props) {
                     segments={segments}
                     onSave={() => setTemplateSaved(true)}
                     accentColor={wolf?.color || "#f5c518"}
+                    regionStart={regionStart}
+                    regionEnd={regionEnd}
                   />
                 ) : (
                   <div className="flex min-h-[200px] flex-col items-center justify-center">

@@ -521,6 +521,7 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
                 } else {
                   setCurrentTime(0);
                   if (video) {
+                    video.muted = true; // Always enforce mute — clips are visual only
                     video.currentTime = 0;
                     video.play().catch(() => {});
                   }
@@ -554,7 +555,7 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
                   video?.pause();
                   setIsPlaying(false);
                 } else {
-                  if (video) video.play().catch(() => {});
+                  if (video) { video.muted = true; video.play().catch(() => {}); }
                   setIsPlaying(true);
                 }
               }}>

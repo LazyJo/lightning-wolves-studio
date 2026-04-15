@@ -8,6 +8,7 @@ import TemplateViewComponent from "./studio/TemplateView";
 import ScenesViewComponent from "./studio/ScenesView";
 import PerformanceViewComponent from "./studio/PerformanceView";
 import CoverArtViewComponent from "./studio/CoverArtView";
+import ArtistPageBuilder from "./studio/ArtistPageBuilder";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
@@ -42,7 +43,7 @@ interface Props {
   onStudioNav?: (view: string) => void;
 }
 
-type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art";
+type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art" | "artist-page";
 type Tab = "lyrics" | "srt" | "beats" | "prompts";
 
 // Demo content
@@ -582,6 +583,8 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
           <PerformanceViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "cover-art" ? (
           <CoverArtViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
+        ) : view === "artist-page" ? (
+          <ArtistPageBuilder onBack={() => setView("dashboard")} wolf={wolf} />
         ) : null}
       </div>
     </div>

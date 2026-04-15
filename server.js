@@ -12,10 +12,18 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ─── Supabase ────────────────────────────────────────────────────────────────
-const supabase = createClient(
-  process.env.SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || ''
-);
+let supabase = null;
+try {
+  const sbUrl = process.env.SUPABASE_URL;
+  const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+  if (sbUrl && sbKey) {
+    supabase = createClient(sbUrl, sbKey);
+  } else {
+    console.warn('Supabase not configured — running in guest-only mode');
+  }
+} catch (err) {
+  console.warn('Supabase init failed:', err.message);
+}
 
 // ─── Anthropic ───────────────────────────────────────────────────────────────
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -53,21 +61,27 @@ const upload = multer({
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 async function getUserFromToken(req) {
+  if (!supabase) return null;
   const auth = req.headers.authorization;
   if (!auth || !auth.startsWith('Bearer ')) return null;
   const token = auth.slice(7);
-  const { data, error } = await supabase.auth.getUser(token);
-  if (error || !data?.user) return null;
-  return data.user;
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) return null;
+    return data.user;
+  } catch { return null; }
 }
 
 async function getProfile(userId) {
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-  return data;
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    return data;
+  } catch { return null; }
 }
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -476,7 +490,15 @@ app.post('/api/generate-visuals', async (req, res) => {
 
 // ─── Fallback to index.html (SPA) ────────────────────────────────────────────
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  // Try multiple paths (local dev vs Vercel deployment)
+  const candidates = [
+    path.join(__dirname, 'public', 'index.html'),
+    path.join(__dirname, 'client', 'dist', 'index.html'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return res.sendFile(p);
+  }
+  res.status(404).json({ error: 'Not found' });
 });
 
 // ─── Error handler ────────────────────────────────────────────────────────────

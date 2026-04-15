@@ -466,15 +466,17 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
           </div>
 
           {/* Video Preview — always shows lyrics on black, video overlays on top */}
-          <div className={`relative mx-auto overflow-hidden rounded-2xl border border-wolf-border/20 bg-black ${
-            aspectRatio === "9:16" ? "aspect-[9/16] max-h-[500px] mx-auto" : "aspect-video w-full"
-          }`}>
-            {/* Video layer (on top of black) */}
+          <div className={`relative overflow-hidden rounded-2xl border border-wolf-border/20 bg-black ${
+            aspectRatio === "9:16" ? "aspect-[9/16] mx-auto" : "aspect-video w-full"
+          }`} style={aspectRatio === "9:16" ? { maxHeight: "520px", width: "293px" } : {}}>
+            {/* Video layer — ALWAYS MUTED (song audio plays separately) */}
             {slots.find((s) => s.clip)?.clip?.url && (
               <video
                 ref={previewVideoRef}
                 src={slots.find((s) => s.clip)?.clip?.url}
+                muted
                 loop
+                playsInline
                 className="absolute inset-0 h-full w-full object-cover"
               />
             )}

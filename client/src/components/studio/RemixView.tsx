@@ -169,26 +169,31 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
     }
   }, [initialLyrics]);
 
-  // Lyrics cycling timer — works with or without video
+  // Get actual duration from clips or default
+  const clipDuration = clips.length > 0
+    ? Math.max(...clips.map((c) => c.durationSec || 15), 15)
+    : 30; // default 30s if no clips
+
+  // Lyrics cycling timer — syncs to actual clip duration
   useEffect(() => {
     if (!initialLyrics || !isPlaying) return;
     const lines = initialLyrics.split("\n").filter(Boolean);
-    const totalDuration = 15; // seconds for full lyrics cycle
+    const secPerLine = clipDuration / lines.length;
+
     const interval = setInterval(() => {
       setCurrentTime((t) => {
         const newT = t + 0.1;
-        if (newT >= totalDuration) {
-          // Loop back
+        if (newT >= clipDuration) {
           if (previewVideoRef.current) previewVideoRef.current.currentTime = 0;
           return 0;
         }
-        const idx = Math.min(Math.floor((newT / totalDuration) * lines.length), lines.length - 1);
+        const idx = Math.min(Math.floor(newT / secPerLine), lines.length - 1);
         setCurrentLyric(lines[idx] || "");
         return newT;
       });
     }, 100);
     return () => clearInterval(interval);
-  }, [isPlaying, initialLyrics, currentTime]);
+  }, [isPlaying, initialLyrics, clipDuration]);
 
   if (result) {
     return (
@@ -439,8 +444,38 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
                 {isPlaying ? <Pause size={14} className="text-white" /> : <Play size={14} className="text-white" />}
               </button>
               <span className="font-mono text-[10px] text-wolf-muted">
-                {Math.floor(Math.min(currentTime, 15) / 60)}:{String(Math.floor(Math.min(currentTime, 15) % 60)).padStart(2, "0")} / 0:15
+                {Math.floor(Math.min(currentTime, clipDuration) / 60)}:{String(Math.floor(Math.min(currentTime, clipDuration) % 60)).padStart(2, "0")} / {Math.floor(clipDuration / 60)}:{String(Math.floor(clipDuration % 60)).padStart(2, "0")}
               </span>
+            </div>
+          )}
+
+          {/* Soundbar / Waveform visualization */}
+          {(initialLyrics || slots.some((s) => s.clip)) && (
+            <div className="relative mt-2 h-8 overflow-hidden rounded-lg border border-wolf-border/10 bg-wolf-surface/20">
+              {/* Waveform bars */}
+              <div className="flex h-full items-center gap-[1px] px-1">
+                {Array.from({ length: 100 }).map((_, j) => {
+                  const barProgress = j / 100;
+                  const playProgress = currentTime / clipDuration;
+                  const isPlayed = barProgress <= playProgress;
+                  return (
+                    <div
+                      key={j}
+                      className="flex-1 rounded-sm transition-all"
+                      style={{
+                        height: `${30 + Math.sin(j * 0.3) * 20 + Math.random() * 30}%`,
+                        backgroundColor: isPlayed ? accentColor : "#2a2a35",
+                        opacity: isPlayed ? 0.8 : 0.4,
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              {/* Playhead */}
+              <div
+                className="absolute inset-y-0 w-0.5 bg-white transition-all"
+                style={{ left: `${Math.min((currentTime / clipDuration) * 100, 100)}%` }}
+              />
             </div>
           )}
 

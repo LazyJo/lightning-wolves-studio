@@ -389,7 +389,7 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
               <video
                 ref={previewVideoRef}
                 src={slots.find((s) => s.clip)?.clip?.url}
-                muted loop
+                loop
                 className="absolute inset-0 h-full w-full object-cover"
               />
             )}

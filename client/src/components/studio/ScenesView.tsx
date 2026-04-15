@@ -11,8 +11,18 @@ const scenePresets = [
   { name: "Street Photography", style: "street" },
 ];
 
+const AI_MODELS = [
+  { id: "grok-imagine", name: "Grok Imagine", status: "access", color: "#69f0ae" },
+  { id: "kling-motion", name: "Kling Motion Control", status: "access", color: "#82b1ff" },
+  { id: "nanobanana-pro", name: "NanoBanana Pro", status: "access", color: "#ff6b9d" },
+  { id: "nanobanana-2", name: "NanoBanana 2", status: "new", color: "#ff6b9d" },
+  { id: "seedream-4.5", name: "Seedream 4.5", status: "access", color: "#E040FB" },
+  { id: "seedance-2.0", name: "Seedance 2.0", status: "coming-soon", color: "#f5c518" },
+];
+
 const resolutions = ["480p", "720p"];
 const ratios = ["9:16", "16:9"];
+const videoStyles = ["Realistic", "Anime"];
 
 interface Props {
   onBack: () => void;
@@ -25,6 +35,9 @@ export default function ScenesView({ onBack, wolf }: Props) {
   const [genre, setGenre] = useState(wolf?.genre || "Hip-Hop");
   const [resolution, setResolution] = useState("720p");
   const [ratio, setRatio] = useState("9:16");
+  const [aiModel, setAiModel] = useState("grok-imagine");
+  const [videoStyle, setVideoStyle] = useState("Realistic");
+  const [lyricAdherence, setLyricAdherence] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<GenerationPack | null>(null);
@@ -126,6 +139,19 @@ export default function ScenesView({ onBack, wolf }: Props) {
               </select>
             </div>
 
+            {/* AI Model */}
+            <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">AI Model</label>
+              <select value={aiModel} onChange={(e) => setAiModel(e.target.value)}
+                className="w-full rounded-lg border border-[#69f0ae]/30 bg-wolf-surface px-4 py-3 text-sm text-[#69f0ae] focus:outline-none">
+                {AI_MODELS.map((m) => (
+                  <option key={m.id} value={m.id} disabled={m.status === "coming-soon"}>
+                    {m.name} {m.status === "new" ? "✨" : m.status === "coming-soon" ? "🔒" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">Resolution</label>
               <div className="flex gap-2">
@@ -148,6 +174,37 @@ export default function ScenesView({ onBack, wolf }: Props) {
               </div>
             </div>
 
+            {/* Video Style */}
+            <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">Video Style</label>
+              <div className="flex gap-2">
+                {videoStyles.map((s) => (
+                  <button key={s} onClick={() => setVideoStyle(s)}
+                    className={`flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all ${videoStyle === s ? "border-[#69f0ae] bg-[#69f0ae] text-black" : "border-wolf-border/20 text-wolf-muted"}`}
+                  >{s}</button>
+                ))}
+              </div>
+            </div>
+
+            {/* Lyric Adherence */}
+            <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">Lyric Adherence</label>
+              <div className="flex gap-2">
+                <button onClick={() => setLyricAdherence(true)}
+                  className={`flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all ${lyricAdherence ? "border-[#69f0ae] bg-[#69f0ae] text-black" : "border-wolf-border/20 text-wolf-muted"}`}>
+                  On
+                </button>
+                <button onClick={() => setLyricAdherence(false)}
+                  className={`flex-1 rounded-lg border py-2.5 text-sm font-semibold transition-all ${!lyricAdherence ? "border-[#69f0ae] bg-[#69f0ae] text-black" : "border-wolf-border/20 text-wolf-muted"}`}>
+                  Off
+                </button>
+              </div>
+              <p className="mt-2 text-[10px] text-wolf-muted">When on, video visuals will reflect your song lyrics</p>
+              {lyricAdherence && (
+                <p className="mt-1 text-[10px] text-[#f5c518]">⚠ This setting prioritizes lyrics over scene consistency and may yield unexpected visuals.</p>
+              )}
+            </div>
+
             <button
               onClick={handleGenerate}
               disabled={loading}
@@ -156,9 +213,13 @@ export default function ScenesView({ onBack, wolf }: Props) {
               {loading ? (
                 <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />Generating...</span>
               ) : (
-                <><Wand2 size={16} className="mr-2 inline" />Generate Scene<span className="ml-2 rounded bg-black/20 px-2 py-0.5 text-xs"><Zap size={10} className="mr-0.5 inline" />15 Credits</span></>
+                <><Wand2 size={16} className="mr-2 inline" />Generate Video<span className="ml-2 rounded bg-black/20 px-2 py-0.5 text-xs"><Zap size={10} className="mr-0.5 inline" />60 Credits</span></>
               )}
             </button>
+
+            <p className="mt-2 text-center text-[10px] text-wolf-muted">
+              <span className="text-[#69f0ae]">✓</span> Running smoothly · Powered by {AI_MODELS.find(m => m.id === aiModel)?.name}
+            </p>
           </motion.div>
 
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>

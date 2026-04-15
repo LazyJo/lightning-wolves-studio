@@ -58,6 +58,23 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
   const filledSlots = slots.filter((s) => s.clip).length;
   const totalSlots = slots.length;
 
+  // Phase 3 additions
+  const [lyricStyle, setLyricStyle] = useState("Default");
+  const [lyricScale, setLyricScale] = useState(0.65);
+  const [noCuts, setNoCuts] = useState(false);
+  const [clipRatio, setClipRatio] = useState("All Ratios");
+
+  const LYRIC_STYLES = [
+    { id: "Default", label: "Default", preview: "A" },
+    { id: "None", label: "None", preview: "—" },
+    { id: "Heartbeat", label: "Heart...", preview: "THE", color: "#ff0040" },
+    { id: "Fly", label: "Fly", preview: "THE", color: "#ffffff" },
+    { id: "Wave", label: "Wave", preview: "THE QUIC", color: "#69f0ae" },
+    { id: "HOTPINK", label: "HOTP...", preview: "THE QUIC", color: "#E040FB" },
+    { id: "Wolf", label: "Wolf", preview: "T H E", color: "#f5c518" },
+    { id: "Brat", label: "Brat", preview: "THE", color: "#8ace00" },
+  ];
+
   // Generate initial timeline slots when clips are added
   useEffect(() => {
     if (clips.length > 0 && slots.length === 0) {
@@ -339,6 +356,74 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
 
             {controlsOpen && (
               <>
+                {/* Template selector */}
+                <div className="mb-3 rounded-lg border border-wolf-border/20 bg-wolf-surface/30 px-3 py-2">
+                  <label className="mb-1 block text-[9px] font-semibold uppercase tracking-wider text-wolf-muted">Template</label>
+                  <select className="w-full rounded-lg border border-wolf-border/20 bg-wolf-surface px-2 py-1.5 text-xs text-white focus:outline-none"
+                    style={{ borderColor: `${accentColor}30` }}>
+                    <option>No template selected</option>
+                    <option>My Track — 15s</option>
+                  </select>
+                </div>
+
+                {/* No Cuts toggle */}
+                <div className="mb-3 flex items-center justify-between rounded-lg border border-wolf-border/20 bg-wolf-surface/30 px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] font-semibold uppercase tracking-wider text-wolf-muted">No Cuts</span>
+                    <span className="cursor-help text-wolf-muted/40" title="When enabled, clips play without beat-synced cuts">?</span>
+                  </div>
+                  <button onClick={() => setNoCuts(!noCuts)}
+                    className="relative h-5 w-9 rounded-full transition-colors"
+                    style={{ backgroundColor: noCuts ? accentColor : "#2a2a35" }}>
+                    <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${noCuts ? "left-4.5" : "left-0.5"}`}
+                      style={{ left: noCuts ? "18px" : "2px" }} />
+                  </button>
+                </div>
+
+                {/* Lyric Style */}
+                <div className="mb-3">
+                  <label className="mb-1.5 block text-[9px] font-semibold uppercase tracking-wider text-wolf-muted">Lyric Style</label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {LYRIC_STYLES.map((s) => (
+                      <button key={s.id} onClick={() => setLyricStyle(s.id)}
+                        className={`flex flex-col items-center gap-0.5 rounded-lg border px-1 py-2 text-center transition-all ${
+                          lyricStyle === s.id ? "border-wolf-gold/50 bg-wolf-gold/10" : "border-wolf-border/20 hover:border-wolf-border/40"
+                        }`}>
+                        <span className="text-[10px] font-bold" style={{
+                          color: s.color || (lyricStyle === s.id ? accentColor : "#fff"),
+                          fontFamily: s.id === "Wolf" ? "var(--font-heading)" : undefined,
+                          fontStyle: s.id === "Fly" ? "italic" : undefined,
+                        }}>
+                          {s.preview}
+                        </span>
+                        <span className="text-[8px] text-wolf-muted">{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Scale */}
+                <div className="mb-3">
+                  <div className="mb-1 flex items-center justify-between">
+                    <label className="text-[9px] font-semibold uppercase tracking-wider text-wolf-muted">Scale: {lyricScale}X</label>
+                  </div>
+                  <input type="range" min="0.3" max="2" step="0.05" value={lyricScale}
+                    onChange={(e) => setLyricScale(parseFloat(e.target.value))}
+                    className="w-full accent-wolf-gold" style={{ accentColor }} />
+                </div>
+
+                {/* Clip Ratio */}
+                <div className="mb-3 rounded-lg border border-wolf-border/20 bg-wolf-surface/30 px-3 py-2">
+                  <label className="mb-1 block text-[9px] font-semibold uppercase tracking-wider text-wolf-muted">Clip Ratio</label>
+                  <select value={clipRatio} onChange={(e) => setClipRatio(e.target.value)}
+                    className="w-full rounded-lg border border-wolf-border/20 bg-wolf-surface px-2 py-1.5 text-xs text-white focus:outline-none">
+                    <option>All Ratios</option>
+                    <option>9:16 Only</option>
+                    <option>16:9 Only</option>
+                    <option>1:1 Only</option>
+                  </select>
+                </div>
+
                 {/* Progress */}
                 <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-wolf-border/20">
                   <div className="h-full rounded-full transition-all" style={{
@@ -403,10 +488,14 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
                     initial={{ opacity: 0, y: 15, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="text-center text-xl font-bold uppercase text-white sm:text-2xl"
+                    className={`text-center font-bold uppercase text-white ${lyricStyle === "None" ? "hidden" : ""}`}
                     style={{
-                      fontFamily: "var(--font-display)",
+                      fontFamily: lyricStyle === "Wolf" ? "var(--font-heading)" : "var(--font-display)",
+                      fontSize: `${lyricScale * 1.5}rem`,
+                      fontStyle: lyricStyle === "Fly" ? "italic" : undefined,
+                      color: LYRIC_STYLES.find((s) => s.id === lyricStyle)?.color || "#ffffff",
                       textShadow: `0 0 30px ${accentColor}60, 0 0 60px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8)`,
+                      letterSpacing: lyricStyle === "Wolf" ? "0.2em" : undefined,
                     }}
                   >
                     {currentLyric || initialLyrics.split("\n")[0] || "♪"}

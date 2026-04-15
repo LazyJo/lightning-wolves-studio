@@ -9,10 +9,16 @@ interface Props {
   wolf?: { artist: string; genre: string; color: string; id: string } | null;
 }
 
-const aiModels = ["NanoBanana Pro", "DALL-E 3", "Midjourney Style", "Stable Diffusion XL"];
+const aiModels = [
+  { id: "nanobanana-2", name: "NanoBanana 2", badge: "NEW" },
+  { id: "nanobanana-pro", name: "NanoBanana Pro", badge: "ACCESS" },
+  { id: "seedream-4.5", name: "Seedream 4.5", badge: "ACCESS" },
+  { id: "dall-e-3", name: "DALL-E 3", badge: "ACCESS" },
+];
 
 export default function CoverArtView({ onBack, wolf }: Props) {
-  const [model, setModel] = useState(aiModels[0]);
+  const [model, setModel] = useState(aiModels[0].id);
+  const [isDragging, setIsDragging] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [title, setTitle] = useState("");
   const [ratio, setRatio] = useState("1:1");
@@ -27,7 +33,7 @@ export default function CoverArtView({ onBack, wolf }: Props) {
     const files = e.target.files;
     if (files) {
       const urls = Array.from(files).map((f) => URL.createObjectURL(f));
-      setRefImages((prev) => [...prev, ...urls].slice(0, 8));
+      setRefImages((prev) => [...prev, ...urls].slice(0, 14));
     }
   };
 
@@ -92,8 +98,12 @@ export default function CoverArtView({ onBack, wolf }: Props) {
           <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">Model</label>
             <select value={model} onChange={(e) => setModel(e.target.value)}
-              className="w-full rounded-lg border border-wolf-border/20 bg-wolf-surface px-4 py-3 text-sm text-white focus:outline-none">
-              {aiModels.map((m) => (<option key={m}>{m}</option>))}
+              className="w-full rounded-lg border border-[#82b1ff]/30 bg-wolf-surface px-4 py-3 text-sm text-[#82b1ff] focus:outline-none">
+              {aiModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} {m.badge === "NEW" ? "✨" : ""}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -106,22 +116,43 @@ export default function CoverArtView({ onBack, wolf }: Props) {
           <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
             <div className="mb-2 flex items-center justify-between">
               <label className="text-xs font-semibold uppercase tracking-wider text-wolf-muted">Reference Images</label>
-              <span className="text-xs text-wolf-muted">{refImages.length} / 8</span>
+              <span className="text-xs text-wolf-muted">{refImages.length} / 14</span>
             </div>
             <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleRefImage} className="hidden" />
             {refImages.length > 0 && (
               <div className="mb-3 grid grid-cols-4 gap-2">
                 {refImages.map((url, i) => (
-                  <div key={i} className="aspect-square overflow-hidden rounded-lg border border-wolf-border/20">
+                  <div key={i} className="group relative aspect-square overflow-hidden rounded-lg border border-wolf-border/20">
                     <img src={url} alt="" className="h-full w-full object-cover" />
+                    <button onClick={() => setRefImages((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="absolute inset-0 flex items-center justify-center bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="text-xs">✕</span>
+                    </button>
                   </div>
                 ))}
               </div>
             )}
-            <button onClick={() => fileRef.current?.click()}
-              className="w-full rounded-lg border border-wolf-border/30 bg-wolf-surface py-2.5 text-sm text-wolf-muted hover:text-white">
-              <Image size={14} className="mr-1.5 inline" />Add Reference Images
-            </button>
+            <div
+              onClick={() => fileRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                const files = e.dataTransfer.files;
+                if (files) {
+                  const urls = Array.from(files).filter(f => f.type.startsWith("image/")).map(f => URL.createObjectURL(f));
+                  setRefImages((prev) => [...prev, ...urls].slice(0, 14));
+                }
+              }}
+              className={`w-full cursor-pointer rounded-lg border-2 border-dashed py-4 text-center text-sm transition-all ${
+                isDragging ? "border-[#82b1ff] bg-[#82b1ff]/10 text-[#82b1ff]" : "border-wolf-border/30 text-wolf-muted hover:border-wolf-border/50 hover:text-white"
+              }`}
+            >
+              <Image size={16} className="mx-auto mb-1" />
+              <span className="text-xs">Add Reference Images</span>
+              <p className="mt-0.5 text-[10px] text-wolf-muted/50">Or drag & drop</p>
+            </div>
           </div>
 
           <div className="rounded-xl border-2 border-dashed border-[#82b1ff]/20 bg-wolf-card p-5">
@@ -147,7 +178,7 @@ export default function CoverArtView({ onBack, wolf }: Props) {
             {loading ? (
               <span className="inline-flex items-center gap-2"><Loader2 size={16} className="animate-spin" />Generating...</span>
             ) : (
-              <><Wand2 size={16} className="mr-2 inline" />Generate Cover Art<span className="ml-2 rounded bg-white/20 px-2 py-0.5 text-xs"><Zap size={10} className="mr-0.5 inline" />15 Credits</span></>
+              <><Wand2 size={16} className="mr-2 inline" />Generate Cover Art<span className="ml-2 rounded bg-white/20 px-2 py-0.5 text-xs"><Zap size={10} className="mr-0.5 inline" />12 Credits</span></>
             )}
           </button>
         </motion.div>

@@ -98,12 +98,21 @@ export default function PerformanceView({ onBack, wolf }: Props) {
 
       <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
         <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
+          {/* Template selector */}
+          <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">Template *</label>
+            <select className="w-full rounded-lg border border-[#E040FB]/30 bg-wolf-surface px-4 py-3 text-sm text-[#E040FB] focus:outline-none">
+              <option>Select a template...</option>
+              <option>My Track — 0:15 · 9:16</option>
+            </select>
+          </div>
+
           <div className="rounded-xl border border-[#E040FB]/15 bg-wolf-card p-5">
             <div className="mb-2 flex items-center gap-2">
               <AlertTriangle size={14} className="text-[#E040FB]" />
-              <span className="text-sm font-semibold text-[#E040FB]">Reference Video</span>
+              <span className="text-sm font-semibold text-[#E040FB]">Video Required</span>
             </div>
-            <p className="mb-3 text-xs text-wolf-muted">Upload a reference video for style-transfer generation.</p>
+            <p className="mb-3 text-xs text-wolf-muted">This template needs a reference video for Performance generation. Add one to get started.</p>
             <input ref={fileRef} type="file" accept="video/*" onChange={handleFile} className="hidden" />
             {fileName ? (
               <div className="flex items-center gap-2 rounded-lg border border-[#E040FB]/20 bg-wolf-surface px-3 py-2">

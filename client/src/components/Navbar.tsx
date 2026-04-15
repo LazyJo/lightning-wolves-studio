@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, Zap, Globe, Diamond, Music, Shuffle, Film, Video, Image, LayoutDashboard } from "lucide-react";
+import { Menu, X, Zap, Globe, Music, Shuffle, Film, Video, Image, LayoutDashboard } from "lucide-react";
 import { useI18n, LANGUAGES } from "../lib/i18n";
 
 const STUDIO_TOOLS = [
@@ -132,7 +132,7 @@ export default function Navbar({
             /* Studio right side: credits + wolf hub + home */
             <>
               <div className="flex items-center gap-1.5 rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-3 py-1.5">
-                <Diamond size={12} className="text-wolf-gold" />
+                <Zap size={12} className="text-wolf-gold fill-wolf-gold" />
                 <span className="text-sm font-bold text-wolf-gold">{credits ?? 0}</span>
                 <span className="text-[10px] text-wolf-muted">credits</span>
               </div>
@@ -232,7 +232,7 @@ export default function Navbar({
                     </button>
                   ))}
                   <div className="mt-2 flex items-center gap-3 border-t border-wolf-border/20 pt-3">
-                    <Diamond size={14} className="text-wolf-gold" />
+                    <Zap size={14} className="text-wolf-gold fill-wolf-gold" />
                     <span className="text-sm font-bold text-wolf-gold">{credits ?? 0} credits</span>
                   </div>
                   <button

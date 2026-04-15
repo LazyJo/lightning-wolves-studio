@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import RemixViewComponent from "./studio/RemixView";
 import WolfVisionPanelComponent from "./studio/WolfVisionPanel";
+import StudioDashboard from "./studio/StudioDashboard";
 import { useCredits, tierLabel, tierColor } from "../lib/useCredits";
 import { useI18n } from "../lib/i18n";
 import TemplateViewComponent from "./studio/TemplateView";
@@ -36,6 +37,9 @@ import type { Wolf } from "../data/wolves";
 interface Props {
   wolf: Wolf | null;
   onBack: () => void;
+  onWolfHub?: () => void;
+  studioView?: string;
+  onStudioNav?: (view: string) => void;
 }
 
 type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art";
@@ -535,9 +539,16 @@ function GenerationView({
 }
 
 // Main Studio Page
-export default function StudioPage({ wolf, onBack }: Props) {
-  const [view, setView] = useState<View>("dashboard");
+export default function StudioPage({ wolf, onBack, onWolfHub, studioView: externalView, onStudioNav }: Props) {
+  const [internalView, setInternalView] = useState<View>("dashboard");
   const [savedLyrics, setSavedLyrics] = useState("");
+
+  // Use external view state if provided (from App.tsx via Navbar), otherwise internal
+  const view = (externalView as View) || internalView;
+  const setView = (v: View) => {
+    if (onStudioNav) onStudioNav(v);
+    else setInternalView(v);
+  };
   const accentColor = wolf?.color || "#f5c518";
   const { plan, deductCredits } = useCredits();
   const tColor = tierColor(plan.tier);
@@ -552,199 +563,15 @@ export default function StudioPage({ wolf, onBack }: Props) {
 
       <div className="relative z-10 mx-auto max-w-6xl px-6 pb-24">
         {view === "dashboard" ? (
-          <>
-            {/* Header */}
-            <motion.button
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              onClick={onBack}
-              className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
-            >
-              <ArrowLeft size={16} />
-              Back
-            </motion.button>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-10 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-4">
-                {wolf && (
-                  <div
-                    className="h-12 w-12 shrink-0 overflow-hidden rounded-full border-2"
-                    style={{ borderColor: `${accentColor}40` }}
-                  >
-                    {wolf.video ? (
-                      <video src={wolf.video} autoPlay loop muted playsInline className="h-full w-full object-cover" />
-                    ) : (
-                      <img src={wolf.image} alt={wolf.artist} className="h-full w-full p-1" />
-                    )}
-                  </div>
-                )}
-                <div>
-                  <h1
-                    className="text-xl font-bold tracking-wider text-white sm:text-2xl md:text-3xl"
-                    style={{ fontFamily: "var(--font-heading)" }}
-                  >
-                    {wolf ? `${wolf.artist.toUpperCase()}'S` : "LYRICS"}{" "}
-                    <span style={{ color: accentColor }}>STUDIO</span>
-                  </h1>
-                  <p className="text-sm text-wolf-muted">{t("studio.subtitle")}</p>
-                </div>
-              </div>
-              <div className="hidden items-center gap-2 md:flex">
-                <span
-                  className="rounded-full px-2.5 py-1 text-[10px] font-bold uppercase"
-                  style={{ backgroundColor: `${tColor}15`, color: tColor }}
-                >
-                  {tierLabel(plan.tier)}
-                </span>
-                <div className="flex items-center gap-1.5 rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-3 py-1.5">
-                  <Zap size={12} className="text-wolf-gold" />
-                  <span className="text-sm font-bold text-wolf-gold">{plan.credits}</span>
-                  <span className="text-[10px] text-wolf-muted">credits</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Tool Grid */}
-            <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr]">
-              {/* Remix — large featured card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                whileHover={{ y: -4 }}
-                onClick={() => setView("remix")}
-                className="group cursor-pointer rounded-2xl border border-wolf-gold/20 bg-gradient-to-br from-wolf-gold/8 to-wolf-card p-7 lg:row-span-2"
-              >
-                <span className="mb-4 inline-block rounded-full bg-wolf-gold px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-black">
-                  {t("studio.mostPopular")}
-                </span>
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-wolf-gold/15">
-                  <Shuffle size={24} className="text-wolf-gold" />
-                </div>
-                <h3 className="mb-2 text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
-                  Remix
-                </h3>
-                <p className="mb-5 text-sm leading-relaxed text-wolf-muted">
-                  {t("studio.remixDesc")}
-                </p>
-                <div className="mb-5 flex flex-wrap gap-2">
-                  {["YouTube import", "Auto scene detect", "Shuffle clips"].map((tag) => (
-                    <span key={tag} className="rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-3 py-1 text-xs text-wolf-gold">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-wolf-gold transition-all group-hover:gap-2.5">
-                  {t("studio.tryRemix")} <ArrowRight size={14} />
-                </span>
-              </motion.div>
-
-              {/* Other tools — 2x2 grid */}
-              {toolDefs.slice(1).map((td, i) => (
-                <motion.div
-                  key={td.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 + i * 0.05 }}
-                  whileHover={{ y: -4 }}
-                  onClick={() => setView(td.id)}
-                  className="group cursor-pointer rounded-2xl border border-wolf-border/20 bg-wolf-card p-6 transition-all hover:border-wolf-border/40"
-                >
-                  <div className="mb-3 flex items-center gap-3">
-                    <div
-                      className="flex h-9 w-9 items-center justify-center rounded-lg"
-                      style={{ backgroundColor: `${td.color}12` }}
-                    >
-                      <td.icon size={18} style={{ color: td.color }} />
-                    </div>
-                    <h3 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
-                      {t(td.titleKey)}
-                    </h3>
-                    {td.badge && (
-                      <span className="rounded-full border border-wolf-border/30 px-2 py-0.5 text-[9px] font-semibold text-wolf-muted">
-                        {td.badge}
-                      </span>
-                    )}
-                  </div>
-                  <p className="mb-4 text-sm text-wolf-muted">{t(td.descKey)}</p>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-wolf-muted transition-all group-hover:gap-2.5 group-hover:text-wolf-gold">
-                    {t("studio.open")} <ArrowRight size={13} />
-                  </span>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* How It Works */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="mt-12 rounded-2xl border border-wolf-border/20 bg-wolf-card/50 p-8"
-            >
-              <div className="mb-6 flex items-center gap-2">
-                <Sparkles size={16} className="text-wolf-gold" />
-                <span className="text-xs font-semibold uppercase tracking-[0.3em] text-wolf-muted">
-                  {t("studio.howItWorks")}
-                </span>
-              </div>
-              <div className="grid gap-5 md:grid-cols-3">
-                {stepDefs.map((s, i) => (
-                  <motion.div
-                    key={s.num}
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 }}
-                    className="rounded-xl border border-wolf-border/15 bg-wolf-surface/50 p-5"
-                  >
-                    <div className="mb-3 flex items-center gap-3">
-                      <span
-                        className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-black"
-                        style={{ backgroundColor: s.color }}
-                      >
-                        {s.num}
-                      </span>
-                      <h4 className="font-bold text-white">{t(s.titleKey)}</h4>
-                    </div>
-                    <p className="text-sm leading-relaxed text-wolf-muted">{t(s.descKey)}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Wolf Vision Panel */}
-            <div className="mt-8">
-              <WolfVisionPanelComponent plan={plan} onGenerate={(id, cost) => deductCredits(cost)} />
-            </div>
-
-            {/* Quick links */}
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div className="flex items-center justify-between rounded-xl border border-wolf-border/20 bg-wolf-card/50 px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <LayoutGrid size={18} className="text-wolf-gold" />
-                  <div>
-                    <p className="text-sm font-semibold text-white">{t("studio.templates")}</p>
-                    <p className="text-xs text-wolf-muted">View and manage your templates</p>
-                  </div>
-                </div>
-                <ArrowRight size={16} className="text-wolf-muted" />
-              </div>
-              <div className="flex items-center justify-between rounded-xl border border-wolf-border/20 bg-wolf-card/50 px-5 py-4">
-                <div className="flex items-center gap-3">
-                  <Zap size={18} className="text-wolf-gold" />
-                  <div>
-                    <p className="text-sm font-semibold text-white">{t("studio.getMoreCredits")}</p>
-                    <p className="text-xs text-wolf-muted">{t("studio.upgradeDesc")}</p>
-                  </div>
-                </div>
-                <ArrowRight size={16} className="text-wolf-muted" />
-              </div>
-            </div>
-          </>
+          <StudioDashboard
+            wolf={wolf}
+            accentColor={accentColor}
+            plan={plan}
+            onSelectTool={(v) => setView(v as View)}
+            onBack={onBack}
+            onWolfHub={onWolfHub}
+            t={t}
+          />
         ) : view === "remix" ? (
           <RemixViewComponent onBack={() => setView("dashboard")} wolf={wolf} lyrics={savedLyrics} />
         ) : view === "template" ? (

@@ -16,6 +16,7 @@ import AuthPage from "./components/AuthPage";
 import JoinPackPage from "./components/JoinPackPage";
 import CreateProfilePage from "./components/CreateProfilePage";
 import VersusPage from "./components/VersusPage";
+import { useCredits } from "./lib/useCredits";
 import type { Wolf } from "./data/wolves";
 
 type Page =
@@ -40,6 +41,8 @@ export default function App() {
   const [page, setPage] = useState<Page>({ type: "home" });
   const [wolfColor, setWolfColor] = useState("#f5c518");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [studioView, setStudioView] = useState("dashboard");
+  const { plan } = useCredits();
 
   const goHome = useCallback(() => {
     setPage({ type: "home" });
@@ -71,6 +74,7 @@ export default function App() {
 
   const goToStudio = useCallback((wolf?: Wolf) => {
     setPage({ type: "studio", wolf: wolf || null });
+    setStudioView("dashboard");
     if (wolf) setWolfColor(wolf.color);
     window.scrollTo(0, 0);
   }, []);
@@ -122,6 +126,12 @@ export default function App() {
           onHome={goHome}
           onStudio={() => goToStudio()}
           onAuth={goToAuth}
+          isInStudio={page.type === "studio"}
+          studioView={studioView}
+          onStudioNav={(view) => { setStudioView(view); window.scrollTo(0, 0); }}
+          credits={plan.credits}
+          tier={plan.tier}
+          wolfColor={wolfColor}
         />
 
         <AnimatePresence mode="wait">
@@ -165,7 +175,13 @@ export default function App() {
             )}
 
             {page.type === "studio" && (
-              <StudioPage wolf={page.wolf} onBack={goHome} />
+              <StudioPage
+                wolf={page.wolf}
+                onBack={goHome}
+                onWolfHub={goToWolfHub}
+                studioView={studioView}
+                onStudioNav={(v) => { setStudioView(v); window.scrollTo(0, 0); }}
+              />
             )}
 
             {page.type === "auth" && (

@@ -543,6 +543,9 @@ function GenerationView({
 export default function StudioPage({ wolf, onBack, onWolfHub, studioView: externalView, onStudioNav }: Props) {
   const [internalView, setInternalView] = useState<View>("dashboard");
   const [savedLyrics, setSavedLyrics] = useState("");
+  const [savedAudioUrl, setSavedAudioUrl] = useState("");
+  const [savedRegionStart, setSavedRegionStart] = useState(0);
+  const [savedRegionEnd, setSavedRegionEnd] = useState(15);
 
   // Use external view state if provided (from App.tsx via Navbar), otherwise internal
   const view = (externalView as View) || internalView;
@@ -574,9 +577,15 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
             t={t}
           />
         ) : view === "remix" ? (
-          <RemixViewComponent onBack={() => setView("dashboard")} wolf={wolf} lyrics={savedLyrics} />
+          <RemixViewComponent onBack={() => setView("dashboard")} wolf={wolf} lyrics={savedLyrics} audioUrl={savedAudioUrl} regionStart={savedRegionStart} regionEnd={savedRegionEnd} />
         ) : view === "template" ? (
-          <TemplateViewComponent onBack={() => setView("dashboard")} onGoToRemix={(lyrics) => { if (lyrics) setSavedLyrics(lyrics); setView("remix"); }} wolf={wolf} />
+          <TemplateViewComponent onBack={() => setView("dashboard")} onGoToRemix={(lyrics, audioUrl, regionStart, regionEnd) => {
+            if (lyrics) setSavedLyrics(lyrics);
+            if (audioUrl) setSavedAudioUrl(audioUrl);
+            if (regionStart !== undefined) setSavedRegionStart(regionStart);
+            if (regionEnd !== undefined) setSavedRegionEnd(regionEnd);
+            setView("remix");
+          }} wolf={wolf} />
         ) : view === "scenes" ? (
           <ScenesViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "performance" ? (

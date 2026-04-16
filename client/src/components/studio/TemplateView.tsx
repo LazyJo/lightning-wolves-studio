@@ -13,7 +13,7 @@ import LyricsEditor from "./LyricsEditor";
 
 interface Props {
   onBack: () => void;
-  onGoToRemix?: (lyrics?: string) => void;
+  onGoToRemix?: (lyrics?: string, audioUrl?: string, regionStart?: number, regionEnd?: number) => void;
   wolf?: { artist: string; genre: string; color: string; id: string } | null;
 }
 
@@ -468,7 +468,7 @@ export default function TemplateView({ onBack, onGoToRemix, wolf }: Props) {
             transition={{ delay: 1 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => onGoToRemix ? onGoToRemix(lyrics) : onBack()}
+            onClick={() => onGoToRemix ? onGoToRemix(lyrics, fileUrl, regionStart, regionEnd) : onBack()}
             className="w-full rounded-xl py-3.5 text-base font-bold text-black"
             style={{ background: `linear-gradient(135deg, ${wolf?.color || "#f5c518"}, #f5c518)` }}
           >

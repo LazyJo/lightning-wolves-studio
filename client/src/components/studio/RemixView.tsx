@@ -30,12 +30,15 @@ interface Props {
   onBack: () => void;
   wolf?: { artist: string; genre: string; color: string; id: string } | null;
   lyrics?: string;
+  audioUrl?: string;
+  regionStart?: number;
+  regionEnd?: number;
 }
 
 const CATEGORIES = ["All Categories", "Performance", "B-Roll", "Vibes", "City"];
 const SLOT_COLORS = ["#f5c518", "#69f0ae", "#E040FB", "#82b1ff", "#ff6b9d", "#ff9500", "#9b6dff"];
 
-export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props) {
+export default function RemixView({ onBack, wolf, lyrics: initialLyrics, audioUrl, regionStart = 0, regionEnd = 15 }: Props) {
   const { t } = useI18n();
   const [clips, setClips] = useState<Clip[]>([]);
   const [slots, setSlots] = useState<TimelineSlot[]>([]);
@@ -53,6 +56,27 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
   const [error, setError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const songAudioRef = useRef<HTMLAudioElement>(null);
+
+  // Sync song audio: start at regionStart, stop at regionEnd
+  useEffect(() => {
+    const audio = songAudioRef.current;
+    if (!audio || !audioUrl) return;
+    const setStart = () => { audio.currentTime = regionStart; };
+    if (audio.readyState >= 1) setStart();
+    else audio.addEventListener("loadedmetadata", setStart, { once: true });
+
+    const onTimeUpdate = () => {
+      if (audio.currentTime >= regionEnd) {
+        audio.currentTime = regionStart;
+      }
+    };
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("loadedmetadata", setStart);
+    };
+  }, [audioUrl, regionStart, regionEnd]);
 
   const accentColor = wolf?.color || "#f5c518";
   const filledSlots = slots.filter((s) => s.clip).length;
@@ -235,6 +259,9 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
 
   return (
     <div>
+      {/* Song audio from template — plays the selected region over muted video clips */}
+      {audioUrl && <audio ref={songAudioRef} src={audioUrl} loop />}
+
       <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} onClick={onBack}
         className="mb-4 inline-flex items-center gap-2 text-sm text-wolf-muted hover:text-wolf-gold">
         <ArrowLeft size={16} /> {t("studio.backDashboard")}
@@ -524,15 +551,21 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
             <button
               onClick={() => {
                 const video = previewVideoRef.current;
+                const audio = songAudioRef.current;
                 if (isPlaying) {
                   video?.pause();
+                  audio?.pause();
                   setIsPlaying(false);
                 } else {
                   setCurrentTime(0);
                   if (video) {
-                    video.muted = true; // Always enforce mute — clips are visual only
+                    video.muted = true;
                     video.currentTime = 0;
                     video.play().catch(() => {});
+                  }
+                  if (audio) {
+                    audio.currentTime = regionStart;
+                    audio.play().catch(() => {});
                   }
                   setIsPlaying(true);
                 }
@@ -555,16 +588,20 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
               <button onClick={() => {
                 setCurrentTime(0);
                 if (previewVideoRef.current) previewVideoRef.current.currentTime = 0;
+                if (songAudioRef.current) songAudioRef.current.currentTime = regionStart;
               }}>
                 <RotateCcw size={14} className="text-wolf-muted hover:text-white" />
               </button>
               <button onClick={() => {
                 const video = previewVideoRef.current;
+                const audio = songAudioRef.current;
                 if (isPlaying) {
                   video?.pause();
+                  audio?.pause();
                   setIsPlaying(false);
                 } else {
                   if (video) { video.muted = true; video.play().catch(() => {}); }
+                  if (audio) audio.play().catch(() => {});
                   setIsPlaying(true);
                 }
               }}>

@@ -58,6 +58,15 @@ export default function RemixView({ onBack, wolf, lyrics: initialLyrics }: Props
   const filledSlots = slots.filter((s) => s.clip).length;
   const totalSlots = slots.length;
 
+  // Force mute on ALL videos in the remix view — clips are visual only
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const videos = document.querySelectorAll('video');
+      videos.forEach((v) => { if (!v.muted) v.muted = true; });
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   // Phase 3 additions
   const [lyricStyle, setLyricStyle] = useState("Default");
   const [lyricScale, setLyricScale] = useState(0.65);

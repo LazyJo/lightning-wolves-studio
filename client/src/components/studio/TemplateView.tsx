@@ -36,9 +36,17 @@ function CutMarkersStep({ result, lyrics, audioUrl, segments, onSave, accentColo
   // Set audio to start at region start when loaded
   useEffect(() => {
     const audio = audioRefCM.current;
-    if (audio && regionStart > 0) {
+    if (!audio) return;
+    const setStart = () => {
       audio.currentTime = regionStart;
+    };
+    // If already loaded, set immediately. Otherwise wait for metadata.
+    if (audio.readyState >= 1) {
+      setStart();
+    } else {
+      audio.addEventListener("loadedmetadata", setStart, { once: true });
     }
+    return () => audio.removeEventListener("loadedmetadata", setStart);
   }, [regionStart]);
 
   useEffect(() => {

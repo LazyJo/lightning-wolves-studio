@@ -290,6 +290,7 @@ export default function App() {
               <ExplorePage
                 onBack={goHome}
                 onPickRole={goToVersusByRole}
+                onSelectWolf={goToProfile}
               />
             )}
 

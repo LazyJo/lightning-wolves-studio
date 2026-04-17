@@ -17,11 +17,14 @@ import {
   Calendar,
   MapPin,
   BadgeCheck,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { wolfSlug } from "../data/wolves";
 import type { Wolf } from "../data/wolves";
 import { bookingsForWolf, gigRoleMeta } from "../data/events";
 import type { GigEvent, GigRole } from "../data/events";
+import { useSavedWolves } from "../lib/useSavedWolves";
 import SpotifyEmbed from "./SpotifyEmbed";
 import AcknowledgementsCarousel from "./AcknowledgementsCarousel";
 
@@ -36,6 +39,8 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
   const p = wolf.profile;
   const [copied, setCopied] = useState(false);
   const bookings = bookingsForWolf(wolf.id);
+  const { toggle: toggleSave, isSaved } = useSavedWolves();
+  const saved = isSaved(wolf.id);
   if (!p) return null;
   const isFr = p.lang === "fr";
 
@@ -271,6 +276,33 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
                   Challenge {wolf.artist}
                 </motion.button>
               )}
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.68 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => toggleSave(wolf.id)}
+                aria-label={saved ? `Remove ${wolf.artist} from saved` : `Save ${wolf.artist}`}
+                aria-pressed={saved}
+                className={`inline-flex items-center gap-2 rounded-xl border px-5 py-3.5 text-sm font-semibold transition-all ${
+                  saved
+                    ? "border-wolf-gold/50 bg-wolf-gold/15 text-wolf-gold"
+                    : "border-wolf-border/40 bg-wolf-card/50 text-wolf-muted hover:border-wolf-gold/40 hover:text-wolf-gold"
+                }`}
+              >
+                {saved ? (
+                  <>
+                    <BookmarkCheck size={16} className="fill-wolf-gold" />
+                    Saved
+                  </>
+                ) : (
+                  <>
+                    <Bookmark size={16} />
+                    Save
+                  </>
+                )}
+              </motion.button>
               {wolf.profile?.versus && (
                 <motion.button
                   initial={{ opacity: 0, y: 10 }}

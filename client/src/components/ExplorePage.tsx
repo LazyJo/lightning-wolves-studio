@@ -1,16 +1,18 @@
 import { motion } from "motion/react";
-import { ArrowLeft, Users, Zap } from "lucide-react";
+import { ArrowLeft, Users, Zap, BookmarkCheck } from "lucide-react";
 import {
   ROLE_CATALOG,
   wolvesByRole,
   activeWolves,
   wolves,
 } from "../data/wolves";
-import type { WolfRole } from "../data/wolves";
+import type { Wolf, WolfRole } from "../data/wolves";
+import { useSavedWolves } from "../lib/useSavedWolves";
 
 interface Props {
   onBack: () => void;
   onPickRole: (role: WolfRole) => void;
+  onSelectWolf?: (wolf: Wolf) => void;
 }
 
 /**
@@ -22,7 +24,12 @@ interface Props {
  * role. Empty categories still render, marked "Coming soon", so the
  * visitor sees the full range of roles we support even on day one.
  */
-export default function ExplorePage({ onBack, onPickRole }: Props) {
+export default function ExplorePage({ onBack, onPickRole, onSelectWolf }: Props) {
+  const { saved } = useSavedWolves();
+  const savedPack = Array.from(saved)
+    .map((id) => wolves.find((w) => w.id === id))
+    .filter((w): w is Wolf => !!w);
+
   // Hero tile: the role with the most active artists right now
   const populatedRoles = ROLE_CATALOG
     .map((meta) => ({ ...meta, wolves: wolvesByRole(meta.id) }))
@@ -71,6 +78,68 @@ export default function ExplorePage({ onBack, onPickRole }: Props) {
             {activeWolves.length} wolves in the pack, across {populatedRoles.filter((r) => r.wolves.length > 0).length} roles. Pick what you need — we&apos;ll drop you straight into a swipe deck.
           </p>
         </motion.div>
+
+        {/* Your Pack — saved wolves across sessions (local-only for now) */}
+        {savedPack.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="mb-6 rounded-2xl border border-wolf-gold/25 bg-gradient-to-r from-wolf-gold/10 via-wolf-card to-wolf-gold/10 p-4"
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <BookmarkCheck size={14} className="fill-wolf-gold text-wolf-gold" />
+              <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-wolf-gold">
+                Your Pack · {savedPack.length} saved
+              </span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {savedPack.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => onSelectWolf?.(w)}
+                  className="group flex shrink-0 items-center gap-2.5 rounded-xl border border-wolf-border/30 bg-wolf-bg/50 px-3 py-2 text-left transition-all hover:border-wolf-gold/40 hover:bg-wolf-gold/5"
+                  style={{ scrollSnapAlign: "start" }}
+                >
+                  <div
+                    className="h-10 w-10 shrink-0 overflow-hidden rounded-full"
+                    style={{
+                      background: `radial-gradient(circle, ${w.color}30, #0a0a0c)`,
+                    }}
+                  >
+                    {w.video ? (
+                      <video
+                        src={w.video}
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={w.image}
+                        alt={w.artist}
+                        className="h-full w-full p-1"
+                      />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-white">
+                      {w.artist}
+                    </p>
+                    <p
+                      className="truncate text-[10px]"
+                      style={{ color: w.color }}
+                    >
+                      {w.genre}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Featured (populated) role — hero tile */}
         {hero && (

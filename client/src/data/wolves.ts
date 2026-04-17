@@ -6,6 +6,12 @@ export interface Acknowledgement {
   platform: string;
 }
 
+export interface VersusProfile {
+  flowLike: string;
+  lookingFor: string;
+  howl: string;
+}
+
 export interface WolfProfile {
   bio: string;
   fullBio?: string;
@@ -20,6 +26,7 @@ export interface WolfProfile {
   photo?: string;
   performanceVideo?: string;
   acknowledgements?: Acknowledgement[];
+  versus?: VersusProfile;
 }
 
 export interface Wolf {
@@ -99,6 +106,11 @@ export const wolves: Wolf[] = [
           platform: "DM on Instagram",
         },
       ],
+      versus: {
+        flowLike: "Melodic hip-hop with emotional hooks — Brussels streets, Ghanaian soul, international ambition",
+        lookingFor: "Producers who can match my melodic vision and writers who hear the emotion in a beat",
+        howl: "From Togo to Brussels, the lightning never stopped / Wolves howling through the static, see how high we popped",
+      },
     },
   },
   {
@@ -113,6 +125,11 @@ export const wolves: Wolf[] = [
       bio: "French hip-hop energy with melodic punch. Raw energy and authentic flow from the streets of France.",
       spotify:
         "https://open.spotify.com/embed/artist/1OqzWGPZDe0jUkwS5ubUbF",
+      versus: {
+        flowLike: "French hip-hop with melodic punch — raw energy, authentic flow, purple lightning in every bar",
+        lookingFor: "Someone who can match the energy and bring hooks that hit as hard as the verses",
+        howl: "Dans l'ombre je frappe, la foudre dans les yeux / Zirka ne dort jamais, le wolf pack c'est mieux",
+      },
     },
   },
   {
@@ -132,6 +149,11 @@ export const wolves: Wolf[] = [
         "https://open.spotify.com/embed/artist/5DaB9HZOXF1kOqxLiS2d4B",
       instagram: "https://www.instagram.com/rosakay_officiel",
       photo: "/Rosakay Profile.jpeg",
+      versus: {
+        flowLike: "Folk rock meets French pop — intimate, sincere, stories about love in all its forms",
+        lookingFor: "A producer who gets texture, or a songwriter who feels words before writing them",
+        howl: "De Kinshasa a Bruxelles, mon coeur a voyage / Chaque note est une page, chaque refrain un echo",
+      },
     },
   },
   {

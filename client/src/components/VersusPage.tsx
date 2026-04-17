@@ -1,13 +1,15 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "motion/react";
 import { ArrowLeft, X, Heart, Zap, MessageSquare, Send, Users, Trash2, ChevronRight } from "lucide-react";
+import { territories, wolves } from "../data/wolves";
 
 interface SwipeProfile {
-  id: number;
+  id: string;
   name: string;
   genre: string;
   country: string;
   avatar: string;
+  video?: string;
   color: string;
   flowLike: string;
   lookingFor: string;
@@ -20,57 +22,93 @@ interface Match {
   matchedAt: string;
 }
 
-const opponents: SwipeProfile[] = [
+// Fallback deck used when there's no territory context (or no wolves in territory)
+const fallbackOpponents: SwipeProfile[] = [
   {
-    id: 1, name: "Shadow MC", genre: "Drill", country: "UK",
+    id: "fb-1", name: "Shadow MC", genre: "Drill", country: "UK",
     avatar: "/wolf-black.svg", color: "#888",
     flowLike: "UK drill meets dark storytelling, think Headie One with a twist",
     lookingFor: "A melodic hook writer who can ride any beat",
     howl: "Shadows in the city, we move like ghosts / Every bar I spit hits harder than most",
   },
   {
-    id: 2, name: "Luna Beats", genre: "Lo-Fi", country: "France",
+    id: "fb-2", name: "Luna Beats", genre: "Lo-Fi", country: "France",
     avatar: "/wolf-purple.svg", color: "#9b6dff",
     flowLike: "Chill vibes with deep lyrics, like a midnight conversation",
     lookingFor: "Someone who can sing over lo-fi beats with real emotion",
     howl: "Sous la lune on se retrouve / Les etoiles guident nos preuves",
   },
   {
-    id: 3, name: "Blaze", genre: "Trap", country: "USA",
+    id: "fb-3", name: "Blaze", genre: "Trap", country: "USA",
     avatar: "/wolf-red.svg", color: "#E53935",
     flowLike: "Hard-hitting trap with melodic switches, Future meets Travis",
     lookingFor: "A wolf who can produce fire beats and isn't afraid to go crazy",
     howl: "Set the track on fire, watch the whole world burn / Every lesson in the struggle, every dollar that I earn",
   },
   {
-    id: 4, name: "Amara Gold", genre: "Afrobeats", country: "Nigeria",
+    id: "fb-4", name: "Amara Gold", genre: "Afrobeats", country: "Nigeria",
     avatar: "/wolf-orange.svg", color: "#ff9500",
     flowLike: "Afrobeats energy with soulful melodies, Wizkid vibes",
     lookingFor: "Someone to create a cross-continental hit with",
     howl: "From Lagos to Brussels, the rhythm connects / Golden wolves united, earning respect",
   },
   {
-    id: 5, name: "Frost", genre: "Hip-Hop", country: "Belgium",
+    id: "fb-5", name: "Frost", genre: "Hip-Hop", country: "Belgium",
     avatar: "/wolf-blue.svg", color: "#82b1ff",
     flowLike: "Conscious hip-hop with hard-hitting punchlines",
     lookingFor: "A producer who understands the European sound",
     howl: "Ice in my veins but fire in my soul / Lightning Wolves forever, that's the goal",
   },
   {
-    id: 6, name: "Neon Vox", genre: "Electronic", country: "Germany",
+    id: "fb-6", name: "Neon Vox", genre: "Electronic", country: "Germany",
     avatar: "/wolf-green.svg", color: "#69f0ae",
     flowLike: "Electronic beats with live vocals, think Flume meets The Weeknd",
     lookingFor: "A vocalist who isn't afraid to experiment with sound design",
     howl: "Neon lights flash, bass drops low / Every frequency hitting, stealing the show",
   },
   {
-    id: 7, name: "Queenie", genre: "R&B", country: "Ghana",
+    id: "fb-7", name: "Queenie", genre: "R&B", country: "Ghana",
     avatar: "/wolf-pink.svg", color: "#E040FB",
     flowLike: "Smooth R&B with Afro fusion, Tems meets SZA energy",
     lookingFor: "A rapper to feature on my next single, someone with real bars",
     howl: "Crown on my head, melody in my soul / Every note I sing making hearts feel whole",
   },
 ];
+
+// Build the swipe deck from a specific territory's active wolves.
+// Returns null if no territory / no matching wolves so the caller can fall back.
+function buildTerritoryDeck(
+  territoryName: string | undefined,
+  userName: string | undefined
+): SwipeProfile[] | null {
+  if (!territoryName) return null;
+  const territory = territories.find(
+    (t) => t.name.toLowerCase() === territoryName.toLowerCase()
+  );
+  if (!territory) return null;
+
+  const tWolves = territory.artists
+    .map((id) => wolves.find((w) => w.id === id))
+    .filter((w) => !!w && w.status === "active" && !!w.profile?.versus)
+    .filter(
+      (w) => !userName || w!.artist.toLowerCase() !== userName.toLowerCase()
+    );
+
+  if (tWolves.length === 0) return null;
+
+  return tWolves.map((w) => ({
+    id: `wolf-${w!.id}`,
+    name: w!.artist,
+    genre: w!.genre,
+    country: territory.name,
+    avatar: w!.image || "/wolf-yellow.svg",
+    video: w!.video,
+    color: w!.color,
+    flowLike: w!.profile!.versus!.flowLike,
+    lookingFor: w!.profile!.versus!.lookingFor,
+    howl: w!.profile!.versus!.howl,
+  }));
+}
 
 interface Props {
   onBack: () => void;
@@ -87,12 +125,20 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
   const [superHowled, setSuperHowled] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [direction, setDirection] = useState<"left" | "right" | null>(null);
-  const [confirmUnmatch, setConfirmUnmatch] = useState<number | null>(null);
+  const [confirmUnmatch, setConfirmUnmatch] = useState<string | null>(null);
 
   const x = useMotionValue(0);
   const rotate = useTransform(x, [-200, 200], [-15, 15]);
   const howlOpacity = useTransform(x, [0, 100], [0, 1]);
   const passOpacity = useTransform(x, [-100, 0], [1, 0]);
+
+  // Prefer real territory wolves, fall back to the generic deck when scouting globally
+  const opponents = useMemo(
+    () =>
+      buildTerritoryDeck(territory, userProfile?.name) ?? fallbackOpponents,
+    [territory, userProfile?.name]
+  );
+  const usingTerritoryDeck = opponents !== fallbackOpponents;
 
   const current = opponents[currentIndex % opponents.length];
   const isOutOfCards = currentIndex >= opponents.length;
@@ -182,7 +228,7 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
     return replies[Math.floor(Math.random() * replies.length)];
   };
 
-  const handleUnmatch = (profileId: number) => {
+  const handleUnmatch = (profileId: string) => {
     setMatches((prev) => prev.filter((m) => m.profile.id !== profileId));
     if (activeMatch?.profile.id === profileId) setActiveMatch(null);
     setConfirmUnmatch(null);
@@ -242,9 +288,13 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
               <div className="mb-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 backdrop-blur-lg">
                 <div className="flex items-center gap-4">
                   <div className="relative">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full border-2"
+                    <div className="h-12 w-12 overflow-hidden rounded-full border-2"
                       style={{ borderColor: `${activeMatch.profile.color}40`, background: `${activeMatch.profile.color}10` }}>
-                      <img src={activeMatch.profile.avatar} alt="" className="h-7 w-7" />
+                      {activeMatch.profile.video ? (
+                        <video src={activeMatch.profile.video} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+                      ) : (
+                        <img src={activeMatch.profile.avatar} alt="" className="h-full w-full p-1.5" />
+                      )}
                     </div>
                     <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-wolf-card bg-green-500" />
                   </div>
@@ -353,9 +403,13 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
                       >
                         {/* Avatar with online dot */}
                         <div className="relative">
-                          <div className="flex h-14 w-14 items-center justify-center rounded-full border-2"
+                          <div className="h-14 w-14 overflow-hidden rounded-full border-2"
                             style={{ borderColor: `${match.profile.color}30`, background: `${match.profile.color}10` }}>
-                            <img src={match.profile.avatar} alt="" className="h-8 w-8" />
+                            {match.profile.video ? (
+                              <video src={match.profile.video} autoPlay loop muted playsInline className="h-full w-full object-cover" />
+                            ) : (
+                              <img src={match.profile.avatar} alt="" className="h-full w-full p-1.5" />
+                            )}
                           </div>
                           <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-wolf-bg bg-green-500" />
                         </div>
@@ -452,7 +506,16 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
           <h1 className="text-2xl font-bold tracking-wider text-white sm:text-3xl" style={{ fontFamily: "var(--font-heading)" }}>
             VERSUS <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">SWIPE</span>
           </h1>
-          {territory && <p className="mt-1 text-xs uppercase tracking-wider text-wolf-muted">Scouting in {territory}</p>}
+          {territory && (
+            <p className="mt-1 text-xs uppercase tracking-wider text-wolf-muted">
+              Scouting in {territory}
+              {usingTerritoryDeck && (
+                <span className="ml-2 rounded-full bg-wolf-gold/10 px-2 py-0.5 text-[9px] font-bold text-wolf-gold">
+                  LIVE PACK
+                </span>
+              )}
+            </p>
+          )}
         </motion.div>
 
         {isOutOfCards ? (
@@ -460,8 +523,16 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl border border-wolf-border/20 bg-wolf-card p-12 text-center">
             <Users size={40} className="mx-auto mb-4 text-wolf-muted/30" />
-            <h3 className="text-lg font-bold text-white">No more wolves nearby</h3>
-            <p className="mt-2 text-sm text-wolf-muted">Check back later or explore other territories</p>
+            <h3 className="text-lg font-bold text-white">
+              {usingTerritoryDeck && territory
+                ? `You've seen every wolf in ${territory}`
+                : "No more wolves nearby"}
+            </h3>
+            <p className="mt-2 text-sm text-wolf-muted">
+              {usingTerritoryDeck
+                ? "Head back to the Wolf Map to scout another territory"
+                : "Check back later or explore other territories"}
+            </p>
             {matches.length > 0 && (
               <button onClick={() => setShowMatches(true)}
                 className="mt-6 rounded-xl bg-wolf-gold px-6 py-3 font-bold text-black">
@@ -516,9 +587,25 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
                   <div className="flex h-full flex-col p-6">
                     {/* Top: avatar + info */}
                     <div className="flex flex-col items-center">
-                      <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full"
-                        style={{ background: `radial-gradient(circle, ${current.color}20, transparent)` }}>
-                        <img src={current.avatar} alt="" className="h-10 w-10" />
+                      <div
+                        className="mb-3 h-20 w-20 overflow-hidden rounded-full"
+                        style={{
+                          background: `radial-gradient(circle, ${current.color}30, transparent)`,
+                          boxShadow: `0 0 24px ${current.color}30`,
+                        }}
+                      >
+                        {current.video ? (
+                          <video
+                            src={current.video}
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <img src={current.avatar} alt="" className="h-full w-full p-3" />
+                        )}
                       </div>
                       <h3 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
                         {current.name}

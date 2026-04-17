@@ -8,9 +8,12 @@ import {
   Sparkles,
   X as XIcon,
   Send,
+  Bookmark,
+  BookmarkCheck,
 } from "lucide-react";
 import { gigEvents, GIG_ROLES, gigRoleMeta } from "../data/events";
 import type { GigEvent, GigRole } from "../data/events";
+import { useSavedGigs } from "../lib/useSavedGigs";
 
 interface Props {
   onBack: () => void;
@@ -27,7 +30,9 @@ interface Props {
 export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfile }: Props) {
   const [country, setCountry] = useState<string | null>(null);
   const [role, setRole] = useState<GigRole | null>(null);
+  const [savedOnly, setSavedOnly] = useState(false);
   const [selected, setSelected] = useState<GigEvent | null>(null);
+  const { toggle: toggleSaved, isSaved, count: savedCount } = useSavedGigs();
 
   // Filter options derived from the live data
   const countries = useMemo(() => {
@@ -38,11 +43,12 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
 
   const filtered = useMemo(() => {
     return gigEvents.filter((e) => {
+      if (savedOnly && !isSaved(e.id)) return false;
       if (country && e.country !== country) return false;
       if (role && !e.lookingFor.includes(role)) return false;
       return true;
     });
-  }, [country, role]);
+  }, [country, role, savedOnly, isSaved]);
 
   return (
     <div className="min-h-screen pt-20">
@@ -106,6 +112,34 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
           transition={{ delay: 0.1 }}
           className="mb-6 flex flex-col gap-3"
         >
+          {/* Saved toggle — only shows once the visitor has starred at least one */}
+          {savedCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-wolf-muted">
+                Show
+              </span>
+              <FilterChip active={!savedOnly} onClick={() => setSavedOnly(false)}>
+                All gigs
+              </FilterChip>
+              <FilterChip
+                active={savedOnly}
+                onClick={() => setSavedOnly(true)}
+                color="#f5c518"
+              >
+                <BookmarkCheck size={12} className="mr-1 inline" />
+                Saved
+                <span
+                  className="ml-1.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9px] font-bold"
+                  style={{
+                    backgroundColor: savedOnly ? "#f5c518" : "rgba(245,197,24,0.2)",
+                    color: savedOnly ? "#000" : "#f5c518",
+                  }}
+                >
+                  {savedCount}
+                </span>
+              </FilterChip>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-2">
             <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-wolf-muted">
               Country
@@ -143,7 +177,9 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
 
         {/* Events grid */}
         <div className="grid gap-4 md:grid-cols-2">
-          {filtered.map((event, i) => (
+          {filtered.map((event, i) => {
+            const saved = isSaved(event.id);
+            return (
             <motion.button
               key={event.id}
               initial={{ opacity: 0, y: 20 }}
@@ -159,7 +195,28 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
               <div className="pointer-events-none absolute -left-px -bottom-px h-5 w-5 border-l-2 border-b-2 border-wolf-gold/60 rounded-bl-2xl" />
               <div className="pointer-events-none absolute -right-px -bottom-px h-5 w-5 border-r-2 border-b-2 border-wolf-gold/60 rounded-br-2xl" />
 
-              <div className="mb-3 flex items-start justify-between gap-3">
+              {/* Save toggle — stops click bubbling to the card */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleSaved(event.id);
+                }}
+                aria-label={saved ? "Remove from saved" : "Save this gig"}
+                aria-pressed={saved}
+                className={`absolute right-3 top-3 z-10 rounded-full border p-1.5 transition-all ${
+                  saved
+                    ? "border-wolf-gold/60 bg-wolf-gold/20 text-wolf-gold"
+                    : "border-wolf-border/40 bg-wolf-bg/60 text-wolf-muted hover:border-wolf-gold/40 hover:text-wolf-gold"
+                }`}
+              >
+                {saved ? (
+                  <BookmarkCheck size={13} className="fill-wolf-gold" />
+                ) : (
+                  <Bookmark size={13} />
+                )}
+              </button>
+
+              <div className="mb-3 flex items-start justify-between gap-3 pr-8">
                 <div className="flex-1 min-w-0">
                   <h3
                     className="truncate text-lg font-bold tracking-wider text-white"
@@ -215,7 +272,8 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
                 })}
               </div>
             </motion.button>
-          ))}
+            );
+          })}
 
           {filtered.length === 0 && (
             <div className="md:col-span-2 rounded-2xl border border-wolf-border/30 bg-wolf-card/40 p-12 text-center">
@@ -269,6 +327,8 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
         {selected && (
           <EventDetail
             event={selected}
+            saved={isSaved(selected.id)}
+            onToggleSave={() => toggleSaved(selected.id)}
             onClose={() => setSelected(null)}
             onApply={() => {
               if (hasProfile) {
@@ -332,10 +392,14 @@ function EventDetail({
   event,
   onClose,
   onApply,
+  onToggleSave,
+  saved,
 }: {
   event: GigEvent;
   onClose: () => void;
   onApply: () => void;
+  onToggleSave: () => void;
+  saved: boolean;
 }) {
   return (
     <motion.div
@@ -353,13 +417,31 @@ function EventDetail({
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-wolf-gold/30 bg-gradient-to-b from-[#1a1608] to-wolf-card p-6"
       >
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full border border-wolf-border/30 p-2 text-wolf-muted transition-all hover:border-wolf-gold/40 hover:text-white"
-          aria-label="Close"
-        >
-          <XIcon size={14} />
-        </button>
+        <div className="absolute right-4 top-4 z-10 flex items-center gap-2">
+          <button
+            onClick={onToggleSave}
+            aria-label={saved ? "Remove from saved" : "Save this gig"}
+            aria-pressed={saved}
+            className={`rounded-full border p-2 transition-all ${
+              saved
+                ? "border-wolf-gold/60 bg-wolf-gold/20 text-wolf-gold"
+                : "border-wolf-border/30 text-wolf-muted hover:border-wolf-gold/40 hover:text-wolf-gold"
+            }`}
+          >
+            {saved ? (
+              <BookmarkCheck size={14} className="fill-wolf-gold" />
+            ) : (
+              <Bookmark size={14} />
+            )}
+          </button>
+          <button
+            onClick={onClose}
+            className="rounded-full border border-wolf-border/30 p-2 text-wolf-muted transition-all hover:border-wolf-gold/40 hover:text-white"
+            aria-label="Close"
+          >
+            <XIcon size={14} />
+          </button>
+        </div>
 
         <div className="mb-5 flex items-start gap-3 pr-8">
           <span className="text-3xl">{event.flag}</span>

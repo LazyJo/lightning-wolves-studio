@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
+import PackMomentum from "./components/PackMomentum";
 import WolfGrid from "./components/WolfGrid";
 import Features from "./components/Features";
 import FeaturedArtists from "./components/FeaturedArtists";
@@ -174,6 +175,7 @@ export default function App() {
           onHome={goHome}
           onStudio={() => goToStudio()}
           onAuth={goToAuth}
+          onGoldenBoard={goToGoldenBoard}
           isInStudio={page.type === "studio"}
           studioView={studioView}
           onStudioNav={(view) => {
@@ -204,6 +206,7 @@ export default function App() {
             {page.type === "home" && (
               <>
                 <Hero onStudio={() => goToStudio()} />
+                <PackMomentum />
                 <WolfGrid onSelectWolf={handleWolfSelect} />
                 <Features onGoldenBoard={goToGoldenBoard} />
                 <FeaturedArtists

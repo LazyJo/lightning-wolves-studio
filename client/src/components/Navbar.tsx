@@ -19,6 +19,7 @@ interface Props {
   onHome: () => void;
   onStudio: () => void;
   onAuth: () => void;
+  onGoldenBoard?: () => void;
   isInStudio?: boolean;
   studioView?: string;
   onStudioNav?: (view: string) => void;
@@ -28,7 +29,7 @@ interface Props {
 }
 
 export default function Navbar({
-  onPricing, onWolfHub, onHome, onStudio, onAuth,
+  onPricing, onWolfHub, onHome, onStudio, onAuth, onGoldenBoard,
   isInStudio, studioView, onStudioNav, credits, tier, wolfColor,
 }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -117,6 +118,15 @@ export default function Navbar({
                   </span>
                 </span>
               </button>
+              {onGoldenBoard && (
+                <button
+                  onClick={onGoldenBoard}
+                  className="group inline-flex items-center gap-1.5 rounded-lg border border-wolf-gold/40 bg-gradient-to-r from-wolf-gold/15 via-wolf-amber/10 to-wolf-gold/15 px-4 py-2 text-sm font-bold text-wolf-gold transition-all hover:border-wolf-gold/70 hover:shadow-lg hover:shadow-wolf-gold/20"
+                >
+                  <span className="text-sm">🏆</span>
+                  Golden Board
+                </button>
+              )}
               <button
                 onClick={onAuth}
                 className="rounded-lg border border-wolf-gold/30 bg-wolf-gold/5 px-4 py-2 text-sm font-semibold text-wolf-gold transition-all hover:bg-wolf-gold/15"
@@ -254,6 +264,9 @@ export default function Navbar({
                   <button onClick={() => { onHome(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Home</button>
                   <button onClick={() => { onPricing(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Pricing</button>
                   <button onClick={() => { onWolfHub(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Wolf Map</button>
+                  {onGoldenBoard && (
+                    <button onClick={() => { onGoldenBoard(); setMobileOpen(false); }} className="text-left text-wolf-gold transition-colors hover:text-wolf-amber">🏆 Golden Board</button>
+                  )}
                   <button onClick={() => { onAuth(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Sign In</button>
                   <button
                     onClick={() => { onStudio(); setMobileOpen(false); }}

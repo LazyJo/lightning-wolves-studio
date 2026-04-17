@@ -3,10 +3,25 @@ import { useI18n } from "../lib/i18n";
 
 interface Props {
   onWolfHub: () => void;
+  onStudio?: () => void;
+  onPricing?: () => void;
+  onJoinPack?: () => void;
 }
 
-export default function Footer({ onWolfHub }: Props) {
+export default function Footer({ onWolfHub, onStudio, onPricing, onJoinPack }: Props) {
   const { t } = useI18n();
+
+  const studioLinks: { label: string; action?: () => void }[] = [
+    { label: "Lyrics Studio", action: onStudio },
+    { label: "Pricing", action: onPricing },
+    { label: "Wolf Map", action: onWolfHub },
+  ];
+
+  const communityLinks: { label: string; action?: () => void }[] = [
+    { label: "Join the Pack", action: onJoinPack },
+    { label: "Versus Swipe", action: onWolfHub },
+    { label: "Territories", action: onWolfHub },
+  ];
 
   return (
     <footer className="border-t border-wolf-border/20 py-16">
@@ -41,14 +56,15 @@ export default function Footer({ onWolfHub }: Props) {
               {t("footer.studio")}
             </h4>
             <ul className="space-y-3">
-              {["Lyrics Studio", "Pricing", "Wolf Map"].map((link) => (
-                <li key={link}>
-                  <a
-                    href="#"
-                    className="text-sm text-wolf-muted/70 transition-colors hover:text-wolf-gold"
+              {studioLinks.map(({ label, action }) => (
+                <li key={label}>
+                  <button
+                    onClick={action}
+                    disabled={!action}
+                    className="text-left text-sm text-wolf-muted/70 transition-colors hover:text-wolf-gold disabled:cursor-not-allowed disabled:hover:text-wolf-muted/70"
                   >
-                    {link}
-                  </a>
+                    {label}
+                  </button>
                 </li>
               ))}
             </ul>
@@ -59,14 +75,15 @@ export default function Footer({ onWolfHub }: Props) {
               {t("footer.community")}
             </h4>
             <ul className="space-y-3">
-              {["Join the Pack", "Versus Swipe", "Territories"].map((link) => (
-                <li key={link}>
-                  <a
-                    href="#"
-                    className="text-sm text-wolf-muted/70 transition-colors hover:text-wolf-gold"
+              {communityLinks.map(({ label, action }) => (
+                <li key={label}>
+                  <button
+                    onClick={action}
+                    disabled={!action}
+                    className="text-left text-sm text-wolf-muted/70 transition-colors hover:text-wolf-gold disabled:cursor-not-allowed disabled:hover:text-wolf-muted/70"
                   >
-                    {link}
-                  </a>
+                    {label}
+                  </button>
                 </li>
               ))}
             </ul>

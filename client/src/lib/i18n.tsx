@@ -12,17 +12,17 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.enterStudio": "Enter Studio",
 
     // Hero
-    "hero.badge": "AI-Powered Lyrics Studio",
+    "hero.badge": "AI Lyrics Studio × Global Artist Network",
     "hero.title1": "WHICH WOLF",
     "hero.title2": "ARE YOU?",
-    "hero.subtitle": "Pick your wolf. Enter the studio. Create something legendary.",
+    "hero.subtitle": "Turn your songs into cinematic lyric videos in minutes — and link up with a global pack of real artists. Pick a wolf to start.",
     "hero.cta1": "Choose Your Wolf",
     "hero.cta2": "How It Works",
 
     // Wolf Grid
-    "grid.label": "Choose Your Wolf",
+    "grid.label": "Meet The Pack",
     "grid.title": "THE PACK",
-    "grid.subtitle": "Each wolf represents a unique artist and style. Pick yours to enter the studio and start creating.",
+    "grid.subtitle": "Every wolf is a real artist you can meet, swipe, and collaborate with. Pick one — they'll theme your studio and you'll see them again on the Wolf Map.",
     "grid.comingSoon": "Coming Soon",
     "grid.noAccount": "No account needed",
 

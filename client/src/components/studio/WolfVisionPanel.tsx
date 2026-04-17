@@ -151,7 +151,9 @@ export default function WolfVisionPanel({ plan, onGenerate }: Props) {
               className="overflow-hidden"
             >
               <div className="space-y-1 rounded-xl border border-white/[0.04] bg-white/[0.02] p-2">
-                {models.map((model, i) => (
+                {models
+                  .filter((m) => m.status !== "coming-soon")
+                  .map((model, i) => (
                   <motion.button
                     key={model.id}
                     initial={{ opacity: 0, x: -10 }}

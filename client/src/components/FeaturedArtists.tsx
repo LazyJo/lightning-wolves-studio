@@ -1,10 +1,16 @@
 import { useRef } from "react";
 import { motion } from "motion/react";
 import { activeWolves } from "../data/wolves";
+import type { Wolf } from "../data/wolves";
 import { ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 
-export default function FeaturedArtists() {
+interface Props {
+  onSelectWolf?: (wolf: Wolf) => void;
+  onJoinPack?: () => void;
+}
+
+export default function FeaturedArtists({ onSelectWolf, onJoinPack }: Props = {}) {
   const { t } = useI18n();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +74,8 @@ export default function FeaturedArtists() {
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
               whileHover={{ scale: 1.03, transition: { duration: 0.2 } }}
-              className="group w-[280px] shrink-0 overflow-hidden rounded-2xl border border-wolf-border/30 bg-wolf-card"
+              onClick={() => wolf.profile && onSelectWolf?.(wolf)}
+              className={`group w-[280px] shrink-0 overflow-hidden rounded-2xl border border-wolf-border/30 bg-wolf-card ${wolf.profile ? "cursor-pointer" : ""}`}
               style={{ scrollSnapAlign: "start" }}
             >
               {/* Video/Image */}
@@ -117,7 +124,13 @@ export default function FeaturedArtists() {
                 >
                   {wolf.genre}
                 </span>
-                <button className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-wolf-border/30 py-2.5 text-xs font-medium text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (wolf.profile) onSelectWolf?.(wolf);
+                  }}
+                  className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-lg border border-wolf-border/30 py-2.5 text-xs font-medium text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold"
+                >
                   {t("artists.viewProfile")}
                   <ExternalLink size={12} />
                 </button>
@@ -130,6 +143,27 @@ export default function FeaturedArtists() {
         <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-wolf-bg to-transparent md:hidden" />
         <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-wolf-bg to-transparent md:hidden" />
       </div>
+
+      {/* Apply-to-Pack CTA */}
+      {onJoinPack && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mx-auto mt-12 max-w-2xl px-6 text-center"
+        >
+          <p className="text-sm text-wolf-muted">
+            Want your wolf up there?
+          </p>
+          <button
+            onClick={onJoinPack}
+            className="mt-3 inline-flex items-center gap-2 rounded-xl border border-wolf-gold/30 bg-wolf-gold/5 px-6 py-2.5 text-sm font-bold text-wolf-gold transition-all hover:border-wolf-gold/60 hover:bg-wolf-gold/15"
+          >
+            🐺 Apply to the Pack
+            <ExternalLink size={14} />
+          </button>
+        </motion.div>
+      )}
     </section>
   );
 }

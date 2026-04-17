@@ -180,7 +180,10 @@ export default function App() {
                 <Hero onStudio={() => goToStudio()} />
                 <WolfGrid onSelectWolf={handleWolfSelect} />
                 <Features />
-                <FeaturedArtists />
+                <FeaturedArtists
+                  onSelectWolf={handleWolfSelect}
+                  onJoinPack={goToJoinPack}
+                />
                 <CTA onStudio={() => goToStudio()} onWolfMap={goToWolfHub} />
               </>
             )}
@@ -194,7 +197,9 @@ export default function App() {
               />
             )}
 
-            {page.type === "pricing" && <PricingPage onBack={goHome} />}
+            {page.type === "pricing" && (
+              <PricingPage onBack={goHome} onGetStarted={() => goToAuth()} />
+            )}
 
             {page.type === "wolf-hub" && (
               <WolfHubPage
@@ -247,7 +252,12 @@ export default function App() {
           </motion.div>
         </AnimatePresence>
 
-        <Footer onWolfHub={goToWolfHub} />
+        <Footer
+          onWolfHub={goToWolfHub}
+          onStudio={() => goToStudio()}
+          onPricing={goToPricing}
+          onJoinPack={goToJoinPack}
+        />
       </div>
     </>
   );

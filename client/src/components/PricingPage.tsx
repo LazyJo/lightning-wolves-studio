@@ -14,6 +14,7 @@ import {
 
 interface Props {
   onBack: () => void;
+  onGetStarted?: (tierName: string) => void;
 }
 
 const models = [
@@ -181,7 +182,7 @@ function StatusBadge({ status, color }: { status: string; color: string }) {
   }
 }
 
-export default function PricingPage({ onBack }: Props) {
+export default function PricingPage({ onBack, onGetStarted }: Props) {
   const [annual, setAnnual] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
 
@@ -303,15 +304,17 @@ export default function PricingPage({ onBack }: Props) {
                 <div className="mb-4">
                   <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-wolf-muted">Model Access</span>
                   <div className="space-y-1.5 rounded-lg border border-white/[0.04] bg-white/[0.02] p-2.5">
-                    {models.map((model) => (
-                      <div key={model.name} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Check size={12} style={{ color: model.status === "coming-soon" ? "#444" : tier.color }} />
-                          <span className={`text-xs ${model.status === "coming-soon" ? "text-wolf-muted/50" : "text-white"}`}>{model.name}</span>
+                    {models
+                      .filter((m) => m.status !== "coming-soon")
+                      .map((model) => (
+                        <div key={model.name} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Check size={12} style={{ color: tier.color }} />
+                            <span className="text-xs text-white">{model.name}</span>
+                          </div>
+                          <StatusBadge status={model.status} color={tier.color} />
                         </div>
-                        <StatusBadge status={model.status} color={tier.color} />
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </div>
 
@@ -349,6 +352,7 @@ export default function PricingPage({ onBack }: Props) {
 
                 {/* CTA */}
                 <button
+                  onClick={() => onGetStarted?.(tier.name)}
                   className="mt-auto w-full rounded-xl py-3 text-sm font-bold transition-all hover:opacity-90"
                   style={
                     tier.popular || tier.bestValue
@@ -356,7 +360,7 @@ export default function PricingPage({ onBack }: Props) {
                       : { border: `1px solid ${tier.color}40`, color: "white", backgroundColor: "transparent" }
                   }
                 >
-                  Get Started
+                  {tier.monthlyPrice === 0 ? "Start Free" : "Get Started"}
                 </button>
               </motion.div>
             );

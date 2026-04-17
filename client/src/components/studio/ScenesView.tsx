@@ -144,9 +144,9 @@ export default function ScenesView({ onBack, wolf }: Props) {
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">AI Model</label>
               <select value={aiModel} onChange={(e) => setAiModel(e.target.value)}
                 className="w-full rounded-lg border border-[#69f0ae]/30 bg-wolf-surface px-4 py-3 text-sm text-[#69f0ae] focus:outline-none">
-                {AI_MODELS.map((m) => (
-                  <option key={m.id} value={m.id} disabled={m.status === "coming-soon"}>
-                    {m.name} {m.status === "new" ? "✨" : m.status === "coming-soon" ? "🔒" : ""}
+                {AI_MODELS.filter((m) => m.status !== "coming-soon").map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} {m.status === "new" ? "✨" : ""}
                   </option>
                 ))}
               </select>

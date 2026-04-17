@@ -227,6 +227,7 @@ export const wolves: Wolf[] = [
     video: "/Wolf - Red.mp4",
     image: "/wolf-red.svg",
     status: "coming-soon",
+    role: "producer",
   },
   {
     id: "white",
@@ -236,6 +237,7 @@ export const wolves: Wolf[] = [
     video: "/White Wolf Animation.mp4",
     image: "/wolf-white.svg",
     status: "coming-soon",
+    role: "songwriter",
   },
   {
     id: "pink",
@@ -330,19 +332,21 @@ export interface ActivityEvent {
 // Ordered roughly by what a visitor is most likely to be looking for.
 export interface RoleMeta {
   id: WolfRole;
-  label: string;     // Noun plural shown on tiles ("Artists")
-  verb: string;      // Shown on tiles as the action ("Find an artist")
+  label: string;        // Noun plural shown on tiles ("Artists")
+  verb: string;         // Shown on tiles as the action ("Find an artist")
   description: string;
-  icon: string;      // Emoji for quick visual identity
-  color: string;     // Tailwind-compatible accent hex
+  icon: string;         // Emoji for quick visual identity
+  color: string;        // Tailwind-compatible accent hex
+  teaserWolfId?: string; // Wolf whose video/color previews this role even
+                         // when no active wolf with this role exists yet.
 }
 
 export const ROLE_CATALOG: RoleMeta[] = [
   { id: "artist",       label: "Artists",       verb: "Find an artist",       description: "Singers, rappers, vocalists — collaborators for your next track.", icon: "🎤", color: "#f5c518" },
-  { id: "producer",     label: "Producers",     verb: "Find a producer",      description: "Beatmakers and sound designers to cook the instrumental.",          icon: "🎛️", color: "#9b6dff" },
-  { id: "songwriter",   label: "Songwriters",   verb: "Find a songwriter",    description: "Hook writers and lyricists — the pen behind the punchline.",       icon: "✍️", color: "#ff9500" },
+  { id: "producer",     label: "Producers",     verb: "Find a producer",      description: "Beatmakers and sound designers to cook the instrumental.",          icon: "🎛️", color: "#9b6dff", teaserWolfId: "red" },
+  { id: "songwriter",   label: "Songwriters",   verb: "Find a songwriter",    description: "Hook writers and lyricists — the pen behind the punchline.",       icon: "✍️", color: "#ff9500", teaserWolfId: "white" },
   { id: "photographer", label: "Photographers", verb: "Book a photographer",  description: "Shoot the cover, the press kit, the moment before it happens.",    icon: "📸", color: "#69f0ae" },
-  { id: "videographer", label: "Videographers", verb: "Book a videographer",  description: "Music videos, behind-the-scenes, cinematic visuals.",               icon: "🎬", color: "#82b1ff" },
+  { id: "videographer", label: "Videographers", verb: "Book a videographer",  description: "Music videos, behind-the-scenes, cinematic visuals.",               icon: "🎬", color: "#82b1ff", teaserWolfId: "purple" },
   { id: "designer",     label: "Designers",     verb: "Get album art",        description: "Cover art, trailers, logos — your visual identity.",               icon: "🎨", color: "#E040FB" },
 ];
 

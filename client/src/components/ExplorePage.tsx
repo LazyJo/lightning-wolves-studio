@@ -4,6 +4,7 @@ import {
   ROLE_CATALOG,
   wolvesByRole,
   activeWolves,
+  wolves,
 } from "../data/wolves";
 import type { WolfRole } from "../data/wolves";
 
@@ -143,6 +144,13 @@ export default function ExplorePage({ onBack, onPickRole }: Props) {
             const count = role.wolves.length;
             const firstWolf = role.wolves[0];
             const empty = count === 0;
+            // When no active wolves match this role, fall back to the
+            // role's teaser wolf (e.g. Hendrik/DR.MKY/Zirka preview what
+            // a Producer/Songwriter/Videographer tile will look like).
+            const teaser = empty
+              ? wolves.find((w) => w.id === role.teaserWolfId)
+              : undefined;
+            const displayVideo = firstWolf?.video ?? teaser?.video;
             return (
               <motion.button
                 key={role.id}
@@ -154,20 +162,20 @@ export default function ExplorePage({ onBack, onPickRole }: Props) {
                 disabled={empty}
                 className={`group relative overflow-hidden rounded-2xl border text-left transition-all ${
                   empty
-                    ? "cursor-not-allowed border-wolf-border/30 bg-wolf-card/30 opacity-60"
+                    ? "cursor-not-allowed border-wolf-border/30 bg-wolf-card/30"
                     : "border-white/[0.06] hover:border-wolf-gold/30 hover:shadow-xl"
                 }`}
                 style={empty ? {} : { boxShadow: `0 4px 24px ${role.color}08` }}
               >
                 <div className="aspect-[4/5] w-full">
-                  {firstWolf?.video ? (
+                  {displayVideo ? (
                     <video
-                      src={firstWolf.video}
+                      src={displayVideo}
                       autoPlay
                       loop
                       muted
                       playsInline
-                      className="h-full w-full object-cover"
+                      className={`h-full w-full object-cover ${empty ? "opacity-70" : ""}`}
                     />
                   ) : (
                     <div

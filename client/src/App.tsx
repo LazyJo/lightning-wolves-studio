@@ -16,9 +16,10 @@ import AuthPage from "./components/AuthPage";
 import JoinPackPage from "./components/JoinPackPage";
 import CreateProfilePage from "./components/CreateProfilePage";
 import VersusPage from "./components/VersusPage";
+import ExplorePage from "./components/ExplorePage";
 import { useCredits } from "./lib/useCredits";
 import { wolfBySlug } from "./data/wolves";
-import type { Wolf } from "./data/wolves";
+import type { Wolf, WolfRole } from "./data/wolves";
 
 type Page =
   | { type: "home" }
@@ -29,7 +30,8 @@ type Page =
   | { type: "auth" }
   | { type: "join-pack" }
   | { type: "create-profile" }
-  | { type: "versus"; territory?: string; challengeWolf?: Wolf };
+  | { type: "versus"; territory?: string; challengeWolf?: Wolf; roleFilter?: WolfRole }
+  | { type: "explore" };
 
 interface UserProfile {
   name: string;
@@ -110,6 +112,16 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
+  const goToExplore = useCallback(() => {
+    setPage({ type: "explore" });
+    window.scrollTo(0, 0);
+  }, []);
+
+  const goToVersusByRole = useCallback((role: WolfRole) => {
+    setPage({ type: "versus", roleFilter: role });
+    window.scrollTo(0, 0);
+  }, []);
+
   const goToChallenge = useCallback((wolf: Wolf) => {
     setPage({ type: "versus", challengeWolf: wolf });
     setWolfColor(wolf.color);
@@ -165,7 +177,9 @@ export default function App() {
               page.type +
               (page.type === "wolf-profile" ? page.wolf.id : "") +
               (page.type === "versus"
-                ? (page.territory ?? "") + (page.challengeWolf?.id ?? "")
+                ? (page.territory ?? "") +
+                  (page.challengeWolf?.id ?? "") +
+                  (page.roleFilter ?? "")
                 : "")
             }
             initial={{ opacity: 0 }}
@@ -204,6 +218,7 @@ export default function App() {
                 onBack={goHome}
                 onSelectWolf={goToProfile}
                 onVersus={goToVersus}
+                onExplore={goToExplore}
               />
             )}
 
@@ -237,14 +252,26 @@ export default function App() {
 
             {page.type === "versus" && (
               <VersusPage
-                onBack={() =>
-                  page.challengeWolf
-                    ? setPage({ type: "wolf-profile", wolf: page.challengeWolf })
-                    : setPage({ type: "wolf-hub" })
-                }
+                onBack={() => {
+                  if (page.challengeWolf) {
+                    setPage({ type: "wolf-profile", wolf: page.challengeWolf });
+                  } else if (page.roleFilter) {
+                    setPage({ type: "explore" });
+                  } else {
+                    setPage({ type: "wolf-hub" });
+                  }
+                }}
                 territory={page.territory}
                 challengeWolf={page.challengeWolf}
+                roleFilter={page.roleFilter}
                 userProfile={userProfile || undefined}
+              />
+            )}
+
+            {page.type === "explore" && (
+              <ExplorePage
+                onBack={goHome}
+                onPickRole={goToVersusByRole}
               />
             )}
           </motion.div>

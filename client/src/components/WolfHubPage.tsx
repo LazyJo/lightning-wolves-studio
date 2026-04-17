@@ -80,6 +80,7 @@ interface Props {
   onBack: () => void;
   onSelectWolf: (wolf: Wolf) => void;
   onVersus?: (territory?: string) => void;
+  onExplore?: () => void;
 }
 
 /* ─── 3D Wolf Scene (simplified — no maw zoom) ─── */
@@ -784,6 +785,7 @@ export default function WolfHubPage({
   onBack,
   onSelectWolf,
   onVersus,
+  onExplore,
 }: Props) {
   const [selectedTerritory, setSelectedTerritory] =
     useState<Territory | null>(null);
@@ -835,8 +837,25 @@ export default function WolfHubPage({
             WOLF MAP
           </h1>
           <p className="mt-3 text-sm uppercase tracking-[0.3em] text-wolf-muted">
-            Scout the globe. Join the pack.
+            Scout the globe. Find your pack.
           </p>
+
+          {/* Explore-by-role entry */}
+          {onExplore && (
+            <motion.button
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onExplore}
+              className="mt-6 inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-wolf-gold/5 to-pink-500/10 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:border-purple-400/60 hover:shadow-lg hover:shadow-purple-500/20"
+            >
+              <span>✨</span>
+              Explore by role
+              <span className="text-wolf-muted">→</span>
+            </motion.button>
+          )}
         </motion.div>
 
         {/* === SECTION 1: 3D Wolf Hero (smaller) === */}

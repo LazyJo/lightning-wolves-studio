@@ -29,6 +29,17 @@ export interface WolfProfile {
   versus?: VersusProfile;
 }
 
+// Collaboration roles — what kind of creator this wolf is, i.e. what other
+// people will be searching for when they scout them. Used by the Explore
+// grid and the role filter chips on the Wolf Map.
+export type WolfRole =
+  | "artist"
+  | "producer"
+  | "songwriter"
+  | "photographer"
+  | "videographer"
+  | "designer";
+
 export interface Wolf {
   id: string;
   artist: string;
@@ -37,6 +48,7 @@ export interface Wolf {
   video?: string;
   image?: string;
   status: "active" | "coming-soon" | "locked" | "special" | "cta";
+  role?: WolfRole;
   profile?: WolfProfile;
 }
 
@@ -49,6 +61,7 @@ export const wolves: Wolf[] = [
     video: "/Lazy Jo Wolf Card Animation.mp4",
     image: "/wolf-yellow.svg",
     status: "active",
+    role: "artist",
     profile: {
       bio: "Belgian-Ghanaian artist from Brussels. Melodic flows, emotional hooks, unforgettable sound.",
       fullBio:
@@ -121,6 +134,7 @@ export const wolves: Wolf[] = [
     video: "/Wolf-Purple.mp4",
     image: "/wolf-purple.svg",
     status: "active",
+    role: "artist",
     profile: {
       bio: "French hip-hop energy with melodic punch. Raw energy and authentic flow from the streets of France.",
       spotify:
@@ -140,6 +154,7 @@ export const wolves: Wolf[] = [
     video: "/Wolf-Orange.mp4",
     image: "/wolf-orange.svg",
     status: "active",
+    role: "artist",
     profile: {
       bio: "Nee a Kinshasa, elevee entre Kigali et la Belgique, Rosakay mele folk rock, pop, R&B et variete francaise dans un univers intime et sincere.",
       fullBio:
@@ -164,6 +179,7 @@ export const wolves: Wolf[] = [
     video: "/wolf-white-blue.mp4",
     image: "/wolf-blue.svg",
     status: "active",
+    role: "designer",
     profile: {
       bio: "The visual identity behind the pack. Drippydesigns crafts the aesthetic world of Lightning Wolves — from logos to merch to the digital presence.",
       versus: {
@@ -189,6 +205,7 @@ export const wolves: Wolf[] = [
     video: "/Wolf-Green.mp4",
     image: "/wolf-green.svg",
     status: "active",
+    role: "photographer",
     profile: {
       bio: "Pierre Van der Heyde — the one behind the camera and behind the beat. Documents the Lightning Wolves world through photos, video, and sound.",
       fullBio:
@@ -308,6 +325,31 @@ export interface ActivityEvent {
   territory: string;
   timestamp: string;
 }
+
+// Catalog of roles used by the Explore grid + role filter chips.
+// Ordered roughly by what a visitor is most likely to be looking for.
+export interface RoleMeta {
+  id: WolfRole;
+  label: string;     // Noun plural shown on tiles ("Artists")
+  verb: string;      // Shown on tiles as the action ("Find an artist")
+  description: string;
+  icon: string;      // Emoji for quick visual identity
+  color: string;     // Tailwind-compatible accent hex
+}
+
+export const ROLE_CATALOG: RoleMeta[] = [
+  { id: "artist",       label: "Artists",       verb: "Find an artist",       description: "Singers, rappers, vocalists — collaborators for your next track.", icon: "🎤", color: "#f5c518" },
+  { id: "producer",     label: "Producers",     verb: "Find a producer",      description: "Beatmakers and sound designers to cook the instrumental.",          icon: "🎛️", color: "#9b6dff" },
+  { id: "songwriter",   label: "Songwriters",   verb: "Find a songwriter",    description: "Hook writers and lyricists — the pen behind the punchline.",       icon: "✍️", color: "#ff9500" },
+  { id: "photographer", label: "Photographers", verb: "Book a photographer",  description: "Shoot the cover, the press kit, the moment before it happens.",    icon: "📸", color: "#69f0ae" },
+  { id: "videographer", label: "Videographers", verb: "Book a videographer",  description: "Music videos, behind-the-scenes, cinematic visuals.",               icon: "🎬", color: "#82b1ff" },
+  { id: "designer",     label: "Designers",     verb: "Get album art",        description: "Cover art, trailers, logos — your visual identity.",               icon: "🎨", color: "#E040FB" },
+];
+
+export const roleMeta = (r: WolfRole) => ROLE_CATALOG.find((m) => m.id === r);
+
+export const wolvesByRole = (role: WolfRole) =>
+  wolves.filter((w) => w.status === "active" && w.role === role);
 
 export const recentActivity: ActivityEvent[] = [
   { id: "1", type: "joined", text: "Drippydesigns joined Belgium", territory: "belgium", timestamp: "1h ago" },

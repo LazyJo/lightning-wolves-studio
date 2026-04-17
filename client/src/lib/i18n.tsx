@@ -80,7 +80,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // Wolf Map
     "wolfMap.label": "Territory Map",
     "wolfMap.title": "WOLF MAP",
-    "wolfMap.subtitle": "Scout the globe. Join the pack.",
+    "wolfMap.subtitle": "Scout the globe. Find your pack.",
     "wolfMap.clickTerritory": "Click a territory to discover artists in each region",
     "wolfMap.wolvesInTerritory": "artists in territory",
     "wolfMap.noWolves": "No artists in this territory yet.",

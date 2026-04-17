@@ -1,8 +1,8 @@
 import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "motion/react";
 import { ArrowLeft, X, Heart, Zap, MessageSquare, Send, Users, Trash2, ChevronRight } from "lucide-react";
-import { territories, wolves } from "../data/wolves";
-import type { Wolf } from "../data/wolves";
+import { territories, wolves, roleMeta } from "../data/wolves";
+import type { Wolf, WolfRole } from "../data/wolves";
 
 interface SwipeProfile {
   id: string;
@@ -111,10 +111,35 @@ function buildTerritoryDeck(
   }));
 }
 
+// Build a deck of every active wolf with versus content for a given role.
+function buildRoleDeck(
+  role: WolfRole | undefined,
+  userName: string | undefined
+): SwipeProfile[] | null {
+  if (!role) return null;
+  const matches = wolves
+    .filter((w) => w.status === "active" && w.role === role && !!w.profile?.versus)
+    .filter((w) => !userName || w.artist.toLowerCase() !== userName.toLowerCase());
+  if (matches.length === 0) return null;
+  return matches.map((w) => ({
+    id: `wolf-${w.id}`,
+    name: w.artist,
+    genre: w.genre,
+    country: roleMeta(role)?.label ?? role,
+    avatar: w.image || "/wolf-yellow.svg",
+    video: w.video,
+    color: w.color,
+    flowLike: w.profile!.versus!.flowLike,
+    lookingFor: w.profile!.versus!.lookingFor,
+    howl: w.profile!.versus!.howl,
+  }));
+}
+
 interface Props {
   onBack: () => void;
   territory?: string;
   challengeWolf?: Wolf;
+  roleFilter?: WolfRole;
   userProfile?: { name: string; photo: string; genre: string };
 }
 
@@ -137,7 +162,7 @@ function wolfToDeck(w: Wolf): SwipeProfile[] | null {
   ];
 }
 
-export default function VersusPage({ onBack, territory, challengeWolf, userProfile }: Props) {
+export default function VersusPage({ onBack, territory, challengeWolf, roleFilter, userProfile }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeMatch, setActiveMatch] = useState<Match | null>(null);
@@ -153,17 +178,25 @@ export default function VersusPage({ onBack, territory, challengeWolf, userProfi
   const howlOpacity = useTransform(x, [0, 100], [0, 1]);
   const passOpacity = useTransform(x, [-100, 0], [1, 0]);
 
-  // Priority: direct challenge (single wolf) > territory deck > generic fallback
+  // Priority: direct challenge > role filter > territory > generic fallback
   const opponents = useMemo(() => {
     if (challengeWolf) {
       const deck = wolfToDeck(challengeWolf);
       if (deck) return deck;
     }
+    if (roleFilter) {
+      const deck = buildRoleDeck(roleFilter, userProfile?.name);
+      if (deck) return deck;
+    }
     return buildTerritoryDeck(territory, userProfile?.name) ?? fallbackOpponents;
-  }, [challengeWolf, territory, userProfile?.name]);
+  }, [challengeWolf, roleFilter, territory, userProfile?.name]);
+
+  const usingChallengeDeck =
+    !!challengeWolf && opponents.length > 0 && opponents[0].id === `wolf-${challengeWolf.id}`;
+  const usingRoleDeck = !challengeWolf && !!roleFilter && opponents !== fallbackOpponents;
   const usingTerritoryDeck =
-    !challengeWolf && opponents !== fallbackOpponents;
-  const usingChallengeDeck = !!challengeWolf && opponents.length > 0 && opponents[0].id === `wolf-${challengeWolf.id}`;
+    !challengeWolf && !roleFilter && opponents !== fallbackOpponents;
+  const roleInfo = roleFilter ? roleMeta(roleFilter) : undefined;
 
   const current = opponents[currentIndex % opponents.length];
   const isOutOfCards = currentIndex >= opponents.length;
@@ -544,6 +577,19 @@ export default function VersusPage({ onBack, territory, challengeWolf, userProfi
                 1-ON-1
               </span>
             </p>
+          ) : usingRoleDeck && roleInfo ? (
+            <p className="mt-1 text-xs uppercase tracking-wider text-wolf-muted">
+              {roleInfo.icon} {roleInfo.verb}
+              <span
+                className="ml-2 rounded-full px-2 py-0.5 text-[9px] font-bold"
+                style={{
+                  backgroundColor: `${roleInfo.color}15`,
+                  color: roleInfo.color,
+                }}
+              >
+                LIVE PACK
+              </span>
+            </p>
           ) : territory ? (
             <p className="mt-1 text-xs uppercase tracking-wider text-wolf-muted">
               Scouting in {territory}
@@ -564,6 +610,8 @@ export default function VersusPage({ onBack, territory, challengeWolf, userProfi
             <h3 className="text-lg font-bold text-white">
               {usingChallengeDeck && challengeWolf
                 ? `You've seen ${challengeWolf.artist}'s card`
+                : usingRoleDeck && roleInfo
+                ? `You've seen every ${roleInfo.label.toLowerCase()} in the pack`
                 : usingTerritoryDeck && territory
                 ? `You've seen every artist in ${territory}`
                 : "No more artists nearby"}
@@ -571,6 +619,8 @@ export default function VersusPage({ onBack, territory, challengeWolf, userProfi
             <p className="mt-2 text-sm text-wolf-muted">
               {usingChallengeDeck
                 ? "Head to the Wolf Map to discover more of the pack"
+                : usingRoleDeck
+                ? "Try a different role, or head to the Wolf Map to browse by territory"
                 : usingTerritoryDeck
                 ? "Head back to the Wolf Map to scout another territory"
                 : "Check back later or explore other territories"}

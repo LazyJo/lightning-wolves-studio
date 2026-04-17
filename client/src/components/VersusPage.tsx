@@ -525,8 +525,8 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
             <Users size={40} className="mx-auto mb-4 text-wolf-muted/30" />
             <h3 className="text-lg font-bold text-white">
               {usingTerritoryDeck && territory
-                ? `You've seen every wolf in ${territory}`
-                : "No more wolves nearby"}
+                ? `You've seen every artist in ${territory}`
+                : "No more artists nearby"}
             </h3>
             <p className="mt-2 text-sm text-wolf-muted">
               {usingTerritoryDeck

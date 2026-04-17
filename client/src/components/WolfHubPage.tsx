@@ -339,7 +339,7 @@ function WorldMap({
                 {t.name.toUpperCase()}
               </span>
               <span className="ml-3 text-wolf-gold">
-                {wolfCount} {wolfCount === 1 ? "wolf" : "wolves"}
+                {wolfCount} {wolfCount === 1 ? "artist" : "artists"}
               </span>
             </motion.div>
           );
@@ -391,7 +391,7 @@ function TerritoryPanel({
                 {territory.name.toUpperCase()}
               </h2>
               <p className="text-xs uppercase tracking-wider text-wolf-muted">
-                {territoryWolves(territory).length} wolves in territory
+                {territoryWolves(territory).length} {territoryWolves(territory).length === 1 ? "artist" : "artists"} in territory
               </p>
             </div>
             <button
@@ -470,7 +470,7 @@ function TerritoryPanel({
             <div className="py-12 text-center">
               <MapPin size={32} className="mx-auto mb-3 text-wolf-muted/40" />
               <p className="text-wolf-muted">
-                No wolves in this territory yet.
+                No artists in this territory yet.
               </p>
               <p className="mt-1 text-sm text-wolf-muted/50">
                 Scouts are on the ground. Coming soon.
@@ -662,7 +662,7 @@ function DiscoverySection({
                       {t.name.toUpperCase()}
                     </h4>
                     <p className="text-xs text-wolf-gold">
-                      {wolfCount} {wolfCount === 1 ? "wolf" : "wolves"} active
+                      {wolfCount} {wolfCount === 1 ? "artist" : "artists"} active
                     </p>
                   </div>
                 </div>

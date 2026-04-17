@@ -229,18 +229,48 @@ export interface Territory {
   id: string;
   name: string;
   flag: string;
-  top: string;
-  left: string;
+  iso: string;       // ISO 3166-1 alpha-2 (e.g. "GH", "BE")
+  top?: string;
+  left?: string;
   artists: string[]; // wolf IDs
 }
 
 export const territories: Territory[] = [
-  { id: "ghana", name: "Ghana", flag: "\u{1F1EC}\u{1F1ED}", top: "20%", left: "48%", artists: ["yellow"] },
-  { id: "usa", name: "USA", flag: "\u{1F1FA}\u{1F1F8}", top: "35%", left: "33%", artists: [] },
-  { id: "uk", name: "UK", flag: "\u{1F1EC}\u{1F1E7}", top: "35%", left: "63%", artists: [] },
-  { id: "belgium", name: "Belgium", flag: "\u{1F1E7}\u{1F1EA}", top: "48%", left: "33%", artists: ["yellow", "purple", "orange"] },
-  { id: "france", name: "France", flag: "\u{1F1EB}\u{1F1F7}", top: "48%", left: "63%", artists: [] },
-  { id: "nigeria", name: "Nigeria", flag: "\u{1F1F3}\u{1F1EC}", top: "58%", left: "48%", artists: [] },
+  { id: "ghana", name: "Ghana", flag: "\u{1F1EC}\u{1F1ED}", iso: "GH", top: "20%", left: "48%", artists: ["yellow"] },
+  { id: "usa", name: "USA", flag: "\u{1F1FA}\u{1F1F8}", iso: "US", top: "35%", left: "33%", artists: [] },
+  { id: "uk", name: "UK", flag: "\u{1F1EC}\u{1F1E7}", iso: "GB", top: "35%", left: "63%", artists: [] },
+  { id: "belgium", name: "Belgium", flag: "\u{1F1E7}\u{1F1EA}", iso: "BE", top: "48%", left: "33%", artists: ["yellow", "purple", "orange"] },
+  { id: "france", name: "France", flag: "\u{1F1EB}\u{1F1F7}", iso: "FR", top: "48%", left: "63%", artists: [] },
+  { id: "nigeria", name: "Nigeria", flag: "\u{1F1F3}\u{1F1EC}", iso: "NG", top: "58%", left: "48%", artists: [] },
+];
+
+// Lookup helpers
+export const activeTerritoryCodes = new Set(
+  territories.filter((t) => t.artists.length > 0).map((t) => t.iso)
+);
+
+export const territoryByIso = new Map(
+  territories.map((t) => [t.iso, t])
+);
+
+// ISO alpha-2 → ISO numeric (for TopoJSON matching)
+export const isoAlpha2ToNumeric: Record<string, string> = {
+  GH: "288", US: "840", GB: "826", BE: "056", FR: "250", NG: "566",
+};
+
+export interface ActivityEvent {
+  id: string;
+  type: "joined" | "collab" | "release";
+  text: string;
+  territory: string;
+  timestamp: string;
+}
+
+export const recentActivity: ActivityEvent[] = [
+  { id: "1", type: "joined", text: "Zirka joined Belgium", territory: "belgium", timestamp: "2h ago" },
+  { id: "2", type: "collab", text: "New collab brewing in Ghana", territory: "ghana", timestamp: "5h ago" },
+  { id: "3", type: "joined", text: "Rosakay joined Belgium", territory: "belgium", timestamp: "1d ago" },
+  { id: "4", type: "release", text: "Lazy Jo dropped a new track", territory: "ghana", timestamp: "2d ago" },
 ];
 
 export interface PricingTier {

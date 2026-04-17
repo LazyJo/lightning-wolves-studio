@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "motion/react";
 import { ArrowLeft, X, Heart, Zap, MessageSquare, Send, Users, Trash2, ChevronRight } from "lucide-react";
 import { territories, wolves } from "../data/wolves";
+import type { Wolf } from "../data/wolves";
 
 interface SwipeProfile {
   id: string;
@@ -113,10 +114,30 @@ function buildTerritoryDeck(
 interface Props {
   onBack: () => void;
   territory?: string;
+  challengeWolf?: Wolf;
   userProfile?: { name: string; photo: string; genre: string };
 }
 
-export default function VersusPage({ onBack, territory, userProfile }: Props) {
+// Convert a single Wolf into a one-card deck for direct "challenge" flows
+function wolfToDeck(w: Wolf): SwipeProfile[] | null {
+  if (!w.profile?.versus) return null;
+  return [
+    {
+      id: `wolf-${w.id}`,
+      name: w.artist,
+      genre: w.genre,
+      country: "Direct Challenge",
+      avatar: w.image || "/wolf-yellow.svg",
+      video: w.video,
+      color: w.color,
+      flowLike: w.profile.versus.flowLike,
+      lookingFor: w.profile.versus.lookingFor,
+      howl: w.profile.versus.howl,
+    },
+  ];
+}
+
+export default function VersusPage({ onBack, territory, challengeWolf, userProfile }: Props) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [matches, setMatches] = useState<Match[]>([]);
   const [activeMatch, setActiveMatch] = useState<Match | null>(null);
@@ -132,13 +153,17 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
   const howlOpacity = useTransform(x, [0, 100], [0, 1]);
   const passOpacity = useTransform(x, [-100, 0], [1, 0]);
 
-  // Prefer real territory wolves, fall back to the generic deck when scouting globally
-  const opponents = useMemo(
-    () =>
-      buildTerritoryDeck(territory, userProfile?.name) ?? fallbackOpponents,
-    [territory, userProfile?.name]
-  );
-  const usingTerritoryDeck = opponents !== fallbackOpponents;
+  // Priority: direct challenge (single wolf) > territory deck > generic fallback
+  const opponents = useMemo(() => {
+    if (challengeWolf) {
+      const deck = wolfToDeck(challengeWolf);
+      if (deck) return deck;
+    }
+    return buildTerritoryDeck(territory, userProfile?.name) ?? fallbackOpponents;
+  }, [challengeWolf, territory, userProfile?.name]);
+  const usingTerritoryDeck =
+    !challengeWolf && opponents !== fallbackOpponents;
+  const usingChallengeDeck = !!challengeWolf && opponents.length > 0 && opponents[0].id === `wolf-${challengeWolf.id}`;
 
   const current = opponents[currentIndex % opponents.length];
   const isOutOfCards = currentIndex >= opponents.length;
@@ -506,7 +531,20 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
           <h1 className="text-2xl font-bold tracking-wider text-white sm:text-3xl" style={{ fontFamily: "var(--font-heading)" }}>
             VERSUS <span className="bg-gradient-to-r from-purple-400 via-wolf-gold to-pink-400 bg-clip-text text-transparent">SWIPE</span>
           </h1>
-          {territory && (
+          {usingChallengeDeck && challengeWolf ? (
+            <p className="mt-1 text-xs uppercase tracking-wider text-wolf-muted">
+              Direct challenge · {challengeWolf.artist}
+              <span
+                className="ml-2 rounded-full px-2 py-0.5 text-[9px] font-bold"
+                style={{
+                  backgroundColor: `${challengeWolf.color}15`,
+                  color: challengeWolf.color,
+                }}
+              >
+                1-ON-1
+              </span>
+            </p>
+          ) : territory ? (
             <p className="mt-1 text-xs uppercase tracking-wider text-wolf-muted">
               Scouting in {territory}
               {usingTerritoryDeck && (
@@ -515,7 +553,7 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
                 </span>
               )}
             </p>
-          )}
+          ) : null}
         </motion.div>
 
         {isOutOfCards ? (
@@ -524,12 +562,16 @@ export default function VersusPage({ onBack, territory, userProfile }: Props) {
             className="rounded-2xl border border-wolf-border/20 bg-wolf-card p-12 text-center">
             <Users size={40} className="mx-auto mb-4 text-wolf-muted/30" />
             <h3 className="text-lg font-bold text-white">
-              {usingTerritoryDeck && territory
+              {usingChallengeDeck && challengeWolf
+                ? `You've seen ${challengeWolf.artist}'s card`
+                : usingTerritoryDeck && territory
                 ? `You've seen every artist in ${territory}`
                 : "No more artists nearby"}
             </h3>
             <p className="mt-2 text-sm text-wolf-muted">
-              {usingTerritoryDeck
+              {usingChallengeDeck
+                ? "Head to the Wolf Map to discover more of the pack"
+                : usingTerritoryDeck
                 ? "Head back to the Wolf Map to scout another territory"
                 : "Check back later or explore other territories"}
             </p>

@@ -33,6 +33,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "features.createDesc": "Upload your track, pick your wolf, and get AI-generated lyrics, SRT subtitles, beat cuts, and cinematic video prompts.",
     "features.connect": "Connect",
     "features.connectDesc": "Discover artists worldwide through the Versus swipe system. Match with collaborators who share your vibe and start creating together.",
+    "features.getBooked": "Get Booked",
+    "features.getBookedDesc": "The Golden Board is where organizers post paid gigs — shows, festivals, showcases — looking for artists, videographers, and photographers worldwide.",
     "features.conquer": "Conquer",
     "features.conquerDesc": "Join the Lightning Wolves roster. Get featured across territories, build your fanbase, and grow your career with real label infrastructure.",
 

@@ -1,11 +1,22 @@
 import { motion } from "motion/react";
-import { Mic, Users, TrendingUp } from "lucide-react";
+import { Mic, Users, Calendar, TrendingUp, ArrowRight } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 
-export default function Features() {
+interface Props {
+  onGoldenBoard?: () => void;
+}
+
+export default function Features({ onGoldenBoard }: Props = {}) {
   const { t } = useI18n();
 
-  const features = [
+  const features: {
+    icon: typeof Mic;
+    title: string;
+    description: string;
+    accent: string;
+    action?: () => void;
+    actionLabel?: string;
+  }[] = [
     {
       icon: Mic,
       title: t("features.create"),
@@ -17,6 +28,14 @@ export default function Features() {
       title: t("features.connect"),
       description: t("features.connectDesc"),
       accent: "#9b6dff",
+    },
+    {
+      icon: Calendar,
+      title: t("features.getBooked"),
+      description: t("features.getBookedDesc"),
+      accent: "#E040FB",
+      action: onGoldenBoard,
+      actionLabel: "See the board",
     },
     {
       icon: TrendingUp,
@@ -46,34 +65,52 @@ export default function Features() {
           </h2>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-3">
-          {features.map((f, i) => (
-            <motion.div
-              key={f.title}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.15, duration: 0.5 }}
-              whileHover={{ y: -6, transition: { duration: 0.2 } }}
-              className="group rounded-2xl border border-wolf-border/30 bg-wolf-card p-8 transition-shadow hover:shadow-xl hover:shadow-black/30"
-            >
-              <div
-                className="mb-5 inline-flex rounded-xl p-3"
-                style={{ backgroundColor: `${f.accent}12` }}
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {features.map((f, i) => {
+            const clickable = !!f.action;
+            const Tag = clickable ? motion.button : motion.div;
+            return (
+              <Tag
+                key={f.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.12, duration: 0.5 }}
+                whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                onClick={f.action}
+                className={`group flex flex-col rounded-2xl border p-8 text-left transition-shadow hover:shadow-xl hover:shadow-black/30 ${
+                  clickable
+                    ? "border-wolf-gold/30 bg-gradient-to-b from-wolf-gold/5 to-wolf-card cursor-pointer"
+                    : "border-wolf-border/30 bg-wolf-card"
+                }`}
               >
-                <f.icon size={28} style={{ color: f.accent }} />
-              </div>
-              <h3
-                className="mb-3 text-2xl text-white"
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                {f.title}
-              </h3>
-              <p className="text-sm leading-relaxed text-wolf-muted">
-                {f.description}
-              </p>
-            </motion.div>
-          ))}
+                <div
+                  className="mb-5 inline-flex self-start rounded-xl p-3"
+                  style={{ backgroundColor: `${f.accent}12` }}
+                >
+                  <f.icon size={28} style={{ color: f.accent }} />
+                </div>
+                <h3
+                  className="mb-3 text-2xl text-white"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  {f.title}
+                </h3>
+                <p className="flex-1 text-sm leading-relaxed text-wolf-muted">
+                  {f.description}
+                </p>
+                {clickable && f.actionLabel && (
+                  <span
+                    className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold transition-all group-hover:gap-2.5"
+                    style={{ color: f.accent }}
+                  >
+                    {f.actionLabel}
+                    <ArrowRight size={14} />
+                  </span>
+                )}
+              </Tag>
+            );
+          })}
         </div>
       </div>
     </section>

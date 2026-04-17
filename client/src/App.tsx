@@ -205,7 +205,7 @@ export default function App() {
               <>
                 <Hero onStudio={() => goToStudio()} />
                 <WolfGrid onSelectWolf={handleWolfSelect} />
-                <Features />
+                <Features onGoldenBoard={goToGoldenBoard} />
                 <FeaturedArtists
                   onSelectWolf={handleWolfSelect}
                   onJoinPack={goToJoinPack}

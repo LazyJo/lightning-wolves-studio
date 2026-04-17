@@ -166,6 +166,11 @@ export const wolves: Wolf[] = [
     status: "active",
     profile: {
       bio: "The visual identity behind the pack. Drippydesigns crafts the aesthetic world of Lightning Wolves — from logos to merch to the digital presence.",
+      versus: {
+        flowLike: "Visual storytelling that hits before a single word drops — covers, trailers, the aesthetic world around your sound",
+        lookingFor: "Artists with a vision who want their music to *look* as loud as it feels",
+        howl: "Ice blue drip on every frame / Before the beat plays, they remember the name",
+      },
     },
   },
   {
@@ -190,6 +195,11 @@ export const wolves: Wolf[] = [
         "Born in Belgium in 1997. Projects: 'Sin[e]' and 'Doubt Clouds' lo-fi meditations, and 'Behind this Luck' chillout project.",
       spotify:
         "https://open.spotify.com/embed/artist/4Uagbm0Dkl6hpM96LEYCo9",
+      versus: {
+        flowLike: "Behind the camera and behind the beat — lo-fi meditations, chillout textures, docs that make the quiet moments loud",
+        lookingFor: "Artists who trust the slow burn, and anyone who needs a music video that actually says something",
+        howl: "Shutter click in the silence / Every frame catches the lightning before it lands",
+      },
     },
   },
   {
@@ -261,7 +271,7 @@ export const territories: Territory[] = [
   { id: "ghana", name: "Ghana", flag: "\u{1F1EC}\u{1F1ED}", iso: "GH", top: "20%", left: "48%", artists: ["yellow"] },
   { id: "usa", name: "USA", flag: "\u{1F1FA}\u{1F1F8}", iso: "US", top: "35%", left: "33%", artists: [] },
   { id: "uk", name: "UK", flag: "\u{1F1EC}\u{1F1E7}", iso: "GB", top: "35%", left: "63%", artists: [] },
-  { id: "belgium", name: "Belgium", flag: "\u{1F1E7}\u{1F1EA}", iso: "BE", top: "48%", left: "33%", artists: ["yellow", "purple", "orange"] },
+  { id: "belgium", name: "Belgium", flag: "\u{1F1E7}\u{1F1EA}", iso: "BE", top: "48%", left: "33%", artists: ["yellow", "purple", "orange", "blue", "green"] },
   { id: "france", name: "France", flag: "\u{1F1EB}\u{1F1F7}", iso: "FR", top: "48%", left: "63%", artists: [] },
   { id: "nigeria", name: "Nigeria", flag: "\u{1F1F3}\u{1F1EC}", iso: "NG", top: "58%", left: "48%", artists: [] },
 ];
@@ -289,10 +299,12 @@ export interface ActivityEvent {
 }
 
 export const recentActivity: ActivityEvent[] = [
-  { id: "1", type: "joined", text: "Zirka joined Belgium", territory: "belgium", timestamp: "2h ago" },
-  { id: "2", type: "collab", text: "New collab brewing in Ghana", territory: "ghana", timestamp: "5h ago" },
-  { id: "3", type: "joined", text: "Rosakay joined Belgium", territory: "belgium", timestamp: "1d ago" },
-  { id: "4", type: "release", text: "Lazy Jo dropped a new track", territory: "ghana", timestamp: "2d ago" },
+  { id: "1", type: "joined", text: "Drippydesigns joined Belgium", territory: "belgium", timestamp: "1h ago" },
+  { id: "2", type: "joined", text: "Shiteux joined Belgium", territory: "belgium", timestamp: "1h ago" },
+  { id: "3", type: "collab", text: "New collab brewing in Ghana", territory: "ghana", timestamp: "5h ago" },
+  { id: "4", type: "joined", text: "Zirka joined Belgium", territory: "belgium", timestamp: "1d ago" },
+  { id: "5", type: "joined", text: "Rosakay joined Belgium", territory: "belgium", timestamp: "1d ago" },
+  { id: "6", type: "release", text: "Lazy Jo dropped a new track", territory: "ghana", timestamp: "2d ago" },
 ];
 
 export interface PricingTier {

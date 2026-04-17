@@ -9,7 +9,6 @@ import FeaturedArtists from "./components/FeaturedArtists";
 import CTA from "./components/CTA";
 import Footer from "./components/Footer";
 import LightningCanvas from "./components/LightningCanvas";
-import GalaxyCanvas from "./components/GalaxyCanvas";
 import WolfProfilePage from "./components/WolfProfilePage";
 import PricingPage from "./components/PricingPage";
 import WolfHubPage from "./components/WolfHubPage";
@@ -168,7 +167,6 @@ export default function App() {
 
   return (
     <>
-      <GalaxyCanvas accent={wolfColor} />
       <LightningCanvas color={wolfColor} />
       <div className="relative z-10">
         <Navbar

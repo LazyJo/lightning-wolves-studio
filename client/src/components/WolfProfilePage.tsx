@@ -14,9 +14,14 @@ import {
   Swords,
   Share2,
   Check,
+  Calendar,
+  MapPin,
+  BadgeCheck,
 } from "lucide-react";
 import { wolfSlug } from "../data/wolves";
 import type { Wolf } from "../data/wolves";
+import { bookingsForWolf, gigRoleMeta } from "../data/events";
+import type { GigEvent, GigRole } from "../data/events";
 import SpotifyEmbed from "./SpotifyEmbed";
 import AcknowledgementsCarousel from "./AcknowledgementsCarousel";
 
@@ -30,6 +35,7 @@ interface Props {
 export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }: Props) {
   const p = wolf.profile;
   const [copied, setCopied] = useState(false);
+  const bookings = bookingsForWolf(wolf.id);
   if (!p) return null;
   const isFr = p.lang === "fr";
 
@@ -328,6 +334,64 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
           </motion.div>
         )}
 
+        {/* Booked via Golden Board — upcoming + past gigs */}
+        {(bookings.upcoming.length > 0 || bookings.past.length > 0) && (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mt-16"
+          >
+            <div className="mb-6 text-center">
+              <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-wolf-gold/30 bg-wolf-gold/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.3em] text-wolf-gold">
+                🏆 Booked via Golden Board
+              </p>
+              <h2
+                className="text-2xl font-bold tracking-wider text-white md:text-3xl"
+                style={{ fontFamily: "var(--font-heading)" }}
+              >
+                {isFr ? "AGENDA" : "UPCOMING · PAST GIGS"}
+              </h2>
+            </div>
+
+            {bookings.upcoming.length > 0 && (
+              <div className="mb-6">
+                <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-wolf-gold">
+                  Upcoming
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {bookings.upcoming.map(({ event, role }) => (
+                    <BookingRow
+                      key={event.id}
+                      event={event}
+                      role={role}
+                      past={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {bookings.past.length > 0 && (
+              <div>
+                <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-wolf-muted">
+                  Past
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {bookings.past.map(({ event, role }) => (
+                    <BookingRow
+                      key={event.id}
+                      event={event}
+                      role={role}
+                      past={true}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+
         {/* Spotify */}
         {p.spotify && (
           <motion.div
@@ -391,6 +455,70 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
             </div>
           </motion.div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Booking row ─── */
+
+function BookingRow({
+  event,
+  role,
+  past,
+}: {
+  event: GigEvent;
+  role: GigRole;
+  past: boolean;
+}) {
+  const meta = gigRoleMeta(role);
+  return (
+    <div
+      className={`flex items-start gap-3 rounded-xl border p-4 transition-all ${
+        past
+          ? "border-wolf-border/20 bg-wolf-card/40 opacity-80"
+          : "border-wolf-gold/25 bg-gradient-to-br from-[#1a1608] to-wolf-card hover:border-wolf-gold/45"
+      }`}
+    >
+      <span className="text-xl shrink-0">{event.flag}</span>
+      <div className="flex-1 min-w-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h4
+            className="truncate text-sm font-bold tracking-wider text-white"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            {event.title}
+          </h4>
+          {event.hostVerified && (
+            <BadgeCheck
+              size={12}
+              className="shrink-0 fill-wolf-gold text-black"
+            />
+          )}
+        </div>
+        <p className="mt-0.5 text-xs text-wolf-muted">{event.host}</p>
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-wolf-muted">
+          <span className="inline-flex items-center gap-1">
+            <MapPin size={10} />
+            {event.city}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Calendar size={10} />
+            {event.date}
+          </span>
+          {meta && (
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+              style={{
+                backgroundColor: `${meta.color}15`,
+                color: meta.color,
+                border: `1px solid ${meta.color}30`,
+              }}
+            >
+              {meta.icon} {meta.label.replace(/s$/, "")}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

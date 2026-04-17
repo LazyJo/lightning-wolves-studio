@@ -18,6 +18,7 @@ import CreateProfilePage from "./components/CreateProfilePage";
 import VersusPage from "./components/VersusPage";
 import ExplorePage from "./components/ExplorePage";
 import GoldenBoardPage from "./components/GoldenBoardPage";
+import PromoterPricingPage from "./components/PromoterPricingPage";
 import { useCredits } from "./lib/useCredits";
 import { wolfBySlug } from "./data/wolves";
 import type { Wolf, WolfRole } from "./data/wolves";
@@ -33,7 +34,8 @@ type Page =
   | { type: "create-profile" }
   | { type: "versus"; territory?: string; challengeWolf?: Wolf; roleFilter?: WolfRole }
   | { type: "explore" }
-  | { type: "golden-board" };
+  | { type: "golden-board" }
+  | { type: "promoter-pricing" };
 
 interface UserProfile {
   name: string;
@@ -121,6 +123,11 @@ export default function App() {
 
   const goToGoldenBoard = useCallback(() => {
     setPage({ type: "golden-board" });
+    window.scrollTo(0, 0);
+  }, []);
+
+  const goToPromoterPricing = useCallback(() => {
+    setPage({ type: "promoter-pricing" });
     window.scrollTo(0, 0);
   }, []);
 
@@ -286,9 +293,22 @@ export default function App() {
             {page.type === "golden-board" && (
               <GoldenBoardPage
                 onBack={goHome}
-                onPost={goToPricing}
+                onPost={goToPromoterPricing}
                 onApplyGate={() => setPage({ type: "create-profile" })}
                 hasProfile={!!userProfile}
+              />
+            )}
+
+            {page.type === "promoter-pricing" && (
+              <PromoterPricingPage
+                onBack={goToGoldenBoard}
+                onPickTier={(tierId) => {
+                  // TODO: wire up real checkout flow — for now, a friendly confirm
+                  // eslint-disable-next-line no-alert
+                  alert(
+                    `Selected: ${tierId}\n\nCheckout is wired up in the next drop. You'll route to Stripe here.`
+                  );
+                }}
               />
             )}
           </motion.div>

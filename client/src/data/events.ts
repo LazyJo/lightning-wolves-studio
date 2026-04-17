@@ -120,3 +120,95 @@ export const GIG_ROLES: GigRoleMeta[] = [
 ];
 
 export const gigRoleMeta = (r: GigRole) => GIG_ROLES.find((m) => m.id === r);
+
+/* ─── Promoter pricing (who pays to post on the Golden Board) ─── */
+
+export interface PromoterTier {
+  id: string;
+  name: string;
+  tagline: string;          // One-line positioning
+  price: string;            // Shown prominently
+  period: string;           // "/month", "one-time", etc.
+  icon: string;             // Emoji
+  color: string;            // Accent color
+  popular?: boolean;
+  cta: string;
+  features: string[];
+}
+
+export const promoterTiers: PromoterTier[] = [
+  {
+    id: "single-gig",
+    name: "Single Gig",
+    tagline: "One show, one listing, no commitment.",
+    price: "€49",
+    period: "one-time",
+    icon: "\u{1F39F}\u{FE0F}",
+    color: "#82b1ff",
+    cta: "Post a single gig",
+    features: [
+      "1 event listing",
+      "Visible for 30 days",
+      "Receive applications in-app",
+      "Country + role filtering",
+      "No subscription — pay once",
+    ],
+  },
+  {
+    id: "venue",
+    name: "Venue",
+    tagline: "For active promoters running regular shows.",
+    price: "€99",
+    period: "/month",
+    icon: "\u{1F3DF}\u{FE0F}",
+    color: "#f5c518",
+    popular: true,
+    cta: "Start posting",
+    features: [
+      "Unlimited event listings",
+      "60-day visibility per listing",
+      "Verified organizer badge \u2714",
+      "Direct message with applicants",
+      "Basic analytics (views, applies)",
+      "Cancel anytime",
+    ],
+  },
+  {
+    id: "label-agency",
+    name: "Label / Agency",
+    tagline: "For labels, festivals, booking agencies.",
+    price: "€299",
+    period: "/month",
+    icon: "\u{1F3C6}",
+    color: "#E040FB",
+    cta: "Talk to sales",
+    features: [
+      "Everything in Venue",
+      "Priority placement on the board",
+      "Featured hero slot rotation",
+      "Full analytics + export",
+      "Custom organizer page",
+      "Multi-seat team access",
+      "Priority support",
+    ],
+  },
+];
+
+export const promoterFAQ: { q: string; a: string }[] = [
+  {
+    q: "How long does my listing stay on the board?",
+    a: "Single Gig listings stay visible for 30 days. Venue and Label plans extend that to 60 days per listing, and you can refresh or re-post any time.",
+  },
+  {
+    q: "Do I pay per applicant?",
+    a: "No. You pay for the listing. Applications come through the app — message the ones you like directly.",
+  },
+  {
+    q: "Can I upgrade or cancel?",
+    a: "Monthly plans cancel at the end of the billing period, no questions asked. Upgrades are prorated and take effect immediately.",
+  },
+  {
+    q: "What if my event is free / exposure-only?",
+    a: "You can still post it — just set the budget field to \u201CExposure + perks\u201D. The pack knows what they\u2019re signing up for.",
+  },
+];

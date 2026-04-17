@@ -81,14 +81,12 @@ export default function App() {
   }, []);
 
   const goToWolfHub = useCallback(() => {
-    // If no profile created yet, go to create profile first
-    if (!userProfile) {
-      setPage({ type: "create-profile" });
-    } else {
-      setPage({ type: "wolf-hub" });
-    }
+    // Wolf Map is open to everyone — profile is optional and can be
+    // completed later when the user actually wants to appear on the
+    // other side of a swipe.
+    setPage({ type: "wolf-hub" });
     window.scrollTo(0, 0);
-  }, [userProfile]);
+  }, []);
 
   const goToStudio = useCallback((wolf?: Wolf) => {
     setPage({ type: "studio", wolf: wolf || null });

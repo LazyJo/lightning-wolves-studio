@@ -52,20 +52,21 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
     if (f) update("photo", URL.createObjectURL(f));
   };
 
+  // Only name + genre are hard requirements — photo, country, prompts, and
+  // the Howl are all optional and can be filled in later.
   const canProceed = () => {
-    if (step === 0) return !!profile.photo && !!profile.name && !!profile.genre && !!profile.country;
-    if (step === 1) return !!profile.flowLike && !!profile.lookingFor;
-    if (step === 2) return !!profile.howl;
-    return false;
+    if (step === 0) return !!profile.name && !!profile.genre;
+    return true; // steps 1 and 2 are fully optional
   };
 
   const handleNext = () => {
     if (step < 2) setStep(step + 1);
-    else {
-      // Unlock animation
-      setUnlocking(true);
-      setTimeout(() => onComplete(profile), 2500);
-    }
+    else finish();
+  };
+
+  const finish = () => {
+    setUnlocking(true);
+    setTimeout(() => onComplete(profile), 2500);
   };
 
   const steps = [
@@ -182,8 +183,8 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                 {t("createProfile.subtitle")}
               </p>
 
-              {/* Photo upload */}
-              <div className="mb-6 flex justify-center">
+              {/* Photo upload (optional) */}
+              <div className="mb-2 flex justify-center">
                 <input ref={fileRef} type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
                 <button
                   onClick={() => fileRef.current?.click()}
@@ -199,6 +200,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                   )}
                 </button>
               </div>
+              <p className="mb-6 text-center text-[10px] text-wolf-muted/60">Optional — add later from your profile</p>
 
               {/* Name */}
               <div className="mb-4">
@@ -233,10 +235,11 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
                 </select>
               </div>
 
-              {/* Country */}
+              {/* Country (optional) */}
               <div>
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
-                  {t("createProfile.country")} *
+                  {t("createProfile.country")}{" "}
+                  <span className="text-wolf-muted/50 normal-case tracking-normal">(optional)</span>
                 </label>
                 <div className="relative">
                   <Globe size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-wolf-muted pointer-events-none" />
@@ -368,7 +371,7 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
           )}
         </AnimatePresence>
 
-        {/* Continue button */}
+        {/* Continue / Finish buttons */}
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -387,6 +390,19 @@ export default function CreateProfilePage({ onBack, onComplete }: Props) {
             <>{t("createProfile.continue")} <ArrowRight size={16} className="ml-2 inline" /></>
           )}
         </motion.button>
+
+        {/* Skip-for-now escape hatch — available as soon as the name+genre are set */}
+        {step >= 0 && canProceed() && step < 2 && (
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            onClick={finish}
+            className="mt-3 w-full rounded-xl border border-wolf-border/30 py-2.5 text-sm font-medium text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold"
+          >
+            Skip for now — finish profile later
+          </motion.button>
+        )}
       </div>
     </div>
   );

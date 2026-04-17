@@ -44,6 +44,23 @@ const TERRITORY_ZOOM: Record<string, number> = {
   BE: 6,
 };
 
+// Canonical genre buckets for the filter chips — coarser than raw wolf.genre
+// strings so related styles (e.g. "Melodic Hip-Hop" + "French Hip-Hop") share a chip.
+const GENRE_FILTERS: { id: string; label: string; match: (g: string) => boolean }[] = [
+  { id: "hip-hop", label: "Hip-Hop", match: (g) => /hip-hop/i.test(g) },
+  { id: "pop", label: "Pop", match: (g) => /pop/i.test(g) },
+  { id: "visual", label: "Visual", match: (g) => /cover|trailer|photo|video/i.test(g) },
+];
+
+function territoryMatchesGenre(t: Territory, filterId: string | null): boolean {
+  if (!filterId) return true;
+  const filter = GENRE_FILTERS.find((f) => f.id === filterId);
+  if (!filter) return true;
+  return t.artists
+    .map((id) => wolves.find((w) => w.id === id))
+    .some((w) => !!w && filter.match(w.genre));
+}
+
 // Build a set of numeric ISO codes that have active artists
 const activeNumericCodes = new Set(
   territories
@@ -179,12 +196,14 @@ function WorldMap({
   selectedIso,
   hoveredIso,
   onHover,
+  litIsoSet,
 }: {
   onSelectTerritory: (territory: Territory) => void;
   onResetView: () => void;
   selectedIso: string | null;
   hoveredIso: string | null;
   onHover: (iso: string | null) => void;
+  litIsoSet: Set<string>;
 }) {
   // Animated map view — mutated by GSAP, re-rendered via forceUpdate
   const viewRef = useRef({ ...DEFAULT_VIEW });
@@ -255,56 +274,65 @@ function WorldMap({
               const geoId = geo.id as string;
               const isActive = activeNumericCodes.has(geoId);
               const territory = numericToTerritory.get(geoId);
+              const isLit = isActive && !!territory && litIsoSet.has(territory.iso);
               const isSelected =
-                isActive && territory?.iso === selectedIso;
+                isLit && territory?.iso === selectedIso;
               const isHovered =
-                isActive && territory?.iso === hoveredIso;
+                isLit && territory?.iso === hoveredIso;
 
               return (
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
                   onClick={() => {
-                    if (isActive && territory) onSelectTerritory(territory);
+                    if (isLit && territory) onSelectTerritory(territory);
                   }}
                   onMouseEnter={() => {
-                    if (isActive && territory) onHover(territory.iso);
+                    if (isLit && territory) onHover(territory.iso);
                   }}
                   onMouseLeave={() => onHover(null)}
                   style={{
                     default: {
                       fill: isSelected
                         ? "rgba(245,197,24,0.55)"
-                        : isActive
+                        : isLit
                         ? "rgba(245,197,24,0.3)"
+                        : isActive
+                        ? "rgba(245,197,24,0.08)"
                         : "#15151c",
-                      stroke: isActive
+                      stroke: isLit
                         ? "rgba(245,197,24,0.6)"
+                        : isActive
+                        ? "rgba(245,197,24,0.2)"
                         : "#222230",
-                      strokeWidth: isActive ? 1 : 0.4,
+                      strokeWidth: isLit ? 1 : isActive ? 0.6 : 0.4,
                       outline: "none",
-                      cursor: isActive ? "pointer" : "default",
-                      filter: isActive
+                      cursor: isLit ? "pointer" : "default",
+                      filter: isLit
                         ? "drop-shadow(0 0 8px rgba(245,197,24,0.5))"
                         : "none",
                       transition: "all 200ms ease",
                     },
                     hover: {
-                      fill: isActive
+                      fill: isLit
                         ? "rgba(245,197,24,0.45)"
+                        : isActive
+                        ? "rgba(245,197,24,0.08)"
                         : "#1a1a24",
-                      stroke: isActive
+                      stroke: isLit
                         ? "rgba(245,197,24,0.8)"
+                        : isActive
+                        ? "rgba(245,197,24,0.2)"
                         : "#222230",
-                      strokeWidth: isActive ? 1.2 : 0.4,
+                      strokeWidth: isLit ? 1.2 : isActive ? 0.6 : 0.4,
                       outline: "none",
-                      cursor: isActive ? "pointer" : "default",
-                      filter: isActive
+                      cursor: isLit ? "pointer" : "default",
+                      filter: isLit
                         ? "drop-shadow(0 0 16px rgba(245,197,24,0.6))"
                         : "none",
                     },
                     pressed: {
-                      fill: isActive
+                      fill: isLit
                         ? "rgba(245,197,24,0.6)"
                         : "#15151c",
                       outline: "none",
@@ -496,19 +524,21 @@ function DiscoverySection({
   onSearchChange,
   onSelectTerritory,
   onSelectWolf,
+  genreFilter,
 }: {
   searchTerm: string;
   onSearchChange: (term: string) => void;
   onSelectTerritory: (territory: Territory) => void;
   onSelectWolf: (wolf: Wolf) => void;
+  genreFilter: string | null;
 }) {
   const hotTerritories = useMemo(
     () =>
       [...territories]
-        .filter((t) => t.artists.length > 0)
+        .filter((t) => t.artists.length > 0 && territoryMatchesGenre(t, genreFilter))
         .sort((a, b) => b.artists.length - a.artists.length)
         .slice(0, 3),
-    []
+    [genreFilter]
   );
 
   const searchResults = useMemo(() => {
@@ -759,7 +789,17 @@ export default function WolfHubPage({
     useState<Territory | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [hoveredIso, setHoveredIso] = useState<string | null>(null);
+  const [genreFilter, setGenreFilter] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Which ISO codes are currently "lit" on the map given the filter
+  const litIsoSet = useMemo(() => {
+    return new Set(
+      territories
+        .filter((t) => t.artists.length > 0 && territoryMatchesGenre(t, genreFilter))
+        .map((t) => t.iso)
+    );
+  }, [genreFilter]);
 
   return (
     <div className="min-h-screen pt-20">
@@ -830,12 +870,46 @@ export default function WolfHubPage({
           transition={{ delay: 0.3 }}
           className="mt-12"
         >
+          {/* Genre filter chips */}
+          <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
+            <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-wolf-muted">
+              Filter
+            </span>
+            {GENRE_FILTERS.map((f) => {
+              const isActive = genreFilter === f.id;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() =>
+                    setGenreFilter(isActive ? null : f.id)
+                  }
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
+                    isActive
+                      ? "border-wolf-gold/60 bg-wolf-gold/15 text-wolf-gold"
+                      : "border-wolf-border/30 bg-wolf-card/40 text-wolf-muted hover:border-wolf-gold/30 hover:text-white"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              );
+            })}
+            {genreFilter && (
+              <button
+                onClick={() => setGenreFilter(null)}
+                className="rounded-full border border-wolf-border/30 bg-wolf-card/40 px-3 py-1 text-xs font-semibold text-wolf-muted transition-all hover:border-red-400/40 hover:text-red-300"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
           <WorldMap
             onSelectTerritory={setSelectedTerritory}
             onResetView={() => setSelectedTerritory(null)}
             selectedIso={selectedTerritory?.iso ?? null}
             hoveredIso={hoveredIso}
             onHover={setHoveredIso}
+            litIsoSet={litIsoSet}
           />
         </motion.div>
 
@@ -853,6 +927,7 @@ export default function WolfHubPage({
           onSearchChange={setSearchTerm}
           onSelectTerritory={setSelectedTerritory}
           onSelectWolf={onSelectWolf}
+          genreFilter={genreFilter}
         />
       </div>
     </div>

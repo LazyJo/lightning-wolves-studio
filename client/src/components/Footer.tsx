@@ -6,15 +6,17 @@ interface Props {
   onStudio?: () => void;
   onPricing?: () => void;
   onJoinPack?: () => void;
+  onGoldenBoard?: () => void;
 }
 
-export default function Footer({ onWolfHub, onStudio, onPricing, onJoinPack }: Props) {
+export default function Footer({ onWolfHub, onStudio, onPricing, onJoinPack, onGoldenBoard }: Props) {
   const { t } = useI18n();
 
   const studioLinks: { label: string; action?: () => void }[] = [
     { label: "Lyrics Studio", action: onStudio },
     { label: "Pricing", action: onPricing },
     { label: "Wolf Map", action: onWolfHub },
+    { label: "Golden Board", action: onGoldenBoard },
   ];
 
   const communityLinks: { label: string; action?: () => void }[] = [

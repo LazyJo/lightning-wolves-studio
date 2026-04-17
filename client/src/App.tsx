@@ -17,6 +17,7 @@ import JoinPackPage from "./components/JoinPackPage";
 import CreateProfilePage from "./components/CreateProfilePage";
 import VersusPage from "./components/VersusPage";
 import ExplorePage from "./components/ExplorePage";
+import GoldenBoardPage from "./components/GoldenBoardPage";
 import { useCredits } from "./lib/useCredits";
 import { wolfBySlug } from "./data/wolves";
 import type { Wolf, WolfRole } from "./data/wolves";
@@ -31,7 +32,8 @@ type Page =
   | { type: "join-pack" }
   | { type: "create-profile" }
   | { type: "versus"; territory?: string; challengeWolf?: Wolf; roleFilter?: WolfRole }
-  | { type: "explore" };
+  | { type: "explore" }
+  | { type: "golden-board" };
 
 interface UserProfile {
   name: string;
@@ -114,6 +116,11 @@ export default function App() {
 
   const goToExplore = useCallback(() => {
     setPage({ type: "explore" });
+    window.scrollTo(0, 0);
+  }, []);
+
+  const goToGoldenBoard = useCallback(() => {
+    setPage({ type: "golden-board" });
     window.scrollTo(0, 0);
   }, []);
 
@@ -219,6 +226,7 @@ export default function App() {
                 onSelectWolf={goToProfile}
                 onVersus={goToVersus}
                 onExplore={goToExplore}
+                onGoldenBoard={goToGoldenBoard}
               />
             )}
 
@@ -274,6 +282,15 @@ export default function App() {
                 onPickRole={goToVersusByRole}
               />
             )}
+
+            {page.type === "golden-board" && (
+              <GoldenBoardPage
+                onBack={goHome}
+                onPost={goToPricing}
+                onApplyGate={() => setPage({ type: "create-profile" })}
+                hasProfile={!!userProfile}
+              />
+            )}
           </motion.div>
         </AnimatePresence>
 
@@ -282,6 +299,7 @@ export default function App() {
           onStudio={() => goToStudio()}
           onPricing={goToPricing}
           onJoinPack={goToJoinPack}
+          onGoldenBoard={goToGoldenBoard}
         />
       </div>
     </>

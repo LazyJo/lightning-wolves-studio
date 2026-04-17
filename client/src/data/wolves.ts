@@ -257,6 +257,17 @@ export const wolves: Wolf[] = [
 
 export const activeWolves = wolves.filter((w) => w.status === "active");
 
+// URL-friendly slug for share links, e.g. "Lazy Jo" → "lazy-jo"
+export const wolfSlug = (w: Wolf) =>
+  w.artist
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // strip diacritics
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+
+export const wolfBySlug = new Map(wolves.map((w) => [wolfSlug(w), w]));
+
 export interface Territory {
   id: string;
   name: string;

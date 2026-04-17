@@ -1,4 +1,5 @@
-import { motion } from "motion/react";
+import { useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
   Mail,
@@ -11,7 +12,10 @@ import {
   Youtube,
   Zap,
   Swords,
+  Share2,
+  Check,
 } from "lucide-react";
+import { wolfSlug } from "../data/wolves";
 import type { Wolf } from "../data/wolves";
 import SpotifyEmbed from "./SpotifyEmbed";
 import AcknowledgementsCarousel from "./AcknowledgementsCarousel";
@@ -25,8 +29,34 @@ interface Props {
 
 export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }: Props) {
   const p = wolf.profile;
+  const [copied, setCopied] = useState(false);
   if (!p) return null;
   const isFr = p.lang === "fr";
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/?challenge=${wolfSlug(wolf)}`;
+    try {
+      // Try native share first (great on mobile / IG)
+      if (navigator.share) {
+        await navigator.share({
+          title: `Challenge ${wolf.artist} on Lightning Wolves`,
+          text: `Swipe into a collab with ${wolf.artist} (${wolf.genre}) on Lightning Wolves.`,
+          url,
+        });
+        return;
+      }
+    } catch {
+      // fall through to clipboard
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // last-ditch: prompt the URL so the user can copy manually
+      window.prompt("Copy this challenge link:", url);
+    }
+  };
 
   return (
     <div className="min-h-screen pt-20">
@@ -233,6 +263,44 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
                 >
                   <Swords size={16} />
                   Challenge {wolf.artist}
+                </motion.button>
+              )}
+              {wolf.profile?.versus && (
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleShare}
+                  className="relative inline-flex items-center gap-2 rounded-xl border border-wolf-border/40 bg-wolf-card/50 px-5 py-3.5 text-sm font-semibold text-wolf-muted transition-all hover:border-wolf-gold/40 hover:text-wolf-gold"
+                  aria-label="Share challenge link"
+                >
+                  <AnimatePresence mode="wait">
+                    {copied ? (
+                      <motion.span
+                        key="copied"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="inline-flex items-center gap-2 text-wolf-gold"
+                      >
+                        <Check size={16} />
+                        Copied!
+                      </motion.span>
+                    ) : (
+                      <motion.span
+                        key="share"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className="inline-flex items-center gap-2"
+                      >
+                        <Share2 size={16} />
+                        Share
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </motion.button>
               )}
             </div>

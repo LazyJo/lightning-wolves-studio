@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -17,6 +17,7 @@ import JoinPackPage from "./components/JoinPackPage";
 import CreateProfilePage from "./components/CreateProfilePage";
 import VersusPage from "./components/VersusPage";
 import { useCredits } from "./lib/useCredits";
+import { wolfBySlug } from "./data/wolves";
 import type { Wolf } from "./data/wolves";
 
 type Page =
@@ -43,6 +44,23 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [studioView, setStudioView] = useState("dashboard");
   const { plan } = useCredits();
+
+  // Deep-link: ?challenge=<artist-slug> opens Versus with that wolf's card
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("challenge");
+    if (slug) {
+      const wolf = wolfBySlug.get(slug);
+      if (wolf && wolf.status === "active" && wolf.profile?.versus) {
+        setPage({ type: "versus", challengeWolf: wolf });
+        setWolfColor(wolf.color);
+      }
+      // Clean the URL so refreshes don't loop-open (only once on mount)
+      const url = new URL(window.location.href);
+      url.searchParams.delete("challenge");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
 
   const goHome = useCallback(() => {
     setPage({ type: "home" });

@@ -1,13 +1,15 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, useReducer } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, MapPin, X, Search, UserPlus, Music, Zap, Flame } from "lucide-react";
+import { ArrowLeft, MapPin, X, Search, UserPlus, Music, Zap, Flame, Globe2 } from "lucide-react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import gsap from "gsap";
 import {
   ComposableMap,
   Geographies,
   Geography,
+  ZoomableGroup,
 } from "react-simple-maps";
 import {
   territories,
@@ -18,6 +20,29 @@ import {
 import type { Territory, Wolf } from "../data/wolves";
 
 const GEO_URL = "/countries-110m.json";
+
+// Default map view (lng, lat, zoom)
+const DEFAULT_VIEW = { lng: 10, lat: 20, zoom: 1 };
+
+// Approximate centroids (lng, lat) for our active territories — used to animate zoom on select
+const TERRITORY_CENTROIDS: Record<string, [number, number]> = {
+  GH: [-1.0, 7.9],
+  US: [-98.0, 39.0],
+  GB: [-2.0, 54.0],
+  BE: [4.5, 50.5],
+  FR: [2.5, 46.2],
+  NG: [8.0, 9.0],
+};
+
+// Zoom level per territory — larger countries need less zoom
+const TERRITORY_ZOOM: Record<string, number> = {
+  US: 2.2,
+  NG: 3.5,
+  GH: 4,
+  FR: 4,
+  GB: 3.5,
+  BE: 6,
+};
 
 // Build a set of numeric ISO codes that have active artists
 const activeNumericCodes = new Set(
@@ -150,22 +175,80 @@ function WolfScene({
 
 function WorldMap({
   onSelectTerritory,
+  onResetView,
   selectedIso,
   hoveredIso,
   onHover,
 }: {
   onSelectTerritory: (territory: Territory) => void;
+  onResetView: () => void;
   selectedIso: string | null;
   hoveredIso: string | null;
   onHover: (iso: string | null) => void;
 }) {
+  // Animated map view — mutated by GSAP, re-rendered via forceUpdate
+  const viewRef = useRef({ ...DEFAULT_VIEW });
+  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+  const tweenRef = useRef<gsap.core.Tween | null>(null);
+
+  // Animate the map view whenever the selected territory changes
+  useEffect(() => {
+    const target = selectedIso
+      ? {
+          lng: TERRITORY_CENTROIDS[selectedIso]?.[0] ?? DEFAULT_VIEW.lng,
+          lat: TERRITORY_CENTROIDS[selectedIso]?.[1] ?? DEFAULT_VIEW.lat,
+          zoom: TERRITORY_ZOOM[selectedIso] ?? 3,
+        }
+      : DEFAULT_VIEW;
+
+    tweenRef.current?.kill();
+    tweenRef.current = gsap.to(viewRef.current, {
+      lng: target.lng,
+      lat: target.lat,
+      zoom: target.zoom,
+      duration: 1.1,
+      ease: "power3.inOut",
+      onUpdate: forceUpdate,
+    });
+
+    return () => {
+      tweenRef.current?.kill();
+    };
+  }, [selectedIso]);
+
+  const isZoomed = viewRef.current.zoom > 1.05;
+
   return (
     <div className="relative rounded-2xl border border-wolf-border/30 bg-wolf-surface/50 p-2 backdrop-blur-sm sm:p-4">
+      {/* Reset view pill — only when zoomed */}
+      <AnimatePresence>
+        {isZoomed && (
+          <motion.button
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            onClick={onResetView}
+            className="absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-wolf-gold/30 bg-wolf-bg/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-wolf-gold backdrop-blur-md transition-colors hover:border-wolf-gold/60 hover:text-white"
+          >
+            <Globe2 size={12} />
+            Reset view
+          </motion.button>
+        )}
+      </AnimatePresence>
+
       <ComposableMap
         projection="geoNaturalEarth1"
-        projectionConfig={{ scale: 140, center: [10, 20] }}
+        projectionConfig={{ scale: 140 }}
         style={{ width: "100%", height: "auto" }}
       >
+        <ZoomableGroup
+          center={[viewRef.current.lng, viewRef.current.lat]}
+          zoom={viewRef.current.zoom}
+          minZoom={1}
+          maxZoom={8}
+          disablePanning
+          disableZooming
+        >
         <Geographies geography={GEO_URL}>
           {({ geographies }) =>
             geographies.map((geo) => {
@@ -232,6 +315,7 @@ function WorldMap({
             })
           }
         </Geographies>
+        </ZoomableGroup>
       </ComposableMap>
 
       {/* Tooltip */}
@@ -748,6 +832,7 @@ export default function WolfHubPage({
         >
           <WorldMap
             onSelectTerritory={setSelectedTerritory}
+            onResetView={() => setSelectedTerritory(null)}
             selectedIso={selectedTerritory?.iso ?? null}
             hoveredIso={hoveredIso}
             onHover={setHoveredIso}

@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "scenes:thumbs": "node scripts/generate-scene-thumbs.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.52.0",

@@ -28,52 +28,32 @@ So for the `cinematic-music-video` preset, drop a file at
 
 ## Fastest way to generate them all
 
-Run one Replicate batch using the `prompt` field from each preset.
-Below is a one-shot Node script. Save as `scripts/generate-scene-thumbs.js`
-and run with `REPLICATE_API_TOKEN=... node scripts/generate-scene-thumbs.js`.
+The repo ships a runnable script at [`scripts/generate-scene-thumbs.mjs`](scripts/generate-scene-thumbs.mjs).
+It reads `client/src/data/scenePresets.ts`, extracts each preset's
+id + prompt, and generates a 3:4 thumbnail via Replicate's
+`google/nano-banana`, saving to `client/public/scenes/<id>.jpg`.
+Already-present thumbnails are skipped, so it's safe to rerun after
+adding more presets.
 
-```js
-// scripts/generate-scene-thumbs.js
-const Replicate = require("replicate");
-const fs = require("fs");
-const path = require("path");
-const https = require("https");
-
-// Import the preset list from the compiled client bundle. Easiest:
-// copy-paste the array here or read the .ts file and extract.
-const { scenePresets } = require("../client/src/data/scenePresets.ts"); // requires ts-node, or hand-copy
-
-const replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
-
-const OUT = path.join(__dirname, "..", "client", "public", "scenes");
-if (!fs.existsSync(OUT)) fs.mkdirSync(OUT, { recursive: true });
-
-function download(url, dest) {
-  return new Promise((resolve, reject) => {
-    const f = fs.createWriteStream(dest);
-    https.get(url, (r) => r.pipe(f).on("finish", () => f.close(resolve))).on("error", reject);
-  });
-}
-
-(async () => {
-  for (const p of scenePresets) {
-    const out = path.join(OUT, `${p.id}.jpg`);
-    if (fs.existsSync(out)) { console.log("skip", p.id); continue; }
-    console.log("generating", p.id);
-    const prediction = await replicate.run("google/nano-banana", {
-      input: { prompt: `${p.prompt} Vertical 3:4 poster composition, magazine cover feel.` },
-    });
-    const url = Array.isArray(prediction) ? prediction[0] : prediction;
-    await download(String(url), out);
-  }
-  console.log("done — thumbnails in", OUT);
-})();
+```bash
+REPLICATE_API_TOKEN=r8_... node scripts/generate-scene-thumbs.mjs
 ```
+
+Or add this once to your `package.json` scripts block for convenience:
+
+```json
+"scripts": {
+  "scenes:thumbs": "node scripts/generate-scene-thumbs.mjs"
+}
+```
+
+Then just: `npm run scenes:thumbs`.
 
 ### Cheap run estimate
 
-Google Nano Banana on Replicate is about **$0.025 per image**. For the
-full 24-preset library that's **~$0.60**. One-time cost.
+Google Nano Banana on Replicate is about **$0.025 per image**. For a
+24-preset library that's **~$0.60**; 48 presets ≈ **$1.20**. One-time
+cost — the script skips presets whose thumbs already exist.
 
 ## Alternative: hand-curated images
 

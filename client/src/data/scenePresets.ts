@@ -228,4 +228,166 @@ export const scenePresets: ScenePreset[] = [
     prompt: "Shibuya crossing at night, rain-slicked streets, neon billboards reflecting in puddles, umbrellas, cinematic long lens, crowd blur in background.",
     gradient: ["#0f0f1a", "#ff00aa"],
   },
+
+  /* ─── Cinematic (extras) ─── */
+  {
+    id: "alleyway-rain",
+    name: "Alleyway Rain",
+    category: "cinematic",
+    prompt: "Narrow urban alley, heavy rainfall, single overhead lamp casting warm pool of light on a lone figure in a long coat, steam from vents, noir palette.",
+    gradient: ["#1a1a2e", "#e9a347"],
+  },
+  {
+    id: "wolf-moonlight",
+    name: "Wolf Moonlight",
+    category: "cinematic",
+    trending: true,
+    prompt: "Silhouette of a lone wolf on a ridge against a huge moon, lightning cracking in the distance, mist drifting through pine trees, Lightning Wolves brand energy.",
+    gradient: ["#06101f", "#f5c518"],
+  },
+  {
+    id: "elevator-doors",
+    name: "Elevator Doors",
+    category: "cinematic",
+    prompt: "Cinematic slow-motion shot of steel elevator doors sliding open, reflections of city lights on polished metal, a backlit figure stepping through, moody score energy.",
+    gradient: ["#2a2520", "#c09855"],
+  },
+
+  /* ─── Visualizers (extras) ─── */
+  {
+    id: "oscilloscope",
+    name: "Oscilloscope",
+    category: "visualizers",
+    prompt: "Clean oscilloscope waveform on deep black, audio-reactive green glow, CRT scan lines, vintage lab equipment aesthetic, slow camera drift.",
+    gradient: ["#001a0d", "#00ff88"],
+  },
+  {
+    id: "shattered-glass",
+    name: "Shattered Glass",
+    category: "visualizers",
+    prompt: "Slow-motion glass shattering against black background, each shard catching colored light, frozen moment of impact, macro lens, crystalline detail.",
+    gradient: ["#0a0a18", "#b4e0ff"],
+  },
+  {
+    id: "vhs-grain",
+    name: "VHS Grain",
+    category: "visualizers",
+    prompt: "Heavy VHS tape aesthetic, tracking errors, chromatic aberration, scan lines, analog warmth, 80s TV commercial feel, saturated reds and blues.",
+    gradient: ["#2a0040", "#ff5577"],
+  },
+  {
+    id: "holographic-foil",
+    name: "Holographic Foil",
+    category: "visualizers",
+    prompt: "Rippling holographic foil sheet, rainbow iridescence, slow wave motion, macro lens, catching studio lights, luxury product photography feel.",
+    gradient: ["#4a0080", "#ffafff"],
+  },
+
+  /* ─── Lifestyle (extras) ─── */
+  {
+    id: "night-market",
+    name: "Night Market",
+    category: "lifestyle",
+    prompt: "Asian night market alley, dangling string lights, steaming food stalls, people browsing, warm amber palette, handheld documentary feel.",
+    gradient: ["#2a1a10", "#ffb347"],
+  },
+  {
+    id: "highrise-balcony",
+    name: "Highrise Balcony",
+    category: "lifestyle",
+    prompt: "Modern apartment balcony at sunset, city spread out below, figure leaning on railing with drink in hand, golden hour reflections in glass, lifestyle magazine feel.",
+    gradient: ["#ff6a88", "#ffc38b"],
+  },
+  {
+    id: "basement-studio",
+    name: "Basement Studio",
+    category: "lifestyle",
+    trending: true,
+    prompt: "Home recording studio at 3am, LED strip glow on acoustic foam, MPC and keyboards lit by monitor light, coffee cup, hoodie, focused late-night creation.",
+    gradient: ["#1a0033", "#ff3ecb"],
+  },
+
+  /* ─── Performance (extras) ─── */
+  {
+    id: "festival-mainstage",
+    name: "Festival Mainstage",
+    category: "performance",
+    prompt: "Massive festival main stage, pyrotechnics erupting, lasers cutting through fog, silhouetted artist at mic, ocean of hands in the crowd, epic wide shot.",
+    gradient: ["#1a0033", "#ff3cac"],
+  },
+  {
+    id: "acoustic-circle",
+    name: "Acoustic Circle",
+    category: "performance",
+    prompt: "Intimate living room session, candlelight, artist with acoustic guitar, small attentive audience sitting on the floor, warm honey palette, hand-held camera.",
+    gradient: ["#3a2418", "#ffb87a"],
+  },
+  {
+    id: "backstage-moment",
+    name: "Backstage Moment",
+    category: "performance",
+    prompt: "Backstage corridor before a show, artist pacing with headphones, ambient hum of crowd in distance, single work light, documentary black-and-white grade.",
+    gradient: ["#111111", "#808080"],
+  },
+
+  /* ─── Action (extras) ─── */
+  {
+    id: "rooftop-sprint",
+    name: "Rooftop Sprint",
+    category: "action",
+    prompt: "Parkour rooftop sprint at sunset, silhouetted figure leaping across buildings, city skyline behind, cinematic side tracking shot, orange and purple sky.",
+    gradient: ["#ff5733", "#6a0dad"],
+  },
+  {
+    id: "subway-showdown",
+    name: "Subway Showdown",
+    category: "action",
+    prompt: "Empty subway platform at night, fluorescent flicker, two figures facing off from opposite ends, steam rising from the tracks, wide cinematic framing.",
+    gradient: ["#1a1a2e", "#ff4757"],
+  },
+  {
+    id: "sand-storm",
+    name: "Sand Storm",
+    category: "action",
+    prompt: "Figure pushing forward through a violent sandstorm, goggles glinting, fabric whipping, low-angle hero shot, dramatic desert palette.",
+    gradient: ["#7a4a1a", "#f4c85a"],
+  },
+  {
+    id: "street-race",
+    name: "Street Race",
+    category: "action",
+    trending: true,
+    prompt: "Illegal street racing scene at night, neon-lit cars revving, spectators lining the sidewalks, smoke from tires, Tokyo-Drift aesthetic, cinematic low angle.",
+    gradient: ["#0a0a1a", "#ff0055"],
+  },
+
+  /* ─── Landscapes (extras) ─── */
+  {
+    id: "northern-lights",
+    name: "Northern Lights",
+    category: "landscapes",
+    prompt: "Aurora borealis dancing over a frozen lake, figure standing alone on the ice, reflections in still water, ethereal green and purple sky, cinematic wide shot.",
+    gradient: ["#001a33", "#00ff88"],
+  },
+  {
+    id: "volcanic-ridge",
+    name: "Volcanic Ridge",
+    category: "landscapes",
+    prompt: "Black volcanic rock ridge, distant lava glow, ash drifting through the air, figure silhouetted against a red sky, apocalyptic landscape.",
+    gradient: ["#1a0a0a", "#ff4500"],
+  },
+  {
+    id: "mountain-sunrise",
+    name: "Mountain Sunrise",
+    category: "landscapes",
+    prompt: "Alpine peak at dawn, first light hitting snowy summits, deep valley in shadow below, figure in climbing gear looking out, cinematic vastness.",
+    gradient: ["#1a2a4a", "#ffc87a"],
+  },
+  {
+    id: "lagos-sunset",
+    name: "Lagos Sunset",
+    category: "landscapes",
+    prompt: "West African coastline at sunset, silhouetted palm trees against orange and pink sky, waves breaking on the beach, warm diasporic palette.",
+    gradient: ["#4a1a33", "#ffa500"],
+  },
 ];

@@ -165,6 +165,11 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
 
   /* ─── Cut markers ─── */
 
+  // Timeline element lets pointer drag logic map mouse X → seconds.
+  const timelineRef = useRef<HTMLDivElement>(null);
+  // Track which marker is mid-drag so pointer-move can mutate just that one.
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+
   const addMarkerAtPlayhead = () => {
     if (!audioDuration) return;
     const t = currentTime;
@@ -179,6 +184,77 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
 
   const removeMarker = (idx: number) => {
     setCutMarkers((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // Pointer-driven drag: on pointer-down on a marker, we grab it; on
+  // move we compute the new time from the pointer's X relative to the
+  // timeline strip; on release we resort the array. No global listener
+  // needed — setPointerCapture keeps events routed to the element.
+  const onMarkerPointerDown = (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!audioDuration) return;
+    // Left click only; don't start a drag if user clicks modifier + button.
+    if (e.button !== 0) return;
+    e.stopPropagation();
+    setDraggingIdx(idx);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const onMarkerPointerMove = (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (draggingIdx !== idx) return;
+    const rect = timelineRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const next = Math.round(pct * audioDuration * 20) / 20; // 0.05s snap
+    setCutMarkers((prev) => {
+      const copy = [...prev];
+      copy[idx] = next;
+      return copy;
+    });
+  };
+
+  const onMarkerPointerUp = (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (draggingIdx !== idx) return;
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    setDraggingIdx(null);
+    // Resort after the drag + dedupe any markers that overlapped.
+    setCutMarkers((prev) =>
+      [...prev]
+        .sort((a, b) => a - b)
+        .filter((v, i, arr) => arr.findIndex((x) => Math.abs(x - v) < 0.05) === i)
+    );
+  };
+
+  /* ─── Word timing nudge ─── */
+
+  // Shift a single word's start time by `delta` seconds, clamped inside
+  // the audio duration and its neighbours so the ordering stays valid.
+  const nudgeWord = (idx: number, delta: number) => {
+    setWordTimings((prev) => {
+      const copy = [...prev];
+      const w = copy[idx];
+      if (!w) return prev;
+      const prevEnd = idx > 0 ? copy[idx - 1].end : 0;
+      const nextStart = idx < copy.length - 1 ? copy[idx + 1].start : audioDuration;
+      const newStart = Math.max(prevEnd, Math.min(w.end - 0.05, w.start + delta));
+      const newEnd = Math.max(newStart + 0.05, Math.min(nextStart, w.end + delta));
+      copy[idx] = { ...w, start: newStart, end: newEnd };
+      return copy;
+    });
+  };
+
+  // Restore a single word's timing to its Whisper baseline — handy if
+  // the user nudged too aggressively. We stash the original in a ref on
+  // first transcribe so this is a cheap lookup.
+  const baselineWordsRef = useRef<WordTiming[] | null>(null);
+  useEffect(() => {
+    if (wordTimings.length > 0 && !baselineWordsRef.current) {
+      baselineWordsRef.current = wordTimings.map((w) => ({ ...w }));
+    }
+  }, [wordTimings]);
+  const resetWordTimings = () => {
+    if (baselineWordsRef.current) {
+      setWordTimings(baselineWordsRef.current.map((w) => ({ ...w })));
+    }
   };
 
   /* ─── Save ─── */
@@ -346,14 +422,43 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
 
             {wordTimings.length > 0 && (
               <details className="mt-3">
-                <summary className="cursor-pointer text-[11px] text-wolf-muted hover:text-wolf-gold">
-                  Word timings ({wordTimings.length})
+                <summary className="flex cursor-pointer items-center justify-between text-[11px] text-wolf-muted hover:text-wolf-gold">
+                  <span>Word timings ({wordTimings.length}) — click ◂ ▸ to nudge</span>
+                  {baselineWordsRef.current && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        resetWordTimings();
+                      }}
+                      className="rounded px-2 py-0.5 text-[10px] text-wolf-muted hover:text-wolf-gold"
+                    >
+                      Reset
+                    </button>
+                  )}
                 </summary>
-                <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-wolf-border/15 bg-black/20 p-2 font-mono text-[10px] text-slate-400">
+                <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-wolf-border/15 bg-black/20 p-2 text-[11px] text-slate-300">
                   {wordTimings.map((w, i) => (
-                    <div key={i} className="flex gap-2">
-                      <span className="w-16 text-wolf-muted/60">{w.start.toFixed(2)}</span>
-                      <span className="flex-1">{w.word}</span>
+                    <div key={i} className="flex items-center gap-2 py-0.5">
+                      <span className="w-14 font-mono text-[10px] text-wolf-muted/70">
+                        {w.start.toFixed(2)}
+                      </span>
+                      <span className="flex-1 truncate">{w.word}</span>
+                      <span className="flex gap-0.5">
+                        <button
+                          onClick={() => nudgeWord(i, -0.05)}
+                          aria-label={`Nudge "${w.word}" earlier`}
+                          className="rounded border border-wolf-border/20 bg-wolf-bg/60 px-1.5 text-[10px] text-wolf-muted hover:border-wolf-gold/40 hover:text-wolf-gold"
+                        >
+                          ◂
+                        </button>
+                        <button
+                          onClick={() => nudgeWord(i, 0.05)}
+                          aria-label={`Nudge "${w.word}" later`}
+                          className="rounded border border-wolf-border/20 bg-wolf-bg/60 px-1.5 text-[10px] text-wolf-muted hover:border-wolf-gold/40 hover:text-wolf-gold"
+                        >
+                          ▸
+                        </button>
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -365,22 +470,39 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
           <Card num={3} label="Cut markers" accent={accent}>
             {audioDuration ? (
               <div>
-                <div className="relative h-10 rounded-lg border border-wolf-border/20 bg-black/40">
+                <div
+                  ref={timelineRef}
+                  className="relative h-10 rounded-lg border border-wolf-border/20 bg-black/40 touch-none select-none"
+                >
                   {/* Playhead */}
                   <div
                     className="absolute top-0 bottom-0 w-px bg-wolf-gold/70"
                     style={{ left: `${playheadPercent}%` }}
                   />
-                  {/* Markers */}
-                  {markerPercents.map((pct, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => removeMarker(idx)}
-                      title={`${cutMarkers[idx].toFixed(2)}s — click to remove`}
-                      className="absolute top-0 bottom-0 w-1 -translate-x-1/2 cursor-pointer rounded bg-wolf-amber transition-all hover:bg-red-400"
-                      style={{ left: `${pct}%` }}
-                    />
-                  ))}
+                  {/* Markers — draggable. Shift-click to remove. */}
+                  {markerPercents.map((pct, idx) => {
+                    const isDragging = draggingIdx === idx;
+                    return (
+                      <button
+                        key={idx}
+                        onPointerDown={onMarkerPointerDown(idx)}
+                        onPointerMove={onMarkerPointerMove(idx)}
+                        onPointerUp={onMarkerPointerUp(idx)}
+                        onPointerCancel={onMarkerPointerUp(idx)}
+                        onClick={(e) => {
+                          // Shift-click removes; plain click is a no-op so it
+                          // doesn't fight the drag gesture. The chip below is
+                          // still one-click-to-remove.
+                          if (e.shiftKey) removeMarker(idx);
+                        }}
+                        title={`${cutMarkers[idx].toFixed(2)}s — drag to move, shift-click to remove`}
+                        className={`absolute top-0 bottom-0 w-1.5 -translate-x-1/2 rounded bg-wolf-amber transition-all hover:bg-wolf-gold ${
+                          isDragging ? "cursor-grabbing scale-y-110 bg-wolf-gold" : "cursor-grab"
+                        }`}
+                        style={{ left: `${pct}%` }}
+                      />
+                    );
+                  })}
                 </div>
 
                 <div className="mt-3 flex items-center gap-2">

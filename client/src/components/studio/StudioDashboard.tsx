@@ -19,6 +19,7 @@ import {
 import type { Wolf } from "../../data/wolves";
 import { tierLabel, tierColor } from "../../lib/useCredits";
 import { useRecentActivity, formatTimeAgo } from "../../lib/useRecentActivity";
+import TemplatesList from "./TemplatesList";
 
 type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art" | "artist-page";
 
@@ -40,6 +41,10 @@ interface Props {
   onBack: () => void;
   onWolfHub?: () => void;
   t: (key: string) => string;
+  /** Jump straight to the TemplateEditor (new template) */
+  onNewTemplate?: () => void;
+  /** Open a saved template's mode picker */
+  onOpenTemplate?: (id: string) => void;
 }
 
 const toolDefs: {
@@ -54,7 +59,6 @@ const toolDefs: {
   credits: number;
 }[] = [
   { id: "remix", titleKey: "studio.remix", descKey: "studio.remixDesc", icon: Shuffle, color: "#f5c518", popular: true, tags: ["YouTube import", "Auto scene detect", "Shuffle clips"], credits: 15 },
-  { id: "template", titleKey: "studio.newTemplate", descKey: "studio.newTemplateDesc", icon: Music, color: "#ff6b9d", credits: 0 },
   { id: "scenes", titleKey: "studio.scenes", descKey: "studio.scenesDesc", icon: Film, color: "#69f0ae", badge: "AI", credits: 60 },
   { id: "performance", titleKey: "studio.performance", descKey: "studio.performanceDesc", icon: Video, color: "#E040FB", badge: "AI", credits: 15 },
   { id: "cover-art", titleKey: "studio.coverArt", descKey: "studio.coverArtDesc", icon: Image, color: "#82b1ff", credits: 12 },
@@ -81,7 +85,7 @@ const TOOL_ICONS: Record<string, string> = {
   "cover-art": "Image",
 };
 
-export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool, onBack, onWolfHub, t }: Props) {
+export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool, onBack, onWolfHub, t, onNewTemplate, onOpenTemplate }: Props) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { activities } = useRecentActivity();
   const tColor = tierColor(plan.tier);
@@ -244,7 +248,29 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
         </motion.div>
       )}
 
-      {/* Tool Grid */}
+      {/* Templates — the spine of the Studio. Appears above the
+          legacy tool tiles because everything-lyric-video flows
+          through a template now. */}
+      {(onNewTemplate || onOpenTemplate) && (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+          className="mb-8"
+        >
+          <TemplatesList
+            onNew={() => onNewTemplate?.()}
+            onOpen={(id) => onOpenTemplate?.(id)}
+          />
+        </motion.div>
+      )}
+
+      {/* Secondary tools — Cover Art, Artist Page, and quick-jump
+          Remix/Scenes/Performance tiles that still bounce through the
+          Templates list when clicked (the App router handles it). */}
+      <p className="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-wolf-muted">
+        More tools
+      </p>
       <div className="grid gap-4 sm:gap-5 md:grid-cols-2 lg:grid-cols-[1fr_1fr_1fr]">
         {/* Remix — large featured card */}
         <motion.div
@@ -374,29 +400,9 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
           </div>
         </motion.div>
 
-        {/* Side Cards */}
+        {/* Side Cards — Templates used to live here but now appears
+            above the tool grid as the primary Studio surface. */}
         <div className="flex flex-col gap-4">
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            onClick={() => onSelectTool("template")}
-            className="group cursor-pointer rounded-xl border border-wolf-border/20 bg-wolf-card/50 p-5 transition-all hover:border-wolf-border/40"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#ff6b9d]/10">
-                  <LayoutGrid size={18} className="text-[#ff6b9d]" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-white">{t("studio.templates")}</p>
-                  <p className="text-xs text-wolf-muted">View and manage your templates</p>
-                </div>
-              </div>
-              <ArrowRight size={16} className="text-wolf-muted transition-transform group-hover:translate-x-1" />
-            </div>
-          </motion.div>
-
           {onWolfHub && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}

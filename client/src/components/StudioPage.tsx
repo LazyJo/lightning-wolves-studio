@@ -4,7 +4,6 @@ import WolfVisionPanelComponent from "./studio/WolfVisionPanel";
 import StudioDashboard from "./studio/StudioDashboard";
 import { useCredits, tierLabel, tierColor } from "../lib/useCredits";
 import { useI18n } from "../lib/i18n";
-import TemplateViewComponent from "./studio/TemplateView";
 import TemplateEditor from "./studio/TemplateEditor";
 import TemplatesList from "./studio/TemplatesList";
 import TemplateModePicker from "./studio/TemplateModePicker";
@@ -56,8 +55,7 @@ type View =
   | "remix"
   | "performance"
   | "cover-art"
-  | "artist-page"
-  | "template";          // Legacy inline-wizard template tool — kept for back-compat
+  | "artist-page";
 type Tab = "lyrics" | "srt" | "beats" | "prompts";
 
 // Demo content
@@ -561,10 +559,6 @@ type PendingMode = "scenes" | "remix" | "performance" | null;
 // Main Studio Page
 export default function StudioPage({ wolf, onBack, onWolfHub, studioView: externalView, onStudioNav }: Props) {
   const [internalView, setInternalView] = useState<View>("dashboard");
-  const [savedLyrics, setSavedLyrics] = useState("");
-  const [savedAudioUrl, setSavedAudioUrl] = useState("");
-  const [savedRegionStart, setSavedRegionStart] = useState(0);
-  const [savedRegionEnd, setSavedRegionEnd] = useState(15);
 
   // LYRC-style Template flow — one upload, many renders.
   const [currentTemplate, setCurrentTemplate] = useState<Template | null>(null);
@@ -643,6 +637,11 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
             onBack={onBack}
             onWolfHub={onWolfHub}
             t={t}
+            onNewTemplate={() => {
+              setEditingTemplate(null);
+              setView("template-editor");
+            }}
+            onOpenTemplate={openTemplate}
           />
         ) : view === "templates" ? (
           <TemplatesList
@@ -708,16 +707,6 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
             }}
             onOpen={openTemplate}
           />
-        ) : view === "template" ? (
-          // Legacy inline-wizard template tool — kept for any user flow
-          // that still references it until we can remove for good.
-          <TemplateViewComponent onBack={() => setView("dashboard")} onGoToRemix={(lyrics, audioUrl, regionStart, regionEnd) => {
-            if (lyrics) setSavedLyrics(lyrics);
-            if (audioUrl) setSavedAudioUrl(audioUrl);
-            if (regionStart !== undefined) setSavedRegionStart(regionStart);
-            if (regionEnd !== undefined) setSavedRegionEnd(regionEnd);
-            setView("templates");
-          }} wolf={wolf} />
         ) : view === "cover-art" ? (
           <CoverArtViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "artist-page" ? (

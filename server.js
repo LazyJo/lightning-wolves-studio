@@ -607,10 +607,12 @@ const VISION_MODELS = {
     replicateModel: 'google/nano-banana',
     buildInput: (prompt) => ({ prompt, output_format: 'png' }),
   },
-  'nanobanana': {
-    name: 'NanoBanana',
+  'nanobanana-2': {
+    // Public-facing "new" badge on pricing — same Google Gemini image model
+    // as Pro but with lighter params so it's the cheaper daily driver.
+    name: 'NanoBanana 2',
     credits: 10,
-    status: 'access',
+    status: 'new',
     kind: 'image',
     provider: 'replicate',
     replicateModel: 'google/nano-banana',
@@ -629,13 +631,20 @@ const VISION_MODELS = {
     buildInput: (prompt) => ({ prompt, aspect_ratio: '16:9', output_format: 'jpg' }),
   },
   'sora-2': {
-    // Sora 2 is OpenAI-only. Left as disabled until we add the direct call
-    // path via the existing `openai` client.
+    // Sora 2 runs through OpenAI directly (not on Replicate). Requires the
+    // calling account to have Sora API access — OpenAI returns a clear error
+    // if you don't, which bubbles up to the user as "MODEL_UNAVAILABLE".
     name: 'Sora 2',
     credits: 20,
     status: 'legacy',
     kind: 'video',
-    provider: 'disabled',
+    provider: 'openai',
+    openaiModel: 'sora-2',
+    buildInput: (prompt, opts = {}) => ({
+      prompt,
+      seconds: String(opts.duration || 4),
+      size: opts.size || '1280x720',
+    }),
   },
   'kling-3': {
     name: 'Kling 3.0',
@@ -734,6 +743,12 @@ app.post('/api/generate-visuals', async (req, res) => {
         message: 'Video generation is offline — REPLICATE_API_TOKEN not set.',
       });
     }
+    if (model.provider === 'openai' && !openai) {
+      return res.status(503).json({
+        error: 'OPENAI_NOT_CONFIGURED',
+        message: `${model.name} is offline — OPENAI_API_KEY not set.`,
+      });
+    }
 
     // ── Auth + credit check ──────────────────────────────────────────────
     let user = null;
@@ -762,15 +777,30 @@ app.post('/api/generate-visuals', async (req, res) => {
       });
     }
 
-    // ── Fire the Replicate prediction ────────────────────────────────────
+    // ── Fire the prediction (router: replicate vs openai) ────────────────
+    // We normalise the upstream response into a { id, status } shape so
+    // the persist/poll code below doesn't have to know which provider ran.
     let prediction;
     try {
-      prediction = await replicate.predictions.create({
-        model: model.replicateModel,
-        input: model.buildInput(prompt, options || {}),
-      });
+      if (model.provider === 'replicate') {
+        const rep = await replicate.predictions.create({
+          model: model.replicateModel,
+          input: model.buildInput(prompt, options || {}),
+        });
+        prediction = { id: `rep_${rep.id}`, status: rep.status };
+      } else if (model.provider === 'openai') {
+        // OpenAI's video API (Sora 2). Create kicks off an async job whose
+        // id we prefix so the status endpoint can route back to OpenAI.
+        const job = await openai.videos.create(model.buildInput(prompt, options || {}));
+        prediction = { id: `oa_${job.id}`, status: job.status || 'starting' };
+      } else {
+        return res.status(500).json({
+          error: 'PROVIDER_NOT_IMPLEMENTED',
+          message: `${model.name} provider wiring is missing.`,
+        });
+      }
     } catch (err) {
-      console.error('Replicate create failed:', err);
+      console.error('Upstream create failed:', err);
       return res.status(502).json({
         error: 'UPSTREAM_FAILED',
         message: err.message || 'Model provider rejected the request.',
@@ -818,13 +848,37 @@ app.post('/api/generate-visuals', async (req, res) => {
 
 // Poll a prediction's status + output. Called by the client every few
 // seconds after /api/generate-visuals returns a prediction id.
+// The id carries a provider prefix (rep_ or oa_) so we route to the
+// right backend without a db lookup on the hot path.
 app.get('/api/visuals/:id', async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) return res.status(400).json({ error: 'id required' });
-    if (!replicate) return res.status(503).json({ error: 'Replicate not configured' });
 
-    const prediction = await replicate.predictions.get(id);
+    let prediction;
+    if (id.startsWith('rep_')) {
+      if (!replicate) return res.status(503).json({ error: 'Replicate not configured' });
+      const rep = await replicate.predictions.get(id.slice(4));
+      prediction = { status: rep.status, output: rep.output, error: rep.error, logs: rep.logs };
+    } else if (id.startsWith('oa_')) {
+      if (!openai) return res.status(503).json({ error: 'OpenAI not configured' });
+      const job = await openai.videos.retrieve(id.slice(3));
+      // Map OpenAI's statuses ("queued" | "in_progress" | "completed" | "failed")
+      // to our Replicate-style vocabulary so the client has one shape.
+      const statusMap = {
+        queued:      'starting',
+        in_progress: 'processing',
+        completed:   'succeeded',
+        failed:      'failed',
+      };
+      prediction = {
+        status: statusMap[job.status] || job.status,
+        output: job.status === 'completed' ? [`/api/visuals/${id}/download`] : null,
+        error: job.error?.message || null,
+      };
+    } else {
+      return res.status(400).json({ error: 'Unknown prediction id format' });
+    }
 
     // Normalise the output — Replicate returns either a string URL or an
     // array of URLs depending on the model. We always give the client an
@@ -882,6 +936,33 @@ app.get('/api/visuals/:id', async (req, res) => {
   } catch (err) {
     console.error('Visual status error:', err);
     res.status(500).json({ error: err.message || 'Status check failed' });
+  }
+});
+
+// OpenAI video download proxy. Sora delivers binaries via the SDK rather
+// than a public URL, so we stream them through the server. The status
+// endpoint hands the client this URL as the "output" for oa_-prefixed ids.
+app.get('/api/visuals/:id/download', async (req, res) => {
+  try {
+    if (!openai) return res.status(503).send('OpenAI not configured');
+    const { id } = req.params;
+    if (!id.startsWith('oa_')) return res.status(400).send('Invalid id');
+    const videoId = id.slice(3);
+    const content = await openai.videos.downloadContent(videoId);
+    res.setHeader('Content-Type', 'video/mp4');
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    // The SDK returns a web-standard Response or stream — handle both.
+    if (content?.body?.pipe) {
+      content.body.pipe(res);
+    } else if (content?.arrayBuffer) {
+      const buf = Buffer.from(await content.arrayBuffer());
+      res.send(buf);
+    } else {
+      res.status(500).send('Unexpected download shape');
+    }
+  } catch (err) {
+    console.error('Visual download error:', err);
+    res.status(500).send(err.message || 'Download failed');
   }
 });
 

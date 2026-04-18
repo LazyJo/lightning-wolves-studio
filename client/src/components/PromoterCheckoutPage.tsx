@@ -16,6 +16,7 @@ interface Props {
   tierId: string;
   onBack: () => void;
   onDone: () => void;
+  onViewInbox?: () => void;
 }
 
 interface CheckoutDraft {
@@ -46,7 +47,7 @@ function readDraft(): CheckoutDraft {
  * confirms receipt. The intent is persisted locally so organizers
  * don't lose the draft if they navigate away mid-form.
  */
-export default function PromoterCheckoutPage({ tierId, onBack, onDone }: Props) {
+export default function PromoterCheckoutPage({ tierId, onBack, onDone, onViewInbox }: Props) {
   const tier = useMemo(() => promoterTiers.find((t) => t.id === tierId), [tierId]);
   const [draft, setDraft] = useState<CheckoutDraft>(() => readDraft());
   const [submitting, setSubmitting] = useState(false);
@@ -181,6 +182,14 @@ export default function PromoterCheckoutPage({ tierId, onBack, onDone }: Props) 
             >
               Back to the Golden Board
             </button>
+            {onViewInbox && (
+              <button
+                onClick={onViewInbox}
+                className="mt-3 w-full text-center text-[11px] font-semibold uppercase tracking-wider text-wolf-muted transition-colors hover:text-wolf-gold"
+              >
+                Preview your organizer inbox →
+              </button>
+            )}
           </motion.div>
         ) : (
           <>

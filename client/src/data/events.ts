@@ -4,6 +4,22 @@
 // collaboration roles and live only in Versus / Explore.
 export type GigRole = "artist" | "photographer" | "videographer";
 
+export interface GigApplication {
+  id: string;            // Stable per gig+applicant so shortlist state can key on it
+  name: string;          // Applicant display name
+  handle?: string;       // @handle / artist tag
+  country: string;       // Short label (e.g. "Belgium" / "UK")
+  flag?: string;         // Optional emoji flag
+  avatar?: string;       // Path or URL — falls back to initials if absent
+  role: GigRole;         // The role they're pitching for
+  note: string;          // Short pitch written by the applicant
+  // Socials / links the applicant dropped so the organizer can vet quickly.
+  links?: Array<{ label: string; href: string }>;
+  submittedAt: string;   // ISO datetime (used for sort + "2h ago" relative labels)
+  // If the applicant is a wolf already in the pack, link back to their profile.
+  wolfId?: string;
+}
+
 export interface GigEvent {
   id: string;
   title: string;
@@ -22,6 +38,9 @@ export interface GigEvent {
   // role they're filling. Used for wolf-profile social proof and the
   // "confirmed pack" section on the event detail.
   booked?: Array<{ wolfId: string; role: GigRole }>;
+  // Applications received for this gig. Seeded with realistic mock
+  // talent so the organizer inbox has shape before Supabase is wired.
+  applications?: GigApplication[];
 }
 
 // Mock events — spread across current + near-future territories so the
@@ -46,6 +65,56 @@ export const gigEvents: GigEvent[] = [
       { wolfId: "yellow", role: "artist" },       // Lazy Jo
       { wolfId: "green",  role: "photographer" }, // Shiteux
     ],
+    applications: [
+      {
+        id: "brussels-bloodmoon-app-zirka",
+        name: "Zirka",
+        handle: "@zirka_official",
+        country: "Belgium",
+        flag: "\u{1F1E7}\u{1F1EA}",
+        role: "artist",
+        note: "Brussels-based, French HH. Can open the night with a 20-min set — my crowd is exactly your demo. Supporting Lazy Jo's energy, not competing.",
+        submittedAt: "2026-04-17T14:21:00Z",
+        wolfId: "purple",
+        links: [
+          { label: "Spotify", href: "https://open.spotify.com/artist/1OqzWGPZDe0jUkwS5ubUbF" },
+        ],
+      },
+      {
+        id: "brussels-bloodmoon-app-frost",
+        name: "Frost",
+        handle: "@frost.mc",
+        country: "Belgium",
+        flag: "\u{1F1E7}\u{1F1EA}",
+        role: "artist",
+        note: "Conscious hip-hop from Antwerp, 15-min set ready to run. Bilingual FR/NL so I can warm up the Brussels mix.",
+        submittedAt: "2026-04-16T09:47:00Z",
+      },
+      {
+        id: "brussels-bloodmoon-app-drippy",
+        name: "Drippydesigns",
+        handle: "@drippydesigns",
+        country: "Belgium",
+        flag: "\u{1F1E7}\u{1F1EA}",
+        role: "videographer",
+        note: "I can run solo — 3-min aftermovie delivered 72h post-show. Portfolio on the pack page.",
+        submittedAt: "2026-04-15T21:10:00Z",
+        wolfId: "blue",
+      },
+      {
+        id: "brussels-bloodmoon-app-mira",
+        name: "Mira Lens",
+        handle: "@mira.lens",
+        country: "Netherlands",
+        flag: "\u{1F1F3}\u{1F1F1}",
+        role: "photographer",
+        note: "Amsterdam-based concert photographer — grainy, high-contrast, show + behind-the-scenes combo. Train to Brussels is an hour.",
+        submittedAt: "2026-04-17T19:03:00Z",
+        links: [
+          { label: "Portfolio", href: "https://miralens.example" },
+        ],
+      },
+    ],
   },
   {
     id: "accra-sankofa",
@@ -62,6 +131,40 @@ export const gigEvents: GigEvent[] = [
     description:
       "3-day Afrobeats + diaspora hip-hop festival, 2,000 tickets sold. 20-min festival slot for an international guest artist. Photographer brief: capture performances, crowd, and behind-the-scenes for the 2027 campaign.",
     booked: [{ wolfId: "yellow", role: "artist" }], // Lazy Jo (Ghanaian roots)
+    applications: [
+      {
+        id: "accra-sankofa-app-amara",
+        name: "Amara Gold",
+        handle: "@amaragold",
+        country: "Nigeria",
+        flag: "\u{1F1F3}\u{1F1EC}",
+        role: "artist",
+        note: "Afrobeats + R&B, 4-song set tested at 3 festivals this year. Would love to represent the Lagos wave in Accra.",
+        submittedAt: "2026-04-14T10:32:00Z",
+      },
+      {
+        id: "accra-sankofa-app-kojo",
+        name: "Kojo Frame",
+        handle: "@kojoframe",
+        country: "Ghana",
+        flag: "\u{1F1EC}\u{1F1ED}",
+        role: "photographer",
+        note: "Accra-based photojournalist, covered Afrochella 2024. Can deliver full edit within 48h of close.",
+        submittedAt: "2026-04-12T16:05:00Z",
+        links: [{ label: "Instagram", href: "https://instagram.com/kojoframe" }],
+      },
+      {
+        id: "accra-sankofa-app-shiteux",
+        name: "Shiteux",
+        handle: "@shiteux",
+        country: "Belgium",
+        flag: "\u{1F1E7}\u{1F1EA}",
+        role: "photographer",
+        note: "Pack photographer — happy to fly in if you cover the flight. Three-day full coverage, delivery in 5.",
+        submittedAt: "2026-04-10T08:20:00Z",
+        wolfId: "green",
+      },
+    ],
   },
   {
     id: "paris-rooftop",
@@ -77,6 +180,39 @@ export const gigEvents: GigEvent[] = [
     description:
       "Sunset rooftop show, 80-cap intimate crowd. Looking for a French-speaking melodic artist (20-min set) and a videographer who can deliver a cinematic live recording within 72h. Full PA provided.",
     booked: [{ wolfId: "purple", role: "artist" }], // Zirka (French HH)
+    applications: [
+      {
+        id: "paris-rooftop-app-luna",
+        name: "Luna Beats",
+        handle: "@lunabeats",
+        country: "France",
+        flag: "\u{1F1EB}\u{1F1F7}",
+        role: "artist",
+        note: "Lo-fi French melodic — fits a sunset rooftop more than a club. 20 min no problem, all-original.",
+        submittedAt: "2026-04-15T11:11:00Z",
+      },
+      {
+        id: "paris-rooftop-app-rosakay",
+        name: "Rosakay",
+        handle: "@rosakay",
+        country: "Belgium",
+        flag: "\u{1F1E7}\u{1F1EA}",
+        role: "artist",
+        note: "French pop, Paris is my second home. Already have translation rights for my last 3 singles.",
+        submittedAt: "2026-04-13T18:44:00Z",
+        wolfId: "orange",
+      },
+      {
+        id: "paris-rooftop-app-theo",
+        name: "Theo Duval",
+        handle: "@theo.duval.films",
+        country: "France",
+        flag: "\u{1F1EB}\u{1F1F7}",
+        role: "videographer",
+        note: "Paris-based, specialized in intimate live captures. 72h delivery is my default.",
+        submittedAt: "2026-04-17T07:55:00Z",
+      },
+    ],
   },
   {
     id: "london-basement",
@@ -91,6 +227,28 @@ export const gigEvents: GigEvent[] = [
     budget: "£600 + accom",
     description:
       "Sweaty 250-cap basement, peak-time slot (01:30). Drill / UK rap flavour, but open to hard melodic. Photographer: grainy, high-contrast, capture the whole night incl. green room.",
+    applications: [
+      {
+        id: "london-basement-app-shadow",
+        name: "Shadow MC",
+        handle: "@shadow.mc",
+        country: "UK",
+        flag: "\u{1F1EC}\u{1F1E7}",
+        role: "artist",
+        note: "Drill out of Tottenham, slot-perfect for a 01:30 basement. I've run this room before under a different name.",
+        submittedAt: "2026-04-16T23:58:00Z",
+      },
+      {
+        id: "london-basement-app-blaze",
+        name: "Blaze",
+        handle: "@blaze.1800",
+        country: "UK",
+        flag: "\u{1F1EC}\u{1F1E7}",
+        role: "artist",
+        note: "Hard melodic — Future x UK meets. Can come with 2 hypemen or solo, your call.",
+        submittedAt: "2026-04-14T15:22:00Z",
+      },
+    ],
   },
   {
     id: "nyc-loft",
@@ -107,6 +265,40 @@ export const gigEvents: GigEvent[] = [
     description:
       "Invite-only loft session, ~120 tastemakers + industry. 25-min live set, 2 songs pre-approved by curation team. We need a Loft 27 recap reel (videographer) and the full photo package for the series.",
     booked: [{ wolfId: "orange", role: "artist" }], // Rosakay
+    applications: [
+      {
+        id: "nyc-loft-app-jai",
+        name: "Jai Monroe",
+        handle: "@jaimonroe",
+        country: "USA",
+        flag: "\u{1F1FA}\u{1F1F8}",
+        role: "videographer",
+        note: "Brooklyn-based, shot the last 4 Loft 27 sessions. Have the house lighting preset dialed.",
+        submittedAt: "2026-04-17T03:11:00Z",
+        links: [{ label: "Reel", href: "https://jaimonroe.example/reel" }],
+      },
+      {
+        id: "nyc-loft-app-zoe",
+        name: "Zoe Harada",
+        handle: "@zoeharada",
+        country: "USA",
+        flag: "\u{1F1FA}\u{1F1F8}",
+        role: "photographer",
+        note: "Intimate venue specialist — loft rooms are my jam. Full photo package + same-day selects.",
+        submittedAt: "2026-04-16T20:42:00Z",
+      },
+      {
+        id: "nyc-loft-app-zirka",
+        name: "Zirka",
+        handle: "@zirka_official",
+        country: "Belgium",
+        flag: "\u{1F1E7}\u{1F1EA}",
+        role: "artist",
+        note: "NYC tastemaker room is the exact listener I want. Flying in regardless for a showcase week.",
+        submittedAt: "2026-04-13T12:08:00Z",
+        wolfId: "purple",
+      },
+    ],
   },
   {
     id: "lagos-beats",
@@ -121,6 +313,18 @@ export const gigEvents: GigEvent[] = [
     budget: "₦350,000",
     description:
       "Closing set afterparty following the Island FM live broadcast. Need one videographer embedded with the talent from soundcheck to last drink. Final edit brief: 90-second vertical cut-down for IG/TikTok.",
+    applications: [
+      {
+        id: "lagos-beats-app-tunde",
+        name: "Tunde Ade",
+        handle: "@tunde.ade.visuals",
+        country: "Nigeria",
+        flag: "\u{1F1F3}\u{1F1EC}",
+        role: "videographer",
+        note: "Vertical-first videographer. Island FM regulars already have my edits in rotation.",
+        submittedAt: "2026-04-15T06:33:00Z",
+      },
+    ],
   },
 
   // ─── Past (for profile history / social proof) ───
@@ -213,6 +417,24 @@ export function bookingsForWolf(wolfId: string): SplitBookings {
   upcoming.sort((a, b) => a.event.isoDate.localeCompare(b.event.isoDate));
   past.sort((a, b) => b.event.isoDate.localeCompare(a.event.isoDate));
   return { upcoming, past };
+}
+
+/* ─── Helpers for the organizer inbox ─── */
+
+// Upcoming gigs that have received at least one application.
+export function gigsWithApplications(): GigEvent[] {
+  const today = todayIso();
+  return gigEvents
+    .filter((e) => e.isoDate >= today && (e.applications?.length ?? 0) > 0)
+    .sort((a, b) => a.isoDate.localeCompare(b.isoDate));
+}
+
+// Total seeded applications across upcoming gigs.
+export function totalApplicationsCount(): number {
+  return gigsWithApplications().reduce(
+    (sum, e) => sum + (e.applications?.length ?? 0),
+    0
+  );
 }
 
 // Helper maps for filtering / display

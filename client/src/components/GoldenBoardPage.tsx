@@ -21,6 +21,7 @@ interface Props {
   onBack: () => void;
   onPost?: () => void;                     // Organizer side — paid listing flow
   onApplyGate?: (gigId: string) => void;   // Talent side — signup gate (preserves context)
+  onInbox?: () => void;                    // Organizer side — view applications received
   hasProfile?: boolean;                    // Skip the gate if user already has a profile
   initialGigId?: string;                   // Auto-open this gig's detail on mount (post-signup return)
 }
@@ -30,7 +31,7 @@ interface Props {
  * required to apply, paid tier required to post. Keeps the wolf-gold
  * premium feel with framed cards, no cork-board skeuomorphism.
  */
-export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfile, initialGigId }: Props) {
+export default function GoldenBoardPage({ onBack, onPost, onApplyGate, onInbox, hasProfile, initialGigId }: Props) {
   const [country, setCountry] = useState<string | null>(null);
   const [role, setRole] = useState<GigRole | null>(null);
   const [savedOnly, setSavedOnly] = useState(false);
@@ -121,16 +122,26 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
               bookings make the board.
             </p>
           </div>
-          {onPost && (
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={onPost}
-              className="shrink-0 self-start rounded-xl bg-gradient-to-r from-wolf-amber to-wolf-gold px-5 py-3 text-sm font-bold text-black shadow-lg shadow-wolf-gold/20"
-            >
-              Post an Event →
-            </motion.button>
-          )}
+          <div className="flex shrink-0 flex-col items-stretch gap-2 self-start sm:items-end">
+            {onPost && (
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onPost}
+                className="rounded-xl bg-gradient-to-r from-wolf-amber to-wolf-gold px-5 py-3 text-sm font-bold text-black shadow-lg shadow-wolf-gold/20"
+              >
+                Post an Event →
+              </motion.button>
+            )}
+            {onInbox && (
+              <button
+                onClick={onInbox}
+                className="text-[11px] font-semibold uppercase tracking-wider text-wolf-muted transition-colors hover:text-wolf-gold"
+              >
+                Already posted? View your inbox →
+              </button>
+            )}
+          </div>
         </motion.div>
 
         {/* Filters */}

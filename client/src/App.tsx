@@ -21,6 +21,7 @@ import ExplorePage from "./components/ExplorePage";
 import GoldenBoardPage from "./components/GoldenBoardPage";
 import PromoterPricingPage from "./components/PromoterPricingPage";
 import PromoterCheckoutPage from "./components/PromoterCheckoutPage";
+import OrganizerInboxPage from "./components/OrganizerInboxPage";
 import { useCredits } from "./lib/useCredits";
 import { wolfBySlug } from "./data/wolves";
 import type { Wolf, WolfRole } from "./data/wolves";
@@ -38,7 +39,8 @@ type Page =
   | { type: "explore" }
   | { type: "golden-board"; initialGigId?: string }
   | { type: "promoter-pricing" }
-  | { type: "promoter-checkout"; tierId: string };
+  | { type: "promoter-checkout"; tierId: string }
+  | { type: "organizer-inbox" };
 
 interface UserProfile {
   name: string;
@@ -131,6 +133,11 @@ export default function App() {
 
   const goToPromoterPricing = useCallback(() => {
     setPage({ type: "promoter-pricing" });
+    window.scrollTo(0, 0);
+  }, []);
+
+  const goToOrganizerInbox = useCallback(() => {
+    setPage({ type: "organizer-inbox" });
     window.scrollTo(0, 0);
   }, []);
 
@@ -304,6 +311,7 @@ export default function App() {
                 onApplyGate={(gigId) =>
                   setPage({ type: "create-profile", pendingApplyGigId: gigId })
                 }
+                onInbox={goToOrganizerInbox}
                 hasProfile={!!userProfile}
                 initialGigId={page.initialGigId}
               />
@@ -324,7 +332,12 @@ export default function App() {
                 tierId={page.tierId}
                 onBack={goToPromoterPricing}
                 onDone={goToGoldenBoard}
+                onViewInbox={goToOrganizerInbox}
               />
+            )}
+
+            {page.type === "organizer-inbox" && (
+              <OrganizerInboxPage onBack={goToGoldenBoard} />
             )}
           </motion.div>
         </AnimatePresence>

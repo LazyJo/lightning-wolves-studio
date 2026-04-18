@@ -20,6 +20,7 @@ import VersusPage from "./components/VersusPage";
 import ExplorePage from "./components/ExplorePage";
 import GoldenBoardPage from "./components/GoldenBoardPage";
 import PromoterPricingPage from "./components/PromoterPricingPage";
+import PromoterCheckoutPage from "./components/PromoterCheckoutPage";
 import { useCredits } from "./lib/useCredits";
 import { wolfBySlug } from "./data/wolves";
 import type { Wolf, WolfRole } from "./data/wolves";
@@ -36,7 +37,8 @@ type Page =
   | { type: "versus"; territory?: string; challengeWolf?: Wolf; roleFilter?: WolfRole }
   | { type: "explore" }
   | { type: "golden-board"; initialGigId?: string }
-  | { type: "promoter-pricing" };
+  | { type: "promoter-pricing" }
+  | { type: "promoter-checkout"; tierId: string };
 
 interface UserProfile {
   name: string;
@@ -311,12 +313,17 @@ export default function App() {
               <PromoterPricingPage
                 onBack={goToGoldenBoard}
                 onPickTier={(tierId) => {
-                  // TODO: wire up real checkout flow — for now, a friendly confirm
-                  // eslint-disable-next-line no-alert
-                  alert(
-                    `Selected: ${tierId}\n\nCheckout is wired up in the next drop. You'll route to Stripe here.`
-                  );
+                  setPage({ type: "promoter-checkout", tierId });
+                  window.scrollTo(0, 0);
                 }}
+              />
+            )}
+
+            {page.type === "promoter-checkout" && (
+              <PromoterCheckoutPage
+                tierId={page.tierId}
+                onBack={goToPromoterPricing}
+                onDone={goToGoldenBoard}
               />
             )}
           </motion.div>

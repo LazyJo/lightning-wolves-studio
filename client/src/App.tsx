@@ -32,10 +32,10 @@ type Page =
   | { type: "studio"; wolf: Wolf | null }
   | { type: "auth" }
   | { type: "join-pack" }
-  | { type: "create-profile" }
+  | { type: "create-profile"; pendingApplyGigId?: string }
   | { type: "versus"; territory?: string; challengeWolf?: Wolf; roleFilter?: WolfRole }
   | { type: "explore" }
-  | { type: "golden-board" }
+  | { type: "golden-board"; initialGigId?: string }
   | { type: "promoter-pricing" };
 
 interface UserProfile {
@@ -142,15 +142,6 @@ export default function App() {
     setWolfColor(wolf.color);
     window.scrollTo(0, 0);
   }, []);
-
-  const handleProfileComplete = useCallback(
-    (profile: { photo: string; name: string; genre: string; country: string }) => {
-      setUserProfile(profile);
-      setPage({ type: "wolf-hub" });
-      window.scrollTo(0, 0);
-    },
-    []
-  );
 
   const handleWolfSelect = useCallback(
     (wolf: Wolf) => {
@@ -264,7 +255,17 @@ export default function App() {
             {page.type === "create-profile" && (
               <CreateProfilePage
                 onBack={goHome}
-                onComplete={handleProfileComplete}
+                onComplete={(profile) => {
+                  setUserProfile(profile);
+                  // If the user got here mid-apply, send them straight back
+                  // to the gig detail so they can finish applying.
+                  if (page.pendingApplyGigId) {
+                    setPage({ type: "golden-board", initialGigId: page.pendingApplyGigId });
+                  } else {
+                    setPage({ type: "wolf-hub" });
+                  }
+                  window.scrollTo(0, 0);
+                }}
               />
             )}
 
@@ -298,8 +299,11 @@ export default function App() {
               <GoldenBoardPage
                 onBack={goHome}
                 onPost={goToPromoterPricing}
-                onApplyGate={() => setPage({ type: "create-profile" })}
+                onApplyGate={(gigId) =>
+                  setPage({ type: "create-profile", pendingApplyGigId: gigId })
+                }
                 hasProfile={!!userProfile}
+                initialGigId={page.initialGigId}
               />
             )}
 

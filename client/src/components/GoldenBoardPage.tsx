@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
@@ -10,16 +10,19 @@ import {
   Send,
   Bookmark,
   BookmarkCheck,
+  Check,
 } from "lucide-react";
 import { gigEvents, GIG_ROLES, gigRoleMeta } from "../data/events";
 import type { GigEvent, GigRole } from "../data/events";
 import { useSavedGigs } from "../lib/useSavedGigs";
+import { useAppliedGigs } from "../lib/useAppliedGigs";
 
 interface Props {
   onBack: () => void;
-  onPost?: () => void;       // Organizer side — paid listing flow (pricing)
-  onApplyGate?: () => void;  // Talent side — signup gate for applying
-  hasProfile?: boolean;      // Skip the gate if user already has a profile
+  onPost?: () => void;                     // Organizer side — paid listing flow
+  onApplyGate?: (gigId: string) => void;   // Talent side — signup gate (preserves context)
+  hasProfile?: boolean;                    // Skip the gate if user already has a profile
+  initialGigId?: string;                   // Auto-open this gig's detail on mount (post-signup return)
 }
 
 /**
@@ -27,12 +30,29 @@ interface Props {
  * required to apply, paid tier required to post. Keeps the wolf-gold
  * premium feel with framed cards, no cork-board skeuomorphism.
  */
-export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfile }: Props) {
+export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfile, initialGigId }: Props) {
   const [country, setCountry] = useState<string | null>(null);
   const [role, setRole] = useState<GigRole | null>(null);
   const [savedOnly, setSavedOnly] = useState(false);
   const [selected, setSelected] = useState<GigEvent | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const { toggle: toggleSaved, isSaved, count: savedCount } = useSavedGigs();
+  const { apply: applyToGig, hasApplied } = useAppliedGigs();
+
+  // If we were bounced out to sign up mid-apply, return straight to the
+  // gig detail so the user can finish what they started.
+  useEffect(() => {
+    if (!initialGigId) return;
+    const gig = gigEvents.find((e) => e.id === initialGigId);
+    if (gig) setSelected(gig);
+  }, [initialGigId]);
+
+  // Auto-dismiss the "Application sent" confirmation toast.
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // The Board is a marketplace for applying to open gigs, so past events
   // are filtered out here. They still exist in the data and surface as
@@ -187,6 +207,7 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
         <div className="grid gap-4 md:grid-cols-2">
           {filtered.map((event, i) => {
             const saved = isSaved(event.id);
+            const applied = hasApplied(event.id);
             return (
             <motion.div
               key={event.id}
@@ -234,6 +255,11 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
 
               <div className="mb-3 flex items-start justify-between gap-3 pr-8">
                 <div className="flex-1 min-w-0">
+                  {applied && (
+                    <span className="mb-1.5 inline-flex items-center gap-1 rounded-full border border-green-400/40 bg-green-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-green-400">
+                      <Check size={9} /> Applied
+                    </span>
+                  )}
                   <h3
                     className="line-clamp-2 text-lg font-bold tracking-wider text-white"
                     style={{ fontFamily: "var(--font-heading)" }}
@@ -344,22 +370,37 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
           <EventDetail
             event={selected}
             saved={isSaved(selected.id)}
+            applied={hasApplied(selected.id)}
             onToggleSave={() => toggleSaved(selected.id)}
             onClose={() => setSelected(null)}
             onApply={() => {
               if (hasProfile) {
-                // TODO: real application flow — for now just confirm
-                // eslint-disable-next-line no-alert
-                alert(
-                  `Application sent to ${selected.host} for "${selected.title}". They'll reach out in-app.`
-                );
+                applyToGig(selected.id);
+                setToast(`Application sent to ${selected.host} — they'll reach out in-app.`);
                 setSelected(null);
               } else {
-                onApplyGate?.();
+                // Hand the gig id up so we can return to it after signup.
+                onApplyGate?.(selected.id);
                 setSelected(null);
               }
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Confirmation toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl border border-green-400/40 bg-green-400/15 px-5 py-3 text-sm font-medium text-green-200 shadow-xl backdrop-blur"
+            role="status"
+          >
+            <span className="mr-2">✓</span>
+            {toast}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
@@ -410,12 +451,14 @@ function EventDetail({
   onApply,
   onToggleSave,
   saved,
+  applied,
 }: {
   event: GigEvent;
   onClose: () => void;
   onApply: () => void;
   onToggleSave: () => void;
   saved: boolean;
+  applied: boolean;
 }) {
   return (
     <motion.div
@@ -514,15 +557,22 @@ function EventDetail({
           </p>
         </div>
 
-        <button
-          onClick={onApply}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-wolf-amber to-wolf-gold py-3.5 text-sm font-bold text-black shadow-lg shadow-wolf-gold/20 transition-all hover:opacity-90"
-        >
-          <Send size={14} />
-          Apply to this gig
-        </button>
+        {applied ? (
+          <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-green-400/40 bg-green-400/10 py-3.5 text-sm font-bold text-green-300">
+            <Check size={14} />
+            Application sent
+          </div>
+        ) : (
+          <button
+            onClick={onApply}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-wolf-amber to-wolf-gold py-3.5 text-sm font-bold text-black shadow-lg shadow-wolf-gold/20 transition-all hover:opacity-90"
+          >
+            <Send size={14} />
+            Apply to this gig
+          </button>
+        )}
         <p className="mt-2 text-center text-[10px] text-wolf-muted">
-          Free — takes under a minute
+          {applied ? "The organizer will reach out in-app" : "Free — takes under a minute"}
         </p>
       </motion.div>
     </motion.div>

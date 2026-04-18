@@ -40,6 +40,15 @@ if (process.env.STRIPE_SECRET_KEY) {
   console.warn('Stripe not configured — checkout endpoints will 503 until STRIPE_SECRET_KEY is set');
 }
 
+// ─── Replicate (video/image gen router) ─────────────────────────────────────
+let replicate = null;
+if (process.env.REPLICATE_API_TOKEN) {
+  const Replicate = require('replicate');
+  replicate = new Replicate({ auth: process.env.REPLICATE_API_TOKEN });
+} else {
+  console.warn('Replicate not configured — /api/generate-visuals will stub out until REPLICATE_API_TOKEN is set');
+}
+
 // Map internal tier id → Stripe price id per billing interval. Price IDs are
 // environment-driven so swapping between test and live mode is a single env
 // change. Each tier has one Price per interval in the Stripe dashboard.
@@ -580,23 +589,101 @@ app.post('/api/promo/verify', async (req, res) => {
 
 // ─── Wolf Vision: Visual Generation ──────────────────────────────────────────
 
-// Model registry with credit costs
+// Registry of every "Wolf Vision" model exposed to the UI. Each entry carries:
+//   - name/credits/status — what the client renders on pricing + picker
+//   - kind — "image" | "video" (determines how the result is previewed)
+//   - provider — "replicate" | "openai" | "disabled"
+//   - replicateModel — owner/name or owner/name:version for `replicate.predictions.create`
+//   - buildInput(prompt, opts) — maps our prompt+options to the model's input schema
+//
+// When a new model launches we add a line here — the endpoint doesn't change.
 const VISION_MODELS = {
-  'nanobanana-pro':     { name: 'NanoBanana Pro',       credits: 15, status: 'access' },
-  'nanobanana':         { name: 'NanoBanana',           credits: 10, status: 'access' },
-  'grok-imagine':       { name: 'Grok Imagine',        credits: 15, status: 'access' },
-  'sora-2':             { name: 'Sora 2',              credits: 20, status: 'legacy' },
-  'kling-3':            { name: 'Kling 3.0',           credits: 20, status: 'coming-soon' },
-  'kling-motion':       { name: 'Kling Motion Control', credits: 15, status: 'access' },
-  'seedream-4.5':       { name: 'Seedream 4.5',        credits: 12, status: 'access' },
-  'seedance-2':         { name: 'Seedance 2.0',        credits: 18, status: 'coming-soon' },
+  'nanobanana-pro': {
+    name: 'NanoBanana Pro',
+    credits: 15,
+    status: 'access',
+    kind: 'image',
+    provider: 'replicate',
+    replicateModel: 'google/nano-banana',
+    buildInput: (prompt) => ({ prompt, output_format: 'png' }),
+  },
+  'nanobanana': {
+    name: 'NanoBanana',
+    credits: 10,
+    status: 'access',
+    kind: 'image',
+    provider: 'replicate',
+    replicateModel: 'google/nano-banana',
+    buildInput: (prompt) => ({ prompt, output_format: 'jpg' }),
+  },
+  'grok-imagine': {
+    // xAI Grok Imagine has no public Replicate build yet. We fall back to a
+    // premium image model so the tier promise still delivers; when Grok opens
+    // up, swap this block to provider: 'xai' with the direct endpoint.
+    name: 'Grok Imagine',
+    credits: 15,
+    status: 'access',
+    kind: 'image',
+    provider: 'replicate',
+    replicateModel: 'black-forest-labs/flux-1.1-pro',
+    buildInput: (prompt) => ({ prompt, aspect_ratio: '16:9', output_format: 'jpg' }),
+  },
+  'sora-2': {
+    // Sora 2 is OpenAI-only. Left as disabled until we add the direct call
+    // path via the existing `openai` client.
+    name: 'Sora 2',
+    credits: 20,
+    status: 'legacy',
+    kind: 'video',
+    provider: 'disabled',
+  },
+  'kling-3': {
+    name: 'Kling 3.0',
+    credits: 20,
+    status: 'coming-soon',
+    kind: 'video',
+    provider: 'disabled',
+  },
+  'kling-motion': {
+    name: 'Kling Motion Control',
+    credits: 15,
+    status: 'access',
+    kind: 'video',
+    provider: 'replicate',
+    replicateModel: 'kwaivgi/kling-v2.1',
+    buildInput: (prompt, opts = {}) => ({
+      prompt,
+      duration: opts.duration || 5,
+      aspect_ratio: opts.aspectRatio || '16:9',
+      negative_prompt: opts.negativePrompt || '',
+    }),
+  },
+  'seedream-4.5': {
+    name: 'Seedream 4.5',
+    credits: 12,
+    status: 'access',
+    kind: 'image',
+    provider: 'replicate',
+    replicateModel: 'bytedance/seedream-4',
+    buildInput: (prompt) => ({ prompt, aspect_ratio: '16:9' }),
+  },
+  'seedance-2': {
+    name: 'Seedance 2.0',
+    credits: 18,
+    status: 'coming-soon',
+    kind: 'video',
+    provider: 'disabled',
+  },
 };
 
-// Get available models
+// Get available models — strip backend-only fields before sending to client
 app.get('/api/models', (req, res) => {
-  const models = Object.entries(VISION_MODELS).map(([id, model]) => ({
+  const models = Object.entries(VISION_MODELS).map(([id, m]) => ({
     id,
-    ...model,
+    name: m.name,
+    credits: m.credits,
+    status: m.status,
+    kind: m.kind,
   }));
   res.json({ models });
 });
@@ -620,10 +707,12 @@ app.get('/api/credits', async (req, res) => {
   }
 });
 
-// Generate visuals (placeholder — will connect to Replicate/Fal.ai later)
+// Kick off a visual generation. Returns immediately with a predictionId —
+// the client polls /api/visuals/:id for progress. Video models take 1–3 min
+// which blows Vercel's function timeout, so we must go async.
 app.post('/api/generate-visuals', async (req, res) => {
   try {
-    const { modelId, prompt, type, token } = req.body;
+    const { modelId, prompt, type, options, token } = req.body;
 
     if (!modelId || !prompt) {
       return res.status(400).json({ error: 'modelId and prompt are required' });
@@ -633,21 +722,35 @@ app.post('/api/generate-visuals', async (req, res) => {
     if (!model) {
       return res.status(400).json({ error: 'Invalid model ID' });
     }
-
-    if (model.status === 'coming-soon') {
-      return res.status(400).json({ error: 'COMING_SOON', message: `${model.name} is coming soon!` });
+    if (model.status === 'coming-soon' || model.provider === 'disabled') {
+      return res.status(400).json({
+        error: 'MODEL_UNAVAILABLE',
+        message: `${model.name} is not available yet.`,
+      });
+    }
+    if (model.provider === 'replicate' && !replicate) {
+      return res.status(503).json({
+        error: 'REPLICATE_NOT_CONFIGURED',
+        message: 'Video generation is offline — REPLICATE_API_TOKEN not set.',
+      });
     }
 
-    // Check credits
+    // ── Auth + credit check ──────────────────────────────────────────────
     let user = null;
     let credits = 100; // guest default
-
     if (token) {
       user = await getUserFromToken({ headers: { authorization: `Bearer ${token}` } });
       if (user) {
         const profile = await getProfile(user.id);
         credits = profile?.wolf_credits ?? 0;
       }
+    }
+
+    if (!user) {
+      return res.status(401).json({
+        error: 'SIGN_IN_REQUIRED',
+        message: 'Sign in to generate visuals.',
+      });
     }
 
     if (credits < model.credits) {
@@ -659,41 +762,126 @@ app.post('/api/generate-visuals', async (req, res) => {
       });
     }
 
-    // Deduct credits
-    if (user) {
-      await supabase
-        .from('profiles')
-        .update({ wolf_credits: credits - model.credits })
-        .eq('id', user.id);
-
-      // Log the visual generation
-      await supabase.from('visual_generations').insert({
-        user_id: user.id,
-        model_id: modelId,
-        prompt,
-        type: type || 'scene',
-        credits_used: model.credits,
-        status: 'completed', // placeholder — will be 'processing' when real APIs connected
+    // ── Fire the Replicate prediction ────────────────────────────────────
+    let prediction;
+    try {
+      prediction = await replicate.predictions.create({
+        model: model.replicateModel,
+        input: model.buildInput(prompt, options || {}),
+      });
+    } catch (err) {
+      console.error('Replicate create failed:', err);
+      return res.status(502).json({
+        error: 'UPSTREAM_FAILED',
+        message: err.message || 'Model provider rejected the request.',
       });
     }
 
-    // Placeholder response — will be replaced with actual API call
+    // Deduct credits only after the prediction is accepted upstream. If the
+    // prediction fails later, we'll refund inside the status endpoint.
+    await supabase
+      .from('profiles')
+      .update({ wolf_credits: credits - model.credits })
+      .eq('id', user.id);
+
+    // Persist so we can look up later — also the source of truth the status
+    // endpoint uses to know "did this user start this prediction?"
+    await supabase.from('visual_generations').insert({
+      user_id: user.id,
+      prediction_id: prediction.id,
+      model_id: modelId,
+      prompt,
+      type: type || 'scene',
+      credits_used: model.credits,
+      status: prediction.status, // 'starting' | 'processing' | ...
+    });
+
     res.json({
       success: true,
       generation: {
-        id: `gen_${Date.now()}`,
+        id: prediction.id,
         model: model.name,
+        modelId,
+        kind: model.kind,
         prompt,
         type: type || 'scene',
         creditsUsed: model.credits,
         remainingCredits: credits - model.credits,
-        status: 'completed',
-        message: `${model.name} generation queued. Connect external API (Replicate/Fal.ai) to enable real generation.`,
+        status: prediction.status,
       },
     });
   } catch (err) {
     console.error('Generate visuals error:', err);
     res.status(500).json({ error: err.message || 'Internal server error' });
+  }
+});
+
+// Poll a prediction's status + output. Called by the client every few
+// seconds after /api/generate-visuals returns a prediction id.
+app.get('/api/visuals/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) return res.status(400).json({ error: 'id required' });
+    if (!replicate) return res.status(503).json({ error: 'Replicate not configured' });
+
+    const prediction = await replicate.predictions.get(id);
+
+    // Normalise the output — Replicate returns either a string URL or an
+    // array of URLs depending on the model. We always give the client an
+    // array of strings so it can render a gallery or just take [0].
+    let output = null;
+    if (prediction.output) {
+      output = Array.isArray(prediction.output)
+        ? prediction.output.filter(Boolean).map(String)
+        : [String(prediction.output)];
+    }
+
+    // If the prediction hard-failed or got canceled, refund the credits
+    // back to the user so they're not burned for nothing.
+    if ((prediction.status === 'failed' || prediction.status === 'canceled') && supabase) {
+      const { data: record } = await supabase
+        .from('visual_generations')
+        .select('id, user_id, credits_used, status')
+        .eq('prediction_id', id)
+        .single();
+      if (record && record.status !== 'failed' && record.status !== 'canceled') {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('wolf_credits')
+          .eq('id', record.user_id)
+          .single();
+        if (profile) {
+          await supabase
+            .from('profiles')
+            .update({ wolf_credits: (profile.wolf_credits || 0) + record.credits_used })
+            .eq('id', record.user_id);
+        }
+        await supabase
+          .from('visual_generations')
+          .update({ status: prediction.status })
+          .eq('prediction_id', id);
+      }
+    } else if (prediction.status === 'succeeded' && supabase) {
+      // Store the final URL so we don't have to re-fetch from Replicate later.
+      await supabase
+        .from('visual_generations')
+        .update({
+          status: 'succeeded',
+          output_url: output?.[0] || null,
+        })
+        .eq('prediction_id', id);
+    }
+
+    res.json({
+      id,
+      status: prediction.status,
+      output,
+      error: prediction.error || null,
+      logs: prediction.logs || null,
+    });
+  } catch (err) {
+    console.error('Visual status error:', err);
+    res.status(500).json({ error: err.message || 'Status check failed' });
   }
 });
 

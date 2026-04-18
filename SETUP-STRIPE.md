@@ -14,9 +14,10 @@ You already have `@supabase/supabase-js` installed and the server reads
 1. [supabase.com](https://supabase.com) → **New project** → pick EU region
    (closest to Belgium).
 2. Settings → API → copy **Project URL** and **anon public** key.
-3. Add a `profiles` table with this SQL (SQL Editor → New query):
+3. Add the schema with this SQL (SQL Editor → New query):
 
 ```sql
+-- Profiles (tier + credits)
 create table public.profiles (
   id                      uuid primary key references auth.users(id) on delete cascade,
   email                   text,
@@ -28,13 +29,8 @@ create table public.profiles (
 );
 
 alter table public.profiles enable row level security;
-
--- Users can read their own profile
 create policy "profiles_self_read" on public.profiles
   for select using (auth.uid() = id);
-
--- Service role (server-side) can do anything — the webhook uses this
--- Nothing needed, service role bypasses RLS automatically.
 
 -- Auto-create a profile row when a new user signs up
 create or replace function public.handle_new_user() returns trigger as $$
@@ -47,6 +43,27 @@ $$ language plpgsql security definer;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- Visual generations (Replicate predictions history)
+create table public.visual_generations (
+  id              uuid primary key default gen_random_uuid(),
+  user_id         uuid references auth.users(id) on delete cascade,
+  prediction_id   text unique,
+  model_id        text,
+  prompt          text,
+  type            text,
+  credits_used    int,
+  status          text,
+  output_url      text,
+  created_at      timestamptz default now()
+);
+
+alter table public.visual_generations enable row level security;
+create policy "visual_generations_self_read" on public.visual_generations
+  for select using (auth.uid() = user_id);
+
+create index visual_generations_user_idx on public.visual_generations(user_id, created_at desc);
+create index visual_generations_prediction_idx on public.visual_generations(prediction_id);
 ```
 
 4. Settings → API → also copy the **service_role** key (secret, server-only).
@@ -78,7 +95,33 @@ create trigger on_auth_user_created
 
 ---
 
-## 3. Vercel env vars
+## 3. Replicate (5 min — for the Wolf Vision models)
+
+The studio's video/image generation runs through [Replicate](https://replicate.com).
+One key, one billing account, covers Kling, Seedream, NanoBanana, Flux,
+and the rest of the model list.
+
+1. [replicate.com](https://replicate.com) → sign up (GitHub login is fastest).
+2. Account → Billing → add a card (pay-per-use — no subscription).
+3. Account → API tokens → **Create token** → copy it.
+4. Recommended: set a monthly spend cap under Billing to avoid surprises
+   while you're testing (e.g. $20).
+
+**Model pricing reference** (rough, as of early 2026 — check Replicate for
+live numbers):
+- `google/nano-banana` (image): ~$0.025 / image
+- `bytedance/seedream-4` (image): ~$0.03 / image
+- `black-forest-labs/flux-1.1-pro` (image): ~$0.04 / image
+- `kwaivgi/kling-v2.1` (video, 5s): ~$0.30 / video
+- `bytedance/seedance-1-pro` (video, 5s): ~$0.40 / video
+
+Our internal credit values in `server.js` → `VISION_MODELS` are set so that
+1 credit ≈ $0.005 cost, leaving ~50% margin. Adjust if Replicate's pricing
+drifts.
+
+---
+
+## 4. Vercel env vars
 
 Project → Settings → Environment Variables. Add all of these
 (also add to a local `.env` if you run the server locally):
@@ -103,6 +146,9 @@ STRIPE_PRICE_PRO_ANNUAL=price_...
 STRIPE_PRICE_ELITE_MONTHLY=price_...
 STRIPE_PRICE_ELITE_ANNUAL=price_...
 
+# Replicate (video + image generation)
+REPLICATE_API_TOKEN=r8_...
+
 # Public URL — used for success_url / cancel_url
 PUBLIC_APP_URL=https://lightningwolves.studio
 ```
@@ -112,7 +158,7 @@ deploy automatically).
 
 ---
 
-## 4. Test the full loop
+## 5. Test the full loop
 
 1. Open the site → Pricing → pick **Creator / Monthly** → hit **Get Started**.
 2. You should bounce to Auth. Sign up with a real email (check inbox for the
@@ -131,7 +177,7 @@ wrong or the endpoint URL is off.
 
 ---
 
-## 5. Going live
+## 6. Going live
 
 When you've put through a successful test transaction end-to-end:
 

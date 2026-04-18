@@ -28,21 +28,125 @@ export async function getCredits(): Promise<{ credits: number; isGuest: boolean 
   }
 }
 
+// Kick off a generation. Returns the prediction id + initial status;
+// the caller then uses pollVisual() to wait for the output URL.
+export interface VisualStartResult {
+  id: string;
+  model: string;
+  modelId: string;
+  kind: "image" | "video";
+  prompt: string;
+  type: string;
+  creditsUsed: number;
+  remainingCredits: number;
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
+}
+
+export async function startVisualGeneration(params: {
+  modelId: string;
+  prompt: string;
+  type?: string;
+  accessToken?: string;
+  options?: Record<string, unknown>;
+}): Promise<VisualStartResult> {
+  const res = await fetch(`${API}/api/generate-visuals`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      modelId: params.modelId,
+      prompt: params.prompt,
+      type: params.type,
+      options: params.options,
+      token: params.accessToken,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Generation failed" }));
+    throw new Error(err.message || err.error || "Generation failed");
+  }
+  const data = await res.json();
+  return data.generation as VisualStartResult;
+}
+
+export interface VisualStatusResult {
+  id: string;
+  status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
+  output: string[] | null;
+  error: string | null;
+  logs?: string | null;
+}
+
+export async function getVisualStatus(id: string): Promise<VisualStatusResult> {
+  const res = await fetch(`${API}/api/visuals/${encodeURIComponent(id)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Status check failed" }));
+    throw new Error(err.error || "Status check failed");
+  }
+  return res.json();
+}
+
+// Poll until the prediction resolves. `onProgress` fires on every poll so
+// the UI can show a live status. `signal` lets callers abort.
+export async function pollVisual(
+  id: string,
+  opts: {
+    intervalMs?: number;
+    timeoutMs?: number;
+    onProgress?: (s: VisualStatusResult) => void;
+    signal?: AbortSignal;
+  } = {}
+): Promise<VisualStatusResult> {
+  const interval = opts.intervalMs ?? 2500;
+  const deadline = Date.now() + (opts.timeoutMs ?? 5 * 60 * 1000); // 5 min default
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    if (opts.signal?.aborted) throw new Error("Aborted");
+    if (Date.now() > deadline) throw new Error("Generation timed out");
+    const status = await getVisualStatus(id);
+    opts.onProgress?.(status);
+    if (status.status === "succeeded" || status.status === "failed" || status.status === "canceled") {
+      return status;
+    }
+    await new Promise((r) => setTimeout(r, interval));
+  }
+}
+
+// Convenience: kick off + poll in one call. Returns the final status.
+export async function generateVisual(params: {
+  modelId: string;
+  prompt: string;
+  type?: string;
+  accessToken?: string;
+  options?: Record<string, unknown>;
+  onProgress?: (s: VisualStatusResult & { startResult?: VisualStartResult }) => void;
+}): Promise<VisualStatusResult & { startResult: VisualStartResult }> {
+  const start = await startVisualGeneration(params);
+  params.onProgress?.({
+    id: start.id,
+    status: start.status,
+    output: null,
+    error: null,
+    startResult: start,
+  });
+  const final = await pollVisual(start.id, {
+    onProgress: params.onProgress
+      ? (s) => params.onProgress?.({ ...s, startResult: start })
+      : undefined,
+  });
+  return { ...final, startResult: start };
+}
+
+// Legacy sync-style name kept so older callers still compile.
+// Prefer `generateVisual` for anything new.
 export async function generateVisuals(params: {
   modelId: string;
   prompt: string;
   type?: string;
-}): Promise<{ success: boolean; generation: any }> {
-  const res = await fetch(`${API}/api/generate-visuals`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(params),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Generation failed" }));
-    throw new Error(err.error || err.message || "Generation failed");
-  }
-  return res.json();
+  accessToken?: string;
+}): Promise<{ success: boolean; generation: VisualStatusResult & { startResult: VisualStartResult } }> {
+  const result = await generateVisual(params);
+  return { success: result.status === "succeeded", generation: result };
 }
 
 // ─── Whisper Transcription ───────────────────────────────────────────────────

@@ -34,21 +34,29 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
   const [selected, setSelected] = useState<GigEvent | null>(null);
   const { toggle: toggleSaved, isSaved, count: savedCount } = useSavedGigs();
 
-  // Filter options derived from the live data
-  const countries = useMemo(() => {
-    const seen = new Map<string, string>();
-    gigEvents.forEach((e) => seen.set(e.country, e.flag));
-    return Array.from(seen.entries()).map(([name, flag]) => ({ name, flag }));
+  // The Board is a marketplace for applying to open gigs, so past events
+  // are filtered out here. They still exist in the data and surface as
+  // booking history on wolf profiles.
+  const upcomingGigs = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return gigEvents.filter((e) => e.isoDate >= today);
   }, []);
 
+  // Filter options derived from the live (upcoming) data
+  const countries = useMemo(() => {
+    const seen = new Map<string, string>();
+    upcomingGigs.forEach((e) => seen.set(e.country, e.flag));
+    return Array.from(seen.entries()).map(([name, flag]) => ({ name, flag }));
+  }, [upcomingGigs]);
+
   const filtered = useMemo(() => {
-    return gigEvents.filter((e) => {
+    return upcomingGigs.filter((e) => {
       if (savedOnly && !isSaved(e.id)) return false;
       if (country && e.country !== country) return false;
       if (role && !e.lookingFor.includes(role)) return false;
       return true;
     });
-  }, [country, role, savedOnly, isSaved]);
+  }, [upcomingGigs, country, role, savedOnly, isSaved]);
 
   return (
     <div className="min-h-screen pt-20">
@@ -88,7 +96,7 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
               </span>
             </h1>
             <p className="mt-3 max-w-xl text-sm text-wolf-muted">
-              Shows, festivals, showcases, parties. {gigEvents.length} gigs live — apply
+              Shows, festivals, showcases, parties. {upcomingGigs.length} gigs live — apply
               to the ones that match your role. Organizers pay to post, so only serious
               bookings make the board.
             </p>
@@ -219,7 +227,7 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
               <div className="mb-3 flex items-start justify-between gap-3 pr-8">
                 <div className="flex-1 min-w-0">
                   <h3
-                    className="truncate text-lg font-bold tracking-wider text-white"
+                    className="line-clamp-2 text-lg font-bold tracking-wider text-white"
                     style={{ fontFamily: "var(--font-heading)" }}
                   >
                     {event.title}

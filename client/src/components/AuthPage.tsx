@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Zap, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useI18n } from "../lib/i18n";
+import { initSupabase } from "../lib/supabaseClient";
 
 interface Props {
   onBack: () => void;
@@ -23,23 +24,42 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
     e.preventDefault();
     setError("");
 
-    // Validate up front — no sense burning 1.2s on a simulated auth call
-    // when the form is obviously incomplete.
     if (!email || !password) {
       setError("Please fill in all fields");
       return;
     }
-
     if (mode === "signup" && !name) {
       setError("Please enter your name");
       return;
     }
 
     setLoading(true);
-    // Simulate auth
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    onSuccess();
+    const sb = await initSupabase();
+    if (!sb) {
+      setLoading(false);
+      setError("Auth isn't configured yet — check back soon.");
+      return;
+    }
+
+    try {
+      if (mode === "signin") {
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await sb.auth.signUp({
+          email,
+          password,
+          options: { data: { name } },
+        });
+        if (error) throw error;
+      }
+      setLoading(false);
+      onSuccess();
+    } catch (err: unknown) {
+      setLoading(false);
+      const msg = err instanceof Error ? err.message : "Auth failed";
+      setError(msg);
+    }
   };
 
   return (

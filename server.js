@@ -31,8 +31,135 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 // ─── OpenAI (Whisper) ────────────────────────────────────────────────────────
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
+// ─── Stripe ──────────────────────────────────────────────────────────────────
+let stripe = null;
+if (process.env.STRIPE_SECRET_KEY) {
+  const Stripe = require('stripe');
+  stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+} else {
+  console.warn('Stripe not configured — checkout endpoints will 503 until STRIPE_SECRET_KEY is set');
+}
+
+// Map internal tier id → Stripe price id per billing interval. Price IDs are
+// environment-driven so swapping between test and live mode is a single env
+// change. Each tier has one Price per interval in the Stripe dashboard.
+const PRICE_MAP = {
+  starter: {
+    monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY,
+    annual:  process.env.STRIPE_PRICE_STARTER_ANNUAL,
+  },
+  creator: {
+    monthly: process.env.STRIPE_PRICE_CREATOR_MONTHLY,
+    annual:  process.env.STRIPE_PRICE_CREATOR_ANNUAL,
+  },
+  pro: {
+    monthly: process.env.STRIPE_PRICE_PRO_MONTHLY,
+    annual:  process.env.STRIPE_PRICE_PRO_ANNUAL,
+  },
+  elite: {
+    monthly: process.env.STRIPE_PRICE_ELITE_MONTHLY,
+    annual:  process.env.STRIPE_PRICE_ELITE_ANNUAL,
+  },
+};
+
+// How many credits each tier lands with on activation. Matches the pricing
+// page copy — if the pricing numbers change, this table is the source of truth.
+const TIER_CREDITS = {
+  starter: 300,
+  creator: 1295,
+  pro:     2625,
+  elite:   4550,
+};
+
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
+
+// Stripe webhook needs the raw request body for signature verification —
+// mount it before express.json() so the body stays a Buffer on this route.
+app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  if (!stripe) return res.status(503).send('Stripe not configured');
+  if (!supabase) return res.status(503).send('Supabase not configured');
+
+  const sig = req.headers['stripe-signature'];
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) return res.status(500).send('STRIPE_WEBHOOK_SECRET not set');
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, secret);
+  } catch (err) {
+    console.error('Stripe webhook signature failed:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object;
+        const userId = session.client_reference_id || session.metadata?.userId;
+        const tier = session.metadata?.tier;
+        if (userId && tier && TIER_CREDITS[tier] !== undefined) {
+          await supabase
+            .from('profiles')
+            .update({
+              tier,
+              wolf_credits: TIER_CREDITS[tier],
+              stripe_customer_id: session.customer,
+              stripe_subscription_id: session.subscription,
+            })
+            .eq('id', userId);
+        }
+        break;
+      }
+      case 'customer.subscription.updated': {
+        const sub = event.data.object;
+        // Downgrade path: on cancel at period end we keep tier until the
+        // period actually ends, then the deleted event flips to free.
+        if (sub.cancel_at_period_end) break;
+        // Reinstate or plan change — look up the profile by customer id.
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('stripe_customer_id', sub.customer)
+          .single();
+        if (profile) {
+          // Map price id back to tier via PRICE_MAP.
+          const priceId = sub.items?.data?.[0]?.price?.id;
+          const tier = Object.entries(PRICE_MAP).find(([, p]) =>
+            priceId === p.monthly || priceId === p.annual
+          )?.[0];
+          if (tier) {
+            await supabase
+              .from('profiles')
+              .update({ tier, wolf_credits: TIER_CREDITS[tier] })
+              .eq('id', profile.id);
+          }
+        }
+        break;
+      }
+      case 'customer.subscription.deleted': {
+        const sub = event.data.object;
+        await supabase
+          .from('profiles')
+          .update({
+            tier: 'free',
+            wolf_credits: 100,
+            stripe_subscription_id: null,
+          })
+          .eq('stripe_customer_id', sub.customer);
+        break;
+      }
+      default:
+        // Events we don't need yet — acknowledge to stop Stripe retrying.
+        break;
+    }
+    res.json({ received: true });
+  } catch (err) {
+    console.error('Webhook handler error:', err);
+    res.status(500).send('Handler failed');
+  }
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
@@ -94,7 +221,89 @@ app.get('/api/config', (req, res) => {
   res.json({
     supabaseUrl:     process.env.SUPABASE_URL     || null,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null,
+    stripeConfigured: !!stripe,
   });
+});
+
+// Create a Stripe Checkout Session for a studio subscription tier.
+// Requires a signed-in user — tier + billing interval come from the client.
+app.post('/api/create-checkout-session', async (req, res) => {
+  if (!stripe) return res.status(503).json({ error: 'Stripe not configured' });
+  try {
+    const { tier, interval, token } = req.body;
+    if (!tier || !PRICE_MAP[tier]) {
+      return res.status(400).json({ error: 'Unknown tier' });
+    }
+    const priceId = PRICE_MAP[tier][interval === 'annual' ? 'annual' : 'monthly'];
+    if (!priceId) {
+      return res.status(500).json({ error: `Stripe price id not configured for ${tier}/${interval}` });
+    }
+
+    const user = await getUserFromToken({ headers: { authorization: token ? `Bearer ${token}` : '' } });
+    if (!user) {
+      return res.status(401).json({ error: 'Sign in required before checkout' });
+    }
+
+    // Base URL for the success/cancel redirects — prod uses the deployed
+    // domain, local dev falls back to the referer header or localhost.
+    const origin =
+      process.env.PUBLIC_APP_URL ||
+      req.headers.origin ||
+      req.headers.referer?.replace(/\/$/, '') ||
+      'http://localhost:5173';
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: 1 }],
+      customer_email: user.email,
+      client_reference_id: user.id,
+      metadata: { userId: user.id, tier, interval },
+      subscription_data: {
+        metadata: { userId: user.id, tier },
+      },
+      success_url: `${origin}/?checkout=success&tier=${tier}`,
+      cancel_url:  `${origin}/?checkout=cancelled`,
+      allow_promotion_codes: true,
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Create checkout session error:', err);
+    res.status(500).json({ error: err.message || 'Checkout failed' });
+  }
+});
+
+// Opens a Stripe billing portal session so paying users can manage
+// their own subscription (cancel, change card, view invoices) — no
+// support ticket needed. Requires an existing stripe_customer_id
+// on the user's profile (set on first checkout.session.completed).
+app.post('/api/create-portal-session', async (req, res) => {
+  if (!stripe) return res.status(503).json({ error: 'Stripe not configured' });
+  try {
+    const { token } = req.body;
+    const user = await getUserFromToken({ headers: { authorization: token ? `Bearer ${token}` : '' } });
+    if (!user) return res.status(401).json({ error: 'Sign in required' });
+
+    const profile = await getProfile(user.id);
+    if (!profile?.stripe_customer_id) {
+      return res.status(400).json({ error: 'No billing account found' });
+    }
+
+    const origin =
+      process.env.PUBLIC_APP_URL ||
+      req.headers.origin ||
+      req.headers.referer?.replace(/\/$/, '') ||
+      'http://localhost:5173';
+
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: profile.stripe_customer_id,
+      return_url: origin,
+    });
+    res.json({ url: portal.url });
+  } catch (err) {
+    console.error('Create portal session error:', err);
+    res.status(500).json({ error: err.message || 'Portal failed' });
+  }
 });
 
 // File upload

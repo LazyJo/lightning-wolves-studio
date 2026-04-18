@@ -23,6 +23,8 @@ import PromoterPricingPage from "./components/PromoterPricingPage";
 import PromoterCheckoutPage from "./components/PromoterCheckoutPage";
 import OrganizerInboxPage from "./components/OrganizerInboxPage";
 import { useCredits } from "./lib/useCredits";
+import { useSession } from "./lib/useSession";
+import { startCheckout, type TierSlug, type BillingInterval } from "./lib/checkout";
 import { wolfBySlug } from "./data/wolves";
 import type { Wolf, WolfRole } from "./data/wolves";
 
@@ -55,6 +57,62 @@ export default function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [studioView, setStudioView] = useState("dashboard");
   const { plan } = useCredits();
+  const { accessToken } = useSession();
+
+  // Post-checkout banner. Set when ?checkout=success|cancelled hits the URL,
+  // cleared on tap-to-dismiss or after ~6 seconds.
+  const [checkoutBanner, setCheckoutBanner] = useState<
+    | { kind: "success"; tier: string }
+    | { kind: "cancelled" }
+    | null
+  >(null);
+
+  // A pending checkout remembers what tier/interval the user clicked before
+  // we bounced them to sign-in. After auth, we pick it back up.
+  const [pendingCheckout, setPendingCheckout] = useState<{
+    tier: TierSlug;
+    interval: BillingInterval;
+  } | null>(null);
+
+  // Handle Stripe redirect returns: ?checkout=success&tier=pro or =cancelled.
+  // Runs once on mount; cleans the URL so refreshes don't re-fire the toast.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const outcome = params.get("checkout");
+    if (outcome === "success") {
+      const tier = params.get("tier") || "studio";
+      setCheckoutBanner({ kind: "success", tier });
+    } else if (outcome === "cancelled") {
+      setCheckoutBanner({ kind: "cancelled" });
+    }
+    if (outcome) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("checkout");
+      url.searchParams.delete("tier");
+      window.history.replaceState({}, "", url.toString());
+    }
+  }, []);
+
+  // Auto-dismiss the checkout banner after a beat.
+  useEffect(() => {
+    if (!checkoutBanner) return;
+    const t = setTimeout(() => setCheckoutBanner(null), 6000);
+    return () => clearTimeout(t);
+  }, [checkoutBanner]);
+
+  // Resume a checkout that was blocked by the sign-in gate. When the user
+  // finally has an access token, fire the Stripe redirect they originally
+  // asked for and clear the pending intent.
+  useEffect(() => {
+    if (!pendingCheckout || !accessToken) return;
+    const intent = pendingCheckout;
+    setPendingCheckout(null);
+    startCheckout({ ...intent, accessToken }).catch((err) => {
+      // eslint-disable-next-line no-console
+      console.error("Checkout resume failed:", err);
+      setCheckoutBanner({ kind: "cancelled" });
+    });
+  }, [pendingCheckout, accessToken]);
 
   // Deep-link: ?challenge=<artist-slug> opens Versus with that wolf's card
   useEffect(() => {
@@ -187,6 +245,28 @@ export default function App() {
           wolfColor={wolfColor}
         />
 
+        {/* Post-checkout banner — renders above the page content */}
+        <AnimatePresence>
+          {checkoutBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className={`fixed inset-x-0 top-20 z-40 mx-auto max-w-lg rounded-xl border px-5 py-3 text-sm font-medium shadow-xl backdrop-blur ${
+                checkoutBanner.kind === "success"
+                  ? "border-green-400/40 bg-green-400/15 text-green-200"
+                  : "border-wolf-border/40 bg-wolf-card/80 text-wolf-muted"
+              }`}
+              role="status"
+              onClick={() => setCheckoutBanner(null)}
+            >
+              {checkoutBanner.kind === "success"
+                ? `⚡ You're on ${checkoutBanner.tier.charAt(0).toUpperCase() + checkoutBanner.tier.slice(1)} — credits are landing in your studio now.`
+                : "Checkout cancelled — your cart is empty. Pick a tier whenever you're ready."}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence mode="wait">
           <motion.div
             key={
@@ -227,7 +307,25 @@ export default function App() {
             )}
 
             {page.type === "pricing" && (
-              <PricingPage onBack={goHome} onGetStarted={() => goToAuth()} />
+              <PricingPage
+                onBack={goHome}
+                onGetStarted={async ({ tier, interval }) => {
+                  // No session yet — stash the intent and send to sign-in;
+                  // the useEffect above picks it up once accessToken lands.
+                  if (!accessToken) {
+                    setPendingCheckout({ tier, interval });
+                    goToAuth();
+                    return;
+                  }
+                  try {
+                    await startCheckout({ tier, interval, accessToken });
+                  } catch (err) {
+                    // eslint-disable-next-line no-console
+                    console.error("Checkout failed:", err);
+                    setCheckoutBanner({ kind: "cancelled" });
+                  }
+                }}
+              />
             )}
 
             {page.type === "wolf-hub" && (

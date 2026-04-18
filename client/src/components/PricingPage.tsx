@@ -14,7 +14,10 @@ import {
 
 interface Props {
   onBack: () => void;
-  onGetStarted?: (tierName: string) => void;
+  onGetStarted?: (args: {
+    tier: "starter" | "creator" | "pro" | "elite";
+    interval: "monthly" | "annual";
+  }) => void;
 }
 
 const models = [
@@ -30,6 +33,7 @@ const models = [
 
 interface Tier {
   name: string;
+  slug: "starter" | "creator" | "pro" | "elite"; // Stable id — maps to Stripe price ids on the server
   icon: typeof Zap;
   subtitle: string;
   monthlyPrice: number;
@@ -53,6 +57,7 @@ interface Tier {
 const tiers: Tier[] = [
   {
     name: "Starter",
+    slug: "starter",
     icon: Zap,
     subtitle: "Watermark-free lyric videos — start posting today",
     monthlyPrice: 9,
@@ -78,6 +83,7 @@ const tiers: Tier[] = [
   },
   {
     name: "Creator",
+    slug: "creator",
     icon: Rocket,
     subtitle: "Daily posting fuel for the artist who's serious about growing",
     monthlyPrice: 29,
@@ -107,6 +113,7 @@ const tiers: Tier[] = [
   },
   {
     name: "Pro",
+    slug: "pro",
     icon: Star,
     subtitle: "The shortcut for those obsessed with blowing up faster",
     monthlyPrice: 49,
@@ -138,6 +145,7 @@ const tiers: Tier[] = [
   },
   {
     name: "Elite",
+    slug: "elite",
     icon: Crown,
     subtitle: "For artists fully invested in blowing up their music career",
     monthlyPrice: 89,
@@ -356,7 +364,12 @@ export default function PricingPage({ onBack, onGetStarted }: Props) {
 
                 {/* CTA */}
                 <button
-                  onClick={() => onGetStarted?.(tier.name)}
+                  onClick={() =>
+                    onGetStarted?.({
+                      tier: tier.slug,
+                      interval: annual ? "annual" : "monthly",
+                    })
+                  }
                   className="mt-auto w-full rounded-xl py-3 text-sm font-bold transition-all hover:opacity-90"
                   style={
                     tier.popular || tier.bestValue

@@ -22,13 +22,12 @@ import { useSession } from "../../lib/useSession";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, type Template } from "../../lib/templates";
+import ScenePresetPicker from "./ScenePresetPicker";
+import { scenePresets, type ScenePreset } from "../../data/scenePresets";
 
-const scenePresets = [
-  { name: "Cinematic",   style: "cinematic, film grain, moody lighting" },
-  { name: "Anime",       style: "anime style, bold colors, dynamic" },
-  { name: "Abstract",    style: "abstract visuals, motion graphics" },
-  { name: "Street",      style: "street photography, documentary feel" },
-];
+// Default preset — picked on mount so the user sees something sensible
+// without having to scroll into the picker first.
+const DEFAULT_PRESET = scenePresets.find((p) => p.id === "cinematic-music-video") || scenePresets[0];
 
 const VIDEO_MODELS = [
   { id: "kling-motion",  name: "Kling Motion",  credits: 15 },
@@ -58,9 +57,19 @@ export default function ScenesView({ onBack, template }: Props) {
   const { accessToken } = useSession();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
-  const [preset, setPreset] = useState(0);
+  const [presetId, setPresetId] = useState<string | null>(DEFAULT_PRESET.id);
+  const [customPrompt, setCustomPrompt] = useState<string>("");
   const [modelId, setModelId] = useState(VIDEO_MODELS[0].id);
   const [ratio, setRatio] = useState<(typeof ratios)[number]>("9:16");
+
+  // Resolve the active style prompt — either a preset or the custom text.
+  const activePreset: ScenePreset | null =
+    presetId ? scenePresets.find((p) => p.id === presetId) ?? null : null;
+  const stylePrompt = activePreset
+    ? activePreset.prompt
+    : customPrompt.trim();
+  const styleLabel = activePreset ? activePreset.name : "Custom";
+  const hasValidStyle = stylePrompt.length > 10;
 
   const [stage, setStage] = useState<Stage>("idle");
   const [stageLog, setStageLog] = useState<string>("");
@@ -70,7 +79,7 @@ export default function ScenesView({ onBack, template }: Props) {
 
   const model = VIDEO_MODELS.find((m) => m.id === modelId)!;
   const totalCredits = model.credits * MAX_SCENES;
-  const canGenerate = stage === "idle" && !!accessToken;
+  const canGenerate = stage === "idle" && !!accessToken && hasValidStyle;
 
   const resetAll = () => {
     setScenes([]);
@@ -97,7 +106,7 @@ export default function ScenesView({ onBack, template }: Props) {
         artist: template.artist,
         genre: template.genre,
         language: template.language || "English",
-        mood: `${scenePresets[preset].style}. Match transcript: "${template.transcript.slice(0, 400)}"`,
+        mood: `${stylePrompt}. Match transcript: "${template.transcript.slice(0, 400)}"`,
         wolfId: template.wolfId,
       });
 
@@ -122,7 +131,7 @@ export default function ScenesView({ onBack, template }: Props) {
           try {
             const start = await startVisualGeneration({
               modelId,
-              prompt: `${scenePresets[preset].style}. ${p.prompt}`,
+              prompt: `${stylePrompt}. ${p.prompt}`,
               type: "scene",
               accessToken,
               options: { duration: 5, aspectRatio: ratio },
@@ -180,7 +189,7 @@ export default function ScenesView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, template, preset, modelId, ratio, initFfmpeg]);
+  }, [accessToken, template, stylePrompt, modelId, ratio, initFfmpeg]);
 
   const accent = "#69f0ae";
   const completedScenes = useMemo(
@@ -219,32 +228,25 @@ export default function ScenesView({ onBack, template }: Props) {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        {/* Left — controls */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-          <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider" style={{ color: accent }}>
-              Scene style *
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {scenePresets.map((p, i) => (
-                <button
-                  key={p.name}
-                  onClick={() => setPreset(i)}
-                  className="rounded-lg border p-3 text-left text-xs transition-all"
-                  style={
-                    preset === i
-                      ? { borderColor: `${accent}40`, backgroundColor: `${accent}10`, color: "white" }
-                      : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }
-                  }
-                >
-                  <Film size={14} className="mb-1" style={preset === i ? { color: accent } : undefined} />
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Full-width scene picker — category tabs + preset grid */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-6"
+      >
+        <ScenePresetPicker
+          selectedId={presetId}
+          customPrompt={customPrompt}
+          onSelect={(p) => setPresetId(p.id)}
+          onCustomChange={setCustomPrompt}
+          onSelectCustom={() => setPresetId(null)}
+          accent={accent}
+        />
+      </motion.div>
 
+      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
+        {/* Left — model + ratio + generate */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
           <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
               Video model
@@ -298,10 +300,15 @@ export default function ScenesView({ onBack, template }: Props) {
             }}
           >
             {stage === "idle" || stage === "done" || stage === "error" ? (
-              <span className="inline-flex items-center gap-2">
-                <Wand2 size={16} />
-                Generate Lyric Video
-                <span className="rounded bg-black/20 px-2 py-0.5 text-xs">~{totalCredits} credits</span>
+              <span className="inline-flex flex-col items-center gap-0.5">
+                <span className="inline-flex items-center gap-2">
+                  <Wand2 size={16} />
+                  Generate {styleLabel}
+                  <span className="rounded bg-black/20 px-2 py-0.5 text-xs">~{totalCredits} credits</span>
+                </span>
+                {!hasValidStyle && (
+                  <span className="text-[10px] font-normal opacity-70">Pick a scene or write a prompt</span>
+                )}
               </span>
             ) : (
               <span className="inline-flex items-center gap-2">

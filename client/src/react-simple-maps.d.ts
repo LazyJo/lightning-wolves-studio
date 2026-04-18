@@ -66,8 +66,6 @@ declare module "react-simple-maps" {
     onMoveStart?: (pos: { coordinates: [number, number]; zoom: number }) => void;
     onMove?: (pos: { coordinates: [number, number]; zoom: number }) => void;
     onMoveEnd?: (pos: { coordinates: [number, number]; zoom: number }) => void;
-    disablePanning?: boolean;
-    disableZooming?: boolean;
     children?: ReactNode;
   }
 

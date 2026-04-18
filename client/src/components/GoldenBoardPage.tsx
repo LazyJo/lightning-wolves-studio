@@ -188,14 +188,22 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
           {filtered.map((event, i) => {
             const saved = isSaved(event.id);
             return (
-            <motion.button
+            <motion.div
               key={event.id}
+              role="button"
+              tabIndex={0}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 + i * 0.05 }}
               whileHover={{ y: -4 }}
               onClick={() => setSelected(event)}
-              className="group relative overflow-hidden rounded-2xl border border-wolf-gold/25 bg-gradient-to-br from-[#1a1608] to-wolf-card p-5 text-left transition-all hover:border-wolf-gold/50 hover:shadow-xl hover:shadow-wolf-gold/10"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  setSelected(event);
+                }
+              }}
+              className="group relative overflow-hidden rounded-2xl border border-wolf-gold/25 bg-gradient-to-br from-[#1a1608] to-wolf-card p-5 text-left transition-all hover:border-wolf-gold/50 hover:shadow-xl hover:shadow-wolf-gold/10 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-wolf-gold/60"
             >
               {/* Decorative gold corner accents */}
               <div className="pointer-events-none absolute -left-px -top-px h-5 w-5 border-l-2 border-t-2 border-wolf-gold/60 rounded-tl-2xl" />
@@ -279,7 +287,7 @@ export default function GoldenBoardPage({ onBack, onPost, onApplyGate, hasProfil
                   );
                 })}
               </div>
-            </motion.button>
+            </motion.div>
             );
           })}
 

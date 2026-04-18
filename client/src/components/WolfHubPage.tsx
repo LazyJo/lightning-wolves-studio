@@ -267,8 +267,10 @@ function WorldMap({
           zoom={viewRef.current.zoom}
           minZoom={1}
           maxZoom={8}
-          disablePanning
-          disableZooming
+          // Zoom/pan is driven by GSAP on country select, not by user gestures.
+          // react-simple-maps v3 dropped disablePanning/disableZooming — use
+          // filterZoomEvent to swallow all wheel/drag events instead.
+          filterZoomEvent={() => false}
         >
         <Geographies geography={GEO_URL}>
           {({ geographies }) =>

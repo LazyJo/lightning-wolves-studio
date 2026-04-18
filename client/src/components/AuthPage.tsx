@@ -22,23 +22,22 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
 
-    // Simulate auth
-    await new Promise((r) => setTimeout(r, 1200));
-
+    // Validate up front — no sense burning 1.2s on a simulated auth call
+    // when the form is obviously incomplete.
     if (!email || !password) {
       setError("Please fill in all fields");
-      setLoading(false);
       return;
     }
 
     if (mode === "signup" && !name) {
       setError("Please enter your name");
-      setLoading(false);
       return;
     }
 
+    setLoading(true);
+    // Simulate auth
+    await new Promise((r) => setTimeout(r, 1200));
     setLoading(false);
     onSuccess();
   };

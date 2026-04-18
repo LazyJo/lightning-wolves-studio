@@ -290,9 +290,13 @@ export default function PricingPage({ onBack, onGetStarted }: Props) {
                   <div className="mb-4 rounded-lg py-2 text-center text-xs font-bold" style={{ backgroundColor: `${tier.color}15`, color: tier.color }}>
                     💎 {tier.annualSave}
                   </div>
+                ) : !annual && tier.annualSave ? (
+                  <div className="mb-4 rounded-lg border border-wolf-border/20 py-2 text-center text-xs text-wolf-muted">
+                    Annual: {tier.annualSave.toLowerCase()}
+                  </div>
                 ) : (
                   <div className="mb-4 rounded-lg border border-wolf-border/20 py-2 text-center text-xs text-wolf-muted">
-                    {annual ? "Same as monthly rate" : "No change"}
+                    Cancel anytime
                   </div>
                 )}
 

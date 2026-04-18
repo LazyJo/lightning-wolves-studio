@@ -1,14 +1,18 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import RemixViewComponent from "./studio/RemixView";
 import WolfVisionPanelComponent from "./studio/WolfVisionPanel";
 import StudioDashboard from "./studio/StudioDashboard";
 import { useCredits, tierLabel, tierColor } from "../lib/useCredits";
 import { useI18n } from "../lib/i18n";
 import TemplateViewComponent from "./studio/TemplateView";
+import TemplateEditor from "./studio/TemplateEditor";
+import TemplatesList from "./studio/TemplatesList";
+import TemplateModePicker from "./studio/TemplateModePicker";
 import ScenesViewComponent from "./studio/ScenesView";
 import PerformanceViewComponent from "./studio/PerformanceView";
 import CoverArtViewComponent from "./studio/CoverArtView";
 import ArtistPageBuilder from "./studio/ArtistPageBuilder";
+import { loadTemplate, type Template } from "../lib/templates";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
@@ -43,7 +47,17 @@ interface Props {
   onStudioNav?: (view: string) => void;
 }
 
-type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art" | "artist-page";
+type View =
+  | "dashboard"
+  | "templates"          // Templates list (LYRC-style entry point for lyric video modes)
+  | "template-editor"    // Unified setup: upload + transcribe + cut markers
+  | "template-modes"     // Pick Scenes / Remix / Performance for a selected template
+  | "scenes"
+  | "remix"
+  | "performance"
+  | "cover-art"
+  | "artist-page"
+  | "template";          // Legacy inline-wizard template tool — kept for back-compat
 type Tab = "lyrics" | "srt" | "beats" | "prompts";
 
 // Demo content
@@ -539,6 +553,11 @@ function GenerationView({
   );
 }
 
+// The three lyric-video modes that require a Template.
+const LYRIC_VIDEO_MODES: View[] = ["scenes", "remix", "performance"];
+
+type PendingMode = "scenes" | "remix" | "performance" | null;
+
 // Main Studio Page
 export default function StudioPage({ wolf, onBack, onWolfHub, studioView: externalView, onStudioNav }: Props) {
   const [internalView, setInternalView] = useState<View>("dashboard");
@@ -547,16 +566,65 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
   const [savedRegionStart, setSavedRegionStart] = useState(0);
   const [savedRegionEnd, setSavedRegionEnd] = useState(15);
 
+  // LYRC-style Template flow — one upload, many renders.
+  const [currentTemplate, setCurrentTemplate] = useState<Template | null>(null);
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [pendingMode, setPendingMode] = useState<PendingMode>(null);
+
   // Use external view state if provided (from App.tsx via Navbar), otherwise internal
   const view = (externalView as View) || internalView;
   const setView = (v: View) => {
     if (onStudioNav) onStudioNav(v);
     else setInternalView(v);
   };
+
+  // When the Dashboard asks for a mode tile, bounce through the Templates
+  // list first (LYRC's 3-step setup lives on the template, not the mode).
+  const handleDashboardTool = useCallback(
+    (v: View) => {
+      if (LYRIC_VIDEO_MODES.includes(v)) {
+        setPendingMode(v as PendingMode);
+        setView("templates");
+        return;
+      }
+      setView(v);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  // Regenerate the audio Blob URL for the current template whenever we
+  // enter a mode — blob URLs don't survive navigations in some browsers.
+  useEffect(() => {
+    if (!currentTemplate) return;
+    let cancelled = false;
+    loadTemplate(currentTemplate.id).then((fresh) => {
+      if (cancelled || !fresh) return;
+      setCurrentTemplate(fresh);
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
   const accentColor = wolf?.color || "#f5c518";
   const { plan, deductCredits } = useCredits();
   const tColor = tierColor(plan.tier);
   const { t } = useI18n();
+
+  const openTemplate = async (id: string) => {
+    const loaded = await loadTemplate(id);
+    if (!loaded) return;
+    setCurrentTemplate(loaded);
+    // If the user clicked a tool tile first (pendingMode is set) skip
+    // the mode picker and drop them straight into their chosen mode.
+    if (pendingMode) {
+      const mode = pendingMode;
+      setPendingMode(null);
+      setView(mode);
+    } else {
+      setView("template-modes");
+    }
+  };
 
   return (
     <div className="min-h-screen pt-20">
@@ -571,25 +639,85 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
             wolf={wolf}
             accentColor={accentColor}
             plan={plan}
-            onSelectTool={(v) => setView(v as View)}
+            onSelectTool={(v) => handleDashboardTool(v as View)}
             onBack={onBack}
             onWolfHub={onWolfHub}
             t={t}
           />
-        ) : view === "remix" ? (
-          <RemixViewComponent onBack={() => setView("dashboard")} wolf={wolf} lyrics={savedLyrics} audioUrl={savedAudioUrl} regionStart={savedRegionStart} regionEnd={savedRegionEnd} />
+        ) : view === "templates" ? (
+          <TemplatesList
+            onNew={() => {
+              setEditingTemplate(null);
+              setView("template-editor");
+            }}
+            onOpen={openTemplate}
+          />
+        ) : view === "template-editor" ? (
+          <TemplateEditor
+            initial={editingTemplate}
+            wolf={wolf ? { artist: wolf.artist, genre: wolf.genre, id: wolf.id } : null}
+            onBack={() => {
+              setEditingTemplate(null);
+              setView("templates");
+            }}
+            onSaved={(tpl) => {
+              setEditingTemplate(null);
+              setCurrentTemplate(tpl);
+              if (pendingMode) {
+                const mode = pendingMode;
+                setPendingMode(null);
+                setView(mode);
+              } else {
+                setView("template-modes");
+              }
+            }}
+          />
+        ) : view === "template-modes" && currentTemplate ? (
+          <TemplateModePicker
+            template={currentTemplate}
+            onBack={() => setView("templates")}
+            onEdit={() => {
+              setEditingTemplate(currentTemplate);
+              setView("template-editor");
+            }}
+            onPickMode={(m) => setView(m as View)}
+          />
+        ) : view === "scenes" && currentTemplate ? (
+          <ScenesViewComponent
+            template={currentTemplate}
+            onBack={() => setView("template-modes")}
+          />
+        ) : view === "remix" && currentTemplate ? (
+          <RemixViewComponent
+            template={currentTemplate}
+            onBack={() => setView("template-modes")}
+          />
+        ) : view === "performance" && currentTemplate ? (
+          <PerformanceViewComponent
+            template={currentTemplate}
+            onBack={() => setView("template-modes")}
+          />
+        ) : LYRIC_VIDEO_MODES.includes(view) && !currentTemplate ? (
+          // Someone deep-linked to a mode without a template — bounce
+          // them to the list so they can pick or create one.
+          <TemplatesList
+            onNew={() => {
+              setPendingMode(view as PendingMode);
+              setEditingTemplate(null);
+              setView("template-editor");
+            }}
+            onOpen={openTemplate}
+          />
         ) : view === "template" ? (
+          // Legacy inline-wizard template tool — kept for any user flow
+          // that still references it until we can remove for good.
           <TemplateViewComponent onBack={() => setView("dashboard")} onGoToRemix={(lyrics, audioUrl, regionStart, regionEnd) => {
             if (lyrics) setSavedLyrics(lyrics);
             if (audioUrl) setSavedAudioUrl(audioUrl);
             if (regionStart !== undefined) setSavedRegionStart(regionStart);
             if (regionEnd !== undefined) setSavedRegionEnd(regionEnd);
-            setView("remix");
+            setView("templates");
           }} wolf={wolf} />
-        ) : view === "scenes" ? (
-          <ScenesViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
-        ) : view === "performance" ? (
-          <PerformanceViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "cover-art" ? (
           <CoverArtViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "artist-page" ? (

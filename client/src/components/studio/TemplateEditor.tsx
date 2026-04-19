@@ -1,23 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
   Upload,
-  Music,
-  Mic,
+  Music2,
   Loader2,
   CheckCircle,
-  AlertCircle,
+  AlertTriangle,
   Save,
   Scissors,
   X,
   Play,
   Pause,
   Plus,
+  Lock,
+  Wand2,
+  FileText,
 } from "lucide-react";
 import { transcribeAudio, uploadFile } from "../../lib/api";
 import { useTemplates } from "../../lib/useTemplates";
 import type { Template, WordTiming } from "../../lib/templates";
+import WaveformSelector from "./WaveformSelector";
 
 interface Props {
   onBack: () => void;
@@ -26,82 +29,93 @@ interface Props {
   wolf?: { artist: string; genre: string; id: string } | null;
 }
 
-type Stage = "empty" | "transcribing" | "ready" | "saving" | "error";
+/* ─── Color tokens — Lightning Wolves brand palette ──────────────────── */
+// Gold (wolf-gold) for Audio, Purple (Zirka) for Lyrics/AI, Amber (wolf-amber)
+// for Markers — keeps the step-color-differentiation idea from LYRC but
+// lands on brand instead of LYRC's cyan.
+const C = {
+  gold: "#f5c518",
+  goldSoft: "rgba(245,197,24,0.14)",
+  purple: "#b794f6",
+  purpleSoft: "rgba(183,148,246,0.14)",
+  amber: "#e8870a",
+  amberSoft: "rgba(232,135,10,0.14)",
+  green: "#69f0ae",
+  greenSoft: "rgba(105,240,174,0.14)",
+  pink: "#f472b6",
+  pinkSoft: "rgba(244,114,182,0.14)",
+  mute: "rgba(255,255,255,0.35)",
+  border: "rgba(255,255,255,0.08)",
+};
 
-/**
- * TemplateEditor — LYRC's unified "set up a song" view.
- *
- * 3-step flow:
- *   1. Upload & trim (we take the full clip for now; future cut UI lives
- *      on WaveformSelector and feeds trim start/end to the transcript).
- *   2. Auto-transcribe with Whisper → word timings.
- *   3. Mark cut points on the timeline (click to add / remove).
- *
- * Saving writes the audio blob to IndexedDB and the metadata to
- * localStorage via the templates lib, then hands the fresh Template
- * to the caller so they can drop into a generation mode.
- */
+type AudioState = "empty" | "selecting" | "confirmed";
+type LyricsState = "pending" | "loading" | "ready" | "error";
+
+const DURATIONS = [15, 20, 25, 30] as const;
+
 export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props) {
   const { create } = useTemplates();
 
-  // ── Core fields ───────────────────────────────────────────────────────
-  const [title, setTitle] = useState(initial?.title || "");
-  const [artist, setArtist] = useState(initial?.artist || wolf?.artist || "Lightning Wolves");
-  const [genre, setGenre] = useState(initial?.genre || wolf?.genre || "Hip-Hop");
-
-  // ── Audio ─────────────────────────────────────────────────────────────
+  /* ── Audio ───────────────────────────────────────────────────────── */
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(initial?.audioUrl || null);
-  const [audioDuration, setAudioDuration] = useState<number>(
-    initial?.audioDurationSec || 0
-  );
+  const [audioDuration, setAudioDuration] = useState<number>(initial?.audioDurationSec || 0);
+  const [regionStart, setRegionStart] = useState(0);
+  const [selectedDuration, setSelectedDuration] = useState<number>(15);
+  const [audioConfirmed, setAudioConfirmed] = useState(!!initial);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const [currentTime, setCurrentTime] = useState(0);
   const [playing, setPlaying] = useState(false);
 
-  // ── Transcript ────────────────────────────────────────────────────────
+  /* ── Lyrics ──────────────────────────────────────────────────────── */
   const [transcript, setTranscript] = useState(initial?.transcript || "");
-  const [wordTimings, setWordTimings] = useState<WordTiming[]>(
-    initial?.wordTimings || []
-  );
+  const [wordTimings, setWordTimings] = useState<WordTiming[]>(initial?.wordTimings || []);
   const [language, setLanguage] = useState(initial?.language || "en");
+  const [lyricsState, setLyricsState] = useState<LyricsState>(
+    initial?.wordTimings?.length ? "ready" : "pending"
+  );
+  const [lyricsError, setLyricsError] = useState<string>("");
+  const [lyricsProgress, setLyricsProgress] = useState(0);
+  const [lyricsElapsed, setLyricsElapsed] = useState(0);
+  const lyricsTickerRef = useRef<number | null>(null);
 
-  // ── Cut markers ───────────────────────────────────────────────────────
+  /* ── Markers ─────────────────────────────────────────────────────── */
   const [cutMarkers, setCutMarkers] = useState<number[]>(initial?.cutMarkers || []);
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
 
-  // ── Pipeline state ────────────────────────────────────────────────────
-  const [stage, setStage] = useState<Stage>(initial ? "ready" : "empty");
-  const [error, setError] = useState("");
+  /* ── Save modal ──────────────────────────────────────────────────── */
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [saveName, setSaveName] = useState(initial?.title || "");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
 
-  const accent = "#f5c518";
-  const hasTranscript = wordTimings.length > 0 || transcript.length > 0;
-  const canSave = !!audioFile || !!initial;
-  const canTranscribe = !!audioFile && stage !== "transcribing";
+  /* ── Derived state ───────────────────────────────────────────────── */
+  const audioState: AudioState = !audioUrl ? "empty" : audioConfirmed ? "confirmed" : "selecting";
+  const lyricsActive = audioState === "confirmed";
+  const markersActive = lyricsState === "ready" || lyricsState === "error";
+  const canSave = audioState === "confirmed" && (lyricsState === "ready" || lyricsState === "error");
 
-  /* ─── Audio load handlers ─── */
-
+  /* ── File handling ───────────────────────────────────────────────── */
   const handleFile = (f: File) => {
     if (!f.type.startsWith("audio/") && !f.type.startsWith("video/")) {
-      setError("Please upload an audio or video file.");
+      setSaveError("Please upload an audio or video file.");
       return;
     }
-    // Reset any previous state when a new file is dropped.
     setAudioFile(f);
     if (audioUrl && audioUrl.startsWith("blob:")) URL.revokeObjectURL(audioUrl);
     setAudioUrl(URL.createObjectURL(f));
+    setAudioConfirmed(false);
     setTranscript("");
     setWordTimings([]);
+    setLyricsState("pending");
     setCutMarkers([]);
-    setError("");
-    setStage("empty");
-    if (!title) {
-      // Drop the extension as a title seed.
-      setTitle(f.name.replace(/\.[^.]+$/, ""));
-    }
+    setSaveError("");
+    if (!saveName) setSaveName(f.name.replace(/\.[^.]+$/, ""));
   };
 
-  // Track audio duration + current time for marker placement.
+  // Wire native audio element for playback + marker timing
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
@@ -121,23 +135,36 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
     };
   }, [audioUrl]);
 
-  /* ─── Transcribe ─── */
+  /* ── Confirm selection (kicks off transcription) ─────────────────── */
+  const handleConfirmSelection = () => {
+    if (!audioFile && !initial) return;
+    setAudioConfirmed(true);
+    if (!wordTimings.length) handleTranscribe();
+  };
 
   const handleTranscribe = useCallback(async () => {
     if (!audioFile) return;
-    setStage("transcribing");
-    setError("");
+    setLyricsState("loading");
+    setLyricsError("");
+    setLyricsProgress(0);
+    setLyricsElapsed(0);
+
+    const startedAt = Date.now();
+    lyricsTickerRef.current = window.setInterval(() => {
+      const el = (Date.now() - startedAt) / 1000;
+      setLyricsElapsed(el);
+      // Fake progress — ease toward 95% over ~15s, leave room for snap to 100 on done
+      setLyricsProgress((p) => Math.min(95, p + (95 - p) * 0.08));
+    }, 300);
+
     try {
       const tr = await transcribeAudio(audioFile, "English");
-      // Whisper returns `words` with precise start/end when requested;
-      // fall back to segment-level timings if word granularity missing.
       const words: WordTiming[] = (tr.words?.length ? tr.words : []).map((w) => ({
         word: w.word,
         start: w.start,
         end: w.end,
       }));
       if (words.length === 0 && tr.segments?.length) {
-        // Distribute segment text evenly across segment time.
         tr.segments.forEach((seg) => {
           const tokens = seg.text.trim().split(/\s+/).filter(Boolean);
           const dur = (seg.end - seg.start) / Math.max(1, tokens.length);
@@ -153,70 +180,66 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
       setTranscript(tr.text || "");
       setWordTimings(words);
       setLanguage(tr.language || "en");
-      // Also upload for server-side logging — fire-and-forget.
+      setLyricsProgress(100);
       uploadFile(audioFile).catch(() => {});
-      setStage("ready");
+      if (words.length === 0 && !tr.text) {
+        setLyricsState("error");
+        setLyricsError("Could not detect vocals in the audio. This may be an instrumental track — enter lyrics manually or skip.");
+      } else {
+        setLyricsState("ready");
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Transcription failed";
-      setError(msg);
-      setStage("error");
+      setLyricsError(msg);
+      setLyricsState("error");
+    } finally {
+      if (lyricsTickerRef.current != null) {
+        clearInterval(lyricsTickerRef.current);
+        lyricsTickerRef.current = null;
+      }
     }
   }, [audioFile]);
 
-  /* ─── Cut markers ─── */
+  useEffect(() => {
+    return () => {
+      if (lyricsTickerRef.current != null) clearInterval(lyricsTickerRef.current);
+    };
+  }, []);
 
-  // Timeline element lets pointer drag logic map mouse X → seconds.
-  const timelineRef = useRef<HTMLDivElement>(null);
-  // Track which marker is mid-drag so pointer-move can mutate just that one.
-  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
-
+  /* ── Cut markers ─────────────────────────────────────────────────── */
   const addMarkerAtPlayhead = () => {
     if (!audioDuration) return;
-    const t = currentTime;
-    // Snap to 0.05s grid + dedupe nearby markers
-    const snapped = Math.round(t * 20) / 20;
+    const snapped = Math.round(currentTime * 20) / 20;
     setCutMarkers((prev) =>
       [...prev, snapped]
         .filter((v, i, arr) => arr.findIndex((x) => Math.abs(x - v) < 0.1) === i)
         .sort((a, b) => a - b)
     );
   };
+  const removeMarker = (idx: number) => setCutMarkers((prev) => prev.filter((_, i) => i !== idx));
 
-  const removeMarker = (idx: number) => {
-    setCutMarkers((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  // Pointer-driven drag: on pointer-down on a marker, we grab it; on
-  // move we compute the new time from the pointer's X relative to the
-  // timeline strip; on release we resort the array. No global listener
-  // needed — setPointerCapture keeps events routed to the element.
   const onMarkerPointerDown = (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!audioDuration) return;
-    // Left click only; don't start a drag if user clicks modifier + button.
-    if (e.button !== 0) return;
+    if (!audioDuration || e.button !== 0) return;
     e.stopPropagation();
     setDraggingIdx(idx);
     e.currentTarget.setPointerCapture(e.pointerId);
   };
-
   const onMarkerPointerMove = (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => {
     if (draggingIdx !== idx) return;
     const rect = timelineRef.current?.getBoundingClientRect();
     if (!rect) return;
     const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    const next = Math.round(pct * audioDuration * 20) / 20; // 0.05s snap
+    const next = Math.round(pct * audioDuration * 20) / 20;
     setCutMarkers((prev) => {
       const copy = [...prev];
       copy[idx] = next;
       return copy;
     });
   };
-
   const onMarkerPointerUp = (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => {
     if (draggingIdx !== idx) return;
     e.currentTarget.releasePointerCapture(e.pointerId);
     setDraggingIdx(null);
-    // Resort after the drag + dedupe any markers that overlapped.
     setCutMarkers((prev) =>
       [...prev]
         .sort((a, b) => a - b)
@@ -224,89 +247,55 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
     );
   };
 
-  /* ─── Word timing nudge ─── */
-
-  // Shift a single word's start time by `delta` seconds, clamped inside
-  // the audio duration and its neighbours so the ordering stays valid.
-  const nudgeWord = (idx: number, delta: number) => {
-    setWordTimings((prev) => {
-      const copy = [...prev];
-      const w = copy[idx];
-      if (!w) return prev;
-      const prevEnd = idx > 0 ? copy[idx - 1].end : 0;
-      const nextStart = idx < copy.length - 1 ? copy[idx + 1].start : audioDuration;
-      const newStart = Math.max(prevEnd, Math.min(w.end - 0.05, w.start + delta));
-      const newEnd = Math.max(newStart + 0.05, Math.min(nextStart, w.end + delta));
-      copy[idx] = { ...w, start: newStart, end: newEnd };
-      return copy;
-    });
+  /* ── Save ────────────────────────────────────────────────────────── */
+  const openSave = () => {
+    setSaveError("");
+    setShowSaveModal(true);
   };
 
-  // Restore a single word's timing to its Whisper baseline — handy if
-  // the user nudged too aggressively. We stash the original in a ref on
-  // first transcribe so this is a cheap lookup.
-  const baselineWordsRef = useRef<WordTiming[] | null>(null);
-  useEffect(() => {
-    if (wordTimings.length > 0 && !baselineWordsRef.current) {
-      baselineWordsRef.current = wordTimings.map((w) => ({ ...w }));
-    }
-  }, [wordTimings]);
-  const resetWordTimings = () => {
-    if (baselineWordsRef.current) {
-      setWordTimings(baselineWordsRef.current.map((w) => ({ ...w })));
-    }
-  };
-
-  /* ─── Save ─── */
-
-  const handleSave = useCallback(async () => {
-    if (!canSave) return;
-    if (!title.trim()) {
-      setError("Give your template a title.");
+  const handleSaveConfirm = useCallback(async () => {
+    const title = saveName.trim();
+    if (!title) {
+      setSaveError("Give your template a name.");
       return;
     }
     if (!audioFile && !initial) {
-      setError("Upload an audio file first.");
+      setSaveError("Upload audio first.");
       return;
     }
-    setStage("saving");
-    setError("");
+    setSaving(true);
+    setSaveError("");
     try {
       const saved = await create({
         id: initial?.id,
-        title: title.trim(),
-        artist,
-        genre,
+        title,
+        artist: wolf?.artist || initial?.artist || "Lightning Wolves",
+        genre: wolf?.genre || initial?.genre || "Hip-Hop",
         language,
         audioMimeType: audioFile?.type || initial?.audioMimeType || "audio/mpeg",
         audioFilename: audioFile?.name || initial?.audioFilename || "audio.mp3",
         audioDurationSec: audioDuration,
         transcript,
         wordTimings,
+        srt: "",
         cutMarkers,
         wolfId: wolf?.id || initial?.wolfId,
         audioBlob: audioFile || undefined,
       });
+      setShowSaveModal(false);
       onSaved(saved);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Save failed";
-      setError(msg);
-      setStage("error");
+      setSaveError(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSaving(false);
     }
-  }, [
-    canSave, title, artist, genre, language, audioFile, initial,
-    audioDuration, transcript, wordTimings, cutMarkers, wolf, create, onSaved,
-  ]);
+  }, [saveName, audioFile, initial, language, audioDuration, transcript, wordTimings, cutMarkers, wolf, create, onSaved]);
 
-  const markerPercents = useMemo(() => {
-    if (!audioDuration) return [] as number[];
-    return cutMarkers.map((t) => (t / audioDuration) * 100);
-  }, [cutMarkers, audioDuration]);
-
-  const playheadPercent = audioDuration > 0 ? (currentTime / audioDuration) * 100 : 0;
+  /* ── Render ──────────────────────────────────────────────────────── */
+  const headingTitle = initial ? "EDIT TEMPLATE" : "CREATE TEMPLATE";
 
   return (
-    <div>
+    <div className="pb-32">
       <motion.button
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -317,172 +306,228 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
         Back to Templates
       </motion.button>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <h2 className="text-2xl" style={{ color: accent, fontFamily: "var(--font-display)" }}>
-          {initial ? "Edit Template" : "New Template"}
-        </h2>
-        <p className="text-xs text-wolf-muted">
-          Upload once. Generate Scenes, Remix, and Performance from the same setup.
-        </p>
-      </motion.div>
+      <motion.h1
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="mb-2 text-center text-4xl font-black tracking-[0.05em] sm:text-5xl"
+        style={{
+          fontFamily: "var(--font-display)",
+          backgroundImage: `linear-gradient(90deg, ${C.gold}, ${C.amber}, #ffffff)`,
+          backgroundClip: "text",
+          WebkitBackgroundClip: "text",
+          color: "transparent",
+        }}
+      >
+        {headingTitle}
+      </motion.h1>
+      <p className="mb-8 text-center text-xs text-wolf-muted">
+        Upload once. Generate Scenes, Remix, and Performance from the same setup.
+      </p>
 
-      {error && (
-        <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-300">
-          <AlertCircle size={16} className="mt-0.5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-        {/* Left column — audio + timeline */}
-        <div className="space-y-4">
-          {/* Step 1: Upload */}
-          <Card num={1} label="Upload & trim" accent={accent}>
-            {audioUrl ? (
-              <div>
-                <div className="flex items-center gap-3 rounded-lg border border-wolf-border/20 bg-black/30 p-3">
-                  <Music size={16} style={{ color: accent }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="truncate text-sm text-white">
-                      {audioFile?.name || initial?.audioFilename}
-                    </p>
-                    <p className="text-[10px] text-wolf-muted">
-                      {audioDuration.toFixed(1)}s
-                      {audioFile && ` · ${(audioFile.size / 1024 / 1024).toFixed(1)} MB`}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-xs text-wolf-muted hover:text-wolf-gold"
-                  >
-                    Replace
-                  </button>
-                </div>
-                <audio ref={audioRef} src={audioUrl} className="mt-3 w-full" controls />
-              </div>
-            ) : (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-wolf-border/30 px-4 py-8 text-sm text-wolf-muted transition-all hover:border-wolf-gold/40 hover:text-wolf-gold"
+      {/* ── 3-column wizard ── */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        {/* ── Step 1: Audio ── */}
+        <StepCard
+          num={1}
+          title="Audio"
+          subtitle={
+            audioState === "empty"
+              ? "Upload & select clip"
+              : audioState === "selecting"
+              ? `Pick a ${selectedDuration}s clip`
+              : `${selectedDuration}s selected`
+          }
+          done={audioState === "confirmed"}
+          active={audioState !== "confirmed"}
+          activeColor={C.gold}
+          icon={<Music2 size={16} />}
+        >
+          {!audioUrl ? (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-12 text-sm text-wolf-muted transition-all hover:text-white"
+              style={{ borderColor: `${C.gold}40` }}
+            >
+              <Upload size={24} style={{ color: C.gold }} />
+              <span className="font-semibold text-white">Drop audio or click</span>
+              <span className="text-[10px] opacity-60">MP3, WAV, M4A up to 100MB</span>
+              <span className="text-[10px] opacity-60">Minimum 15s, select 15-30s clip</span>
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <div
+                className="rounded-lg px-3 py-2 text-[10px]"
+                style={{ backgroundColor: C.goldSoft, color: C.gold }}
               >
-                <Upload size={20} />
-                Drop or click to add audio
-                <span className="text-[10px] opacity-60">mp3, wav, m4a — under 25MB</span>
-              </button>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="audio/*,video/*"
-              className="hidden"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) handleFile(f);
-                e.target.value = "";
-              }}
-            />
-          </Card>
+                Drag selection to reposition · Ctrl+scroll to zoom
+              </div>
 
-          {/* Step 2: Transcribe */}
-          <Card num={2} label="Transcribe lyrics" accent={accent}>
-            <div className="flex items-center gap-3">
+              {/* Waveform selector */}
+              <WaveformSelector
+                audioUrl={audioUrl}
+                duration={audioDuration || 60}
+                selectedDuration={selectedDuration}
+                color={C.gold}
+                onRegionChange={(start) => setRegionStart(start)}
+              />
+
+              {/* Duration pills */}
+              <div className="flex items-center gap-1.5">
+                <span className="mr-2 text-[10px] font-semibold uppercase tracking-wider text-wolf-muted">
+                  Duration
+                </span>
+                {DURATIONS.map((d) => {
+                  const locked = d > 15;
+                  const active = d === selectedDuration;
+                  return (
+                    <button
+                      key={d}
+                      disabled={locked}
+                      onClick={() => !locked && setSelectedDuration(d)}
+                      className="relative inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-semibold transition-all disabled:cursor-not-allowed"
+                      style={{
+                        backgroundColor: active ? C.gold : "transparent",
+                        color: active ? "#000" : locked ? C.mute : "rgba(255,255,255,0.7)",
+                        border: active ? `1px solid ${C.gold}` : `1px solid ${C.border}`,
+                        opacity: locked && !active ? 0.5 : 1,
+                      }}
+                    >
+                      {d}s {locked && <Lock size={9} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Confirm button */}
               <button
-                onClick={handleTranscribe}
-                disabled={!canTranscribe}
-                className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={handleConfirmSelection}
+                disabled={audioConfirmed}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold tracking-wider transition-all disabled:cursor-default"
                 style={{
-                  backgroundColor: canTranscribe ? accent : "rgba(255,255,255,0.08)",
-                  color: canTranscribe ? "#000" : "#888",
+                  background: audioConfirmed
+                    ? `linear-gradient(90deg, ${C.green}, ${C.green})`
+                    : `linear-gradient(90deg, ${C.gold}, ${C.amber})`,
+                  color: "#000",
                 }}
               >
-                {stage === "transcribing" ? (
+                {audioConfirmed ? (
                   <>
-                    <Loader2 size={13} className="animate-spin" />
-                    Transcribing…
+                    <CheckCircle size={15} /> SELECTION CONFIRMED
                   </>
                 ) : (
                   <>
-                    <Mic size={13} />
-                    {hasTranscript ? "Re-transcribe" : "Auto-transcribe"}
+                    <Scissors size={15} /> CONFIRM SELECTION
                   </>
                 )}
               </button>
-              {hasTranscript && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-green-300">
-                  <CheckCircle size={12} /> {wordTimings.length} words
-                </span>
-              )}
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mx-auto block text-[10px] text-wolf-muted hover:text-wolf-gold"
+              >
+                Replace audio
+              </button>
             </div>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="audio/*,video/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleFile(f);
+              e.target.value = "";
+            }}
+          />
+        </StepCard>
 
-            {hasTranscript && (
-              <div className="mt-3 rounded-lg border border-wolf-border/15 bg-black/30 p-3">
-                <p className="text-xs leading-relaxed text-slate-300">{transcript}</p>
-              </div>
-            )}
+        {/* ── Step 2: Lyrics ── */}
+        <StepCard
+          num={2}
+          title="Lyrics"
+          subtitle={
+            lyricsState === "ready"
+              ? "Transcription complete"
+              : lyricsState === "error"
+              ? "Needs attention"
+              : "AI transcription — any language"
+          }
+          done={lyricsState === "ready"}
+          active={lyricsActive && lyricsState !== "ready"}
+          activeColor={C.purple}
+          icon={<FileText size={16} />}
+        >
+          {!lyricsActive ? (
+            <EmptyNote icon={<FileText size={22} />} label="Complete audio step first" />
+          ) : lyricsState === "loading" ? (
+            <LyricsLoading progress={lyricsProgress} elapsed={lyricsElapsed} />
+          ) : lyricsState === "ready" ? (
+            <LyricsSuccess words={wordTimings.length} transcript={transcript} />
+          ) : lyricsState === "error" ? (
+            <LyricsErrorCard
+              message={lyricsError || "Transcription failed."}
+              onRetry={handleTranscribe}
+            />
+          ) : null}
+        </StepCard>
 
-            {wordTimings.length > 0 && (
-              <details className="mt-3">
-                <summary className="flex cursor-pointer items-center justify-between text-[11px] text-wolf-muted hover:text-wolf-gold">
-                  <span>Word timings ({wordTimings.length}) — click ◂ ▸ to nudge</span>
-                  {baselineWordsRef.current && (
+        {/* ── Step 3: Cut Markers ── */}
+        <StepCard
+          num={3}
+          title="Cut Markers"
+          subtitle={markersActive ? "Mark the beats" : "Place cut markers"}
+          done={markersActive && cutMarkers.length > 0}
+          active={markersActive && cutMarkers.length === 0}
+          activeColor={C.amber}
+          icon={<Scissors size={16} />}
+        >
+          {!markersActive ? (
+            <EmptyNote icon={<Scissors size={22} />} label="Complete lyrics step first" />
+          ) : (
+            <div className="space-y-3">
+              {audioUrl && (
+                <div className="overflow-hidden rounded-xl border bg-black" style={{ borderColor: `${C.amber}30` }}>
+                  <div className="relative flex h-40 items-center justify-center">
                     <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        resetWordTimings();
+                      onClick={() => {
+                        const el = audioRef.current;
+                        if (!el) return;
+                        if (playing) el.pause();
+                        else el.play();
                       }}
-                      className="rounded px-2 py-0.5 text-[10px] text-wolf-muted hover:text-wolf-gold"
+                      className="flex h-14 w-14 items-center justify-center rounded-full border-2 text-white transition-transform hover:scale-105"
+                      style={{ borderColor: `${C.amber}80` }}
                     >
-                      Reset
+                      {playing ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
                     </button>
-                  )}
-                </summary>
-                <div className="mt-2 max-h-56 overflow-y-auto rounded-lg border border-wolf-border/15 bg-black/20 p-2 text-[11px] text-slate-300">
-                  {wordTimings.map((w, i) => (
-                    <div key={i} className="flex items-center gap-2 py-0.5">
-                      <span className="w-14 font-mono text-[10px] text-wolf-muted/70">
-                        {w.start.toFixed(2)}
-                      </span>
-                      <span className="flex-1 truncate">{w.word}</span>
-                      <span className="flex gap-0.5">
-                        <button
-                          onClick={() => nudgeWord(i, -0.05)}
-                          aria-label={`Nudge "${w.word}" earlier`}
-                          className="rounded border border-wolf-border/20 bg-wolf-bg/60 px-1.5 text-[10px] text-wolf-muted hover:border-wolf-gold/40 hover:text-wolf-gold"
-                        >
-                          ◂
-                        </button>
-                        <button
-                          onClick={() => nudgeWord(i, 0.05)}
-                          aria-label={`Nudge "${w.word}" later`}
-                          className="rounded border border-wolf-border/20 bg-wolf-bg/60 px-1.5 text-[10px] text-wolf-muted hover:border-wolf-gold/40 hover:text-wolf-gold"
-                        >
-                          ▸
-                        </button>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            )}
-          </Card>
-
-          {/* Step 3: Cut markers */}
-          <Card num={3} label="Cut markers" accent={accent}>
-            {audioDuration ? (
-              <div>
-                <div
-                  ref={timelineRef}
-                  className="relative h-10 rounded-lg border border-wolf-border/20 bg-black/40 touch-none select-none"
-                >
-                  {/* Playhead */}
+                    <audio ref={audioRef} src={audioUrl} className="hidden" />
+                  </div>
                   <div
-                    className="absolute top-0 bottom-0 w-px bg-wolf-gold/70"
-                    style={{ left: `${playheadPercent}%` }}
-                  />
-                  {/* Markers — draggable. Shift-click to remove. */}
-                  {markerPercents.map((pct, idx) => {
-                    const isDragging = draggingIdx === idx;
-                    return (
+                    ref={timelineRef}
+                    className="relative h-12 cursor-crosshair touch-none select-none"
+                    style={{ backgroundColor: "rgba(58,214,255,0.08)" }}
+                    onClick={(e) => {
+                      if (!audioDuration) return;
+                      const rect = timelineRef.current?.getBoundingClientRect();
+                      if (!rect) return;
+                      const pct = (e.clientX - rect.left) / rect.width;
+                      const t = Math.round(pct * audioDuration * 20) / 20;
+                      setCutMarkers((prev) =>
+                        [...prev, t]
+                          .filter((v, i, arr) => arr.findIndex((x) => Math.abs(x - v) < 0.1) === i)
+                          .sort((a, b) => a - b)
+                      );
+                    }}
+                  >
+                    <div
+                      className="absolute top-0 bottom-0 w-px"
+                      style={{
+                        left: `${audioDuration ? (currentTime / audioDuration) * 100 : 0}%`,
+                        backgroundColor: C.amber,
+                      }}
+                    />
+                    {cutMarkers.map((t, idx) => (
                       <button
                         key={idx}
                         onPointerDown={onMarkerPointerDown(idx)}
@@ -490,159 +535,457 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
                         onPointerUp={onMarkerPointerUp(idx)}
                         onPointerCancel={onMarkerPointerUp(idx)}
                         onClick={(e) => {
-                          // Shift-click removes; plain click is a no-op so it
-                          // doesn't fight the drag gesture. The chip below is
-                          // still one-click-to-remove.
+                          e.stopPropagation();
                           if (e.shiftKey) removeMarker(idx);
                         }}
-                        title={`${cutMarkers[idx].toFixed(2)}s — drag to move, shift-click to remove`}
-                        className={`absolute top-0 bottom-0 w-1.5 -translate-x-1/2 rounded bg-wolf-amber transition-all hover:bg-wolf-gold ${
-                          isDragging ? "cursor-grabbing scale-y-110 bg-wolf-gold" : "cursor-grab"
+                        title={`${t.toFixed(2)}s — drag to move, shift-click to remove`}
+                        className={`absolute top-0 bottom-0 w-1.5 -translate-x-1/2 rounded transition-all ${
+                          draggingIdx === idx ? "cursor-grabbing scale-y-110" : "cursor-grab"
                         }`}
-                        style={{ left: `${pct}%` }}
+                        style={{
+                          left: `${audioDuration ? (t / audioDuration) * 100 : 0}%`,
+                          backgroundColor: draggingIdx === idx ? "#fff" : C.amber,
+                        }}
                       />
-                    );
-                  })}
-                </div>
-
-                <div className="mt-3 flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      if (!audioRef.current) return;
-                      if (playing) audioRef.current.pause();
-                      else audioRef.current.play();
-                    }}
-                    className="inline-flex items-center gap-1 rounded-lg border border-wolf-border/30 px-3 py-1.5 text-xs text-wolf-muted hover:border-wolf-gold/40 hover:text-wolf-gold"
-                  >
-                    {playing ? <Pause size={11} /> : <Play size={11} />}
-                    {currentTime.toFixed(1)}s
-                  </button>
-                  <button
-                    onClick={addMarkerAtPlayhead}
-                    className="inline-flex items-center gap-1 rounded-lg bg-wolf-gold/15 px-3 py-1.5 text-xs font-semibold text-wolf-gold hover:bg-wolf-gold/25"
-                  >
-                    <Plus size={11} /> Add marker
-                  </button>
-                  {cutMarkers.length > 0 && (
-                    <button
-                      onClick={() => setCutMarkers([])}
-                      className="inline-flex items-center gap-1 rounded-lg border border-wolf-border/30 px-3 py-1.5 text-xs text-wolf-muted hover:border-red-400/40 hover:text-red-300"
-                    >
-                      <X size={11} /> Clear all
-                    </button>
-                  )}
-                </div>
-
-                {cutMarkers.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {cutMarkers.map((t, i) => (
-                      <button
-                        key={i}
-                        onClick={() => removeMarker(i)}
-                        className="inline-flex items-center gap-1 rounded-full border border-wolf-amber/40 bg-wolf-amber/10 px-2 py-0.5 text-[10px] font-semibold text-wolf-amber hover:border-red-400/40 hover:text-red-300"
-                      >
-                        <Scissors size={9} /> {t.toFixed(2)}s
-                      </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={addMarkerAtPlayhead}
+                  className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all"
+                  style={{ backgroundColor: C.amberSoft, color: C.amber }}
+                >
+                  <Plus size={11} /> Add at {currentTime.toFixed(1)}s
+                </button>
+                {cutMarkers.length > 0 && (
+                  <button
+                    onClick={() => setCutMarkers([])}
+                    className="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs text-wolf-muted hover:text-red-300"
+                    style={{ borderColor: C.border }}
+                  >
+                    <X size={11} /> Clear all
+                  </button>
                 )}
-
-                <p className="mt-3 text-[11px] text-wolf-muted">
-                  Cut markers tell every generation where to switch scenes — play
-                  the track and drop markers on the beat.
-                </p>
+                <span className="ml-auto text-[10px] text-wolf-muted">
+                  {cutMarkers.length} marker{cutMarkers.length === 1 ? "" : "s"}
+                </span>
               </div>
-            ) : (
-              <p className="text-xs text-wolf-muted">Upload audio first to place cut markers.</p>
-            )}
-          </Card>
-        </div>
 
-        {/* Right column — metadata + save */}
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-          <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
-            <label className="mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-wolf-muted">
-              Title
-            </label>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Template title"
-              className="w-full rounded-lg border border-wolf-border/20 bg-wolf-surface px-4 py-2.5 text-sm text-white placeholder:text-wolf-muted/40 focus:outline-none focus:border-wolf-gold/40"
-            />
+              {cutMarkers.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {cutMarkers.map((t, i) => (
+                    <button
+                      key={i}
+                      onClick={() => removeMarker(i)}
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition-all hover:text-red-300"
+                      style={{
+                        border: `1px solid ${C.amber}40`,
+                        backgroundColor: C.amberSoft,
+                        color: C.amber,
+                      }}
+                    >
+                      <Scissors size={9} /> {t.toFixed(2)}s
+                    </button>
+                  ))}
+                </div>
+              )}
 
-            <label className="mt-4 mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-wolf-muted">
-              Artist
-            </label>
-            <input
-              value={artist}
-              onChange={(e) => setArtist(e.target.value)}
-              className="w-full rounded-lg border border-wolf-border/20 bg-wolf-surface px-4 py-2.5 text-sm text-white focus:outline-none focus:border-wolf-gold/40"
-            />
-
-            <label className="mt-4 mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-wolf-muted">
-              Genre
-            </label>
-            <select
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-              className="w-full rounded-lg border border-wolf-border/20 bg-wolf-surface px-4 py-2.5 text-sm text-white focus:outline-none"
-            >
-              {["Hip-Hop", "R&B", "Pop", "French Hip-Hop", "Afrobeats", "Drill", "Trap", "Lo-Fi"].map((g) => (
-                <option key={g}>{g}</option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={handleSave}
-            disabled={!canSave || !title.trim() || stage === "saving"}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
-            style={{
-              backgroundColor: canSave && title.trim() ? accent : "rgba(255,255,255,0.08)",
-              color: canSave && title.trim() ? "#000" : "#888",
-            }}
-          >
-            {stage === "saving" ? (
-              <>
-                <Loader2 size={14} className="animate-spin" /> Saving…
-              </>
-            ) : (
-              <>
-                <Save size={14} /> {initial ? "Save changes" : "Save template"}
-              </>
-            )}
-          </button>
-
-          <p className="text-center text-[11px] text-wolf-muted">
-            Stored locally in your browser for now — syncs to your account once
-            auth ships.
-          </p>
-        </motion.div>
+              <p className="text-[10px] text-wolf-muted">
+                Click the strip to drop a marker on the beat. Drag to move, shift-click to remove.
+              </p>
+            </div>
+          )}
+        </StepCard>
       </div>
+
+      {/* ── Sticky bottom step bar ── */}
+      <StickyBar
+        audioState={audioState}
+        lyricsState={lyricsState}
+        markersActive={markersActive}
+        markerCount={cutMarkers.length}
+        wordCount={wordTimings.length}
+        selectedDuration={selectedDuration}
+        canSave={canSave}
+        onSave={openSave}
+      />
+
+      {/* ── Save modal ── */}
+      <AnimatePresence>
+        {showSaveModal && (
+          <NameTemplateModal
+            name={saveName}
+            onChange={setSaveName}
+            onCancel={() => !saving && setShowSaveModal(false)}
+            onConfirm={handleSaveConfirm}
+            error={saveError}
+            saving={saving}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-/* ─── Small UI primitives ─── */
+/* ────────────────────────────────────────────────────────────────────── */
+/* ── UI primitives ─────────────────────────────────────────────────── */
+/* ────────────────────────────────────────────────────────────────────── */
 
-function Card({
+function StepCard({
   num,
-  label,
-  accent,
+  title,
+  subtitle,
+  done,
+  active,
+  activeColor,
+  icon,
   children,
 }: {
   num: number;
-  label: string;
-  accent: string;
+  title: string;
+  subtitle: string;
+  done: boolean;
+  active: boolean;
+  activeColor: string;
+  icon: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const ringColor = done ? C.green : active ? activeColor : C.border;
   return (
-    <div className="rounded-xl border p-5" style={{ borderColor: "rgba(255,255,255,0.08)" }}>
-      <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.25em]" style={{ color: accent }}>
-        {num}. {label}
-      </p>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border p-5"
+      style={{ borderColor: ringColor, backgroundColor: "rgba(0,0,0,0.25)" }}
+    >
+      <div className="mb-4 flex items-center gap-3">
+        <div
+          className="flex h-8 w-8 items-center justify-center rounded-full border text-sm font-bold"
+          style={{
+            borderColor: ringColor,
+            color: done ? C.green : active ? activeColor : C.mute,
+            backgroundColor: done ? C.greenSoft : active ? `${activeColor}15` : "transparent",
+          }}
+        >
+          {done ? <CheckCircle size={16} /> : num}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-white">{title}</p>
+          <p className="truncate text-[11px] text-wolf-muted">{subtitle}</p>
+        </div>
+        <span style={{ color: done ? C.green : active ? activeColor : C.mute }}>{icon}</span>
+      </div>
       {children}
+    </motion.div>
+  );
+}
+
+function EmptyNote({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-12 text-wolf-muted">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
+        {icon}
+      </div>
+      <p className="text-xs">{label}</p>
     </div>
   );
+}
+
+function LyricsLoading({ progress, elapsed }: { progress: number; elapsed: number }) {
+  return (
+    <div className="flex flex-col items-center gap-4 py-6">
+      {/* Animated purple bar waveform */}
+      <div className="flex items-end gap-1 h-12">
+        {[0.6, 0.9, 0.5, 1, 0.7, 1, 0.4, 0.8, 0.6, 0.9].map((h, i) => (
+          <motion.span
+            key={i}
+            className="w-1.5 rounded-sm"
+            style={{ backgroundColor: C.purple }}
+            animate={{ height: [`${h * 40}%`, `${(1 - h) * 100}%`, `${h * 40}%`] }}
+            transition={{ duration: 0.8 + i * 0.05, repeat: Infinity, ease: "easeInOut" }}
+          />
+        ))}
+      </div>
+      <p className="text-sm font-semibold text-white">Preparing your audio...</p>
+
+      <div className="w-full">
+        <div className="mb-1 flex items-center justify-between text-[10px]">
+          <span className="font-semibold uppercase tracking-wider text-wolf-muted">Progress</span>
+          <span style={{ color: C.purple }}>{Math.floor(progress)}%</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+          <motion.div
+            className="h-full rounded-full"
+            style={{
+              width: `${progress}%`,
+              background: `linear-gradient(90deg, ${C.purple}, #d0b3ff)`,
+            }}
+            transition={{ duration: 0.3 }}
+          />
+        </div>
+      </div>
+
+      <p className="text-[10px] text-wolf-muted">Analyzing waveform...</p>
+      <p className="font-mono text-xs text-white">{formatElapsed(elapsed)}</p>
+      <p className="text-[10px] text-wolf-muted">Usually takes 5-15 seconds</p>
+    </div>
+  );
+}
+
+function LyricsSuccess({ words, transcript }: { words: number; transcript: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-2">
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="text-xl font-bold"
+        style={{ color: C.green, fontFamily: "var(--font-display)" }}
+      >
+        Lyrics Transcribed
+      </motion.div>
+      <p className="text-center text-[11px] text-wolf-muted">
+        Your lyrics have been automatically transcribed and are ready to preview
+      </p>
+      <div
+        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
+        style={{ borderColor: `${C.green}50`, color: C.green }}
+      >
+        <CheckCircle size={11} /> READY FOR PREVIEW
+      </div>
+      {transcript && (
+        <details className="w-full">
+          <summary className="cursor-pointer text-center text-[10px] text-wolf-muted hover:text-white">
+            View transcript ({words} words)
+          </summary>
+          <div className="mt-2 max-h-32 overflow-y-auto rounded-lg p-3 text-[11px] leading-relaxed text-slate-300"
+            style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
+            {transcript}
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
+function LyricsErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-center gap-3 py-4">
+      <div
+        className="flex w-full items-start gap-2 rounded-xl border p-3 text-[11px]"
+        style={{ borderColor: `${C.pink}40`, backgroundColor: C.pinkSoft, color: C.pink }}
+      >
+        <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+        <span>{message}</span>
+      </div>
+      <button
+        onClick={onRetry}
+        className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-bold"
+        style={{
+          background: `linear-gradient(90deg, ${C.purple}, #d0b3ff)`,
+          color: "#000",
+        }}
+      >
+        <Wand2 size={13} /> Try again
+      </button>
+      <p className="text-[10px] text-wolf-muted">Or continue without lyrics — you can skip.</p>
+    </div>
+  );
+}
+
+function StickyBar({
+  audioState,
+  lyricsState,
+  markersActive,
+  markerCount,
+  wordCount,
+  selectedDuration,
+  canSave,
+  onSave,
+}: {
+  audioState: AudioState;
+  lyricsState: LyricsState;
+  markersActive: boolean;
+  markerCount: number;
+  wordCount: number;
+  selectedDuration: number;
+  canSave: boolean;
+  onSave: () => void;
+}) {
+  const pill = (label: string, state: "done" | "active" | "pending", color: string) => {
+    const styles =
+      state === "done"
+        ? { backgroundColor: C.greenSoft, color: C.green, borderColor: `${C.green}60` }
+        : state === "active"
+        ? { backgroundColor: `${color}15`, color, borderColor: `${color}80` }
+        : { backgroundColor: "transparent", color: C.mute, borderColor: C.border };
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[11px] font-semibold"
+        style={styles}
+      >
+        {state === "done" && <CheckCircle size={11} />}
+        {label}
+      </span>
+    );
+  };
+  // Pill lights up as soon as its step is the current focus — even before the
+  // user has done anything. Then "done" (green) once that step is complete.
+  const audioPillState = audioState === "confirmed" ? "done" : "active";
+  const lyricsPillState =
+    lyricsState === "ready"
+      ? "done"
+      : audioState === "confirmed"
+      ? "active"
+      : "pending";
+  const markersPillState =
+    markerCount > 0 ? "done" : markersActive ? "active" : "pending";
+
+  return (
+    <motion.div
+      initial={{ y: 80 }}
+      animate={{ y: 0 }}
+      className="fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur-xl"
+      style={{
+        backgroundColor: "rgba(10,10,16,0.92)",
+        borderColor: C.border,
+      }}
+    >
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="flex items-center gap-1.5">
+          {pill("Audio", audioPillState, C.gold)}
+          <span className="text-wolf-muted">—</span>
+          {pill("Lyrics", lyricsPillState, C.purple)}
+          <span className="text-wolf-muted">—</span>
+          {pill("Markers", markersPillState, C.amber)}
+        </div>
+        <div className="flex items-center gap-3">
+          {audioState === "confirmed" && (
+            <span
+              className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-mono"
+              style={{ backgroundColor: C.goldSoft, color: C.gold }}
+            >
+              {selectedDuration}.0s
+            </span>
+          )}
+          {wordCount > 0 && <span className="text-[11px] text-wolf-muted">{wordCount} words</span>}
+          <button
+            onClick={onSave}
+            disabled={!canSave}
+            className="inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold tracking-wider transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            style={{
+              background: canSave
+                ? `linear-gradient(90deg, ${C.gold}, ${C.amber})`
+                : "rgba(255,255,255,0.08)",
+              color: canSave ? "#000" : "#888",
+            }}
+          >
+            <Save size={14} /> SAVE TEMPLATE
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function NameTemplateModal({
+  name,
+  onChange,
+  onCancel,
+  onConfirm,
+  error,
+  saving,
+}: {
+  name: string;
+  onChange: (v: string) => void;
+  onCancel: () => void;
+  onConfirm: () => void;
+  error: string;
+  saving: boolean;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 10 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 10 }}
+        className="w-full max-w-sm rounded-2xl border p-6"
+        style={{ backgroundColor: "rgba(15,15,20,0.98)", borderColor: C.border }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex justify-center">
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-xl"
+            style={{ background: `linear-gradient(135deg, ${C.gold}, ${C.purple})` }}
+          >
+            <span className="text-2xl font-black text-black">T</span>
+          </div>
+        </div>
+        <h3 className="mb-1 text-center text-lg font-bold text-white">Name Your Template</h3>
+        <p className="mb-5 text-center text-[12px] text-wolf-muted">Give your template a memorable name</p>
+
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && !saving && onConfirm()}
+          placeholder="e.g., My Song Template"
+          className="mb-3 w-full rounded-xl border px-4 py-3 text-sm text-white placeholder:text-wolf-muted/40 focus:outline-none"
+          style={{
+            borderColor: C.border,
+            backgroundColor: "rgba(0,0,0,0.3)",
+          }}
+        />
+
+        {error && (
+          <p className="mb-3 text-center text-[11px]" style={{ color: C.pink }}>
+            {error}
+          </p>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            onClick={onCancel}
+            disabled={saving}
+            className="flex-1 rounded-xl border py-2.5 text-sm font-semibold text-white hover:bg-white/5 disabled:opacity-40"
+            style={{ borderColor: C.border }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={saving || !name.trim()}
+            className="flex-1 rounded-xl py-2.5 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            style={{
+              background: saving || !name.trim() ? "rgba(255,255,255,0.1)" : `linear-gradient(90deg, ${C.gold}, ${C.amber})`,
+              color: saving || !name.trim() ? "#888" : "#000",
+            }}
+          >
+            {saving ? (
+              <span className="inline-flex items-center gap-2">
+                <Loader2 size={13} className="animate-spin" /> Saving…
+              </span>
+            ) : (
+              "Save Template"
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function formatElapsed(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }

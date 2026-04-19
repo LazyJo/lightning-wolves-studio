@@ -19,6 +19,7 @@ import {
   type VisualStatusResult,
 } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
+import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, type Template } from "../../lib/templates";
@@ -55,6 +56,7 @@ const MAX_SCENES = 6;
 
 export default function ScenesView({ onBack, template }: Props) {
   const { accessToken } = useSession();
+  const loneWolf = useLoneWolfCredits();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
   const [presetId, setPresetId] = useState<string | null>(DEFAULT_PRESET.id);
@@ -79,7 +81,9 @@ export default function ScenesView({ onBack, template }: Props) {
 
   const model = VIDEO_MODELS.find((m) => m.id === modelId)!;
   const totalCredits = model.credits * MAX_SCENES;
-  const canGenerate = stage === "idle" && !!accessToken && hasValidStyle;
+  const isLoneWolf = !accessToken;
+  const hasQuota = !isLoneWolf || loneWolf.remaining > 0;
+  const canGenerate = stage === "idle" && hasQuota && hasValidStyle;
 
   const resetAll = () => {
     setScenes([]);
@@ -89,8 +93,8 @@ export default function ScenesView({ onBack, template }: Props) {
   };
 
   const handleGenerate = useCallback(async () => {
-    if (!accessToken) {
-      setError("Sign in before generating.");
+    if (!accessToken && loneWolf.remaining === 0) {
+      setError("You've used your 3 free generations. Sign in to keep going.");
       return;
     }
     setError("");
@@ -182,6 +186,7 @@ export default function ScenesView({ onBack, template }: Props) {
       });
 
       setFinalUrl(mp4);
+      if (!accessToken) loneWolf.consume();
       setStage("done");
       setStageLog("");
     } catch (err: unknown) {
@@ -189,7 +194,7 @@ export default function ScenesView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, template, stylePrompt, modelId, ratio, initFfmpeg]);
+  }, [accessToken, loneWolf, template, stylePrompt, modelId, ratio, initFfmpeg]);
 
   const accent = "#69f0ae";
   const completedScenes = useMemo(
@@ -304,11 +309,17 @@ export default function ScenesView({ onBack, template }: Props) {
                 <span className="inline-flex items-center gap-2">
                   <Wand2 size={16} />
                   Generate {styleLabel}
-                  <span className="rounded bg-black/20 px-2 py-0.5 text-xs">~{totalCredits} credits</span>
+                  <span className="rounded bg-black/20 px-2 py-0.5 text-xs">
+                    {isLoneWolf
+                      ? `${loneWolf.remaining}/${loneWolf.total} free`
+                      : `~${totalCredits} credits`}
+                  </span>
                 </span>
-                {!hasValidStyle && (
+                {!hasValidStyle ? (
                   <span className="text-[10px] font-normal opacity-70">Pick a scene or write a prompt</span>
-                )}
+                ) : isLoneWolf && loneWolf.remaining === 0 ? (
+                  <span className="text-[10px] font-normal opacity-70">Out of free gens — sign in to keep going</span>
+                ) : null}
               </span>
             ) : (
               <span className="inline-flex items-center gap-2">
@@ -320,9 +331,11 @@ export default function ScenesView({ onBack, template }: Props) {
             )}
           </button>
 
-          {!accessToken && (
+          {isLoneWolf && (
             <p className="text-center text-[11px] text-wolf-muted">
-              Sign in first — credits + generation tracking live on your account.
+              {loneWolf.remaining > 0
+                ? `🐺 Lone Wolf mode — ${loneWolf.remaining} free ${loneWolf.remaining === 1 ? "generation" : "generations"} left. Sign in later to save your work.`
+                : "You've used all 3 free generations. Sign in to keep creating."}
             </p>
           )}
         </motion.div>

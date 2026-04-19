@@ -7,6 +7,7 @@ import { useI18n } from "../lib/i18n";
 import TemplateEditor from "./studio/TemplateEditor";
 import TemplatesList from "./studio/TemplatesList";
 import TemplateModePicker from "./studio/TemplateModePicker";
+import TemplateReadyModal, { hasSeenTemplateReady } from "./studio/TemplateReadyModal";
 import ScenesViewComponent from "./studio/ScenesView";
 import PerformanceViewComponent from "./studio/PerformanceView";
 import CoverArtViewComponent from "./studio/CoverArtView";
@@ -564,6 +565,7 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
   const [currentTemplate, setCurrentTemplate] = useState<Template | null>(null);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [pendingMode, setPendingMode] = useState<PendingMode>(null);
+  const [showTemplateReady, setShowTemplateReady] = useState(false);
 
   // Use external view state if provided (from App.tsx via Navbar), otherwise internal
   const view = (externalView as View) || internalView;
@@ -666,6 +668,12 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
                 const mode = pendingMode;
                 setPendingMode(null);
                 setView(mode);
+              } else if (!hasSeenTemplateReady()) {
+                // First-time template save — show the LYRC-style onboarding
+                // modal before dropping into the mode picker. We delay the
+                // view change until the user dismisses the modal so their
+                // first contact with the studio feels intentional.
+                setShowTemplateReady(true);
               } else {
                 setView("template-modes");
               }
@@ -713,6 +721,23 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
           <ArtistPageBuilder onBack={() => setView("dashboard")} wolf={wolf} />
         ) : null}
       </div>
+
+      {/* LYRC-style post-save onboarding modal */}
+      <AnimatePresence>
+        {showTemplateReady && currentTemplate && (
+          <TemplateReadyModal
+            templateTitle={currentTemplate.title}
+            onContinue={() => {
+              setShowTemplateReady(false);
+              setView("template-modes");
+            }}
+            onClose={() => {
+              setShowTemplateReady(false);
+              setView("template-modes");
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -3,19 +3,23 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
   Upload,
-  Wand2,
   Loader2,
   AlertCircle,
   CheckCircle,
   Download,
   RotateCcw,
-  Music,
   Video,
   X,
   Shuffle,
   Scissors,
+  Play,
+  Monitor,
+  Smartphone,
+  Library,
+  Info,
 } from "lucide-react";
 import { useSession } from "../../lib/useSession";
+import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, type Template } from "../../lib/templates";
@@ -31,32 +35,52 @@ interface UserClip {
   id: string;
   file: File;
   url: string;
-  duration?: number;
 }
 
 type Stage = "idle" | "assembling" | "done" | "error";
 
-/**
- * RemixView — "Your footage + lyrics, cut on beat automatically."
- *
- * No Replicate spend for this mode: the user brings their own clips.
- * We just need to pull them into ffmpeg.wasm, cut on the template's
- * beat markers, overlay the template's SRT, and mix in the template
- * audio. Instant LYRC-style output for the price of one ffmpeg run.
- *
- * Assembly strategy:
- *   • If the template has cut markers → slice each segment between
- *     markers to a rotating clip from the user's pool.
- *   • If no markers → distribute clips evenly across the audio
- *     duration (N clips across T seconds).
- */
+/* ─── Lyric style presets — 8 mini-typography variants (LYRC parity) ───
+   These are purely display presets for now; the ffmpeg SRT overlay uses
+   the template's built-in styling. Each preset shapes how the style
+   label renders in the selector and (future) which font/weight/stroke
+   combo the overlay will use. */
+const LYRIC_STYLES: { id: string; label: string; preview: string; font: string; color?: string; bg?: string; italic?: boolean }[] = [
+  { id: "default", label: "Default", preview: "✦", font: "var(--font-body)" },
+  { id: "none", label: "None", preview: "—", font: "var(--font-body)" },
+  { id: "heartless", label: "Heartless", preview: "THE", font: "var(--font-display)", color: "#f5c518", italic: true },
+  { id: "fly", label: "Fly", preview: "THE", font: "var(--font-display)", color: "#fff" },
+  { id: "pikachu", label: "Pikachu", preview: "THE QUICK", font: "var(--font-display)", color: "#f5c518" },
+  { id: "wave", label: "Wave", preview: "THE QUICK", font: "var(--font-heading)", color: "#fff" },
+  { id: "hotpink", label: "HOTPINK", preview: "THE", font: "var(--font-display)", color: "#E040FB" },
+  { id: "brat", label: "Brat", preview: "the quick", font: "var(--font-body)", color: "#a0ffdc" },
+];
+
+const CLIP_RATIOS = ["All Ratios", "9:16", "16:9", "1:1"] as const;
+
+/* ─── Remix palette — cyan (Drippydesigns wolf bridge) ────────────────── */
+const R = {
+  cyan: "#22d3ee",
+  cyanSoft: "rgba(34,211,238,0.14)",
+  cyanBorder: "rgba(34,211,238,0.40)",
+  amber: "#e8870a",
+  purple: "#b794f6",
+  blue: "#82b1ff",
+  mute: "rgba(255,255,255,0.55)",
+  border: "rgba(255,255,255,0.08)",
+};
+
 export default function RemixView({ onBack, template }: Props) {
   const { accessToken } = useSession();
+  const loneWolf = useLoneWolfCredits();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
   const [clips, setClips] = useState<UserClip[]>([]);
   const [ratio, setRatio] = useState<(typeof ratios)[number]>("9:16");
   const [shuffle, setShuffle] = useState(false);
+  const [noCuts, setNoCuts] = useState(false);
+  const [lyricStyle, setLyricStyle] = useState(LYRIC_STYLES[0].id);
+  const [scale, setScale] = useState(0.65);
+  const [clipRatioFilter, setClipRatioFilter] = useState<(typeof CLIP_RATIOS)[number]>("All Ratios");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [stage, setStage] = useState<Stage>("idle");
@@ -64,14 +88,14 @@ export default function RemixView({ onBack, template }: Props) {
   const [finalUrl, setFinalUrl] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
-  const accent = "#f5c518";
-  const canGenerate = stage === "idle" && clips.length > 0 && !!accessToken;
+  const isLoneWolf = !accessToken;
+  const hasQuota = !isLoneWolf || loneWolf.remaining > 0;
 
-  // Derive the cut timeline: if user dropped markers, use those;
-  // otherwise evenly divide the audio duration across available clips.
+  // Segments: respect NO CUTS, otherwise use template markers or even-split.
   const segments = useMemo<Array<{ start: number; end: number }>>(() => {
     const total = template.audioDurationSec || 0;
     if (total === 0) return [];
+    if (noCuts) return [{ start: 0, end: total }];
     const markers = [...template.cutMarkers].sort((a, b) => a - b);
     const bounds = [0, ...markers.filter((m) => m > 0 && m < total), total];
     if (bounds.length > 2) {
@@ -81,14 +105,16 @@ export default function RemixView({ onBack, template }: Props) {
       }
       return out;
     }
-    // No markers → divide evenly by clip count (min 1, max 8 segments).
-    const n = Math.max(1, Math.min(8, clips.length));
+    const n = Math.max(1, Math.min(8, clips.length || 6));
     const step = total / n;
     return Array.from({ length: n }, (_, i) => ({
       start: i * step,
       end: Math.min(total, (i + 1) * step),
     }));
-  }, [template.cutMarkers, template.audioDurationSec, clips.length]);
+  }, [template.cutMarkers, template.audioDurationSec, clips.length, noCuts]);
+
+  const slotsFilled = Math.min(clips.length, segments.length);
+  const canGenerate = stage === "idle" && clips.length > 0 && hasQuota;
 
   const addClips = (files: FileList | File[]) => {
     const next: UserClip[] = [];
@@ -123,8 +149,8 @@ export default function RemixView({ onBack, template }: Props) {
   };
 
   const handleGenerate = useCallback(async () => {
-    if (!accessToken) {
-      setError("Sign in before generating.");
+    if (!accessToken && loneWolf.remaining === 0) {
+      setError("You've used your 3 free generations. Sign in to keep going.");
       return;
     }
     if (clips.length === 0) {
@@ -142,16 +168,9 @@ export default function RemixView({ onBack, template }: Props) {
       const audioFile = await getTemplateAudioFile(template.id);
       if (!audioFile) throw new Error("Template audio missing — re-upload in the editor.");
 
-      // Build the per-segment clip list by rotating through the user's
-      // clips (optionally shuffled). Each segment becomes one entry in
-      // the clipUrls array passed to assembleLyricVideo.
       const pool = shuffle ? [...clips].sort(() => Math.random() - 0.5) : clips;
       setStageLog("Preparing clip timeline…");
 
-      // assembleLyricVideo expects input clip URLs (it concats them
-      // in order and lets `-shortest` cut to the audio length). We
-      // build a URL list matching the segment count so the rhythm
-      // matches the template's markers or the even-split fallback.
       const clipUrls = segments.map((_, i) => pool[i % pool.length].url);
 
       const mp4 = await assembleLyricVideo({
@@ -164,6 +183,7 @@ export default function RemixView({ onBack, template }: Props) {
       });
 
       setFinalUrl(mp4);
+      if (!accessToken) loneWolf.consume();
       setStage("done");
       setStageLog("");
     } catch (err: unknown) {
@@ -171,10 +191,12 @@ export default function RemixView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, clips, shuffle, segments, template, ratio, initFfmpeg]);
+  }, [accessToken, loneWolf, clips, shuffle, segments, template, ratio, initFfmpeg]);
+
+  const exportDisabled = !canGenerate;
 
   return (
-    <div>
+    <div className="pb-16">
       <motion.button
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -185,29 +207,23 @@ export default function RemixView({ onBack, template }: Props) {
         Back to {template.title}
       </motion.button>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
-        <div
-          className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em]"
-          style={{ borderColor: `${accent}40`, color: accent }}
-        >
-          <Music size={10} /> {template.title}
-        </div>
-        <h2 className="text-2xl" style={{ color: accent, fontFamily: "var(--font-display)" }}>
-          Remix
-        </h2>
-        <p className="text-xs text-wolf-muted">
-          Your footage + lyrics, cut on beat automatically.{" "}
-          {template.cutMarkers.length > 0 ? (
-            <span>
-              Your template has <span className="text-wolf-amber">{template.cutMarkers.length} cut markers</span> — we&apos;ll rotate your clips between them.
-            </span>
-          ) : (
-            <span>
-              No cut markers on this template — we&apos;ll distribute your clips evenly across the audio.
-            </span>
-          )}
-        </p>
-      </motion.div>
+      <motion.h1
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-4xl font-black tracking-[0.05em] sm:text-5xl"
+        style={{
+          fontFamily: "var(--font-display)",
+          backgroundImage: `linear-gradient(90deg, ${R.cyan}, #7aeaff, #ffffff)`,
+          backgroundClip: "text",
+          WebkitBackgroundClip: "text",
+          color: "transparent",
+        }}
+      >
+        REMIX
+      </motion.h1>
+      <p className="mb-6 text-xs text-wolf-muted">
+        Build beat-synced videos from your clip library. Upload clips, shuffle, and export.
+      </p>
 
       {error && (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-300">
@@ -216,22 +232,77 @@ export default function RemixView({ onBack, template }: Props) {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        {/* Left — clips pool + options */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-          <div className="rounded-xl border p-5" style={{ borderColor: `${accent}30` }}>
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider" style={{ color: accent }}>
-              1. Your clips *
-            </label>
+      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
+        {/* ── Left: clip library + controls ── */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
+          {/* CLIP LIBRARY */}
+          <div
+            className="rounded-xl border p-4"
+            style={{ borderColor: R.border, backgroundColor: "rgba(0,0,0,0.2)" }}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <div className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: R.cyan }}>
+                <Library size={12} /> Clip Library
+                <span className="rounded-full px-1.5 py-0.5 text-[10px]" style={{ backgroundColor: R.cyanSoft }}>
+                  {clips.length}
+                </span>
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold transition-colors"
+                style={{ color: R.cyan }}
+              >
+                <Upload size={11} /> Import
+              </button>
+            </div>
 
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-wolf-border/30 px-4 py-5 text-sm text-wolf-muted transition-all hover:border-wolf-gold/40 hover:text-wolf-gold"
-            >
-              <Upload size={18} />
-              Drop or click to add clips
-              <span className="text-[10px] opacity-60">mp4, mov, webm — pick as many as you want</span>
-            </button>
+            {/* Category tiles — placeholder counts for Public Library / Uploaded / Saved */}
+            <div className="mb-3 grid grid-cols-3 gap-1.5">
+              <CategoryTile icon="🌐" label="Public" count={0} color={R.amber} />
+              <CategoryTile icon="📚" label="Uploaded" count={clips.length} color={R.purple} active />
+              <CategoryTile icon="⭐" label="Saved" count={0} color={R.blue} />
+            </div>
+
+            {clips.length === 0 ? (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed px-4 py-6 text-xs transition-all"
+                style={{ borderColor: R.cyanBorder, color: R.cyan }}
+              >
+                <Upload size={16} />
+                <span className="font-semibold">Drop or click to add clips</span>
+                <span className="text-[10px] opacity-60">mp4, mov, webm</span>
+              </button>
+            ) : (
+              <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
+                {clips.map((c, i) => (
+                  <div
+                    key={c.id}
+                    className="flex items-center gap-2 rounded-lg border p-1.5"
+                    style={{ borderColor: R.border, backgroundColor: "rgba(0,0,0,0.35)" }}
+                  >
+                    <span
+                      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-black"
+                      style={{ backgroundColor: R.cyan }}
+                    >
+                      {i + 1}
+                    </span>
+                    <video src={c.url} muted className="h-9 w-12 shrink-0 rounded object-cover" />
+                    <div className="flex-1 min-w-0 text-[10px]">
+                      <p className="truncate text-white">{c.file.name}</p>
+                      <p className="text-wolf-muted">{(c.file.size / 1024 / 1024).toFixed(1)} MB</p>
+                    </div>
+                    <button
+                      onClick={() => removeClip(c.id)}
+                      aria-label={`Remove ${c.file.name}`}
+                      className="rounded p-1 text-wolf-muted hover:text-red-300"
+                    >
+                      <X size={11} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -243,231 +314,405 @@ export default function RemixView({ onBack, template }: Props) {
                 e.target.value = "";
               }}
             />
-
-            {clips.length > 0 && (
-              <div className="mt-3 space-y-2">
-                {clips.map((c, i) => (
-                  <div
-                    key={c.id}
-                    className="flex items-center gap-2 rounded-lg border border-wolf-border/20 bg-black/30 p-2"
-                  >
-                    <span
-                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-black"
-                      style={{ backgroundColor: accent }}
-                    >
-                      {i + 1}
-                    </span>
-                    <video src={c.url} muted className="h-10 w-14 shrink-0 rounded object-cover" />
-                    <div className="flex-1 min-w-0 text-[11px]">
-                      <p className="truncate text-white">{c.file.name}</p>
-                      <p className="text-wolf-muted">
-                        {(c.file.size / 1024 / 1024).toFixed(1)} MB
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => removeClip(c.id)}
-                      aria-label={`Remove ${c.file.name}`}
-                      className="rounded p-1 text-wolf-muted hover:text-red-300"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
-          <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
-              Aspect ratio
-            </label>
-            <div className="flex gap-2">
-              {ratios.map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRatio(r)}
-                  className="flex-1 rounded-lg border py-2 text-sm font-semibold transition-all"
-                  style={
-                    ratio === r
-                      ? { borderColor: accent, backgroundColor: accent, color: "#000" }
-                      : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }
-                  }
-                >
-                  {r === "9:16" ? "📱 9:16" : "🖥️ 16:9"}
-                </button>
-              ))}
-            </div>
-
-            <label className="mt-4 mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-wolf-muted">
-              <Shuffle size={11} /> Shuffle order
-            </label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShuffle(false)}
-                className="flex-1 rounded-lg border py-2 text-xs font-semibold transition-all"
-                style={
-                  !shuffle
-                    ? { borderColor: accent, backgroundColor: `${accent}15`, color: accent }
-                    : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }
-                }
-              >
-                In order
-              </button>
-              <button
-                onClick={() => setShuffle(true)}
-                className="flex-1 rounded-lg border py-2 text-xs font-semibold transition-all"
-                style={
-                  shuffle
-                    ? { borderColor: accent, backgroundColor: `${accent}15`, color: accent }
-                    : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }
-                }
-              >
-                Shuffled
-              </button>
-            </div>
-          </div>
-
-          <button
-            onClick={handleGenerate}
-            disabled={!canGenerate}
-            className="w-full rounded-xl py-3.5 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
-            style={{
-              backgroundColor: canGenerate ? accent : "rgba(255,255,255,0.08)",
-              color: canGenerate ? "#000" : "#888",
-            }}
+          {/* CONTROLS */}
+          <div
+            className="rounded-xl border p-4"
+            style={{ borderColor: R.border, backgroundColor: "rgba(0,0,0,0.2)" }}
           >
-            {stage === "idle" || stage === "done" || stage === "error" ? (
-              <span className="inline-flex items-center gap-2">
-                <Wand2 size={16} />
-                Remix
-                <span className="rounded bg-black/20 px-2 py-0.5 text-xs">Free · your clips</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-2">
-                <Loader2 size={16} className="animate-spin" />
-                {ffmpegLoading && !ffmpegReady ? "Loading engine…" : "Stitching…"}
-              </span>
-            )}
-          </button>
+            <p className="mb-3 inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: R.cyan }}>
+              <Scissors size={11} /> Controls
+            </p>
 
-          {!accessToken && (
-            <p className="text-center text-[11px] text-wolf-muted">
-              Sign in first — Remix doesn&apos;t burn Replicate credits but we still track exports on your account.
+            {/* Template display */}
+            <div className="mb-3">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-wolf-muted">
+                Template
+              </p>
+              <div
+                className="flex items-center gap-2 rounded-lg border px-3 py-2"
+                style={{ borderColor: R.cyanBorder, backgroundColor: R.cyanSoft }}
+              >
+                <Video size={12} style={{ color: R.cyan }} />
+                <span className="flex-1 truncate text-xs font-semibold text-white">
+                  {template.title}
+                </span>
+                <span className="text-[10px] text-wolf-muted">
+                  {template.audioDurationSec.toFixed(0)}s · {template.cutMarkers.length || segments.length}
+                </span>
+              </div>
+            </div>
+
+            {/* NO CUTS toggle */}
+            <div className="mb-3 flex items-center justify-between">
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-wolf-muted">
+                <Scissors size={10} /> No Cuts
+                <span className="text-wolf-muted/60" title="Disable cut markers — render as one single clip">
+                  <Info size={10} />
+                </span>
+              </span>
+              <Toggle value={noCuts} onChange={setNoCuts} accent={R.cyan} />
+            </div>
+
+            {/* LYRIC STYLE */}
+            <div className="mb-3">
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-wolf-muted">
+                Lyric Style
+              </p>
+              <div className="grid grid-cols-4 gap-1.5">
+                {LYRIC_STYLES.map((s) => {
+                  const active = lyricStyle === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setLyricStyle(s.id)}
+                      className="flex flex-col items-center justify-center gap-1 rounded-lg border p-1.5 text-[10px] transition-all"
+                      style={{
+                        borderColor: active ? R.cyan : R.border,
+                        backgroundColor: active ? R.cyanSoft : "rgba(0,0,0,0.3)",
+                      }}
+                      title={s.label}
+                    >
+                      <span
+                        className="flex h-7 w-full items-center justify-center overflow-hidden"
+                        style={{
+                          fontFamily: s.font,
+                          color: s.color || "#fff",
+                          fontStyle: s.italic ? "italic" : "normal",
+                          fontWeight: 900,
+                          fontSize: s.preview.length > 4 ? "8px" : "11px",
+                          letterSpacing: "0.02em",
+                        }}
+                      >
+                        {s.preview}
+                      </span>
+                      <span
+                        className="truncate text-[9px] leading-none"
+                        style={{ color: active ? R.cyan : R.mute, maxWidth: "100%" }}
+                      >
+                        {s.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SCALE slider */}
+            <div className="mb-3">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-wolf-muted">
+                  Scale
+                </span>
+                <span className="text-[10px] font-mono" style={{ color: R.cyan }}>
+                  {scale.toFixed(2)}x
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0.3"
+                max="1.5"
+                step="0.05"
+                value={scale}
+                onChange={(e) => setScale(Number(e.target.value))}
+                className="h-1 w-full cursor-pointer appearance-none rounded-full"
+                style={{
+                  background: `linear-gradient(to right, ${R.cyan} ${((scale - 0.3) / 1.2) * 100}%, ${R.border} ${((scale - 0.3) / 1.2) * 100}%)`,
+                  accentColor: R.cyan,
+                }}
+              />
+            </div>
+
+            {/* CLIP RATIO */}
+            <div>
+              <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-wolf-muted">
+                Clip Ratio
+              </p>
+              <select
+                value={clipRatioFilter}
+                onChange={(e) => setClipRatioFilter(e.target.value as (typeof CLIP_RATIOS)[number])}
+                className="w-full cursor-pointer rounded-lg border bg-transparent px-3 py-2 text-xs text-white focus:outline-none"
+                style={{ borderColor: R.border }}
+              >
+                {CLIP_RATIOS.map((r) => (
+                  <option key={r} value={r} className="bg-wolf-bg">
+                    {r}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <p className="mt-3 text-right text-[10px] text-wolf-muted">
+              {slotsFilled}/{segments.length} slots filled
+            </p>
+          </div>
+
+          {/* Shuffle + Export */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setShuffle((v) => !v);
+                // Also kick off generate if we have clips — LYRC's Shuffle is
+                // "fill slots + render" in one click. Here we mimic the UX.
+                if (clips.length > 0 && stage === "idle") handleGenerate();
+              }}
+              disabled={clips.length === 0 || stage !== "idle"}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
+              style={{ borderColor: R.cyan, color: R.cyan, backgroundColor: R.cyanSoft }}
+            >
+              <Shuffle size={14} /> Shuffle
+            </button>
+            <button
+              onClick={handleGenerate}
+              disabled={exportDisabled}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
+              style={{
+                background: canGenerate
+                  ? `linear-gradient(90deg, ${R.cyan}, #7aeaff)`
+                  : "rgba(255,255,255,0.08)",
+                color: canGenerate ? "#000" : "#888",
+              }}
+            >
+              {stage === "assembling" ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  {ffmpegLoading && !ffmpegReady ? "Loading…" : "Exporting…"}
+                </>
+              ) : (
+                <>
+                  <Download size={14} />
+                  Export
+                  <span className="rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: "rgba(0,0,0,0.25)" }}>
+                    {isLoneWolf ? `${loneWolf.remaining}/${loneWolf.total} free` : "💎 15"}
+                  </span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Health */}
+          <div className="flex items-center justify-center gap-2 text-[10px]">
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span style={{ color: R.cyan }}>Running smoothly</span>
+            <span className="text-wolf-muted/60">· Powered by ffmpeg.wasm</span>
+          </div>
+
+          {isLoneWolf && (
+            <p className="text-center text-[10px] text-wolf-muted">
+              {loneWolf.remaining > 0
+                ? `🐺 Lone Wolf mode — ${loneWolf.remaining} free ${loneWolf.remaining === 1 ? "export" : "exports"} left.`
+                : "Out of free exports — sign in to keep going."}
             </p>
           )}
         </motion.div>
 
-        {/* Right — preview + timeline */}
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-          <AnimatePresence mode="wait">
-            {finalUrl ? (
-              <motion.div
-                key="done"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-4"
-              >
-                <div
-                  className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
-                  style={{ borderColor: `${accent}40`, backgroundColor: `${accent}08`, color: accent }}
-                >
-                  <CheckCircle size={16} />
-                  Remix ready.
-                </div>
-                <video
+        {/* ── Right: preview + timeline slots ── */}
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
+          {/* Preview frame */}
+          <div
+            className="relative overflow-hidden rounded-2xl border bg-black"
+            style={{ borderColor: R.border }}
+          >
+            {/* Aspect toggle top-right */}
+            <div className="absolute right-3 top-3 z-10 flex gap-1 rounded-lg border p-1" style={{ borderColor: R.border, backgroundColor: "rgba(0,0,0,0.6)" }}>
+              {ratios.map((r) => {
+                const active = ratio === r;
+                return (
+                  <button
+                    key={r}
+                    onClick={() => setRatio(r)}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold transition-all"
+                    style={active
+                      ? { backgroundColor: R.cyanSoft, color: R.cyan }
+                      : { color: R.mute }}
+                  >
+                    {r === "9:16" ? <Smartphone size={11} /> : <Monitor size={11} />}
+                    {r}
+                  </button>
+                );
+              })}
+            </div>
+
+            <AnimatePresence mode="wait">
+              {finalUrl ? (
+                <motion.video
+                  key="done"
                   src={finalUrl}
                   controls
                   autoPlay
-                  className="w-full rounded-2xl border border-wolf-border/20 bg-black"
-                  style={{ maxHeight: 600 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="w-full"
+                  style={{ aspectRatio: ratio === "9:16" ? "9/16" : "16/9", maxHeight: 520, objectFit: "contain", backgroundColor: "#000" }}
                 />
-                <div className="flex gap-2">
-                  <a
-                    href={finalUrl}
-                    download={`${template.title.replace(/\s+/g, "-")}-remix.mp4`}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-black transition-all hover:opacity-90"
-                    style={{ backgroundColor: accent }}
-                  >
-                    <Download size={14} /> Download MP4
-                  </a>
-                  <button
-                    onClick={resetAll}
-                    className="inline-flex items-center gap-2 rounded-xl border border-wolf-border/30 px-4 py-3 text-sm font-semibold text-wolf-muted hover:border-wolf-gold/30 hover:text-wolf-gold"
-                  >
-                    <RotateCcw size={14} /> New
-                  </button>
-                </div>
-              </motion.div>
-            ) : stage === "assembling" ? (
-              <motion.div
-                key="pipeline"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="space-y-4"
-              >
-                <div
-                  className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
-                  style={{ borderColor: `${accent}40`, backgroundColor: `${accent}08`, color: accent }}
+              ) : (
+                <motion.div
+                  key="placeholder"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex items-center justify-center"
+                  style={{ aspectRatio: ratio === "9:16" ? "9/16" : "16/9", maxHeight: 520 }}
                 >
-                  <Loader2 size={16} className="animate-spin" />
-                  {stageLog || "Stitching your remix…"}
-                </div>
-              </motion.div>
-            ) : clips.length === 0 ? (
-              <motion.div
-                key="placeholder"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="rounded-2xl border-2 border-dashed border-wolf-border/15 p-12 text-center"
-              >
-                <Video size={40} className="mx-auto mb-3 text-wolf-muted/30" />
-                <p className="text-wolf-muted">Drop in your clips on the left to remix.</p>
-                <p className="mt-1 text-xs text-wolf-muted/60">
-                  We&apos;ll rotate through them on the beat using your template&apos;s cut markers.
-                </p>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="timeline-preview"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-3"
-              >
-                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-wolf-muted">
-                  Timeline preview ({segments.length} segment{segments.length === 1 ? "" : "s"})
-                </p>
-                <div className="space-y-2">
-                  {segments.map((seg, i) => {
-                    const clip = clips[i % clips.length];
-                    return (
-                      <div
-                        key={i}
-                        className="flex items-center gap-3 rounded-xl border border-wolf-border/20 bg-wolf-card p-3"
-                      >
-                        <span
-                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-black"
-                          style={{ backgroundColor: accent }}
-                        >
-                          {i + 1}
-                        </span>
-                        <video src={clip.url} muted className="h-12 w-20 shrink-0 rounded object-cover" />
-                        <div className="flex-1 min-w-0 text-[11px]">
-                          <p className="truncate text-white">{clip.file.name}</p>
-                          <p className="mt-0.5 flex items-center gap-1 text-wolf-muted">
-                            <Scissors size={9} />
-                            {seg.start.toFixed(1)}s → {seg.end.toFixed(1)}s ·{" "}
-                            {(seg.end - seg.start).toFixed(1)}s
-                          </p>
-                        </div>
+                  <div
+                    className="flex h-16 w-16 items-center justify-center rounded-full border-2"
+                    style={{ borderColor: `${R.cyan}60` }}
+                  >
+                    <Play size={22} className="ml-1" style={{ color: R.cyan }} />
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {stage === "assembling" && stageLog && (
+            <p className="text-center text-xs" style={{ color: R.cyan }}>
+              <Loader2 size={11} className="mr-1 inline animate-spin" /> {stageLog}
+            </p>
+          )}
+
+          {!finalUrl && (
+            <p className="text-center text-[11px] text-wolf-muted">
+              Pick an aspect ratio and shuffle clips, or drag them from the library into the slots below.
+            </p>
+          )}
+
+          {/* Timeline slots */}
+          <div
+            className="rounded-xl border p-3"
+            style={{ borderColor: R.border, backgroundColor: "rgba(0,0,0,0.2)" }}
+          >
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wolf-muted">
+                Timeline
+              </p>
+              <p className="text-[10px] text-wolf-muted">
+                {segments.length} slot{segments.length === 1 ? "" : "s"} · {template.audioDurationSec.toFixed(0)}s total
+              </p>
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto">
+              {segments.map((seg, i) => {
+                const filled = i < clips.length;
+                const dur = (seg.end - seg.start).toFixed(1);
+                return (
+                  <div
+                    key={i}
+                    className="flex min-w-[92px] flex-1 flex-col items-center gap-1 rounded-lg border p-2"
+                    style={{
+                      borderColor: filled ? R.cyan : R.border,
+                      backgroundColor: filled ? R.cyanSoft : "rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    <div className="flex items-center gap-1 text-[10px]">
+                      <span className="font-bold text-white">{i + 1}</span>
+                      <span className="text-wolf-muted">·</span>
+                      <span style={{ color: filled ? R.cyan : R.mute }}>{dur}s</span>
+                    </div>
+                    {filled ? (
+                      <video
+                        src={clips[i % clips.length].url}
+                        muted
+                        className="h-16 w-full rounded object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-16 w-full items-center justify-center rounded border border-dashed text-[10px] text-wolf-muted" style={{ borderColor: R.border }}>
+                        Drop video
                       </div>
-                    );
-                  })}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Done state actions */}
+          {finalUrl && (
+            <div className="flex gap-2">
+              <a
+                href={finalUrl}
+                download={`${template.title.replace(/\s+/g, "-")}-remix.mp4`}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-black transition-all hover:opacity-90"
+                style={{ background: `linear-gradient(90deg, ${R.cyan}, #7aeaff)` }}
+              >
+                <Download size={14} /> Download MP4
+              </a>
+              <button
+                onClick={resetAll}
+                className="inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-all"
+                style={{ borderColor: R.border, color: R.mute }}
+              >
+                <RotateCcw size={14} /> New
+              </button>
+            </div>
+          )}
+
+          {stage === "done" && finalUrl && (
+            <div
+              className="inline-flex w-full items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
+              style={{ borderColor: R.cyanBorder, backgroundColor: R.cyanSoft, color: R.cyan }}
+            >
+              <CheckCircle size={16} /> Remix ready — preview above.
+            </div>
+          )}
         </motion.div>
       </div>
     </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────── */
+
+function CategoryTile({
+  icon,
+  label,
+  count,
+  color,
+  active,
+}: {
+  icon: string;
+  label: string;
+  count: number;
+  color: string;
+  active?: boolean;
+}) {
+  return (
+    <div
+      className="flex flex-col items-start gap-0.5 rounded-lg border-l-2 p-2"
+      style={{
+        borderLeftColor: color,
+        backgroundColor: active ? `${color}15` : "rgba(0,0,0,0.3)",
+      }}
+    >
+      <span className="text-[13px]">{icon}</span>
+      <span className="text-[9px] font-bold uppercase tracking-wider" style={{ color: active ? color : R.mute }}>
+        {label}
+      </span>
+      <span className="text-[10px] font-mono" style={{ color: active ? color : R.mute }}>
+        {count}
+      </span>
+    </div>
+  );
+}
+
+function Toggle({
+  value,
+  onChange,
+  accent,
+}: {
+  value: boolean;
+  onChange: (v: boolean) => void;
+  accent: string;
+}) {
+  return (
+    <button
+      onClick={() => onChange(!value)}
+      className="relative h-5 w-10 rounded-full transition-colors"
+      style={{ backgroundColor: value ? accent : "rgba(255,255,255,0.15)" }}
+    >
+      <span
+        className="absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform"
+        style={{ left: value ? "calc(100% - 18px)" : "2px" }}
+      />
+    </button>
   );
 }

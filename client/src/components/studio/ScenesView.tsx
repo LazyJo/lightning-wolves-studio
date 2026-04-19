@@ -10,7 +10,12 @@ import {
   Download,
   RotateCcw,
   Sparkles,
-  Music,
+  ChevronDown,
+  X,
+  RefreshCw,
+  Monitor,
+  Smartphone,
+  Info,
 } from "lucide-react";
 import {
   generate,
@@ -31,11 +36,13 @@ import { scenePresets, type ScenePreset } from "../../data/scenePresets";
 const DEFAULT_PRESET = scenePresets.find((p) => p.id === "cinematic-music-video") || scenePresets[0];
 
 const VIDEO_MODELS = [
-  { id: "kling-motion",  name: "Kling Motion",  credits: 15 },
-  { id: "sora-2",        name: "Sora 2",        credits: 20 },
+  { id: "kling-motion", name: "Kling Motion", credits: 15 },
+  { id: "sora-2", name: "Sora 2", credits: 20 },
 ];
 
 const ratios = ["9:16", "16:9"] as const;
+const RESOLUTIONS = ["480p", "720p"] as const;
+const VIDEO_STYLES = ["Realistic", "Anime"] as const;
 
 interface Props {
   onBack: () => void;
@@ -54,6 +61,22 @@ interface SceneJob {
 
 const MAX_SCENES = 6;
 
+/* ─── Scenes theme — green accent (Shiteux wolf) ──────────────────────── */
+// Scenes is the AI visuals surface; the green reads as "generation /
+// natural / landscape" and stays distinct from Audio's gold and Lyrics'
+// purple in the template editor.
+const SC = {
+  accent: "#69f0ae",
+  accentSoft: "rgba(105,240,174,0.14)",
+  accentBorder: "rgba(105,240,174,0.40)",
+  amber: "#e8870a",
+  amberSoft: "rgba(232,135,10,0.14)",
+  warn: "#f5b14a",
+  warnSoft: "rgba(245,177,74,0.12)",
+  mute: "rgba(255,255,255,0.55)",
+  border: "rgba(255,255,255,0.08)",
+};
+
 export default function ScenesView({ onBack, template }: Props) {
   const { accessToken } = useSession();
   const loneWolf = useLoneWolfCredits();
@@ -63,13 +86,15 @@ export default function ScenesView({ onBack, template }: Props) {
   const [customPrompt, setCustomPrompt] = useState<string>("");
   const [modelId, setModelId] = useState(VIDEO_MODELS[0].id);
   const [ratio, setRatio] = useState<(typeof ratios)[number]>("9:16");
+  const [resolution, setResolution] = useState<(typeof RESOLUTIONS)[number]>("480p");
+  const [videoStyle, setVideoStyle] = useState<(typeof VIDEO_STYLES)[number]>("Realistic");
+  const [lyricAdherence, setLyricAdherence] = useState<boolean>(true);
+  const [showPicker, setShowPicker] = useState(false);
 
   // Resolve the active style prompt — either a preset or the custom text.
   const activePreset: ScenePreset | null =
     presetId ? scenePresets.find((p) => p.id === presetId) ?? null : null;
-  const stylePrompt = activePreset
-    ? activePreset.prompt
-    : customPrompt.trim();
+  const stylePrompt = activePreset ? activePreset.prompt : customPrompt.trim();
   const styleLabel = activePreset ? activePreset.name : "Custom";
   const hasValidStyle = stylePrompt.length > 10;
 
@@ -138,7 +163,13 @@ export default function ScenesView({ onBack, template }: Props) {
               prompt: `${stylePrompt}. ${p.prompt}`,
               type: "scene",
               accessToken,
-              options: { duration: 5, aspectRatio: ratio },
+              options: {
+                duration: 5,
+                aspectRatio: ratio,
+                resolution,
+                videoStyle,
+                lyricAdherence,
+              },
             });
             setScenes((prev) => prev.map((s, i) => (i === idx ? { ...s, status: start.status } : s)));
             const final = await pollVisual(start.id, {
@@ -194,16 +225,23 @@ export default function ScenesView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, loneWolf, template, stylePrompt, modelId, ratio, initFfmpeg]);
+  }, [accessToken, loneWolf, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg]);
 
-  const accent = "#69f0ae";
   const completedScenes = useMemo(
     () => scenes.filter((s) => s.status === "succeeded").length,
     [scenes]
   );
 
+  /* ── Validation helper ───────────────────────────────────────────── */
+  const validationMessage = !hasValidStyle
+    ? "Pick a scene or write a custom prompt above."
+    : isLoneWolf && loneWolf.remaining === 0
+    ? "Out of free generations — sign in to keep going."
+    : null;
+
+  /* ────────────────────────────────────────────────────────────────── */
   return (
-    <div>
+    <div className="pb-16">
       <motion.button
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -214,17 +252,28 @@ export default function ScenesView({ onBack, template }: Props) {
         Back to {template.title}
       </motion.button>
 
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
-        <div className="mb-2 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.25em]" style={{ borderColor: `${accent}40`, color: accent }}>
-          <Music size={10} /> {template.title}
-        </div>
-        <h2 className="text-2xl" style={{ color: accent, fontFamily: "var(--font-display)" }}>
-          Scenes
-        </h2>
-        <p className="text-xs text-wolf-muted">
-          AI-generated visuals synced to your track. Pick a style and we&apos;ll render + stitch the whole lyric video.
-        </p>
-      </motion.div>
+      {/* ── Heading ── */}
+      <motion.h1
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-4xl font-black tracking-[0.05em] sm:text-5xl"
+        style={{
+          fontFamily: "var(--font-display)",
+          backgroundImage: `linear-gradient(90deg, ${SC.accent}, #a0ffdc, #ffffff)`,
+          backgroundClip: "text",
+          WebkitBackgroundClip: "text",
+          color: "transparent",
+        }}
+      >
+        SCENES
+      </motion.h1>
+      <p className="mb-6 text-xs text-wolf-muted">
+        Generate with{" "}
+        <span style={{ color: SC.accent }} className="font-semibold">
+          &ldquo;{styleLabel}&rdquo;
+        </span>{" "}
+        preset
+      </p>
 
       {error && (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-300">
@@ -233,97 +282,238 @@ export default function ScenesView({ onBack, template }: Props) {
         </div>
       )}
 
-      {/* Full-width scene picker — category tabs + preset grid */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
-        <ScenePresetPicker
-          selectedId={presetId}
-          customPrompt={customPrompt}
-          onSelect={(p) => setPresetId(p.id)}
-          onCustomChange={setCustomPrompt}
-          onSelectCustom={() => setPresetId(null)}
-          accent={accent}
-        />
-      </motion.div>
-
-      <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-        {/* Left — model + ratio + generate */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-          <div className="rounded-xl border border-wolf-border/20 bg-wolf-card p-5">
-            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
-              Video model
-            </label>
-            <div className="flex gap-2">
-              {VIDEO_MODELS.map((m) => (
+      {/* ── Split layout: controls left, gallery/pipeline right ── */}
+      <div className="grid gap-4 lg:grid-cols-[360px_1fr]">
+        {/* ── Left panel: stacked control cards ── */}
+        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
+          {/* SCENE card */}
+          <SectionCard label="SCENE" required>
+            <div
+              className="relative overflow-hidden rounded-xl border"
+              style={{ borderColor: SC.border, aspectRatio: "3/4" }}
+            >
+              {activePreset ? (
+                <>
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: `linear-gradient(135deg, ${activePreset.gradient[0]} 0%, ${activePreset.gradient[1]} 100%)`,
+                    }}
+                  />
+                  <img
+                    src={`/scenes/${activePreset.id}.jpg`}
+                    alt={activePreset.name}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    onError={(e) => ((e.currentTarget.style.opacity = "0"))}
+                  />
+                </>
+              ) : (
+                <div className="flex h-full items-center justify-center bg-wolf-card text-center text-xs text-wolf-muted">
+                  Custom prompt
+                </div>
+              )}
+              <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/90 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-3">
+                <div className="text-sm font-bold leading-tight text-white">
+                  {styleLabel}
+                </div>
                 <button
-                  key={m.id}
-                  onClick={() => setModelId(m.id)}
-                  className="flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-all"
-                  style={
-                    modelId === m.id
-                      ? { borderColor: `${accent}60`, backgroundColor: `${accent}15`, color: accent }
-                      : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }
-                  }
+                  onClick={() => setShowPicker((v) => !v)}
+                  className="inline-flex items-center gap-1 rounded-lg bg-black/60 px-2.5 py-1 text-[10px] font-semibold text-white backdrop-blur hover:bg-black/80"
                 >
-                  {m.name}
-                  <span className="ml-1 opacity-60">·{m.credits}</span>
+                  Change <ChevronDown size={11} className={showPicker ? "rotate-180 transition-transform" : "transition-transform"} />
                 </button>
-              ))}
+              </div>
             </div>
+          </SectionCard>
 
-            <label className="mt-4 mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
-              Aspect ratio
-            </label>
+          {/* TEMPLATE card (display of currently-loaded template) */}
+          <SectionCard label="TEMPLATE" required>
+            <div
+              className="flex items-center gap-3 rounded-xl border p-3"
+              style={{ borderColor: SC.border, backgroundColor: "rgba(0,0,0,0.3)" }}
+            >
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                style={{ backgroundColor: SC.accentSoft, color: SC.accent }}
+              >
+                <Film size={15} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold text-white">{template.title}</p>
+                <p className="text-[10px] text-wolf-muted">
+                  {template.audioDurationSec.toFixed(0)}s · {ratio} · {template.cutMarkers.length} cuts
+                </p>
+              </div>
+            </div>
+          </SectionCard>
+
+          {/* AI MODEL */}
+          <SectionCard label="AI MODEL">
             <div className="flex gap-2">
-              {ratios.map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRatio(r)}
-                  className="flex-1 rounded-lg border py-2 text-sm font-semibold transition-all"
-                  style={
-                    ratio === r
-                      ? { borderColor: accent, backgroundColor: accent, color: "#000" }
-                      : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }
-                  }
-                >
-                  {r === "9:16" ? "📱 9:16" : "🖥️ 16:9"}
-                </button>
-              ))}
+              {VIDEO_MODELS.map((m) => {
+                const active = modelId === m.id;
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => setModelId(m.id)}
+                    className="flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-all"
+                    style={
+                      active
+                        ? { borderColor: SC.amber, backgroundColor: SC.amberSoft, color: SC.amber }
+                        : { borderColor: SC.border, color: SC.mute }
+                    }
+                  >
+                    {m.name}
+                    <span className="ml-1 opacity-60">· {m.credits}</span>
+                  </button>
+                );
+              })}
             </div>
-          </div>
+          </SectionCard>
 
+          {/* RESOLUTION */}
+          <SectionCard label="RESOLUTION">
+            <div className="flex gap-2">
+              {RESOLUTIONS.map((r) => {
+                const active = resolution === r;
+                return (
+                  <button
+                    key={r}
+                    onClick={() => setResolution(r)}
+                    className="flex-1 rounded-lg border py-2 text-sm font-semibold transition-all"
+                    style={
+                      active
+                        ? { borderColor: SC.amber, backgroundColor: SC.amberSoft, color: SC.amber }
+                        : { borderColor: SC.border, color: SC.mute }
+                    }
+                  >
+                    {r}
+                  </button>
+                );
+              })}
+            </div>
+          </SectionCard>
+
+          {/* ASPECT RATIO */}
+          <SectionCard label="ASPECT RATIO">
+            <div className="flex gap-2">
+              {ratios.map((r) => {
+                const active = ratio === r;
+                return (
+                  <button
+                    key={r}
+                    onClick={() => setRatio(r)}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-semibold transition-all"
+                    style={
+                      active
+                        ? { borderColor: SC.accent, backgroundColor: SC.accent, color: "#000" }
+                        : { borderColor: SC.border, color: SC.mute }
+                    }
+                  >
+                    {r === "9:16" ? <Smartphone size={13} /> : <Monitor size={13} />}
+                    {r}
+                  </button>
+                );
+              })}
+            </div>
+          </SectionCard>
+
+          {/* VIDEO STYLE */}
+          <SectionCard label="VIDEO STYLE" help="Visual treatment — realism vs. stylized">
+            <div className="flex gap-2">
+              {VIDEO_STYLES.map((v) => {
+                const active = videoStyle === v;
+                return (
+                  <button
+                    key={v}
+                    onClick={() => setVideoStyle(v)}
+                    className="flex-1 rounded-lg border py-2 text-sm font-semibold transition-all"
+                    style={
+                      active
+                        ? { borderColor: "#b794f6", backgroundColor: "rgba(183,148,246,0.12)", color: "#b794f6" }
+                        : { borderColor: SC.border, color: SC.mute }
+                    }
+                  >
+                    {v}
+                  </button>
+                );
+              })}
+            </div>
+          </SectionCard>
+
+          {/* LYRIC ADHERENCE */}
+          <SectionCard label="LYRIC ADHERENCE">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setLyricAdherence(true)}
+                className="flex-1 rounded-lg border py-2 text-sm font-semibold transition-all"
+                style={
+                  lyricAdherence
+                    ? { borderColor: SC.accent, backgroundColor: SC.accentSoft, color: SC.accent }
+                    : { borderColor: SC.border, color: SC.mute }
+                }
+              >
+                On
+              </button>
+              <button
+                onClick={() => setLyricAdherence(false)}
+                className="flex-1 rounded-lg border py-2 text-sm font-semibold transition-all"
+                style={
+                  !lyricAdherence
+                    ? { borderColor: "rgba(255,255,255,0.5)", backgroundColor: "rgba(255,255,255,0.05)", color: "#fff" }
+                    : { borderColor: SC.border, color: SC.mute }
+                }
+              >
+                Off
+              </button>
+            </div>
+            <p className="mt-2 text-[10px] text-wolf-muted">
+              {lyricAdherence
+                ? "Scenes will reflect your song lyrics."
+                : "Free-form visuals — scene consistency over lyric match."}
+            </p>
+            {lyricAdherence && (
+              <div
+                className="mt-2 flex items-start gap-2 rounded-lg px-2.5 py-2 text-[10px]"
+                style={{ backgroundColor: SC.warnSoft, color: SC.warn }}
+              >
+                <Info size={12} className="mt-0.5 shrink-0" />
+                <span>
+                  This setting prioritizes lyrics over scene consistency and may yield unexpected visuals or out-of-place objects.
+                </span>
+              </div>
+            )}
+          </SectionCard>
+
+          {/* Generate CTA */}
           <button
             onClick={handleGenerate}
             disabled={!canGenerate}
-            className="w-full rounded-xl py-3.5 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
             style={{
-              backgroundColor: canGenerate ? accent : "rgba(255,255,255,0.08)",
+              background: canGenerate
+                ? `linear-gradient(90deg, ${SC.accent}, #a0ffdc)`
+                : "rgba(255,255,255,0.08)",
               color: canGenerate ? "#000" : "#888",
             }}
           >
             {stage === "idle" || stage === "done" || stage === "error" ? (
-              <span className="inline-flex flex-col items-center gap-0.5">
-                <span className="inline-flex items-center gap-2">
-                  <Wand2 size={16} />
-                  Generate {styleLabel}
-                  <span className="rounded bg-black/20 px-2 py-0.5 text-xs">
-                    {isLoneWolf
-                      ? `${loneWolf.remaining}/${loneWolf.total} free`
-                      : `~${totalCredits} credits`}
-                  </span>
+              <span className="inline-flex items-center gap-2">
+                <Wand2 size={15} />
+                Generate Video
+                <span
+                  className="rounded px-2 py-0.5 text-[11px] font-bold"
+                  style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
+                >
+                  {isLoneWolf
+                    ? `${loneWolf.remaining}/${loneWolf.total} free`
+                    : `💎 ${totalCredits}`}
                 </span>
-                {!hasValidStyle ? (
-                  <span className="text-[10px] font-normal opacity-70">Pick a scene or write a prompt</span>
-                ) : isLoneWolf && loneWolf.remaining === 0 ? (
-                  <span className="text-[10px] font-normal opacity-70">Out of free gens — sign in to keep going</span>
-                ) : null}
               </span>
             ) : (
               <span className="inline-flex items-center gap-2">
-                <Loader2 size={16} className="animate-spin" />
+                <Loader2 size={15} className="animate-spin" />
                 {stage === "planning" && "Writing scenes…"}
                 {stage === "rendering" && `Rendering ${completedScenes}/${scenes.length}…`}
                 {stage === "assembling" && "Stitching video…"}
@@ -331,98 +521,226 @@ export default function ScenesView({ onBack, template }: Props) {
             )}
           </button>
 
-          {isLoneWolf && (
-            <p className="text-center text-[11px] text-wolf-muted">
+          {/* Health indicator */}
+          <div className="flex items-center justify-center gap-2 text-[10px]">
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+            <span style={{ color: SC.accent }}>Running smoothly</span>
+            <span className="text-wolf-muted/60">· Powered by {model.name}</span>
+          </div>
+
+          {/* Inline validation */}
+          {validationMessage && stage === "idle" && (
+            <div
+              className="rounded-xl border px-3 py-2.5 text-center text-[11px]"
+              style={{
+                borderColor: "rgba(183,148,246,0.35)",
+                backgroundColor: "rgba(183,148,246,0.08)",
+                color: "#b794f6",
+              }}
+            >
+              {validationMessage}
+            </div>
+          )}
+
+          {/* Lone Wolf footer copy */}
+          {isLoneWolf && !validationMessage && (
+            <p className="text-center text-[10px] text-wolf-muted">
               {loneWolf.remaining > 0
-                ? `🐺 Lone Wolf mode — ${loneWolf.remaining} free ${loneWolf.remaining === 1 ? "generation" : "generations"} left. Sign in later to save your work.`
+                ? `🐺 Lone Wolf mode — ${loneWolf.remaining} free ${loneWolf.remaining === 1 ? "generation" : "generations"} left.`
                 : "You've used all 3 free generations. Sign in to keep creating."}
             </p>
           )}
         </motion.div>
 
-        {/* Right — pipeline / preview */}
+        {/* ── Right panel: gallery / pipeline / preview ── */}
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
-          <AnimatePresence mode="wait">
-            {finalUrl ? (
-              <motion.div
-                key="done"
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-4"
-              >
-                <div
-                  className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
-                  style={{ borderColor: `${accent}40`, backgroundColor: `${accent}08`, color: accent }}
+          <div
+            className="flex items-center justify-between rounded-t-2xl border border-b-0 px-5 py-3.5"
+            style={{ borderColor: SC.border }}
+          >
+            <p
+              className="text-[11px] font-bold uppercase tracking-[0.25em]"
+              style={{ color: SC.accent }}
+            >
+              Recent Videos
+            </p>
+            <button
+              onClick={resetAll}
+              disabled={stage !== "idle" && stage !== "done" && stage !== "error"}
+              className="inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-[11px] font-semibold transition-all disabled:opacity-40"
+              style={{ borderColor: SC.accentBorder, color: SC.accent }}
+            >
+              <RefreshCw size={11} /> Refresh
+            </button>
+          </div>
+
+          <div
+            className="min-h-[460px] rounded-b-2xl border border-dashed p-5"
+            style={{ borderColor: SC.border }}
+          >
+            <AnimatePresence mode="wait">
+              {finalUrl ? (
+                <motion.div
+                  key="done"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="space-y-4"
                 >
-                  <CheckCircle size={16} />
-                  Lyric video ready — preview below.
-                </div>
-                <video
-                  src={finalUrl}
-                  controls
-                  autoPlay
-                  className="w-full rounded-2xl border border-wolf-border/20 bg-black"
-                  style={{ maxHeight: 600 }}
-                />
-                <div className="flex gap-2">
-                  <a
-                    href={finalUrl}
-                    download={`${template.title.replace(/\s+/g, "-")}-scenes.mp4`}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-black transition-all hover:opacity-90"
-                    style={{ backgroundColor: accent }}
+                  <div
+                    className="flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
+                    style={{ borderColor: SC.accentBorder, backgroundColor: SC.accentSoft, color: SC.accent }}
                   >
-                    <Download size={14} /> Download MP4
-                  </a>
-                  <button
-                    onClick={resetAll}
-                    className="inline-flex items-center gap-2 rounded-xl border border-wolf-border/30 px-4 py-3 text-sm font-semibold text-wolf-muted hover:border-wolf-gold/30 hover:text-wolf-gold"
-                  >
-                    <RotateCcw size={14} /> New
-                  </button>
-                </div>
-              </motion.div>
-            ) : stage === "idle" ? (
-              <motion.div
-                key="placeholder"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="rounded-2xl border-2 border-dashed border-wolf-border/15 p-12 text-center"
-              >
-                <Film size={40} className="mx-auto mb-3 text-wolf-muted/30" />
-                <p className="text-wolf-muted">Pick a style on the left and hit Generate.</p>
-                <p className="mt-1 text-xs text-wolf-muted/60">
-                  Up to {MAX_SCENES} scenes will render in parallel and be stitched with your audio.
-                </p>
-              </motion.div>
-            ) : (
-              <motion.div key="pipeline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-                <PipelineStages
-                  stage={stage}
-                  completedScenes={completedScenes}
-                  totalScenes={scenes.length}
-                  ffmpegLoading={ffmpegLoading}
-                  ffmpegReady={ffmpegReady}
-                />
-
-                {stageLog && <p className="text-center text-xs text-wolf-muted">{stageLog}</p>}
-
-                {scenes.length > 0 && (
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {scenes.map((s, i) => (
-                      <SceneCard key={i} scene={s} accent={accent} />
-                    ))}
+                    <CheckCircle size={16} />
+                    Lyric video ready — preview below.
                   </div>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
+                  <video
+                    src={finalUrl}
+                    controls
+                    autoPlay
+                    className="w-full rounded-2xl border bg-black"
+                    style={{ maxHeight: 520, borderColor: SC.border }}
+                  />
+                  <div className="flex gap-2">
+                    <a
+                      href={finalUrl}
+                      download={`${template.title.replace(/\s+/g, "-")}-scenes.mp4`}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-black transition-all hover:opacity-90"
+                      style={{ backgroundColor: SC.accent }}
+                    >
+                      <Download size={14} /> Download MP4
+                    </a>
+                    <button
+                      onClick={resetAll}
+                      className="inline-flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold transition-all"
+                      style={{ borderColor: SC.border, color: SC.mute }}
+                    >
+                      <RotateCcw size={14} /> New
+                    </button>
+                  </div>
+                </motion.div>
+              ) : stage === "idle" ? (
+                <motion.div
+                  key="placeholder"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center gap-2 py-20 text-center"
+                >
+                  <div
+                    className="flex h-14 w-14 items-center justify-center rounded-full"
+                    style={{ backgroundColor: SC.accentSoft }}
+                  >
+                    <Film size={26} style={{ color: SC.accent }} />
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-white">No scene generations yet</p>
+                  <p className="text-xs text-wolf-muted">
+                    Pick a scene, pick a template, hit Generate.
+                  </p>
+                </motion.div>
+              ) : (
+                <motion.div key="pipeline" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                  <PipelineStages
+                    stage={stage}
+                    completedScenes={completedScenes}
+                    totalScenes={scenes.length}
+                    ffmpegLoading={ffmpegLoading}
+                    ffmpegReady={ffmpegReady}
+                  />
+                  {stageLog && (
+                    <p className="text-center text-xs text-wolf-muted">{stageLog}</p>
+                  )}
+                  {scenes.length > 0 && (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {scenes.map((s, i) => (
+                        <SceneCard key={i} scene={s} />
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </motion.div>
       </div>
+
+      {/* ── Full preset picker — toggled via SCENE card's Change button ── */}
+      <AnimatePresence>
+        {showPicker && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-6 overflow-hidden"
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-wolf-muted">
+                Choose a different scene
+              </p>
+              <button
+                onClick={() => setShowPicker(false)}
+                className="inline-flex items-center gap-1 text-[11px] text-wolf-muted hover:text-white"
+              >
+                <X size={12} /> Close
+              </button>
+            </div>
+            <ScenePresetPicker
+              selectedId={presetId}
+              customPrompt={customPrompt}
+              onSelect={(p) => {
+                setPresetId(p.id);
+                setShowPicker(false);
+              }}
+              onCustomChange={setCustomPrompt}
+              onSelectCustom={() => {
+                setPresetId(null);
+                setShowPicker(false);
+              }}
+              accent={SC.accent}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-/* ─── Small components ─── */
+/* ──────────────────────────────────────────────────────────────────── */
+/* ── UI primitives ─────────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────── */
+
+function SectionCard({
+  label,
+  required,
+  help,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  help?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-xl border p-4"
+      style={{
+        borderColor: required ? "rgba(183,148,246,0.3)" : SC.border,
+        backgroundColor: "rgba(0,0,0,0.2)",
+      }}
+    >
+      <div className="mb-2 flex items-center gap-1.5">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wolf-muted">
+          {label}
+          {required && <span style={{ color: "#b794f6" }}> *</span>}
+        </p>
+        {help && (
+          <span className="text-wolf-muted/60" title={help}>
+            <Info size={10} />
+          </span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 function PipelineStages({
   stage,
@@ -448,20 +766,23 @@ function PipelineStages({
   };
   const currentIdx = order.indexOf(stage);
   return (
-    <div className="flex items-center gap-1 rounded-xl border border-wolf-border/20 bg-wolf-card p-3 overflow-x-auto">
+    <div className="flex items-center gap-1 overflow-x-auto rounded-xl border p-3"
+      style={{ borderColor: SC.border, backgroundColor: "rgba(0,0,0,0.2)" }}
+    >
       {order.slice(0, -1).map((s, i) => {
         const done = currentIdx > i || stage === "done";
         const active = currentIdx === i;
         return (
           <div key={s} className="flex items-center gap-1">
             <div
-              className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+              style={
                 done
-                  ? "bg-green-400/15 text-green-300"
+                  ? { backgroundColor: SC.accentSoft, color: SC.accent }
                   : active
-                  ? "bg-wolf-gold/15 text-wolf-gold"
-                  : "bg-white/5 text-wolf-muted"
-              }`}
+                  ? { backgroundColor: "rgba(245,197,24,0.15)", color: "#f5c518" }
+                  : { backgroundColor: "rgba(255,255,255,0.04)", color: SC.mute }
+              }
             >
               {done ? (
                 <CheckCircle size={11} />
@@ -480,11 +801,17 @@ function PipelineStages({
   );
 }
 
-function SceneCard({ scene, accent }: { scene: SceneJob; accent: string }) {
+function SceneCard({ scene }: { scene: SceneJob }) {
   const statusColor =
-    scene.status === "succeeded" ? "#69f0ae" : scene.status === "failed" ? "#f87171" : accent;
+    scene.status === "succeeded" ? SC.accent : scene.status === "failed" ? "#f87171" : SC.mute;
   return (
-    <div className="rounded-xl border p-3" style={{ borderColor: `${statusColor}30`, backgroundColor: `${statusColor}05` }}>
+    <div
+      className="rounded-xl border p-3"
+      style={{
+        borderColor: `${statusColor}30`,
+        backgroundColor: `${statusColor.startsWith("#") ? statusColor : SC.accent}08`,
+      }}
+    >
       <div className="flex items-center gap-2">
         {scene.status === "succeeded" ? (
           <CheckCircle size={12} style={{ color: statusColor }} />
@@ -512,3 +839,4 @@ function SceneCard({ scene, accent }: { scene: SceneJob; accent: string }) {
     </div>
   );
 }
+

@@ -390,4 +390,41 @@ export const scenePresets: ScenePreset[] = [
     prompt: "West African coastline at sunset, silhouetted palm trees against orange and pink sky, waves breaking on the beach, warm diasporic palette.",
     gradient: ["#4a1a33", "#ffa500"],
   },
+
+  /* ─── Round 3: hit 50 ─── */
+  {
+    id: "paris-rooftop",
+    name: "Paris Rooftop",
+    category: "cinematic",
+    prompt: "Paris rooftop at dusk, Eiffel Tower silhouetted in the distance, zinc rooftops stretching to the horizon, soft golden haze, figure looking out with a glass of wine, cinematic French New Wave feel.",
+    gradient: ["#2a1a4a", "#ffb87a"],
+  },
+  {
+    id: "warehouse-rave",
+    name: "Warehouse Rave",
+    category: "performance",
+    prompt: "Underground industrial warehouse, crowd silhouettes lit by strobe flashes, haze-filled air, lasers slicing through, DJ booth glowing at the back, high-contrast club photography.",
+    gradient: ["#0a0014", "#ff00aa"],
+  },
+  {
+    id: "underwater-dream",
+    name: "Underwater Dream",
+    category: "visualizers",
+    prompt: "Submerged figure drifting in deep blue water, shafts of sunlight piercing from the surface, bubbles rising in slow motion, dreamy ethereal mood, macro lens on ripples, cinematic blue-green palette.",
+    gradient: ["#002040", "#3aaaff"],
+  },
+  {
+    id: "tokyo-arcade",
+    name: "Tokyo Arcade",
+    category: "lifestyle",
+    prompt: "80s Tokyo arcade interior at night, rows of glowing CRT cabinets, neon signage in Japanese katakana, hazy smoke, a lone figure playing, saturated magenta and cyan palette, retro-cool mood.",
+    gradient: ["#1a0033", "#ff4dcf"],
+  },
+  {
+    id: "salt-flats",
+    name: "Salt Flats",
+    category: "landscapes",
+    prompt: "Infinite white salt flats stretching to the horizon, cracked hexagonal patterns in the ground, a lone figure walking into the distance, massive pale sky, surreal scale, high-noon flat light.",
+    gradient: ["#e8e4d8", "#a0c4e4"],
+  },
 ];

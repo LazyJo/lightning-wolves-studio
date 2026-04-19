@@ -100,9 +100,11 @@ async function generateOne(preset) {
   }
   console.log(`[gen]   ${preset.id}`);
   const shapedPrompt = `${preset.prompt} Vertical 3:4 poster composition, magazine cover feel, no text, no watermark, no logos.`;
-  const result = await replicate.run("google/nano-banana", {
-    input: { prompt: shapedPrompt, output_format: "jpg" },
-  });
+  const model = process.env.SCENES_MODEL || "google/nano-banana";
+  const input = model.startsWith("black-forest-labs/flux")
+    ? { prompt: shapedPrompt, aspect_ratio: "3:4", output_format: "jpg", num_outputs: 1 }
+    : { prompt: shapedPrompt, output_format: "jpg" };
+  const result = await replicate.run(model, { input });
   // Replicate returns either a string URL or an array of URLs.
   const url = Array.isArray(result) ? result[0] : result;
   if (!url) throw new Error("replicate returned no output");
@@ -112,7 +114,9 @@ async function generateOne(preset) {
 }
 
 /* ─── Simple concurrency limiter ─────────────────────────────────────── */
-async function runPool(items, worker, concurrency = 4) {
+// Fresh Replicate accounts with <$5 credit are throttled to 6/min burst 1.
+// SCENES_CONCURRENCY=1 + SCENES_DELAY_MS=11000 stays safely inside that.
+async function runPool(items, worker, concurrency, delayMs) {
   const queue = items.slice();
   const results = [];
   const workers = new Array(Math.min(concurrency, queue.length)).fill(0).map(async () => {
@@ -124,6 +128,7 @@ async function runPool(items, worker, concurrency = 4) {
         console.error(`[err]   ${item.id}: ${err.message || err}`);
         results.push("error");
       }
+      if (delayMs > 0 && queue.length) await new Promise((r) => setTimeout(r, delayMs));
     }
   });
   await Promise.all(workers);
@@ -131,8 +136,10 @@ async function runPool(items, worker, concurrency = 4) {
 }
 
 /* ─── Run ────────────────────────────────────────────────────────────── */
+const CONCURRENCY = Number(process.env.SCENES_CONCURRENCY) || 4;
+const DELAY_MS = Number(process.env.SCENES_DELAY_MS) || 0;
 const started = Date.now();
-const outcomes = await runPool(presets, generateOne, 4);
+const outcomes = await runPool(presets, generateOne, CONCURRENCY, DELAY_MS);
 const done  = outcomes.filter((o) => o === "done").length;
 const skip  = outcomes.filter((o) => o === "skip").length;
 const error = outcomes.filter((o) => o === "error").length;

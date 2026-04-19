@@ -8,3 +8,4 @@ uploads/*
 *.log
 dist/
 .vercel/
+.vercel

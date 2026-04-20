@@ -24,11 +24,14 @@ import {
 } from "lucide-react";
 import { useArtistPage, type ArtistPageData, type LayoutStyle, type LinkStyle, type ColorMode, type CardShape, type IconShape, type ReleaseStyle } from "../../lib/useArtistPage";
 
-/* ─── Artist Page palette — blue (LYRC parity) ────────────────────────── */
+/* ─── Artist Page palette — gold (Lightning Wolves brand primary) ────── */
+// Artist Page IS the artist's home — it should feel like the Lightning
+// Wolves brand itself, not a tool-specific color. Gold matches the logo,
+// the navbar, and the default theme color chosen for new pages.
 const A = {
-  blue: "#22d3ee",
-  blueSoft: "rgba(34,211,238,0.14)",
-  blueBorder: "rgba(34,211,238,0.40)",
+  blue: "#f5c518",
+  blueSoft: "rgba(245,197,24,0.14)",
+  blueBorder: "rgba(245,197,24,0.40)",
   green: "#69f0ae",
   amber: "#f5b14a",
   amberSoft: "rgba(245,177,74,0.10)",
@@ -229,7 +232,7 @@ function ClaimView({
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
           style={{
             background: isValid && name.trim()
-              ? `linear-gradient(90deg, ${A.blue}, #7aeaff)`
+              ? `linear-gradient(90deg, ${A.blue}, #e8870a)`
               : "rgba(255,255,255,0.08)",
             color: isValid && name.trim() ? "#000" : "#888",
           }}
@@ -322,7 +325,7 @@ function BuilderView(props: BuilderProps) {
             style={{
               background: props.data.published
                 ? "rgba(255,255,255,0.08)"
-                : `linear-gradient(90deg, ${A.blue}, #7aeaff)`,
+                : `linear-gradient(90deg, ${A.blue}, #e8870a)`,
               color: props.data.published ? "#ddd" : "#000",
             }}
           >

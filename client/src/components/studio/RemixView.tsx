@@ -57,11 +57,15 @@ const LYRIC_STYLES: { id: string; label: string; preview: string; font: string; 
 
 const CLIP_RATIOS = ["All Ratios", "9:16", "16:9", "1:1"] as const;
 
-/* ─── Remix palette — cyan (Drippydesigns wolf bridge) ────────────────── */
+/* ─── Remix palette — red (Hendrik wolf, high-energy "Most Popular") ── */
+// Remix is LYRC's "MOST POPULAR" tile and needs the most attention on
+// the dashboard. Red = Hendrik's wolf, signals urgency + energy, stays
+// distinct from Scenes green / Performance pink / Cover Art blue /
+// Artist Page gold / Template step colors.
 const R = {
-  cyan: "#22d3ee",
-  cyanSoft: "rgba(34,211,238,0.14)",
-  cyanBorder: "rgba(34,211,238,0.40)",
+  cyan: "#E53935",
+  cyanSoft: "rgba(229,57,53,0.14)",
+  cyanBorder: "rgba(229,57,53,0.45)",
   amber: "#e8870a",
   purple: "#b794f6",
   blue: "#82b1ff",
@@ -213,7 +217,7 @@ export default function RemixView({ onBack, template }: Props) {
         className="text-4xl font-black tracking-[0.05em] sm:text-5xl"
         style={{
           fontFamily: "var(--font-display)",
-          backgroundImage: `linear-gradient(90deg, ${R.cyan}, #7aeaff, #ffffff)`,
+          backgroundImage: `linear-gradient(90deg, ${R.cyan}, #ff8a80, #ffffff)`,
           backgroundClip: "text",
           WebkitBackgroundClip: "text",
           color: "transparent",
@@ -469,7 +473,7 @@ export default function RemixView({ onBack, template }: Props) {
               className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all disabled:cursor-not-allowed disabled:opacity-40"
               style={{
                 background: canGenerate
-                  ? `linear-gradient(90deg, ${R.cyan}, #7aeaff)`
+                  ? `linear-gradient(90deg, ${R.cyan}, #ff6b5b)`
                   : "rgba(255,255,255,0.08)",
                 color: canGenerate ? "#000" : "#888",
               }}
@@ -632,7 +636,7 @@ export default function RemixView({ onBack, template }: Props) {
                 href={finalUrl}
                 download={`${template.title.replace(/\s+/g, "-")}-remix.mp4`}
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-black transition-all hover:opacity-90"
-                style={{ background: `linear-gradient(90deg, ${R.cyan}, #7aeaff)` }}
+                style={{ background: `linear-gradient(90deg, ${R.cyan}, #ff6b5b)` }}
               >
                 <Download size={14} /> Download MP4
               </a>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, Zap, Globe, Music, Shuffle, Film, Video, Image, LayoutDashboard } from "lucide-react";
+import { Menu, X, Zap, Globe, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell } from "lucide-react";
 import { useI18n, LANGUAGES } from "../lib/i18n";
 
 const STUDIO_TOOLS = [
@@ -26,11 +26,15 @@ interface Props {
   credits?: number;
   tier?: string;
   wolfColor?: string;
+  /** Optional: unread notification count for the bell badge (LYRC parity) */
+  notifications?: number;
+  onNotifications?: () => void;
 }
 
 export default function Navbar({
   onPricing, onWolfHub, onHome, onStudio, onAuth, onGoldenBoard,
   isInStudio, studioView, onStudioNav, credits, tier, wolfColor,
+  notifications = 0, onNotifications,
 }: Props) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
@@ -140,13 +144,35 @@ export default function Navbar({
         {/* Right side */}
         <div className="hidden items-center gap-2 md:flex">
           {isInStudio ? (
-            /* Studio right side: credits + wolf hub + home */
+            /* Studio right side: credits + notifications + wolf hub + home */
             <>
-              <div className="flex items-center gap-1.5 rounded-full border border-wolf-gold/20 bg-wolf-gold/5 px-3 py-1.5">
+              {/* Credits pill — LYRC-style gold with Zap diamond icon */}
+              <button
+                onClick={onPricing}
+                className="group flex items-center gap-1.5 rounded-full border bg-wolf-gold/5 px-3 py-1.5 transition-all hover:bg-wolf-gold/10"
+                style={{ borderColor: "rgba(245,197,24,0.35)" }}
+                title="Manage credits"
+              >
                 <Zap size={12} className="text-wolf-gold fill-wolf-gold" />
                 <span className="text-sm font-bold text-wolf-gold">{credits ?? 0}</span>
-                <span className="text-[10px] text-wolf-muted">credits</span>
-              </div>
+                <span className="text-[10px] text-wolf-muted group-hover:text-wolf-gold/80">credits</span>
+              </button>
+              {/* Notification bell with LYRC-style red badge */}
+              <button
+                onClick={onNotifications}
+                className="relative rounded-lg border border-white/10 bg-white/[0.03] p-2 text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold"
+                title="Notifications"
+              >
+                <Bell size={14} />
+                {notifications > 0 && (
+                  <span
+                    className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white"
+                    style={{ backgroundColor: "#ef4444" }}
+                  >
+                    {notifications > 99 ? "99+" : notifications}
+                  </span>
+                )}
+              </button>
               <button
                 onClick={onWolfHub}
                 className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm transition-all hover:border-wolf-gold/30"

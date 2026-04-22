@@ -15,6 +15,9 @@ import {
   Smile,
   Users,
   Check,
+  User as UserIcon,
+  Edit2,
+  Grid3x3,
 } from "lucide-react";
 import { getSupabase, initSupabase } from "../lib/supabaseClient";
 import { useSession } from "../lib/useSession";
@@ -104,7 +107,7 @@ interface Props {
 
 export default function WolfHubPage({ onBack, onAuth }: Props) {
   const { session, loading: sessionLoading, signOut } = useSession();
-  const [tab, setTab] = useState<"chat" | "media">("chat");
+  const [tab, setTab] = useState<"chat" | "media" | "profile">("chat");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [showNameSetup, setShowNameSetup] = useState(false);
   const [onlineCount, setOnlineCount] = useState<number>(0);
@@ -244,6 +247,10 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
               <ImageIcon size={15} />
               Media
             </TabButton>
+            <TabButton active={tab === "profile"} onClick={() => setTab("profile")}>
+              <UserIcon size={15} />
+              Profile
+            </TabButton>
           </div>
           {onlineCount > 0 && (
             <div
@@ -262,6 +269,12 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
 
         {tab === "chat" && <ChatView profile={profile} />}
         {tab === "media" && <MediaView profile={profile} />}
+        {tab === "profile" && (
+          <ProfileView
+            profile={profile}
+            onProfileUpdated={(p) => setProfile(p)}
+          />
+        )}
       </div>
     </div>
   );
@@ -1460,6 +1473,409 @@ function ComposePostModal({
             Post
           </button>
         </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ─── Profile View (own posts grid + edit) ─── */
+
+const WOLF_OPTIONS: { id: string; label: string; color: string }[] = [
+  { id: "yellow", label: "Yellow", color: "#f5c518" },
+  { id: "orange", label: "Orange", color: "#ff8a3d" },
+  { id: "purple", label: "Purple", color: "#E040FB" },
+];
+
+function ProfileView({
+  profile,
+  onProfileUpdated,
+}: {
+  profile: Profile | null;
+  onProfileUpdated: (p: Profile) => void;
+}) {
+  const [myPosts, setMyPosts] = useState<HubPost[]>([]);
+  const [myLikes, setMyLikes] = useState<Map<string, number>>(new Map());
+  const [myCommentCounts, setMyCommentCounts] = useState<Map<string, number>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [openPost, setOpenPost] = useState<HubPost | null>(null);
+
+  useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("hub_posts")
+        .select("*")
+        .eq("author_id", profile.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(60);
+      if (cancelled) return;
+      const posts = data || [];
+      setMyPosts(posts);
+
+      if (posts.length > 0) {
+        const ids = posts.map((p) => p.id);
+        const [likesRes, commentsRes] = await Promise.all([
+          sb.from("hub_post_likes").select("post_id").in("post_id", ids),
+          sb
+            .from("hub_post_comments")
+            .select("post_id")
+            .in("post_id", ids)
+            .is("deleted_at", null),
+        ]);
+        if (cancelled) return;
+        const likeCounts = new Map<string, number>();
+        (likesRes.data || []).forEach((l: { post_id: string }) => {
+          likeCounts.set(l.post_id, (likeCounts.get(l.post_id) || 0) + 1);
+        });
+        const commentCounts = new Map<string, number>();
+        (commentsRes.data || []).forEach((c: { post_id: string }) => {
+          commentCounts.set(c.post_id, (commentCounts.get(c.post_id) || 0) + 1);
+        });
+        setMyLikes(likeCounts);
+        setMyCommentCounts(commentCounts);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.id]);
+
+  if (!profile) return null;
+
+  const totalLikes = Array.from(myLikes.values()).reduce((a, b) => a + b, 0);
+  const totalComments = Array.from(myCommentCounts.values()).reduce((a, b) => a + b, 0);
+  const accent = wolfAccent(profile.wolf_id);
+
+  return (
+    <div>
+      {/* Profile header */}
+      <div className="mb-6 rounded-2xl border border-white/10 bg-wolf-card/40 p-5 backdrop-blur-sm">
+        <div className="flex items-center gap-4">
+          <div
+            className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full text-3xl font-bold text-black"
+            style={{ backgroundColor: accent }}
+          >
+            {(profile.display_name || profile.email || "W").slice(0, 1).toUpperCase()}
+          </div>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-white">
+              {profile.display_name || profile.email?.split("@")[0] || "Wolf"}
+            </h2>
+            <p className="text-xs text-wolf-muted">{profile.email}</p>
+            <div className="mt-2 flex gap-4 text-sm">
+              <Stat label="posts" value={myPosts.length} />
+              <Stat label="likes" value={totalLikes} />
+              <Stat label="comments" value={totalComments} />
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setEditing(true)}
+          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:text-[#c8a4ff]"
+        >
+          <Edit2 size={14} />
+          Edit profile
+        </button>
+      </div>
+
+      {/* Grid header */}
+      <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-wolf-muted">
+        <Grid3x3 size={13} />
+        Your posts
+      </div>
+
+      {/* Posts grid */}
+      {loading ? (
+        <div className="grid grid-cols-3 gap-1.5">
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className="aspect-square animate-pulse rounded-lg bg-white/[0.03]"
+            />
+          ))}
+        </div>
+      ) : myPosts.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-16 text-center">
+          <div className="mb-2 text-4xl">📸</div>
+          <p className="text-wolf-muted">
+            You haven't posted yet — drop something on the Media tab.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-3 gap-1.5">
+          {myPosts.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => setOpenPost(p)}
+              className="group relative aspect-square overflow-hidden rounded-lg bg-black transition-all hover:ring-2 hover:ring-[#9b6dff]/50"
+            >
+              {p.media_type === "image" ? (
+                <img
+                  src={p.media_url}
+                  alt={p.caption || ""}
+                  className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                  loading="lazy"
+                />
+              ) : (
+                <>
+                  <video
+                    src={p.media_url}
+                    muted
+                    playsInline
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute right-2 top-2 rounded-full bg-black/60 p-1 text-white">
+                    <Play size={12} className="fill-current" />
+                  </div>
+                </>
+              )}
+              {(myLikes.get(p.id) || 0) + (myCommentCounts.get(p.id) || 0) > 0 && (
+                <div className="absolute inset-0 flex items-center justify-center gap-3 bg-black/0 text-sm font-semibold text-white opacity-0 transition-opacity group-hover:bg-black/40 group-hover:opacity-100">
+                  <span className="flex items-center gap-1">
+                    <Heart size={14} className="fill-current" />
+                    {myLikes.get(p.id) || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <MessageCircle size={14} className="fill-current" />
+                    {myCommentCounts.get(p.id) || 0}
+                  </span>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {editing && (
+          <EditProfileModal
+            profile={profile}
+            onClose={() => setEditing(false)}
+            onSaved={(updated) => {
+              onProfileUpdated(updated);
+              setEditing(false);
+            }}
+          />
+        )}
+        {openPost && (
+          <PostDetailModal post={openPost} onClose={() => setOpenPost(null)} />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <span className="font-bold text-white">{value}</span>{" "}
+      <span className="text-wolf-muted">{label}</span>
+    </div>
+  );
+}
+
+/* ─── Edit Profile Modal ─── */
+
+function EditProfileModal({
+  profile,
+  onClose,
+  onSaved,
+}: {
+  profile: Profile;
+  onClose: () => void;
+  onSaved: (p: Profile) => void;
+}) {
+  const [name, setName] = useState(profile.display_name || "");
+  const [wolfId, setWolfId] = useState(profile.wolf_id || "yellow");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setError("Display name can't be empty.");
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const sb = getSupabase();
+      if (!sb) {
+        setError("Connection error — try again.");
+        return;
+      }
+      const { error: err } = await sb
+        .from("profiles")
+        .update({ display_name: trimmed, wolf_id: wolfId })
+        .eq("id", profile.id);
+      if (err) {
+        setError(err.message);
+        return;
+      }
+      onSaved({ ...profile, display_name: trimmed, wolf_id: wolfId });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-wolf-card"
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <h3 className="font-semibold text-white">Edit profile</h3>
+          <button
+            onClick={onClose}
+            className="text-wolf-muted transition-colors hover:text-white"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="space-y-4 p-5">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
+              Display name
+            </label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={32}
+              placeholder="Your name"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white focus:border-[#9b6dff]/40 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
+              Wolf color
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {WOLF_OPTIONS.map((w) => (
+                <button
+                  key={w.id}
+                  onClick={() => setWolfId(w.id)}
+                  className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition-all ${
+                    wolfId === w.id
+                      ? "border-white/40 bg-white/[0.08]"
+                      : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                  }`}
+                >
+                  <div
+                    className="flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold text-black"
+                    style={{ backgroundColor: w.color }}
+                  >
+                    {(name || "W").slice(0, 1).toUpperCase()}
+                  </div>
+                  <span className="text-xs text-white">{w.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+          {error && <p className="text-xs text-red-400">{error}</p>}
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-5 py-3">
+          <button
+            onClick={onClose}
+            className="rounded-lg px-4 py-2 text-sm text-wolf-muted transition-colors hover:text-white"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#9b6dff] to-[#E040FB] px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            Save
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ─── Post Detail Modal (tap profile grid item) ─── */
+
+function PostDetailModal({
+  post,
+  onClose,
+}: {
+  post: HubPost;
+  onClose: () => void;
+}) {
+  const accent = wolfAccent(post.author_wolf_id);
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-[520px] overflow-hidden rounded-2xl border border-white/10 bg-wolf-card"
+      >
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-3 z-10 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-all hover:bg-black/70"
+        >
+          <X size={16} />
+        </button>
+        <div className="flex items-center gap-3 px-4 py-3">
+          <div
+            className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-black"
+            style={{ backgroundColor: accent }}
+          >
+            {displayName(post).slice(0, 1).toUpperCase()}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-white">{displayName(post)}</span>
+            <span className="text-[11px] text-wolf-muted">{timeAgo(post.created_at)}</span>
+          </div>
+        </div>
+        <div className="flex max-h-[70vh] justify-center bg-black">
+          {post.media_type === "image" ? (
+            <img
+              src={post.media_url}
+              alt={post.caption || "post"}
+              className="max-h-[70vh] w-full object-contain"
+            />
+          ) : (
+            <video
+              src={post.media_url}
+              controls
+              autoPlay
+              playsInline
+              className="max-h-[70vh] w-full"
+            />
+          )}
+        </div>
+        {post.caption && (
+          <p className="px-4 py-3 text-sm text-white">
+            <span className="font-semibold">{displayName(post)}</span>{" "}
+            <span className="text-wolf-muted">{post.caption}</span>
+          </p>
+        )}
       </motion.div>
     </motion.div>
   );

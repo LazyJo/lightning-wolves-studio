@@ -38,7 +38,7 @@ export interface VisualStartResult {
   prompt: string;
   type: string;
   creditsUsed: number;
-  remainingCredits: number;
+  remainingCredits: number | null;
   status: "starting" | "processing" | "succeeded" | "failed" | "canceled";
 }
 

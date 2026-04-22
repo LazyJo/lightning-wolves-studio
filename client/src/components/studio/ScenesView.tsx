@@ -155,19 +155,29 @@ export default function ScenesView({ onBack, template }: Props) {
       setStage("rendering");
       setStageLog(`Rendering ${prompts.length} scenes in parallel — this takes a minute.`);
 
+      // Translate the UI's videoStyle toggle into a prompt prefix —
+      // kling + sora don't expose a style enum, so the effect has to
+      // come through language. Realistic is the baseline, so no prefix.
+      const stylePrefix =
+        videoStyle === "Anime"
+          ? "Anime aesthetic, cel-shaded, vibrant colors."
+          : "";
+
       const results = await Promise.all(
         prompts.map(async (p, idx) => {
           try {
+            const finalPrompt = [stylePrefix, stylePrompt, p.prompt]
+              .filter(Boolean)
+              .join(" ");
             const start = await startVisualGeneration({
               modelId,
-              prompt: `${stylePrompt}. ${p.prompt}`,
+              prompt: finalPrompt,
               type: "scene",
               accessToken,
               options: {
                 duration: 5,
                 aspectRatio: ratio,
                 resolution,
-                videoStyle,
                 lyricAdherence,
               },
             });

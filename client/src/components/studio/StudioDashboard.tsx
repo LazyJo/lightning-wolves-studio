@@ -58,7 +58,7 @@ const toolDefs: {
   tags?: string[];
   credits: number;
 }[] = [
-  { id: "remix", titleKey: "studio.remix", descKey: "studio.remixDesc", icon: Shuffle, color: "#E53935", popular: true, tags: ["YouTube import", "Auto scene detect", "Shuffle clips"], credits: 15 },
+  { id: "remix", titleKey: "studio.remix", descKey: "studio.remixDesc", icon: Shuffle, color: "#f5c518", popular: true, tags: ["YouTube import", "Auto scene detect", "Shuffle clips"], credits: 15 },
   { id: "scenes", titleKey: "studio.scenes", descKey: "studio.scenesDesc", icon: Film, color: "#69f0ae", badge: "AI", credits: 60 },
   { id: "performance", titleKey: "studio.performance", descKey: "studio.performanceDesc", icon: Video, color: "#E040FB", badge: "AI", credits: 15 },
   { id: "cover-art", titleKey: "studio.coverArt", descKey: "studio.coverArtDesc", icon: Image, color: "#82b1ff", credits: 12 },
@@ -281,21 +281,21 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
           onClick={() => onSelectTool("remix")}
           className="group cursor-pointer rounded-2xl border p-7 lg:row-span-2"
           style={{
-            borderColor: "rgba(229,57,53,0.25)",
-            background: "linear-gradient(135deg, rgba(229,57,53,0.08) 0%, transparent 60%)",
+            borderColor: "rgba(245,197,24,0.25)",
+            background: "linear-gradient(135deg, rgba(245,197,24,0.08) 0%, transparent 60%)",
           }}
         >
           <span
             className="mb-4 inline-block rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-black"
-            style={{ backgroundColor: "#E53935" }}
+            style={{ backgroundColor: "#f5c518" }}
           >
             {t("studio.mostPopular")}
           </span>
           <div
             className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-            style={{ backgroundColor: "rgba(229,57,53,0.15)" }}
+            style={{ backgroundColor: "rgba(245,197,24,0.15)" }}
           >
-            <Shuffle size={24} style={{ color: "#E53935" }} />
+            <Shuffle size={24} style={{ color: "#f5c518" }} />
           </div>
           <h3 className="mb-2 text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
             Remix
@@ -309,9 +309,9 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
                 key={tag}
                 className="rounded-full border px-3 py-1 text-xs"
                 style={{
-                  borderColor: "rgba(229,57,53,0.25)",
-                  backgroundColor: "rgba(229,57,53,0.05)",
-                  color: "#E53935",
+                  borderColor: "rgba(245,197,24,0.25)",
+                  backgroundColor: "rgba(245,197,24,0.05)",
+                  color: "#f5c518",
                 }}
               >
                 {tag}
@@ -321,13 +321,13 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
           <div className="flex items-center justify-between">
             <span
               className="inline-flex items-center gap-1.5 text-sm font-semibold transition-all group-hover:gap-2.5"
-              style={{ color: "#E53935" }}
+              style={{ color: "#f5c518" }}
             >
               {t("studio.tryRemix")} <ArrowRight size={14} />
             </span>
             <span
               className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold"
-              style={{ backgroundColor: "rgba(229,57,53,0.12)", color: "#E53935" }}
+              style={{ backgroundColor: "rgba(245,197,24,0.12)", color: "#f5c518" }}
             >
               <Zap size={10} /> 15
             </span>

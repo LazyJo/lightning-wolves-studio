@@ -74,6 +74,10 @@ DROP POLICY IF EXISTS hub_msg_update_own ON hub_messages;
 CREATE POLICY hub_msg_update_own ON hub_messages
   FOR UPDATE USING (auth.uid() = author_id);
 
+DROP POLICY IF EXISTS hub_msg_delete_own ON hub_messages;
+CREATE POLICY hub_msg_delete_own ON hub_messages
+  FOR DELETE USING (auth.uid() = author_id);
+
 DROP POLICY IF EXISTS hub_msg_service ON hub_messages;
 CREATE POLICY hub_msg_service ON hub_messages
   FOR ALL USING (auth.role() = 'service_role');
@@ -90,6 +94,10 @@ CREATE POLICY hub_post_insert ON hub_posts
 DROP POLICY IF EXISTS hub_post_update_own ON hub_posts;
 CREATE POLICY hub_post_update_own ON hub_posts
   FOR UPDATE USING (auth.uid() = author_id);
+
+DROP POLICY IF EXISTS hub_post_delete_own ON hub_posts;
+CREATE POLICY hub_post_delete_own ON hub_posts
+  FOR DELETE USING (auth.uid() = author_id);
 
 DROP POLICY IF EXISTS hub_post_service ON hub_posts;
 CREATE POLICY hub_post_service ON hub_posts

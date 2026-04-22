@@ -10,6 +10,11 @@ import {
   X,
   Loader2,
   Play,
+  Trash2,
+  LogOut,
+  Smile,
+  Users,
+  Check,
 } from "lucide-react";
 import { getSupabase, initSupabase } from "../lib/supabaseClient";
 import { useSession } from "../lib/useSession";
@@ -88,9 +93,11 @@ interface Props {
 }
 
 export default function WolfHubPage({ onBack, onAuth }: Props) {
-  const { session, loading: sessionLoading } = useSession();
+  const { session, loading: sessionLoading, signOut } = useSession();
   const [tab, setTab] = useState<"chat" | "media">("chat");
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [showNameSetup, setShowNameSetup] = useState(false);
+  const [onlineCount, setOnlineCount] = useState<number>(0);
 
   // Load own profile once signed in (needed to denormalize author_name / author_wolf_id).
   useEffect(() => {
@@ -122,6 +129,35 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
     };
   }, [session?.user?.id]);
 
+  // Presence: how many wolves are currently in the Hub.
+  useEffect(() => {
+    if (!profile) return;
+    let channel: ReturnType<NonNullable<ReturnType<typeof getSupabase>>["channel"]> | null = null;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb) return;
+      channel = sb.channel("hub-presence", {
+        config: { presence: { key: profile.id } },
+      });
+      channel
+        .on("presence", { event: "sync" }, () => {
+          const state = channel!.presenceState();
+          setOnlineCount(Object.keys(state).length);
+        })
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            await channel!.track({
+              name: profile.display_name || "Wolf",
+              joined_at: new Date().toISOString(),
+            });
+          }
+        });
+    })();
+    return () => {
+      channel?.unsubscribe();
+    };
+  }, [profile?.id, profile?.display_name]);
+
   if (sessionLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -133,6 +169,8 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
   if (!session?.user) {
     return <AuthGate onBack={onBack} onAuth={onAuth} />;
   }
+
+  const needsDisplayName = profile && !profile.display_name && !showNameSetup;
 
   return (
     <div className="min-h-screen pt-20">
@@ -164,19 +202,52 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
               </span>
             </h1>
           </div>
-          <div className="w-[70px]" />
+          <button
+            onClick={signOut}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-wolf-muted transition-all hover:border-red-400/30 hover:text-red-300"
+            title="Sign out"
+          >
+            <LogOut size={14} />
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
         </div>
 
-        {/* Tab switcher */}
-        <div className="mb-6 flex gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
-          <TabButton active={tab === "chat"} onClick={() => setTab("chat")}>
-            <MessageCircle size={15} />
-            Chat
-          </TabButton>
-          <TabButton active={tab === "media"} onClick={() => setTab("media")}>
-            <ImageIcon size={15} />
-            Media
-          </TabButton>
+        {/* Display-name nudge */}
+        {needsDisplayName && profile && (
+          <DisplayNameBanner
+            profile={profile}
+            onSaved={(name) => {
+              setProfile({ ...profile, display_name: name });
+            }}
+            onDismiss={() => setShowNameSetup(true)}
+          />
+        )}
+
+        {/* Tab switcher + presence */}
+        <div className="mb-6 flex items-center gap-3">
+          <div className="flex flex-1 gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+            <TabButton active={tab === "chat"} onClick={() => setTab("chat")}>
+              <MessageCircle size={15} />
+              Chat
+            </TabButton>
+            <TabButton active={tab === "media"} onClick={() => setTab("media")}>
+              <ImageIcon size={15} />
+              Media
+            </TabButton>
+          </div>
+          {onlineCount > 0 && (
+            <div
+              className="hidden items-center gap-1.5 rounded-full border border-green-400/30 bg-green-400/10 px-3 py-1.5 text-xs font-semibold text-green-300 sm:flex"
+              title={`${onlineCount} wolves online right now`}
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-400" />
+              </span>
+              <Users size={12} />
+              {onlineCount} online
+            </div>
+          )}
         </div>
 
         {tab === "chat" && <ChatView profile={profile} />}
@@ -237,6 +308,77 @@ function AuthGate({ onBack, onAuth }: { onBack: () => void; onAuth: () => void }
   );
 }
 
+/* ─── Display-name nudge ─── */
+
+function DisplayNameBanner({
+  profile,
+  onSaved,
+  onDismiss,
+}: {
+  profile: Profile;
+  onSaved: (name: string) => void;
+  onDismiss: () => void;
+}) {
+  const [name, setName] = useState(profile.email?.split("@")[0] || "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    try {
+      const sb = getSupabase();
+      if (!sb) return;
+      const { error } = await sb
+        .from("profiles")
+        .update({ display_name: trimmed })
+        .eq("id", profile.id);
+      if (!error) onSaved(trimmed);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-6 flex flex-col gap-3 rounded-xl border border-[#f5c518]/30 bg-gradient-to-r from-[#f5c518]/[0.08] to-transparent p-4 sm:flex-row sm:items-center"
+    >
+      <div className="flex-1">
+        <p className="text-sm font-semibold text-white">Set your display name</p>
+        <p className="text-xs text-wolf-muted">
+          Pick what the pack sees next to your messages.
+        </p>
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={32}
+          placeholder="Your name"
+          className="rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white placeholder:text-wolf-muted/60 focus:border-wolf-gold/40 focus:outline-none"
+        />
+        <button
+          onClick={save}
+          disabled={!name.trim() || saving}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-wolf-gold px-3 py-2 text-sm font-semibold text-black transition-all hover:bg-wolf-amber disabled:opacity-40"
+        >
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+          Save
+        </button>
+        <button
+          onClick={onDismiss}
+          className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-wolf-muted transition-all hover:text-white"
+          title="Later"
+        >
+          <X size={14} />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ─── Tab Button ─── */
 
 function TabButton({
@@ -270,6 +412,7 @@ function ChatView({ profile }: { profile: Profile | null }) {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -284,7 +427,6 @@ function ChatView({ profile }: { profile: Profile | null }) {
       const sb = await initSupabase();
       if (!sb || cancelled) return;
 
-      // Load last 100 messages (oldest first for rendering)
       const { data: msgs } = await sb
         .from("hub_messages")
         .select("*")
@@ -296,7 +438,6 @@ function ChatView({ profile }: { profile: Profile | null }) {
       const ordered = (msgs || []).reverse();
       setMessages(ordered);
 
-      // Load reactions for those messages
       if (ordered.length > 0) {
         const ids = ordered.map((m) => m.id);
         const { data: rxns } = await sb
@@ -312,8 +453,8 @@ function ChatView({ profile }: { profile: Profile | null }) {
         });
         setReactions(map);
       }
+      setLoading(false);
 
-      // Subscribe to new messages
       messagesSub = sb
         .channel("hub-messages")
         .on(
@@ -327,9 +468,21 @@ function ChatView({ profile }: { profile: Profile | null }) {
             );
           }
         )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "hub_messages" },
+          (payload) => {
+            const m = payload.old as HubMessage;
+            setMessages((prev) => prev.filter((x) => x.id !== m.id));
+            setReactions((prev) => {
+              const next = new Map(prev);
+              next.delete(m.id);
+              return next;
+            });
+          }
+        )
         .subscribe();
 
-      // Subscribe to reactions
       reactionsSub = sb
         .channel("hub-reactions")
         .on(
@@ -370,7 +523,6 @@ function ChatView({ profile }: { profile: Profile | null }) {
     };
   }, []);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -384,7 +536,7 @@ function ChatView({ profile }: { profile: Profile | null }) {
     try {
       const sb = getSupabase();
       if (!sb) return;
-      const { error } = await sb.from("hub_messages").insert({
+      await sb.from("hub_messages").insert({
         author_id: profile.id,
         author_name: profile.display_name || profile.email?.split("@")[0] || null,
         author_wolf_id: profile.wolf_id,
@@ -392,10 +544,6 @@ function ChatView({ profile }: { profile: Profile | null }) {
         body,
         image_url: imageUrl,
       });
-      if (error) {
-        // eslint-disable-next-line no-console
-        console.error("send failed:", error);
-      }
     } finally {
       setSending(false);
     }
@@ -419,11 +567,7 @@ function ChatView({ profile }: { profile: Profile | null }) {
       const { error: upErr } = await sb.storage
         .from("wolf-hub-media")
         .upload(path, file, { contentType: file.type });
-      if (upErr) {
-        // eslint-disable-next-line no-console
-        console.error("upload failed:", upErr);
-        return;
-      }
+      if (upErr) return;
       const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
       await sendMessage(null, urlData.publicUrl);
     } finally {
@@ -449,82 +593,91 @@ function ChatView({ profile }: { profile: Profile | null }) {
     setPickerFor(null);
   }
 
+  async function deleteMessage(messageId: string) {
+    const sb = getSupabase();
+    if (!sb) return;
+    // Optimistic removal — realtime DELETE echo will be a no-op
+    setMessages((prev) => prev.filter((m) => m.id !== messageId));
+    await sb.from("hub_messages").delete().eq("id", messageId);
+  }
+
   return (
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
-      {/* Messages */}
       <div
         ref={scrollRef}
         className="flex h-[55vh] min-h-[400px] flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-6"
       >
-        {messages.length === 0 && (
+        {loading && <ChatSkeleton />}
+
+        {!loading && messages.length === 0 && (
           <div className="flex flex-1 items-center justify-center">
             <p className="text-center text-sm text-wolf-muted">
               No messages yet. Be the first to howl into the Hub 🐺
             </p>
           </div>
         )}
-        {messages.map((m) => {
-          const isMine = m.author_id === profile?.id;
-          const accent = wolfAccent(m.author_wolf_id);
-          const msgReactions = reactions.get(m.id) || [];
-          // Group reactions by emoji
-          const grouped = new Map<string, { count: number; mine: boolean }>();
-          msgReactions.forEach((r) => {
-            const g = grouped.get(r.emoji) || { count: 0, mine: false };
-            g.count += 1;
-            if (r.user_id === profile?.id) g.mine = true;
-            grouped.set(r.emoji, g);
-          });
-          return (
-            <div
-              key={m.id}
-              className={`group flex gap-3 ${isMine ? "flex-row-reverse" : ""}`}
-            >
+        {!loading &&
+          messages.map((m) => {
+            const isMine = m.author_id === profile?.id;
+            const accent = wolfAccent(m.author_wolf_id);
+            const msgReactions = reactions.get(m.id) || [];
+            const grouped = new Map<string, { count: number; mine: boolean }>();
+            msgReactions.forEach((r) => {
+              const g = grouped.get(r.emoji) || { count: 0, mine: false };
+              g.count += 1;
+              if (r.user_id === profile?.id) g.mine = true;
+              grouped.set(r.emoji, g);
+            });
+            return (
               <div
-                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-black"
-                style={{ backgroundColor: accent }}
+                key={m.id}
+                className={`flex gap-3 ${isMine ? "flex-row-reverse" : ""}`}
               >
-                {displayName(m).slice(0, 1).toUpperCase()}
-              </div>
-              <div
-                className={`flex min-w-0 max-w-[80%] flex-col ${
-                  isMine ? "items-end" : "items-start"
-                }`}
-              >
-                <div className="mb-1 flex items-center gap-2">
-                  <span
-                    className="text-xs font-semibold"
-                    style={{ color: accent }}
-                  >
-                    {displayName(m)}
-                  </span>
-                  <span className="text-[10px] text-wolf-muted">
-                    {timeAgo(m.created_at)}
-                  </span>
+                <div
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-black"
+                  style={{ backgroundColor: accent }}
+                >
+                  {displayName(m).slice(0, 1).toUpperCase()}
                 </div>
                 <div
-                  className={`rounded-2xl px-4 py-2 ${
-                    isMine
-                      ? "bg-gradient-to-br from-[#9b6dff]/30 to-[#E040FB]/20 text-white"
-                      : "bg-white/[0.05] text-wolf-muted"
+                  className={`flex min-w-0 max-w-[80%] flex-col ${
+                    isMine ? "items-end" : "items-start"
                   }`}
-                  style={isMine ? {} : { color: "#e5e5e5" }}
                 >
-                  {m.body && (
-                    <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>
-                  )}
-                  {m.image_url && (
-                    <img
-                      src={m.image_url}
-                      alt="chat attachment"
-                      className={`max-h-64 rounded-lg object-cover ${m.body ? "mt-2" : ""}`}
-                      loading="lazy"
-                    />
-                  )}
-                </div>
-                {/* Reactions row */}
-                {grouped.size > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-xs font-semibold" style={{ color: accent }}>
+                      {displayName(m)}
+                    </span>
+                    <span className="text-[10px] text-wolf-muted">
+                      {timeAgo(m.created_at)}
+                    </span>
+                  </div>
+                  <div
+                    className={`rounded-2xl px-4 py-2 ${
+                      isMine
+                        ? "bg-gradient-to-br from-[#9b6dff]/30 to-[#E040FB]/20 text-white"
+                        : "bg-white/[0.05]"
+                    }`}
+                    style={isMine ? {} : { color: "#e5e5e5" }}
+                  >
+                    {m.body && (
+                      <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>
+                    )}
+                    {m.image_url && (
+                      <img
+                        src={m.image_url}
+                        alt="chat attachment"
+                        className={`max-h-64 rounded-lg object-cover ${m.body ? "mt-2" : ""}`}
+                        loading="lazy"
+                      />
+                    )}
+                  </div>
+                  {/* Reactions row + action row */}
+                  <div
+                    className={`mt-1 flex flex-wrap items-center gap-1 ${
+                      isMine ? "justify-end" : ""
+                    }`}
+                  >
                     {Array.from(grouped.entries()).map(([emoji, { count, mine }]) => (
                       <button
                         key={emoji}
@@ -539,45 +692,54 @@ function ChatView({ profile }: { profile: Profile | null }) {
                         <span>{count}</span>
                       </button>
                     ))}
-                  </div>
-                )}
-                {/* React picker */}
-                <div className="relative mt-1">
-                  <button
-                    onClick={() =>
-                      setPickerFor((cur) => (cur === m.id ? null : m.id))
-                    }
-                    className="text-xs text-wolf-muted/50 opacity-0 transition-opacity hover:text-wolf-gold group-hover:opacity-100"
-                  >
-                    + react
-                  </button>
-                  <AnimatePresence>
-                    {pickerFor === m.id && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 4 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 4 }}
-                        className={`absolute z-10 mt-1 flex gap-1 rounded-full border border-white/10 bg-wolf-card/95 p-1 shadow-xl backdrop-blur-sm ${
-                          isMine ? "right-0" : "left-0"
-                        }`}
+                    {/* Always-visible react button */}
+                    <div className="relative">
+                      <button
+                        onClick={() =>
+                          setPickerFor((cur) => (cur === m.id ? null : m.id))
+                        }
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-wolf-muted transition-all hover:border-[#9b6dff]/40 hover:text-white"
+                        title="React"
                       >
-                        {QUICK_EMOJIS.map((emo) => (
-                          <button
-                            key={emo}
-                            onClick={() => toggleReaction(m.id, emo)}
-                            className="rounded-full px-2 py-1 text-base transition-all hover:bg-white/10"
+                        <Smile size={12} />
+                      </button>
+                      <AnimatePresence>
+                        {pickerFor === m.id && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 4 }}
+                            className={`absolute z-20 mt-1 flex gap-1 rounded-full border border-white/10 bg-wolf-card/95 p-1 shadow-xl backdrop-blur-sm ${
+                              isMine ? "right-0" : "left-0"
+                            }`}
                           >
-                            {emo}
-                          </button>
-                        ))}
-                      </motion.div>
+                            {QUICK_EMOJIS.map((emo) => (
+                              <button
+                                key={emo}
+                                onClick={() => toggleReaction(m.id, emo)}
+                                className="rounded-full px-2 py-1 text-base transition-all hover:bg-white/10"
+                              >
+                                {emo}
+                              </button>
+                            ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    {isMine && (
+                      <button
+                        onClick={() => deleteMessage(m.id)}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-wolf-muted transition-all hover:border-red-400/50 hover:text-red-400"
+                        title="Delete"
+                      >
+                        <Trash2 size={11} />
+                      </button>
                     )}
-                  </AnimatePresence>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
       </div>
 
       {/* Composer */}
@@ -599,7 +761,11 @@ function ChatView({ profile }: { profile: Profile | null }) {
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold disabled:opacity-40"
             title="Send image"
           >
-            {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+            {uploading ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <ImagePlus size={16} />
+            )}
           </button>
           <textarea
             value={draft}
@@ -628,6 +794,27 @@ function ChatView({ profile }: { profile: Profile | null }) {
   );
 }
 
+/* ─── Chat skeleton ─── */
+
+function ChatSkeleton() {
+  return (
+    <>
+      {[0, 1, 2].map((i) => (
+        <div key={i} className={`flex gap-3 ${i % 2 ? "flex-row-reverse" : ""}`}>
+          <div className="h-8 w-8 flex-shrink-0 animate-pulse rounded-full bg-white/5" />
+          <div className="flex flex-col gap-2">
+            <div className="h-3 w-24 animate-pulse rounded-full bg-white/5" />
+            <div
+              className="h-8 animate-pulse rounded-2xl bg-white/5"
+              style={{ width: `${120 + (i * 60) % 200}px` }}
+            />
+          </div>
+        </div>
+      ))}
+    </>
+  );
+}
+
 /* ─── Media View ─── */
 
 function MediaView({ profile }: { profile: Profile | null }) {
@@ -635,6 +822,7 @@ function MediaView({ profile }: { profile: Profile | null }) {
   const [likes, setLikes] = useState<Map<string, { count: number; mine: boolean }>>(
     new Map()
   );
+  const [loading, setLoading] = useState(true);
   const [showCompose, setShowCompose] = useState(false);
 
   useEffect(() => {
@@ -671,6 +859,7 @@ function MediaView({ profile }: { profile: Profile | null }) {
         });
         setLikes(map);
       }
+      setLoading(false);
 
       postsSub = sb
         .channel("hub-posts")
@@ -680,6 +869,14 @@ function MediaView({ profile }: { profile: Profile | null }) {
           (payload) => {
             const p = payload.new as HubPost;
             setPosts((prev) => (prev.some((x) => x.id === p.id) ? prev : [p, ...prev]));
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "hub_posts" },
+          (payload) => {
+            const p = payload.old as HubPost;
+            setPosts((prev) => prev.filter((x) => x.id !== p.id));
           }
         )
         .subscribe();
@@ -747,11 +944,20 @@ function MediaView({ profile }: { profile: Profile | null }) {
     }
   }
 
+  async function deletePost(postId: string) {
+    const sb = getSupabase();
+    if (!sb) return;
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    await sb.from("hub_posts").delete().eq("id", postId);
+  }
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-wolf-muted">
-          {posts.length} {posts.length === 1 ? "post" : "posts"} from the pack
+          {loading
+            ? "Loading…"
+            : `${posts.length} ${posts.length === 1 ? "post" : "posts"} from the pack`}
         </p>
         <button
           onClick={() => setShowCompose(true)}
@@ -763,7 +969,16 @@ function MediaView({ profile }: { profile: Profile | null }) {
         </button>
       </div>
 
-      {posts.length === 0 ? (
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {[0, 1].map((i) => (
+            <div
+              key={i}
+              className="h-[320px] animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]"
+            />
+          ))}
+        </div>
+      ) : posts.length === 0 ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-16 text-center">
           <div className="mb-2 text-4xl">📸</div>
           <p className="text-wolf-muted">
@@ -776,8 +991,10 @@ function MediaView({ profile }: { profile: Profile | null }) {
             <PostCard
               key={p.id}
               post={p}
+              isMine={p.author_id === profile?.id}
               likes={likes.get(p.id) || { count: 0, mine: false }}
               onLike={() => toggleLike(p.id)}
+              onDelete={() => deletePost(p.id)}
             />
           ))}
         </div>
@@ -799,12 +1016,16 @@ function MediaView({ profile }: { profile: Profile | null }) {
 
 function PostCard({
   post,
+  isMine,
   likes,
   onLike,
+  onDelete,
 }: {
   post: HubPost;
+  isMine: boolean;
   likes: { count: number; mine: boolean };
   onLike: () => void;
+  onDelete: () => void;
 }) {
   const accent = wolfAccent(post.author_wolf_id);
   return (
@@ -850,6 +1071,15 @@ function PostCard({
           <Heart size={16} className={likes.mine ? "fill-current" : ""} />
           <span className="font-medium">{likes.count}</span>
         </button>
+        {isMine && (
+          <button
+            onClick={onDelete}
+            className="ml-auto flex items-center gap-1 text-xs text-wolf-muted transition-colors hover:text-red-400"
+            title="Delete post"
+          >
+            <Trash2 size={13} />
+          </button>
+        )}
       </div>
       {post.caption && (
         <p className="px-4 pb-4 text-sm text-wolf-muted">
@@ -954,7 +1184,9 @@ function ComposePostModal({
             <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/[0.02] px-6 py-12 text-center text-wolf-muted transition-all hover:border-[#9b6dff]/50 hover:text-white">
               <ImagePlus size={28} />
               <span className="text-sm">Pick a picture or video</span>
-              <span className="text-xs text-wolf-muted/70">JPG, PNG, WEBP, GIF, MP4, WEBM — up to 25 MB</span>
+              <span className="text-xs text-wolf-muted/70">
+                JPG, PNG, WEBP, GIF, MP4, WEBM — up to 25 MB
+              </span>
               <input
                 type="file"
                 accept="image/*,video/*"
@@ -970,7 +1202,11 @@ function ComposePostModal({
               {isVideo ? (
                 <video src={previewUrl!} controls className="max-h-[50vh] w-full" />
               ) : (
-                <img src={previewUrl!} alt="preview" className="max-h-[50vh] w-full object-contain" />
+                <img
+                  src={previewUrl!}
+                  alt="preview"
+                  className="max-h-[50vh] w-full object-contain"
+                />
               )}
             </div>
           )}
@@ -995,7 +1231,11 @@ function ComposePostModal({
             disabled={!file || uploading}
             className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#9b6dff] to-[#E040FB] px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
           >
-            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+            {uploading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Play size={14} />
+            )}
             Post
           </button>
         </div>

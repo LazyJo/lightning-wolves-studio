@@ -62,6 +62,26 @@ interface HubComment {
   created_at: string;
 }
 
+interface HubStory {
+  id: string;
+  author_id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  media_url: string;
+  media_type: "image" | "video";
+  created_at: string;
+  expires_at: string;
+}
+
+// A single "ring" in the story carousel — one per author who has at least
+// one unexpired story. Contains all that author's stories in insertion order.
+interface StoryGroup {
+  author_id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  stories: HubStory[];
+}
+
 interface Profile {
   id: string;
   display_name: string | null;
@@ -848,6 +868,83 @@ function MediaView({ profile }: { profile: Profile | null }) {
   const [comments, setComments] = useState<Map<string, HubComment[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showCompose, setShowCompose] = useState(false);
+  const [stories, setStories] = useState<HubStory[]>([]);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [showStoryCompose, setShowStoryCompose] = useState(false);
+
+  // Stories — load non-expired, subscribe for realtime adds / deletes
+  useEffect(() => {
+    let cancelled = false;
+    let sub: { unsubscribe: () => void } | null = null;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("hub_stories")
+        .select("*")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (cancelled) return;
+      setStories(data || []);
+      sub = sb
+        .channel("hub-stories")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "hub_stories" },
+          (payload) => {
+            const s = payload.new as HubStory;
+            setStories((prev) => (prev.some((x) => x.id === s.id) ? prev : [...prev, s]));
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "hub_stories" },
+          (payload) => {
+            const s = payload.old as HubStory;
+            setStories((prev) => prev.filter((x) => x.id !== s.id));
+          }
+        )
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      sub?.unsubscribe();
+    };
+  }, []);
+
+  // Group stories by author for ring carousel (author's own first if they have any)
+  const storyGroups: StoryGroup[] = useMemo(() => {
+    const map = new Map<string, StoryGroup>();
+    stories.forEach((s) => {
+      const g = map.get(s.author_id) || {
+        author_id: s.author_id,
+        author_name: s.author_name,
+        author_wolf_id: s.author_wolf_id,
+        stories: [],
+      };
+      g.stories.push(s);
+      map.set(s.author_id, g);
+    });
+    const groups = Array.from(map.values());
+    // Put own group first if it exists
+    if (profile) {
+      groups.sort((a, b) => {
+        if (a.author_id === profile.id) return -1;
+        if (b.author_id === profile.id) return 1;
+        const latestA = a.stories[a.stories.length - 1]?.created_at || "";
+        const latestB = b.stories[b.stories.length - 1]?.created_at || "";
+        return latestB.localeCompare(latestA);
+      });
+    }
+    return groups;
+  }, [stories, profile?.id]);
+
+  async function deleteStory(storyId: string) {
+    const sb = getSupabase();
+    if (!sb) return;
+    await sb.from("hub_stories").delete().eq("id", storyId);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -1046,6 +1143,14 @@ function MediaView({ profile }: { profile: Profile | null }) {
 
   return (
     <div>
+      {/* Story ring carousel */}
+      <StoryRings
+        profile={profile}
+        groups={storyGroups}
+        onOpenGroup={(idx) => setViewerIndex(idx)}
+        onAddStory={() => setShowStoryCompose(true)}
+      />
+
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-wolf-muted">
           {loading
@@ -1102,6 +1207,21 @@ function MediaView({ profile }: { profile: Profile | null }) {
           <ComposePostModal
             profile={profile}
             onClose={() => setShowCompose(false)}
+          />
+        )}
+        {viewerIndex !== null && storyGroups[viewerIndex] && (
+          <StoryViewer
+            groups={storyGroups}
+            initialGroupIndex={viewerIndex}
+            currentUserId={profile?.id}
+            onClose={() => setViewerIndex(null)}
+            onDeleteStory={deleteStory}
+          />
+        )}
+        {showStoryCompose && profile && (
+          <StoryComposerModal
+            profile={profile}
+            onClose={() => setShowStoryCompose(false)}
           />
         )}
       </AnimatePresence>
@@ -1876,6 +1996,421 @@ function PostDetailModal({
             <span className="text-wolf-muted">{post.caption}</span>
           </p>
         )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ─── Story Rings (horizontal carousel at top of Media feed) ─── */
+
+function StoryRings({
+  profile,
+  groups,
+  onOpenGroup,
+  onAddStory,
+}: {
+  profile: Profile | null;
+  groups: StoryGroup[];
+  onOpenGroup: (index: number) => void;
+  onAddStory: () => void;
+}) {
+  const hasOwnStory = profile && groups.some((g) => g.author_id === profile.id);
+
+  return (
+    <div className="mb-5 flex gap-4 overflow-x-auto pb-2">
+      {/* "Your story" / Add button */}
+      {profile && !hasOwnStory && (
+        <button
+          onClick={onAddStory}
+          className="flex flex-shrink-0 flex-col items-center gap-1.5"
+        >
+          <div className="relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-white/20 bg-white/[0.03] text-wolf-muted transition-all hover:border-[#9b6dff]/60 hover:text-white">
+            <ImagePlus size={20} />
+            <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#9b6dff] text-xs font-bold text-white">
+              +
+            </span>
+          </div>
+          <span className="text-[10px] text-wolf-muted">Your story</span>
+        </button>
+      )}
+
+      {groups.map((g, i) => {
+        const accent = wolfAccent(g.author_wolf_id);
+        const isOwn = profile?.id === g.author_id;
+        return (
+          <button
+            key={g.author_id}
+            onClick={() => onOpenGroup(i)}
+            className="flex flex-shrink-0 flex-col items-center gap-1.5"
+          >
+            <div
+              className="rounded-full p-[2px]"
+              style={{
+                background: `conic-gradient(from 0deg, #9b6dff, #f5c518, #E040FB, #9b6dff)`,
+              }}
+            >
+              <div className="rounded-full bg-wolf-bg p-[2px]">
+                <div
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-base font-bold text-black"
+                  style={{ backgroundColor: accent }}
+                >
+                  {(g.author_name || "W").slice(0, 1).toUpperCase()}
+                </div>
+              </div>
+            </div>
+            <span className="max-w-[72px] truncate text-[10px] text-white">
+              {isOwn ? "You" : g.author_name || "Wolf"}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─── Story Viewer (full-screen, progress bars, auto-advance, tap zones) ─── */
+
+function StoryViewer({
+  groups,
+  initialGroupIndex,
+  currentUserId,
+  onClose,
+  onDeleteStory,
+}: {
+  groups: StoryGroup[];
+  initialGroupIndex: number;
+  currentUserId?: string;
+  onClose: () => void;
+  onDeleteStory: (storyId: string) => Promise<void>;
+}) {
+  const [groupIdx, setGroupIdx] = useState(initialGroupIndex);
+  const [storyIdx, setStoryIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [progress, setProgress] = useState(0); // 0..1 for current story
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const group = groups[groupIdx];
+  const story = group?.stories[storyIdx];
+
+  // Reset story index when switching groups
+  useEffect(() => {
+    setStoryIdx(0);
+    setProgress(0);
+  }, [groupIdx]);
+
+  // Progress ticker — images advance at 5s, videos advance on 'ended'
+  useEffect(() => {
+    if (!story || paused) return;
+    if (story.media_type === "video") {
+      setProgress(0);
+      return; // driven by video onTimeUpdate
+    }
+    const duration = 5000;
+    const started = performance.now();
+    let rafId: number;
+    const tick = (now: number) => {
+      const elapsed = now - started;
+      const p = Math.min(1, elapsed / duration);
+      setProgress(p);
+      if (p >= 1) {
+        advance();
+      } else {
+        rafId = requestAnimationFrame(tick);
+      }
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.id, paused]);
+
+  function advance() {
+    if (!group) return;
+    if (storyIdx + 1 < group.stories.length) {
+      setStoryIdx(storyIdx + 1);
+    } else if (groupIdx + 1 < groups.length) {
+      setGroupIdx(groupIdx + 1);
+    } else {
+      onClose();
+    }
+  }
+
+  function retreat() {
+    if (storyIdx > 0) {
+      setStoryIdx(storyIdx - 1);
+      setProgress(0);
+    } else if (groupIdx > 0) {
+      const prevGroup = groups[groupIdx - 1];
+      setGroupIdx(groupIdx - 1);
+      setStoryIdx(Math.max(0, prevGroup.stories.length - 1));
+      setProgress(0);
+    }
+  }
+
+  // Keyboard support
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowRight") advance();
+      else if (e.key === "ArrowLeft") retreat();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupIdx, storyIdx]);
+
+  if (!story || !group) return null;
+  const accent = wolfAccent(group.author_wolf_id);
+  const isOwn = currentUserId === group.author_id;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black"
+    >
+      <div className="relative flex h-full max-h-[100dvh] w-full max-w-[440px] flex-col">
+        {/* Progress bars */}
+        <div className="flex gap-1 p-3 pt-4">
+          {group.stories.map((_, i) => (
+            <div
+              key={i}
+              className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/30"
+            >
+              <div
+                className="h-full bg-white transition-[width] ease-linear"
+                style={{
+                  width:
+                    i < storyIdx
+                      ? "100%"
+                      : i === storyIdx
+                      ? `${progress * 100}%`
+                      : "0%",
+                }}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Author bar */}
+        <div className="flex items-center gap-2 px-4 pb-3 text-white">
+          <div
+            className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-black"
+            style={{ backgroundColor: accent }}
+          >
+            {(group.author_name || "W").slice(0, 1).toUpperCase()}
+          </div>
+          <span className="text-sm font-semibold">
+            {isOwn ? "You" : group.author_name || "Wolf"}
+          </span>
+          <span className="text-xs text-white/70">{timeAgo(story.created_at)}</span>
+          <div className="ml-auto flex items-center gap-2">
+            {isOwn && (
+              <button
+                onClick={async () => {
+                  await onDeleteStory(story.id);
+                  advance();
+                }}
+                className="rounded-full bg-black/40 p-2 text-white/80 transition-colors hover:bg-red-500/30 hover:text-red-300"
+                title="Delete story"
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="rounded-full bg-black/40 p-2 text-white/80 transition-colors hover:bg-black/70 hover:text-white"
+              title="Close"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Media + tap zones */}
+        <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-black">
+          {story.media_type === "image" ? (
+            <img
+              src={story.media_url}
+              alt="story"
+              className="max-h-full max-w-full object-contain"
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              src={story.media_url}
+              autoPlay
+              playsInline
+              onTimeUpdate={(e) => {
+                const v = e.currentTarget;
+                if (v.duration > 0) setProgress(v.currentTime / v.duration);
+              }}
+              onEnded={advance}
+              className="max-h-full max-w-full object-contain"
+            />
+          )}
+
+          {/* Tap zones */}
+          <button
+            onClick={retreat}
+            onMouseDown={() => setPaused(true)}
+            onMouseUp={() => setPaused(false)}
+            onTouchStart={() => setPaused(true)}
+            onTouchEnd={() => setPaused(false)}
+            className="absolute inset-y-0 left-0 w-1/3 cursor-default"
+            aria-label="Previous"
+          />
+          <button
+            onClick={advance}
+            onMouseDown={() => setPaused(true)}
+            onMouseUp={() => setPaused(false)}
+            onTouchStart={() => setPaused(true)}
+            onTouchEnd={() => setPaused(false)}
+            className="absolute inset-y-0 right-0 w-2/3 cursor-default"
+            aria-label="Next"
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── Story Composer Modal ─── */
+
+function StoryComposerModal({
+  profile,
+  onClose,
+}: {
+  profile: Profile;
+  onClose: () => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  async function handlePost() {
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const sb = getSupabase();
+      if (!sb) {
+        setError("Connection error — try again.");
+        return;
+      }
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `stories/${profile.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from("wolf-hub-media")
+        .upload(path, file, { contentType: file.type });
+      if (upErr) {
+        setError(upErr.message);
+        return;
+      }
+      const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
+      const mediaType: "image" | "video" = file.type.startsWith("video/")
+        ? "video"
+        : "image";
+      const { error: insErr } = await sb.from("hub_stories").insert({
+        author_id: profile.id,
+        author_name: profile.display_name || profile.email?.split("@")[0] || null,
+        author_wolf_id: profile.wolf_id,
+        media_url: urlData.publicUrl,
+        media_type: mediaType,
+      });
+      if (insErr) {
+        setError(insErr.message);
+        return;
+      }
+      onClose();
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const isVideo = file?.type.startsWith("video/");
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-wolf-card"
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <h3 className="font-semibold text-white">New story</h3>
+          <button
+            onClick={onClose}
+            className="text-wolf-muted transition-colors hover:text-white"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-5">
+          <p className="mb-3 text-xs text-wolf-muted">
+            Stories disappear after 24 hours.
+          </p>
+          {!file ? (
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/[0.02] px-6 py-12 text-center text-wolf-muted transition-all hover:border-[#9b6dff]/50 hover:text-white">
+              <ImagePlus size={28} />
+              <span className="text-sm">Pick a picture or video</span>
+              <span className="text-xs text-wolf-muted/70">JPG, PNG, MP4 — up to 25 MB</span>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setFile(f);
+                }}
+              />
+            </label>
+          ) : (
+            <div className="overflow-hidden rounded-xl bg-black">
+              {isVideo ? (
+                <video src={previewUrl!} controls className="max-h-[50vh] w-full" />
+              ) : (
+                <img
+                  src={previewUrl!}
+                  alt="preview"
+                  className="max-h-[50vh] w-full object-contain"
+                />
+              )}
+            </div>
+          )}
+          {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-5 py-3">
+          <button
+            onClick={onClose}
+            className="rounded-lg px-4 py-2 text-sm text-wolf-muted transition-colors hover:text-white"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handlePost}
+            disabled={!file || uploading}
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#9b6dff] to-[#E040FB] px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+          >
+            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+            Share story
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );

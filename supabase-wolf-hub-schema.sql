@@ -67,6 +67,23 @@ CREATE INDEX IF NOT EXISTS hub_post_comments_post_created_idx
   ON hub_post_comments (post_id, created_at)
   WHERE deleted_at IS NULL;
 
+-- 24-hour stories. RLS filters by expires_at so expired rows disappear
+-- automatically without a cron — cleanup is a nice-to-have, not required.
+CREATE TABLE IF NOT EXISTS hub_stories (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id       UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  author_name     TEXT,
+  author_wolf_id  TEXT,
+  media_url       TEXT NOT NULL,
+  media_type      TEXT NOT NULL CHECK (media_type IN ('image','video')),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at      TIMESTAMPTZ NOT NULL DEFAULT (now() + INTERVAL '24 hours')
+);
+CREATE INDEX IF NOT EXISTS hub_stories_author_created_idx
+  ON hub_stories (author_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS hub_stories_expires_idx
+  ON hub_stories (expires_at);
+
 -- ── Row Level Security ───────────────────────────────────────────────────────
 
 ALTER TABLE hub_messages      ENABLE ROW LEVEL SECURITY;
@@ -74,6 +91,7 @@ ALTER TABLE hub_posts         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hub_reactions     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hub_post_likes    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hub_post_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hub_stories       ENABLE ROW LEVEL SECURITY;
 
 -- Messages: any signed-in user reads non-deleted; author inserts as self;
 -- author soft-deletes their own (update deleted_at); service role full access.
@@ -161,6 +179,23 @@ DROP POLICY IF EXISTS hub_comment_service ON hub_post_comments;
 CREATE POLICY hub_comment_service ON hub_post_comments
   FOR ALL USING (auth.role() = 'service_role');
 
+-- Stories: signed-in reads non-expired; author inserts / deletes own
+DROP POLICY IF EXISTS hub_story_select ON hub_stories;
+CREATE POLICY hub_story_select ON hub_stories
+  FOR SELECT USING (auth.uid() IS NOT NULL AND expires_at > now());
+
+DROP POLICY IF EXISTS hub_story_insert ON hub_stories;
+CREATE POLICY hub_story_insert ON hub_stories
+  FOR INSERT WITH CHECK (auth.uid() = author_id);
+
+DROP POLICY IF EXISTS hub_story_delete_own ON hub_stories;
+CREATE POLICY hub_story_delete_own ON hub_stories
+  FOR DELETE USING (auth.uid() = author_id);
+
+DROP POLICY IF EXISTS hub_story_service ON hub_stories;
+CREATE POLICY hub_story_service ON hub_stories
+  FOR ALL USING (auth.role() = 'service_role');
+
 -- ── Realtime publication ─────────────────────────────────────────────────────
 -- Enable realtime on all four tables (idempotent: wrap in DO block)
 DO $$
@@ -194,6 +229,12 @@ BEGIN
     WHERE pubname = 'supabase_realtime' AND tablename = 'hub_post_comments'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE hub_post_comments;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'hub_stories'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE hub_stories;
   END IF;
 END $$;
 

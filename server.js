@@ -640,11 +640,18 @@ const VISION_MODELS = {
     kind: 'video',
     provider: 'openai',
     openaiModel: 'sora-2',
-    buildInput: (prompt, opts = {}) => ({
-      prompt,
-      seconds: String(opts.duration || 4),
-      size: opts.size || '1280x720',
-    }),
+    buildInput: (prompt, opts = {}) => {
+      // Compute `size` from the UI's resolution (480p|720p) + aspectRatio (9:16|16:9).
+      // Falls back to 1280x720 landscape if anything's missing.
+      const portrait = opts.aspectRatio === '9:16';
+      const base = opts.resolution === '720p' ? [1280, 720] : [854, 480];
+      const [w, h] = portrait ? [base[1], base[0]] : base;
+      return {
+        prompt,
+        seconds: String(opts.duration || 4),
+        size: opts.size || `${w}x${h}`,
+      };
+    },
   },
   'kling-3': {
     name: 'Kling 3.0',
@@ -751,8 +758,13 @@ app.post('/api/generate-visuals', async (req, res) => {
     }
 
     // ── Auth + credit check ──────────────────────────────────────────────
+    // Authed users: check Supabase credits, deduct on success.
+    // Guests (Lone Wolf path): proceed without auth — matches the pattern of
+    // /api/generate which also allows guest calls. Client-side localStorage
+    // enforces the "3 free generations" cap in ScenesView. Cost exposure is
+    // intentional for try-before-buy onboarding.
     let user = null;
-    let credits = 100; // guest default
+    let credits = 0;
     if (token) {
       user = await getUserFromToken({ headers: { authorization: `Bearer ${token}` } });
       if (user) {
@@ -761,14 +773,7 @@ app.post('/api/generate-visuals', async (req, res) => {
       }
     }
 
-    if (!user) {
-      return res.status(401).json({
-        error: 'SIGN_IN_REQUIRED',
-        message: 'Sign in to generate visuals.',
-      });
-    }
-
-    if (credits < model.credits) {
+    if (user && credits < model.credits) {
       return res.status(403).json({
         error: 'INSUFFICIENT_CREDITS',
         message: `Not enough credits. Need ${model.credits}, have ${credits}.`,
@@ -809,22 +814,23 @@ app.post('/api/generate-visuals', async (req, res) => {
 
     // Deduct credits only after the prediction is accepted upstream. If the
     // prediction fails later, we'll refund inside the status endpoint.
-    await supabase
-      .from('profiles')
-      .update({ wolf_credits: credits - model.credits })
-      .eq('id', user.id);
+    // Guests (no user) skip deduction + logging — they're anonymous.
+    if (user) {
+      await supabase
+        .from('profiles')
+        .update({ wolf_credits: credits - model.credits })
+        .eq('id', user.id);
 
-    // Persist so we can look up later — also the source of truth the status
-    // endpoint uses to know "did this user start this prediction?"
-    await supabase.from('visual_generations').insert({
-      user_id: user.id,
-      prediction_id: prediction.id,
-      model_id: modelId,
-      prompt,
-      type: type || 'scene',
-      credits_used: model.credits,
-      status: prediction.status, // 'starting' | 'processing' | ...
-    });
+      await supabase.from('visual_generations').insert({
+        user_id: user.id,
+        prediction_id: prediction.id,
+        model_id: modelId,
+        prompt,
+        type: type || 'scene',
+        credits_used: model.credits,
+        status: prediction.status,
+      });
+    }
 
     res.json({
       success: true,
@@ -835,8 +841,8 @@ app.post('/api/generate-visuals', async (req, res) => {
         kind: model.kind,
         prompt,
         type: type || 'scene',
-        creditsUsed: model.credits,
-        remainingCredits: credits - model.credits,
+        creditsUsed: user ? model.credits : 0,
+        remainingCredits: user ? credits - model.credits : null,
         status: prediction.status,
       },
     });

@@ -42,7 +42,7 @@ import type { Wolf } from "../data/wolves";
 interface Props {
   wolf: Wolf | null;
   onBack: () => void;
-  onWolfHub?: () => void;
+  onWolfMap?: () => void;
   studioView?: string;
   onStudioNav?: (view: string) => void;
 }
@@ -558,7 +558,7 @@ const LYRIC_VIDEO_MODES: View[] = ["scenes", "remix", "performance"];
 type PendingMode = "scenes" | "remix" | "performance" | null;
 
 // Main Studio Page
-export default function StudioPage({ wolf, onBack, onWolfHub, studioView: externalView, onStudioNav }: Props) {
+export default function StudioPage({ wolf, onBack, onWolfMap, studioView: externalView, onStudioNav }: Props) {
   const [internalView, setInternalView] = useState<View>("dashboard");
 
   // LYRC-style Template flow — one upload, many renders.
@@ -637,7 +637,7 @@ export default function StudioPage({ wolf, onBack, onWolfHub, studioView: extern
             plan={plan}
             onSelectTool={(v) => handleDashboardTool(v as View)}
             onBack={onBack}
-            onWolfHub={onWolfHub}
+            onWolfMap={onWolfMap}
             t={t}
             onNewTemplate={() => {
               setEditingTemplate(null);

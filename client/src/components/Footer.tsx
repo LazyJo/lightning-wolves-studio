@@ -2,27 +2,27 @@ import { motion } from "motion/react";
 import { useI18n } from "../lib/i18n";
 
 interface Props {
-  onWolfHub: () => void;
+  onWolfMap: () => void;
   onStudio?: () => void;
   onPricing?: () => void;
   onJoinPack?: () => void;
   onGoldenBoard?: () => void;
 }
 
-export default function Footer({ onWolfHub, onStudio, onPricing, onJoinPack, onGoldenBoard }: Props) {
+export default function Footer({ onWolfMap, onStudio, onPricing, onJoinPack, onGoldenBoard }: Props) {
   const { t } = useI18n();
 
   const studioLinks: { label: string; action?: () => void }[] = [
     { label: "Lyrics Studio", action: onStudio },
     { label: "Pricing", action: onPricing },
-    { label: "Wolf Map", action: onWolfHub },
+    { label: "Wolf Map", action: onWolfMap },
     { label: "Golden Board", action: onGoldenBoard },
   ];
 
   const communityLinks: { label: string; action?: () => void }[] = [
     { label: "Join the Pack", action: onJoinPack },
-    { label: "Versus Swipe", action: onWolfHub },
-    { label: "Territories", action: onWolfHub },
+    { label: "Versus Swipe", action: onWolfMap },
+    { label: "Territories", action: onWolfMap },
   ];
 
   return (
@@ -116,7 +116,7 @@ export default function Footer({ onWolfHub, onStudio, onPricing, onJoinPack, onG
           </p>
           {/* Easter egg: Wolf Map access */}
           <button
-            onClick={onWolfHub}
+            onClick={onWolfMap}
             className="text-lg opacity-20 transition-opacity hover:opacity-100"
             title="Wolf Map"
             aria-label="Wolf Map"

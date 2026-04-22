@@ -11,6 +11,7 @@ import Footer from "./components/Footer";
 import LightningCanvas from "./components/LightningCanvas";
 import WolfProfilePage from "./components/WolfProfilePage";
 import PricingPage from "./components/PricingPage";
+import WolfMapPage from "./components/WolfMapPage";
 import WolfHubPage from "./components/WolfHubPage";
 import StudioPage from "./components/StudioPage";
 import AuthPage from "./components/AuthPage";
@@ -32,6 +33,7 @@ type Page =
   | { type: "home" }
   | { type: "wolf-profile"; wolf: Wolf }
   | { type: "pricing" }
+  | { type: "wolf-map" }
   | { type: "wolf-hub" }
   | { type: "studio"; wolf: Wolf | null }
   | { type: "auth" }
@@ -149,10 +151,12 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
+  const goToWolfMap = useCallback(() => {
+    setPage({ type: "wolf-map" });
+    window.scrollTo(0, 0);
+  }, []);
+
   const goToWolfHub = useCallback(() => {
-    // Wolf Map is open to everyone — profile is optional and can be
-    // completed later when the user actually wants to appear on the
-    // other side of a swipe.
     setPage({ type: "wolf-hub" });
     window.scrollTo(0, 0);
   }, []);
@@ -229,6 +233,7 @@ export default function App() {
       <div className="relative z-10">
         <Navbar
           onPricing={goToPricing}
+          onWolfMap={goToWolfMap}
           onWolfHub={goToWolfHub}
           onHome={goHome}
           onStudio={() => goToStudio()}
@@ -293,7 +298,7 @@ export default function App() {
                   onSelectWolf={handleWolfSelect}
                   onJoinPack={goToJoinPack}
                 />
-                <CTA onStudio={() => goToStudio()} onWolfMap={goToWolfHub} />
+                <CTA onStudio={() => goToStudio()} onWolfMap={goToWolfMap} />
               </>
             )}
 
@@ -328,8 +333,8 @@ export default function App() {
               />
             )}
 
-            {page.type === "wolf-hub" && (
-              <WolfHubPage
+            {page.type === "wolf-map" && (
+              <WolfMapPage
                 onBack={goHome}
                 onSelectWolf={goToProfile}
                 onVersus={goToVersus}
@@ -338,11 +343,15 @@ export default function App() {
               />
             )}
 
+            {page.type === "wolf-hub" && (
+              <WolfHubPage onBack={goHome} onAuth={goToAuth} />
+            )}
+
             {page.type === "studio" && (
               <StudioPage
                 wolf={page.wolf}
                 onBack={goHome}
-                onWolfHub={goToWolfHub}
+                onWolfMap={goToWolfMap}
                 studioView={studioView}
                 onStudioNav={(v) => {
                   if (v === "pricing") { goToPricing(); return; }
@@ -369,7 +378,7 @@ export default function App() {
                   if (page.pendingApplyGigId) {
                     setPage({ type: "golden-board", initialGigId: page.pendingApplyGigId });
                   } else {
-                    setPage({ type: "wolf-hub" });
+                    setPage({ type: "wolf-map" });
                   }
                   window.scrollTo(0, 0);
                 }}
@@ -384,7 +393,7 @@ export default function App() {
                   } else if (page.roleFilter) {
                     setPage({ type: "explore" });
                   } else {
-                    setPage({ type: "wolf-hub" });
+                    setPage({ type: "wolf-map" });
                   }
                 }}
                 territory={page.territory}
@@ -441,7 +450,7 @@ export default function App() {
         </AnimatePresence>
 
         <Footer
-          onWolfHub={goToWolfHub}
+          onWolfMap={goToWolfMap}
           onStudio={() => goToStudio()}
           onPricing={goToPricing}
           onJoinPack={goToJoinPack}

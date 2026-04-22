@@ -1,975 +1,1005 @@
-import { useState, useEffect, useRef, useCallback, useMemo, useReducer } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, MapPin, X, Search, UserPlus, Music, Zap, Flame, Globe2 } from "lucide-react";
-import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
-import gsap from "gsap";
 import {
-  ComposableMap,
-  Geographies,
-  Geography,
-  ZoomableGroup,
-} from "react-simple-maps";
-import {
-  territories,
-  wolves,
-  recentActivity,
-  isoAlpha2ToNumeric,
-} from "../data/wolves";
-import type { Territory, Wolf } from "../data/wolves";
+  ArrowLeft,
+  Send,
+  ImagePlus,
+  Heart,
+  MessageCircle,
+  ImageIcon,
+  X,
+  Loader2,
+  Play,
+} from "lucide-react";
+import { getSupabase, initSupabase } from "../lib/supabaseClient";
+import { useSession } from "../lib/useSession";
 
-const GEO_URL = "/countries-110m.json";
+/* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
-// Default map view (lng, lat, zoom)
-const DEFAULT_VIEW = { lng: 10, lat: 20, zoom: 1 };
+interface HubMessage {
+  id: string;
+  author_id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  body: string | null;
+  image_url: string | null;
+  created_at: string;
+}
 
-// Approximate centroids (lng, lat) for our active territories — used to animate zoom on select
-const TERRITORY_CENTROIDS: Record<string, [number, number]> = {
-  GH: [-1.0, 7.9],
-  US: [-98.0, 39.0],
-  GB: [-2.0, 54.0],
-  BE: [4.5, 50.5],
-  FR: [2.5, 46.2],
-  NG: [8.0, 9.0],
+interface HubReaction {
+  id: string;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+}
+
+interface HubPost {
+  id: string;
+  author_id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  media_url: string;
+  media_type: "image" | "video";
+  caption: string | null;
+  created_at: string;
+}
+
+interface Profile {
+  id: string;
+  display_name: string | null;
+  wolf_id: string | null;
+  email: string | null;
+}
+
+/* ─── Helpers ─── */
+
+const QUICK_EMOJIS = ["🔥", "❤️", "😂", "🐺", "⚡", "👀"];
+
+const WOLF_COLOR: Record<string, string> = {
+  yellow: "#f5c518",
+  orange: "#ff8a3d",
+  purple: "#E040FB",
 };
 
-// Zoom level per territory — larger countries need less zoom
-const TERRITORY_ZOOM: Record<string, number> = {
-  US: 2.2,
-  NG: 3.5,
-  GH: 4,
-  FR: 4,
-  GB: 3.5,
-  BE: 6,
-};
-
-// Canonical genre buckets for the filter chips — coarser than raw wolf.genre
-// strings so related styles (e.g. "Melodic Hip-Hop" + "French Hip-Hop") share a chip.
-const GENRE_FILTERS: { id: string; label: string; match: (g: string) => boolean }[] = [
-  { id: "hip-hop", label: "Hip-Hop", match: (g) => /hip-hop/i.test(g) },
-  { id: "pop", label: "Pop", match: (g) => /pop/i.test(g) },
-  { id: "visual", label: "Visual", match: (g) => /cover|trailer|photo|video/i.test(g) },
-];
-
-function territoryMatchesGenre(t: Territory, filterId: string | null): boolean {
-  if (!filterId) return true;
-  const filter = GENRE_FILTERS.find((f) => f.id === filterId);
-  if (!filter) return true;
-  return t.artists
-    .map((id) => wolves.find((w) => w.id === id))
-    .some((w) => !!w && filter.match(w.genre));
+function displayName(m: { author_name: string | null; author_id: string }): string {
+  return m.author_name || `Wolf ${m.author_id.slice(0, 4)}`;
 }
 
-// Build a set of numeric ISO codes that have active artists
-const activeNumericCodes = new Set(
-  territories
-    .filter((t) => t.artists.length > 0)
-    .map((t) => isoAlpha2ToNumeric[t.iso])
-    .filter(Boolean)
-);
-
-// Numeric ISO → Territory lookup
-const numericToTerritory = new Map<string, Territory>();
-territories.forEach((t) => {
-  const num = isoAlpha2ToNumeric[t.iso];
-  if (num) numericToTerritory.set(num, t);
-});
-
-interface Props {
-  onBack: () => void;
-  onSelectWolf: (wolf: Wolf) => void;
-  onVersus?: (territory?: string) => void;
-  onExplore?: () => void;
-  onGoldenBoard?: () => void;
+function wolfAccent(wolfId: string | null): string {
+  return (wolfId && WOLF_COLOR[wolfId]) || "#9b6dff";
 }
 
-/* ─── 3D Wolf Scene (simplified — no maw zoom) ─── */
-
-function WolfScene({
-  containerRef,
-}: {
-  containerRef: React.RefObject<HTMLDivElement | null>;
-}) {
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(
-      30,
-      container.clientWidth / container.clientHeight,
-      0.1,
-      100
-    );
-    camera.position.set(0, 1.2, 7);
-    camera.lookAt(0, 0.7, 0);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.4;
-    container.appendChild(renderer.domElement);
-
-    // Cinematic lighting
-    scene.add(new THREE.AmbientLight(0xffffff, 0.3));
-    const rim1 = new THREE.DirectionalLight(0xf5c518, 2.0);
-    rim1.position.set(4, 3, -3);
-    scene.add(rim1);
-    const rim2 = new THREE.DirectionalLight(0xf5c518, 1.2);
-    rim2.position.set(-4, 3, -3);
-    scene.add(rim2);
-    const front = new THREE.DirectionalLight(0xffeedd, 0.5);
-    front.position.set(0, 1, 6);
-    scene.add(front);
-    const bottom = new THREE.DirectionalLight(0xf5c518, 0.4);
-    bottom.position.set(0, -3, 3);
-    scene.add(bottom);
-    const top = new THREE.DirectionalLight(0x9b6dff, 0.3);
-    top.position.set(0, 5, 0);
-    scene.add(top);
-
-    // Load wolf model
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath(
-      "https://www.gstatic.com/draco/versioned/decoders/1.5.6/"
-    );
-    const loader = new GLTFLoader();
-    loader.setDRACOLoader(dracoLoader);
-
-    let model: THREE.Object3D | null = null;
-    const targetRotation = { x: 0, y: 0 };
-
-    loader.load("/Optimized_Wolf.glb", (gltf) => {
-      model = gltf.scene;
-      model.scale.setScalar(1.6);
-      model.position.set(0, 0.75, 0);
-      scene.add(model);
-    });
-
-    // Mouse tracking for tilt
-    const onMouseMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-      const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
-      targetRotation.x = -y * 0.12;
-      targetRotation.y = x * 0.12;
-    };
-    container.addEventListener("mousemove", onMouseMove);
-
-    let animId: number;
-    const animate = () => {
-      animId = requestAnimationFrame(animate);
-      if (model) {
-        model.rotation.x += (targetRotation.x - model.rotation.x) * 0.03;
-        model.rotation.y += (targetRotation.y - model.rotation.y) * 0.03;
-      }
-      renderer.render(scene, camera);
-    };
-    animate();
-
-    const onResize = () => {
-      camera.aspect = container.clientWidth / container.clientHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
-    };
-    window.addEventListener("resize", onResize);
-
-    return () => {
-      cancelAnimationFrame(animId);
-      container.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("resize", onResize);
-      renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
-      }
-    };
-  }, [containerRef]);
-
-  return null;
-}
-
-/* ─── Interactive World Map ─── */
-
-function WorldMap({
-  onSelectTerritory,
-  onResetView,
-  selectedIso,
-  hoveredIso,
-  onHover,
-  litIsoSet,
-}: {
-  onSelectTerritory: (territory: Territory) => void;
-  onResetView: () => void;
-  selectedIso: string | null;
-  hoveredIso: string | null;
-  onHover: (iso: string | null) => void;
-  litIsoSet: Set<string>;
-}) {
-  // Animated map view — mutated by GSAP, re-rendered via forceUpdate
-  const viewRef = useRef({ ...DEFAULT_VIEW });
-  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
-  const tweenRef = useRef<gsap.core.Tween | null>(null);
-
-  // Animate the map view whenever the selected territory changes
-  useEffect(() => {
-    const target = selectedIso
-      ? {
-          lng: TERRITORY_CENTROIDS[selectedIso]?.[0] ?? DEFAULT_VIEW.lng,
-          lat: TERRITORY_CENTROIDS[selectedIso]?.[1] ?? DEFAULT_VIEW.lat,
-          zoom: TERRITORY_ZOOM[selectedIso] ?? 3,
-        }
-      : DEFAULT_VIEW;
-
-    tweenRef.current?.kill();
-    tweenRef.current = gsap.to(viewRef.current, {
-      lng: target.lng,
-      lat: target.lat,
-      zoom: target.zoom,
-      duration: 1.1,
-      ease: "power3.inOut",
-      onUpdate: forceUpdate,
-    });
-
-    return () => {
-      tweenRef.current?.kill();
-    };
-  }, [selectedIso]);
-
-  const isZoomed = viewRef.current.zoom > 1.05;
-
-  return (
-    <div className="relative rounded-2xl border border-wolf-border/30 bg-wolf-surface/50 p-2 backdrop-blur-sm sm:p-4">
-      {/* Reset view pill — only when zoomed */}
-      <AnimatePresence>
-        {isZoomed && (
-          <motion.button
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            onClick={onResetView}
-            className="absolute right-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full border border-wolf-gold/30 bg-wolf-bg/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-wolf-gold backdrop-blur-md transition-colors hover:border-wolf-gold/60 hover:text-white"
-          >
-            <Globe2 size={12} />
-            Reset view
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      <ComposableMap
-        projection="geoNaturalEarth1"
-        projectionConfig={{ scale: 140 }}
-        style={{ width: "100%", height: "auto" }}
-      >
-        <ZoomableGroup
-          center={[viewRef.current.lng, viewRef.current.lat]}
-          zoom={viewRef.current.zoom}
-          minZoom={1}
-          maxZoom={8}
-          // Zoom/pan is driven by GSAP on country select, not by user gestures.
-          // react-simple-maps v3 dropped disablePanning/disableZooming — use
-          // filterZoomEvent to swallow all wheel/drag events instead.
-          filterZoomEvent={() => false}
-        >
-        <Geographies geography={GEO_URL}>
-          {({ geographies }) =>
-            geographies.map((geo) => {
-              const geoId = geo.id as string;
-              const isActive = activeNumericCodes.has(geoId);
-              const territory = numericToTerritory.get(geoId);
-              const isLit = isActive && !!territory && litIsoSet.has(territory.iso);
-              const isSelected =
-                isLit && territory?.iso === selectedIso;
-              const isHovered =
-                isLit && territory?.iso === hoveredIso;
-
-              return (
-                <Geography
-                  key={geo.rsmKey}
-                  geography={geo}
-                  onClick={() => {
-                    if (isLit && territory) onSelectTerritory(territory);
-                  }}
-                  onMouseEnter={() => {
-                    if (isLit && territory) onHover(territory.iso);
-                  }}
-                  onMouseLeave={() => onHover(null)}
-                  style={{
-                    default: {
-                      fill: isSelected
-                        ? "rgba(245,197,24,0.55)"
-                        : isLit
-                        ? "rgba(245,197,24,0.3)"
-                        : isActive
-                        ? "rgba(245,197,24,0.08)"
-                        : "#15151c",
-                      stroke: isLit
-                        ? "rgba(245,197,24,0.6)"
-                        : isActive
-                        ? "rgba(245,197,24,0.2)"
-                        : "#222230",
-                      strokeWidth: isLit ? 1 : isActive ? 0.6 : 0.4,
-                      outline: "none",
-                      cursor: isLit ? "pointer" : "default",
-                      filter: isLit
-                        ? "drop-shadow(0 0 8px rgba(245,197,24,0.5))"
-                        : "none",
-                      transition: "all 200ms ease",
-                    },
-                    hover: {
-                      fill: isLit
-                        ? "rgba(245,197,24,0.45)"
-                        : isActive
-                        ? "rgba(245,197,24,0.08)"
-                        : "#1a1a24",
-                      stroke: isLit
-                        ? "rgba(245,197,24,0.8)"
-                        : isActive
-                        ? "rgba(245,197,24,0.2)"
-                        : "#222230",
-                      strokeWidth: isLit ? 1.2 : isActive ? 0.6 : 0.4,
-                      outline: "none",
-                      cursor: isLit ? "pointer" : "default",
-                      filter: isLit
-                        ? "drop-shadow(0 0 16px rgba(245,197,24,0.6))"
-                        : "none",
-                    },
-                    pressed: {
-                      fill: isLit
-                        ? "rgba(245,197,24,0.6)"
-                        : "#15151c",
-                      outline: "none",
-                    },
-                  }}
-                />
-              );
-            })
-          }
-        </Geographies>
-        </ZoomableGroup>
-      </ComposableMap>
-
-      {/* Tooltip */}
-      <AnimatePresence>
-        {hoveredIso && (() => {
-          const t = territories.find((t) => t.iso === hoveredIso);
-          if (!t) return null;
-          const wolfCount = t.artists
-            .map((id) => wolves.find((w) => w.id === id))
-            .filter(Boolean).length;
-          return (
-            <motion.div
-              key={hoveredIso}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 rounded-lg border border-wolf-gold/20 bg-wolf-bg/90 px-4 py-2 text-sm backdrop-blur-md"
-            >
-              <span className="mr-2 text-base">{t.flag}</span>
-              <span className="font-bold tracking-wider text-white" style={{ fontFamily: "var(--font-heading)" }}>
-                {t.name.toUpperCase()}
-              </span>
-              <span className="ml-3 text-wolf-gold">
-                {wolfCount} {wolfCount === 1 ? "artist" : "artists"}
-              </span>
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-/* ─── Territory Detail Panel ─── */
-
-function TerritoryPanel({
-  territory,
-  onClose,
-  onSelectWolf,
-  onVersus,
-}: {
-  territory: Territory | null;
-  onClose: () => void;
-  onSelectWolf: (wolf: Wolf) => void;
-  onVersus?: (territory?: string) => void;
-}) {
-  const territoryWolves = useCallback(
-    (t: Territory) =>
-      t.artists
-        .map((id) => wolves.find((w) => w.id === id))
-        .filter(Boolean) as Wolf[],
-    []
-  );
-
-  return (
-    <AnimatePresence>
-      {territory && (
-        <motion.div
-          key={territory.id}
-          initial={{ opacity: 0, y: 30, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 30, scale: 0.95 }}
-          transition={{ type: "spring", stiffness: 100 }}
-          className="mx-auto mt-10 max-w-2xl rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 backdrop-blur-lg"
-        >
-          <div className="mb-6 flex items-center gap-4">
-            <span className="text-4xl">{territory.flag}</span>
-            <div>
-              <h2
-                className="text-2xl font-bold tracking-wider text-white"
-                style={{ fontFamily: "var(--font-heading)" }}
-              >
-                {territory.name.toUpperCase()}
-              </h2>
-              <p className="text-xs uppercase tracking-wider text-wolf-muted">
-                {territoryWolves(territory).length} {territoryWolves(territory).length === 1 ? "artist" : "artists"} in territory
-              </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="ml-auto rounded-full border border-wolf-border/30 p-2 text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-white"
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          {territoryWolves(territory).length > 0 ? (
-            <>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {territoryWolves(territory).map((wolf, i) => (
-                  <motion.div
-                    key={wolf.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    whileHover={{ y: -4 }}
-                    onClick={() => onSelectWolf(wolf)}
-                    className="cursor-pointer rounded-xl border border-wolf-border/20 bg-wolf-surface/50 p-4 transition-all hover:border-wolf-gold/30 hover:shadow-lg hover:shadow-wolf-gold/5"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className="h-14 w-14 shrink-0 overflow-hidden rounded-full"
-                        style={{
-                          background: `radial-gradient(circle, ${wolf.color}20, #0a0a0c)`,
-                        }}
-                      >
-                        {wolf.video ? (
-                          <video
-                            src={wolf.video}
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <img
-                            src={wolf.image}
-                            alt={wolf.artist}
-                            className="h-full w-full p-2"
-                          />
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-white">{wolf.artist}</h3>
-                        <span className="text-xs" style={{ color: wolf.color }}>
-                          {wolf.genre}
-                        </span>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              {onVersus && (
-                <button
-                  onClick={() => onVersus(territory?.name)}
-                  className="group relative mt-5 w-full overflow-hidden rounded-xl py-3 font-bold tracking-wider text-black transition-all hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/20"
-                  style={{
-                    fontFamily: "var(--font-heading)",
-                    background:
-                      "linear-gradient(135deg, #9b6dff 0%, #f5c518 50%, #E040FB 100%)",
-                  }}
-                >
-                  <span className="relative z-10">
-                    🐺 START VERSUS SWIPE
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                </button>
-              )}
-            </>
-          ) : (
-            <div className="py-12 text-center">
-              <MapPin size={32} className="mx-auto mb-3 text-wolf-muted/40" />
-              <p className="text-wolf-muted">
-                No artists in this territory yet.
-              </p>
-              <p className="mt-1 text-sm text-wolf-muted/50">
-                Scouts are on the ground. Coming soon.
-              </p>
-            </div>
-          )}
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-}
-
-/* ─── Discovery Section ─── */
-
-const ACTIVITY_ICONS = {
-  joined: UserPlus,
-  collab: Music,
-  release: Zap,
-} as const;
-
-function DiscoverySection({
-  searchTerm,
-  onSearchChange,
-  onSelectTerritory,
-  onSelectWolf,
-  genreFilter,
-}: {
-  searchTerm: string;
-  onSearchChange: (term: string) => void;
-  onSelectTerritory: (territory: Territory) => void;
-  onSelectWolf: (wolf: Wolf) => void;
-  genreFilter: string | null;
-}) {
-  const hotTerritories = useMemo(
-    () =>
-      [...territories]
-        .filter((t) => t.artists.length > 0 && territoryMatchesGenre(t, genreFilter))
-        .sort((a, b) => b.artists.length - a.artists.length)
-        .slice(0, 3),
-    [genreFilter]
-  );
-
-  const searchResults = useMemo(() => {
-    if (!searchTerm.trim()) return null;
-    const term = searchTerm.toLowerCase();
-    return {
-      territories: territories.filter((t) =>
-        t.name.toLowerCase().includes(term)
-      ),
-      wolves: wolves.filter(
-        (w) =>
-          w.status === "active" &&
-          (w.artist.toLowerCase().includes(term) ||
-            w.genre.toLowerCase().includes(term))
-      ),
-    };
-  }, [searchTerm]);
-
-  return (
-    <div className="mt-16 space-y-12">
-      {/* Search bar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-      >
-        <div className="relative">
-          <Search
-            size={18}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-wolf-muted"
-          />
-          <input
-            type="text"
-            placeholder="Search artists, genres, or countries..."
-            value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full rounded-xl border border-wolf-border/30 bg-wolf-card/50 py-3 pl-11 pr-4 text-white placeholder-wolf-muted/50 outline-none backdrop-blur transition-colors focus:border-wolf-gold/40"
-          />
-        </div>
-
-        {/* Search results dropdown */}
-        <AnimatePresence>
-          {searchResults &&
-            (searchResults.territories.length > 0 ||
-              searchResults.wolves.length > 0) && (
-              <motion.div
-                initial={{ opacity: 0, y: -8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                className="mt-2 rounded-xl border border-wolf-border/30 bg-wolf-card/90 p-3 backdrop-blur-lg"
-              >
-                {searchResults.territories.length > 0 && (
-                  <div className="mb-2">
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-wolf-muted">
-                      Territories
-                    </p>
-                    {searchResults.territories.map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => {
-                          onSelectTerritory(t);
-                          onSearchChange("");
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white transition-colors hover:bg-wolf-gold/10"
-                      >
-                        <span>{t.flag}</span>
-                        <span>{t.name}</span>
-                        <span className="ml-auto text-xs text-wolf-muted">
-                          {t.artists.length} wolves
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {searchResults.wolves.length > 0 && (
-                  <div>
-                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-wolf-muted">
-                      Artists
-                    </p>
-                    {searchResults.wolves.map((w) => (
-                      <button
-                        key={w.id}
-                        onClick={() => {
-                          onSelectWolf(w);
-                          onSearchChange("");
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-white transition-colors hover:bg-wolf-gold/10"
-                      >
-                        <div
-                          className="h-6 w-6 rounded-full"
-                          style={{
-                            background: `radial-gradient(circle, ${w.color}40, #0a0a0c)`,
-                          }}
-                        />
-                        <span>{w.artist}</span>
-                        <span
-                          className="ml-auto text-xs"
-                          style={{ color: w.color }}
-                        >
-                          {w.genre}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </motion.div>
-            )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* Hot Territories */}
-      <div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-6 flex items-center gap-3"
-        >
-          <Flame size={20} className="text-wolf-gold" />
-          <h3
-            className="text-lg font-bold tracking-wider text-white"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            HOT TERRITORIES
-          </h3>
-        </motion.div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {hotTerritories.map((t, i) => {
-            const wolfCount = t.artists
-              .map((id) => wolves.find((w) => w.id === id))
-              .filter(Boolean).length;
-            return (
-              <motion.button
-                key={t.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ y: -4 }}
-                onClick={() => onSelectTerritory(t)}
-                className="group rounded-2xl border border-wolf-gold/20 bg-wolf-card/50 p-5 text-left backdrop-blur transition-all hover:border-wolf-gold/40 hover:shadow-lg hover:shadow-wolf-gold/10"
-              >
-                <div className="mb-3 flex items-center gap-3">
-                  <span className="text-3xl">{t.flag}</span>
-                  <div>
-                    <h4
-                      className="font-bold tracking-wider text-white"
-                      style={{ fontFamily: "var(--font-heading)" }}
-                    >
-                      {t.name.toUpperCase()}
-                    </h4>
-                    <p className="text-xs text-wolf-gold">
-                      {wolfCount} {wolfCount === 1 ? "artist" : "artists"} active
-                    </p>
-                  </div>
-                </div>
-                <div className="flex -space-x-2">
-                  {t.artists
-                    .map((id) => wolves.find((w) => w.id === id))
-                    .filter(Boolean)
-                    .map((w) => (
-                      <div
-                        key={w!.id}
-                        className="h-8 w-8 overflow-hidden rounded-full border-2 border-wolf-bg"
-                        style={{
-                          background: `radial-gradient(circle, ${w!.color}30, #0a0a0c)`,
-                        }}
-                      >
-                        {w!.video ? (
-                          <video
-                            src={w!.video}
-                            autoPlay
-                            loop
-                            muted
-                            playsInline
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <img
-                            src={w!.image}
-                            alt={w!.artist}
-                            className="h-full w-full p-1"
-                          />
-                        )}
-                      </div>
-                    ))}
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Activity Feed */}
-      <div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="mb-6 flex items-center gap-3"
-        >
-          <Zap size={20} className="text-wolf-gold" />
-          <h3
-            className="text-lg font-bold tracking-wider text-white"
-            style={{ fontFamily: "var(--font-heading)" }}
-          >
-            RECENT ACTIVITY
-          </h3>
-        </motion.div>
-
-        <div className="space-y-3">
-          {recentActivity.map((event, i) => {
-            const Icon = ACTIVITY_ICONS[event.type];
-            return (
-              <motion.div
-                key={event.id}
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="flex items-center gap-4 rounded-xl border border-wolf-border/20 bg-wolf-card/30 px-5 py-3 backdrop-blur"
-              >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-wolf-gold/10">
-                  <Icon size={14} className="text-wolf-gold" />
-                </div>
-                <p className="text-sm text-wolf-text">{event.text}</p>
-                <span className="ml-auto shrink-0 text-xs text-wolf-muted">
-                  {event.timestamp}
-                </span>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d}d`;
 }
 
 /* ─── Main Page ─── */
 
-export default function WolfHubPage({
-  onBack,
-  onSelectWolf,
-  onVersus,
-  onExplore,
-  onGoldenBoard,
-}: Props) {
-  const [selectedTerritory, setSelectedTerritory] =
-    useState<Territory | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [hoveredIso, setHoveredIso] = useState<string | null>(null);
-  const [genreFilter, setGenreFilter] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+interface Props {
+  onBack: () => void;
+  onAuth: () => void;
+}
 
-  // Which ISO codes are currently "lit" on the map given the filter
-  const litIsoSet = useMemo(() => {
-    return new Set(
-      territories
-        .filter((t) => t.artists.length > 0 && territoryMatchesGenre(t, genreFilter))
-        .map((t) => t.iso)
+export default function WolfHubPage({ onBack, onAuth }: Props) {
+  const { session, loading: sessionLoading } = useSession();
+  const [tab, setTab] = useState<"chat" | "media">("chat");
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  // Load own profile once signed in (needed to denormalize author_name / author_wolf_id).
+  useEffect(() => {
+    if (!session?.user) {
+      setProfile(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("profiles")
+        .select("id, display_name, wolf_id, email")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setProfile(
+        data || {
+          id: session.user.id,
+          display_name: null,
+          wolf_id: null,
+          email: session.user.email ?? null,
+        }
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
+
+  if (sessionLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="animate-spin text-wolf-muted" />
+      </div>
     );
-  }, [genreFilter]);
+  }
+
+  if (!session?.user) {
+    return <AuthGate onBack={onBack} onAuth={onAuth} />;
+  }
 
   return (
     <div className="min-h-screen pt-20">
-      {/* Cinematic bg */}
-      <div className="fixed inset-0 z-0 bg-gradient-to-b from-wolf-bg via-wolf-bg to-[#0d0d14]" />
-      <div className="fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_50%_40%,_rgba(245,197,24,0.05),_transparent_60%)]" />
+      <div
+        className="fixed inset-0 z-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 0%, rgba(155,109,255,0.08), transparent 60%)",
+        }}
+      />
+      <div className="relative z-10 mx-auto max-w-4xl px-4 pb-24 sm:px-6">
+        {/* Header */}
+        <div className="flex items-center justify-between py-6">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🐺</span>
+            <h1
+              className="text-2xl font-bold tracking-tight text-white sm:text-3xl"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              <span className="bg-gradient-to-r from-[#c8a4ff] via-[#f5c518] to-[#f0a4ff] bg-clip-text text-transparent">
+                Wolf Hub
+              </span>
+            </h1>
+          </div>
+          <div className="w-[70px]" />
+        </div>
 
-      <div className="relative z-10 mx-auto max-w-6xl px-6 pb-24">
-        {/* Back button */}
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
+        {/* Tab switcher */}
+        <div className="mb-6 flex gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
+          <TabButton active={tab === "chat"} onClick={() => setTab("chat")}>
+            <MessageCircle size={15} />
+            Chat
+          </TabButton>
+          <TabButton active={tab === "media"} onClick={() => setTab("media")}>
+            <ImageIcon size={15} />
+            Media
+          </TabButton>
+        </div>
+
+        {tab === "chat" && <ChatView profile={profile} />}
+        {tab === "media" && <MediaView profile={profile} />}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Auth Gate ─── */
+
+function AuthGate({ onBack, onAuth }: { onBack: () => void; onAuth: () => void }) {
+  return (
+    <div className="relative min-h-screen pt-20">
+      <div
+        className="fixed inset-0 z-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 30%, rgba(155,109,255,0.12), transparent 60%)",
+        }}
+      />
+      <div className="relative z-10 mx-auto max-w-lg px-6 py-20">
+        <button
           onClick={onBack}
-          className="mb-4 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
+          className="mb-8 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
         >
-          <ArrowLeft size={16} />
-          Back
-        </motion.button>
+          <ArrowLeft size={16} /> Back
+        </button>
 
-        {/* Title */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 text-center"
+          className="rounded-2xl border border-[#9b6dff]/30 bg-gradient-to-b from-[#9b6dff]/[0.08] to-transparent p-8 text-center"
         >
-          <p className="mb-2 text-sm font-semibold uppercase tracking-[0.4em] text-wolf-gold">
-            Territory Map
-          </p>
-          <h1
-            className="text-3xl font-bold tracking-wider text-white sm:text-5xl md:text-6xl"
+          <div className="mb-4 text-5xl">🐺</div>
+          <h2
+            className="text-3xl font-bold text-white"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            WOLF MAP
-          </h1>
-          <p className="mt-3 text-sm uppercase tracking-[0.3em] text-wolf-muted">
-            Scout the globe. Find your pack.
+            Join the Pack
+          </h2>
+          <p className="mt-3 text-sm text-wolf-muted">
+            Wolf Hub is where the pack hangs out — live chat, shared pictures, and
+            creative back-and-forth with every wolf in the community.
           </p>
-
-          {/* Entry pills */}
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            {onExplore && (
-              <motion.button
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onExplore}
-                className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-gradient-to-r from-purple-500/10 via-wolf-gold/5 to-pink-500/10 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:border-purple-400/60 hover:shadow-lg hover:shadow-purple-500/20"
-              >
-                <span>✨</span>
-                Explore by role
-                <span className="text-wolf-muted">→</span>
-              </motion.button>
-            )}
-            {onGoldenBoard && (
-              <motion.button
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.25 }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={onGoldenBoard}
-                className="inline-flex items-center gap-2 rounded-full border border-wolf-gold/40 bg-gradient-to-r from-wolf-gold/15 via-wolf-amber/10 to-wolf-gold/15 px-5 py-2.5 text-sm font-semibold text-wolf-gold transition-all hover:border-wolf-gold/70 hover:shadow-lg hover:shadow-wolf-gold/20"
-              >
-                <span>🏆</span>
-                Golden Board
-                <span className="text-wolf-gold/50">→</span>
-              </motion.button>
-            )}
-          </div>
-        </motion.div>
-
-        {/* === SECTION 1: 3D Wolf Hero (smaller) === */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, type: "spring", stiffness: 60 }}
-          className="relative mx-auto max-w-lg"
-        >
-          <div className="absolute inset-4 rounded-3xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm" />
-          <div
-            className="absolute inset-0 rounded-3xl"
-            style={{
-              boxShadow:
-                "0 0 80px rgba(245,197,24,0.06), 0 0 160px rgba(245,197,24,0.03), inset 0 0 60px rgba(245,197,24,0.02)",
-            }}
-          />
-          <div
-            ref={containerRef}
-            className="relative aspect-[16/9] w-full overflow-hidden rounded-3xl"
+          <p className="mt-2 text-sm text-wolf-muted">
+            Sign in or create a free account to join the conversation.
+          </p>
+          <button
+            onClick={onAuth}
+            className="mt-6 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#9b6dff] via-[#E040FB] to-[#9b6dff] px-6 py-3 font-semibold text-white shadow-lg shadow-[#9b6dff]/30 transition-all hover:scale-105"
           >
-            <WolfScene containerRef={containerRef} />
-          </div>
+            Sign in to enter the Hub
+          </button>
         </motion.div>
-
-        {/* === SECTION 2: Interactive World Map === */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.3 }}
-          className="mt-12"
-        >
-          {/* Genre filter chips */}
-          <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
-            <span className="mr-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-wolf-muted">
-              Filter
-            </span>
-            {GENRE_FILTERS.map((f) => {
-              const isActive = genreFilter === f.id;
-              return (
-                <button
-                  key={f.id}
-                  onClick={() =>
-                    setGenreFilter(isActive ? null : f.id)
-                  }
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold transition-all ${
-                    isActive
-                      ? "border-wolf-gold/60 bg-wolf-gold/15 text-wolf-gold"
-                      : "border-wolf-border/30 bg-wolf-card/40 text-wolf-muted hover:border-wolf-gold/30 hover:text-white"
-                  }`}
-                >
-                  {f.label}
-                </button>
-              );
-            })}
-            {genreFilter && (
-              <button
-                onClick={() => setGenreFilter(null)}
-                className="rounded-full border border-wolf-border/30 bg-wolf-card/40 px-3 py-1 text-xs font-semibold text-wolf-muted transition-all hover:border-red-400/40 hover:text-red-300"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-
-          <WorldMap
-            onSelectTerritory={setSelectedTerritory}
-            onResetView={() => setSelectedTerritory(null)}
-            selectedIso={selectedTerritory?.iso ?? null}
-            hoveredIso={hoveredIso}
-            onHover={setHoveredIso}
-            litIsoSet={litIsoSet}
-          />
-        </motion.div>
-
-        {/* Territory Detail Panel */}
-        <TerritoryPanel
-          territory={selectedTerritory}
-          onClose={() => setSelectedTerritory(null)}
-          onSelectWolf={onSelectWolf}
-          onVersus={onVersus}
-        />
-
-        {/* === SECTION 3: Discovery === */}
-        <DiscoverySection
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-          onSelectTerritory={setSelectedTerritory}
-          onSelectWolf={onSelectWolf}
-          genreFilter={genreFilter}
-        />
       </div>
     </div>
+  );
+}
+
+/* ─── Tab Button ─── */
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+        active
+          ? "bg-gradient-to-r from-[#9b6dff]/20 to-[#E040FB]/20 text-white"
+          : "text-wolf-muted hover:text-white"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ─── Chat View ─── */
+
+function ChatView({ profile }: { profile: Profile | null }) {
+  const [messages, setMessages] = useState<HubMessage[]>([]);
+  const [reactions, setReactions] = useState<Map<string, HubReaction[]>>(new Map());
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Initial load + realtime subscription
+  useEffect(() => {
+    let cancelled = false;
+    let messagesSub: { unsubscribe: () => void } | null = null;
+    let reactionsSub: { unsubscribe: () => void } | null = null;
+
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+
+      // Load last 100 messages (oldest first for rendering)
+      const { data: msgs } = await sb
+        .from("hub_messages")
+        .select("*")
+        .eq("room_id", "global")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (cancelled) return;
+      const ordered = (msgs || []).reverse();
+      setMessages(ordered);
+
+      // Load reactions for those messages
+      if (ordered.length > 0) {
+        const ids = ordered.map((m) => m.id);
+        const { data: rxns } = await sb
+          .from("hub_reactions")
+          .select("*")
+          .in("message_id", ids);
+        if (cancelled) return;
+        const map = new Map<string, HubReaction[]>();
+        (rxns || []).forEach((r: HubReaction) => {
+          const arr = map.get(r.message_id) || [];
+          arr.push(r);
+          map.set(r.message_id, arr);
+        });
+        setReactions(map);
+      }
+
+      // Subscribe to new messages
+      messagesSub = sb
+        .channel("hub-messages")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "hub_messages" },
+          (payload) => {
+            const m = payload.new as HubMessage;
+            if (m.room_id && m.room_id !== "global") return;
+            setMessages((prev) =>
+              prev.some((x) => x.id === m.id) ? prev : [...prev, m]
+            );
+          }
+        )
+        .subscribe();
+
+      // Subscribe to reactions
+      reactionsSub = sb
+        .channel("hub-reactions")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "hub_reactions" },
+          (payload) => {
+            const r = payload.new as HubReaction;
+            setReactions((prev) => {
+              const next = new Map(prev);
+              const arr = [...(next.get(r.message_id) || [])];
+              if (!arr.some((x) => x.id === r.id)) arr.push(r);
+              next.set(r.message_id, arr);
+              return next;
+            });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "hub_reactions" },
+          (payload) => {
+            const r = payload.old as HubReaction;
+            setReactions((prev) => {
+              const next = new Map(prev);
+              const arr = (next.get(r.message_id) || []).filter((x) => x.id !== r.id);
+              if (arr.length === 0) next.delete(r.message_id);
+              else next.set(r.message_id, arr);
+              return next;
+            });
+          }
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      messagesSub?.unsubscribe();
+      reactionsSub?.unsubscribe();
+    };
+  }, []);
+
+  // Auto-scroll to bottom on new messages
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages.length]);
+
+  async function sendMessage(body: string | null, imageUrl: string | null) {
+    if (!profile) return;
+    if (!body && !imageUrl) return;
+    setSending(true);
+    try {
+      const sb = getSupabase();
+      if (!sb) return;
+      const { error } = await sb.from("hub_messages").insert({
+        author_id: profile.id,
+        author_name: profile.display_name || profile.email?.split("@")[0] || null,
+        author_wolf_id: profile.wolf_id,
+        room_id: "global",
+        body,
+        image_url: imageUrl,
+      });
+      if (error) {
+        // eslint-disable-next-line no-console
+        console.error("send failed:", error);
+      }
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleSendText() {
+    const body = draft.trim();
+    if (!body) return;
+    setDraft("");
+    await sendMessage(body, null);
+  }
+
+  async function handleImagePick(file: File) {
+    if (!profile) return;
+    setUploading(true);
+    try {
+      const sb = getSupabase();
+      if (!sb) return;
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `chat/${profile.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from("wolf-hub-media")
+        .upload(path, file, { contentType: file.type });
+      if (upErr) {
+        // eslint-disable-next-line no-console
+        console.error("upload failed:", upErr);
+        return;
+      }
+      const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
+      await sendMessage(null, urlData.publicUrl);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function toggleReaction(messageId: string, emoji: string) {
+    if (!profile) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    const existing = (reactions.get(messageId) || []).find(
+      (r) => r.user_id === profile.id && r.emoji === emoji
+    );
+    if (existing) {
+      await sb.from("hub_reactions").delete().eq("id", existing.id);
+    } else {
+      await sb
+        .from("hub_reactions")
+        .insert({ message_id: messageId, user_id: profile.id, emoji });
+    }
+    setPickerFor(null);
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
+      {/* Messages */}
+      <div
+        ref={scrollRef}
+        className="flex h-[55vh] min-h-[400px] flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-6"
+      >
+        {messages.length === 0 && (
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-center text-sm text-wolf-muted">
+              No messages yet. Be the first to howl into the Hub 🐺
+            </p>
+          </div>
+        )}
+        {messages.map((m) => {
+          const isMine = m.author_id === profile?.id;
+          const accent = wolfAccent(m.author_wolf_id);
+          const msgReactions = reactions.get(m.id) || [];
+          // Group reactions by emoji
+          const grouped = new Map<string, { count: number; mine: boolean }>();
+          msgReactions.forEach((r) => {
+            const g = grouped.get(r.emoji) || { count: 0, mine: false };
+            g.count += 1;
+            if (r.user_id === profile?.id) g.mine = true;
+            grouped.set(r.emoji, g);
+          });
+          return (
+            <div
+              key={m.id}
+              className={`group flex gap-3 ${isMine ? "flex-row-reverse" : ""}`}
+            >
+              <div
+                className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-black"
+                style={{ backgroundColor: accent }}
+              >
+                {displayName(m).slice(0, 1).toUpperCase()}
+              </div>
+              <div
+                className={`flex min-w-0 max-w-[80%] flex-col ${
+                  isMine ? "items-end" : "items-start"
+                }`}
+              >
+                <div className="mb-1 flex items-center gap-2">
+                  <span
+                    className="text-xs font-semibold"
+                    style={{ color: accent }}
+                  >
+                    {displayName(m)}
+                  </span>
+                  <span className="text-[10px] text-wolf-muted">
+                    {timeAgo(m.created_at)}
+                  </span>
+                </div>
+                <div
+                  className={`rounded-2xl px-4 py-2 ${
+                    isMine
+                      ? "bg-gradient-to-br from-[#9b6dff]/30 to-[#E040FB]/20 text-white"
+                      : "bg-white/[0.05] text-wolf-muted"
+                  }`}
+                  style={isMine ? {} : { color: "#e5e5e5" }}
+                >
+                  {m.body && (
+                    <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>
+                  )}
+                  {m.image_url && (
+                    <img
+                      src={m.image_url}
+                      alt="chat attachment"
+                      className={`max-h-64 rounded-lg object-cover ${m.body ? "mt-2" : ""}`}
+                      loading="lazy"
+                    />
+                  )}
+                </div>
+                {/* Reactions row */}
+                {grouped.size > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {Array.from(grouped.entries()).map(([emoji, { count, mine }]) => (
+                      <button
+                        key={emoji}
+                        onClick={() => toggleReaction(m.id, emoji)}
+                        className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-all ${
+                          mine
+                            ? "border-[#9b6dff]/60 bg-[#9b6dff]/20 text-white"
+                            : "border-white/10 bg-white/[0.03] text-wolf-muted hover:border-white/20"
+                        }`}
+                      >
+                        <span>{emoji}</span>
+                        <span>{count}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {/* React picker */}
+                <div className="relative mt-1">
+                  <button
+                    onClick={() =>
+                      setPickerFor((cur) => (cur === m.id ? null : m.id))
+                    }
+                    className="text-xs text-wolf-muted/50 opacity-0 transition-opacity hover:text-wolf-gold group-hover:opacity-100"
+                  >
+                    + react
+                  </button>
+                  <AnimatePresence>
+                    {pickerFor === m.id && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 4 }}
+                        className={`absolute z-10 mt-1 flex gap-1 rounded-full border border-white/10 bg-wolf-card/95 p-1 shadow-xl backdrop-blur-sm ${
+                          isMine ? "right-0" : "left-0"
+                        }`}
+                      >
+                        {QUICK_EMOJIS.map((emo) => (
+                          <button
+                            key={emo}
+                            onClick={() => toggleReaction(m.id, emo)}
+                            className="rounded-full px-2 py-1 text-base transition-all hover:bg-white/10"
+                          >
+                            {emo}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Composer */}
+      <div className="border-t border-white/10 p-3 sm:p-4">
+        <div className="flex items-end gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImagePick(f);
+            }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading || !profile}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold disabled:opacity-40"
+            title="Send image"
+          >
+            {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+          </button>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendText();
+              }
+            }}
+            placeholder="Say something to the pack…"
+            rows={1}
+            className="min-h-[40px] max-h-32 flex-1 resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-wolf-muted/60 focus:border-[#9b6dff]/40 focus:outline-none"
+          />
+          <button
+            onClick={handleSendText}
+            disabled={!draft.trim() || sending}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#9b6dff] to-[#E040FB] text-white transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+            title="Send"
+          >
+            {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Media View ─── */
+
+function MediaView({ profile }: { profile: Profile | null }) {
+  const [posts, setPosts] = useState<HubPost[]>([]);
+  const [likes, setLikes] = useState<Map<string, { count: number; mine: boolean }>>(
+    new Map()
+  );
+  const [showCompose, setShowCompose] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    let postsSub: { unsubscribe: () => void } | null = null;
+    let likesSub: { unsubscribe: () => void } | null = null;
+
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+
+      const { data: ps } = await sb
+        .from("hub_posts")
+        .select("*")
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(40);
+      if (cancelled) return;
+      setPosts(ps || []);
+
+      if ((ps || []).length > 0) {
+        const ids = (ps || []).map((p) => p.id);
+        const { data: ls } = await sb
+          .from("hub_post_likes")
+          .select("post_id, user_id")
+          .in("post_id", ids);
+        if (cancelled) return;
+        const map = new Map<string, { count: number; mine: boolean }>();
+        (ls || []).forEach((l: { post_id: string; user_id: string }) => {
+          const g = map.get(l.post_id) || { count: 0, mine: false };
+          g.count += 1;
+          if (l.user_id === profile?.id) g.mine = true;
+          map.set(l.post_id, g);
+        });
+        setLikes(map);
+      }
+
+      postsSub = sb
+        .channel("hub-posts")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "hub_posts" },
+          (payload) => {
+            const p = payload.new as HubPost;
+            setPosts((prev) => (prev.some((x) => x.id === p.id) ? prev : [p, ...prev]));
+          }
+        )
+        .subscribe();
+
+      likesSub = sb
+        .channel("hub-likes")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "hub_post_likes" },
+          (payload) => {
+            const l = payload.new as { post_id: string; user_id: string };
+            setLikes((prev) => {
+              const next = new Map(prev);
+              const g = next.get(l.post_id) || { count: 0, mine: false };
+              next.set(l.post_id, {
+                count: g.count + 1,
+                mine: g.mine || l.user_id === profile?.id,
+              });
+              return next;
+            });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "hub_post_likes" },
+          (payload) => {
+            const l = payload.old as { post_id: string; user_id: string };
+            setLikes((prev) => {
+              const next = new Map(prev);
+              const g = next.get(l.post_id);
+              if (!g) return prev;
+              const newCount = Math.max(0, g.count - 1);
+              const mine = l.user_id === profile?.id ? false : g.mine;
+              if (newCount === 0 && !mine) next.delete(l.post_id);
+              else next.set(l.post_id, { count: newCount, mine });
+              return next;
+            });
+          }
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      cancelled = true;
+      postsSub?.unsubscribe();
+      likesSub?.unsubscribe();
+    };
+  }, [profile?.id]);
+
+  async function toggleLike(postId: string) {
+    if (!profile) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    const cur = likes.get(postId);
+    if (cur?.mine) {
+      await sb
+        .from("hub_post_likes")
+        .delete()
+        .eq("post_id", postId)
+        .eq("user_id", profile.id);
+    } else {
+      await sb
+        .from("hub_post_likes")
+        .insert({ post_id: postId, user_id: profile.id });
+    }
+  }
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-wolf-muted">
+          {posts.length} {posts.length === 1 ? "post" : "posts"} from the pack
+        </p>
+        <button
+          onClick={() => setShowCompose(true)}
+          disabled={!profile}
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#9b6dff] to-[#E040FB] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#9b6dff]/20 transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+        >
+          <ImagePlus size={15} />
+          New post
+        </button>
+      </div>
+
+      {posts.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-16 text-center">
+          <div className="mb-2 text-4xl">📸</div>
+          <p className="text-wolf-muted">
+            No posts yet — be the first to drop a picture or video.
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {posts.map((p) => (
+            <PostCard
+              key={p.id}
+              post={p}
+              likes={likes.get(p.id) || { count: 0, mine: false }}
+              onLike={() => toggleLike(p.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {showCompose && profile && (
+          <ComposePostModal
+            profile={profile}
+            onClose={() => setShowCompose(false)}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─── Post Card ─── */
+
+function PostCard({
+  post,
+  likes,
+  onLike,
+}: {
+  post: HubPost;
+  likes: { count: number; mine: boolean };
+  onLike: () => void;
+}) {
+  const accent = wolfAccent(post.author_wolf_id);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="overflow-hidden rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm"
+    >
+      <div className="flex items-center gap-2 px-4 py-3">
+        <div
+          className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-black"
+          style={{ backgroundColor: accent }}
+        >
+          {displayName(post).slice(0, 1).toUpperCase()}
+        </div>
+        <span className="text-sm font-semibold text-white">{displayName(post)}</span>
+        <span className="ml-auto text-xs text-wolf-muted">{timeAgo(post.created_at)}</span>
+      </div>
+      <div className="relative aspect-square bg-black">
+        {post.media_type === "image" ? (
+          <img
+            src={post.media_url}
+            alt={post.caption || "post"}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <video
+            src={post.media_url}
+            controls
+            playsInline
+            className="h-full w-full object-cover"
+          />
+        )}
+      </div>
+      <div className="flex items-center gap-3 px-4 py-3">
+        <button
+          onClick={onLike}
+          className={`flex items-center gap-1 text-sm transition-colors ${
+            likes.mine ? "text-[#E040FB]" : "text-wolf-muted hover:text-white"
+          }`}
+        >
+          <Heart size={16} className={likes.mine ? "fill-current" : ""} />
+          <span className="font-medium">{likes.count}</span>
+        </button>
+      </div>
+      {post.caption && (
+        <p className="px-4 pb-4 text-sm text-wolf-muted">
+          <span className="font-semibold text-white">{displayName(post)}</span>{" "}
+          {post.caption}
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
+/* ─── Compose Post Modal ─── */
+
+function ComposePostModal({
+  profile,
+  onClose,
+}: {
+  profile: Profile;
+  onClose: () => void;
+}) {
+  const [file, setFile] = useState<File | null>(null);
+  const [caption, setCaption] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const previewUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file]);
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  async function handlePost() {
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const sb = getSupabase();
+      if (!sb) {
+        setError("Connection error — try again.");
+        return;
+      }
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `posts/${profile.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from("wolf-hub-media")
+        .upload(path, file, { contentType: file.type });
+      if (upErr) {
+        setError(upErr.message);
+        return;
+      }
+      const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
+      const mediaType: "image" | "video" = file.type.startsWith("video/")
+        ? "video"
+        : "image";
+      const { error: insErr } = await sb.from("hub_posts").insert({
+        author_id: profile.id,
+        author_name: profile.display_name || profile.email?.split("@")[0] || null,
+        author_wolf_id: profile.wolf_id,
+        media_url: urlData.publicUrl,
+        media_type: mediaType,
+        caption: caption.trim() || null,
+      });
+      if (insErr) {
+        setError(insErr.message);
+        return;
+      }
+      onClose();
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const isVideo = file?.type.startsWith("video/");
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-wolf-card"
+      >
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
+          <h3 className="font-semibold text-white">New post</h3>
+          <button
+            onClick={onClose}
+            className="text-wolf-muted transition-colors hover:text-white"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-5">
+          {!file ? (
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/[0.02] px-6 py-12 text-center text-wolf-muted transition-all hover:border-[#9b6dff]/50 hover:text-white">
+              <ImagePlus size={28} />
+              <span className="text-sm">Pick a picture or video</span>
+              <span className="text-xs text-wolf-muted/70">JPG, PNG, WEBP, GIF, MP4, WEBM — up to 25 MB</span>
+              <input
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setFile(f);
+                }}
+              />
+            </label>
+          ) : (
+            <div className="overflow-hidden rounded-xl bg-black">
+              {isVideo ? (
+                <video src={previewUrl!} controls className="max-h-[50vh] w-full" />
+              ) : (
+                <img src={previewUrl!} alt="preview" className="max-h-[50vh] w-full object-contain" />
+              )}
+            </div>
+          )}
+          <textarea
+            value={caption}
+            onChange={(e) => setCaption(e.target.value)}
+            placeholder="Add a caption…"
+            rows={2}
+            className="mt-3 w-full resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-wolf-muted/60 focus:border-[#9b6dff]/40 focus:outline-none"
+          />
+          {error && <p className="mt-2 text-xs text-red-400">{error}</p>}
+        </div>
+        <div className="flex items-center justify-end gap-2 border-t border-white/10 px-5 py-3">
+          <button
+            onClick={onClose}
+            className="rounded-lg px-4 py-2 text-sm text-wolf-muted transition-colors hover:text-white"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handlePost}
+            disabled={!file || uploading}
+            className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-[#9b6dff] to-[#E040FB] px-4 py-2 text-sm font-semibold text-white transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+          >
+            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+            Post
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

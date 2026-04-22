@@ -15,6 +15,7 @@ const STUDIO_TOOLS = [
 
 interface Props {
   onPricing: () => void;
+  onWolfMap: () => void;
   onWolfHub: () => void;
   onHome: () => void;
   onStudio: () => void;
@@ -32,7 +33,7 @@ interface Props {
 }
 
 export default function Navbar({
-  onPricing, onWolfHub, onHome, onStudio, onAuth, onGoldenBoard,
+  onPricing, onWolfMap, onWolfHub, onHome, onStudio, onAuth, onGoldenBoard,
   isInStudio, studioView, onStudioNav, credits, tier, wolfColor,
   notifications = 0, onNotifications,
 }: Props) {
@@ -111,7 +112,7 @@ export default function Navbar({
                 {t("nav.pricing")}
               </button>
               <button
-                onClick={onWolfHub}
+                onClick={onWolfMap}
                 className="group relative overflow-hidden rounded-lg px-4 py-2 text-sm font-bold text-white transition-all hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20"
                 style={{ background: "linear-gradient(135deg, #9b6dff 0%, #f5c518 50%, #E040FB 100%)", padding: "1px" }}
               >
@@ -131,6 +132,16 @@ export default function Navbar({
                   Golden Board
                 </button>
               )}
+              <button
+                onClick={onWolfHub}
+                className="group inline-flex items-center gap-1.5 rounded-lg border border-[#9b6dff]/40 bg-gradient-to-r from-[#9b6dff]/15 via-[#E040FB]/10 to-[#9b6dff]/15 px-4 py-2 text-sm font-bold text-white transition-all hover:border-[#9b6dff]/70 hover:shadow-lg hover:shadow-[#9b6dff]/20"
+                title="Wolf Hub — community chat & media"
+              >
+                <span className="text-sm">🐺</span>
+                <span className="bg-gradient-to-r from-[#c8a4ff] to-[#f0a4ff] bg-clip-text text-transparent">
+                  Wolf Hub
+                </span>
+              </button>
               <button
                 onClick={onAuth}
                 className="rounded-lg border border-wolf-gold/30 bg-wolf-gold/5 px-4 py-2 text-sm font-semibold text-wolf-gold transition-all hover:bg-wolf-gold/15"
@@ -174,9 +185,9 @@ export default function Navbar({
                 )}
               </button>
               <button
-                onClick={onWolfHub}
+                onClick={onWolfMap}
                 className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm transition-all hover:border-wolf-gold/30"
-                title="Wolf Hub"
+                title="Wolf Map"
               >
                 <span>🐺</span>
               </button>
@@ -273,7 +284,7 @@ export default function Navbar({
                     <span className="text-sm font-bold text-wolf-gold">{credits ?? 0} credits</span>
                   </div>
                   <button
-                    onClick={() => { onWolfHub(); setMobileOpen(false); }}
+                    onClick={() => { onWolfMap(); setMobileOpen(false); }}
                     className="text-left text-wolf-muted transition-colors hover:text-wolf-gold"
                   >
                     🐺 Wolf Hub
@@ -289,10 +300,11 @@ export default function Navbar({
                 <>
                   <button onClick={() => { onHome(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Home</button>
                   <button onClick={() => { onPricing(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Pricing</button>
-                  <button onClick={() => { onWolfHub(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Wolf Map</button>
+                  <button onClick={() => { onWolfMap(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Wolf Map</button>
                   {onGoldenBoard && (
                     <button onClick={() => { onGoldenBoard(); setMobileOpen(false); }} className="text-left text-wolf-gold transition-colors hover:text-wolf-amber">🏆 Golden Board</button>
                   )}
+                  <button onClick={() => { onWolfHub(); setMobileOpen(false); }} className="text-left font-semibold text-[#c8a4ff] transition-colors hover:text-[#f0a4ff]">🐺 Wolf Hub</button>
                   <button onClick={() => { onAuth(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Sign In</button>
                   <button
                     onClick={() => { onStudio(); setMobileOpen(false); }}

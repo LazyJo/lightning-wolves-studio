@@ -39,7 +39,7 @@ interface Props {
   plan: Plan;
   onSelectTool: (view: View) => void;
   onBack: () => void;
-  onWolfHub?: () => void;
+  onWolfMap?: () => void;
   t: (key: string) => string;
   /** Jump straight to the TemplateEditor (new template) */
   onNewTemplate?: () => void;
@@ -85,7 +85,7 @@ const TOOL_ICONS: Record<string, string> = {
   "cover-art": "Image",
 };
 
-export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool, onBack, onWolfHub, t, onNewTemplate, onOpenTemplate }: Props) {
+export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool, onBack, onWolfMap, t, onNewTemplate, onOpenTemplate }: Props) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { activities } = useRecentActivity();
   const tColor = tierColor(plan.tier);
@@ -427,13 +427,13 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
         {/* Side Cards — Templates used to live here but now appears
             above the tool grid as the primary Studio surface. */}
         <div className="flex flex-col gap-4">
-          {onWolfHub && (
+          {onWolfMap && (
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.05 }}
-              onClick={onWolfHub}
+              onClick={onWolfMap}
               className="group cursor-pointer rounded-xl border border-wolf-border/20 bg-wolf-card/50 p-5 transition-all hover:border-wolf-border/40"
             >
               <div className="flex items-center justify-between">

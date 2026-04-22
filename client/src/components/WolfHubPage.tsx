@@ -49,6 +49,16 @@ interface HubPost {
   created_at: string;
 }
 
+interface HubComment {
+  id: string;
+  post_id: string;
+  author_id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  body: string;
+  created_at: string;
+}
+
 interface Profile {
   id: string;
   display_name: string | null;
@@ -815,13 +825,14 @@ function ChatSkeleton() {
   );
 }
 
-/* ─── Media View ─── */
+/* ─── Media View (Instagram-style single-column feed) ─── */
 
 function MediaView({ profile }: { profile: Profile | null }) {
   const [posts, setPosts] = useState<HubPost[]>([]);
   const [likes, setLikes] = useState<Map<string, { count: number; mine: boolean }>>(
     new Map()
   );
+  const [comments, setComments] = useState<Map<string, HubComment[]>>(new Map());
   const [loading, setLoading] = useState(true);
   const [showCompose, setShowCompose] = useState(false);
 
@@ -829,6 +840,7 @@ function MediaView({ profile }: { profile: Profile | null }) {
     let cancelled = false;
     let postsSub: { unsubscribe: () => void } | null = null;
     let likesSub: { unsubscribe: () => void } | null = null;
+    let commentsSub: { unsubscribe: () => void } | null = null;
 
     (async () => {
       const sb = await initSupabase();
@@ -845,19 +857,35 @@ function MediaView({ profile }: { profile: Profile | null }) {
 
       if ((ps || []).length > 0) {
         const ids = (ps || []).map((p) => p.id);
-        const { data: ls } = await sb
-          .from("hub_post_likes")
-          .select("post_id, user_id")
-          .in("post_id", ids);
+
+        const [likesRes, commentsRes] = await Promise.all([
+          sb.from("hub_post_likes").select("post_id, user_id").in("post_id", ids),
+          sb
+            .from("hub_post_comments")
+            .select("*")
+            .in("post_id", ids)
+            .is("deleted_at", null)
+            .order("created_at", { ascending: true })
+            .limit(400),
+        ]);
         if (cancelled) return;
-        const map = new Map<string, { count: number; mine: boolean }>();
-        (ls || []).forEach((l: { post_id: string; user_id: string }) => {
-          const g = map.get(l.post_id) || { count: 0, mine: false };
+
+        const likeMap = new Map<string, { count: number; mine: boolean }>();
+        (likesRes.data || []).forEach((l: { post_id: string; user_id: string }) => {
+          const g = likeMap.get(l.post_id) || { count: 0, mine: false };
           g.count += 1;
           if (l.user_id === profile?.id) g.mine = true;
-          map.set(l.post_id, g);
+          likeMap.set(l.post_id, g);
         });
-        setLikes(map);
+        setLikes(likeMap);
+
+        const commentMap = new Map<string, HubComment[]>();
+        (commentsRes.data || []).forEach((c: HubComment) => {
+          const arr = commentMap.get(c.post_id) || [];
+          arr.push(c);
+          commentMap.set(c.post_id, arr);
+        });
+        setComments(commentMap);
       }
       setLoading(false);
 
@@ -917,12 +945,45 @@ function MediaView({ profile }: { profile: Profile | null }) {
           }
         )
         .subscribe();
+
+      commentsSub = sb
+        .channel("hub-comments")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "hub_post_comments" },
+          (payload) => {
+            const c = payload.new as HubComment;
+            setComments((prev) => {
+              const next = new Map(prev);
+              const arr = [...(next.get(c.post_id) || [])];
+              if (!arr.some((x) => x.id === c.id)) arr.push(c);
+              next.set(c.post_id, arr);
+              return next;
+            });
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "hub_post_comments" },
+          (payload) => {
+            const c = payload.old as HubComment;
+            setComments((prev) => {
+              const next = new Map(prev);
+              const arr = (next.get(c.post_id) || []).filter((x) => x.id !== c.id);
+              if (arr.length === 0) next.delete(c.post_id);
+              else next.set(c.post_id, arr);
+              return next;
+            });
+          }
+        )
+        .subscribe();
     })();
 
     return () => {
       cancelled = true;
       postsSub?.unsubscribe();
       likesSub?.unsubscribe();
+      commentsSub?.unsubscribe();
     };
   }, [profile?.id]);
 
@@ -951,6 +1012,25 @@ function MediaView({ profile }: { profile: Profile | null }) {
     await sb.from("hub_posts").delete().eq("id", postId);
   }
 
+  async function addComment(postId: string, body: string) {
+    if (!profile) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    await sb.from("hub_post_comments").insert({
+      post_id: postId,
+      author_id: profile.id,
+      author_name: profile.display_name || profile.email?.split("@")[0] || null,
+      author_wolf_id: profile.wolf_id,
+      body,
+    });
+  }
+
+  async function deleteComment(commentId: string) {
+    const sb = getSupabase();
+    if (!sb) return;
+    await sb.from("hub_post_comments").delete().eq("id", commentId);
+  }
+
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
@@ -970,11 +1050,11 @@ function MediaView({ profile }: { profile: Profile | null }) {
       </div>
 
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mx-auto flex max-w-[520px] flex-col gap-6">
           {[0, 1].map((i) => (
             <div
               key={i}
-              className="h-[320px] animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]"
+              className="h-[480px] animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]"
             />
           ))}
         </div>
@@ -986,15 +1066,19 @@ function MediaView({ profile }: { profile: Profile | null }) {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mx-auto flex max-w-[520px] flex-col gap-6">
           {posts.map((p) => (
             <PostCard
               key={p.id}
               post={p}
+              profile={profile}
               isMine={p.author_id === profile?.id}
               likes={likes.get(p.id) || { count: 0, mine: false }}
+              comments={comments.get(p.id) || []}
               onLike={() => toggleLike(p.id)}
               onDelete={() => deletePost(p.id)}
+              onComment={(body) => addComment(p.id, body)}
+              onDeleteComment={(cid) => deleteComment(cid)}
             />
           ))}
         </div>
@@ -1012,82 +1096,219 @@ function MediaView({ profile }: { profile: Profile | null }) {
   );
 }
 
-/* ─── Post Card ─── */
+/* ─── Post Card (IG-style, single-column) ─── */
 
 function PostCard({
   post,
+  profile,
   isMine,
   likes,
+  comments,
   onLike,
   onDelete,
+  onComment,
+  onDeleteComment,
 }: {
   post: HubPost;
+  profile: Profile | null;
   isMine: boolean;
   likes: { count: number; mine: boolean };
+  comments: HubComment[];
   onLike: () => void;
   onDelete: () => void;
+  onComment: (body: string) => Promise<void>;
+  onDeleteComment: (commentId: string) => Promise<void>;
 }) {
   const accent = wolfAccent(post.author_wolf_id);
+  const [expanded, setExpanded] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [likeBurst, setLikeBurst] = useState(false);
+
+  const visibleComments = expanded ? comments : comments.slice(-2);
+  const hasHiddenComments = !expanded && comments.length > 2;
+
+  async function handleComment() {
+    const body = draft.trim();
+    if (!body || sending) return;
+    setSending(true);
+    try {
+      setDraft("");
+      await onComment(body);
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function handleDoubleTap() {
+    if (likes.mine) return;
+    setLikeBurst(true);
+    onLike();
+    setTimeout(() => setLikeBurst(false), 700);
+  }
+
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className="overflow-hidden rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm"
     >
-      <div className="flex items-center gap-2 px-4 py-3">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-3">
         <div
-          className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-black"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-black"
           style={{ backgroundColor: accent }}
         >
           {displayName(post).slice(0, 1).toUpperCase()}
         </div>
-        <span className="text-sm font-semibold text-white">{displayName(post)}</span>
-        <span className="ml-auto text-xs text-wolf-muted">{timeAgo(post.created_at)}</span>
-      </div>
-      <div className="relative aspect-square bg-black">
-        {post.media_type === "image" ? (
-          <img
-            src={post.media_url}
-            alt={post.caption || "post"}
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <video
-            src={post.media_url}
-            controls
-            playsInline
-            className="h-full w-full object-cover"
-          />
-        )}
-      </div>
-      <div className="flex items-center gap-3 px-4 py-3">
-        <button
-          onClick={onLike}
-          className={`flex items-center gap-1 text-sm transition-colors ${
-            likes.mine ? "text-[#E040FB]" : "text-wolf-muted hover:text-white"
-          }`}
-        >
-          <Heart size={16} className={likes.mine ? "fill-current" : ""} />
-          <span className="font-medium">{likes.count}</span>
-        </button>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-white">{displayName(post)}</span>
+          <span className="text-[11px] text-wolf-muted">{timeAgo(post.created_at)}</span>
+        </div>
         {isMine && (
           <button
             onClick={onDelete}
             className="ml-auto flex items-center gap-1 text-xs text-wolf-muted transition-colors hover:text-red-400"
             title="Delete post"
           >
-            <Trash2 size={13} />
+            <Trash2 size={14} />
           </button>
         )}
       </div>
+
+      {/* Media — natural aspect, capped */}
+      <div
+        className="relative flex max-h-[600px] justify-center bg-black"
+        onDoubleClick={handleDoubleTap}
+      >
+        {post.media_type === "image" ? (
+          <img
+            src={post.media_url}
+            alt={post.caption || "post"}
+            className="max-h-[600px] w-full select-none object-contain"
+            loading="lazy"
+            draggable={false}
+          />
+        ) : (
+          <video
+            src={post.media_url}
+            controls
+            playsInline
+            className="max-h-[600px] w-full"
+          />
+        )}
+        <AnimatePresence>
+          {likeBurst && (
+            <motion.div
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1.2, opacity: 1 }}
+              exit={{ scale: 1.5, opacity: 0 }}
+              transition={{ duration: 0.6 }}
+              className="pointer-events-none absolute inset-0 flex items-center justify-center"
+            >
+              <Heart size={96} className="fill-[#E040FB] text-[#E040FB] drop-shadow-2xl" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Action row */}
+      <div className="flex items-center gap-4 px-4 pt-3">
+        <button
+          onClick={onLike}
+          className={`flex items-center gap-1.5 text-sm transition-colors ${
+            likes.mine ? "text-[#E040FB]" : "text-white hover:text-wolf-muted"
+          }`}
+        >
+          <Heart size={22} className={likes.mine ? "fill-current" : ""} />
+        </button>
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-1.5 text-sm text-white transition-colors hover:text-wolf-muted"
+          title="Comment"
+        >
+          <MessageCircle size={22} />
+        </button>
+      </div>
+
+      {/* Like count */}
+      {likes.count > 0 && (
+        <div className="px-4 pt-2 text-sm font-semibold text-white">
+          {likes.count} {likes.count === 1 ? "like" : "likes"}
+        </div>
+      )}
+
+      {/* Caption */}
       {post.caption && (
-        <p className="px-4 pb-4 text-sm text-wolf-muted">
-          <span className="font-semibold text-white">{displayName(post)}</span>{" "}
-          {post.caption}
+        <p className="px-4 pt-1 text-sm text-white">
+          <span className="font-semibold">{displayName(post)}</span>{" "}
+          <span className="text-wolf-muted">{post.caption}</span>
         </p>
       )}
-    </motion.div>
+
+      {/* Comments */}
+      <div className="px-4 pt-2">
+        {hasHiddenComments && (
+          <button
+            onClick={() => setExpanded(true)}
+            className="text-sm text-wolf-muted transition-colors hover:text-white"
+          >
+            View all {comments.length} comments
+          </button>
+        )}
+        <div className="mt-1 flex flex-col gap-1">
+          {visibleComments.map((c) => {
+            const isMyComment = c.author_id === profile?.id;
+            const cAccent = wolfAccent(c.author_wolf_id);
+            return (
+              <div key={c.id} className="group flex items-start gap-2 text-sm">
+                <p className="flex-1 text-white">
+                  <span className="font-semibold" style={{ color: cAccent }}>
+                    {displayName(c)}
+                  </span>{" "}
+                  <span className="text-wolf-muted">{c.body}</span>
+                </p>
+                {isMyComment && (
+                  <button
+                    onClick={() => onDeleteComment(c.id)}
+                    className="text-wolf-muted/60 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+                    title="Delete comment"
+                  >
+                    <Trash2 size={11} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Comment composer */}
+      {profile && (
+        <div className="mt-3 flex items-center gap-2 border-t border-white/5 px-4 py-3">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleComment();
+              }
+            }}
+            placeholder="Add a comment…"
+            maxLength={500}
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-wolf-muted/60 focus:outline-none"
+          />
+          <button
+            onClick={handleComment}
+            disabled={!draft.trim() || sending}
+            className="text-sm font-semibold text-[#c8a4ff] transition-opacity hover:text-white disabled:opacity-40"
+          >
+            {sending ? <Loader2 size={14} className="animate-spin" /> : "Post"}
+          </button>
+        </div>
+      )}
+    </motion.article>
   );
 }
 

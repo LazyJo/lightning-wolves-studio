@@ -53,12 +53,27 @@ CREATE TABLE IF NOT EXISTS hub_post_likes (
   PRIMARY KEY (post_id, user_id)
 );
 
+CREATE TABLE IF NOT EXISTS hub_post_comments (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id         UUID NOT NULL REFERENCES hub_posts(id) ON DELETE CASCADE,
+  author_id       UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  author_name     TEXT,
+  author_wolf_id  TEXT,
+  body            TEXT NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at      TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS hub_post_comments_post_created_idx
+  ON hub_post_comments (post_id, created_at)
+  WHERE deleted_at IS NULL;
+
 -- ── Row Level Security ───────────────────────────────────────────────────────
 
-ALTER TABLE hub_messages   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE hub_posts      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE hub_reactions  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE hub_post_likes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hub_messages      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hub_posts         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hub_reactions     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hub_post_likes    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hub_post_comments ENABLE ROW LEVEL SECURITY;
 
 -- Messages: any signed-in user reads non-deleted; author inserts as self;
 -- author soft-deletes their own (update deleted_at); service role full access.
@@ -129,6 +144,23 @@ DROP POLICY IF EXISTS hub_like_delete_own ON hub_post_likes;
 CREATE POLICY hub_like_delete_own ON hub_post_likes
   FOR DELETE USING (auth.uid() = user_id);
 
+-- Post comments: signed-in reads non-deleted; author inserts / deletes own
+DROP POLICY IF EXISTS hub_comment_select ON hub_post_comments;
+CREATE POLICY hub_comment_select ON hub_post_comments
+  FOR SELECT USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
+
+DROP POLICY IF EXISTS hub_comment_insert ON hub_post_comments;
+CREATE POLICY hub_comment_insert ON hub_post_comments
+  FOR INSERT WITH CHECK (auth.uid() = author_id);
+
+DROP POLICY IF EXISTS hub_comment_delete_own ON hub_post_comments;
+CREATE POLICY hub_comment_delete_own ON hub_post_comments
+  FOR DELETE USING (auth.uid() = author_id);
+
+DROP POLICY IF EXISTS hub_comment_service ON hub_post_comments;
+CREATE POLICY hub_comment_service ON hub_post_comments
+  FOR ALL USING (auth.role() = 'service_role');
+
 -- ── Realtime publication ─────────────────────────────────────────────────────
 -- Enable realtime on all four tables (idempotent: wrap in DO block)
 DO $$
@@ -156,6 +188,12 @@ BEGIN
     WHERE pubname = 'supabase_realtime' AND tablename = 'hub_post_likes'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE hub_post_likes;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'hub_post_comments'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE hub_post_comments;
   END IF;
 END $$;
 

@@ -259,17 +259,17 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
         {/* Tab switcher + presence */}
         <div className="mb-6 flex items-center gap-3">
           <div className="flex flex-1 gap-2 rounded-xl border border-white/10 bg-white/[0.03] p-1">
-            <TabButton active={tab === "chat"} onClick={() => setTab("chat")}>
-              <MessageCircle size={15} />
-              Chat
+            <TabButton active={tab === "profile"} onClick={() => setTab("profile")}>
+              <UserIcon size={15} />
+              Profile
             </TabButton>
             <TabButton active={tab === "media"} onClick={() => setTab("media")}>
               <ImageIcon size={15} />
               Media
             </TabButton>
-            <TabButton active={tab === "profile"} onClick={() => setTab("profile")}>
-              <UserIcon size={15} />
-              Profile
+            <TabButton active={tab === "chat"} onClick={() => setTab("chat")}>
+              <MessageCircle size={15} />
+              Chat
             </TabButton>
           </div>
           {onlineCount > 0 && (

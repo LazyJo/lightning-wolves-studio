@@ -1,8 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { ArrowLeft, Search, Shield, Users, Loader2, Lock } from "lucide-react";
+import {
+  ArrowLeft,
+  Search,
+  Shield,
+  Users,
+  Loader2,
+  Lock,
+  CreditCard,
+  MessageCircle,
+  Sparkles,
+  TrendingUp,
+  Heart,
+  Image as ImageIcon,
+  Zap,
+} from "lucide-react";
 import { initSupabase } from "../lib/supabaseClient";
 import { useProfile } from "../lib/useProfile";
+
+/* ─── Types & helpers ─── */
 
 interface MemberRow {
   id: string;
@@ -10,12 +26,17 @@ interface MemberRow {
   display_name: string | null;
   role: string;
   wolf_id: string | null;
+  tier: string | null;
+  stripe_subscription_id: string | null;
+  wolf_credits: number | null;
   created_at: string;
 }
 
 interface MemberWithCounts extends MemberRow {
   postCount: number;
   messageCount: number;
+  storyCount: number;
+  generationCount: number;
 }
 
 const WOLF_COLOR: Record<string, string> = {
@@ -24,28 +45,68 @@ const WOLF_COLOR: Record<string, string> = {
   purple: "#E040FB",
 };
 
+const TIER_PRICE: Record<string, number> = {
+  starter: 9,
+  creator: 29,
+  pro: 49,
+  elite: 89,
+};
+
+const TIER_COLOR: Record<string, string> = {
+  starter: "#f5c518",
+  creator: "#69f0ae",
+  pro: "#E040FB",
+  elite: "#ff6b9d",
+  free: "#888",
+};
+
 function wolfAccent(wolfId: string | null): string {
   return (wolfId && WOLF_COLOR[wolfId]) || "#9b6dff";
 }
 
 function fmtDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, {
+  return new Date(iso).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 }
 
+function displayNameOf(m: { display_name: string | null; email: string | null }): string {
+  return m.display_name || m.email?.split("@")[0] || "Wolf";
+}
+
+type Tab = "members" | "subscriptions" | "hub" | "studio";
+
 interface Props {
   onBack: () => void;
 }
 
-export default function AdminMembersPage({ onBack }: Props) {
+/* ─── Main page ─── */
+
+export default function AdminPage({ onBack }: Props) {
   const { profile, loading: profileLoading, isAdmin } = useProfile();
   const [members, setMembers] = useState<MemberWithCounts[]>([]);
+  const [hubStats, setHubStats] = useState<{
+    posts: number;
+    messages: number;
+    stories: number;
+    comments: number;
+    likes: number;
+  }>({ posts: 0, messages: 0, stories: 0, comments: 0, likes: 0 });
+  const [studioStats, setStudioStats] = useState<{
+    generations: number;
+    visualGenerations: number;
+    visualByType: Record<string, number>;
+    creditsUsed: number;
+  }>({
+    generations: 0,
+    visualGenerations: 0,
+    visualByType: {},
+    creditsUsed: 0,
+  });
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<Tab>("members");
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -54,37 +115,36 @@ export default function AdminMembersPage({ onBack }: Props) {
       const sb = await initSupabase();
       if (!sb || cancelled) return;
 
-      // Admin RLS lets us SELECT every profile
-      const { data: profiles, error } = await sb
-        .from("profiles")
-        .select("id, email, display_name, role, wolf_id, created_at")
-        .order("created_at", { ascending: false });
-
-      if (cancelled || error) {
-        if (error) {
-          // eslint-disable-next-line no-console
-          console.error("admin members fetch failed:", error);
-        }
-        setLoading(false);
-        return;
-      }
-      const ps = (profiles || []) as MemberRow[];
-
-      // Per-author counts (one query each — small N for now)
-      const ids = ps.map((p) => p.id);
-      const [postsRes, msgsRes] = await Promise.all([
+      const [
+        profilesRes,
+        postsRes,
+        msgsRes,
+        storiesRes,
+        commentsRes,
+        likesRes,
+        gensRes,
+        visualGensRes,
+      ] = await Promise.all([
         sb
-          .from("hub_posts")
-          .select("author_id")
-          .in("author_id", ids)
-          .is("deleted_at", null),
+          .from("profiles")
+          .select(
+            "id, email, display_name, role, wolf_id, tier, stripe_subscription_id, wolf_credits, created_at"
+          )
+          .order("created_at", { ascending: false }),
+        sb.from("hub_posts").select("author_id").is("deleted_at", null),
+        sb.from("hub_messages").select("author_id").is("deleted_at", null),
         sb
-          .from("hub_messages")
+          .from("hub_stories")
           .select("author_id")
-          .in("author_id", ids)
-          .is("deleted_at", null),
+          .gt("expires_at", new Date().toISOString()),
+        sb.from("hub_post_comments").select("id").is("deleted_at", null),
+        sb.from("hub_post_likes").select("post_id"),
+        sb.from("generations").select("user_id, wolf_id"),
+        sb.from("visual_generations").select("user_id, type, credits_used"),
       ]);
       if (cancelled) return;
+
+      const ps = (profilesRes.data || []) as MemberRow[];
 
       const postCounts = new Map<string, number>();
       (postsRes.data || []).forEach((r: { author_id: string }) => {
@@ -94,14 +154,49 @@ export default function AdminMembersPage({ onBack }: Props) {
       (msgsRes.data || []).forEach((r: { author_id: string }) => {
         msgCounts.set(r.author_id, (msgCounts.get(r.author_id) || 0) + 1);
       });
+      const storyCounts = new Map<string, number>();
+      (storiesRes.data || []).forEach((r: { author_id: string }) => {
+        storyCounts.set(r.author_id, (storyCounts.get(r.author_id) || 0) + 1);
+      });
+      const genCounts = new Map<string, number>();
+      (gensRes.data || []).forEach((r: { user_id: string }) => {
+        if (!r.user_id) return;
+        genCounts.set(r.user_id, (genCounts.get(r.user_id) || 0) + 1);
+      });
 
       setMembers(
         ps.map((p) => ({
           ...p,
           postCount: postCounts.get(p.id) || 0,
           messageCount: msgCounts.get(p.id) || 0,
+          storyCount: storyCounts.get(p.id) || 0,
+          generationCount: genCounts.get(p.id) || 0,
         }))
       );
+
+      setHubStats({
+        posts: (postsRes.data || []).length,
+        messages: (msgsRes.data || []).length,
+        stories: (storiesRes.data || []).length,
+        comments: (commentsRes.data || []).length,
+        likes: (likesRes.data || []).length,
+      });
+
+      const visualByType: Record<string, number> = {};
+      let creditsUsed = 0;
+      (visualGensRes.data || []).forEach(
+        (r: { type: string; credits_used: number }) => {
+          visualByType[r.type] = (visualByType[r.type] || 0) + 1;
+          creditsUsed += r.credits_used || 0;
+        }
+      );
+      setStudioStats({
+        generations: (gensRes.data || []).length,
+        visualGenerations: (visualGensRes.data || []).length,
+        visualByType,
+        creditsUsed,
+      });
+
       setLoading(false);
     })();
     return () => {
@@ -109,18 +204,7 @@ export default function AdminMembersPage({ onBack }: Props) {
     };
   }, [isAdmin]);
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter(
-      (m) =>
-        (m.display_name || "").toLowerCase().includes(q) ||
-        (m.email || "").toLowerCase().includes(q) ||
-        (m.role || "").toLowerCase().includes(q)
-    );
-  }, [members, search]);
-
-  // Gate: not signed in OR not admin
+  // Gates
   if (profileLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -159,7 +243,7 @@ export default function AdminMembersPage({ onBack }: Props) {
             "radial-gradient(ellipse at 50% 0%, rgba(245,197,24,0.05), transparent 60%)",
         }}
       />
-      <div className="relative z-10 mx-auto max-w-5xl px-4 pb-24 sm:px-6">
+      <div className="relative z-10 mx-auto max-w-6xl px-4 pb-24 sm:px-6">
         {/* Header */}
         <div className="flex items-center justify-between py-6">
           <button
@@ -176,114 +260,70 @@ export default function AdminMembersPage({ onBack }: Props) {
               style={{ fontFamily: "var(--font-heading)" }}
             >
               <span className="bg-gradient-to-r from-wolf-gold via-wolf-amber to-wolf-gold bg-clip-text text-transparent">
-                Pack Members
+                Pack Admin
               </span>
             </h1>
           </div>
           <div className="w-[70px]" />
         </div>
 
-        {/* Stats card */}
-        <div className="mb-6 grid grid-cols-3 gap-3">
-          <StatCard label="Total members" value={members.length} icon={<Users size={16} />} />
-          <StatCard
-            label="Admins"
-            value={members.filter((m) => m.role === "admin").length}
-            icon={<Shield size={16} />}
-          />
-          <StatCard
-            label="Posted this month"
-            value={members.filter((m) => m.postCount > 0).length}
-          />
+        {/* Tabs */}
+        <div className="mb-6 flex gap-2 overflow-x-auto rounded-xl border border-white/10 bg-white/[0.03] p-1">
+          <TabBtn active={tab === "members"} onClick={() => setTab("members")}>
+            <Users size={14} /> Members
+          </TabBtn>
+          <TabBtn active={tab === "subscriptions"} onClick={() => setTab("subscriptions")}>
+            <CreditCard size={14} /> Subscriptions
+          </TabBtn>
+          <TabBtn active={tab === "hub"} onClick={() => setTab("hub")}>
+            <MessageCircle size={14} /> Hub Activity
+          </TabBtn>
+          <TabBtn active={tab === "studio"} onClick={() => setTab("studio")}>
+            <Sparkles size={14} /> Studio Activity
+          </TabBtn>
         </div>
 
-        {/* Search */}
-        <div className="mb-4 relative">
-          <Search
-            size={15}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-wolf-muted"
-          />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, email, or role…"
-            className="w-full rounded-lg border border-white/10 bg-white/[0.03] py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-wolf-muted/60 focus:border-wolf-gold/40 focus:outline-none"
-          />
-        </div>
-
-        {/* Members table */}
-        <div className="overflow-hidden rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
-          {loading ? (
-            <div className="flex items-center justify-center px-6 py-16">
-              <Loader2 className="animate-spin text-wolf-muted" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="px-6 py-16 text-center text-sm text-wolf-muted">
-              {search ? "No members match that search." : "No members yet."}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-wolf-muted">
-                    <th className="px-4 py-3 text-left font-medium">Wolf</th>
-                    <th className="px-4 py-3 text-left font-medium">Email</th>
-                    <th className="px-4 py-3 text-left font-medium">Role</th>
-                    <th className="px-4 py-3 text-right font-medium">Posts</th>
-                    <th className="px-4 py-3 text-right font-medium">Msgs</th>
-                    <th className="px-4 py-3 text-right font-medium">Joined</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((m) => {
-                    const accent = wolfAccent(m.wolf_id);
-                    const name =
-                      m.display_name || m.email?.split("@")[0] || "Wolf";
-                    return (
-                      <motion.tr
-                        key={m.id}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="border-b border-white/5 transition-colors hover:bg-white/[0.02]"
-                      >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold text-black"
-                              style={{ backgroundColor: accent }}
-                            >
-                              {name.slice(0, 1).toUpperCase()}
-                            </div>
-                            <span className="font-semibold text-white">
-                              {name}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-wolf-muted">
-                          {m.email || <span className="opacity-50">—</span>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <RoleBadge role={m.role} />
-                        </td>
-                        <td className="px-4 py-3 text-right text-white">
-                          {m.postCount}
-                        </td>
-                        <td className="px-4 py-3 text-right text-white">
-                          {m.messageCount}
-                        </td>
-                        <td className="px-4 py-3 text-right text-xs text-wolf-muted">
-                          {fmtDate(m.created_at)}
-                        </td>
-                      </motion.tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        {loading ? (
+          <div className="flex items-center justify-center px-6 py-20">
+            <Loader2 className="animate-spin text-wolf-muted" />
+          </div>
+        ) : (
+          <>
+            {tab === "members" && <MembersTab members={members} />}
+            {tab === "subscriptions" && <SubscriptionsTab members={members} />}
+            {tab === "hub" && <HubActivityTab members={members} stats={hubStats} />}
+            {tab === "studio" && (
+              <StudioActivityTab members={members} stats={studioStats} />
+            )}
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+/* ─── Tab buttons / cards ─── */
+
+function TabBtn({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+        active
+          ? "bg-gradient-to-r from-wolf-gold/20 to-wolf-amber/20 text-white"
+          : "text-wolf-muted hover:text-white"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -291,10 +331,12 @@ function StatCard({
   label,
   value,
   icon,
+  hint,
 }: {
   label: string;
-  value: number;
+  value: string | number;
   icon?: React.ReactNode;
+  hint?: string;
 }) {
   return (
     <div className="rounded-xl border border-white/10 bg-wolf-card/40 p-4 backdrop-blur-sm">
@@ -303,6 +345,7 @@ function StatCard({
         {label}
       </div>
       <div className="mt-1 text-2xl font-bold text-white">{value}</div>
+      {hint && <div className="mt-0.5 text-xs text-wolf-muted">{hint}</div>}
     </div>
   );
 }
@@ -327,5 +370,477 @@ function RoleBadge({ role }: { role: string }) {
     <span className="inline-flex rounded-full bg-white/[0.05] px-2 py-0.5 text-xs text-wolf-muted">
       {role}
     </span>
+  );
+}
+
+function TierBadge({ tier }: { tier: string | null }) {
+  const t = tier || "free";
+  const color = TIER_COLOR[t] || TIER_COLOR.free;
+  return (
+    <span
+      className="inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize"
+      style={{ backgroundColor: `${color}25`, color }}
+    >
+      {t}
+    </span>
+  );
+}
+
+/* ─── Members tab ─── */
+
+function MembersTab({ members }: { members: MemberWithCounts[] }) {
+  const [search, setSearch] = useState("");
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return members;
+    return members.filter(
+      (m) =>
+        (m.display_name || "").toLowerCase().includes(q) ||
+        (m.email || "").toLowerCase().includes(q) ||
+        (m.role || "").toLowerCase().includes(q)
+    );
+  }, [members, search]);
+
+  return (
+    <div>
+      <div className="mb-6 grid grid-cols-3 gap-3">
+        <StatCard
+          label="Total members"
+          value={members.length}
+          icon={<Users size={14} />}
+        />
+        <StatCard
+          label="Admins"
+          value={members.filter((m) => m.role === "admin").length}
+          icon={<Shield size={14} />}
+        />
+        <StatCard
+          label="Posted ever"
+          value={members.filter((m) => m.postCount > 0).length}
+        />
+      </div>
+
+      <div className="relative mb-4">
+        <Search
+          size={15}
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-wolf-muted"
+        />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, email, or role…"
+          className="w-full rounded-lg border border-white/10 bg-white/[0.03] py-2.5 pl-9 pr-3 text-sm text-white placeholder:text-wolf-muted/60 focus:border-wolf-gold/40 focus:outline-none"
+        />
+      </div>
+
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
+        {filtered.length === 0 ? (
+          <div className="px-6 py-16 text-center text-sm text-wolf-muted">
+            {search ? "No members match that search." : "No members yet."}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-wolf-muted">
+                  <th className="px-4 py-3 text-left font-medium">Wolf</th>
+                  <th className="px-4 py-3 text-left font-medium">Email</th>
+                  <th className="px-4 py-3 text-left font-medium">Role</th>
+                  <th className="px-4 py-3 text-left font-medium">Plan</th>
+                  <th className="px-4 py-3 text-right font-medium">Posts</th>
+                  <th className="px-4 py-3 text-right font-medium">Msgs</th>
+                  <th className="px-4 py-3 text-right font-medium">Joined</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((m) => {
+                  const accent = wolfAccent(m.wolf_id);
+                  const name = displayNameOf(m);
+                  return (
+                    <motion.tr
+                      key={m.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="border-b border-white/5 transition-colors hover:bg-white/[0.02]"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold text-black"
+                            style={{ backgroundColor: accent }}
+                          >
+                            {name.slice(0, 1).toUpperCase()}
+                          </div>
+                          <span className="font-semibold text-white">{name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-wolf-muted">
+                        {m.email || <span className="opacity-50">—</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <RoleBadge role={m.role} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <TierBadge tier={m.tier} />
+                      </td>
+                      <td className="px-4 py-3 text-right text-white">{m.postCount}</td>
+                      <td className="px-4 py-3 text-right text-white">
+                        {m.messageCount}
+                      </td>
+                      <td className="px-4 py-3 text-right text-xs text-wolf-muted">
+                        {fmtDate(m.created_at)}
+                      </td>
+                    </motion.tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Subscriptions tab ─── */
+
+function SubscriptionsTab({ members }: { members: MemberWithCounts[] }) {
+  const tierCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      free: 0,
+      starter: 0,
+      creator: 0,
+      pro: 0,
+      elite: 0,
+    };
+    members.forEach((m) => {
+      const t = m.tier || "free";
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    return counts;
+  }, [members]);
+
+  const mrr = useMemo(() => {
+    return Object.entries(tierCounts).reduce((sum, [tier, count]) => {
+      return sum + (TIER_PRICE[tier] || 0) * count;
+    }, 0);
+  }, [tierCounts]);
+
+  const paying = members.filter(
+    (m) => m.tier && m.tier !== "free" && m.stripe_subscription_id
+  );
+
+  const totalMembers = members.length || 1;
+
+  return (
+    <div>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          label="Paying wolves"
+          value={paying.length}
+          icon={<CreditCard size={14} />}
+          hint={`${Math.round((paying.length / totalMembers) * 100)}% conversion`}
+        />
+        <StatCard
+          label="Estimated MRR"
+          value={`€${mrr.toLocaleString()}`}
+          icon={<TrendingUp size={14} />}
+          hint="Sum of monthly tier prices"
+        />
+        <StatCard
+          label="Free wolves"
+          value={tierCounts.free || 0}
+          hint={`of ${members.length} total`}
+        />
+        <StatCard
+          label="Top tier (Elite)"
+          value={tierCounts.elite || 0}
+          hint="€89/mo each"
+        />
+      </div>
+
+      {/* Tier distribution */}
+      <div className="mb-6 rounded-2xl border border-white/10 bg-wolf-card/40 p-5 backdrop-blur-sm">
+        <div className="mb-3 text-xs uppercase tracking-wider text-wolf-muted">
+          Plan distribution
+        </div>
+        <div className="flex flex-col gap-3">
+          {(["free", "starter", "creator", "pro", "elite"] as const).map((tier) => {
+            const count = tierCounts[tier] || 0;
+            const pct = members.length ? (count / members.length) * 100 : 0;
+            const color = TIER_COLOR[tier];
+            return (
+              <div key={tier} className="flex items-center gap-3">
+                <div className="w-20 text-sm font-semibold capitalize text-white">
+                  {tier}
+                </div>
+                <div className="flex-1">
+                  <div className="h-2 overflow-hidden rounded-full bg-white/[0.05]">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{
+                        width: `${pct}%`,
+                        background: color,
+                      }}
+                    />
+                  </div>
+                </div>
+                <div className="w-24 text-right text-sm text-wolf-muted">
+                  {count} {count === 1 ? "wolf" : "wolves"}
+                </div>
+                <div className="w-16 text-right text-xs text-wolf-muted">
+                  {tier === "free" ? "—" : `€${TIER_PRICE[tier]}/mo`}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Paying members table */}
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
+        <div className="border-b border-white/10 px-5 py-3 text-xs uppercase tracking-wider text-wolf-muted">
+          Paying wolves
+        </div>
+        {paying.length === 0 ? (
+          <div className="px-6 py-12 text-center text-sm text-wolf-muted">
+            No paying subscribers yet — once Stripe checkout completes for
+            anyone, they'll show up here.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-white/10 text-xs uppercase tracking-wider text-wolf-muted">
+                  <th className="px-4 py-3 text-left font-medium">Wolf</th>
+                  <th className="px-4 py-3 text-left font-medium">Email</th>
+                  <th className="px-4 py-3 text-left font-medium">Plan</th>
+                  <th className="px-4 py-3 text-right font-medium">Credits left</th>
+                  <th className="px-4 py-3 text-right font-medium">Subscribed since</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paying.map((m) => {
+                  const accent = wolfAccent(m.wolf_id);
+                  const name = displayNameOf(m);
+                  return (
+                    <tr
+                      key={m.id}
+                      className="border-b border-white/5 transition-colors hover:bg-white/[0.02]"
+                    >
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-black"
+                            style={{ backgroundColor: accent }}
+                          >
+                            {name.slice(0, 1).toUpperCase()}
+                          </div>
+                          <span className="font-semibold text-white">{name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-wolf-muted">{m.email}</td>
+                      <td className="px-4 py-3">
+                        <TierBadge tier={m.tier} />
+                      </td>
+                      <td className="px-4 py-3 text-right text-white">
+                        {m.wolf_credits ?? 0}
+                      </td>
+                      <td className="px-4 py-3 text-right text-xs text-wolf-muted">
+                        {fmtDate(m.created_at)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Hub Activity tab ─── */
+
+function HubActivityTab({
+  members,
+  stats,
+}: {
+  members: MemberWithCounts[];
+  stats: { posts: number; messages: number; stories: number; comments: number; likes: number };
+}) {
+  const topByPosts = [...members]
+    .filter((m) => m.postCount > 0)
+    .sort((a, b) => b.postCount - a.postCount)
+    .slice(0, 5);
+  const topByMessages = [...members]
+    .filter((m) => m.messageCount > 0)
+    .sort((a, b) => b.messageCount - a.messageCount)
+    .slice(0, 5);
+
+  return (
+    <div>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <StatCard label="Posts" value={stats.posts} icon={<ImageIcon size={14} />} />
+        <StatCard
+          label="Messages"
+          value={stats.messages}
+          icon={<MessageCircle size={14} />}
+        />
+        <StatCard
+          label="Stories live"
+          value={stats.stories}
+          hint="Non-expired"
+        />
+        <StatCard
+          label="Comments"
+          value={stats.comments}
+          icon={<MessageCircle size={14} />}
+        />
+        <StatCard label="Likes" value={stats.likes} icon={<Heart size={14} />} />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Leaderboard title="Top posters" items={topByPosts} field="postCount" />
+        <Leaderboard
+          title="Top chatters"
+          items={topByMessages}
+          field="messageCount"
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Studio Activity tab ─── */
+
+function StudioActivityTab({
+  members,
+  stats,
+}: {
+  members: MemberWithCounts[];
+  stats: {
+    generations: number;
+    visualGenerations: number;
+    visualByType: Record<string, number>;
+    creditsUsed: number;
+  };
+}) {
+  const topByGens = [...members]
+    .filter((m) => m.generationCount > 0)
+    .sort((a, b) => b.generationCount - a.generationCount)
+    .slice(0, 5);
+
+  return (
+    <div>
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatCard
+          label="Lyric generations"
+          value={stats.generations}
+          icon={<Sparkles size={14} />}
+        />
+        <StatCard
+          label="Visual generations"
+          value={stats.visualGenerations}
+          icon={<ImageIcon size={14} />}
+        />
+        <StatCard
+          label="Credits used"
+          value={stats.creditsUsed.toLocaleString()}
+          icon={<Zap size={14} />}
+        />
+        <StatCard
+          label="Active creators"
+          value={topByGens.length}
+          hint="Posted at least once"
+        />
+      </div>
+
+      {/* Visual generation breakdown */}
+      {Object.keys(stats.visualByType).length > 0 && (
+        <div className="mb-6 rounded-2xl border border-white/10 bg-wolf-card/40 p-5 backdrop-blur-sm">
+          <div className="mb-3 text-xs uppercase tracking-wider text-wolf-muted">
+            Visual generations by tool
+          </div>
+          <div className="flex flex-col gap-3">
+            {Object.entries(stats.visualByType).map(([type, count]) => {
+              const max = Math.max(...Object.values(stats.visualByType));
+              const pct = max ? (count / max) * 100 : 0;
+              return (
+                <div key={type} className="flex items-center gap-3">
+                  <div className="w-28 text-sm font-semibold capitalize text-white">
+                    {type.replace("-", " ")}
+                  </div>
+                  <div className="flex-1">
+                    <div className="h-2 overflow-hidden rounded-full bg-white/[0.05]">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-[#69f0ae] to-[#82b1ff]"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                  <div className="w-16 text-right text-sm text-wolf-muted">{count}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <Leaderboard title="Top creators" items={topByGens} field="generationCount" />
+    </div>
+  );
+}
+
+/* ─── Leaderboard (shared by Hub + Studio tabs) ─── */
+
+function Leaderboard({
+  title,
+  items,
+  field,
+}: {
+  title: string;
+  items: MemberWithCounts[];
+  field: "postCount" | "messageCount" | "generationCount";
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
+      <div className="border-b border-white/10 px-5 py-3 text-xs uppercase tracking-wider text-wolf-muted">
+        {title}
+      </div>
+      {items.length === 0 ? (
+        <div className="px-6 py-10 text-center text-sm text-wolf-muted">
+          Nothing here yet.
+        </div>
+      ) : (
+        <ul>
+          {items.map((m, i) => {
+            const accent = wolfAccent(m.wolf_id);
+            const name = displayNameOf(m);
+            return (
+              <li
+                key={m.id}
+                className="flex items-center gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
+              >
+                <span className="w-5 text-center text-xs font-bold text-wolf-muted">
+                  {i + 1}
+                </span>
+                <div
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-black"
+                  style={{ backgroundColor: accent }}
+                >
+                  {name.slice(0, 1).toUpperCase()}
+                </div>
+                <span className="flex-1 truncate text-sm font-semibold text-white">
+                  {name}
+                </span>
+                <span className="text-sm font-bold text-white">{m[field]}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
   );
 }

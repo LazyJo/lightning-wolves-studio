@@ -3,7 +3,21 @@ import RemixViewComponent from "./studio/RemixView";
 import WolfVisionPanelComponent from "./studio/WolfVisionPanel";
 import StudioDashboard from "./studio/StudioDashboard";
 import { useCredits, tierLabel, tierColor } from "../lib/useCredits";
+import { useProfile } from "../lib/useProfile";
 import { useI18n } from "../lib/i18n";
+
+// Theme colours users can pick — kept in sync with App.tsx WOLF_COLOR_MAP +
+// the same map in StudioDashboard / WolfHubPage / AdminMembersPage.
+const THEME_TO_COLOR: Record<string, string> = {
+  yellow: "#f5c518",
+  orange: "#ff8a3d",
+  red:    "#ef4444",
+  pink:   "#ec4899",
+  purple: "#E040FB",
+  blue:   "#3b82f6",
+  white:  "#e5e7eb",
+  green:  "#10b981",
+};
 import TemplateEditor from "./studio/TemplateEditor";
 import TemplatesList from "./studio/TemplatesList";
 import TemplateModePicker from "./studio/TemplateModePicker";
@@ -170,7 +184,9 @@ function GenerationView({
   const [isGenerating, setIsGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const accentColor = wolf?.color || "#f5c518";
+  const { profile } = useProfile();
+  const themeAccent = profile?.wolf_id ? THEME_TO_COLOR[profile.wolf_id] : null;
+  const accentColor = wolf?.color || themeAccent || "#f5c518";
   const toolInfo = toolDefs.find((td) => td.id === tool);
   const { t } = useI18n();
 
@@ -602,7 +618,9 @@ export default function StudioPage({ wolf, onBack, onWolfMap, studioView: extern
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
-  const accentColor = wolf?.color || "#f5c518";
+  const { profile } = useProfile();
+  const themeAccent = profile?.wolf_id ? THEME_TO_COLOR[profile.wolf_id] : null;
+  const accentColor = wolf?.color || themeAccent || "#f5c518";
   const { plan, deductCredits } = useCredits();
   const tColor = tierColor(plan.tier);
   const { t } = useI18n();

@@ -134,7 +134,12 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
                 style={{ fontFamily: "var(--font-heading)" }}
               >
                 {getGreeting()},{" "}
-                <span style={{ color: accentColor }}>{wolf?.artist || "Wolf"}</span>
+                <span style={{ color: accentColor }}>
+                  {wolf?.artist ||
+                    profile?.display_name ||
+                    profile?.email?.split("@")[0] ||
+                    "Wolf"}
+                </span>
               </h1>
               <p className="mt-0.5 text-sm text-wolf-muted">
                 Create AI-powered music videos from your songs

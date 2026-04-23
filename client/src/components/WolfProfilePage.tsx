@@ -253,7 +253,7 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
                   style={{ backgroundColor: wolf.color, boxShadow: `0 8px 30px ${wolf.color}30` }}
                 >
                   <Swords size={16} />
-                  Versus {wolf.artist}
+                  Connect with {wolf.artist}
                 </motion.button>
               )}
               <motion.button

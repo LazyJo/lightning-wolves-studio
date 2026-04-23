@@ -96,7 +96,12 @@ const QUICK_EMOJIS = ["🔥", "❤️", "😂", "🐺", "⚡", "👀"];
 const WOLF_COLOR: Record<string, string> = {
   yellow: "#f5c518",
   orange: "#ff8a3d",
+  red:    "#ef4444",
+  pink:   "#ec4899",
   purple: "#E040FB",
+  blue:   "#3b82f6",
+  cyan:   "#06b6d4",
+  green:  "#10b981",
 };
 
 function displayName(m: { author_name: string | null; author_id: string }): string {

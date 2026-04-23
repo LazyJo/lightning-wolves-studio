@@ -42,7 +42,12 @@ interface MemberWithCounts extends MemberRow {
 const WOLF_COLOR: Record<string, string> = {
   yellow: "#f5c518",
   orange: "#ff8a3d",
+  red:    "#ef4444",
+  pink:   "#ec4899",
   purple: "#E040FB",
+  blue:   "#3b82f6",
+  cyan:   "#06b6d4",
+  green:  "#10b981",
 };
 
 const TIER_PRICE: Record<string, number> = {

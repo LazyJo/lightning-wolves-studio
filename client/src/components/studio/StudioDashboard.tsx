@@ -19,7 +19,6 @@ import {
   Loader2,
 } from "lucide-react";
 import type { Wolf } from "../../data/wolves";
-import { wolves } from "../../data/wolves";
 import { tierLabel, tierColor } from "../../lib/useCredits";
 import { useRecentActivity, formatTimeAgo } from "../../lib/useRecentActivity";
 import { useProfile } from "../../lib/useProfile";
@@ -560,7 +559,6 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
         {showWolfPicker && profile && (
           <WolfColorPickerModal
             profileId={profile.id}
-            displayName={profile.display_name || profile.email?.split("@")[0] || "Wolf"}
             onSaved={() => setShowWolfPicker(false)}
           />
         )}
@@ -569,19 +567,26 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
   );
 }
 
-/* ─── First-visit wolf-color picker ─── */
+/* ─── First-visit wolf-color (theme) picker ─── */
 
-const PICK_WOLVES = wolves.filter(
-  (w) => w.id === "yellow" || w.id === "orange" || w.id === "purple"
-);
+// All theme colors a wolf can pick. Ids are stored in profiles.wolf_id.
+// Keep ids in sync with the WOLF_COLOR maps in WolfHubPage + AdminMembersPage.
+const THEME_COLORS: { id: string; color: string }[] = [
+  { id: "yellow", color: "#f5c518" },
+  { id: "orange", color: "#ff8a3d" },
+  { id: "red",    color: "#ef4444" },
+  { id: "pink",   color: "#ec4899" },
+  { id: "purple", color: "#E040FB" },
+  { id: "blue",   color: "#3b82f6" },
+  { id: "cyan",   color: "#06b6d4" },
+  { id: "green",  color: "#10b981" },
+];
 
 function WolfColorPickerModal({
   profileId,
-  displayName,
   onSaved,
 }: {
   profileId: string;
-  displayName: string;
   onSaved: () => void;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
@@ -597,13 +602,15 @@ function WolfColorPickerModal({
         return;
       }
       await sb.from("profiles").update({ wolf_id: picked }).eq("id", profileId);
-      // Reload so accent color picks up everywhere (App's wolfColor state
-      // currently doesn't watch the profile row).
+      // Reload so the accent color applies everywhere (App's wolfColor state
+      // doesn't watch the profile row directly).
       window.location.reload();
     } finally {
       setSaving(false);
     }
   }
+
+  const pickedColor = THEME_COLORS.find((c) => c.id === picked)?.color;
 
   return (
     <motion.div
@@ -620,39 +627,66 @@ function WolfColorPickerModal({
       >
         <div className="px-6 py-5 text-center">
           <div className="mb-1 text-3xl">🐺</div>
-          <h3 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-heading)" }}>
-            Pick your wolf
+          <h3
+            className="text-2xl font-bold text-white"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            Pick your theme
           </h3>
           <p className="mt-1 text-sm text-wolf-muted">
-            Choose a wolf to theme your studio. You can change this later in
-            your profile.
+            Tap a colour to theme your studio. You can change it later in your
+            profile.
           </p>
         </div>
-        <div className="grid grid-cols-3 gap-3 px-6 pb-5">
-          {PICK_WOLVES.map((w) => {
-            const isPicked = picked === w.id;
+        <div className="flex flex-wrap items-center justify-center gap-5 px-6 pb-6">
+          {THEME_COLORS.map((c, i) => {
+            const isPicked = picked === c.id;
             return (
-              <button
-                key={w.id}
-                onClick={() => setPicked(w.id)}
-                className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition-all ${
+              <motion.button
+                key={c.id}
+                onClick={() => setPicked(c.id)}
+                aria-label={`${c.id} theme`}
+                aria-pressed={isPicked}
+                className="relative flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full"
+                animate={
                   isPicked
-                    ? "border-white/40 bg-white/[0.08]"
-                    : "border-white/10 bg-white/[0.02] hover:border-white/20"
-                }`}
-                style={isPicked ? { boxShadow: `0 0 0 2px ${w.color}50` } : {}}
+                    ? { scale: 1.15, y: 0 }
+                    : { scale: 1, y: [0, -4, 0] }
+                }
+                transition={
+                  isPicked
+                    ? { type: "spring", stiffness: 380, damping: 18 }
+                    : {
+                        duration: 2.4,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: i * 0.18,
+                      }
+                }
+                whileHover={{ scale: isPicked ? 1.18 : 1.12 }}
+                whileTap={{ scale: 0.95 }}
+                style={{
+                  backgroundColor: c.color,
+                  boxShadow: isPicked
+                    ? `0 0 0 3px ${c.color}, 0 0 30px ${c.color}aa, 0 0 60px ${c.color}66`
+                    : `0 6px 22px ${c.color}55`,
+                }}
               >
-                <div
-                  className="flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold text-black"
-                  style={{ backgroundColor: w.color }}
-                >
-                  {displayName.slice(0, 1).toUpperCase()}
-                </div>
-                <div className="text-center">
-                  <div className="text-sm font-semibold text-white">{w.artist}</div>
-                  <div className="text-[10px] capitalize text-wolf-muted">{w.id}</div>
-                </div>
-              </button>
+                {isPicked && (
+                  <motion.div
+                    layoutId="picked-ring"
+                    className="absolute -inset-1 rounded-full border-2 border-white/80"
+                    transition={{ type: "spring", stiffness: 320, damping: 25 }}
+                  />
+                )}
+                {isPicked && (
+                  <Check
+                    size={20}
+                    className="relative z-10 text-black drop-shadow-sm"
+                    strokeWidth={3}
+                  />
+                )}
+              </motion.button>
             );
           })}
         </div>
@@ -660,10 +694,14 @@ function WolfColorPickerModal({
           <button
             onClick={save}
             disabled={!picked || saving}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-wolf-gold py-3 font-semibold text-black transition-all hover:bg-wolf-amber disabled:opacity-40"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl py-3 font-semibold text-black transition-all disabled:opacity-40"
+            style={{
+              backgroundColor: pickedColor || "#f5c518",
+              boxShadow: pickedColor ? `0 8px 30px ${pickedColor}40` : undefined,
+            }}
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-            Set my wolf
+            Set my theme
           </button>
         </div>
       </motion.div>

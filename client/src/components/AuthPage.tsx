@@ -11,18 +11,47 @@ interface Props {
 
 export default function AuthPage({ onBack, onSuccess }: Props) {
   const { t } = useI18n();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [promoCode, setPromoCode] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setInfo("");
+
+    if (mode === "forgot") {
+      if (!email) {
+        setError("Enter your email so we can send the reset link.");
+        return;
+      }
+      setLoading(true);
+      const sb = await initSupabase();
+      if (!sb) {
+        setLoading(false);
+        setError("Auth isn't configured yet — check back soon.");
+        return;
+      }
+      try {
+        const { error } = await sb.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/?reset=1`,
+        });
+        if (error) throw error;
+        setInfo("Check your inbox for a reset link.");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Reset failed";
+        setError(msg);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     if (!email || !password) {
       setError("Please fill in all fields");
@@ -49,7 +78,10 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
         const { error } = await sb.auth.signUp({
           email,
           password,
-          options: { data: { name } },
+          options: {
+            data: { name },
+            emailRedirectTo: `${window.location.origin}/`,
+          },
         });
         if (error) throw error;
       }
@@ -59,6 +91,26 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
       setLoading(false);
       const msg = err instanceof Error ? err.message : "Auth failed";
       setError(msg);
+    }
+  };
+
+  const handleGoogle = async () => {
+    setError("");
+    const sb = await initSupabase();
+    if (!sb) {
+      setError("Auth isn't configured yet — check back soon.");
+      return;
+    }
+    const { error } = await sb.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/` },
+    });
+    if (error) {
+      setError(
+        error.message.includes("provider is not enabled")
+          ? "Google sign-in isn't switched on yet — try email for now."
+          : error.message
+      );
     }
   };
 
@@ -101,37 +153,69 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
             className="mb-1 text-center text-2xl font-bold tracking-wider text-white"
             style={{ fontFamily: "var(--font-heading)" }}
           >
-            {mode === "signin" ? t("auth.welcomeBack") : t("auth.joinPack")}
+            {mode === "signin"
+              ? t("auth.welcomeBack")
+              : mode === "signup"
+              ? t("auth.joinPack")
+              : "Reset password"}
           </h1>
           <p className="mb-8 text-center text-sm text-wolf-muted">
             {mode === "signin"
               ? t("auth.signInSubtitle")
-              : t("auth.signUpSubtitle")}
+              : mode === "signup"
+              ? t("auth.signUpSubtitle")
+              : "Enter your email and we'll send a reset link."}
           </p>
 
-          {/* Mode toggle */}
-          <div className="mb-6 flex rounded-xl bg-wolf-surface p-1">
-            <button
-              onClick={() => setMode("signin")}
-              className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
-                mode === "signin"
-                  ? "bg-wolf-gold text-black"
-                  : "text-wolf-muted"
-              }`}
-            >
-              {t("auth.signIn")}
-            </button>
-            <button
-              onClick={() => setMode("signup")}
-              className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
-                mode === "signup"
-                  ? "bg-wolf-gold text-black"
-                  : "text-wolf-muted"
-              }`}
-            >
-              {t("auth.signUp")}
-            </button>
-          </div>
+          {/* Mode toggle (hidden in forgot mode) */}
+          {mode !== "forgot" && (
+            <div className="mb-6 flex rounded-xl bg-wolf-surface p-1">
+              <button
+                onClick={() => { setMode("signin"); setError(""); setInfo(""); }}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                  mode === "signin"
+                    ? "bg-wolf-gold text-black"
+                    : "text-wolf-muted"
+                }`}
+              >
+                {t("auth.signIn")}
+              </button>
+              <button
+                onClick={() => { setMode("signup"); setError(""); setInfo(""); }}
+                className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-all ${
+                  mode === "signup"
+                    ? "bg-wolf-gold text-black"
+                    : "text-wolf-muted"
+                }`}
+              >
+                {t("auth.signUp")}
+              </button>
+            </div>
+          )}
+
+          {/* Continue with Google (only in signin/signup, not forgot) */}
+          {mode !== "forgot" && (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogle}
+                className="mb-4 flex w-full items-center justify-center gap-2.5 rounded-lg border border-white/10 bg-white/[0.05] py-3 text-sm font-semibold text-white transition-all hover:border-white/20 hover:bg-white/[0.08]"
+              >
+                <svg width="16" height="16" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.64 9.205c0-.639-.057-1.252-.164-1.841H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
+                  <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                  <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                  <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                </svg>
+                Continue with Google
+              </button>
+              <div className="mb-4 flex items-center gap-3 text-xs text-wolf-muted/60">
+                <div className="h-px flex-1 bg-white/10" />
+                <span>or with email</span>
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+            </>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name (signup only) */}
@@ -180,7 +264,8 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password (hidden in forgot mode) */}
+            {mode !== "forgot" && (
             <div>
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-wolf-muted">
                 {t("auth.password")}
@@ -206,6 +291,7 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
                 </button>
               </div>
             </div>
+            )}
 
             {/* Promo code (signup only) */}
             {mode === "signup" && (
@@ -235,9 +321,12 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
               </motion.div>
             )}
 
-            {/* Error */}
+            {/* Error / Info */}
             {error && (
               <p className="text-center text-sm text-red-400">{error}</p>
+            )}
+            {info && (
+              <p className="text-center text-sm text-green-300">{info}</p>
             )}
 
             {/* Submit */}
@@ -251,12 +340,18 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
               {loading ? (
                 <span className="inline-flex items-center gap-2">
                   <Zap size={16} className="animate-spin fill-black" />
-                  {mode === "signin" ? `${t("auth.signIn")}...` : `${t("auth.createAccount")}...`}
+                  {mode === "signin"
+                    ? `${t("auth.signIn")}...`
+                    : mode === "signup"
+                    ? `${t("auth.createAccount")}...`
+                    : "Sending..."}
                 </span>
               ) : mode === "signin" ? (
                 t("auth.signIn")
-              ) : (
+              ) : mode === "signup" ? (
                 t("auth.createAccount")
+              ) : (
+                "Send reset link"
               )}
             </motion.button>
           </form>
@@ -264,8 +359,21 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
           {/* Footer */}
           {mode === "signin" && (
             <p className="mt-6 text-center text-xs text-wolf-muted">
-              <button className="text-wolf-gold hover:underline">
+              <button
+                onClick={() => { setMode("forgot"); setError(""); setInfo(""); }}
+                className="text-wolf-gold hover:underline"
+              >
                 {t("auth.forgotPassword")}
+              </button>
+            </p>
+          )}
+          {mode === "forgot" && (
+            <p className="mt-6 text-center text-xs text-wolf-muted">
+              <button
+                onClick={() => { setMode("signin"); setError(""); setInfo(""); }}
+                className="text-wolf-gold hover:underline"
+              >
+                Back to sign in
               </button>
             </p>
           )}

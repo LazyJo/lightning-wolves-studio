@@ -35,6 +35,26 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- ── Admin role helpers ──────────────────────────────────────────────────────
+-- SECURITY DEFINER bypasses RLS so an RLS policy that calls this on
+-- profiles itself doesn't recurse into infinity.
+CREATE OR REPLACE FUNCTION public.is_admin(check_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM profiles WHERE id = check_id AND role = 'admin'
+  );
+$$;
+
+-- Admins can SELECT every profile (for the Pack Members page)
+DROP POLICY IF EXISTS profiles_admin_select_all ON profiles;
+CREATE POLICY profiles_admin_select_all ON profiles
+  FOR SELECT USING (is_admin(auth.uid()));
+
 -- ── Tables ───────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS hub_messages (

@@ -23,8 +23,10 @@ import GoldenBoardPage from "./components/GoldenBoardPage";
 import PromoterPricingPage from "./components/PromoterPricingPage";
 import PromoterCheckoutPage from "./components/PromoterCheckoutPage";
 import OrganizerInboxPage from "./components/OrganizerInboxPage";
+import AdminMembersPage from "./components/AdminMembersPage";
 import { useCredits } from "./lib/useCredits";
 import { useSession } from "./lib/useSession";
+import { useProfile } from "./lib/useProfile";
 import { startCheckout, type TierSlug, type BillingInterval } from "./lib/checkout";
 import { wolfBySlug } from "./data/wolves";
 import type { Wolf, WolfRole } from "./data/wolves";
@@ -44,7 +46,8 @@ type Page =
   | { type: "golden-board"; initialGigId?: string }
   | { type: "promoter-pricing" }
   | { type: "promoter-checkout"; tierId: string }
-  | { type: "organizer-inbox" };
+  | { type: "organizer-inbox" }
+  | { type: "admin-members" };
 
 interface UserProfile {
   name: string;
@@ -60,6 +63,7 @@ export default function App() {
   const [studioView, setStudioView] = useState("dashboard");
   const { plan } = useCredits();
   const { accessToken } = useSession();
+  const { isAdmin } = useProfile();
 
   // Post-checkout banner. Set when ?checkout=success|cancelled hits the URL,
   // cleared on tap-to-dismiss or after ~6 seconds.
@@ -203,6 +207,11 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
+  const goToAdminMembers = useCallback(() => {
+    setPage({ type: "admin-members" });
+    window.scrollTo(0, 0);
+  }, []);
+
   const goToVersusByRole = useCallback((role: WolfRole) => {
     setPage({ type: "versus", roleFilter: role });
     window.scrollTo(0, 0);
@@ -239,6 +248,7 @@ export default function App() {
           onStudio={() => goToStudio()}
           onAuth={goToAuth}
           onGoldenBoard={goToGoldenBoard}
+          onAdminMembers={isAdmin ? goToAdminMembers : undefined}
           isInStudio={page.type === "studio"}
           studioView={studioView}
           onStudioNav={(view) => {
@@ -445,6 +455,10 @@ export default function App() {
 
             {page.type === "organizer-inbox" && (
               <OrganizerInboxPage onBack={goToGoldenBoard} />
+            )}
+
+            {page.type === "admin-members" && (
+              <AdminMembersPage onBack={goHome} />
             )}
           </motion.div>
         </AnimatePresence>

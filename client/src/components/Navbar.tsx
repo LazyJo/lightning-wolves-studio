@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, Zap, Globe, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell } from "lucide-react";
+import { Menu, X, Zap, Globe, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell, Shield } from "lucide-react";
 import { useI18n, LANGUAGES } from "../lib/i18n";
 
 const STUDIO_TOOLS = [
@@ -21,6 +21,7 @@ interface Props {
   onStudio: () => void;
   onAuth: () => void;
   onGoldenBoard?: () => void;
+  onAdminMembers?: () => void;
   isInStudio?: boolean;
   studioView?: string;
   onStudioNav?: (view: string) => void;
@@ -34,6 +35,7 @@ interface Props {
 
 export default function Navbar({
   onPricing, onWolfMap, onWolfHub, onHome, onStudio, onAuth, onGoldenBoard,
+  onAdminMembers,
   isInStudio, studioView, onStudioNav, credits, tier, wolfColor,
   notifications = 0, onNotifications,
 }: Props) {
@@ -148,6 +150,16 @@ export default function Navbar({
               >
                 {t("nav.signIn")}
               </button>
+              {onAdminMembers && (
+                <button
+                  onClick={onAdminMembers}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-wolf-gold/30 bg-gradient-to-r from-wolf-gold/15 to-wolf-amber/10 px-3 py-2 text-sm font-semibold text-wolf-gold transition-all hover:border-wolf-gold/60"
+                  title="Pack Members (admin)"
+                >
+                  <Shield size={13} />
+                  Admin
+                </button>
+              )}
             </>
           )}
         </div>
@@ -306,6 +318,9 @@ export default function Navbar({
                   )}
                   <button onClick={() => { onWolfHub(); setMobileOpen(false); }} className="text-left font-semibold text-[#c8a4ff] transition-colors hover:text-[#f0a4ff]">🐺 Wolf Hub</button>
                   <button onClick={() => { onAuth(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Sign In</button>
+                  {onAdminMembers && (
+                    <button onClick={() => { onAdminMembers(); setMobileOpen(false); }} className="text-left font-semibold text-wolf-gold transition-colors hover:text-wolf-amber">🛡️ Admin · Pack Members</button>
+                  )}
                   <button
                     onClick={() => { onStudio(); setMobileOpen(false); }}
                     className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-wolf-gold px-5 py-2.5 font-semibold text-black"

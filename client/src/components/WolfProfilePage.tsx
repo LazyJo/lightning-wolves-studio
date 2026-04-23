@@ -239,23 +239,8 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
               )}
             </motion.div>
 
-            {/* Action buttons: Studio + Challenge */}
+            {/* Action buttons: Versus + Save */}
             <div className="mt-6 flex flex-wrap justify-center gap-3 md:justify-start">
-              {onStudio && (
-                <motion.button
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={onStudio}
-                  className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 font-semibold text-black transition-all hover:shadow-lg"
-                  style={{ backgroundColor: wolf.color, boxShadow: `0 8px 30px ${wolf.color}30` }}
-                >
-                  <Zap size={16} className="fill-black" />
-                  Create as {wolf.artist}
-                </motion.button>
-              )}
               {onChallenge && wolf.profile?.versus && (
                 <motion.button
                   initial={{ opacity: 0, y: 10 }}
@@ -264,16 +249,11 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={onChallenge}
-                  className="inline-flex items-center gap-2 rounded-xl border-2 px-8 py-3.5 font-semibold transition-all hover:shadow-lg"
-                  style={{
-                    borderColor: `${wolf.color}60`,
-                    color: wolf.color,
-                    backgroundColor: `${wolf.color}10`,
-                    boxShadow: `0 4px 20px ${wolf.color}15`,
-                  }}
+                  className="inline-flex items-center gap-2 rounded-xl px-8 py-3.5 font-semibold text-black transition-all hover:shadow-lg"
+                  style={{ backgroundColor: wolf.color, boxShadow: `0 8px 30px ${wolf.color}30` }}
                 >
                   <Swords size={16} />
-                  Challenge {wolf.artist}
+                  Versus {wolf.artist}
                 </motion.button>
               )}
               <motion.button

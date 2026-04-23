@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { motion } from "motion/react";
+import { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowRight,
   Music,
@@ -15,10 +15,15 @@ import {
   Settings,
   Clock,
   X,
+  Check,
+  Loader2,
 } from "lucide-react";
 import type { Wolf } from "../../data/wolves";
+import { wolves } from "../../data/wolves";
 import { tierLabel, tierColor } from "../../lib/useCredits";
 import { useRecentActivity, formatTimeAgo } from "../../lib/useRecentActivity";
+import { useProfile } from "../../lib/useProfile";
+import { getSupabase } from "../../lib/supabaseClient";
 import TemplatesList from "./TemplatesList";
 
 type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art" | "artist-page";
@@ -88,6 +93,15 @@ const TOOL_ICONS: Record<string, string> = {
 export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool, onBack, onWolfMap, t, onNewTemplate, onOpenTemplate }: Props) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { activities } = useRecentActivity();
+  const { profile } = useProfile();
+  const [showWolfPicker, setShowWolfPicker] = useState(false);
+
+  // First-visit wolf picker: signed-in user without a wolf_id chooses
+  // their accent wolf so the studio themes itself.
+  useEffect(() => {
+    if (profile && !profile.wolf_id) setShowWolfPicker(true);
+  }, [profile?.id, profile?.wolf_id]);
+
   const tColor = tierColor(plan.tier);
   const creditPercent = plan.maxCredits > 0 ? Math.min((plan.credits / plan.maxCredits) * 100, 100) : 0;
 
@@ -541,6 +555,118 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
           </div>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {showWolfPicker && profile && (
+          <WolfColorPickerModal
+            profileId={profile.id}
+            displayName={profile.display_name || profile.email?.split("@")[0] || "Wolf"}
+            onSaved={() => setShowWolfPicker(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
+  );
+}
+
+/* ─── First-visit wolf-color picker ─── */
+
+const PICK_WOLVES = wolves.filter(
+  (w) => w.id === "yellow" || w.id === "orange" || w.id === "purple"
+);
+
+function WolfColorPickerModal({
+  profileId,
+  displayName,
+  onSaved,
+}: {
+  profileId: string;
+  displayName: string;
+  onSaved: () => void;
+}) {
+  const [picked, setPicked] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!picked) return;
+    setSaving(true);
+    try {
+      const sb = getSupabase();
+      if (!sb) {
+        onSaved();
+        return;
+      }
+      await sb.from("profiles").update({ wolf_id: picked }).eq("id", profileId);
+      // Reload so accent color picks up everywhere (App's wolfColor state
+      // currently doesn't watch the profile row).
+      window.location.reload();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/10 bg-wolf-card"
+      >
+        <div className="px-6 py-5 text-center">
+          <div className="mb-1 text-3xl">🐺</div>
+          <h3 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-heading)" }}>
+            Pick your wolf
+          </h3>
+          <p className="mt-1 text-sm text-wolf-muted">
+            Choose a wolf to theme your studio. You can change this later in
+            your profile.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-3 px-6 pb-5">
+          {PICK_WOLVES.map((w) => {
+            const isPicked = picked === w.id;
+            return (
+              <button
+                key={w.id}
+                onClick={() => setPicked(w.id)}
+                className={`flex flex-col items-center gap-2 rounded-xl border p-3 transition-all ${
+                  isPicked
+                    ? "border-white/40 bg-white/[0.08]"
+                    : "border-white/10 bg-white/[0.02] hover:border-white/20"
+                }`}
+                style={isPicked ? { boxShadow: `0 0 0 2px ${w.color}50` } : {}}
+              >
+                <div
+                  className="flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold text-black"
+                  style={{ backgroundColor: w.color }}
+                >
+                  {displayName.slice(0, 1).toUpperCase()}
+                </div>
+                <div className="text-center">
+                  <div className="text-sm font-semibold text-white">{w.artist}</div>
+                  <div className="text-[10px] capitalize text-wolf-muted">{w.id}</div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <div className="border-t border-white/10 px-6 py-4">
+          <button
+            onClick={save}
+            disabled={!picked || saving}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-wolf-gold py-3 font-semibold text-black transition-all hover:bg-wolf-amber disabled:opacity-40"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            Set my wolf
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

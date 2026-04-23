@@ -16,7 +16,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.title1": "WHICH WOLF",
     "hero.title2": "ARE YOU?",
     "hero.subtitle": "Turn your songs into cinematic lyric videos in minutes — and link up with a global pack of real artists. Pick a wolf to start.",
-    "hero.cta1": "Choose Your Wolf",
+    "hero.cta1": "Meet The Pack",
     "hero.cta2": "How It Works",
 
     // Wolf Grid
@@ -282,7 +282,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.title1": "WELKE WOLF",
     "hero.title2": "BEN JIJ?",
     "hero.subtitle": "Kies je wolf. Ga de studio in. Creëer iets legendarisch.",
-    "hero.cta1": "Kies Je Wolf",
+    "hero.cta1": "Ontmoet De Pack",
     "hero.cta2": "Hoe Het Werkt",
 
     "grid.label": "Kies Je Wolf",
@@ -532,7 +532,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.title1": "QUEL LOUP",
     "hero.title2": "ES-TU ?",
     "hero.subtitle": "Choisis ton loup. Entre au studio. Crée quelque chose de légendaire.",
-    "hero.cta1": "Choisis Ton Loup",
+    "hero.cta1": "Rencontre La Meute",
     "hero.cta2": "Comment Ça Marche",
 
     "grid.label": "Choisis Ton Loup",
@@ -782,7 +782,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.title1": "¿QUÉ LOBO",
     "hero.title2": "ERES TÚ?",
     "hero.subtitle": "Elige tu lobo. Entra al estudio. Crea algo legendario.",
-    "hero.cta1": "Elige Tu Lobo",
+    "hero.cta1": "Conoce La Manada",
     "hero.cta2": "Cómo Funciona",
 
     "grid.label": "Elige Tu Lobo",

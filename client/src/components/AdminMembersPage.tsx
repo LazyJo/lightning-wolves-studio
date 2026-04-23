@@ -46,7 +46,7 @@ const WOLF_COLOR: Record<string, string> = {
   pink:   "#ec4899",
   purple: "#E040FB",
   blue:   "#3b82f6",
-  cyan:   "#06b6d4",
+  white:  "#e5e7eb",
   green:  "#10b981",
 };
 

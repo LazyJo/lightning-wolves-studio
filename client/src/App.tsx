@@ -49,6 +49,19 @@ type Page =
   | { type: "organizer-inbox" }
   | { type: "admin-members" };
 
+// Theme colours a wolf can pick (kept in sync with StudioDashboard's
+// THEME_COLORS + WOLF_COLOR maps in WolfHubPage / AdminMembersPage).
+const WOLF_COLOR_MAP: Record<string, string> = {
+  yellow: "#f5c518",
+  orange: "#ff8a3d",
+  red:    "#ef4444",
+  pink:   "#ec4899",
+  purple: "#E040FB",
+  blue:   "#3b82f6",
+  white:  "#e5e7eb",
+  green:  "#10b981",
+};
+
 interface UserProfile {
   name: string;
   photo: string;
@@ -63,7 +76,19 @@ export default function App() {
   const [studioView, setStudioView] = useState("dashboard");
   const { plan } = useCredits();
   const { accessToken } = useSession();
-  const { isAdmin } = useProfile();
+  const { profile, isAdmin } = useProfile();
+
+  // Mirror the user's chosen theme colour from their profile into the global
+  // wolfColor so every accent (studio, lightning canvas, navbar pills) follows
+  // their pick. Only applies when they're not viewing a specific wolf's
+  // page — those pages set wolfColor to that wolf's colour explicitly.
+  useEffect(() => {
+    if (!profile?.wolf_id) return;
+    if (page.type === "wolf-profile") return; // wolf page owns the colour
+    if (page.type === "versus" && page.challengeWolf) return;
+    const themeColor = WOLF_COLOR_MAP[profile.wolf_id];
+    if (themeColor) setWolfColor(themeColor);
+  }, [profile?.wolf_id, page.type]);
 
   // Post-checkout banner. Set when ?checkout=success|cancelled hits the URL,
   // cleared on tap-to-dismiss or after ~6 seconds.

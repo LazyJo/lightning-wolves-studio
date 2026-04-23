@@ -578,7 +578,7 @@ const THEME_COLORS: { id: string; color: string }[] = [
   { id: "pink",   color: "#ec4899" },
   { id: "purple", color: "#E040FB" },
   { id: "blue",   color: "#3b82f6" },
-  { id: "cyan",   color: "#06b6d4" },
+  { id: "white",  color: "#e5e7eb" },
   { id: "green",  color: "#10b981" },
 ];
 

@@ -670,6 +670,7 @@ export default function StudioPage({ wolf, onBack, onWolfMap, studioView: extern
               setView("template-editor");
             }}
             onOpen={openTemplate}
+            accentColor={accentColor}
           />
         ) : view === "template-editor" ? (
           <TemplateEditor
@@ -732,6 +733,7 @@ export default function StudioPage({ wolf, onBack, onWolfMap, studioView: extern
               setView("template-editor");
             }}
             onOpen={openTemplate}
+            accentColor={accentColor}
           />
         ) : view === "cover-art" ? (
           <CoverArtViewComponent onBack={() => setView("dashboard")} wolf={wolf} />

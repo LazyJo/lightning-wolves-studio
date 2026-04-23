@@ -279,6 +279,7 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
           <TemplatesList
             onNew={() => onNewTemplate?.()}
             onOpen={(id) => onOpenTemplate?.(id)}
+            accentColor={accentColor}
           />
         </motion.div>
       )}

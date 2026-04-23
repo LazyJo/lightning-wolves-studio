@@ -5,6 +5,8 @@ import { useTemplates } from "../../lib/useTemplates";
 interface Props {
   onNew: () => void;
   onOpen: (id: string) => void;
+  /** Current theme accent. Falls back to wolf-gold if not provided. */
+  accentColor?: string;
 }
 
 /**
@@ -14,7 +16,7 @@ interface Props {
  * flow since that's the only path that unlocks Scenes / Remix /
  * Performance downstream.
  */
-export default function TemplatesList({ onNew, onOpen }: Props) {
+export default function TemplatesList({ onNew, onOpen, accentColor = "#f5c518" }: Props) {
   const { templates, remove } = useTemplates();
 
   return (
@@ -30,7 +32,11 @@ export default function TemplatesList({ onNew, onOpen }: Props) {
         </div>
         <button
           onClick={onNew}
-          className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-wolf-amber to-wolf-gold px-4 py-2 text-sm font-bold text-black shadow-lg shadow-wolf-gold/20 transition-all hover:opacity-90"
+          className="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-bold text-black transition-all hover:opacity-90"
+          style={{
+            background: `linear-gradient(to right, ${accentColor}e6, ${accentColor})`,
+            boxShadow: `0 8px 24px ${accentColor}33`,
+          }}
         >
           <Plus size={14} /> New Template
         </button>
@@ -41,10 +47,25 @@ export default function TemplatesList({ onNew, onOpen }: Props) {
           onClick={onNew}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-wolf-border/20 p-10 text-center transition-all hover:border-wolf-gold/40 hover:bg-wolf-gold/[0.02]"
+          className="group flex w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-wolf-border/20 p-10 text-center transition-all"
+          style={{ ["--accent" as string]: accentColor }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = `${accentColor}66`;
+            e.currentTarget.style.backgroundColor = `${accentColor}08`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = "";
+            e.currentTarget.style.backgroundColor = "";
+          }}
         >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-wolf-gold/30 bg-wolf-gold/10">
-            <Music size={20} className="text-wolf-gold" />
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-full border"
+            style={{
+              borderColor: `${accentColor}4d`,
+              backgroundColor: `${accentColor}1a`,
+            }}
+          >
+            <Music size={20} style={{ color: accentColor }} />
           </div>
           <div>
             <p className="text-sm font-bold text-white">Start with your first track</p>
@@ -65,14 +86,23 @@ export default function TemplatesList({ onNew, onOpen }: Props) {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ y: -2 }}
-                className="group relative rounded-2xl border border-wolf-border/20 bg-wolf-card p-4 transition-colors hover:border-wolf-gold/40"
+                className="group relative rounded-2xl border border-wolf-border/20 bg-wolf-card p-4 transition-colors"
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.borderColor = `${accentColor}66`)
+                }
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
               >
                 <button
                   onClick={() => onOpen(t.id)}
                   className="block w-full text-left"
                 >
-                  <div className="mb-3 flex h-24 items-center justify-center rounded-xl border border-wolf-border/20 bg-gradient-to-br from-wolf-gold/10 to-transparent">
-                    <Music size={28} className="text-wolf-gold/60" />
+                  <div
+                    className="mb-3 flex h-24 items-center justify-center rounded-xl border border-wolf-border/20"
+                    style={{
+                      background: `linear-gradient(to bottom right, ${accentColor}1a, transparent)`,
+                    }}
+                  >
+                    <Music size={28} style={{ color: `${accentColor}99` }} />
                   </div>
                   <p
                     className="truncate text-base font-bold text-white"

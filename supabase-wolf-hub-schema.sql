@@ -200,6 +200,10 @@ DROP POLICY IF EXISTS hub_msg_delete_own ON hub_messages;
 CREATE POLICY hub_msg_delete_own ON hub_messages
   FOR DELETE USING (auth.uid() = author_id);
 
+DROP POLICY IF EXISTS hub_msg_delete_admin ON hub_messages;
+CREATE POLICY hub_msg_delete_admin ON hub_messages
+  FOR DELETE USING (is_admin(auth.uid()));
+
 DROP POLICY IF EXISTS hub_msg_service ON hub_messages;
 CREATE POLICY hub_msg_service ON hub_messages
   FOR ALL USING (auth.role() = 'service_role');
@@ -220,6 +224,10 @@ CREATE POLICY hub_post_update_own ON hub_posts
 DROP POLICY IF EXISTS hub_post_delete_own ON hub_posts;
 CREATE POLICY hub_post_delete_own ON hub_posts
   FOR DELETE USING (auth.uid() = author_id);
+
+DROP POLICY IF EXISTS hub_post_delete_admin ON hub_posts;
+CREATE POLICY hub_post_delete_admin ON hub_posts
+  FOR DELETE USING (is_admin(auth.uid()));
 
 DROP POLICY IF EXISTS hub_post_service ON hub_posts;
 CREATE POLICY hub_post_service ON hub_posts
@@ -264,6 +272,10 @@ DROP POLICY IF EXISTS hub_comment_delete_own ON hub_post_comments;
 CREATE POLICY hub_comment_delete_own ON hub_post_comments
   FOR DELETE USING (auth.uid() = author_id);
 
+DROP POLICY IF EXISTS hub_comment_delete_admin ON hub_post_comments;
+CREATE POLICY hub_comment_delete_admin ON hub_post_comments
+  FOR DELETE USING (is_admin(auth.uid()));
+
 DROP POLICY IF EXISTS hub_comment_service ON hub_post_comments;
 CREATE POLICY hub_comment_service ON hub_post_comments
   FOR ALL USING (auth.role() = 'service_role');
@@ -280,6 +292,10 @@ CREATE POLICY hub_story_insert ON hub_stories
 DROP POLICY IF EXISTS hub_story_delete_own ON hub_stories;
 CREATE POLICY hub_story_delete_own ON hub_stories
   FOR DELETE USING (auth.uid() = author_id);
+
+DROP POLICY IF EXISTS hub_story_delete_admin ON hub_stories;
+CREATE POLICY hub_story_delete_admin ON hub_stories
+  FOR DELETE USING (is_admin(auth.uid()));
 
 DROP POLICY IF EXISTS hub_story_service ON hub_stories;
 CREATE POLICY hub_story_service ON hub_stories
@@ -306,6 +322,10 @@ CREATE POLICY hub_dm_update_participant ON hub_dms
 DROP POLICY IF EXISTS hub_dm_delete_sender ON hub_dms;
 CREATE POLICY hub_dm_delete_sender ON hub_dms
   FOR DELETE USING (auth.uid() = sender_id);
+
+DROP POLICY IF EXISTS hub_dm_delete_admin ON hub_dms;
+CREATE POLICY hub_dm_delete_admin ON hub_dms
+  FOR DELETE USING (is_admin(auth.uid()));
 
 DROP POLICY IF EXISTS hub_dm_service ON hub_dms;
 CREATE POLICY hub_dm_service ON hub_dms

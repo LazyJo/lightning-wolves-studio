@@ -92,6 +92,7 @@ interface Profile {
   wolf_id: string | null;
   email: string | null;
   avatar_url: string | null;
+  role?: string | null;
 }
 
 /* ─── Helpers ─── */
@@ -230,7 +231,7 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
       if (!sb || cancelled) return;
       const { data } = await sb
         .from("profiles")
-        .select("id, display_name, wolf_id, email, avatar_url")
+        .select("id, display_name, wolf_id, email, avatar_url, role")
         .eq("id", session.user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -241,6 +242,7 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
           wolf_id: null,
           email: session.user.email ?? null,
           avatar_url: null,
+          role: "public",
         }
       );
     })();
@@ -378,8 +380,20 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
           )}
         </div>
 
-        {tab === "chat" && <ChatView profile={profile} onViewUser={openOtherProfile} />}
-        {tab === "media" && <MediaView profile={profile} onViewUser={openOtherProfile} />}
+        {tab === "chat" && (
+          <ChatView
+            profile={profile}
+            onViewUser={openOtherProfile}
+            isAdmin={profile?.role === "admin"}
+          />
+        )}
+        {tab === "media" && (
+          <MediaView
+            profile={profile}
+            onViewUser={openOtherProfile}
+            isAdmin={profile?.role === "admin"}
+          />
+        )}
         {tab === "dms" && (
           <DMsView
             profile={profile}
@@ -570,9 +584,11 @@ function TabButton({
 function ChatView({
   profile,
   onViewUser,
+  isAdmin,
 }: {
   profile: Profile | null;
   onViewUser: (userId: string) => void;
+  isAdmin: boolean;
 }) {
   const [messages, setMessages] = useState<HubMessage[]>([]);
   const [reactions, setReactions] = useState<Map<string, HubReaction[]>>(new Map());
@@ -928,11 +944,11 @@ function ChatView({
                         )}
                       </AnimatePresence>
                     </div>
-                    {isMine && (
+                    {(isMine || isAdmin) && (
                       <button
                         onClick={() => deleteMessage(m.id)}
                         className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-wolf-muted transition-all hover:border-red-400/50 hover:text-red-400"
-                        title="Delete"
+                        title={isMine ? "Delete" : "Delete as admin"}
                       >
                         <Trash2 size={11} />
                       </button>
@@ -1022,9 +1038,11 @@ function ChatSkeleton() {
 function MediaView({
   profile,
   onViewUser,
+  isAdmin,
 }: {
   profile: Profile | null;
   onViewUser: (userId: string) => void;
+  isAdmin: boolean;
 }) {
   const [posts, setPosts] = useState<HubPost[]>([]);
   const [likes, setLikes] = useState<Map<string, { count: number; mine: boolean }>>(
@@ -1357,6 +1375,7 @@ function MediaView({
               post={p}
               profile={profile}
               isMine={p.author_id === profile?.id}
+              isAdmin={isAdmin}
               likes={likes.get(p.id) || { count: 0, mine: false }}
               comments={comments.get(p.id) || []}
               onLike={() => toggleLike(p.id)}
@@ -1409,10 +1428,12 @@ function PostCard({
   onComment,
   onDeleteComment,
   onViewUser,
+  isAdmin,
 }: {
   post: HubPost;
   profile: Profile | null;
   isMine: boolean;
+  isAdmin: boolean;
   likes: { count: number; mine: boolean };
   comments: HubComment[];
   onLike: () => void;
@@ -1474,11 +1495,11 @@ function PostCard({
           </button>
           <span className="text-[11px] text-wolf-muted">{timeAgo(post.created_at)}</span>
         </div>
-        {isMine && (
+        {(isMine || isAdmin) && (
           <button
             onClick={onDelete}
             className="ml-auto flex items-center gap-1 text-xs text-wolf-muted transition-colors hover:text-red-400"
-            title="Delete post"
+            title={isMine ? "Delete post" : "Delete post (admin)"}
           >
             <Trash2 size={14} />
           </button>
@@ -1581,11 +1602,11 @@ function PostCard({
                   </button>{" "}
                   <span className="text-wolf-muted">{c.body}</span>
                 </p>
-                {isMyComment && (
+                {(isMyComment || isAdmin) && (
                   <button
                     onClick={() => onDeleteComment(c.id)}
                     className="text-wolf-muted/60 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
-                    title="Delete comment"
+                    title={isMyComment ? "Delete comment" : "Delete comment (admin)"}
                   >
                     <Trash2 size={11} />
                   </button>

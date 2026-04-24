@@ -37,7 +37,9 @@ const DEFAULT_PRESET = scenePresets.find((p) => p.id === "cinematic-music-video"
 
 const VIDEO_MODELS = [
   { id: "kling-motion", name: "Kling Motion", credits: 15, status: "access" as const },
+  { id: "sora-2", name: "Sora 2", credits: 20, status: "legacy" as const },
   { id: "seedance-2.0", name: "Seedance 2.0", credits: 18, status: "coming-soon" as const },
+  { id: "kling-3", name: "Kling 3.0", credits: 20, status: "coming-soon" as const },
 ];
 
 const ratios = ["9:16", "16:9"] as const;

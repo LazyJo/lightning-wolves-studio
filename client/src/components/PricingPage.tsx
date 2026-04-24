@@ -24,10 +24,12 @@ const models = [
   { name: "Seedance 2.0", status: "coming-soon" },
   { name: "Grok Imagine", status: "access" },
   { name: "Kling Motion Control", status: "access" },
+  { name: "Kling 3.0", status: "coming-soon" },
   { name: "NanoBanana Pro", status: "access" },
   { name: "NanoBanana 2", status: "new" },
   { name: "NanoBanana", status: "access" },
   { name: "Seedream 4.5", status: "access" },
+  { name: "Sora 2", status: "legacy" },
 ];
 
 interface Tier {
@@ -315,17 +317,15 @@ export default function PricingPage({ onBack, onGetStarted }: Props) {
                 <div className="mb-4">
                   <span className="mb-2 block text-[10px] font-bold uppercase tracking-wider text-wolf-muted">Model Access</span>
                   <div className="space-y-1.5 rounded-lg border border-white/[0.04] bg-white/[0.02] p-2.5">
-                    {models
-                      .filter((m) => m.status !== "coming-soon")
-                      .map((model) => (
-                        <div key={model.name} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Check size={12} style={{ color: tier.color }} />
-                            <span className="text-xs text-white">{model.name}</span>
-                          </div>
-                          <StatusBadge status={model.status} color={tier.color} />
+                    {models.map((model) => (
+                      <div key={model.name} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Check size={12} style={{ color: tier.color }} />
+                          <span className="text-xs text-white">{model.name}</span>
                         </div>
-                      ))}
+                        <StatusBadge status={model.status} color={tier.color} />
+                      </div>
+                    ))}
                   </div>
                 </div>
 

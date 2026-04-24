@@ -25,6 +25,7 @@ import { useHubNotifications } from "../lib/useHubNotifications";
 import { RatingBurst, ratingKindFromEmoji, type RatingKind } from "./RatingBurst";
 import BeatWaveform from "./BeatWaveform";
 import LightningTicker from "./LightningTicker";
+import ShareTrackButton from "./ShareTrackButton";
 
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
@@ -1320,6 +1321,12 @@ function ChatView({
                                       </button>
                                     );
                                   })}
+                                  {m.audio_url && (
+                                    <ShareTrackButton
+                                      url={m.audio_url}
+                                      title={(m.body || "beat").replace(/^🎵\s*/, "").trim()}
+                                    />
+                                  )}
                                 </div>
                               );
                             })()}
@@ -1382,6 +1389,9 @@ function ChatView({
                                     </button>
                                   );
                                 })}
+                                {m.song_url && (
+                                  <ShareTrackButton url={m.song_url} title="Track" />
+                                )}
                               </div>
                             </div>
                           );

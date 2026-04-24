@@ -921,16 +921,60 @@ function ChatView({
     const existing = (reactions.get(messageId) || []).find(
       (r) => r.user_id === profile.id && r.emoji === emoji
     );
-    if (existing) {
-      await sb.from("hub_reactions").delete().eq("id", existing.id);
-    } else {
-      const kind = ratingKindFromEmoji(emoji);
-      if (kind) setBurst({ kind, id: Date.now() });
-      await sb
-        .from("hub_reactions")
-        .insert({ message_id: messageId, user_id: profile.id, emoji });
-    }
     setPickerFor(null);
+    if (existing) {
+      // Optimistic remove — realtime DELETE echo will be a no-op (id already gone).
+      setReactions((prev) => {
+        const next = new Map(prev);
+        const arr = (next.get(messageId) || []).filter((x) => x.id !== existing.id);
+        if (arr.length === 0) next.delete(messageId);
+        else next.set(messageId, arr);
+        return next;
+      });
+      const { error } = await sb.from("hub_reactions").delete().eq("id", existing.id);
+      if (error) {
+        setReactions((prev) => {
+          const next = new Map(prev);
+          const arr = [...(next.get(messageId) || [])];
+          if (!arr.some((x) => x.id === existing.id)) arr.push(existing);
+          next.set(messageId, arr);
+          return next;
+        });
+      }
+      return;
+    }
+    const kind = ratingKindFromEmoji(emoji);
+    if (kind) setBurst({ kind, id: Date.now() });
+    // Optimistic add — swap in the real row once the insert resolves.
+    const tempId = `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const temp: HubReaction = { id: tempId, message_id: messageId, user_id: profile.id, emoji };
+    setReactions((prev) => {
+      const next = new Map(prev);
+      const arr = [...(next.get(messageId) || []), temp];
+      next.set(messageId, arr);
+      return next;
+    });
+    const { data, error } = await sb
+      .from("hub_reactions")
+      .insert({ message_id: messageId, user_id: profile.id, emoji })
+      .select()
+      .single();
+    setReactions((prev) => {
+      const next = new Map(prev);
+      const arr = next.get(messageId) || [];
+      if (error || !data) {
+        const filtered = arr.filter((x) => x.id !== tempId);
+        if (filtered.length === 0) next.delete(messageId);
+        else next.set(messageId, filtered);
+      } else {
+        const real = data as HubReaction;
+        const swapped = arr.some((x) => x.id === real.id)
+          ? arr.filter((x) => x.id !== tempId)
+          : arr.map((x) => (x.id === tempId ? real : x));
+        next.set(messageId, swapped);
+      }
+      return next;
+    });
   }
 
   async function deleteMessage(messageId: string) {

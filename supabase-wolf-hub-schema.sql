@@ -130,6 +130,31 @@ CREATE INDEX IF NOT EXISTS hub_post_comments_post_created_idx
   ON hub_post_comments (post_id, created_at)
   WHERE deleted_at IS NULL;
 
+-- Direct messages (1-on-1). Same shape as hub_messages minus room_id,
+-- plus a sender/recipient pair. RLS filters so only the two participants
+-- can read a row.
+CREATE TABLE IF NOT EXISTS hub_dms (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sender_id         UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  recipient_id      UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  sender_name       TEXT,
+  sender_wolf_id    TEXT,
+  sender_avatar_url TEXT,
+  body              TEXT,
+  image_url         TEXT,
+  created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
+  read_at           TIMESTAMPTZ,
+  deleted_at        TIMESTAMPTZ,
+  CONSTRAINT hub_dms_content_present CHECK (body IS NOT NULL OR image_url IS NOT NULL),
+  CONSTRAINT hub_dms_distinct_participants CHECK (sender_id <> recipient_id)
+);
+CREATE INDEX IF NOT EXISTS hub_dms_sender_created_idx
+  ON hub_dms (sender_id, created_at DESC)
+  WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS hub_dms_recipient_created_idx
+  ON hub_dms (recipient_id, created_at DESC)
+  WHERE deleted_at IS NULL;
+
 -- 24-hour stories. RLS filters by expires_at so expired rows disappear
 -- automatically without a cron — cleanup is a nice-to-have, not required.
 CREATE TABLE IF NOT EXISTS hub_stories (
@@ -155,6 +180,7 @@ ALTER TABLE hub_reactions     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hub_post_likes    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hub_post_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE hub_stories       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE hub_dms           ENABLE ROW LEVEL SECURITY;
 
 -- Messages: any signed-in user reads non-deleted; author inserts as self;
 -- author soft-deletes their own (update deleted_at); service role full access.
@@ -259,6 +285,32 @@ DROP POLICY IF EXISTS hub_story_service ON hub_stories;
 CREATE POLICY hub_story_service ON hub_stories
   FOR ALL USING (auth.role() = 'service_role');
 
+-- DMs: only the two participants can SELECT; sender writes; sender or
+-- recipient can soft-delete via UPDATE (set deleted_at); hard-delete
+-- allowed for sender of that specific row.
+DROP POLICY IF EXISTS hub_dm_select ON hub_dms;
+CREATE POLICY hub_dm_select ON hub_dms
+  FOR SELECT USING (
+    deleted_at IS NULL
+    AND (auth.uid() = sender_id OR auth.uid() = recipient_id)
+  );
+
+DROP POLICY IF EXISTS hub_dm_insert ON hub_dms;
+CREATE POLICY hub_dm_insert ON hub_dms
+  FOR INSERT WITH CHECK (auth.uid() = sender_id);
+
+DROP POLICY IF EXISTS hub_dm_update_participant ON hub_dms;
+CREATE POLICY hub_dm_update_participant ON hub_dms
+  FOR UPDATE USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
+
+DROP POLICY IF EXISTS hub_dm_delete_sender ON hub_dms;
+CREATE POLICY hub_dm_delete_sender ON hub_dms
+  FOR DELETE USING (auth.uid() = sender_id);
+
+DROP POLICY IF EXISTS hub_dm_service ON hub_dms;
+CREATE POLICY hub_dm_service ON hub_dms
+  FOR ALL USING (auth.role() = 'service_role');
+
 -- ── Realtime publication ─────────────────────────────────────────────────────
 -- Enable realtime on all four tables (idempotent: wrap in DO block)
 DO $$
@@ -298,6 +350,12 @@ BEGIN
     WHERE pubname = 'supabase_realtime' AND tablename = 'hub_stories'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE hub_stories;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'hub_dms'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE hub_dms;
   END IF;
 END $$;
 

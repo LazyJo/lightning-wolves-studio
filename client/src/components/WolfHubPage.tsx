@@ -188,7 +188,14 @@ interface Props {
 export default function WolfHubPage({ onBack, onAuth }: Props) {
   const { session, loading: sessionLoading, signOut } = useSession();
   const { markRead: markHubRead } = useHubNotifications();
-  const [tab, setTab] = useState<"chat" | "media" | "profile">("chat");
+  const [tab, setTab] = useState<"chat" | "media" | "profile" | "dms">("chat");
+  const [dmPartnerId, setDmPartnerId] = useState<string | null>(null);
+
+  const openDM = (userId: string) => {
+    if (!userId || userId === profile?.id) return;
+    setDmPartnerId(userId);
+    setTab("dms");
+  };
 
   // Opening the Wolf Hub clears the unread badge in the navbar.
   useEffect(() => {
@@ -351,6 +358,10 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
               <MessageCircle size={15} />
               Chat
             </TabButton>
+            <TabButton active={tab === "dms"} onClick={() => setTab("dms")}>
+              <Send size={14} />
+              DMs
+            </TabButton>
           </div>
           {onlineCount > 0 && (
             <div
@@ -369,6 +380,14 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
 
         {tab === "chat" && <ChatView profile={profile} onViewUser={openOtherProfile} />}
         {tab === "media" && <MediaView profile={profile} onViewUser={openOtherProfile} />}
+        {tab === "dms" && (
+          <DMsView
+            profile={profile}
+            openPartnerId={dmPartnerId}
+            onOpenPartner={setDmPartnerId}
+            onViewUser={openOtherProfile}
+          />
+        )}
         {tab === "profile" && (
           <ProfileView
             profile={profile}
@@ -376,6 +395,7 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
             viewUserId={viewingUserId}
             onBackToOwnProfile={() => setViewingUserId(null)}
             onViewUser={openOtherProfile}
+            onOpenDM={openDM}
           />
         )}
       </div>
@@ -1773,6 +1793,7 @@ function ProfileView({
   viewUserId,
   onBackToOwnProfile,
   onViewUser,
+  onOpenDM,
 }: {
   profile: Profile | null;
   onProfileUpdated: (p: Profile) => void;
@@ -1781,6 +1802,8 @@ function ProfileView({
   onBackToOwnProfile?: () => void;
   /** Used by the PostDetailModal to hop to another wolf's profile from a comment / caption. */
   onViewUser?: (userId: string) => void;
+  /** Open a DM thread with the wolf currently being viewed. Only called when isOwn is false. */
+  onOpenDM?: (userId: string) => void;
 }) {
   const targetId = viewUserId || profile?.id || null;
   const isOwn = !viewUserId || viewUserId === profile?.id;
@@ -1888,7 +1911,7 @@ function ProfileView({
             </div>
           </div>
         </div>
-        {isOwn && (
+        {isOwn ? (
           <button
             onClick={() => setEditing(true)}
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:text-[#c8a4ff]"
@@ -1896,6 +1919,16 @@ function ProfileView({
             <Edit2 size={14} />
             Edit profile
           </button>
+        ) : (
+          onOpenDM && targetId && (
+            <button
+              onClick={() => onOpenDM(targetId)}
+              className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#9b6dff] to-[#E040FB] px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-[#9b6dff]/25 transition-all hover:scale-[1.02]"
+            >
+              <Send size={14} />
+              Send message
+            </button>
+          )
         )}
       </div>
 
@@ -2704,5 +2737,434 @@ function StoryComposerModal({
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+/* ─── Direct Messages ─── */
+
+interface HubDM {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  sender_name: string | null;
+  sender_wolf_id: string | null;
+  sender_avatar_url?: string | null;
+  body: string | null;
+  image_url: string | null;
+  created_at: string;
+}
+
+interface Conversation {
+  otherId: string;
+  otherName: string;
+  otherWolfId: string | null;
+  otherAvatarUrl: string | null;
+  lastMessage: HubDM;
+  unread: boolean;
+}
+
+function DMsView({
+  profile,
+  openPartnerId,
+  onOpenPartner,
+  onViewUser,
+}: {
+  profile: Profile | null;
+  openPartnerId: string | null;
+  onOpenPartner: (id: string | null) => void;
+  onViewUser: (userId: string) => void;
+}) {
+  const [allDMs, setAllDMs] = useState<HubDM[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load every DM the user participates in, then group by counterparty.
+  useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
+    let sub: { unsubscribe: () => void } | null = null;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("hub_dms")
+        .select("*")
+        .or(`sender_id.eq.${profile.id},recipient_id.eq.${profile.id}`)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: true })
+        .limit(1000);
+      if (cancelled) return;
+      setAllDMs((data as HubDM[]) || []);
+      setLoading(false);
+
+      sub = sb
+        .channel(`hub-dms:${profile.id}`)
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "hub_dms" },
+          (payload) => {
+            const dm = payload.new as HubDM;
+            if (dm.sender_id !== profile.id && dm.recipient_id !== profile.id) return;
+            setAllDMs((prev) => (prev.some((x) => x.id === dm.id) ? prev : [...prev, dm]));
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "DELETE", schema: "public", table: "hub_dms" },
+          (payload) => {
+            const dm = payload.old as HubDM;
+            setAllDMs((prev) => prev.filter((x) => x.id !== dm.id));
+          }
+        )
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      sub?.unsubscribe();
+    };
+  }, [profile?.id]);
+
+  const conversations = useMemo<Conversation[]>(() => {
+    if (!profile) return [];
+    const map = new Map<string, Conversation>();
+    allDMs.forEach((dm) => {
+      const isSender = dm.sender_id === profile.id;
+      const otherId = isSender ? dm.recipient_id : dm.sender_id;
+      const otherName = isSender ? "Wolf" : dm.sender_name || "Wolf";
+      const otherWolfId = isSender ? null : dm.sender_wolf_id ?? null;
+      const otherAvatarUrl = isSender ? null : dm.sender_avatar_url ?? null;
+      const existing = map.get(otherId);
+      if (!existing || new Date(dm.created_at) > new Date(existing.lastMessage.created_at)) {
+        map.set(otherId, {
+          otherId,
+          otherName: existing?.otherName || otherName,
+          otherWolfId: existing?.otherWolfId ?? otherWolfId,
+          otherAvatarUrl: existing?.otherAvatarUrl ?? otherAvatarUrl,
+          lastMessage: dm,
+          unread: !isSender && dm.created_at > (readLastDM(profile.id, otherId) || ""),
+        });
+      }
+      // Also backfill otherName/otherWolfId/otherAvatarUrl if we only had sender info before
+      const cur = map.get(otherId)!;
+      if (!cur.otherName || cur.otherName === "Wolf") cur.otherName = otherName;
+      if (!cur.otherWolfId) cur.otherWolfId = otherWolfId;
+      if (!cur.otherAvatarUrl) cur.otherAvatarUrl = otherAvatarUrl;
+    });
+    return Array.from(map.values()).sort(
+      (a, b) =>
+        new Date(b.lastMessage.created_at).getTime() -
+        new Date(a.lastMessage.created_at).getTime()
+    );
+  }, [allDMs, profile?.id]);
+
+  const threadDMs = useMemo(() => {
+    if (!openPartnerId || !profile) return [];
+    return allDMs
+      .filter(
+        (dm) =>
+          (dm.sender_id === profile.id && dm.recipient_id === openPartnerId) ||
+          (dm.sender_id === openPartnerId && dm.recipient_id === profile.id)
+      )
+      .sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+  }, [allDMs, openPartnerId, profile?.id]);
+
+  if (!profile) return null;
+
+  if (openPartnerId) {
+    return (
+      <DMThread
+        profile={profile}
+        partnerId={openPartnerId}
+        messages={threadDMs}
+        onBack={() => onOpenPartner(null)}
+        onViewUser={onViewUser}
+      />
+    );
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-wolf-muted">
+        <Send size={12} />
+        Your messages
+      </div>
+      {loading ? (
+        <div className="flex flex-col gap-2">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="h-16 animate-pulse rounded-xl border border-white/10 bg-white/[0.03]"
+            />
+          ))}
+        </div>
+      ) : conversations.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-16 text-center">
+          <div className="mb-2 text-4xl">💌</div>
+          <p className="text-wolf-muted">
+            No messages yet. Tap any wolf's profile and hit{" "}
+            <span className="text-white">Send message</span> to start a thread.
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {conversations.map((c) => (
+            <button
+              key={c.otherId}
+              onClick={() => onOpenPartner(c.otherId)}
+              className="flex items-center gap-3 rounded-xl border border-white/10 bg-wolf-card/40 p-3 text-left backdrop-blur-sm transition-all hover:border-[#9b6dff]/30"
+            >
+              <Avatar
+                url={c.otherAvatarUrl}
+                wolfId={c.otherWolfId}
+                name={c.otherName}
+                className="h-11 w-11 flex-shrink-0 text-sm"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-sm font-semibold text-white">
+                    {c.otherName}
+                  </span>
+                  <span className="flex-shrink-0 text-[10px] text-wolf-muted">
+                    {timeAgo(c.lastMessage.created_at)}
+                  </span>
+                </div>
+                <p className="truncate text-xs text-wolf-muted">
+                  {c.lastMessage.sender_id === profile.id ? "You: " : ""}
+                  {c.lastMessage.body || "📸 Image"}
+                </p>
+              </div>
+              {c.unread && (
+                <span className="h-2 w-2 flex-shrink-0 rounded-full bg-[#E040FB]" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── DM Thread ─── */
+
+function readLastDM(selfId: string, otherId: string): string | null {
+  try {
+    return localStorage.getItem(`lw-dm-read-${selfId}-${otherId}`);
+  } catch {
+    return null;
+  }
+}
+
+function writeLastDM(selfId: string, otherId: string, iso: string) {
+  try {
+    localStorage.setItem(`lw-dm-read-${selfId}-${otherId}`, iso);
+  } catch {
+    /* ignore */
+  }
+}
+
+function DMThread({
+  profile,
+  partnerId,
+  messages,
+  onBack,
+  onViewUser,
+}: {
+  profile: Profile;
+  partnerId: string;
+  messages: HubDM[];
+  onBack: () => void;
+  onViewUser: (userId: string) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Partner display data comes from their latest incoming DM (same denorm
+  // pattern as Wolf Hub profile view).
+  const partnerMsg = [...messages].reverse().find((m) => m.sender_id === partnerId);
+  const partnerName = partnerMsg?.sender_name || `Wolf ${partnerId.slice(0, 4)}`;
+  const partnerWolfId = partnerMsg?.sender_wolf_id || null;
+  const partnerAvatarUrl = partnerMsg?.sender_avatar_url || null;
+
+  // Mark read when opening + when new DMs arrive.
+  useEffect(() => {
+    if (messages.length > 0) {
+      writeLastDM(profile.id, partnerId, messages[messages.length - 1].created_at);
+    }
+  }, [messages.length, profile.id, partnerId]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length]);
+
+  async function sendDM(body: string | null, imageUrl: string | null) {
+    if (!body && !imageUrl) return;
+    setSending(true);
+    try {
+      const sb = getSupabase();
+      if (!sb) return;
+      await sb.from("hub_dms").insert({
+        sender_id: profile.id,
+        recipient_id: partnerId,
+        sender_name: profile.display_name || profile.email?.split("@")[0] || null,
+        sender_wolf_id: profile.wolf_id,
+        sender_avatar_url: profile.avatar_url,
+        body,
+        image_url: imageUrl,
+      });
+    } finally {
+      setSending(false);
+    }
+  }
+
+  async function handleSendText() {
+    const body = draft.trim();
+    if (!body) return;
+    setDraft("");
+    await sendDM(body, null);
+  }
+
+  async function handleImagePick(file: File) {
+    setUploading(true);
+    try {
+      const sb = getSupabase();
+      if (!sb) return;
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `dms/${profile.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from("wolf-hub-media")
+        .upload(path, file, { contentType: file.type });
+      if (upErr) return;
+      const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
+      await sendDM(null, urlData.publicUrl);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
+      {/* Header */}
+      <div className="flex items-center gap-3 border-b border-white/10 px-3 py-3">
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-wolf-muted transition-colors hover:text-white"
+        >
+          <ArrowLeft size={13} />
+        </button>
+        <Avatar
+          url={partnerAvatarUrl}
+          wolfId={partnerWolfId}
+          name={partnerName}
+          className="h-8 w-8 flex-shrink-0 text-xs"
+          onClick={() => onViewUser(partnerId)}
+          title={`View ${partnerName}'s profile`}
+        />
+        <button
+          onClick={() => onViewUser(partnerId)}
+          className="text-sm font-semibold text-white transition-opacity hover:opacity-80"
+        >
+          {partnerName}
+        </button>
+      </div>
+
+      {/* Messages */}
+      <div
+        ref={scrollRef}
+        className="flex h-[55vh] min-h-[360px] flex-col gap-2 overflow-y-auto px-4 py-4 sm:px-6"
+      >
+        {messages.length === 0 && (
+          <div className="flex flex-1 items-center justify-center">
+            <p className="text-center text-sm text-wolf-muted">
+              Say hi to {partnerName} 👋
+            </p>
+          </div>
+        )}
+        {messages.map((m) => {
+          const isMine = m.sender_id === profile.id;
+          return (
+            <div
+              key={m.id}
+              className={`flex ${isMine ? "justify-end" : "justify-start"}`}
+            >
+              <div
+                className={`max-w-[78%] rounded-2xl px-3.5 py-2 ${
+                  isMine
+                    ? "bg-gradient-to-br from-[#9b6dff]/40 to-[#E040FB]/30 text-white"
+                    : "bg-white/[0.06] text-white/90"
+                }`}
+              >
+                {m.body && (
+                  <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>
+                )}
+                {m.image_url && (
+                  <img
+                    src={m.image_url}
+                    alt="dm attachment"
+                    className={`max-h-64 rounded-lg object-cover ${m.body ? "mt-2" : ""}`}
+                    loading="lazy"
+                  />
+                )}
+                <div
+                  className={`mt-1 text-[9px] ${isMine ? "text-white/60 text-right" : "text-wolf-muted"}`}
+                >
+                  {timeAgo(m.created_at)}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Composer */}
+      <div className="border-t border-white/10 p-3 sm:p-4">
+        <div className="flex items-end gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleImagePick(f);
+            }}
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold disabled:opacity-40"
+            title="Send image"
+          >
+            {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+          </button>
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSendText();
+              }
+            }}
+            placeholder={`Message ${partnerName}…`}
+            rows={1}
+            className="min-h-[40px] max-h-32 flex-1 resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-wolf-muted/60 focus:border-[#9b6dff]/40 focus:outline-none"
+          />
+          <button
+            onClick={handleSendText}
+            disabled={!draft.trim() || sending}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#9b6dff] to-[#E040FB] text-white transition-all hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+            title="Send"
+          >
+            {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }

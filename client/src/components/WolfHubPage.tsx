@@ -507,6 +507,21 @@ function DisplayNameBanner({
 
 /* ─── Tab Button ─── */
 
+/* ─── Chat rooms ─── */
+// Fixed set for v1. room_id column on hub_messages already exists and
+// defaults to 'global' so existing messages land in #general.
+interface HubRoom {
+  id: string;
+  label: string;
+  emoji: string;
+  hint: string;
+}
+const HUB_ROOMS: HubRoom[] = [
+  { id: "global", label: "#general", emoji: "💬", hint: "Open chat for the whole pack" },
+  { id: "bars", label: "#bars", emoji: "🎤", hint: "Drop bars, get feedback" },
+  { id: "beats", label: "#beats", emoji: "🥁", hint: "Share beats + producers" },
+];
+
 function TabButton({
   active,
   onClick,
@@ -546,14 +561,18 @@ function ChatView({
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState<string>("global");
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Initial load + realtime subscription
+  // Initial load + realtime subscription (re-runs on room switch)
   useEffect(() => {
     let cancelled = false;
     let messagesSub: { unsubscribe: () => void } | null = null;
     let reactionsSub: { unsubscribe: () => void } | null = null;
+    setLoading(true);
+    setMessages([]);
+    setReactions(new Map());
 
     (async () => {
       const sb = await initSupabase();
@@ -562,7 +581,7 @@ function ChatView({
       const { data: msgs } = await sb
         .from("hub_messages")
         .select("*")
-        .eq("room_id", "global")
+        .eq("room_id", roomId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -588,13 +607,13 @@ function ChatView({
       setLoading(false);
 
       messagesSub = sb
-        .channel("hub-messages")
+        .channel(`hub-messages:${roomId}`)
         .on(
           "postgres_changes",
           { event: "INSERT", schema: "public", table: "hub_messages" },
           (payload) => {
             const m = payload.new as HubMessage;
-            if (m.room_id && m.room_id !== "global") return;
+            if ((m.room_id || "global") !== roomId) return;
             setMessages((prev) =>
               prev.some((x) => x.id === m.id) ? prev : [...prev, m]
             );
@@ -653,7 +672,7 @@ function ChatView({
       messagesSub?.unsubscribe();
       reactionsSub?.unsubscribe();
     };
-  }, []);
+  }, [roomId]);
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -673,7 +692,7 @@ function ChatView({
         author_name: profile.display_name || profile.email?.split("@")[0] || null,
         author_wolf_id: profile.wolf_id,
         author_avatar_url: profile.avatar_url,
-        room_id: "global",
+        room_id: roomId,
         body,
         image_url: imageUrl,
       });
@@ -734,8 +753,32 @@ function ChatView({
     await sb.from("hub_messages").delete().eq("id", messageId);
   }
 
+  const activeRoom = HUB_ROOMS.find((r) => r.id === roomId) || HUB_ROOMS[0];
+
   return (
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
+      {/* Room switcher */}
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-white/10 px-2 py-2">
+        {HUB_ROOMS.map((r) => {
+          const active = r.id === roomId;
+          return (
+            <button
+              key={r.id}
+              onClick={() => setRoomId(r.id)}
+              title={r.hint}
+              className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                active
+                  ? "bg-gradient-to-r from-[#9b6dff]/25 to-[#E040FB]/20 text-white"
+                  : "text-wolf-muted hover:bg-white/[0.03] hover:text-white"
+              }`}
+            >
+              <span className="text-sm">{r.emoji}</span>
+              {r.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="px-4 pt-2 text-[11px] text-wolf-muted">{activeRoom.hint}</div>
       <div
         ref={scrollRef}
         className="flex h-[55vh] min-h-[400px] flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-6"

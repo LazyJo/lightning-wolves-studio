@@ -84,7 +84,11 @@ function titleFor(s: Spot): string {
   return "track";
 }
 
-export default function LightningSpotlight({ onWolfHub }: { onWolfHub: () => void }) {
+export default function LightningSpotlight({
+  onWolfHub,
+}: {
+  onWolfHub: (target?: { messageId: string; roomId: string }) => void;
+}) {
   const [spot, setSpot] = useState<Spot | null>(null);
 
   useEffect(() => {
@@ -191,7 +195,12 @@ export default function LightningSpotlight({ onWolfHub }: { onWolfHub: () => voi
           </div>
           <button
             type="button"
-            onClick={onWolfHub}
+            onClick={() =>
+              onWolfHub({
+                messageId: spot.messageId,
+                roomId: spot.songUrl ? "songs" : "beats",
+              })
+            }
             className="hidden flex-shrink-0 rounded-full border border-[#f5c518]/30 bg-black/40 px-3 py-1.5 text-xs font-semibold text-[#f5c518] transition-all hover:border-[#f5c518]/60 hover:bg-[#f5c518]/10 sm:inline"
           >
             Open Hub →

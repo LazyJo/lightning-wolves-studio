@@ -37,7 +37,7 @@ type Page =
   | { type: "wolf-profile"; wolf: Wolf }
   | { type: "pricing" }
   | { type: "wolf-map" }
-  | { type: "wolf-hub" }
+  | { type: "wolf-hub"; targetMessageId?: string; targetRoomId?: string }
   | { type: "studio"; wolf: Wolf | null }
   | { type: "auth" }
   | { type: "join-pack" }
@@ -186,8 +186,12 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
-  const goToWolfHub = useCallback(() => {
-    setPage({ type: "wolf-hub" });
+  const goToWolfHub = useCallback((target?: { messageId: string; roomId: string }) => {
+    setPage({
+      type: "wolf-hub",
+      targetMessageId: target?.messageId,
+      targetRoomId: target?.roomId,
+    });
     window.scrollTo(0, 0);
   }, []);
 
@@ -381,7 +385,12 @@ export default function App() {
             )}
 
             {page.type === "wolf-hub" && (
-              <WolfHubPage onBack={goHome} onAuth={goToAuth} />
+              <WolfHubPage
+                onBack={goHome}
+                onAuth={goToAuth}
+                initialRoomId={page.targetRoomId}
+                targetMessageId={page.targetMessageId}
+              />
             )}
 
             {page.type === "studio" && (

@@ -305,9 +305,11 @@ function timeAgo(iso: string): string {
 interface Props {
   onBack: () => void;
   onAuth: () => void;
+  initialRoomId?: string;
+  targetMessageId?: string;
 }
 
-export default function WolfHubPage({ onBack, onAuth }: Props) {
+export default function WolfHubPage({ onBack, onAuth, initialRoomId, targetMessageId }: Props) {
   const { session, loading: sessionLoading, signOut } = useSession();
   const { markRead: markHubRead } = useHubNotifications();
   const [tab, setTab] = useState<"chat" | "media" | "profile" | "dms">("chat");
@@ -506,6 +508,8 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
             profile={profile}
             onViewUser={openOtherProfile}
             isAdmin={profile?.role === "admin"}
+            initialRoomId={initialRoomId}
+            targetMessageId={targetMessageId}
           />
         )}
         {tab === "media" && (
@@ -728,10 +732,14 @@ function ChatView({
   profile,
   onViewUser,
   isAdmin,
+  initialRoomId,
+  targetMessageId,
 }: {
   profile: Profile | null;
   onViewUser: (userId: string) => void;
   isAdmin: boolean;
+  initialRoomId?: string;
+  targetMessageId?: string;
 }) {
   const [messages, setMessages] = useState<HubMessage[]>([]);
   const [reactions, setReactions] = useState<Map<string, HubReaction[]>>(new Map());
@@ -742,7 +750,7 @@ function ChatView({
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
-  const [roomId, setRoomId] = useState<string>("global");
+  const [roomId, setRoomId] = useState<string>(initialRoomId || "global");
   const [unreadByRoom, setUnreadByRoom] = useState<Record<string, number>>({});
   const [burst, setBurst] = useState<{ kind: RatingKind; id: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -786,6 +794,19 @@ function ChatView({
       window.clearInterval(interval);
     };
   }, [roomId, profile?.id]);
+
+  // When a target message id is passed in (e.g. from the homepage Spotlight)
+  // and the messages for this room have loaded, scroll it into view.
+  useEffect(() => {
+    if (!targetMessageId || loading) return;
+    if (!messages.some((m) => m.id === targetMessageId)) return;
+    const el = document.querySelector<HTMLElement>(
+      `[data-message-id="${targetMessageId}"]`
+    );
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [targetMessageId, loading, messages]);
 
   useEffect(() => {
     if (!burst) return;
@@ -1176,7 +1197,10 @@ function ChatView({
             return (
               <div
                 key={m.id}
-                className={`flex gap-3 ${isMine ? "flex-row-reverse" : ""}`}
+                data-message-id={m.id}
+                className={`flex gap-3 transition-all ${isMine ? "flex-row-reverse" : ""} ${
+                  m.id === targetMessageId ? "-mx-2 rounded-2xl bg-[#f5c518]/[0.05] p-2" : ""
+                }`}
               >
                 <Avatar
                   url={m.author_avatar_url}

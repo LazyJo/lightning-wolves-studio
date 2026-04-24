@@ -134,6 +134,18 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
   const { session, loading: sessionLoading, signOut } = useSession();
   const [tab, setTab] = useState<"chat" | "media" | "profile">("chat");
   const [profile, setProfile] = useState<Profile | null>(null);
+  // Which wolf's profile the Profile tab is showing. null = own profile.
+  const [viewingUserId, setViewingUserId] = useState<string | null>(null);
+
+  const openOtherProfile = (userId: string) => {
+    if (!userId) return;
+    if (userId === profile?.id) {
+      setViewingUserId(null);
+    } else {
+      setViewingUserId(userId);
+    }
+    setTab("profile");
+  };
   const [showNameSetup, setShowNameSetup] = useState(false);
   const [onlineCount, setOnlineCount] = useState<number>(0);
 
@@ -292,12 +304,15 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
           )}
         </div>
 
-        {tab === "chat" && <ChatView profile={profile} />}
-        {tab === "media" && <MediaView profile={profile} />}
+        {tab === "chat" && <ChatView profile={profile} onViewUser={openOtherProfile} />}
+        {tab === "media" && <MediaView profile={profile} onViewUser={openOtherProfile} />}
         {tab === "profile" && (
           <ProfileView
             profile={profile}
             onProfileUpdated={(p) => setProfile(p)}
+            viewUserId={viewingUserId}
+            onBackToOwnProfile={() => setViewingUserId(null)}
+            onViewUser={openOtherProfile}
           />
         )}
       </div>
@@ -454,7 +469,13 @@ function TabButton({
 
 /* ─── Chat View ─── */
 
-function ChatView({ profile }: { profile: Profile | null }) {
+function ChatView({
+  profile,
+  onViewUser,
+}: {
+  profile: Profile | null;
+  onViewUser: (userId: string) => void;
+}) {
   const [messages, setMessages] = useState<HubMessage[]>([]);
   const [reactions, setReactions] = useState<Map<string, HubReaction[]>>(new Map());
   const [draft, setDraft] = useState("");
@@ -681,21 +702,27 @@ function ChatView({ profile }: { profile: Profile | null }) {
                 key={m.id}
                 className={`flex gap-3 ${isMine ? "flex-row-reverse" : ""}`}
               >
-                <div
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-black"
+                <button
+                  onClick={() => onViewUser(m.author_id)}
+                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-black transition-transform hover:scale-110"
                   style={{ backgroundColor: accent }}
+                  title={`View ${displayName(m)}'s profile`}
                 >
                   {displayName(m).slice(0, 1).toUpperCase()}
-                </div>
+                </button>
                 <div
                   className={`flex min-w-0 max-w-[80%] flex-col ${
                     isMine ? "items-end" : "items-start"
                   }`}
                 >
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="text-xs font-semibold" style={{ color: accent }}>
+                    <button
+                      onClick={() => onViewUser(m.author_id)}
+                      className="text-xs font-semibold transition-opacity hover:opacity-80"
+                      style={{ color: accent }}
+                    >
                       {displayName(m)}
-                    </span>
+                    </button>
                     <span className="text-[10px] text-wolf-muted">
                       {timeAgo(m.created_at)}
                     </span>
@@ -865,7 +892,13 @@ function ChatSkeleton() {
 
 /* ─── Media View (Instagram-style single-column feed) ─── */
 
-function MediaView({ profile }: { profile: Profile | null }) {
+function MediaView({
+  profile,
+  onViewUser,
+}: {
+  profile: Profile | null;
+  onViewUser: (userId: string) => void;
+}) {
   const [posts, setPosts] = useState<HubPost[]>([]);
   const [likes, setLikes] = useState<Map<string, { count: number; mine: boolean }>>(
     new Map()
@@ -1202,6 +1235,7 @@ function MediaView({ profile }: { profile: Profile | null }) {
               onDelete={() => deletePost(p.id)}
               onComment={(body) => addComment(p.id, body)}
               onDeleteComment={(cid) => deleteComment(cid)}
+              onViewUser={onViewUser}
             />
           ))}
         </div>
@@ -1246,6 +1280,7 @@ function PostCard({
   onDelete,
   onComment,
   onDeleteComment,
+  onViewUser,
 }: {
   post: HubPost;
   profile: Profile | null;
@@ -1256,6 +1291,7 @@ function PostCard({
   onDelete: () => void;
   onComment: (body: string) => Promise<void>;
   onDeleteComment: (commentId: string) => Promise<void>;
+  onViewUser: (userId: string) => void;
 }) {
   const accent = wolfAccent(post.author_wolf_id);
   const [expanded, setExpanded] = useState(false);
@@ -1293,14 +1329,21 @@ function PostCard({
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3">
-        <div
-          className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-black"
+        <button
+          onClick={() => onViewUser(post.author_id)}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-black transition-transform hover:scale-110"
           style={{ backgroundColor: accent }}
+          title={`View ${displayName(post)}'s profile`}
         >
           {displayName(post).slice(0, 1).toUpperCase()}
-        </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold text-white">{displayName(post)}</span>
+        </button>
+        <div className="flex flex-col items-start">
+          <button
+            onClick={() => onViewUser(post.author_id)}
+            className="text-sm font-semibold text-white transition-opacity hover:opacity-80"
+          >
+            {displayName(post)}
+          </button>
           <span className="text-[11px] text-wolf-muted">{timeAgo(post.created_at)}</span>
         </div>
         {isMine && (
@@ -1401,9 +1444,13 @@ function PostCard({
             return (
               <div key={c.id} className="group flex items-start gap-2 text-sm">
                 <p className="flex-1 text-white">
-                  <span className="font-semibold" style={{ color: cAccent }}>
+                  <button
+                    onClick={() => onViewUser(c.author_id)}
+                    className="font-semibold transition-opacity hover:opacity-80"
+                    style={{ color: cAccent }}
+                  >
                     {displayName(c)}
-                  </span>{" "}
+                  </button>{" "}
                   <span className="text-wolf-muted">{c.body}</span>
                 </p>
                 {isMyComment && (
@@ -1614,10 +1661,21 @@ const WOLF_OPTIONS: { id: string; label: string; color: string }[] = [
 function ProfileView({
   profile,
   onProfileUpdated,
+  viewUserId,
+  onBackToOwnProfile,
+  onViewUser,
 }: {
   profile: Profile | null;
   onProfileUpdated: (p: Profile) => void;
+  /** When set, view that wolf's profile instead of own. */
+  viewUserId?: string | null;
+  onBackToOwnProfile?: () => void;
+  /** Used by the PostDetailModal to hop to another wolf's profile from a comment / caption. */
+  onViewUser?: (userId: string) => void;
 }) {
+  const targetId = viewUserId || profile?.id || null;
+  const isOwn = !viewUserId || viewUserId === profile?.id;
+
   const [myPosts, setMyPosts] = useState<HubPost[]>([]);
   const [myLikes, setMyLikes] = useState<Map<string, number>>(new Map());
   const [myCommentCounts, setMyCommentCounts] = useState<Map<string, number>>(new Map());
@@ -1626,15 +1684,16 @@ function ProfileView({
   const [openPost, setOpenPost] = useState<HubPost | null>(null);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!targetId) return;
     let cancelled = false;
+    setLoading(true);
     (async () => {
       const sb = await initSupabase();
       if (!sb || cancelled) return;
       const { data } = await sb
         .from("hub_posts")
         .select("*")
-        .eq("author_id", profile.id)
+        .eq("author_id", targetId)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(60);
@@ -1663,22 +1722,44 @@ function ProfileView({
         });
         setMyLikes(likeCounts);
         setMyCommentCounts(commentCounts);
+      } else {
+        setMyLikes(new Map());
+        setMyCommentCounts(new Map());
       }
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [profile?.id]);
+  }, [targetId]);
 
   if (!profile) return null;
 
   const totalLikes = Array.from(myLikes.values()).reduce((a, b) => a + b, 0);
   const totalComments = Array.from(myCommentCounts.values()).reduce((a, b) => a + b, 0);
-  const accent = wolfAccent(profile.wolf_id);
+
+  // For other wolves, derive header info from their latest post's denormalized
+  // fields — cross-user profile reads are blocked by RLS. Own profile uses
+  // the real profiles row.
+  const latestPost = myPosts[0];
+  const headerName = isOwn
+    ? profile.display_name || profile.email?.split("@")[0] || "Wolf"
+    : latestPost?.author_name || `Wolf ${targetId?.slice(0, 4)}`;
+  const headerWolfId = isOwn ? profile.wolf_id : latestPost?.author_wolf_id || null;
+  const accent = wolfAccent(headerWolfId);
 
   return (
     <div>
+      {!isOwn && onBackToOwnProfile && (
+        <button
+          onClick={onBackToOwnProfile}
+          className="mb-4 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold"
+        >
+          <ArrowLeft size={13} />
+          Back to your profile
+        </button>
+      )}
+
       {/* Profile header */}
       <div className="mb-6 rounded-2xl border border-white/10 bg-wolf-card/40 p-5 backdrop-blur-sm">
         <div className="flex items-center gap-4">
@@ -1686,13 +1767,11 @@ function ProfileView({
             className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full text-3xl font-bold text-black"
             style={{ backgroundColor: accent }}
           >
-            {(profile.display_name || profile.email || "W").slice(0, 1).toUpperCase()}
+            {headerName.slice(0, 1).toUpperCase()}
           </div>
           <div className="flex-1">
-            <h2 className="text-xl font-bold text-white">
-              {profile.display_name || profile.email?.split("@")[0] || "Wolf"}
-            </h2>
-            <p className="text-xs text-wolf-muted">{profile.email}</p>
+            <h2 className="text-xl font-bold text-white">{headerName}</h2>
+            {isOwn && <p className="text-xs text-wolf-muted">{profile.email}</p>}
             <div className="mt-2 flex gap-4 text-sm">
               <Stat label="posts" value={myPosts.length} />
               <Stat label="likes" value={totalLikes} />
@@ -1700,19 +1779,21 @@ function ProfileView({
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setEditing(true)}
-          className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:text-[#c8a4ff]"
-        >
-          <Edit2 size={14} />
-          Edit profile
-        </button>
+        {isOwn && (
+          <button
+            onClick={() => setEditing(true)}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:text-[#c8a4ff]"
+          >
+            <Edit2 size={14} />
+            Edit profile
+          </button>
+        )}
       </div>
 
       {/* Grid header */}
       <div className="mb-3 flex items-center gap-2 text-xs uppercase tracking-wider text-wolf-muted">
         <Grid3x3 size={13} />
-        Your posts
+        {isOwn ? "Your posts" : `${headerName}'s posts`}
       </div>
 
       {/* Posts grid */}
@@ -1729,7 +1810,9 @@ function ProfileView({
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-6 py-16 text-center">
           <div className="mb-2 text-4xl">📸</div>
           <p className="text-wolf-muted">
-            You haven't posted yet — drop something on the Media tab.
+            {isOwn
+              ? "You haven't posted yet — drop something on the Media tab."
+              : `${headerName} hasn't posted yet.`}
           </p>
         </div>
       ) : (

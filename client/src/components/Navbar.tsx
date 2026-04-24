@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Menu, X, Zap, Globe, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell, Shield } from "lucide-react";
 import { useI18n, LANGUAGES } from "../lib/i18n";
+import { useHubNotifications } from "../lib/useHubNotifications";
 
 const STUDIO_TOOLS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -43,6 +44,7 @@ export default function Navbar({
   const [langOpen, setLangOpen] = useState(false);
   const { lang, setLang, t } = useI18n();
   const accent = wolfColor || "#f5c518";
+  const { count: hubUnread } = useHubNotifications();
 
   return (
     <motion.nav
@@ -136,13 +138,22 @@ export default function Navbar({
               )}
               <button
                 onClick={onWolfHub}
-                className="group inline-flex items-center gap-1.5 rounded-lg border border-[#9b6dff]/40 bg-gradient-to-r from-[#9b6dff]/15 via-[#E040FB]/10 to-[#9b6dff]/15 px-4 py-2 text-sm font-bold text-white transition-all hover:border-[#9b6dff]/70 hover:shadow-lg hover:shadow-[#9b6dff]/20"
+                className="group relative inline-flex items-center gap-1.5 rounded-lg border border-[#9b6dff]/40 bg-gradient-to-r from-[#9b6dff]/15 via-[#E040FB]/10 to-[#9b6dff]/15 px-4 py-2 text-sm font-bold text-white transition-all hover:border-[#9b6dff]/70 hover:shadow-lg hover:shadow-[#9b6dff]/20"
                 title="Wolf Hub — community chat & media"
               >
                 <span className="text-sm">🐺</span>
                 <span className="bg-gradient-to-r from-[#c8a4ff] to-[#f0a4ff] bg-clip-text text-transparent">
                   Wolf Hub
                 </span>
+                {hubUnread > 0 && (
+                  <span
+                    className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white shadow-lg"
+                    style={{ backgroundColor: "#ef4444" }}
+                    aria-label={`${hubUnread} unread Wolf Hub notifications`}
+                  >
+                    {hubUnread > 99 ? "99+" : hubUnread}
+                  </span>
+                )}
               </button>
               <button
                 onClick={onAuth}

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { getSupabase, initSupabase } from "../lib/supabaseClient";
 import { useSession } from "../lib/useSession";
+import { useHubNotifications } from "../lib/useHubNotifications";
 
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
@@ -132,7 +133,14 @@ interface Props {
 
 export default function WolfHubPage({ onBack, onAuth }: Props) {
   const { session, loading: sessionLoading, signOut } = useSession();
+  const { markRead: markHubRead } = useHubNotifications();
   const [tab, setTab] = useState<"chat" | "media" | "profile">("chat");
+
+  // Opening the Wolf Hub clears the unread badge in the navbar.
+  useEffect(() => {
+    if (session?.user) markHubRead();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user?.id]);
   const [profile, setProfile] = useState<Profile | null>(null);
   // Which wolf's profile the Profile tab is showing. null = own profile.
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);

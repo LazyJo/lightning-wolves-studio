@@ -753,6 +753,8 @@ function ChatView({
   const [roomId, setRoomId] = useState<string>(initialRoomId || "global");
   const [unreadByRoom, setUnreadByRoom] = useState<Record<string, number>>({});
   const [burst, setBurst] = useState<{ kind: RatingKind; id: number } | null>(null);
+  const [internalTarget, setInternalTarget] = useState<string | null>(null);
+  const activeTargetId = internalTarget || targetMessageId;
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -795,18 +797,19 @@ function ChatView({
     };
   }, [roomId, profile?.id]);
 
-  // When a target message id is passed in (e.g. from the homepage Spotlight)
-  // and the messages for this room have loaded, scroll it into view.
+  // When a target message id is passed in (from the homepage Spotlight or
+  // an in-Hub ticker jump) and the messages for this room have loaded,
+  // scroll it into view.
   useEffect(() => {
-    if (!targetMessageId || loading) return;
-    if (!messages.some((m) => m.id === targetMessageId)) return;
+    if (!activeTargetId || loading) return;
+    if (!messages.some((m) => m.id === activeTargetId)) return;
     const el = document.querySelector<HTMLElement>(
-      `[data-message-id="${targetMessageId}"]`
+      `[data-message-id="${activeTargetId}"]`
     );
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
-  }, [targetMessageId, loading, messages]);
+  }, [activeTargetId, loading, messages]);
 
   useEffect(() => {
     if (!burst) return;
@@ -1120,7 +1123,12 @@ function ChatView({
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
       <RatingBurst kind={burst?.kind ?? null} />
       <div className="px-3 pt-3 sm:px-4">
-        <LightningTicker />
+        <LightningTicker
+          onJumpTo={(messageId, newRoomId) => {
+            setRoomId(newRoomId);
+            setInternalTarget(messageId);
+          }}
+        />
       </div>
       {/* Room switcher */}
       <div className="flex items-center gap-1 overflow-x-auto border-b border-white/10 px-2 py-2">
@@ -1199,7 +1207,7 @@ function ChatView({
                 key={m.id}
                 data-message-id={m.id}
                 className={`flex gap-3 transition-all ${isMine ? "flex-row-reverse" : ""} ${
-                  m.id === targetMessageId ? "-mx-2 rounded-2xl bg-[#f5c518]/[0.05] p-2" : ""
+                  m.id === activeTargetId ? "-mx-2 rounded-2xl bg-[#f5c518]/[0.05] p-2" : ""
                 }`}
               >
                 <Avatar

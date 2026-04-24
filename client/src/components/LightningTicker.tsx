@@ -58,7 +58,11 @@ function ago(iso: string): string {
   return `${Math.floor(h / 24)}d`;
 }
 
-export default function LightningTicker() {
+export default function LightningTicker({
+  onJumpTo,
+}: {
+  onJumpTo: (messageId: string, roomId: string) => void;
+}) {
   const [strikes, setStrikes] = useState<Strike[]>([]);
 
   // Initial load — last 5 ⚡⚡ reactions that landed on song/beat messages.
@@ -177,29 +181,27 @@ export default function LightningTicker() {
         <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto">
           <AnimatePresence initial={false}>
             {strikes.map((s) => {
-              const href = s.songUrl || s.audioUrl || undefined;
-              const external = !!s.songUrl;
               const author = s.authorName || "a wolf";
               const title = tickTitle(s);
+              const roomId = s.songUrl ? "songs" : "beats";
               return (
-                <motion.a
+                <motion.button
+                  type="button"
                   key={s.reactionId}
-                  href={href}
-                  target={external ? "_blank" : undefined}
-                  rel={external ? "noopener noreferrer" : undefined}
+                  onClick={() => onJumpTo(s.messageId, roomId)}
                   initial={{ opacity: 0, x: -16, scale: 0.9 }}
                   animate={{ opacity: 1, x: 0, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ duration: 0.35, ease: [0.2, 1, 0.3, 1] }}
                   className="group flex flex-shrink-0 items-center gap-1.5 rounded-full border border-[#f5c518]/30 bg-black/40 px-2.5 py-1 text-[11px] font-semibold text-white transition-colors hover:border-[#f5c518]/60"
                   style={{ textShadow: "0 0 8px rgba(245,197,24,0.25)" }}
-                  title={`${author} — ${title} — ${ago(s.createdAt)} ago`}
+                  title={`${author} — ${title} — ${ago(s.createdAt)} ago — click to jump`}
                 >
                   <span className="text-wolf-muted">{ago(s.createdAt)}</span>
                   <span className="text-[#f5c518]">⚡⚡</span>
                   <span className="max-w-[160px] truncate">{title}</span>
                   <span className="hidden text-[9px] text-wolf-muted sm:inline">· {author}</span>
-                </motion.a>
+                </motion.button>
               );
             })}
           </AnimatePresence>

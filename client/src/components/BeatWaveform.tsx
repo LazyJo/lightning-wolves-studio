@@ -19,6 +19,7 @@ function fmt(sec: number): string {
 }
 
 export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<{
     play: () => void;
@@ -72,6 +73,18 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
           if (destroyed) return;
           setPlaying(false);
           if (currentPlayer === ws) currentPlayer = null;
+          // Auto-advance: play the next BeatWaveform on screen, if any.
+          const root = rootRef.current;
+          if (!root) return;
+          const all = Array.from(
+            document.querySelectorAll<HTMLElement>("[data-beat-waveform]")
+          );
+          const idx = all.indexOf(root);
+          if (idx < 0 || idx >= all.length - 1) return;
+          const nextBtn = all[idx + 1].querySelector<HTMLButtonElement>(
+            'button[aria-label="Play beat"]'
+          );
+          if (nextBtn && !nextBtn.disabled) nextBtn.click();
         });
         ws.on("error", () => !destroyed && setError(true));
       } catch {
@@ -101,7 +114,11 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/30 p-2">
+    <div
+      ref={rootRef}
+      data-beat-waveform
+      className="flex items-center gap-3 rounded-lg border border-white/10 bg-black/30 p-2"
+    >
       <button
         type="button"
         onClick={() => {

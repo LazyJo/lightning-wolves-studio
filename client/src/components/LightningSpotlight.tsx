@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { initSupabase } from "../lib/supabaseClient";
+import BeatWaveform from "./BeatWaveform";
 
 interface Spot {
   messageId: string;
@@ -21,6 +22,42 @@ interface SpotMsg {
   room_id: string | null;
   deleted_at: string | null;
   created_at: string;
+}
+
+interface SongEmbed {
+  provider: "spotify" | "apple";
+  src: string;
+  height: number;
+}
+
+function buildSongEmbed(url: string): SongEmbed | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.endsWith("spotify.com")) {
+      const match = u.pathname.match(
+        /^\/(?:intl-\w+\/)?(track|album|playlist|episode)\/([a-zA-Z0-9]+)/
+      );
+      if (!match) return null;
+      return {
+        provider: "spotify",
+        src: `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=lightning-wolves`,
+        height: match[1] === "track" ? 152 : 352,
+      };
+    }
+    if (u.hostname.endsWith("music.apple.com")) {
+      const embedUrl = new URL(url.replace(/\bmusic\.apple\.com/, "embed.music.apple.com"));
+      const isSong =
+        /\/song\//.test(embedUrl.pathname) || embedUrl.searchParams.get("i");
+      return {
+        provider: "apple",
+        src: embedUrl.toString(),
+        height: isSong ? 175 : 450,
+      };
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function titleFor(s: Spot): string {
@@ -104,18 +141,16 @@ export default function LightningSpotlight({ onWolfHub }: { onWolfHub: () => voi
   const title = titleFor(spot);
   const author = spot.authorName || "a wolf";
   const kind = spot.songUrl ? "🎧" : "🥁";
+  const embed = spot.songUrl ? buildSongEmbed(spot.songUrl) : null;
 
   return (
     <section className="mx-auto max-w-6xl px-6 py-6">
-      <motion.button
-        type="button"
-        onClick={onWolfHub}
+      <motion.div
         initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        whileHover={{ y: -2 }}
         transition={{ duration: 0.4, ease: [0.2, 1, 0.3, 1] }}
-        className="group relative block w-full overflow-hidden rounded-2xl border border-[#f5c518]/30 bg-gradient-to-br from-[#f5c518]/[0.08] via-transparent to-[#f5c518]/[0.03] px-5 py-4 text-left transition-all hover:border-[#f5c518]/60"
+        className="relative overflow-hidden rounded-2xl border border-[#f5c518]/30 bg-gradient-to-br from-[#f5c518]/[0.08] via-transparent to-[#f5c518]/[0.03] p-5"
         style={{ boxShadow: "0 0 22px rgba(245,197,24,0.12)" }}
       >
         <div className="flex items-center gap-4">
@@ -154,11 +189,37 @@ export default function LightningSpotlight({ onWolfHub }: { onWolfHub: () => voi
               ⚡⚡ bolts
             </span>
           </div>
-          <span className="hidden flex-shrink-0 text-xs font-semibold text-[#f5c518] transition-transform group-hover:translate-x-0.5 sm:inline">
+          <button
+            type="button"
+            onClick={onWolfHub}
+            className="hidden flex-shrink-0 rounded-full border border-[#f5c518]/30 bg-black/40 px-3 py-1.5 text-xs font-semibold text-[#f5c518] transition-all hover:border-[#f5c518]/60 hover:bg-[#f5c518]/10 sm:inline"
+          >
             Open Hub →
-          </span>
+          </button>
         </div>
-      </motion.button>
+
+        {/* Inline playback — Spotify/Apple embed for song links, waveform for beats */}
+        {embed && (
+          <div className="mt-4 overflow-hidden rounded-xl">
+            <iframe
+              src={embed.src}
+              width="100%"
+              height={embed.height}
+              frameBorder={0}
+              allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
+              loading="lazy"
+              className="block"
+              style={{ border: 0, minWidth: "260px" }}
+              title={`${embed.provider} player`}
+            />
+          </div>
+        )}
+        {!embed && spot.audioUrl && (
+          <div className="mt-4">
+            <BeatWaveform audioUrl={spot.audioUrl} />
+          </div>
+        )}
+      </motion.div>
     </section>
   );
 }

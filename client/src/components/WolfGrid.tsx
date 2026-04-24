@@ -1,15 +1,45 @@
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import WolfCard from "./WolfCard";
 import { wolves } from "../data/wolves";
 import type { Wolf } from "../data/wolves";
 import { useI18n } from "../lib/i18n";
+import { initSupabase } from "../lib/supabaseClient";
 
-interface Props {
-  onSelectWolf?: (wolf: Wolf) => void;
-}
-
-export default function WolfGrid({ onSelectWolf }: Props) {
+export default function WolfGrid({ onSelectWolf }: { onSelectWolf?: (wolf: Wolf) => void }) {
   const { t } = useI18n();
+  const [lightningByWolfId, setLightningByWolfId] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("hub_reactions")
+        .select("hub_messages!inner(author_wolf_id, deleted_at)")
+        .eq("emoji", "⚡⚡")
+        .limit(5000);
+      if (cancelled) return;
+      const tally: Record<string, number> = {};
+      (data || []).forEach(
+        (r: {
+          hub_messages:
+            | { author_wolf_id: string | null; deleted_at: string | null }
+            | { author_wolf_id: string | null; deleted_at: string | null }[]
+            | null;
+        }) => {
+          const m = Array.isArray(r.hub_messages) ? r.hub_messages[0] : r.hub_messages;
+          if (!m || m.deleted_at || !m.author_wolf_id) return;
+          tally[m.author_wolf_id] = (tally[m.author_wolf_id] || 0) + 1;
+        }
+      );
+      setLightningByWolfId(tally);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <section id="wolves" className="relative py-24">
@@ -49,6 +79,7 @@ export default function WolfGrid({ onSelectWolf }: Props) {
                 wolf={wolf}
                 index={i}
                 onClick={onSelectWolf}
+                lightningCount={lightningByWolfId[wolf.id] || 0}
               />
             ))}
           </div>

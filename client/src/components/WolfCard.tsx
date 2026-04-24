@@ -7,9 +7,10 @@ interface Props {
   wolf: Wolf;
   index: number;
   onClick?: (wolf: Wolf) => void;
+  lightningCount?: number;
 }
 
-export default function WolfCard({ wolf, index, onClick }: Props) {
+export default function WolfCard({ wolf, index, onClick, lightningCount = 0 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isClickable =
     wolf.status === "active" || wolf.status === "special" || wolf.status === "cta";
@@ -141,6 +142,21 @@ export default function WolfCard({ wolf, index, onClick }: Props) {
       {/* Special badge for Lone Wolf */}
       {wolf.status === "special" && (
         <span className="mt-2 text-xs text-wolf-gold/60">No account needed</span>
+      )}
+
+      {/* Lightning received — only if this wolf has been rated */}
+      {lightningCount > 0 && !isFullyLocked && (
+        <span
+          className="mt-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold"
+          style={{
+            borderColor: "rgba(245,197,24,0.45)",
+            backgroundColor: "rgba(245,197,24,0.12)",
+            color: "#f5c518",
+            textShadow: "0 0 8px rgba(245,197,24,0.45)",
+          }}
+        >
+          ⚡⚡ {lightningCount}
+        </span>
       )}
     </motion.div>
   );

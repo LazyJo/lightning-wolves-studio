@@ -34,6 +34,7 @@ interface HubMessage {
   body: string | null;
   image_url: string | null;
   audio_url?: string | null;
+  song_url?: string | null;
   created_at: string;
   edited_at?: string | null;
 }
@@ -169,6 +170,58 @@ function Avatar({
 
 function wolfAccent(wolfId: string | null): string {
   return (wolfId && WOLF_COLOR[wolfId]) || "#9b6dff";
+}
+
+/* ─── Song link parsing (Spotify + Apple Music) ─── */
+
+// Pulls the first Spotify or Apple Music URL out of a message body.
+// Returns the raw URL so we can both store it + derive an embed src.
+function extractSongLink(body: string | null | undefined): string | null {
+  if (!body) return null;
+  const match = body.match(
+    /\bhttps?:\/\/(?:open\.spotify\.com|music\.apple\.com)\/[^\s]+/i
+  );
+  return match ? match[0] : null;
+}
+
+interface SongEmbed {
+  provider: "spotify" | "apple";
+  src: string;
+  height: number;
+}
+
+function buildSongEmbed(url: string): SongEmbed | null {
+  try {
+    const u = new URL(url);
+    if (u.hostname.endsWith("spotify.com")) {
+      // /track/{id}, /album/{id}, /playlist/{id}, /episode/{id}
+      const match = u.pathname.match(
+        /^\/(?:intl-\w+\/)?(track|album|playlist|episode)\/([a-zA-Z0-9]+)/
+      );
+      if (!match) return null;
+      return {
+        provider: "spotify",
+        src: `https://open.spotify.com/embed/${match[1]}/${match[2]}?utm_source=lightning-wolves`,
+        height: match[1] === "track" ? 152 : 352,
+      };
+    }
+    if (u.hostname.endsWith("music.apple.com")) {
+      // music.apple.com/{country}/song/{slug}/{id} OR /album/{slug}/{id}?i={songId}
+      // Simplest: swap hostname to embed.music.apple.com and keep the path.
+      const embedUrl = new URL(url.replace(/\bmusic\.apple\.com/, "embed.music.apple.com"));
+      // Single song (?i=...) → compact 175; album/playlist → 450
+      const isSong =
+        /\/song\//.test(embedUrl.pathname) || embedUrl.searchParams.get("i");
+      return {
+        provider: "apple",
+        src: embedUrl.toString(),
+        height: isSong ? 175 : 450,
+      };
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function timeAgo(iso: string): string {
@@ -554,9 +607,9 @@ interface HubRoom {
   hint: string;
 }
 const HUB_ROOMS: HubRoom[] = [
-  { id: "global", label: "#general", emoji: "💬", hint: "Open chat for the whole pack" },
-  { id: "bars", label: "#bars", emoji: "🎤", hint: "Drop bars, get feedback" },
-  { id: "beats", label: "#beats", emoji: "🥁", hint: "Share beats + producers" },
+  { id: "global", label: "general", emoji: "⚡", hint: "Open chat for the whole pack" },
+  { id: "songs", label: "songs", emoji: "⚡", hint: "Drop the tracks you can't stop replaying" },
+  { id: "beats", label: "beats", emoji: "⚡", hint: "Share beats + producers" },
 ];
 
 function TabButton({
@@ -753,6 +806,7 @@ function ChatView({
         body,
         image_url: imageUrl,
         audio_url: audioUrl,
+        song_url: extractSongLink(body),
       });
     } finally {
       setSending(false);
@@ -1012,6 +1066,25 @@ function ChatView({
                             />
                           </div>
                         )}
+                        {m.song_url && (() => {
+                          const embed = buildSongEmbed(m.song_url!);
+                          if (!embed) return null;
+                          return (
+                            <div className={`overflow-hidden rounded-xl ${m.body ? "mt-2" : ""}`}>
+                              <iframe
+                                src={embed.src}
+                                width="100%"
+                                height={embed.height}
+                                frameBorder={0}
+                                allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
+                                loading="lazy"
+                                className="block"
+                                style={{ border: 0, minWidth: "260px" }}
+                                title={`${embed.provider} player`}
+                              />
+                            </div>
+                          );
+                        })()}
                       </>
                     )}
                   </div>

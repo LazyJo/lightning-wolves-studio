@@ -24,6 +24,14 @@ ALTER TABLE hub_post_comments ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
 -- player when it's set.
 ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS audio_url TEXT;
 
+-- Songs: when a wolf pastes a Spotify / Apple Music URL, the client
+-- extracts + stores it here so leaderboards + streak queries can filter
+-- without regex-parsing the body on every read.
+ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS song_url TEXT;
+CREATE INDEX IF NOT EXISTS hub_messages_song_url_created_idx
+  ON hub_messages (author_id, created_at DESC)
+  WHERE song_url IS NOT NULL AND deleted_at IS NULL;
+
 -- ── Auto-create a profiles row when a new auth.users row is inserted ─────────
 -- Without this, sign-up via email or OAuth leaves the user with no profile,
 -- which silently breaks Wolf Hub features that join on profiles.id.

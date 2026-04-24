@@ -1113,12 +1113,14 @@ function ChatView({
         <div className="px-4 pt-3">
           <SongsLeaderboard onViewUser={onViewUser} mode="songs" />
           <LightningLeaderboard onViewUser={onViewUser} mode="songs" />
+          <TopLightningTracks mode="songs" />
         </div>
       )}
       {roomId === "beats" && (
         <div className="px-4 pt-3">
           <SongsLeaderboard onViewUser={onViewUser} mode="beats" />
           <LightningLeaderboard onViewUser={onViewUser} mode="beats" />
+          <TopLightningTracks mode="beats" />
         </div>
       )}
       <div
@@ -4271,6 +4273,204 @@ function LightningLeaderboard({
                         {r.bolts} ⚡⚡
                       </span>
                     </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface TrackRow {
+  message_id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  song_url: string | null;
+  audio_url: string | null;
+  body: string | null;
+  bolts: number;
+}
+
+interface TrackMsg {
+  id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  song_url: string | null;
+  audio_url: string | null;
+  room_id: string | null;
+  body: string | null;
+  deleted_at: string | null;
+  created_at: string;
+}
+
+function beatTitle(body: string | null): string {
+  if (!body) return "untitled beat";
+  return body.replace(/^🎵\s*/, "").trim() || "untitled beat";
+}
+
+function spotifyOrAppleTitle(url: string): string {
+  try {
+    const u = new URL(url);
+    if (u.hostname.endsWith("spotify.com")) {
+      const m = u.pathname.match(/\/(track|album|playlist|episode)\/([a-zA-Z0-9]+)/);
+      return m ? `Spotify ${m[1]}` : "Spotify track";
+    }
+    if (u.hostname.endsWith("music.apple.com")) {
+      const m = u.pathname.match(/\/(song|album|playlist)\/([^/]+)/);
+      if (m && m[2]) return decodeURIComponent(m[2]).replace(/-/g, " ");
+      return "Apple Music track";
+    }
+  } catch {
+    /* noop */
+  }
+  return "track";
+}
+
+function TopLightningTracks({ mode }: { mode: "songs" | "beats" }) {
+  const [win, setWin] = useState<LBWindow>("week");
+  const [rows, setRows] = useState<TrackRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      setLoading(true);
+      const { data } = await sb
+        .from("hub_reactions")
+        .select(
+          "message_id, hub_messages!inner(id,author_name,author_wolf_id,song_url,audio_url,room_id,body,deleted_at,created_at)"
+        )
+        .eq("emoji", "⚡⚡")
+        .limit(2000);
+      if (cancelled) return;
+      const startIso = windowStartIso(win);
+      const map = new Map<string, TrackRow>();
+      (data || []).forEach(
+        (r: { message_id: string; hub_messages: TrackMsg | TrackMsg[] | null }) => {
+          const m = Array.isArray(r.hub_messages) ? r.hub_messages[0] : r.hub_messages;
+          if (!m) return;
+          if (m.deleted_at) return;
+          if (m.created_at < startIso) return;
+          if (mode === "songs" && !m.song_url) return;
+          if (mode === "beats" && (!m.audio_url || m.room_id !== "beats")) return;
+          const cur = map.get(r.message_id);
+          if (cur) {
+            cur.bolts += 1;
+          } else {
+            map.set(r.message_id, {
+              message_id: r.message_id,
+              author_name: m.author_name,
+              author_wolf_id: m.author_wolf_id,
+              song_url: m.song_url,
+              audio_url: m.audio_url,
+              body: m.body,
+              bolts: 1,
+            });
+          }
+        }
+      );
+      const sorted = Array.from(map.values())
+        .sort((a, b) => b.bolts - a.bolts)
+        .slice(0, 5);
+      setRows(sorted);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [win, mode]);
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-2xl border border-[#f5c518]/15 bg-gradient-to-br from-[#f5c518]/[0.05] via-transparent to-[#f5c518]/[0.02]">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-white/[0.02]"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-base" style={{ filter: "drop-shadow(0 0 6px #f5c518)" }}>
+            🎯
+          </span>
+          <span className="text-sm font-bold text-white">Top Lightning Tracks</span>
+          <span className="hidden text-[10px] text-wolf-muted sm:inline">
+            Top 5 {mode === "songs" ? "songs" : "beats"} by ⚡⚡ received
+          </span>
+        </div>
+        <span className="text-xs text-wolf-muted">{expanded ? "Hide" : "Show"}</span>
+      </button>
+      {expanded && (
+        <div className="border-t border-[#f5c518]/10 px-4 py-3">
+          <div className="mb-3 flex gap-1 rounded-lg bg-white/[0.03] p-1">
+            {(["today", "week", "month", "year"] as LBWindow[]).map((w) => (
+              <button
+                key={w}
+                onClick={() => setWin(w)}
+                className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-all ${
+                  w === win
+                    ? "bg-gradient-to-r from-[#f5c518]/30 to-[#f5c518]/15 text-white"
+                    : "text-wolf-muted hover:text-white"
+                }`}
+              >
+                {w === "today"
+                  ? "Today"
+                  : w === "week"
+                  ? "This week"
+                  : w === "month"
+                  ? "This month"
+                  : "This year"}
+              </button>
+            ))}
+          </div>
+          {loading ? (
+            <div className="flex flex-col gap-1.5">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-10 animate-pulse rounded-lg bg-white/[0.03]" />
+              ))}
+            </div>
+          ) : rows.length === 0 ? (
+            <p className="py-4 text-center text-xs text-wolf-muted">
+              No ⚡⚡ yet in this window.
+            </p>
+          ) : (
+            <ol className="flex flex-col gap-1">
+              {rows.map((r, i) => {
+                const title =
+                  mode === "songs" && r.song_url
+                    ? spotifyOrAppleTitle(r.song_url)
+                    : beatTitle(r.body);
+                const href = r.song_url || r.audio_url || "#";
+                const author =
+                  r.author_name || `Wolf ${r.author_wolf_id || "?"}`;
+                const external = !!r.song_url;
+                return (
+                  <li key={r.message_id}>
+                    <a
+                      href={href}
+                      target={external ? "_blank" : undefined}
+                      rel={external ? "noopener noreferrer" : undefined}
+                      className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.03]"
+                    >
+                      <span className="w-5 text-center text-xs font-bold text-wolf-muted">
+                        {i + 1}
+                      </span>
+                      <span className="text-base">{mode === "songs" ? "🎧" : "🥁"}</span>
+                      <span className="flex min-w-0 flex-1 flex-col text-left">
+                        <span className="truncate text-sm font-semibold text-white">
+                          {title}
+                        </span>
+                        <span className="truncate text-[10px] text-wolf-muted">
+                          {author}
+                        </span>
+                      </span>
+                      <span className="flex-shrink-0 text-xs font-bold text-[#f5c518]">
+                        {r.bolts} ⚡⚡
+                      </span>
+                    </a>
                   </li>
                 );
               })}

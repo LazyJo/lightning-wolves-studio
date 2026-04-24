@@ -1146,6 +1146,8 @@ function ChatView({
               if (r.user_id === profile?.id) g.mine = true;
               grouped.set(r.emoji, g);
             });
+            const bolts = grouped.get("⚡⚡")?.count || 0;
+            const isLightning = bolts >= 3;
             return (
               <div
                 key={m.id}
@@ -1176,14 +1178,35 @@ function ChatView({
                       {timeAgo(m.created_at)}
                       {m.edited_at && <span className="ml-1 italic">· edited</span>}
                     </span>
+                    {isLightning && (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                        style={{
+                          backgroundColor: "rgba(245,197,24,0.18)",
+                          color: "#f5c518",
+                          border: "1px solid rgba(245,197,24,0.45)",
+                          textShadow: "0 0 6px rgba(245,197,24,0.6)",
+                        }}
+                      >
+                        ⚡ Lightning
+                      </span>
+                    )}
                   </div>
                   <div
-                    className={`rounded-2xl px-4 py-2 ${
+                    className={`rounded-2xl px-4 py-2 transition-all ${
                       isMine
                         ? "bg-gradient-to-br from-[#9b6dff]/30 to-[#E040FB]/20 text-white"
                         : "bg-white/[0.05]"
                     }`}
-                    style={isMine ? {} : { color: "#e5e5e5" }}
+                    style={{
+                      ...(isMine ? {} : { color: "#e5e5e5" }),
+                      ...(isLightning
+                        ? {
+                            boxShadow:
+                              "0 0 0 1.5px rgba(245,197,24,0.65), 0 0 22px rgba(245,197,24,0.28)",
+                          }
+                        : {}),
+                    }}
                   >
                     {editingId === m.id ? (
                       <div className="flex flex-col gap-2">

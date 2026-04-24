@@ -382,7 +382,152 @@ export default function PricingPage({ onBack, onGetStarted }: Props) {
             );
           })}
         </div>
+
+        {/* ────── Generation Credit Costs table ────── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="mt-20"
+        >
+          <div className="mb-8 text-center">
+            <h2
+              className="text-2xl font-bold tracking-wider text-wolf-gold sm:text-3xl"
+              style={{ fontFamily: "var(--font-heading)" }}
+            >
+              Generation Credit Costs
+            </h2>
+            <p className="mt-2 text-sm text-wolf-muted">
+              How many credits each generation type costs
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            {CREDIT_COSTS.map((card) => (
+              <div
+                key={card.title}
+                className="overflow-hidden rounded-2xl border"
+                style={{
+                  borderColor: `${card.color}35`,
+                  background: `linear-gradient(145deg, ${card.color}0a, transparent)`,
+                }}
+              >
+                <div className="border-b px-4 py-3 text-center" style={{ borderColor: `${card.color}20` }}>
+                  <h3
+                    className="font-bold"
+                    style={{ color: card.color, fontFamily: "var(--font-heading)" }}
+                  >
+                    {card.title}
+                  </h3>
+                  <p className="mt-0.5 text-[11px] text-wolf-muted">{card.subtitle}</p>
+                </div>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr
+                      className="border-b text-[10px] uppercase tracking-wider text-wolf-muted"
+                      style={{ borderColor: `${card.color}15` }}
+                    >
+                      <th className="px-3 py-2 text-left font-medium">{card.colLeft}</th>
+                      <th className="px-3 py-2 text-right font-medium">Credits</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {card.rows.map((row, i) => (
+                      <tr key={i} className="border-b border-white/[0.03] last:border-0">
+                        <td className="px-3 py-2.5 font-mono text-wolf-muted">{row.label}</td>
+                        <td
+                          className="px-3 py-2.5 text-right font-mono font-bold"
+                          style={{ color: card.color }}
+                        >
+                          {row.credits}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-6 text-center text-xs text-wolf-muted/60">
+            All prices are in credits. Included monthly credits roll over annually.
+          </p>
+        </motion.div>
       </div>
     </div>
   );
 }
+
+/* ─── Generation Credit Costs data (mirrors lyrc.studio) ─── */
+
+interface CreditCard {
+  title: string;
+  subtitle: string;
+  color: string;
+  colLeft: string;
+  rows: { label: string; credits: string }[];
+}
+
+const CREDIT_COSTS: CreditCard[] = [
+  {
+    title: "Grok Imagine",
+    subtitle: "Just Generate",
+    color: "#69f0ae",
+    colLeft: "Resolution",
+    rows: [
+      { label: "10s · 480p", credits: "20" },
+      { label: "10s · 720p", credits: "30" },
+    ],
+  },
+  {
+    title: "Kling 2.6",
+    subtitle: "Performance Videos",
+    color: "#ff6b9d",
+    colLeft: "Res",
+    rows: [
+      { label: "720p", credits: "6 / sec" },
+      { label: "1080p", credits: "9 / sec" },
+    ],
+  },
+  {
+    title: "Images",
+    subtitle: "Cover Art & Style",
+    color: "#E040FB",
+    colLeft: "Model",
+    rows: [
+      { label: "NanoBanana", credits: "4" },
+      { label: "Seedream 4.5", credits: "5" },
+    ],
+  },
+  {
+    title: "NB Pro",
+    subtitle: "Hi-Res Images",
+    color: "#f5c518",
+    colLeft: "Res",
+    rows: [
+      { label: "1K, 2K", credits: "15" },
+      { label: "4K", credits: "20" },
+    ],
+  },
+  {
+    title: "NanoBanana 2",
+    subtitle: "Cover Art",
+    color: "#10b981",
+    colLeft: "Res",
+    rows: [
+      { label: "1K", credits: "8" },
+      { label: "2K", credits: "12" },
+      { label: "4K", credits: "18" },
+    ],
+  },
+  {
+    title: "Remix",
+    subtitle: "Footage",
+    color: "#82b1ff",
+    colLeft: "Op",
+    rows: [
+      { label: "Clip Extraction", credits: "5" },
+      { label: "1080p Export", credits: "15" },
+    ],
+  },
+];

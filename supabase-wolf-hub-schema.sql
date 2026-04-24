@@ -14,6 +14,11 @@ ALTER TABLE hub_posts        ADD COLUMN IF NOT EXISTS author_avatar_url TEXT;
 ALTER TABLE hub_stories      ADD COLUMN IF NOT EXISTS author_avatar_url TEXT;
 ALTER TABLE hub_post_comments ADD COLUMN IF NOT EXISTS author_avatar_url TEXT;
 
+-- edited_at: set on UPDATE of the body. Client surfaces an "(edited)"
+-- indicator when this is non-null.
+ALTER TABLE hub_messages      ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+ALTER TABLE hub_post_comments ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
+
 -- ── Auto-create a profiles row when a new auth.users row is inserted ─────────
 -- Without this, sign-up via email or OAuth leaves the user with no profile,
 -- which silently breaks Wolf Hub features that join on profiles.id.

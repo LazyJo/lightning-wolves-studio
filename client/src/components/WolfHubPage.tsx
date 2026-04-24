@@ -34,6 +34,7 @@ interface HubMessage {
   body: string | null;
   image_url: string | null;
   created_at: string;
+  edited_at?: string | null;
 }
 
 interface HubReaction {
@@ -64,6 +65,7 @@ interface HubComment {
   author_avatar_url?: string | null;
   body: string;
   created_at: string;
+  edited_at?: string | null;
 }
 
 interface HubStory {
@@ -597,6 +599,8 @@ function ChatView({
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const [roomId, setRoomId] = useState<string>("global");
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -652,6 +656,17 @@ function ChatView({
             if ((m.room_id || "global") !== roomId) return;
             setMessages((prev) =>
               prev.some((x) => x.id === m.id) ? prev : [...prev, m]
+            );
+          }
+        )
+        .on(
+          "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "hub_messages" },
+          (payload) => {
+            const m = payload.new as HubMessage;
+            if ((m.room_id || "global") !== roomId) return;
+            setMessages((prev) =>
+              prev.map((x) => (x.id === m.id ? m : x))
             );
           }
         )
@@ -789,6 +804,22 @@ function ChatView({
     await sb.from("hub_messages").delete().eq("id", messageId);
   }
 
+  async function editMessage(messageId: string, newBody: string) {
+    const sb = getSupabase();
+    if (!sb) return;
+    const nowIso = new Date().toISOString();
+    // Optimistic local update
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId ? { ...m, body: newBody, edited_at: nowIso } : m
+      )
+    );
+    await sb
+      .from("hub_messages")
+      .update({ body: newBody, edited_at: nowIso })
+      .eq("id", messageId);
+  }
+
   const activeRoom = HUB_ROOMS.find((r) => r.id === roomId) || HUB_ROOMS[0];
 
   return (
@@ -868,6 +899,7 @@ function ChatView({
                     </button>
                     <span className="text-[10px] text-wolf-muted">
                       {timeAgo(m.created_at)}
+                      {m.edited_at && <span className="ml-1 italic">· edited</span>}
                     </span>
                   </div>
                   <div
@@ -878,16 +910,67 @@ function ChatView({
                     }`}
                     style={isMine ? {} : { color: "#e5e5e5" }}
                   >
-                    {m.body && (
-                      <p className="whitespace-pre-wrap break-words text-sm">{m.body}</p>
-                    )}
-                    {m.image_url && (
-                      <img
-                        src={m.image_url}
-                        alt="chat attachment"
-                        className={`max-h-64 rounded-lg object-cover ${m.body ? "mt-2" : ""}`}
-                        loading="lazy"
-                      />
+                    {editingId === m.id ? (
+                      <div className="flex flex-col gap-2">
+                        <textarea
+                          value={editDraft}
+                          onChange={(e) => setEditDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
+                              const trimmed = editDraft.trim();
+                              if (trimmed && trimmed !== m.body) {
+                                editMessage(m.id, trimmed);
+                              }
+                              setEditingId(null);
+                            } else if (e.key === "Escape") {
+                              setEditingId(null);
+                            }
+                          }}
+                          autoFocus
+                          rows={Math.min(5, editDraft.split("\n").length)}
+                          className="w-full resize-none rounded-lg border border-white/20 bg-wolf-bg/60 px-2 py-1 text-sm text-white focus:border-[#9b6dff] focus:outline-none"
+                        />
+                        <div className="flex gap-2 text-[10px]">
+                          <button
+                            onClick={() => {
+                              const trimmed = editDraft.trim();
+                              if (trimmed && trimmed !== m.body) {
+                                editMessage(m.id, trimmed);
+                              }
+                              setEditingId(null);
+                            }}
+                            className="rounded bg-[#9b6dff] px-2 py-0.5 font-semibold text-white"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="text-wolf-muted hover:text-white"
+                          >
+                            Cancel
+                          </button>
+                          <span className="text-wolf-muted/60">
+                            Enter to save · Esc to cancel
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        {m.body && (
+                          <p className="whitespace-pre-wrap break-words text-sm">
+                            {m.body}
+                          </p>
+                        )}
+                        {m.image_url && (
+                          <img
+                            src={m.image_url}
+                            alt="chat attachment"
+                            className={`max-h-64 rounded-lg object-cover ${m.body ? "mt-2" : ""}`}
+                            loading="lazy"
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                   {/* Reactions row + action row */}
@@ -944,6 +1027,18 @@ function ChatView({
                         )}
                       </AnimatePresence>
                     </div>
+                    {isMine && m.body && (
+                      <button
+                        onClick={() => {
+                          setEditingId(m.id);
+                          setEditDraft(m.body || "");
+                        }}
+                        className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-wolf-muted transition-all hover:border-[#9b6dff]/40 hover:text-white"
+                        title="Edit"
+                      >
+                        <Edit2 size={11} />
+                      </button>
+                    )}
                     {(isMine || isAdmin) && (
                       <button
                         onClick={() => deleteMessage(m.id)}
@@ -1257,6 +1352,22 @@ function MediaView({
         )
         .on(
           "postgres_changes",
+          { event: "UPDATE", schema: "public", table: "hub_post_comments" },
+          (payload) => {
+            const c = payload.new as HubComment;
+            setComments((prev) => {
+              const next = new Map(prev);
+              const arr = next.get(c.post_id) || [];
+              next.set(
+                c.post_id,
+                arr.map((x) => (x.id === c.id ? c : x))
+              );
+              return next;
+            });
+          }
+        )
+        .on(
+          "postgres_changes",
           { event: "DELETE", schema: "public", table: "hub_post_comments" },
           (payload) => {
             const c = payload.old as HubComment;
@@ -1325,6 +1436,28 @@ function MediaView({
     await sb.from("hub_post_comments").delete().eq("id", commentId);
   }
 
+  async function editComment(commentId: string, newBody: string) {
+    const sb = getSupabase();
+    if (!sb) return;
+    const nowIso = new Date().toISOString();
+    setComments((prev) => {
+      const next = new Map(prev);
+      next.forEach((arr, postId) => {
+        next.set(
+          postId,
+          arr.map((c) =>
+            c.id === commentId ? { ...c, body: newBody, edited_at: nowIso } : c
+          )
+        );
+      });
+      return next;
+    });
+    await sb
+      .from("hub_post_comments")
+      .update({ body: newBody, edited_at: nowIso })
+      .eq("id", commentId);
+  }
+
   return (
     <div>
       {/* Story ring carousel */}
@@ -1382,6 +1515,7 @@ function MediaView({
               onDelete={() => deletePost(p.id)}
               onComment={(body) => addComment(p.id, body)}
               onDeleteComment={(cid) => deleteComment(cid)}
+              onEditComment={(cid, body) => editComment(cid, body)}
               onViewUser={onViewUser}
             />
           ))}
@@ -1427,6 +1561,7 @@ function PostCard({
   onDelete,
   onComment,
   onDeleteComment,
+  onEditComment,
   onViewUser,
   isAdmin,
 }: {
@@ -1440,6 +1575,7 @@ function PostCard({
   onDelete: () => void;
   onComment: (body: string) => Promise<void>;
   onDeleteComment: (commentId: string) => Promise<void>;
+  onEditComment: (commentId: string, newBody: string) => Promise<void>;
   onViewUser: (userId: string) => void;
 }) {
   const accent = wolfAccent(post.author_wolf_id);
@@ -1447,6 +1583,8 @@ function PostCard({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [likeBurst, setLikeBurst] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
 
   const visibleComments = expanded ? comments : comments.slice(-2);
   const hasHiddenComments = !expanded && comments.length > 2;
@@ -1590,26 +1728,84 @@ function PostCard({
           {visibleComments.map((c) => {
             const isMyComment = c.author_id === profile?.id;
             const cAccent = wolfAccent(c.author_wolf_id);
+            const editing = editingCommentId === c.id;
             return (
               <div key={c.id} className="group flex items-start gap-2 text-sm">
-                <p className="flex-1 text-white">
-                  <button
-                    onClick={() => onViewUser(c.author_id)}
-                    className="font-semibold transition-opacity hover:opacity-80"
-                    style={{ color: cAccent }}
-                  >
-                    {displayName(c)}
-                  </button>{" "}
-                  <span className="text-wolf-muted">{c.body}</span>
-                </p>
-                {(isMyComment || isAdmin) && (
-                  <button
-                    onClick={() => onDeleteComment(c.id)}
-                    className="text-wolf-muted/60 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
-                    title={isMyComment ? "Delete comment" : "Delete comment (admin)"}
-                  >
-                    <Trash2 size={11} />
-                  </button>
+                {editing ? (
+                  <div className="flex flex-1 flex-col gap-1">
+                    <input
+                      value={commentDraft}
+                      onChange={(e) => setCommentDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const trimmed = commentDraft.trim();
+                          if (trimmed && trimmed !== c.body) onEditComment(c.id, trimmed);
+                          setEditingCommentId(null);
+                        } else if (e.key === "Escape") {
+                          setEditingCommentId(null);
+                        }
+                      }}
+                      autoFocus
+                      className="w-full rounded border border-white/20 bg-wolf-bg/60 px-2 py-1 text-sm text-white focus:border-[#9b6dff] focus:outline-none"
+                    />
+                    <div className="flex gap-2 text-[10px] text-wolf-muted">
+                      <button
+                        onClick={() => {
+                          const trimmed = commentDraft.trim();
+                          if (trimmed && trimmed !== c.body) onEditComment(c.id, trimmed);
+                          setEditingCommentId(null);
+                        }}
+                        className="rounded bg-[#9b6dff] px-2 py-0.5 font-semibold text-white"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={() => setEditingCommentId(null)}
+                        className="hover:text-white"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="flex-1 text-white">
+                      <button
+                        onClick={() => onViewUser(c.author_id)}
+                        className="font-semibold transition-opacity hover:opacity-80"
+                        style={{ color: cAccent }}
+                      >
+                        {displayName(c)}
+                      </button>{" "}
+                      <span className="text-wolf-muted">{c.body}</span>
+                      {c.edited_at && (
+                        <span className="ml-1 text-[10px] italic text-wolf-muted/60">
+                          · edited
+                        </span>
+                      )}
+                    </p>
+                    {isMyComment && (
+                      <button
+                        onClick={() => {
+                          setEditingCommentId(c.id);
+                          setCommentDraft(c.body);
+                        }}
+                        className="text-wolf-muted/60 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
+                        title="Edit comment"
+                      >
+                        <Edit2 size={11} />
+                      </button>
+                    )}
+                    {(isMyComment || isAdmin) && (
+                      <button
+                        onClick={() => onDeleteComment(c.id)}
+                        className="text-wolf-muted/60 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+                        title={isMyComment ? "Delete comment" : "Delete comment (admin)"}
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    )}
+                  </>
                 )}
               </div>
             );

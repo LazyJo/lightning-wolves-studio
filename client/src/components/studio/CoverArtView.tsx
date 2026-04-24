@@ -14,6 +14,7 @@ import {
 import { generate, type GenerationPack } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
 import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
+import { useCredits } from "../../lib/useCredits";
 import GenerationResults from "./GenerationResults";
 
 interface Props {
@@ -21,8 +22,11 @@ interface Props {
   wolf?: { artist: string; genre: string; color: string; id: string } | null;
 }
 
-const AI_MODELS = [
-  { id: "nanobanana-2", name: "NanoBanana 2", badge: "NEW" },
+// eliteOnly: gates the model to the Elite tier. Matches the
+// "Early access to new AI models" pricing-page promise. Non-Elite
+// users see the option with a locked label but can't select it.
+const AI_MODELS: { id: string; name: string; badge: string | null; eliteOnly?: boolean }[] = [
+  { id: "nanobanana-2", name: "NanoBanana 2", badge: "NEW", eliteOnly: true },
   { id: "nanobanana-pro", name: "NanoBanana Pro", badge: null },
   { id: "nanobanana", name: "NanoBanana", badge: null },
   { id: "grok-imagine", name: "Grok Imagine", badge: null },
@@ -47,8 +51,13 @@ const CA = {
 export default function CoverArtView({ onBack, wolf }: Props) {
   const { accessToken } = useSession();
   const loneWolf = useLoneWolfCredits();
+  const { plan } = useCredits();
+  const isElite = plan.tier === "elite";
 
-  const [modelId, setModelId] = useState(AI_MODELS[0].id);
+  // Default to the first model the user actually has access to.
+  const defaultModel =
+    AI_MODELS.find((m) => !m.eliteOnly || isElite)?.id || AI_MODELS[0].id;
+  const [modelId, setModelId] = useState(defaultModel);
   const [prompt, setPrompt] = useState("");
   const [aspect, setAspect] = useState<(typeof ASPECTS)[number]>("1:1");
   const [resolution, setResolution] = useState<(typeof RESOLUTIONS)[number]>("2K");
@@ -170,17 +179,36 @@ export default function CoverArtView({ onBack, wolf }: Props) {
           <SectionCard label="MODEL">
             <select
               value={modelId}
-              onChange={(e) => setModelId(e.target.value)}
+              onChange={(e) => {
+                const next = AI_MODELS.find((m) => m.id === e.target.value);
+                if (next?.eliteOnly && !isElite) return; // locked — keep current
+                setModelId(e.target.value);
+              }}
               className="w-full cursor-pointer rounded-lg border bg-transparent px-3 py-2.5 text-sm text-white focus:outline-none"
               style={{ borderColor: CA.blueBorder, color: CA.blue }}
             >
-              {AI_MODELS.map((m) => (
-                <option key={m.id} value={m.id} className="bg-wolf-bg text-white">
-                  {m.name}
-                  {m.badge === "NEW" ? " ✨" : ""}
-                </option>
-              ))}
+              {AI_MODELS.map((m) => {
+                const locked = m.eliteOnly && !isElite;
+                return (
+                  <option
+                    key={m.id}
+                    value={m.id}
+                    disabled={locked}
+                    className="bg-wolf-bg text-white"
+                  >
+                    {m.name}
+                    {m.badge === "NEW" ? " ✨" : ""}
+                    {locked ? "  · 🔒 Elite" : ""}
+                  </option>
+                );
+              })}
             </select>
+            {!isElite && (
+              <p className="mt-2 text-[11px] text-wolf-muted">
+                🔒 NanoBanana 2 is in Elite early-access.{" "}
+                <span className="font-semibold text-wolf-gold">Upgrade</span> to unlock.
+              </p>
+            )}
           </SectionCard>
 
           {/* REFERENCE IMAGES */}

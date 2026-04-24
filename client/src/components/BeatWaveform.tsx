@@ -6,6 +6,11 @@ interface Props {
   accent?: string;
 }
 
+// Module-level singleton so only one BeatWaveform plays at a time.
+// Starting a new beat pauses whichever was playing before — makes #beats
+// feel like a radio instead of a pile of uncoordinated <audio> tags.
+let currentPlayer: { pause: () => void } | null = null;
+
 function fmt(sec: number): string {
   if (!isFinite(sec) || sec < 0) return "0:00";
   const m = Math.floor(sec / 60);
@@ -63,7 +68,11 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
         });
         ws.on("play", () => !destroyed && setPlaying(true));
         ws.on("pause", () => !destroyed && setPlaying(false));
-        ws.on("finish", () => !destroyed && setPlaying(false));
+        ws.on("finish", () => {
+          if (destroyed) return;
+          setPlaying(false);
+          if (currentPlayer === ws) currentPlayer = null;
+        });
         ws.on("error", () => !destroyed && setError(true));
       } catch {
         if (!destroyed) setError(true);
@@ -72,6 +81,7 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
 
     return () => {
       destroyed = true;
+      if (currentPlayer === wsRef.current) currentPlayer = null;
       try {
         wsRef.current?.destroy();
       } catch {
@@ -97,8 +107,14 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
         onClick={() => {
           const ws = wsRef.current;
           if (!ws || !ready) return;
-          if (playing) ws.pause();
-          else ws.play();
+          if (playing) {
+            ws.pause();
+            if (currentPlayer === ws) currentPlayer = null;
+          } else {
+            if (currentPlayer && currentPlayer !== ws) currentPlayer.pause();
+            currentPlayer = ws;
+            ws.play();
+          }
         }}
         disabled={!ready}
         className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-black transition-transform hover:scale-105 disabled:opacity-60"

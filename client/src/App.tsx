@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
 import PackMomentum from "./components/PackMomentum";
+import LightningSpotlight from "./components/LightningSpotlight";
 import WolfGrid from "./components/WolfGrid";
 import Features from "./components/Features";
 import FeaturedArtists from "./components/FeaturedArtists";
@@ -327,6 +328,7 @@ export default function App() {
               <>
                 <Hero onStudio={() => goToStudio()} />
                 <PackMomentum />
+                <LightningSpotlight onWolfHub={goToWolfHub} />
                 <WolfGrid onSelectWolf={handleWolfSelect} />
                 <Features onGoldenBoard={goToGoldenBoard} />
                 <FeaturedArtists

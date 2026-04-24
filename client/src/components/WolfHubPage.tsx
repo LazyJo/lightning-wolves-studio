@@ -755,6 +755,11 @@ function ChatView({
   const [burst, setBurst] = useState<{ kind: RatingKind; id: number } | null>(null);
   const [internalTarget, setInternalTarget] = useState<string | null>(null);
   const activeTargetId = internalTarget || targetMessageId;
+
+  function jumpToMessage(messageId: string, newRoomId: string) {
+    setRoomId(newRoomId);
+    setInternalTarget(messageId);
+  }
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -1123,12 +1128,7 @@ function ChatView({
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
       <RatingBurst kind={burst?.kind ?? null} />
       <div className="px-3 pt-3 sm:px-4">
-        <LightningTicker
-          onJumpTo={(messageId, newRoomId) => {
-            setRoomId(newRoomId);
-            setInternalTarget(messageId);
-          }}
-        />
+        <LightningTicker onJumpTo={jumpToMessage} />
       </div>
       {/* Room switcher */}
       <div className="flex items-center gap-1 overflow-x-auto border-b border-white/10 px-2 py-2">
@@ -1165,14 +1165,14 @@ function ChatView({
         <div className="px-4 pt-3">
           <SongsLeaderboard onViewUser={onViewUser} mode="songs" />
           <LightningLeaderboard onViewUser={onViewUser} mode="songs" />
-          <TopLightningTracks mode="songs" />
+          <TopLightningTracks mode="songs" onJumpTo={jumpToMessage} />
         </div>
       )}
       {roomId === "beats" && (
         <div className="px-4 pt-3">
           <SongsLeaderboard onViewUser={onViewUser} mode="beats" />
           <LightningLeaderboard onViewUser={onViewUser} mode="beats" />
-          <TopLightningTracks mode="beats" />
+          <TopLightningTracks mode="beats" onJumpTo={jumpToMessage} />
         </div>
       )}
       <div
@@ -4395,7 +4395,13 @@ function spotifyOrAppleTitle(url: string): string {
   return "track";
 }
 
-function TopLightningTracks({ mode }: { mode: "songs" | "beats" }) {
+function TopLightningTracks({
+  mode,
+  onJumpTo,
+}: {
+  mode: "songs" | "beats";
+  onJumpTo: (messageId: string, roomId: string) => void;
+}) {
   const [win, setWin] = useState<LBWindow>("week");
   const [rows, setRows] = useState<TrackRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -4509,16 +4515,14 @@ function TopLightningTracks({ mode }: { mode: "songs" | "beats" }) {
                   mode === "songs" && r.song_url
                     ? spotifyOrAppleTitle(r.song_url)
                     : beatTitle(r.body);
-                const href = r.song_url || r.audio_url || "#";
                 const author =
                   r.author_name || `Wolf ${r.author_wolf_id || "?"}`;
-                const external = !!r.song_url;
                 return (
                   <li key={r.message_id}>
-                    <a
-                      href={href}
-                      target={external ? "_blank" : undefined}
-                      rel={external ? "noopener noreferrer" : undefined}
+                    <button
+                      type="button"
+                      onClick={() => onJumpTo(r.message_id, mode)}
+                      title="Jump to track in chat"
                       className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.03]"
                     >
                       <span className="w-5 text-center text-xs font-bold text-wolf-muted">
@@ -4536,7 +4540,7 @@ function TopLightningTracks({ mode }: { mode: "songs" | "beats" }) {
                       <span className="flex-shrink-0 text-xs font-bold text-[#f5c518]">
                         {r.bolts} ⚡⚡
                       </span>
-                    </a>
+                    </button>
                   </li>
                 );
               })}

@@ -103,6 +103,16 @@ interface Profile {
 
 const QUICK_EMOJIS = ["🔥", "❤️", "😂", "🐺", "⚡", "👀"];
 
+// Prominent rating buttons shown on songs posted in #songs room.
+// Stored in hub_reactions like any other emoji reaction — the distinction
+// is purely the UI (a rating bar instead of the generic react picker).
+const SONG_RATINGS: { emoji: string; label: string; color: string }[] = [
+  { emoji: "⚡⚡", label: "Super Hot", color: "#f5c518" },
+  { emoji: "🔥",  label: "Hot",       color: "#ff6b9d" },
+  { emoji: "✅",  label: "Good",      color: "#10b981" },
+  { emoji: "🗑️",  label: "Trash",     color: "#94a3b8" },
+];
+
 const WOLF_COLOR: Record<string, string> = {
   yellow: "#f5c518",
   orange: "#ff8a3d",
@@ -222,6 +232,38 @@ function buildSongEmbed(url: string): SongEmbed | null {
     return null;
   }
   return null;
+}
+
+/* ─── Streak (days in a row you dropped at least one song) ─── */
+function computeStreak(songDates: string[]): number {
+  if (songDates.length === 0) return 0;
+  // Normalise every timestamp to YYYY-MM-DD in local time
+  const days = new Set(
+    songDates.map((iso) => {
+      const d = new Date(iso);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
+    })
+  );
+  const today = new Date();
+  let streak = 0;
+  for (let i = 0; ; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+    if (days.has(key)) {
+      streak += 1;
+    } else if (i === 0) {
+      // Today hasn't posted yet but yesterday might still be part of a streak
+      continue;
+    } else {
+      break;
+    }
+  }
+  return streak;
 }
 
 function timeAgo(iso: string): string {
@@ -806,7 +848,9 @@ function ChatView({
         body,
         image_url: imageUrl,
         audio_url: audioUrl,
-        song_url: extractSongLink(body),
+        // Only capture song_url in the #songs room so Spotify / Apple
+        // embeds don't leak into #general or #beats.
+        song_url: roomId === "songs" ? extractSongLink(body) : null,
       });
     } finally {
       setSending(false);
@@ -929,6 +973,16 @@ function ChatView({
         })}
       </div>
       <div className="px-4 pt-2 text-[11px] text-wolf-muted">{activeRoom.hint}</div>
+      {roomId === "songs" && (
+        <div className="px-4 pt-3">
+          <SongsLeaderboard onViewUser={onViewUser} mode="songs" />
+        </div>
+      )}
+      {roomId === "beats" && (
+        <div className="px-4 pt-3">
+          <SongsLeaderboard onViewUser={onViewUser} mode="beats" />
+        </div>
+      )}
       <div
         ref={scrollRef}
         className="flex h-[55vh] min-h-[400px] flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-6"
@@ -1054,34 +1108,122 @@ function ChatView({
                           />
                         )}
                         {m.audio_url && (
-                          <div
-                            className={`flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 p-2 ${m.body ? "mt-2" : ""}`}
-                          >
-                            <span className="text-base">🎵</span>
-                            <audio
-                              src={m.audio_url}
-                              controls
-                              preload="metadata"
-                              className="h-9 flex-1"
-                            />
+                          <div className={m.body ? "mt-2" : ""}>
+                            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 p-2">
+                              <span className="text-base">🎵</span>
+                              <audio
+                                src={m.audio_url}
+                                controls
+                                preload="metadata"
+                                className="h-9 flex-1"
+                              />
+                            </div>
+                            {(() => {
+                              const ratingCounts = new Map<
+                                string,
+                                { count: number; mine: boolean }
+                              >();
+                              msgReactions.forEach((r) => {
+                                if (!SONG_RATINGS.some((s) => s.emoji === r.emoji)) return;
+                                const g = ratingCounts.get(r.emoji) || { count: 0, mine: false };
+                                g.count += 1;
+                                if (r.user_id === profile?.id) g.mine = true;
+                                ratingCounts.set(r.emoji, g);
+                              });
+                              return (
+                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                  {SONG_RATINGS.map((r) => {
+                                    const entry = ratingCounts.get(r.emoji);
+                                    const mine = entry?.mine;
+                                    return (
+                                      <button
+                                        key={r.emoji}
+                                        onClick={() => toggleReaction(m.id, r.emoji)}
+                                        title={r.label}
+                                        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all ${
+                                          mine
+                                            ? "border-transparent text-black"
+                                            : "border-white/10 bg-white/[0.03] text-wolf-muted hover:border-white/20 hover:text-white"
+                                        }`}
+                                        style={
+                                          mine
+                                            ? { backgroundColor: r.color, boxShadow: `0 0 0 1px ${r.color}` }
+                                            : {}
+                                        }
+                                      >
+                                        <span className="text-sm">{r.emoji}</span>
+                                        <span>{r.label}</span>
+                                        {entry && entry.count > 0 && (
+                                          <span className={mine ? "font-bold" : ""}>
+                                            {entry.count}
+                                          </span>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                         {m.song_url && (() => {
                           const embed = buildSongEmbed(m.song_url!);
                           if (!embed) return null;
+                          // Tally rating counts for this message
+                          const ratingCounts = new Map<string, { count: number; mine: boolean }>();
+                          msgReactions.forEach((r) => {
+                            if (!SONG_RATINGS.some((s) => s.emoji === r.emoji)) return;
+                            const g = ratingCounts.get(r.emoji) || { count: 0, mine: false };
+                            g.count += 1;
+                            if (r.user_id === profile?.id) g.mine = true;
+                            ratingCounts.set(r.emoji, g);
+                          });
                           return (
-                            <div className={`overflow-hidden rounded-xl ${m.body ? "mt-2" : ""}`}>
-                              <iframe
-                                src={embed.src}
-                                width="100%"
-                                height={embed.height}
-                                frameBorder={0}
-                                allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
-                                loading="lazy"
-                                className="block"
-                                style={{ border: 0, minWidth: "260px" }}
-                                title={`${embed.provider} player`}
-                              />
+                            <div className={m.body ? "mt-2" : ""}>
+                              <div className="overflow-hidden rounded-xl">
+                                <iframe
+                                  src={embed.src}
+                                  width="100%"
+                                  height={embed.height}
+                                  frameBorder={0}
+                                  allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
+                                  loading="lazy"
+                                  className="block"
+                                  style={{ border: 0, minWidth: "260px" }}
+                                  title={`${embed.provider} player`}
+                                />
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-1.5">
+                                {SONG_RATINGS.map((r) => {
+                                  const entry = ratingCounts.get(r.emoji);
+                                  const mine = entry?.mine;
+                                  return (
+                                    <button
+                                      key={r.emoji}
+                                      onClick={() => toggleReaction(m.id, r.emoji)}
+                                      title={r.label}
+                                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-all ${
+                                        mine
+                                          ? "border-transparent text-black"
+                                          : "border-white/10 bg-white/[0.03] text-wolf-muted hover:border-white/20 hover:text-white"
+                                      }`}
+                                      style={
+                                        mine
+                                          ? { backgroundColor: r.color, boxShadow: `0 0 0 1px ${r.color}` }
+                                          : {}
+                                      }
+                                    >
+                                      <span className="text-sm">{r.emoji}</span>
+                                      <span>{r.label}</span>
+                                      {entry && entry.count > 0 && (
+                                        <span className={mine ? "font-bold" : ""}>
+                                          {entry.count}
+                                        </span>
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                              </div>
                             </div>
                           );
                         })()}
@@ -1094,7 +1236,9 @@ function ChatView({
                       isMine ? "justify-end" : ""
                     }`}
                   >
-                    {Array.from(grouped.entries()).map(([emoji, { count, mine }]) => (
+                    {Array.from(grouped.entries())
+                      .filter(([emoji]) => !SONG_RATINGS.some((s) => s.emoji === emoji))
+                      .map(([emoji, { count, mine }]) => (
                       <button
                         key={emoji}
                         onClick={() => toggleReaction(m.id, emoji)}
@@ -2171,9 +2315,36 @@ function ProfileView({
   const [myPosts, setMyPosts] = useState<HubPost[]>([]);
   const [myLikes, setMyLikes] = useState<Map<string, number>>(new Map());
   const [myCommentCounts, setMyCommentCounts] = useState<Map<string, number>>(new Map());
+  const [songStreak, setSongStreak] = useState(0);
+  const [songTotal, setSongTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [openPost, setOpenPost] = useState<HubPost | null>(null);
+
+  // Streak: days in a row with at least one song_url post
+  useEffect(() => {
+    if (!targetId) return;
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("hub_messages")
+        .select("created_at")
+        .eq("author_id", targetId)
+        .not("song_url", "is", null)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (cancelled) return;
+      const isos = (data || []).map((m: { created_at: string }) => m.created_at);
+      setSongStreak(computeStreak(isos));
+      setSongTotal(isos.length);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId]);
 
   useEffect(() => {
     if (!targetId) return;
@@ -2269,6 +2440,20 @@ function ProfileView({
               <Stat label="likes" value={totalLikes} />
               <Stat label="comments" value={totalComments} />
             </div>
+            {(songStreak > 0 || songTotal > 0) && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {songStreak > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#ff8a3d]/35 bg-[#ff8a3d]/10 px-2.5 py-0.5 text-xs font-bold text-[#ff8a3d]">
+                    🔥 {songStreak}-day streak
+                  </span>
+                )}
+                {songTotal > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-[#9b6dff]/35 bg-[#9b6dff]/10 px-2.5 py-0.5 text-xs font-semibold text-[#c8a4ff]">
+                    🎵 {songTotal} {songTotal === 1 ? "track shared" : "tracks shared"}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
         {isOwn ? (
@@ -3528,3 +3713,195 @@ function DMThread({
     </div>
   );
 }
+
+/* ─── Songs Leaderboard — top 10 per window, in-memory aggregation ─── */
+
+type LBWindow = "today" | "week" | "month" | "year";
+
+function windowStartIso(win: LBWindow): string {
+  const now = new Date();
+  if (win === "today") {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    return d.toISOString();
+  }
+  if (win === "week") {
+    const d = new Date(now);
+    d.setDate(now.getDate() - 7);
+    return d.toISOString();
+  }
+  if (win === "month") {
+    const d = new Date(now);
+    d.setMonth(now.getMonth() - 1);
+    return d.toISOString();
+  }
+  const d = new Date(now);
+  d.setFullYear(now.getFullYear() - 1);
+  return d.toISOString();
+}
+
+interface LBRow {
+  author_id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  author_avatar_url: string | null;
+  count: number;
+}
+
+function SongsLeaderboard({
+  onViewUser,
+  mode,
+}: {
+  onViewUser: (userId: string) => void;
+  /** "songs" = count song_url shares; "beats" = count audio_url drops in #beats */
+  mode: "songs" | "beats";
+}) {
+  const [win, setWin] = useState<LBWindow>("week");
+  const [rows, setRows] = useState<LBRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      setLoading(true);
+      let q = sb
+        .from("hub_messages")
+        .select("author_id, author_name, author_wolf_id, author_avatar_url, created_at")
+        .is("deleted_at", null)
+        .gt("created_at", windowStartIso(win))
+        .order("created_at", { ascending: false })
+        .limit(2000);
+      if (mode === "songs") {
+        q = q.not("song_url", "is", null);
+      } else {
+        q = q.not("audio_url", "is", null).eq("room_id", "beats");
+      }
+      const { data } = await q;
+      if (cancelled) return;
+      const map = new Map<string, LBRow>();
+      (data || []).forEach(
+        (m: {
+          author_id: string;
+          author_name: string | null;
+          author_wolf_id: string | null;
+          author_avatar_url: string | null;
+        }) => {
+          const cur = map.get(m.author_id);
+          if (cur) {
+            cur.count += 1;
+            if (!cur.author_name && m.author_name) cur.author_name = m.author_name;
+            if (!cur.author_avatar_url && m.author_avatar_url)
+              cur.author_avatar_url = m.author_avatar_url;
+          } else {
+            map.set(m.author_id, {
+              author_id: m.author_id,
+              author_name: m.author_name,
+              author_wolf_id: m.author_wolf_id,
+              author_avatar_url: m.author_avatar_url,
+              count: 1,
+            });
+          }
+        }
+      );
+      const sorted = Array.from(map.values())
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 10);
+      setRows(sorted);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [win, mode]);
+
+  const title = mode === "songs" ? "Wolves on Repeat" : "Top Producers";
+  const hint = mode === "songs" ? "Top 10 by tracks shared" : "Top 10 by beats dropped";
+  const unit = mode === "songs" ? { one: "track", many: "tracks" } : { one: "beat", many: "beats" };
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-[#9b6dff]/[0.06] via-transparent to-[#E040FB]/[0.04]">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-white/[0.02]"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-base">🏆</span>
+          <span className="text-sm font-bold text-white">{title}</span>
+          <span className="hidden text-[10px] text-wolf-muted sm:inline">{hint}</span>
+        </div>
+        <span className="text-xs text-wolf-muted">{expanded ? "Hide" : "Show"}</span>
+      </button>
+      {expanded && (
+        <div className="border-t border-white/10 px-4 py-3">
+          <div className="mb-3 flex gap-1 rounded-lg bg-white/[0.03] p-1">
+            {(["today", "week", "month", "year"] as LBWindow[]).map((w) => (
+              <button
+                key={w}
+                onClick={() => setWin(w)}
+                className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-all ${
+                  w === win
+                    ? "bg-gradient-to-r from-[#9b6dff]/30 to-[#E040FB]/25 text-white"
+                    : "text-wolf-muted hover:text-white"
+                }`}
+              >
+                {w === "today"
+                  ? "Today"
+                  : w === "week"
+                  ? "This week"
+                  : w === "month"
+                  ? "This month"
+                  : "This year"}
+              </button>
+            ))}
+          </div>
+          {loading ? (
+            <div className="flex flex-col gap-1.5">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-9 animate-pulse rounded-lg bg-white/[0.03]" />
+              ))}
+            </div>
+          ) : rows.length === 0 ? (
+            <p className="py-4 text-center text-xs text-wolf-muted">
+              {mode === "songs"
+                ? "No tracks yet in this window — drop a Spotify / Apple link."
+                : "No beats yet in this window — drop an MP3 / WAV."}
+            </p>
+          ) : (
+            <ol className="flex flex-col gap-1">
+              {rows.map((r, i) => {
+                const name = r.author_name || `Wolf ${r.author_id.slice(0, 4)}`;
+                return (
+                  <li key={r.author_id}>
+                    <button
+                      onClick={() => onViewUser(r.author_id)}
+                      className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.03]"
+                    >
+                      <span className="w-5 text-center text-xs font-bold text-wolf-muted">
+                        {i + 1}
+                      </span>
+                      <Avatar
+                        url={r.author_avatar_url}
+                        wolfId={r.author_wolf_id}
+                        name={name}
+                        className="h-8 w-8 flex-shrink-0 text-xs"
+                      />
+                      <span className="flex-1 truncate text-left text-sm font-semibold text-white">
+                        {name}
+                      </span>
+                      <span className="text-xs font-bold text-[#c8a4ff]">
+                        {r.count} {r.count === 1 ? unit.one : unit.many}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+

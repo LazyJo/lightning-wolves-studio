@@ -22,6 +22,7 @@ import {
 import { getSupabase, initSupabase } from "../lib/supabaseClient";
 import { useSession } from "../lib/useSession";
 import { useHubNotifications } from "../lib/useHubNotifications";
+import { RatingBurst, ratingKindFromEmoji, type RatingKind } from "./RatingBurst";
 
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
@@ -107,7 +108,7 @@ const QUICK_EMOJIS = ["🔥", "❤️", "😂", "🐺", "⚡", "👀"];
 // Stored in hub_reactions like any other emoji reaction — the distinction
 // is purely the UI (a rating bar instead of the generic react picker).
 const SONG_RATINGS: { emoji: string; label: string; color: string }[] = [
-  { emoji: "⚡⚡", label: "Super Hot", color: "#f5c518" },
+  { emoji: "⚡⚡", label: "Lightning", color: "#f5c518" },
   { emoji: "🔥",  label: "Hot",       color: "#ff6b9d" },
   { emoji: "✅",  label: "Good",      color: "#10b981" },
   { emoji: "🗑️",  label: "Trash",     color: "#94a3b8" },
@@ -698,9 +699,16 @@ function ChatView({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [roomId, setRoomId] = useState<string>("global");
+  const [burst, setBurst] = useState<{ kind: RatingKind; id: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!burst) return;
+    const t = window.setTimeout(() => setBurst(null), 800);
+    return () => window.clearTimeout(t);
+  }, [burst]);
 
   // Initial load + realtime subscription (re-runs on room switch)
   useEffect(() => {
@@ -916,6 +924,8 @@ function ChatView({
     if (existing) {
       await sb.from("hub_reactions").delete().eq("id", existing.id);
     } else {
+      const kind = ratingKindFromEmoji(emoji);
+      if (kind) setBurst({ kind, id: Date.now() });
       await sb
         .from("hub_reactions")
         .insert({ message_id: messageId, user_id: profile.id, emoji });
@@ -951,6 +961,7 @@ function ChatView({
 
   return (
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
+      <RatingBurst kind={burst?.kind ?? null} />
       {/* Room switcher */}
       <div className="flex items-center gap-1 overflow-x-auto border-b border-white/10 px-2 py-2">
         {HUB_ROOMS.map((r) => {
@@ -976,11 +987,13 @@ function ChatView({
       {roomId === "songs" && (
         <div className="px-4 pt-3">
           <SongsLeaderboard onViewUser={onViewUser} mode="songs" />
+          <LightningLeaderboard onViewUser={onViewUser} mode="songs" />
         </div>
       )}
       {roomId === "beats" && (
         <div className="px-4 pt-3">
           <SongsLeaderboard onViewUser={onViewUser} mode="beats" />
+          <LightningLeaderboard onViewUser={onViewUser} mode="beats" />
         </div>
       )}
       <div
@@ -3892,6 +3905,189 @@ function SongsLeaderboard({
                       </span>
                       <span className="text-xs font-bold text-[#c8a4ff]">
                         {r.count} {r.count === 1 ? unit.one : unit.many}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface LightningRow {
+  author_id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  author_avatar_url: string | null;
+  bolts: number;
+}
+
+interface LightningMsg {
+  author_id: string;
+  author_name: string | null;
+  author_wolf_id: string | null;
+  author_avatar_url: string | null;
+  song_url: string | null;
+  audio_url: string | null;
+  room_id: string | null;
+  deleted_at: string | null;
+  created_at: string;
+}
+
+function LightningLeaderboard({
+  onViewUser,
+  mode,
+}: {
+  onViewUser: (userId: string) => void;
+  mode: "songs" | "beats";
+}) {
+  const [win, setWin] = useState<LBWindow>("week");
+  const [rows, setRows] = useState<LightningRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      setLoading(true);
+      const { data } = await sb
+        .from("hub_reactions")
+        .select(
+          "hub_messages!inner(author_id,author_name,author_wolf_id,author_avatar_url,song_url,audio_url,room_id,deleted_at,created_at)"
+        )
+        .eq("emoji", "⚡⚡")
+        .limit(2000);
+      if (cancelled) return;
+      const startIso = windowStartIso(win);
+      const map = new Map<string, LightningRow>();
+      (data || []).forEach((r: { hub_messages: LightningMsg | LightningMsg[] | null }) => {
+        const m = Array.isArray(r.hub_messages) ? r.hub_messages[0] : r.hub_messages;
+        if (!m) return;
+        if (m.deleted_at) return;
+        if (m.created_at < startIso) return;
+        if (mode === "songs" && !m.song_url) return;
+        if (mode === "beats" && (!m.audio_url || m.room_id !== "beats")) return;
+        const cur = map.get(m.author_id);
+        if (cur) {
+          cur.bolts += 1;
+          if (!cur.author_name && m.author_name) cur.author_name = m.author_name;
+          if (!cur.author_avatar_url && m.author_avatar_url)
+            cur.author_avatar_url = m.author_avatar_url;
+        } else {
+          map.set(m.author_id, {
+            author_id: m.author_id,
+            author_name: m.author_name,
+            author_wolf_id: m.author_wolf_id,
+            author_avatar_url: m.author_avatar_url,
+            bolts: 1,
+          });
+        }
+      });
+      const sorted = Array.from(map.values())
+        .sort((a, b) => b.bolts - a.bolts)
+        .slice(0, 5);
+      setRows(sorted);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [win, mode]);
+
+  const hint =
+    mode === "songs"
+      ? "Top 5 by ⚡⚡ on tracks shared"
+      : "Top 5 by ⚡⚡ on beats dropped";
+
+  return (
+    <div className="mb-4 overflow-hidden rounded-2xl border border-[#f5c518]/20 bg-gradient-to-br from-[#f5c518]/[0.08] via-transparent to-[#f5c518]/[0.04]">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-white/[0.02]"
+      >
+        <div className="flex items-center gap-2">
+          <span
+            className="text-base"
+            style={{ filter: "drop-shadow(0 0 8px #f5c518)" }}
+          >
+            ⚡⚡
+          </span>
+          <span className="text-sm font-bold text-white">Most Lightning</span>
+          <span className="hidden text-[10px] text-wolf-muted sm:inline">
+            {hint}
+          </span>
+        </div>
+        <span className="text-xs text-wolf-muted">
+          {expanded ? "Hide" : "Show"}
+        </span>
+      </button>
+      {expanded && (
+        <div className="border-t border-[#f5c518]/15 px-4 py-3">
+          <div className="mb-3 flex gap-1 rounded-lg bg-white/[0.03] p-1">
+            {(["today", "week", "month", "year"] as LBWindow[]).map((w) => (
+              <button
+                key={w}
+                onClick={() => setWin(w)}
+                className={`flex-1 rounded-md px-2 py-1 text-xs font-semibold transition-all ${
+                  w === win
+                    ? "bg-gradient-to-r from-[#f5c518]/30 to-[#f5c518]/15 text-white"
+                    : "text-wolf-muted hover:text-white"
+                }`}
+              >
+                {w === "today"
+                  ? "Today"
+                  : w === "week"
+                  ? "This week"
+                  : w === "month"
+                  ? "This month"
+                  : "This year"}
+              </button>
+            ))}
+          </div>
+          {loading ? (
+            <div className="flex flex-col gap-1.5">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-9 animate-pulse rounded-lg bg-white/[0.03]"
+                />
+              ))}
+            </div>
+          ) : rows.length === 0 ? (
+            <p className="py-4 text-center text-xs text-wolf-muted">
+              No ⚡⚡ yet in this window — be the first to hit Lightning.
+            </p>
+          ) : (
+            <ol className="flex flex-col gap-1">
+              {rows.map((r, i) => {
+                const name =
+                  r.author_name || `Wolf ${r.author_id.slice(0, 4)}`;
+                return (
+                  <li key={r.author_id}>
+                    <button
+                      onClick={() => onViewUser(r.author_id)}
+                      className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/[0.03]"
+                    >
+                      <span className="w-5 text-center text-xs font-bold text-wolf-muted">
+                        {i + 1}
+                      </span>
+                      <Avatar
+                        url={r.author_avatar_url}
+                        wolfId={r.author_wolf_id}
+                        name={name}
+                        className="h-8 w-8 flex-shrink-0 text-xs"
+                      />
+                      <span className="flex-1 truncate text-left text-sm font-semibold text-white">
+                        {name}
+                      </span>
+                      <span className="text-xs font-bold text-[#f5c518]">
+                        {r.bolts} ⚡⚡
                       </span>
                     </button>
                   </li>

@@ -37,6 +37,7 @@ interface HubMessage {
   image_url: string | null;
   audio_url?: string | null;
   song_url?: string | null;
+  room_id?: string | null;
   created_at: string;
   edited_at?: string | null;
 }
@@ -656,6 +657,28 @@ const HUB_ROOMS: HubRoom[] = [
   { id: "beats", label: "beats", emoji: "⚡", hint: "Share beats + producers" },
 ];
 
+const ROOM_LASTSEEN_KEY = "lightning-wolves-hub-room-lastseen";
+type RoomLastSeen = Record<string, string>;
+
+function readRoomLastSeen(): RoomLastSeen {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(ROOM_LASTSEEN_KEY);
+    return raw ? (JSON.parse(raw) as RoomLastSeen) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeRoomLastSeen(map: RoomLastSeen) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(ROOM_LASTSEEN_KEY, JSON.stringify(map));
+  } catch {
+    /* noop */
+  }
+}
+
 function TabButton({
   active,
   onClick,
@@ -700,10 +723,49 @@ function ChatView({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [roomId, setRoomId] = useState<string>("global");
+  const [unreadByRoom, setUnreadByRoom] = useState<Record<string, number>>({});
   const [burst, setBurst] = useState<{ kind: RatingKind; id: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+
+  // Mark the active room as seen, then refresh unread counts for the others.
+  useEffect(() => {
+    if (!profile) return;
+    let cancelled = false;
+    const ls = readRoomLastSeen();
+    ls[roomId] = new Date().toISOString();
+    writeRoomLastSeen(ls);
+    setUnreadByRoom((prev) => ({ ...prev, [roomId]: 0 }));
+
+    async function refresh() {
+      const sb = await initSupabase();
+      if (!sb || cancelled || !profile) return;
+      const lastSeen = readRoomLastSeen();
+      const results = await Promise.all(
+        HUB_ROOMS.map(async (room) => {
+          if (room.id === roomId) return [room.id, 0] as const;
+          const since = lastSeen[room.id] || new Date(0).toISOString();
+          const { count } = await sb
+            .from("hub_messages")
+            .select("id", { count: "exact", head: true })
+            .eq("room_id", room.id)
+            .is("deleted_at", null)
+            .neq("author_id", profile.id)
+            .gt("created_at", since);
+          return [room.id, count || 0] as const;
+        })
+      );
+      if (cancelled) return;
+      setUnreadByRoom(Object.fromEntries(results));
+    }
+    refresh();
+    const interval = window.setInterval(refresh, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [roomId, profile?.id]);
 
   useEffect(() => {
     if (!burst) return;
@@ -759,7 +821,16 @@ function ChatView({
           { event: "INSERT", schema: "public", table: "hub_messages" },
           (payload) => {
             const m = payload.new as HubMessage;
-            if ((m.room_id || "global") !== roomId) return;
+            const msgRoom = m.room_id || "global";
+            if (msgRoom !== roomId) {
+              if (profile && m.author_id !== profile.id) {
+                setUnreadByRoom((prev) => ({
+                  ...prev,
+                  [msgRoom]: (prev[msgRoom] || 0) + 1,
+                }));
+              }
+              return;
+            }
             setMessages((prev) =>
               prev.some((x) => x.id === m.id) ? prev : [...prev, m]
             );
@@ -1011,12 +1082,13 @@ function ChatView({
       <div className="flex items-center gap-1 overflow-x-auto border-b border-white/10 px-2 py-2">
         {HUB_ROOMS.map((r) => {
           const active = r.id === roomId;
+          const unread = unreadByRoom[r.id] || 0;
           return (
             <button
               key={r.id}
               onClick={() => setRoomId(r.id)}
               title={r.hint}
-              className={`flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              className={`relative flex flex-shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                 active
                   ? "bg-gradient-to-r from-[#9b6dff]/25 to-[#E040FB]/20 text-white"
                   : "text-wolf-muted hover:bg-white/[0.03] hover:text-white"
@@ -1024,6 +1096,14 @@ function ChatView({
             >
               <span className="text-sm">{r.emoji}</span>
               {r.label}
+              {unread > 0 && !active && (
+                <span
+                  className="ml-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-black"
+                  style={{ backgroundColor: "#f5c518", boxShadow: "0 0 8px #f5c51866" }}
+                >
+                  {unread > 99 ? "99+" : unread}
+                </span>
+              )}
             </button>
           );
         })}

@@ -8,6 +8,7 @@ export interface Profile {
   display_name: string | null;
   role: string;
   wolf_id: string | null;
+  avatar_url: string | null;
   created_at: string;
 }
 
@@ -34,7 +35,7 @@ export function useProfile() {
       if (!sb || cancelled) return;
       const { data } = await sb
         .from("profiles")
-        .select("id, email, display_name, role, wolf_id, created_at")
+        .select("id, email, display_name, role, wolf_id, avatar_url, created_at")
         .eq("id", user.id)
         .maybeSingle();
       if (cancelled) return;

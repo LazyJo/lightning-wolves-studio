@@ -3,6 +3,17 @@
 -- Run this in Supabase > SQL Editor. Safe to re-run (IF NOT EXISTS guards).
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ── Profile avatar upload (Wolf Hub v2) ─────────────────────────────────────
+-- Lightning Wolves auth.users → profiles row already exists; just add the
+-- avatar_url column for the user's uploaded photo. Denormalize onto every
+-- hub_ content table so readers don't need a profiles join (cross-user
+-- profile SELECTs are blocked by RLS).
+ALTER TABLE profiles         ADD COLUMN IF NOT EXISTS avatar_url       TEXT;
+ALTER TABLE hub_messages     ADD COLUMN IF NOT EXISTS author_avatar_url TEXT;
+ALTER TABLE hub_posts        ADD COLUMN IF NOT EXISTS author_avatar_url TEXT;
+ALTER TABLE hub_stories      ADD COLUMN IF NOT EXISTS author_avatar_url TEXT;
+ALTER TABLE hub_post_comments ADD COLUMN IF NOT EXISTS author_avatar_url TEXT;
+
 -- ── Auto-create a profiles row when a new auth.users row is inserted ─────────
 -- Without this, sign-up via email or OAuth leaves the user with no profile,
 -- which silently breaks Wolf Hub features that join on profiles.id.

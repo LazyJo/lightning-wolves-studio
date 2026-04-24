@@ -30,6 +30,7 @@ interface HubMessage {
   author_id: string;
   author_name: string | null;
   author_wolf_id: string | null;
+  author_avatar_url?: string | null;
   body: string | null;
   image_url: string | null;
   created_at: string;
@@ -47,6 +48,7 @@ interface HubPost {
   author_id: string;
   author_name: string | null;
   author_wolf_id: string | null;
+  author_avatar_url?: string | null;
   media_url: string;
   media_type: "image" | "video";
   caption: string | null;
@@ -59,6 +61,7 @@ interface HubComment {
   author_id: string;
   author_name: string | null;
   author_wolf_id: string | null;
+  author_avatar_url?: string | null;
   body: string;
   created_at: string;
 }
@@ -88,6 +91,7 @@ interface Profile {
   display_name: string | null;
   wolf_id: string | null;
   email: string | null;
+  avatar_url: string | null;
 }
 
 /* ─── Helpers ─── */
@@ -107,6 +111,56 @@ const WOLF_COLOR: Record<string, string> = {
 
 function displayName(m: { author_name: string | null; author_id: string }): string {
   return m.author_name || `Wolf ${m.author_id.slice(0, 4)}`;
+}
+
+/* ─── Avatar primitive ─── */
+// Renders an uploaded profile photo when avatarUrl is set; otherwise falls
+// back to the colour-on-initial circle we had before. Classname drives size.
+function Avatar({
+  url,
+  wolfId,
+  name,
+  className,
+  onClick,
+  title,
+}: {
+  url: string | null | undefined;
+  wolfId: string | null | undefined;
+  name: string;
+  className: string;
+  onClick?: () => void;
+  title?: string;
+}) {
+  const accent = wolfAccent(wolfId ?? null);
+  const initial = (name || "W").slice(0, 1).toUpperCase();
+  const commonCls = `flex items-center justify-center overflow-hidden rounded-full font-bold text-black transition-transform ${onClick ? "hover:scale-110" : ""} ${className}`;
+  const content = url ? (
+    <img src={url} alt={name} className="h-full w-full object-cover" />
+  ) : (
+    <span>{initial}</span>
+  );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={commonCls}
+        style={{ backgroundColor: accent }}
+        title={title}
+      >
+        {content}
+      </button>
+    );
+  }
+  return (
+    <div
+      className={commonCls}
+      style={{ backgroundColor: accent }}
+      title={title}
+    >
+      {content}
+    </div>
+  );
 }
 
 function wolfAccent(wolfId: string | null): string {
@@ -169,7 +223,7 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
       if (!sb || cancelled) return;
       const { data } = await sb
         .from("profiles")
-        .select("id, display_name, wolf_id, email")
+        .select("id, display_name, wolf_id, email, avatar_url")
         .eq("id", session.user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -179,6 +233,7 @@ export default function WolfHubPage({ onBack, onAuth }: Props) {
           display_name: null,
           wolf_id: null,
           email: session.user.email ?? null,
+          avatar_url: null,
         }
       );
     })();
@@ -617,6 +672,7 @@ function ChatView({
         author_id: profile.id,
         author_name: profile.display_name || profile.email?.split("@")[0] || null,
         author_wolf_id: profile.wolf_id,
+        author_avatar_url: profile.avatar_url,
         room_id: "global",
         body,
         image_url: imageUrl,
@@ -710,14 +766,14 @@ function ChatView({
                 key={m.id}
                 className={`flex gap-3 ${isMine ? "flex-row-reverse" : ""}`}
               >
-                <button
+                <Avatar
+                  url={m.author_avatar_url}
+                  wolfId={m.author_wolf_id}
+                  name={displayName(m)}
+                  className="h-8 w-8 flex-shrink-0 text-xs"
                   onClick={() => onViewUser(m.author_id)}
-                  className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-black transition-transform hover:scale-110"
-                  style={{ backgroundColor: accent }}
                   title={`View ${displayName(m)}'s profile`}
-                >
-                  {displayName(m).slice(0, 1).toUpperCase()}
-                </button>
+                />
                 <div
                   className={`flex min-w-0 max-w-[80%] flex-col ${
                     isMine ? "items-end" : "items-start"
@@ -1177,6 +1233,7 @@ function MediaView({
       author_id: profile.id,
       author_name: profile.display_name || profile.email?.split("@")[0] || null,
       author_wolf_id: profile.wolf_id,
+      author_avatar_url: profile.avatar_url,
       body,
     });
   }
@@ -1337,14 +1394,14 @@ function PostCard({
     >
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3">
-        <button
+        <Avatar
+          url={post.author_avatar_url}
+          wolfId={post.author_wolf_id}
+          name={displayName(post)}
+          className="h-9 w-9 text-sm"
           onClick={() => onViewUser(post.author_id)}
-          className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold text-black transition-transform hover:scale-110"
-          style={{ backgroundColor: accent }}
           title={`View ${displayName(post)}'s profile`}
-        >
-          {displayName(post).slice(0, 1).toUpperCase()}
-        </button>
+        />
         <div className="flex flex-col items-start">
           <button
             onClick={() => onViewUser(post.author_id)}
@@ -1553,6 +1610,7 @@ function ComposePostModal({
         author_id: profile.id,
         author_name: profile.display_name || profile.email?.split("@")[0] || null,
         author_wolf_id: profile.wolf_id,
+        author_avatar_url: profile.avatar_url,
         media_url: urlData.publicUrl,
         media_type: mediaType,
         caption: caption.trim() || null,
@@ -1771,12 +1829,12 @@ function ProfileView({
       {/* Profile header */}
       <div className="mb-6 rounded-2xl border border-white/10 bg-wolf-card/40 p-5 backdrop-blur-sm">
         <div className="flex items-center gap-4">
-          <div
-            className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full text-3xl font-bold text-black"
-            style={{ backgroundColor: accent }}
-          >
-            {headerName.slice(0, 1).toUpperCase()}
-          </div>
+          <Avatar
+            url={isOwn ? profile.avatar_url : latestPost?.author_avatar_url}
+            wolfId={headerWolfId}
+            name={headerName}
+            className="h-20 w-20 flex-shrink-0 text-3xl"
+          />
           <div className="flex-1">
             <h2 className="text-xl font-bold text-white">{headerName}</h2>
             {isOwn && <p className="text-xs text-wolf-muted">{profile.email}</p>}
@@ -1909,8 +1967,36 @@ function EditProfileModal({
 }) {
   const [name, setName] = useState(profile.display_name || "");
   const [wolfId, setWolfId] = useState(profile.wolf_id || "yellow");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatar_url);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleAvatarPick(file: File) {
+    setUploadingAvatar(true);
+    setError(null);
+    try {
+      const sb = getSupabase();
+      if (!sb) {
+        setError("Connection error — try again.");
+        return;
+      }
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `avatars/${profile.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from("wolf-hub-media")
+        .upload(path, file, { contentType: file.type });
+      if (upErr) {
+        setError(upErr.message);
+        return;
+      }
+      const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
+      setAvatarUrl(urlData.publicUrl);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
 
   async function save() {
     const trimmed = name.trim();
@@ -1928,13 +2014,33 @@ function EditProfileModal({
       }
       const { error: err } = await sb
         .from("profiles")
-        .update({ display_name: trimmed, wolf_id: wolfId })
+        .update({ display_name: trimmed, wolf_id: wolfId, avatar_url: avatarUrl })
         .eq("id", profile.id);
       if (err) {
         setError(err.message);
         return;
       }
-      onSaved({ ...profile, display_name: trimmed, wolf_id: wolfId });
+      // Propagate to existing posts/messages/stories/comments so other
+      // wolves see the new photo on old content too.
+      await Promise.all([
+        sb
+          .from("hub_messages")
+          .update({ author_name: trimmed, author_wolf_id: wolfId, author_avatar_url: avatarUrl })
+          .eq("author_id", profile.id),
+        sb
+          .from("hub_posts")
+          .update({ author_name: trimmed, author_wolf_id: wolfId, author_avatar_url: avatarUrl })
+          .eq("author_id", profile.id),
+        sb
+          .from("hub_stories")
+          .update({ author_name: trimmed, author_wolf_id: wolfId, author_avatar_url: avatarUrl })
+          .eq("author_id", profile.id),
+        sb
+          .from("hub_post_comments")
+          .update({ author_name: trimmed, author_wolf_id: wolfId, author_avatar_url: avatarUrl })
+          .eq("author_id", profile.id),
+      ]);
+      onSaved({ ...profile, display_name: trimmed, wolf_id: wolfId, avatar_url: avatarUrl });
     } finally {
       setSaving(false);
     }
@@ -1965,6 +2071,51 @@ function EditProfileModal({
           </button>
         </div>
         <div className="space-y-4 p-5">
+          <div>
+            <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
+              Profile photo
+            </label>
+            <div className="flex items-center gap-4">
+              <Avatar
+                url={avatarUrl}
+                wolfId={wolfId}
+                name={name || "W"}
+                className="h-16 w-16 flex-shrink-0 text-2xl"
+              />
+              <div className="flex flex-col gap-2">
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleAvatarPick(f);
+                  }}
+                />
+                <button
+                  onClick={() => avatarInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-wolf-muted transition-all hover:border-[#9b6dff]/40 hover:text-white disabled:opacity-40"
+                >
+                  {uploadingAvatar ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <ImagePlus size={12} />
+                  )}
+                  {avatarUrl ? "Change photo" : "Upload photo"}
+                </button>
+                {avatarUrl && (
+                  <button
+                    onClick={() => setAvatarUrl(null)}
+                    className="text-[11px] text-wolf-muted transition-colors hover:text-red-400"
+                  >
+                    Remove photo
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
           <div>
             <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
               Display name
@@ -2418,6 +2569,7 @@ function StoryComposerModal({
         author_id: profile.id,
         author_name: profile.display_name || profile.email?.split("@")[0] || null,
         author_wolf_id: profile.wolf_id,
+        author_avatar_url: profile.avatar_url,
         media_url: urlData.publicUrl,
         media_type: mediaType,
       });

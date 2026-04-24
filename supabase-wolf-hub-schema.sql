@@ -19,6 +19,11 @@ ALTER TABLE hub_post_comments ADD COLUMN IF NOT EXISTS author_avatar_url TEXT;
 ALTER TABLE hub_messages      ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
 ALTER TABLE hub_post_comments ADD COLUMN IF NOT EXISTS edited_at TIMESTAMPTZ;
 
+-- Beats: let wolves drop audio files into chat (especially #beats room).
+-- hub_messages stores the public URL; the client renders an <audio>
+-- player when it's set.
+ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS audio_url TEXT;
+
 -- ── Auto-create a profiles row when a new auth.users row is inserted ─────────
 -- Without this, sign-up via email or OAuth leaves the user with no profile,
 -- which silently breaks Wolf Hub features that join on profiles.id.
@@ -392,7 +397,7 @@ VALUES (
   'wolf-hub-media',
   true,
   26214400, -- 25 MB
-  ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','video/quicktime']
+  ARRAY['image/jpeg','image/png','image/webp','image/gif','video/mp4','video/webm','video/quicktime','audio/mpeg','audio/mp3','audio/wav','audio/x-wav','audio/ogg','audio/webm','audio/mp4','audio/aac','audio/x-m4a','audio/m4a']
 )
 ON CONFLICT (id) DO UPDATE
   SET public = EXCLUDED.public,

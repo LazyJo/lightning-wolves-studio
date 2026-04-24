@@ -33,6 +33,7 @@ interface HubMessage {
   author_avatar_url?: string | null;
   body: string | null;
   image_url: string | null;
+  audio_url?: string | null;
   created_at: string;
   edited_at?: string | null;
 }
@@ -604,6 +605,7 @@ function ChatView({
   const [roomId, setRoomId] = useState<string>("global");
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   // Initial load + realtime subscription (re-runs on room switch)
   useEffect(() => {
@@ -731,9 +733,13 @@ function ChatView({
     el.scrollTop = el.scrollHeight;
   }, [messages.length]);
 
-  async function sendMessage(body: string | null, imageUrl: string | null) {
+  async function sendMessage(
+    body: string | null,
+    imageUrl: string | null,
+    audioUrl: string | null = null
+  ) {
     if (!profile) return;
-    if (!body && !imageUrl) return;
+    if (!body && !imageUrl && !audioUrl) return;
     setSending(true);
     try {
       const sb = getSupabase();
@@ -746,6 +752,7 @@ function ChatView({
         room_id: roomId,
         body,
         image_url: imageUrl,
+        audio_url: audioUrl,
       });
     } finally {
       setSending(false);
@@ -776,6 +783,28 @@ function ChatView({
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleBeatPick(file: File) {
+    if (!profile) return;
+    setUploading(true);
+    try {
+      const sb = getSupabase();
+      if (!sb) return;
+      const ext = file.name.split(".").pop() || "mp3";
+      const path = `beats/${profile.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from("wolf-hub-media")
+        .upload(path, file, { contentType: file.type || "audio/mpeg" });
+      if (upErr) return;
+      const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
+      // Derive a friendly title from the filename minus ext
+      const title = file.name.replace(/\.[^.]+$/, "");
+      await sendMessage(`🎵 ${title}`, null, urlData.publicUrl);
+    } finally {
+      setUploading(false);
+      if (audioInputRef.current) audioInputRef.current.value = "";
     }
   }
 
@@ -970,6 +999,19 @@ function ChatView({
                             loading="lazy"
                           />
                         )}
+                        {m.audio_url && (
+                          <div
+                            className={`flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 p-2 ${m.body ? "mt-2" : ""}`}
+                          >
+                            <span className="text-base">🎵</span>
+                            <audio
+                              src={m.audio_url}
+                              controls
+                              preload="metadata"
+                              className="h-9 flex-1"
+                            />
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -1057,6 +1099,20 @@ function ChatView({
 
       {/* Composer */}
       <div className="border-t border-white/10 p-3 sm:p-4">
+        {/* Prominent "Drop a beat" CTA in #beats room */}
+        {roomId === "beats" && (
+          <button
+            onClick={() => audioInputRef.current?.click()}
+            disabled={uploading || !profile}
+            className="mb-2 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#ff6b9d] via-[#E040FB] to-[#9b6dff] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-[#E040FB]/25 transition-all hover:scale-[1.01] disabled:opacity-40"
+          >
+            {uploading ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <>🥁 Drop a beat · MP3 / WAV · up to 25MB</>
+            )}
+          </button>
+        )}
         <div className="flex items-end gap-2">
           <input
             ref={fileInputRef}
@@ -1066,6 +1122,16 @@ function ChatView({
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) handleImagePick(f);
+            }}
+          />
+          <input
+            ref={audioInputRef}
+            type="file"
+            accept="audio/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleBeatPick(f);
             }}
           />
           <button
@@ -1089,7 +1155,11 @@ function ChatView({
                 handleSendText();
               }
             }}
-            placeholder="Say something to the pack…"
+            placeholder={
+              roomId === "beats"
+                ? "Caption your beat or just chat about production…"
+                : "Say something to the pack…"
+            }
             rows={1}
             className="min-h-[40px] max-h-32 flex-1 resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-wolf-muted/60 focus:border-[#9b6dff]/40 focus:outline-none"
           />

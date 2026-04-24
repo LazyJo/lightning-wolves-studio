@@ -271,6 +271,24 @@ function computeStreak(songDates: string[]): number {
   return streak;
 }
 
+function AnimatedCount({ count, className }: { count: number; className?: string }) {
+  // key={count} remounts the motion.span on every change so the pulse
+  // re-fires when a new reaction lands. AnimatePresence smooths it.
+  return (
+    <AnimatePresence mode="popLayout">
+      <motion.span
+        key={count}
+        initial={{ scale: 1.7, filter: "drop-shadow(0 0 10px #f5c518)" }}
+        animate={{ scale: 1, filter: "drop-shadow(0 0 0 rgba(0,0,0,0))" }}
+        transition={{ duration: 0.45, ease: [0.2, 1.3, 0.3, 1] }}
+        className={className}
+      >
+        {count}
+      </motion.span>
+    </AnimatePresence>
+  );
+}
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
@@ -1314,9 +1332,10 @@ function ChatView({
                                         <span className="text-sm">{r.emoji}</span>
                                         <span>{r.label}</span>
                                         {entry && entry.count > 0 && (
-                                          <span className={mine ? "font-bold" : ""}>
-                                            {entry.count}
-                                          </span>
+                                          <AnimatedCount
+                                            count={entry.count}
+                                            className={mine ? "font-bold" : ""}
+                                          />
                                         )}
                                       </button>
                                     );
@@ -1382,9 +1401,10 @@ function ChatView({
                                       <span className="text-sm">{r.emoji}</span>
                                       <span>{r.label}</span>
                                       {entry && entry.count > 0 && (
-                                        <span className={mine ? "font-bold" : ""}>
-                                          {entry.count}
-                                        </span>
+                                        <AnimatedCount
+                                          count={entry.count}
+                                          className={mine ? "font-bold" : ""}
+                                        />
                                       )}
                                     </button>
                                   );

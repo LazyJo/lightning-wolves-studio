@@ -23,6 +23,7 @@ import { getSupabase, initSupabase } from "../lib/supabaseClient";
 import { useSession } from "../lib/useSession";
 import { useHubNotifications } from "../lib/useHubNotifications";
 import { RatingBurst, ratingKindFromEmoji, type RatingKind } from "./RatingBurst";
+import BeatWaveform from "./BeatWaveform";
 
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
@@ -1166,15 +1167,7 @@ function ChatView({
                         )}
                         {m.audio_url && (
                           <div className={m.body ? "mt-2" : ""}>
-                            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 p-2">
-                              <span className="text-base">🎵</span>
-                              <audio
-                                src={m.audio_url}
-                                controls
-                                preload="metadata"
-                                className="h-9 flex-1"
-                              />
-                            </div>
+                            <BeatWaveform audioUrl={m.audio_url} />
                             {(() => {
                               const ratingCounts = new Map<
                                 string,

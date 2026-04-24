@@ -2447,6 +2447,7 @@ function ProfileView({
   const [myCommentCounts, setMyCommentCounts] = useState<Map<string, number>>(new Map());
   const [songStreak, setSongStreak] = useState(0);
   const [songTotal, setSongTotal] = useState(0);
+  const [lightningReceived, setLightningReceived] = useState(0);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [openPost, setOpenPost] = useState<HubPost | null>(null);
@@ -2470,6 +2471,33 @@ function ProfileView({
       const isos = (data || []).map((m: { created_at: string }) => m.created_at);
       setSongStreak(computeStreak(isos));
       setSongTotal(isos.length);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId]);
+
+  // Lightning received: total ⚡⚡ reactions on this wolf's messages.
+  useEffect(() => {
+    if (!targetId) return;
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("hub_reactions")
+        .select("id, hub_messages!inner(author_id, deleted_at)")
+        .eq("emoji", "⚡⚡")
+        .eq("hub_messages.author_id", targetId)
+        .limit(5000);
+      if (cancelled) return;
+      const live = (data || []).filter(
+        (r: { hub_messages: { deleted_at: string | null } | { deleted_at: string | null }[] | null }) => {
+          const m = Array.isArray(r.hub_messages) ? r.hub_messages[0] : r.hub_messages;
+          return m && !m.deleted_at;
+        }
+      );
+      setLightningReceived(live.length);
     })();
     return () => {
       cancelled = true;
@@ -2570,7 +2598,7 @@ function ProfileView({
               <Stat label="likes" value={totalLikes} />
               <Stat label="comments" value={totalComments} />
             </div>
-            {(songStreak > 0 || songTotal > 0) && (
+            {(songStreak > 0 || songTotal > 0 || lightningReceived > 0) && (
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {songStreak > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-[#ff8a3d]/35 bg-[#ff8a3d]/10 px-2.5 py-0.5 text-xs font-bold text-[#ff8a3d]">
@@ -2580,6 +2608,19 @@ function ProfileView({
                 {songTotal > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-[#9b6dff]/35 bg-[#9b6dff]/10 px-2.5 py-0.5 text-xs font-semibold text-[#c8a4ff]">
                     🎵 {songTotal} {songTotal === 1 ? "track shared" : "tracks shared"}
+                  </span>
+                )}
+                {lightningReceived > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-bold"
+                    style={{
+                      borderColor: "rgba(245,197,24,0.45)",
+                      backgroundColor: "rgba(245,197,24,0.12)",
+                      color: "#f5c518",
+                      textShadow: "0 0 10px rgba(245,197,24,0.45)",
+                    }}
+                  >
+                    ⚡⚡ {lightningReceived} Lightning
                   </span>
                 )}
               </div>

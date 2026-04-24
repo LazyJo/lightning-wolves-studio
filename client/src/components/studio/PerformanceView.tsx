@@ -36,6 +36,9 @@ const PERFORMANCE_STYLES = [
 
 const STYLIZE_MODELS = [
   { id: "kling-motion", name: "Kling Motion", credits: 15 },
+  // Seedance 2.0 is listed on the pricing page (coming-soon) but no
+  // picker UI exists here yet — add one when we turn on the second
+  // stylize model.
 ];
 
 const ratios = ["9:16", "16:9"] as const;

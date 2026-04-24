@@ -24,6 +24,7 @@ interface Props {
 const AI_MODELS = [
   { id: "nanobanana-2", name: "NanoBanana 2", badge: "NEW" },
   { id: "nanobanana-pro", name: "NanoBanana Pro", badge: null },
+  { id: "nanobanana", name: "NanoBanana", badge: null },
   { id: "grok-imagine", name: "Grok Imagine", badge: null },
   { id: "seedream-4.5", name: "Seedream 4.5", badge: null },
 ];

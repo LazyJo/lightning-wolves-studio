@@ -26,9 +26,8 @@ const models = [
   { name: "Kling Motion Control", status: "access" },
   { name: "NanoBanana Pro", status: "access" },
   { name: "NanoBanana 2", status: "new" },
-  { name: "Sora 2", status: "legacy" },
+  { name: "NanoBanana", status: "access" },
   { name: "Seedream 4.5", status: "access" },
-  { name: "Kling 3.0", status: "coming-soon" },
 ];
 
 interface Tier {

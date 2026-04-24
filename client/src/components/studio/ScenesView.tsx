@@ -36,8 +36,8 @@ import { scenePresets, type ScenePreset } from "../../data/scenePresets";
 const DEFAULT_PRESET = scenePresets.find((p) => p.id === "cinematic-music-video") || scenePresets[0];
 
 const VIDEO_MODELS = [
-  { id: "kling-motion", name: "Kling Motion", credits: 15 },
-  { id: "sora-2", name: "Sora 2", credits: 20 },
+  { id: "kling-motion", name: "Kling Motion", credits: 15, status: "access" as const },
+  { id: "seedance-2.0", name: "Seedance 2.0", credits: 18, status: "coming-soon" as const },
 ];
 
 const ratios = ["9:16", "16:9"] as const;
@@ -363,11 +363,13 @@ export default function ScenesView({ onBack, template }: Props) {
             <div className="flex gap-2">
               {VIDEO_MODELS.map((m) => {
                 const active = modelId === m.id;
+                const soon = m.status === "coming-soon";
                 return (
                   <button
                     key={m.id}
-                    onClick={() => setModelId(m.id)}
-                    className="flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-all"
+                    onClick={() => !soon && setModelId(m.id)}
+                    disabled={soon}
+                    className="relative flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-50"
                     style={
                       active
                         ? { borderColor: SC.amber, backgroundColor: SC.amberSoft, color: SC.amber }
@@ -376,6 +378,11 @@ export default function ScenesView({ onBack, template }: Props) {
                   >
                     {m.name}
                     <span className="ml-1 opacity-60">· {m.credits}</span>
+                    {soon && (
+                      <span className="absolute -right-1 -top-2 rounded-full bg-wolf-muted/20 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-wolf-muted">
+                        Soon
+                      </span>
+                    )}
                   </button>
                 );
               })}

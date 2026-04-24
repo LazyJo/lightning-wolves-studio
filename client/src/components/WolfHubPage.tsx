@@ -24,6 +24,7 @@ import { useSession } from "../lib/useSession";
 import { useHubNotifications } from "../lib/useHubNotifications";
 import { RatingBurst, ratingKindFromEmoji, type RatingKind } from "./RatingBurst";
 import BeatWaveform from "./BeatWaveform";
+import LightningTicker from "./LightningTicker";
 
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
@@ -1078,6 +1079,9 @@ function ChatView({
   return (
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
       <RatingBurst kind={burst?.kind ?? null} />
+      <div className="px-3 pt-3 sm:px-4">
+        <LightningTicker />
+      </div>
       {/* Room switcher */}
       <div className="flex items-center gap-1 overflow-x-auto border-b border-white/10 px-2 py-2">
         {HUB_ROOMS.map((r) => {

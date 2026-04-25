@@ -44,6 +44,43 @@ const AWARD_META_LITE: Record<AwardType, { emoji: string; short: string; label: 
   streak: { emoji: "🔥", short: "Streak", label: "Streak Champion" },
 };
 
+/* ─── Genre categorisation ─── */
+// Bucket the genre string on each wolf into a small set of filter
+// categories. Lets us scope #songs / #beats by genre without splitting
+// the room — single feed, tag-based filter (Spotify / SoundCloud pattern).
+import { wolves as WOLVES_DATA } from "../data/wolves";
+
+type GenreCategory = "hiphop" | "pop" | "electronic" | "rnb" | "country" | "visual" | "other";
+
+const GENRE_CHIPS: { id: GenreCategory | "all"; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "hiphop", label: "Hip-Hop" },
+  { id: "pop", label: "Pop" },
+  { id: "electronic", label: "Electronic" },
+  { id: "rnb", label: "R&B" },
+  { id: "country", label: "Country" },
+  { id: "visual", label: "Visual" },
+  { id: "other", label: "Other" },
+];
+
+function categorizeGenreText(text: string | null | undefined): GenreCategory {
+  if (!text) return "other";
+  const t = text.toLowerCase();
+  if (/(hip-?hop|trap|rap|drill)/.test(t)) return "hiphop";
+  if (/pop/.test(t)) return "pop";
+  if (/(electronic|house|techno|edm|dance)/.test(t)) return "electronic";
+  if (/(r&b|rnb|soul)/.test(t)) return "rnb";
+  if (/country/.test(t)) return "country";
+  if (/(photo|video|cover|trailer|visual)/.test(t)) return "visual";
+  return "other";
+}
+
+function categorizeWolfId(wolfId: string | null | undefined): GenreCategory {
+  if (!wolfId) return "other";
+  const wolf = WOLVES_DATA.find((w) => w.id === wolfId);
+  return categorizeGenreText(wolf?.genre);
+}
+
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
 interface HubMessage {
@@ -803,6 +840,7 @@ function ChatView({
   const [internalTarget, setInternalTarget] = useState<string | null>(null);
   const activeTargetId = internalTarget || targetMessageId;
   const [achievement, setAchievement] = useState<Achievement | null>(null);
+  const [genreFilter, setGenreFilter] = useState<GenreCategory | "all">("all");
   const [howtoDismissed, setHowtoDismissed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -1274,6 +1312,13 @@ function ChatView({
 
   const activeRoom = HUB_ROOMS.find((r) => r.id === roomId) || HUB_ROOMS[0];
 
+  // Filter the rendered list by selected genre when in #songs / #beats.
+  // #general ignores the filter (text-only chat).
+  const filteredMessages =
+    genreFilter === "all" || roomId === "global"
+      ? messages
+      : messages.filter((m) => categorizeWolfId(m.author_wolf_id) === genreFilter);
+
   return (
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
       <RatingBurst kind={burst?.kind ?? null} />
@@ -1353,6 +1398,32 @@ function ChatView({
           <TopLightningTracks mode="beats" onJumpTo={jumpToMessage} />
         </div>
       )}
+      {(roomId === "songs" || roomId === "beats") && (
+        <div className="flex flex-wrap gap-1.5 px-4 pb-2 pt-1">
+          {GENRE_CHIPS.map((chip) => {
+            const active = genreFilter === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => setGenreFilter(chip.id)}
+                className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-all ${
+                  active
+                    ? "border-[#9b6dff]/60 bg-[#9b6dff]/20 text-white"
+                    : "border-white/10 bg-white/[0.03] text-wolf-muted hover:border-white/20 hover:text-white"
+                }`}
+              >
+                {chip.label}
+              </button>
+            );
+          })}
+          {genreFilter !== "all" && filteredMessages.length === 0 && messages.length > 0 && (
+            <span className="self-center pl-2 text-[11px] text-wolf-muted">
+              · no {GENRE_CHIPS.find((c) => c.id === genreFilter)?.label} drops yet
+            </span>
+          )}
+        </div>
+      )}
       <div
         ref={scrollRef}
         className="flex h-[55vh] min-h-[400px] flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-6"
@@ -1367,7 +1438,7 @@ function ChatView({
           </div>
         )}
         {!loading &&
-          messages.map((m) => {
+          filteredMessages.map((m) => {
             const isMine = m.author_id === profile?.id;
             const accent = wolfAccent(m.author_wolf_id);
             const msgReactions = reactions.get(m.id) || [];

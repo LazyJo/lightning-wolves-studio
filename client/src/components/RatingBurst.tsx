@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from "motion/react";
+import { useReducedMotion } from "../lib/useReducedMotion";
 
 export type RatingKind = "lightning" | "fire" | "good" | "trash";
 
@@ -11,9 +12,10 @@ export function ratingKindFromEmoji(emoji: string): RatingKind | null {
 }
 
 export function RatingBurst({ kind }: { kind: RatingKind | null }) {
+  const reducedMotion = useReducedMotion();
   return (
     <AnimatePresence>
-      {kind && (
+      {kind && !reducedMotion && (
         <motion.div
           key={kind}
           initial={{ opacity: 1 }}

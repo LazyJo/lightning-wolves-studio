@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "motion/react";
 import { X } from "lucide-react";
+import { useReducedMotion } from "../lib/useReducedMotion";
 
 export interface Achievement {
   messageId: string;
@@ -22,6 +23,7 @@ export default function LightningAchievement({
   onDismiss,
   onJumpTo,
 }: Props) {
+  const reducedMotion = useReducedMotion();
   useEffect(() => {
     if (!achievement) return;
     const t = window.setTimeout(onDismiss, 6500);
@@ -61,8 +63,12 @@ export default function LightningAchievement({
               style={{ color: "#f5c518", textShadow: "0 0 10px rgba(245,197,24,0.7)" }}
             >
               <motion.span
-                animate={{ rotate: [-5, 5, -5] }}
-                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                animate={reducedMotion ? undefined : { rotate: [-5, 5, -5] }}
+                transition={
+                  reducedMotion
+                    ? undefined
+                    : { duration: 1.6, repeat: Infinity, ease: "easeInOut" }
+                }
                 style={{ filter: "drop-shadow(0 0 8px #f5c518)" }}
               >
                 ⚡⚡

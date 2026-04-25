@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, Zap, Globe, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell, Shield } from "lucide-react";
+import { Menu, X, Zap, Globe, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell, Shield, Sparkles } from "lucide-react";
 import { useI18n, LANGUAGES } from "../lib/i18n";
 import { useHubNotifications } from "../lib/useHubNotifications";
+import { initSupabase } from "../lib/supabaseClient";
+import { useReducedMotion, setReducedMotion } from "../lib/useReducedMotion";
 
 const STUDIO_TOOLS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -45,6 +47,38 @@ export default function Navbar({
   const { lang, setLang, t } = useI18n();
   const accent = wolfColor || "#f5c518";
   const { count: hubUnread } = useHubNotifications();
+  const [hubPulseKey, setHubPulseKey] = useState(0);
+  const reducedMotion = useReducedMotion();
+
+  // Subscribe to ⚡⚡ inserts anywhere in the Hub. Each new strike pulses
+  // the navbar Wolf Hub button — ambient signal that the community is
+  // alive, even when the user is on the homepage / studio / wolf map.
+  // Skipped when reducedMotion is on (saves the realtime channel too).
+  useEffect(() => {
+    if (reducedMotion) return;
+    let cancelled = false;
+    let sub: { unsubscribe: () => void } | null = null;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      sub = sb
+        .channel("navbar-lightning-pulse")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "hub_reactions" },
+          (payload) => {
+            const r = payload.new as { emoji?: string };
+            if (r.emoji !== "⚡⚡") return;
+            setHubPulseKey((k) => k + 1);
+          }
+        )
+        .subscribe();
+    })();
+    return () => {
+      cancelled = true;
+      sub?.unsubscribe();
+    };
+  }, [reducedMotion]);
 
   return (
     <motion.nav
@@ -138,11 +172,29 @@ export default function Navbar({
               )}
               <button
                 onClick={onWolfHub}
-                className="group relative inline-flex items-center gap-1.5 rounded-lg border border-[#9b6dff]/40 bg-gradient-to-r from-[#9b6dff]/15 via-[#E040FB]/10 to-[#9b6dff]/15 px-4 py-2 text-sm font-bold text-white transition-all hover:border-[#9b6dff]/70 hover:shadow-lg hover:shadow-[#9b6dff]/20"
+                className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg border border-[#9b6dff]/40 bg-gradient-to-r from-[#9b6dff]/15 via-[#E040FB]/10 to-[#9b6dff]/15 px-4 py-2 text-sm font-bold text-white transition-all hover:border-[#9b6dff]/70 hover:shadow-lg hover:shadow-[#9b6dff]/20"
                 title="Wolf Hub — community chat & media"
               >
-                <span className="text-sm">🐺</span>
-                <span className="bg-gradient-to-r from-[#c8a4ff] to-[#f0a4ff] bg-clip-text text-transparent">
+                {/* Lightning pulse overlay — re-fires on each ⚡⚡ INSERT via hubPulseKey. */}
+                <AnimatePresence>
+                  {hubPulseKey > 0 && !reducedMotion && (
+                    <motion.span
+                      key={hubPulseKey}
+                      initial={{ opacity: 0.55, scale: 0.85 }}
+                      animate={{ opacity: 0, scale: 1.4 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.7, ease: "easeOut" }}
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 rounded-lg"
+                      style={{
+                        background:
+                          "radial-gradient(circle at center, rgba(245,197,24,0.8) 0%, rgba(245,197,24,0) 70%)",
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
+                <span className="relative text-sm">🐺</span>
+                <span className="relative bg-gradient-to-r from-[#c8a4ff] to-[#f0a4ff] bg-clip-text text-transparent">
                   Wolf Hub
                 </span>
                 {hubUnread > 0 && (
@@ -224,6 +276,25 @@ export default function Navbar({
           ) : (
             /* Regular right side: language + enter studio */
             <>
+              <button
+                onClick={() => setReducedMotion(!reducedMotion)}
+                title={
+                  reducedMotion
+                    ? "Animations off — click to turn on"
+                    : "Animations on — click to calm them down"
+                }
+                aria-label={
+                  reducedMotion ? "Turn animations on" : "Turn animations off"
+                }
+                aria-pressed={reducedMotion}
+                className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm transition-all ${
+                  reducedMotion
+                    ? "border-white/10 bg-white/[0.03] text-wolf-muted hover:border-wolf-gold/30"
+                    : "border-[#f5c518]/30 bg-[#f5c518]/10 text-[#f5c518] hover:border-[#f5c518]/60"
+                }`}
+              >
+                <Sparkles size={13} />
+              </button>
               <div className="relative">
                 <button
                   onClick={() => setLangOpen(!langOpen)}

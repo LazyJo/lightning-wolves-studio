@@ -31,6 +31,18 @@ import LightningAchievement, {
   consumeNextTier,
 } from "./LightningAchievement";
 import AvatarCropper from "./AvatarCropper";
+import PackAwardsBanner, {
+  type PackAward,
+  type AwardType,
+} from "./PackAwardsBanner";
+import PackAwardCelebration from "./PackAwardCelebration";
+
+const AWARD_META_LITE: Record<AwardType, { emoji: string; short: string; label: string }> = {
+  hottest: { emoji: "🌟", short: "Hottest", label: "Pack Hottest" },
+  top_track: { emoji: "🥇", short: "Top Track", label: "Top Lightning Track" },
+  generosity: { emoji: "⚡", short: "Generosity", label: "Pack Generosity" },
+  streak: { emoji: "🔥", short: "Streak", label: "Streak Champion" },
+};
 
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
@@ -346,6 +358,29 @@ export default function WolfHubPage({ onBack, onAuth, initialRoomId, targetMessa
   };
   const [showNameSetup, setShowNameSetup] = useState(false);
   const [onlineCount, setOnlineCount] = useState<number>(0);
+  const [packAwards, setPackAwards] = useState<PackAward[]>([]);
+
+  // Pack Awards: trigger the monthly grant on Hub mount (server-side
+  // idempotent — UNIQUE on (award_type, period_start)) so the first
+  // wolf to open the Hub on or after the 1st kicks the cycle. Then
+  // load the most recent batch for the banner + celebration.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await fetch("/api/award-pack", { method: "POST" }).catch(() => null);
+        const r = await fetch("/api/pack-awards?limit=12");
+        if (!r.ok || cancelled) return;
+        const json = await r.json();
+        setPackAwards((json.awards as PackAward[]) || []);
+      } catch {
+        /* noop — banner just stays empty */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user?.id]);
 
   // Load own profile once signed in (needed to denormalize author_name / author_wolf_id).
   useEffect(() => {
@@ -507,6 +542,13 @@ export default function WolfHubPage({ onBack, onAuth, initialRoomId, targetMessa
             </div>
           )}
         </div>
+
+        <PackAwardsBanner onViewUser={openOtherProfile} />
+        <PackAwardCelebration
+          awards={packAwards}
+          selfId={profile?.id ?? null}
+          onClose={() => {}}
+        />
 
         {tab === "chat" && (
           <ChatView
@@ -2652,9 +2694,32 @@ function ProfileView({
   const [songTotal, setSongTotal] = useState(0);
   const [lightningReceived, setLightningReceived] = useState(0);
   const [lightningGiven, setLightningGiven] = useState(0);
+  const [profileAwards, setProfileAwards] = useState<PackAward[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [openPost, setOpenPost] = useState<HubPost | null>(null);
+
+  // Pull this wolf's pack awards (server endpoint returns recent ones).
+  useEffect(() => {
+    if (!targetId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch("/api/pack-awards?limit=50");
+        if (!r.ok || cancelled) return;
+        const json = await r.json();
+        const list = ((json.awards as PackAward[]) || []).filter(
+          (a) => a.recipient_id === targetId
+        );
+        setProfileAwards(list);
+      } catch {
+        /* noop */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId]);
 
   // Streak: days in a row with at least one song_url post
   useEffect(() => {
@@ -2864,6 +2929,29 @@ function ProfileView({
                     ⚡ {lightningGiven} given
                   </span>
                 )}
+                {profileAwards.map((a) => {
+                  const meta = AWARD_META_LITE[a.award_type];
+                  const month = new Date(`${a.period_start}T00:00:00Z`).toLocaleString("en-US", {
+                    month: "short",
+                    year: "2-digit",
+                    timeZone: "UTC",
+                  });
+                  return (
+                    <span
+                      key={a.id}
+                      className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider"
+                      style={{
+                        borderColor: "rgba(245,197,24,0.55)",
+                        backgroundColor: "rgba(245,197,24,0.18)",
+                        color: "#f5c518",
+                        textShadow: "0 0 8px rgba(245,197,24,0.6)",
+                      }}
+                      title={`${meta.label} · ${month}`}
+                    >
+                      {meta.emoji} {meta.short} · {month}
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>

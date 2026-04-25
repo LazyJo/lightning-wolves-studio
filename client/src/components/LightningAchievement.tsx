@@ -8,6 +8,7 @@ export interface Achievement {
   roomId: string;
   title: string;
   bolts: number;
+  tier: LightningTier;
 }
 
 interface Props {
@@ -66,14 +67,14 @@ export default function LightningAchievement({
               >
                 ⚡⚡
               </motion.span>
-              <span>You hit Lightning!</span>
+              <span>{tierLabel(achievement.tier)}</span>
             </div>
             <div className="mb-1 truncate text-sm font-bold text-white">
               {achievement.title}
             </div>
             <div className="text-xs text-wolf-muted">
               <span className="font-bold text-[#f5c518]">{achievement.bolts} ⚡⚡</span>{" "}
-              · the pack is feeling this one. Tap to view.
+              · {tierBlurb(achievement.tier)}
             </div>
           </button>
         </motion.div>
@@ -83,26 +84,67 @@ export default function LightningAchievement({
   );
 }
 
-const STORAGE_KEY = "lightning-wolves-celebrated-msgs";
+const STORAGE_KEY = "lightning-wolves-celebrated-tiers";
 
-export function readCelebrated(): Set<string> {
-  if (typeof window === "undefined") return new Set();
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return new Set();
-    return new Set(JSON.parse(raw) as string[]);
-  } catch {
-    return new Set();
+// Milestone thresholds — each one fires the toast exactly once per
+// messageId. 3 = first Lightning, 10 = storm, 25 = legend, 50 = pack
+// hall of fame. Sorted ascending so we can find the highest one
+// crossed by a count.
+export const LIGHTNING_TIERS = [3, 10, 25, 50] as const;
+export type LightningTier = (typeof LIGHTNING_TIERS)[number];
+
+export function tierLabel(tier: LightningTier): string {
+  switch (tier) {
+    case 3: return "You hit Lightning!";
+    case 10: return "Lightning Storm — 10 ⚡⚡";
+    case 25: return "Pack Legend — 25 ⚡⚡";
+    case 50: return "Howling at the moon — 50 ⚡⚡";
   }
 }
 
-export function markCelebrated(messageId: string) {
-  const set = readCelebrated();
-  set.add(messageId);
+export function tierBlurb(tier: LightningTier): string {
+  switch (tier) {
+    case 3: return "the pack is feeling this one. Tap to view.";
+    case 10: return "ten wolves locked in. This track is moving.";
+    case 25: return "the whole pack is howling. Legendary status.";
+    case 50: return "you're rewriting Lightning Wolves history.";
+  }
+}
+
+// localStorage shape: { [messageId]: highestTierAlreadyCelebrated }
+function readCelebratedMap(): Record<string, number> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return {};
+    return JSON.parse(raw) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function writeCelebratedMap(map: Record<string, number>) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(set)));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
   } catch {
     /* noop */
   }
+}
+
+/** Returns the new tier the count crossed (and not yet celebrated for
+ *  this message), or null if no fresh tier was hit. Marks it as
+ *  celebrated as a side effect. */
+export function consumeNextTier(messageId: string, count: number): LightningTier | null {
+  const map = readCelebratedMap();
+  const alreadyAt = map[messageId] || 0;
+  // Find highest tier the current count satisfies that is above alreadyAt.
+  let next: LightningTier | null = null;
+  for (const t of LIGHTNING_TIERS) {
+    if (count >= t && t > alreadyAt) next = t;
+  }
+  if (next === null) return null;
+  map[messageId] = next;
+  writeCelebratedMap(map);
+  return next;
 }

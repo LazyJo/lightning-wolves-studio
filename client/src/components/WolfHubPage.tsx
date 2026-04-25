@@ -28,8 +28,7 @@ import LightningTicker from "./LightningTicker";
 import ShareTrackButton from "./ShareTrackButton";
 import LightningAchievement, {
   type Achievement,
-  readCelebrated,
-  markCelebrated,
+  consumeNextTier,
 } from "./LightningAchievement";
 
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
@@ -781,7 +780,6 @@ function ChatView({
         async (payload) => {
           const r = payload.new as { message_id: string; emoji: string };
           if (r.emoji !== "⚡⚡") return;
-          if (readCelebrated().has(r.message_id)) return;
           const { data: msg } = await sb
             .from("hub_messages")
             .select("id,author_id,song_url,audio_url,room_id,body,deleted_at")
@@ -797,9 +795,9 @@ function ChatView({
             .select("id", { count: "exact", head: true })
             .eq("message_id", r.message_id)
             .eq("emoji", "⚡⚡");
-          if (!count || count < 3) return;
-          if (readCelebrated().has(r.message_id)) return;
-          markCelebrated(r.message_id);
+          if (!count) return;
+          const tier = consumeNextTier(r.message_id, count);
+          if (!tier) return;
           const title = msg.song_url
             ? (() => {
                 try {
@@ -817,6 +815,7 @@ function ChatView({
             roomId: isSong ? "songs" : "beats",
             title,
             bolts: count,
+            tier,
           });
         }
       )

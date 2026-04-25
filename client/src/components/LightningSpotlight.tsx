@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { initSupabase } from "../lib/supabaseClient";
 import BeatWaveform from "./BeatWaveform";
@@ -90,10 +90,12 @@ export default function LightningSpotlight({
   onWolfHub: (target?: { messageId: string; roomId: string }) => void;
 }) {
   const [spot, setSpot] = useState<Spot | null>(null);
+  const refetchTimer = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    async function refetch() {
       const sb = await initSupabase();
       if (!sb || cancelled) return;
       const weekAgo = new Date();
@@ -135,9 +137,37 @@ export default function LightningSpotlight({
       const top = Array.from(tally.values()).sort((a, b) => b.bolts - a.bolts)[0];
       if (!top || top.bolts < 1) return;
       setSpot(top);
+    }
+
+    let sub: { unsubscribe: () => void } | null = null;
+
+    // Debounced realtime refresh — every new ⚡⚡ reaction schedules a
+    // refetch 1.5s later, collapsing rapid-fire bursts into one query.
+    // initSupabase has to resolve before the channel is subscribed.
+    (async () => {
+      await refetch();
+      if (cancelled) return;
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      sub = sb
+        .channel("lightning-spotlight")
+        .on(
+          "postgres_changes",
+          { event: "INSERT", schema: "public", table: "hub_reactions" },
+          (payload) => {
+            const r = payload.new as { emoji?: string };
+            if (r.emoji !== "⚡⚡") return;
+            if (refetchTimer.current) window.clearTimeout(refetchTimer.current);
+            refetchTimer.current = window.setTimeout(refetch, 1500);
+          }
+        )
+        .subscribe();
     })();
+
     return () => {
       cancelled = true;
+      if (refetchTimer.current) window.clearTimeout(refetchTimer.current);
+      sub?.unsubscribe();
     };
   }, []);
 

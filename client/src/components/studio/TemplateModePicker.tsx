@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { ArrowLeft, Film, Shuffle, Sparkles, Edit3, Music } from "lucide-react";
 import type { Template } from "../../lib/templates";
+import ShareToHubButton from "./ShareToHubButton";
 
 type Mode = "scenes" | "remix" | "performance";
 
@@ -9,6 +10,11 @@ interface Props {
   onBack: () => void;
   onEdit: () => void;
   onPickMode: (mode: Mode) => void;
+  // Called when the user clicks Share to Hub but isn't signed in.
+  onAuthRequired?: () => void;
+  // Called after a successful Hub post — caller may navigate the user
+  // into the Hub at the freshly-posted message.
+  onShared?: (messageId: string) => void;
 }
 
 const MODES: Array<{
@@ -47,7 +53,7 @@ const MODES: Array<{
  * Shown after a template is opened — pick one of the three output
  * modes that render from the template's audio + transcript + markers.
  */
-export default function TemplateModePicker({ template, onBack, onEdit, onPickMode }: Props) {
+export default function TemplateModePicker({ template, onBack, onEdit, onPickMode, onAuthRequired, onShared }: Props) {
   return (
     <div>
       <motion.button
@@ -78,7 +84,7 @@ export default function TemplateModePicker({ template, onBack, onEdit, onPickMod
             {template.wordTimings.length} words · {template.cutMarkers.length} cuts
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <audio src={template.audioUrl} controls className="h-10" />
           <button
             onClick={onEdit}
@@ -86,6 +92,11 @@ export default function TemplateModePicker({ template, onBack, onEdit, onPickMod
           >
             <Edit3 size={12} /> Edit
           </button>
+          <ShareToHubButton
+            template={template}
+            onAuthRequired={onAuthRequired}
+            onJumpToPost={onShared}
+          />
         </div>
       </motion.div>
 

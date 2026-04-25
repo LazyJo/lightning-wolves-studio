@@ -424,6 +424,10 @@ export default function App() {
                   if (v === "pricing") { goToPricing(); return; }
                   setStudioView(v); window.scrollTo(0, 0);
                 }}
+                onAuthRequired={goToAuth}
+                onSharedToHub={(messageId) =>
+                  goToWolfHub({ messageId, roomId: "beats" })
+                }
               />
             )}
 

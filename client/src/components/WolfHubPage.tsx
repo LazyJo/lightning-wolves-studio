@@ -1723,6 +1723,11 @@ function ChatView({
                             {m.body}
                           </p>
                         )}
+                        {m.audio_url && m.body?.startsWith("🎬 ") && (
+                          <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-wolf-gold/40 bg-gradient-to-r from-wolf-gold/15 to-wolf-amber/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-wolf-gold">
+                            🎬 Made in Studio
+                          </span>
+                        )}
                         {m.image_url && (
                           <img
                             src={m.image_url}

@@ -63,6 +63,10 @@ interface Props {
   // editor with the audio prefetched from this URL.
   initialAudioUrl?: string;
   initialAudioName?: string;
+  // Studio → Hub closing the loop: caller wires these so the user
+  // can sign in or jump into #beats after a successful share.
+  onAuthRequired?: () => void;
+  onSharedToHub?: (messageId: string) => void;
 }
 
 type View =
@@ -578,7 +582,7 @@ const LYRIC_VIDEO_MODES: View[] = ["scenes", "remix", "performance"];
 type PendingMode = "scenes" | "remix" | "performance" | null;
 
 // Main Studio Page
-export default function StudioPage({ wolf, onBack, onWolfMap, studioView: externalView, onStudioNav, initialAudioUrl, initialAudioName }: Props) {
+export default function StudioPage({ wolf, onBack, onWolfMap, studioView: externalView, onStudioNav, initialAudioUrl, initialAudioName, onAuthRequired, onSharedToHub }: Props) {
   const [internalView, setInternalView] = useState<View>("dashboard");
 
   // LYRC-style Template flow — one upload, many renders.
@@ -728,6 +732,8 @@ export default function StudioPage({ wolf, onBack, onWolfMap, studioView: extern
               setView("template-editor");
             }}
             onPickMode={(m) => setView(m as View)}
+            onAuthRequired={onAuthRequired}
+            onShared={onSharedToHub}
           />
         ) : view === "scenes" && currentTemplate ? (
           <ScenesViewComponent

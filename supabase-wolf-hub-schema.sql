@@ -194,6 +194,24 @@ ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS genre TEXT;
 -- other. Only set in #songs (beats are instrumental by default).
 ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS language TEXT;
 
+-- Marks a message as having originated from a Studio export rather
+-- than a native Hub upload. Drives the "🎬 Made in Studio" pill on
+-- ChatView and the homepage Made-in-Studio showcase. Replaces the
+-- earlier 🎬-body-prefix sentinel — the client still falls back to
+-- that prefix for messages posted before this column landed.
+ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS from_studio BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE INDEX IF NOT EXISTS hub_messages_from_studio_idx
+  ON hub_messages (created_at DESC)
+  WHERE from_studio = TRUE AND deleted_at IS NULL AND audio_url IS NOT NULL;
+-- One-shot backfill: any pre-column message whose body still uses the
+-- 🎬 sentinel gets the column flipped on. The WHERE clause makes this
+-- idempotent — a second run after manual flips is a no-op.
+UPDATE hub_messages
+   SET from_studio = TRUE
+ WHERE from_studio = FALSE
+   AND body LIKE '🎬 %'
+   AND audio_url IS NOT NULL;
+
 -- Profile platform links — wolves can list where to find them on
 -- streaming + social platforms, plus one free-form bio URL (the
 -- Instagram-style link). Live follower counts will land in a separate

@@ -52,9 +52,10 @@ export async function shareToHub(input: ShareToHubInput): Promise<ShareToHubResu
   const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
   if (!urlData?.publicUrl) return { ok: false, error: "no_public_url" };
 
-  // The 🎬 prefix is a temporary sentinel for "Made in Studio" until a
-  // dedicated `from_studio` column lands. Removing it later won't break
-  // anything — the badge would just stop appearing on past posts.
+  // The 🎬 body prefix is kept as a render fallback for messages
+  // posted before the `from_studio` column landed. New posts set the
+  // column directly; ChatView prefers it and only falls back to the
+  // prefix for legacy rows.
   const body = `🎬 ${input.title}`;
 
   const { data: inserted, error: insErr } = await sb
@@ -68,6 +69,7 @@ export async function shareToHub(input: ShareToHubInput): Promise<ShareToHubResu
       body,
       audio_url: urlData.publicUrl,
       genre: input.genre ?? "other",
+      from_studio: true,
     })
     .select("id")
     .single();

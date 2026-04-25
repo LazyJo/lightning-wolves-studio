@@ -9,6 +9,7 @@ import Features from "./components/Features";
 import FeaturedArtists from "./components/FeaturedArtists";
 import CTA from "./components/CTA";
 import StudioNudgeBanner from "./components/StudioNudgeBanner";
+import StudioShowcase from "./components/StudioShowcase";
 import Footer from "./components/Footer";
 import LightningCanvas from "./components/LightningCanvas";
 import WolfProfilePage from "./components/WolfProfilePage";
@@ -349,6 +350,10 @@ export default function App() {
                   />
                 </div>
                 <PackMomentum />
+                <StudioShowcase
+                  onWolfHub={goToWolfHub}
+                  onTryStudio={() => goToStudio()}
+                />
                 <LightningSpotlight onWolfHub={goToWolfHub} />
                 <WolfGrid onSelectWolf={handleWolfSelect} />
                 <Features onGoldenBoard={goToGoldenBoard} />

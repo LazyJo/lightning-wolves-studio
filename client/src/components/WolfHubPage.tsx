@@ -761,6 +761,24 @@ function ChatView({
   const [internalTarget, setInternalTarget] = useState<string | null>(null);
   const activeTargetId = internalTarget || targetMessageId;
   const [achievement, setAchievement] = useState<Achievement | null>(null);
+  const [howtoDismissed, setHowtoDismissed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem("lightning-wolves-howto-dismissed") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const dismissHowto = () => {
+    if (typeof window !== "undefined") {
+      try {
+        window.localStorage.setItem("lightning-wolves-howto-dismissed", "1");
+      } catch {
+        /* noop */
+      }
+    }
+    setHowtoDismissed(true);
+  };
 
   function jumpToMessage(messageId: string, newRoomId: string) {
     setRoomId(newRoomId);
@@ -1131,6 +1149,7 @@ function ChatView({
     }
     const kind = ratingKindFromEmoji(emoji);
     if (kind) setBurst({ kind, id: Date.now() });
+    if (emoji === "⚡⚡" && !howtoDismissed) dismissHowto();
     // Optimistic add — swap in the real row once the insert resolves.
     const tempId = `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const temp: HubReaction = { id: tempId, message_id: messageId, user_id: profile.id, emoji };
@@ -1231,6 +1250,29 @@ function ChatView({
         })}
       </div>
       <div className="px-4 pt-2 text-[11px] text-wolf-muted">{activeRoom.hint}</div>
+      {(roomId === "songs" || roomId === "beats") && !howtoDismissed && (
+        <div className="mx-4 mt-3 flex items-start gap-3 rounded-xl border border-[#f5c518]/25 bg-[#f5c518]/[0.06] px-3 py-2">
+          <span
+            className="mt-0.5 flex-shrink-0 text-base"
+            style={{ filter: "drop-shadow(0 0 6px #f5c518)" }}
+          >
+            ⚡⚡
+          </span>
+          <div className="flex-1 text-[11px] leading-snug text-white/80">
+            <span className="font-bold text-[#f5c518]">Hit ⚡⚡ on a track</span>{" "}
+            to give it Lightning. The pack's hottest land on the homepage
+            Spotlight and earn the wolf bolt count.
+          </div>
+          <button
+            type="button"
+            onClick={dismissHowto}
+            aria-label="Dismiss"
+            className="flex-shrink-0 rounded-full p-0.5 text-wolf-muted transition-colors hover:bg-white/[0.05] hover:text-white"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
       {roomId === "songs" && (
         <div className="px-4 pt-3">
           <SongsLeaderboard onViewUser={onViewUser} mode="songs" />

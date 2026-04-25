@@ -972,6 +972,257 @@ app.get('/api/visuals/:id/download', async (req, res) => {
   }
 });
 
+// ─── Pack Awards (monthly Lightning rewards) ─────────────────────────────────
+// Idempotent: re-running for the same period is a no-op (UNIQUE constraint
+// on pack_awards). Awards 4 categories per the agreed scheme:
+//   hottest      — 200 credits to the wolf with most ⚡⚡ received that month
+//   top_track    — 100 credits to the author of the single highest-bolt track
+//   generosity   —  75 credits to the wolf who gave the most ⚡⚡ to others
+//   streak       —  50 credits to the longest active-streak wolf (≥7 days, ≥3 tracks)
+// Sock-puppet defense: ⚡⚡ from accounts < 7 days old don't count toward
+// "received" or "top_track". Self-bolts excluded from "given".
+const AWARD_CONFIG = {
+  hottest:    { credits: 200, label: '🌟 Pack Hottest' },
+  top_track:  { credits: 100, label: '🥇 Top Lightning Track' },
+  generosity: { credits: 75,  label: '⚡ Pack Generosity' },
+  streak:     { credits: 50,  label: '🔥 Streak Champion' },
+};
+
+function previousMonthRange(refDate = new Date()) {
+  // First day of the previous month, in UTC.
+  const start = new Date(Date.UTC(refDate.getUTCFullYear(), refDate.getUTCMonth() - 1, 1));
+  // First day of this month.
+  const end = new Date(Date.UTC(refDate.getUTCFullYear(), refDate.getUTCMonth(), 1));
+  return { start, end };
+}
+
+function isoDate(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+async function loadProfile(supabase, id) {
+  const { data } = await supabase
+    .from('profiles')
+    .select('id, display_name, wolf_id')
+    .eq('id', id)
+    .maybeSingle();
+  return data || null;
+}
+
+async function computeAwards(supabase, periodStart, periodEnd) {
+  const startIso = periodStart.toISOString();
+  const endIso = periodEnd.toISOString();
+  // Reactor must have signed up at least 7 days before periodEnd to count.
+  const reactorAgeCutoff = new Date(periodEnd.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+  // 1) Pull all ⚡⚡ reactions inside the period, joined to their messages.
+  const { data: rxRows } = await supabase
+    .from('hub_reactions')
+    .select(`
+      user_id,
+      message_id,
+      created_at,
+      hub_messages!inner(id, author_id, song_url, audio_url, room_id, deleted_at, created_at)
+    `)
+    .eq('emoji', '⚡⚡')
+    .gte('created_at', startIso)
+    .lt('created_at', endIso)
+    .limit(20000);
+
+  // 2) Pull profile created_at for every distinct reactor so we can apply
+  //    the 7-day age cutoff.
+  const reactorIds = Array.from(new Set((rxRows || []).map((r) => r.user_id)));
+  let reactorAges = new Map();
+  if (reactorIds.length) {
+    const { data: profs } = await supabase
+      .from('profiles')
+      .select('id, created_at')
+      .in('id', reactorIds);
+    (profs || []).forEach((p) => reactorAges.set(p.id, p.created_at));
+  }
+
+  const isQualifiedReactor = (userId) => {
+    const created = reactorAges.get(userId);
+    if (!created) return false;
+    return created < reactorAgeCutoff;
+  };
+
+  // 3) Tally received + top track + generosity.
+  const receivedByAuthor = new Map();   // author_id -> count
+  const boltsByMessage = new Map();     // message_id -> { count, author_id, song_url, audio_url }
+  const givenByReactor = new Map();     // user_id -> count (excluding self-bolts)
+
+  (rxRows || []).forEach((r) => {
+    const m = Array.isArray(r.hub_messages) ? r.hub_messages[0] : r.hub_messages;
+    if (!m || m.deleted_at) return;
+    const isSong = !!m.song_url;
+    const isBeat = !!m.audio_url && m.room_id === 'beats';
+    if (!isSong && !isBeat) return;
+    if (!isQualifiedReactor(r.user_id)) return;
+    // received + top track (excluding self)
+    if (r.user_id !== m.author_id) {
+      receivedByAuthor.set(m.author_id, (receivedByAuthor.get(m.author_id) || 0) + 1);
+      const cur = boltsByMessage.get(m.id) || { count: 0, author_id: m.author_id, song_url: m.song_url, audio_url: m.audio_url };
+      cur.count += 1;
+      boltsByMessage.set(m.id, cur);
+    }
+    // generosity (also excluding self)
+    if (r.user_id !== m.author_id) {
+      givenByReactor.set(r.user_id, (givenByReactor.get(r.user_id) || 0) + 1);
+    }
+  });
+
+  function pickTop(map) {
+    let topId = null;
+    let topVal = 0;
+    for (const [id, val] of map.entries()) {
+      if (val > topVal) {
+        topVal = val;
+        topId = id;
+      }
+    }
+    return topId ? { id: topId, value: topVal } : null;
+  }
+
+  const hottest = pickTop(receivedByAuthor);
+  const generosity = pickTop(givenByReactor);
+
+  // top track
+  let topTrack = null;
+  for (const [msgId, info] of boltsByMessage.entries()) {
+    if (!topTrack || info.count > topTrack.count) {
+      topTrack = { messageId: msgId, ...info };
+    }
+  }
+
+  // 4) Streak champion — longest streak of consecutive days with at least
+  //    one song_url post in the period, gated on >=3 tracks shared.
+  const { data: songMsgs } = await supabase
+    .from('hub_messages')
+    .select('author_id, created_at')
+    .not('song_url', 'is', null)
+    .is('deleted_at', null)
+    .gte('created_at', startIso)
+    .lt('created_at', endIso)
+    .limit(20000);
+
+  const datesByAuthor = new Map(); // author -> Set of yyyy-mm-dd
+  (songMsgs || []).forEach((m) => {
+    const day = new Date(m.created_at).toISOString().slice(0, 10);
+    let set = datesByAuthor.get(m.author_id);
+    if (!set) {
+      set = new Set();
+      datesByAuthor.set(m.author_id, set);
+    }
+    set.add(day);
+  });
+  let streak = null;
+  for (const [authorId, days] of datesByAuthor.entries()) {
+    if (days.size < 3) continue;
+    const sorted = Array.from(days).sort();
+    let best = 1, cur = 1;
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = new Date(sorted[i - 1]);
+      const next = new Date(sorted[i]);
+      const diff = Math.round((next.getTime() - prev.getTime()) / (24 * 60 * 60 * 1000));
+      if (diff === 1) { cur += 1; best = Math.max(best, cur); } else { cur = 1; }
+    }
+    if (best >= 7 && (!streak || best > streak.value)) {
+      streak = { id: authorId, value: best };
+    }
+  }
+
+  // 5) Build award rows. Each is null if no winner.
+  const winners = [];
+  if (hottest) winners.push({ award_type: 'hottest', recipient_id: hottest.id, metric: hottest.value });
+  if (topTrack) winners.push({ award_type: 'top_track', recipient_id: topTrack.author_id, metric: topTrack.count, message_id: topTrack.messageId });
+  if (generosity) winners.push({ award_type: 'generosity', recipient_id: generosity.id, metric: generosity.value });
+  if (streak) winners.push({ award_type: 'streak', recipient_id: streak.id, metric: streak.value });
+  return winners;
+}
+
+app.post('/api/award-pack', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
+    const refDate = req.query.month
+      ? new Date(`${req.query.month}-15T00:00:00Z`) // 15th of any day in target month
+      : new Date();
+    const { start, end } = previousMonthRange(refDate);
+    const periodStart = isoDate(start);
+    const periodEnd = isoDate(new Date(end.getTime() - 24 * 60 * 60 * 1000)); // last day of period
+
+    // Idempotency: if any award row exists for this periodStart, return existing.
+    const { data: existing } = await supabase
+      .from('pack_awards')
+      .select('*')
+      .eq('period_start', periodStart);
+    if (existing && existing.length > 0) {
+      return res.json({ period_start: periodStart, awards: existing, alreadyGranted: true });
+    }
+
+    const winners = await computeAwards(supabase, start, end);
+    const granted = [];
+    for (const w of winners) {
+      const cfg = AWARD_CONFIG[w.award_type];
+      const profile = await loadProfile(supabase, w.recipient_id);
+      // Insert award row
+      const { data: row, error: insErr } = await supabase
+        .from('pack_awards')
+        .insert({
+          recipient_id: w.recipient_id,
+          award_type: w.award_type,
+          period_start: periodStart,
+          period_end: periodEnd,
+          credits_granted: cfg.credits,
+          metric: w.metric,
+          message_id: w.message_id || null,
+          recipient_name: profile?.display_name || null,
+          recipient_wolf_id: profile?.wolf_id || null,
+        })
+        .select()
+        .single();
+      if (insErr) {
+        // 23505 = unique violation — another caller raced ahead. Skip.
+        if (insErr.code === '23505') continue;
+        throw insErr;
+      }
+      // Bump wolf_credits on the recipient
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('wolf_credits')
+        .eq('id', w.recipient_id)
+        .maybeSingle();
+      const newCredits = (prof?.wolf_credits || 0) + cfg.credits;
+      await supabase
+        .from('profiles')
+        .update({ wolf_credits: newCredits })
+        .eq('id', w.recipient_id);
+      granted.push(row);
+    }
+
+    res.json({ period_start: periodStart, awards: granted, alreadyGranted: false });
+  } catch (err) {
+    console.error('Award pack error:', err);
+    res.status(500).json({ error: err.message || 'Award failed' });
+  }
+});
+
+app.get('/api/pack-awards', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
+    const { data, error } = await supabase
+      .from('pack_awards')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(req.query.limit ? Math.min(50, parseInt(req.query.limit, 10)) : 12);
+    if (error) throw error;
+    res.json({ awards: data || [] });
+  } catch (err) {
+    console.error('Pack awards list error:', err);
+    res.status(500).json({ error: err.message || 'List failed' });
+  }
+});
+
 // ─── Fallback to index.html (SPA) ────────────────────────────────────────────
 app.get('*', (req, res) => {
   // Try multiple paths (local dev vs Vercel deployment)

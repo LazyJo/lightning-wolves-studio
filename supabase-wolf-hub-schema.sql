@@ -190,6 +190,38 @@ CREATE INDEX IF NOT EXISTS hub_stories_author_created_idx
 CREATE INDEX IF NOT EXISTS hub_stories_expires_idx
   ON hub_stories (expires_at);
 
+-- ── Pack Awards (monthly Lightning rewards) ──────────────────────────────────
+-- One row per (award_type, period_start) so re-running the awarder is a
+-- no-op. credits_granted is the number bumped onto profiles.wolf_credits at
+-- award time. message_id is set for top_track award (links to the winning
+-- track). Reading is public (recognition); writes are service-role only.
+CREATE TABLE IF NOT EXISTS pack_awards (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  recipient_id     UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  award_type       TEXT NOT NULL CHECK (award_type IN ('hottest','top_track','generosity','streak')),
+  period_start     DATE NOT NULL,
+  period_end       DATE NOT NULL,
+  credits_granted  INT  NOT NULL,
+  metric           INT  NOT NULL,
+  message_id       UUID REFERENCES hub_messages(id) ON DELETE SET NULL,
+  recipient_name   TEXT,
+  recipient_wolf_id TEXT,
+  recipient_avatar_url TEXT,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (award_type, period_start)
+);
+CREATE INDEX IF NOT EXISTS pack_awards_recipient_idx
+  ON pack_awards (recipient_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS pack_awards_period_idx
+  ON pack_awards (period_start DESC);
+
+ALTER TABLE pack_awards ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS pack_awards_select ON pack_awards;
+CREATE POLICY pack_awards_select ON pack_awards FOR SELECT USING (true);
+DROP POLICY IF EXISTS pack_awards_service ON pack_awards;
+CREATE POLICY pack_awards_service ON pack_awards
+  FOR ALL USING (auth.role() = 'service_role');
+
 -- ── Row Level Security ───────────────────────────────────────────────────────
 
 ALTER TABLE hub_messages      ENABLE ROW LEVEL SECURITY;

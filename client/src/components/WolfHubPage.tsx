@@ -36,6 +36,7 @@ import PackAwardsBanner, {
   type AwardType,
 } from "./PackAwardsBanner";
 import PackAwardCelebration from "./PackAwardCelebration";
+import StudioNudgeBanner from "./StudioNudgeBanner";
 
 const AWARD_META_LITE: Record<AwardType, { emoji: string; short: string; label: string }> = {
   hottest: { emoji: "🌟", short: "Hottest", label: "Pack Hottest" },
@@ -452,11 +453,12 @@ function timeAgo(iso: string): string {
 interface Props {
   onBack: () => void;
   onAuth: () => void;
+  onTryStudio?: () => void;
   initialRoomId?: string;
   targetMessageId?: string;
 }
 
-export default function WolfHubPage({ onBack, onAuth, initialRoomId, targetMessageId }: Props) {
+export default function WolfHubPage({ onBack, onAuth, onTryStudio, initialRoomId, targetMessageId }: Props) {
   const { session, loading: sessionLoading, signOut } = useSession();
   const { markRead: markHubRead } = useHubNotifications();
   const [tab, setTab] = useState<"chat" | "media" | "profile" | "dms">("chat");
@@ -676,6 +678,7 @@ export default function WolfHubPage({ onBack, onAuth, initialRoomId, targetMessa
         </div>
 
         <PackAwardsBanner onViewUser={openOtherProfile} />
+        {onTryStudio && <StudioNudgeBanner onTryStudio={onTryStudio} />}
         <PackAwardCelebration
           awards={packAwards}
           selfId={profile?.id ?? null}

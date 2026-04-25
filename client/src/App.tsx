@@ -388,6 +388,7 @@ export default function App() {
               <WolfHubPage
                 onBack={goHome}
                 onAuth={goToAuth}
+                onTryStudio={() => goToStudio()}
                 initialRoomId={page.targetRoomId}
                 targetMessageId={page.targetMessageId}
               />

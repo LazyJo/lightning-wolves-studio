@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Loader2, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, Loader2, Volume2, Volume1, VolumeX } from "lucide-react";
 
 interface Props {
   audioUrl: string;
@@ -11,28 +11,40 @@ interface Props {
 // feel like a radio instead of a pile of uncoordinated <audio> tags.
 let currentPlayer: { pause: () => void } | null = null;
 
-// Shared mute state — toggling on any BeatWaveform mutes all of them
-// and the next page load remembers the choice.
-const MUTE_STORAGE_KEY = "lightning-wolves-beats-muted";
-const muteListeners = new Set<(m: boolean) => void>();
-let globalMuted = ((): boolean => {
-  if (typeof window === "undefined") return false;
+// Shared volume state — drag-to-set on any BeatWaveform updates them all
+// and the next page load remembers the choice. 0 = muted; click the icon
+// to toggle 0 ↔ previous non-zero level (Spotify/YouTube pattern).
+const VOLUME_STORAGE_KEY = "lightning-wolves-beats-volume";
+const LEGACY_MUTE_KEY = "lightning-wolves-beats-muted";
+const volumeListeners = new Set<(v: number) => void>();
+let globalVolume = ((): number => {
+  if (typeof window === "undefined") return 1;
   try {
-    return window.localStorage.getItem(MUTE_STORAGE_KEY) === "1";
+    const raw = window.localStorage.getItem(VOLUME_STORAGE_KEY);
+    if (raw !== null) {
+      const n = parseFloat(raw);
+      return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1;
+    }
+    // Legacy migration — respect the old binary mute flag once.
+    if (window.localStorage.getItem(LEGACY_MUTE_KEY) === "1") return 0;
   } catch {
-    return false;
+    /* noop */
   }
+  return 1;
 })();
-function setGlobalMuted(next: boolean) {
-  globalMuted = next;
+let lastNonZeroVolume = globalVolume > 0 ? globalVolume : 1;
+function setGlobalVolume(next: number) {
+  const clamped = Math.min(1, Math.max(0, next));
+  globalVolume = clamped;
+  if (clamped > 0) lastNonZeroVolume = clamped;
   if (typeof window !== "undefined") {
     try {
-      window.localStorage.setItem(MUTE_STORAGE_KEY, next ? "1" : "0");
+      window.localStorage.setItem(VOLUME_STORAGE_KEY, clamped.toString());
     } catch {
       /* noop */
     }
   }
-  muteListeners.forEach((l) => l(next));
+  volumeListeners.forEach((l) => l(clamped));
 }
 
 function fmt(sec: number): string {
@@ -59,24 +71,27 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
   const [error, setError] = useState(false);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-  const [muted, setMuted] = useState<boolean>(globalMuted);
+  const [volume, setVolume] = useState<number>(globalVolume);
+  const [showVolumePopover, setShowVolumePopover] = useState(false);
+  const muted = volume === 0;
 
-  // Subscribe to global mute changes so toggling one player updates all.
+  // Subscribe to global volume changes so dragging the slider on one
+  // player updates all of them.
   useEffect(() => {
-    const listener = (m: boolean) => {
-      setMuted(m);
+    const listener = (v: number) => {
+      setVolume(v);
       const ws = wsRef.current;
       if (ws) {
         try {
-          ws.setVolume(m ? 0 : 1);
+          ws.setVolume(v);
         } catch {
           /* noop */
         }
       }
     };
-    muteListeners.add(listener);
+    volumeListeners.add(listener);
     return () => {
-      muteListeners.delete(listener);
+      volumeListeners.delete(listener);
     };
   }, []);
 
@@ -110,7 +125,7 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
           setReady(true);
           setDuration(ws.getDuration());
           try {
-            ws.setVolume(globalMuted ? 0 : 1);
+            ws.setVolume(globalVolume);
           } catch {
             /* noop */
           }
@@ -204,15 +219,41 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
           <span>{ready ? fmt(duration) : "…"}</span>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => setGlobalMuted(!muted)}
-        title={muted ? "Unmute beats" : "Mute beats"}
-        aria-label={muted ? "Unmute beats" : "Mute beats"}
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-wolf-muted transition-colors hover:bg-white/[0.05] hover:text-white"
+      <div
+        className="relative flex-shrink-0"
+        onMouseEnter={() => setShowVolumePopover(true)}
+        onMouseLeave={() => setShowVolumePopover(false)}
       >
-        {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-      </button>
+        <button
+          type="button"
+          onClick={() => setGlobalVolume(muted ? lastNonZeroVolume : 0)}
+          title={muted ? "Unmute beats" : "Mute beats"}
+          aria-label={muted ? "Unmute beats" : "Mute beats"}
+          className="flex h-7 w-7 items-center justify-center rounded-full text-wolf-muted transition-colors hover:bg-white/[0.05] hover:text-white"
+        >
+          {muted ? <VolumeX size={14} /> : volume < 0.5 ? <Volume1 size={14} /> : <Volume2 size={14} />}
+        </button>
+        {showVolumePopover && (
+          <div className="absolute -top-9 right-0 z-20 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/85 px-2.5 py-1.5 shadow-xl backdrop-blur">
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={volume}
+              onChange={(e) => setGlobalVolume(parseFloat(e.target.value))}
+              aria-label="Beat volume"
+              className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-white/15 accent-wolf-gold"
+              style={{
+                background: `linear-gradient(to right, ${accent} 0%, ${accent} ${volume * 100}%, rgba(255,255,255,0.15) ${volume * 100}%, rgba(255,255,255,0.15) 100%)`,
+              }}
+            />
+            <span className="w-7 text-right text-[10px] font-mono text-wolf-muted">
+              {Math.round(volume * 100)}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

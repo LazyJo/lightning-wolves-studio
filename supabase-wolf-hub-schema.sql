@@ -84,6 +84,27 @@ DROP POLICY IF EXISTS profiles_admin_select_all ON profiles;
 CREATE POLICY profiles_admin_select_all ON profiles
   FOR SELECT USING (is_admin(auth.uid()));
 
+-- Ban flag on profiles + helper. Banned users can still SELECT (they
+-- lurk but lose write access) — INSERT/UPDATE policies on hub tables
+-- check is_banned(auth.uid()) and reject. Admins can flip the flag
+-- via the Members tab; SECURITY DEFINER avoids RLS recursion.
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS banned BOOLEAN NOT NULL DEFAULT FALSE;
+CREATE OR REPLACE FUNCTION public.is_banned(check_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+SET search_path = public
+AS $$
+  SELECT COALESCE((SELECT banned FROM profiles WHERE id = check_id), FALSE);
+$$;
+
+-- Admins can UPDATE any profile (used for ban toggle + role changes).
+-- Owner-only UPDATE policy still applies for self-edits.
+DROP POLICY IF EXISTS profiles_admin_update_all ON profiles;
+CREATE POLICY profiles_admin_update_all ON profiles
+  FOR UPDATE USING (is_admin(auth.uid()));
+
 -- ── Tables ───────────────────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS hub_messages (
@@ -313,7 +334,7 @@ CREATE POLICY hub_msg_select ON hub_messages
 
 DROP POLICY IF EXISTS hub_msg_insert ON hub_messages;
 CREATE POLICY hub_msg_insert ON hub_messages
-  FOR INSERT WITH CHECK (auth.uid() = author_id);
+  FOR INSERT WITH CHECK (auth.uid() = author_id AND NOT is_banned(auth.uid()));
 
 DROP POLICY IF EXISTS hub_msg_update_own ON hub_messages;
 CREATE POLICY hub_msg_update_own ON hub_messages
@@ -338,7 +359,7 @@ CREATE POLICY hub_post_select ON hub_posts
 
 DROP POLICY IF EXISTS hub_post_insert ON hub_posts;
 CREATE POLICY hub_post_insert ON hub_posts
-  FOR INSERT WITH CHECK (auth.uid() = author_id);
+  FOR INSERT WITH CHECK (auth.uid() = author_id AND NOT is_banned(auth.uid()));
 
 DROP POLICY IF EXISTS hub_post_update_own ON hub_posts;
 CREATE POLICY hub_post_update_own ON hub_posts
@@ -363,7 +384,7 @@ CREATE POLICY hub_reaction_select ON hub_reactions
 
 DROP POLICY IF EXISTS hub_reaction_insert ON hub_reactions;
 CREATE POLICY hub_reaction_insert ON hub_reactions
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK (auth.uid() = user_id AND NOT is_banned(auth.uid()));
 
 DROP POLICY IF EXISTS hub_reaction_delete_own ON hub_reactions;
 CREATE POLICY hub_reaction_delete_own ON hub_reactions
@@ -376,7 +397,7 @@ CREATE POLICY hub_like_select ON hub_post_likes
 
 DROP POLICY IF EXISTS hub_like_insert ON hub_post_likes;
 CREATE POLICY hub_like_insert ON hub_post_likes
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK (auth.uid() = user_id AND NOT is_banned(auth.uid()));
 
 DROP POLICY IF EXISTS hub_like_delete_own ON hub_post_likes;
 CREATE POLICY hub_like_delete_own ON hub_post_likes
@@ -389,7 +410,7 @@ CREATE POLICY hub_comment_select ON hub_post_comments
 
 DROP POLICY IF EXISTS hub_comment_insert ON hub_post_comments;
 CREATE POLICY hub_comment_insert ON hub_post_comments
-  FOR INSERT WITH CHECK (auth.uid() = author_id);
+  FOR INSERT WITH CHECK (auth.uid() = author_id AND NOT is_banned(auth.uid()));
 
 DROP POLICY IF EXISTS hub_comment_delete_own ON hub_post_comments;
 CREATE POLICY hub_comment_delete_own ON hub_post_comments
@@ -410,7 +431,7 @@ CREATE POLICY hub_story_select ON hub_stories
 
 DROP POLICY IF EXISTS hub_story_insert ON hub_stories;
 CREATE POLICY hub_story_insert ON hub_stories
-  FOR INSERT WITH CHECK (auth.uid() = author_id);
+  FOR INSERT WITH CHECK (auth.uid() = author_id AND NOT is_banned(auth.uid()));
 
 DROP POLICY IF EXISTS hub_story_delete_own ON hub_stories;
 CREATE POLICY hub_story_delete_own ON hub_stories
@@ -436,7 +457,7 @@ CREATE POLICY hub_dm_select ON hub_dms
 
 DROP POLICY IF EXISTS hub_dm_insert ON hub_dms;
 CREATE POLICY hub_dm_insert ON hub_dms
-  FOR INSERT WITH CHECK (auth.uid() = sender_id);
+  FOR INSERT WITH CHECK (auth.uid() = sender_id AND NOT is_banned(auth.uid()));
 
 DROP POLICY IF EXISTS hub_dm_update_participant ON hub_dms;
 CREATE POLICY hub_dm_update_participant ON hub_dms

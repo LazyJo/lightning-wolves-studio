@@ -14,6 +14,8 @@ import {
   Heart,
   Image as ImageIcon,
   Zap,
+  Ban,
+  RotateCcw,
 } from "lucide-react";
 import { initSupabase } from "../lib/supabaseClient";
 import { useProfile } from "../lib/useProfile";
@@ -29,6 +31,7 @@ interface MemberRow {
   tier: string | null;
   stripe_subscription_id: string | null;
   wolf_credits: number | null;
+  banned: boolean | null;
   created_at: string;
 }
 
@@ -133,7 +136,7 @@ export default function AdminPage({ onBack }: Props) {
         sb
           .from("profiles")
           .select(
-            "id, email, display_name, role, wolf_id, tier, stripe_subscription_id, wolf_credits, created_at"
+            "id, email, display_name, role, wolf_id, tier, stripe_subscription_id, wolf_credits, banned, created_at"
           )
           .order("created_at", { ascending: false }),
         sb.from("hub_posts").select("author_id").is("deleted_at", null),
@@ -294,7 +297,30 @@ export default function AdminPage({ onBack }: Props) {
           </div>
         ) : (
           <>
-            {tab === "members" && <MembersTab members={members} />}
+            {tab === "members" && (
+              <MembersTab
+                members={members}
+                selfId={profile?.id ?? null}
+                onToggleBan={async (id, next) => {
+                  // Optimistic update — flip the row immediately, then
+                  // hit Supabase. Revert on failure.
+                  setMembers((prev) =>
+                    prev.map((m) => (m.id === id ? { ...m, banned: next } : m))
+                  );
+                  const sb = await initSupabase();
+                  if (!sb) return;
+                  const { error } = await sb
+                    .from("profiles")
+                    .update({ banned: next })
+                    .eq("id", id);
+                  if (error) {
+                    setMembers((prev) =>
+                      prev.map((m) => (m.id === id ? { ...m, banned: !next } : m))
+                    );
+                  }
+                }}
+              />
+            )}
             {tab === "subscriptions" && <SubscriptionsTab members={members} />}
             {tab === "hub" && <HubActivityTab members={members} stats={hubStats} />}
             {tab === "studio" && (
@@ -393,7 +419,15 @@ function TierBadge({ tier }: { tier: string | null }) {
 
 /* ─── Members tab ─── */
 
-function MembersTab({ members }: { members: MemberWithCounts[] }) {
+function MembersTab({
+  members,
+  selfId,
+  onToggleBan,
+}: {
+  members: MemberWithCounts[];
+  selfId: string | null;
+  onToggleBan: (id: string, next: boolean) => void;
+}) {
   const [search, setSearch] = useState("");
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -455,6 +489,7 @@ function MembersTab({ members }: { members: MemberWithCounts[] }) {
                   <th className="px-4 py-3 text-right font-medium">Posts</th>
                   <th className="px-4 py-3 text-right font-medium">Msgs</th>
                   <th className="px-4 py-3 text-right font-medium">Joined</th>
+                  <th className="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -476,7 +511,14 @@ function MembersTab({ members }: { members: MemberWithCounts[] }) {
                           >
                             {name.slice(0, 1).toUpperCase()}
                           </div>
-                          <span className="font-semibold text-white">{name}</span>
+                          <span className={`font-semibold ${m.banned ? "text-red-300/80 line-through" : "text-white"}`}>
+                            {name}
+                          </span>
+                          {m.banned && (
+                            <span className="rounded-full border border-red-400/40 bg-red-400/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-red-300">
+                              Banned
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-wolf-muted">
@@ -494,6 +536,39 @@ function MembersTab({ members }: { members: MemberWithCounts[] }) {
                       </td>
                       <td className="px-4 py-3 text-right text-xs text-wolf-muted">
                         {fmtDate(m.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        {m.id === selfId ? (
+                          <span className="text-[10px] uppercase tracking-wider text-wolf-muted/60">
+                            you
+                          </span>
+                        ) : m.role === "admin" && !m.banned ? (
+                          <span className="text-[10px] uppercase tracking-wider text-wolf-muted/60">
+                            admin
+                          </span>
+                        ) : m.banned ? (
+                          <button
+                            onClick={() => onToggleBan(m.id, false)}
+                            title="Restore posting privileges"
+                            className="inline-flex items-center gap-1 rounded-lg border border-green-400/40 bg-green-400/10 px-2.5 py-1 text-[11px] font-semibold text-green-300 transition-all hover:border-green-400/70 hover:bg-green-400/20"
+                          >
+                            <RotateCcw size={11} />
+                            Unban
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Ban ${name}? They'll keep read access but lose posting + reaction rights.`)) {
+                                onToggleBan(m.id, true);
+                              }
+                            }}
+                            title="Block this wolf from posting / reacting / DMing"
+                            className="inline-flex items-center gap-1 rounded-lg border border-red-400/30 bg-red-400/[0.04] px-2.5 py-1 text-[11px] font-semibold text-red-300/80 transition-all hover:border-red-400/60 hover:bg-red-400/15 hover:text-red-300"
+                          >
+                            <Ban size={11} />
+                            Ban
+                          </button>
+                        )}
                       </td>
                     </motion.tr>
                   );

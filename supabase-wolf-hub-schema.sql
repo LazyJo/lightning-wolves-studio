@@ -188,6 +188,12 @@ ALTER TABLE hub_dms ADD CONSTRAINT hub_dms_content_present
 -- visual / other (matches the categorizeGenreText buckets in the client).
 ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS genre TEXT;
 
+-- Per-message language tag (idempotent). Lyrics-language so a French
+-- listener can filter to French tracks regardless of where the artist
+-- is from. Stores one of: en / nl / fr / es / de / pt / instrumental /
+-- other. Only set in #songs (beats are instrumental by default).
+ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS language TEXT;
+
 -- 24-hour stories. RLS filters by expires_at so expired rows disappear
 -- automatically without a cron — cleanup is a nice-to-have, not required.
 CREATE TABLE IF NOT EXISTS hub_stories (

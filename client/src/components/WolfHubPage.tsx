@@ -81,6 +81,23 @@ function categorizeWolfId(wolfId: string | null | undefined): GenreCategory {
   return categorizeGenreText(wolf?.genre);
 }
 
+/* ─── Language tagging (per-track lyrics-language) ─── */
+type LanguageTag = "en" | "nl" | "fr" | "es" | "de" | "pt" | "instrumental" | "other";
+
+const LANGUAGE_CHIPS: { id: LanguageTag | "all"; label: string; flag: string }[] = [
+  { id: "all", label: "All", flag: "🌍" },
+  { id: "en", label: "English", flag: "🇬🇧" },
+  { id: "nl", label: "Dutch", flag: "🇳🇱" },
+  { id: "fr", label: "French", flag: "🇫🇷" },
+  { id: "es", label: "Spanish", flag: "🇪🇸" },
+  { id: "de", label: "German", flag: "🇩🇪" },
+  { id: "pt", label: "Portuguese", flag: "🇵🇹" },
+  { id: "instrumental", label: "Instrumental", flag: "🎼" },
+  { id: "other", label: "Other", flag: "🗣️" },
+];
+
+const VALID_LANGUAGE_TAGS = new Set(LANGUAGE_CHIPS.filter((c) => c.id !== "all").map((c) => c.id));
+
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
 interface HubMessage {
@@ -95,6 +112,7 @@ interface HubMessage {
   song_url?: string | null;
   room_id?: string | null;
   genre?: string | null;
+  language?: string | null;
   created_at: string;
   edited_at?: string | null;
 }
@@ -884,6 +902,8 @@ function ChatView({
   const [achievement, setAchievement] = useState<Achievement | null>(null);
   const [genreFilter, setGenreFilter] = useState<GenreCategory | "all">("all");
   const [composerGenre, setComposerGenre] = useState<GenreCategory>("other");
+  const [langFilter, setLangFilter] = useState<LanguageTag | "all">("all");
+  const [composerLang, setComposerLang] = useState<LanguageTag>("en");
 
   // Default the composer's genre to the wolf's profile genre once profile loads.
   useEffect(() => {
@@ -1196,6 +1216,8 @@ function ChatView({
         // Tag the message with the composer's selected genre when in
         // #songs / #beats — drives the genre filter chips.
         genre: roomId === "songs" || roomId === "beats" ? composerGenre : null,
+        // Lyrics-language only for #songs (beats are instrumental by default).
+        language: roomId === "songs" ? composerLang : null,
       });
     } finally {
       setSending(false);
@@ -1375,10 +1397,17 @@ function ChatView({
     }
     return categorizeWolfId(m.author_wolf_id);
   }
-  const filteredMessages =
-    genreFilter === "all" || roomId === "global"
-      ? messages
-      : messages.filter((m) => messageCategory(m) === genreFilter);
+  const filteredMessages = messages.filter((m) => {
+    if (roomId === "global") return true;
+    if (genreFilter !== "all" && messageCategory(m) !== genreFilter) return false;
+    if (langFilter !== "all" && roomId === "songs") {
+      const lang = m.language && VALID_LANGUAGE_TAGS.has(m.language as LanguageTag)
+        ? (m.language as LanguageTag)
+        : "other";
+      if (lang !== langFilter) return false;
+    }
+    return true;
+  });
 
   return (
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
@@ -1460,7 +1489,7 @@ function ChatView({
         </div>
       )}
       {(roomId === "songs" || roomId === "beats") && (
-        <div className="flex flex-wrap gap-1.5 px-4 pb-2 pt-1">
+        <div className="flex flex-wrap gap-1.5 px-4 pb-1 pt-1">
           {GENRE_CHIPS.map((chip) => {
             const active = genreFilter === chip.id;
             return (
@@ -1478,11 +1507,36 @@ function ChatView({
               </button>
             );
           })}
-          {genreFilter !== "all" && filteredMessages.length === 0 && messages.length > 0 && (
-            <span className="self-center pl-2 text-[11px] text-wolf-muted">
-              · no {GENRE_CHIPS.find((c) => c.id === genreFilter)?.label} drops yet
-            </span>
-          )}
+        </div>
+      )}
+      {roomId === "songs" && (
+        <div className="flex flex-wrap items-center gap-1.5 px-4 pb-2 pt-0">
+          {LANGUAGE_CHIPS.map((chip) => {
+            const active = langFilter === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => setLangFilter(chip.id)}
+                className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-all ${
+                  active
+                    ? "border-[#f5c518]/55 bg-[#f5c518]/15 text-white"
+                    : "border-white/10 bg-white/[0.03] text-wolf-muted hover:border-white/20 hover:text-white"
+                }`}
+                title={chip.label}
+              >
+                <span>{chip.flag}</span>
+                <span>{chip.label}</span>
+              </button>
+            );
+          })}
+          {(genreFilter !== "all" || langFilter !== "all") &&
+            filteredMessages.length === 0 &&
+            messages.length > 0 && (
+              <span className="self-center pl-2 text-[11px] text-wolf-muted">
+                · nothing matches yet
+              </span>
+            )}
         </div>
       )}
       <div
@@ -1921,6 +1975,20 @@ function ChatView({
               {GENRE_CHIPS.filter((c) => c.id !== "all").map((c) => (
                 <option key={c.id} value={c.id} className="bg-wolf-card">
                   {c.label}
+                </option>
+              ))}
+            </select>
+          )}
+          {roomId === "songs" && (
+            <select
+              value={composerLang}
+              onChange={(e) => setComposerLang(e.target.value as LanguageTag)}
+              title="Lyrics language"
+              className="flex-shrink-0 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-xs font-semibold text-white transition-all hover:border-[#f5c518]/40 focus:border-[#f5c518]/60 focus:outline-none"
+            >
+              {LANGUAGE_CHIPS.filter((c) => c.id !== "all").map((c) => (
+                <option key={c.id} value={c.id} className="bg-wolf-card">
+                  {c.flag} {c.label}
                 </option>
               ))}
             </select>

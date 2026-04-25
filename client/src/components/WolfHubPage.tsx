@@ -26,6 +26,11 @@ import { RatingBurst, ratingKindFromEmoji, type RatingKind } from "./RatingBurst
 import BeatWaveform from "./BeatWaveform";
 import LightningTicker from "./LightningTicker";
 import ShareTrackButton from "./ShareTrackButton";
+import LightningAchievement, {
+  type Achievement,
+  readCelebrated,
+  markCelebrated,
+} from "./LightningAchievement";
 
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
@@ -755,11 +760,71 @@ function ChatView({
   const [burst, setBurst] = useState<{ kind: RatingKind; id: number } | null>(null);
   const [internalTarget, setInternalTarget] = useState<string | null>(null);
   const activeTargetId = internalTarget || targetMessageId;
+  const [achievement, setAchievement] = useState<Achievement | null>(null);
 
   function jumpToMessage(messageId: string, newRoomId: string) {
     setRoomId(newRoomId);
     setInternalTarget(messageId);
   }
+
+  // Listen for ⚡⚡ inserts on my own song/beat messages. When a message
+  // first crosses Lightning status (3+ bolts), pop a celebratory toast.
+  useEffect(() => {
+    if (!profile) return;
+    const sb = getSupabase();
+    if (!sb) return;
+    const sub = sb
+      .channel("lightning-achievement")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "hub_reactions" },
+        async (payload) => {
+          const r = payload.new as { message_id: string; emoji: string };
+          if (r.emoji !== "⚡⚡") return;
+          if (readCelebrated().has(r.message_id)) return;
+          const { data: msg } = await sb
+            .from("hub_messages")
+            .select("id,author_id,song_url,audio_url,room_id,body,deleted_at")
+            .eq("id", r.message_id)
+            .maybeSingle();
+          if (!msg || msg.deleted_at) return;
+          if (msg.author_id !== profile.id) return;
+          const isSong = !!msg.song_url;
+          const isBeat = !!msg.audio_url && msg.room_id === "beats";
+          if (!isSong && !isBeat) return;
+          const { count } = await sb
+            .from("hub_reactions")
+            .select("id", { count: "exact", head: true })
+            .eq("message_id", r.message_id)
+            .eq("emoji", "⚡⚡");
+          if (!count || count < 3) return;
+          if (readCelebrated().has(r.message_id)) return;
+          markCelebrated(r.message_id);
+          const title = msg.song_url
+            ? (() => {
+                try {
+                  const u = new URL(msg.song_url as string);
+                  if (u.hostname.endsWith("spotify.com")) return "your Spotify track";
+                  if (u.hostname.endsWith("music.apple.com")) return "your Apple Music track";
+                } catch {
+                  /* noop */
+                }
+                return "your track";
+              })()
+            : (msg.body || "your beat").replace(/^🎵\s*/, "").trim() || "your beat";
+          setAchievement({
+            messageId: r.message_id,
+            roomId: isSong ? "songs" : "beats",
+            title,
+            bolts: count,
+          });
+        }
+      )
+      .subscribe();
+    return () => {
+      sub.unsubscribe();
+    };
+  }, [profile?.id]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
@@ -1127,6 +1192,11 @@ function ChatView({
   return (
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
       <RatingBurst kind={burst?.kind ?? null} />
+      <LightningAchievement
+        achievement={achievement}
+        onDismiss={() => setAchievement(null)}
+        onJumpTo={jumpToMessage}
+      />
       <div className="px-3 pt-3 sm:px-4">
         <LightningTicker onJumpTo={jumpToMessage} />
       </div>

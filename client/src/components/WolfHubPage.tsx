@@ -94,6 +94,7 @@ interface HubMessage {
   audio_url?: string | null;
   song_url?: string | null;
   room_id?: string | null;
+  genre?: string | null;
   created_at: string;
   edited_at?: string | null;
 }
@@ -243,18 +244,20 @@ function wolfAccent(wolfId: string | null): string {
 
 /* ─── Song link parsing (Spotify + Apple Music) ─── */
 
-// Pulls the first Spotify or Apple Music URL out of a message body.
-// Returns the raw URL so we can both store it + derive an embed src.
+// Pulls the first supported track URL out of a message body. Wolves can
+// paste any provider — Spotify, Apple Music, YouTube, SoundCloud, BeatStars
+// — and we render the right embed. Single shared regex so the URL is also
+// stored on hub_messages.song_url for leaderboards / Spotlight.
 function extractSongLink(body: string | null | undefined): string | null {
   if (!body) return null;
   const match = body.match(
-    /\bhttps?:\/\/(?:open\.spotify\.com|music\.apple\.com)\/[^\s]+/i
+    /\bhttps?:\/\/(?:open\.spotify\.com|music\.apple\.com|(?:www\.)?youtube\.com|youtu\.be|(?:www\.|m\.)?soundcloud\.com|(?:www\.|main\.v2\.)?beatstars\.com)\/[^\s]+/i
   );
   return match ? match[0] : null;
 }
 
 interface SongEmbed {
-  provider: "spotify" | "apple";
+  provider: "spotify" | "apple" | "youtube" | "soundcloud" | "beatstars";
   src: string;
   height: number;
 }
@@ -285,6 +288,45 @@ function buildSongEmbed(url: string): SongEmbed | null {
         provider: "apple",
         src: embedUrl.toString(),
         height: isSong ? 175 : 450,
+      };
+    }
+    // YouTube — match watch?v=, youtu.be/, /shorts/, /embed/.
+    if (u.hostname.endsWith("youtube.com") || u.hostname === "youtu.be") {
+      let videoId: string | null = null;
+      if (u.hostname === "youtu.be") {
+        videoId = u.pathname.split("/").filter(Boolean)[0] || null;
+      } else if (u.pathname === "/watch") {
+        videoId = u.searchParams.get("v");
+      } else {
+        const m = u.pathname.match(/^\/(?:shorts|embed|live|v)\/([\w-]{6,})/);
+        videoId = m ? m[1] : null;
+      }
+      if (!videoId) return null;
+      return {
+        provider: "youtube",
+        src: `https://www.youtube.com/embed/${videoId}?rel=0`,
+        height: 200,
+      };
+    }
+    // SoundCloud — wrap any soundcloud.com URL in their player iframe.
+    if (u.hostname.endsWith("soundcloud.com")) {
+      const playerUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(
+        url
+      )}&color=%23f5c518&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&show_teaser=false&visual=false`;
+      return { provider: "soundcloud", src: playerUrl, height: 166 };
+    }
+    // BeatStars — track pages look like /<artist>/<slug>-<id> or /track/<id>;
+    // the embed is at main.v2.beatstars.com/embed/track?id=<numericId>.
+    if (u.hostname.endsWith("beatstars.com")) {
+      // Try to extract the numeric track id from the path or query.
+      const idFromPath = u.pathname.match(/(\d{5,})/);
+      const idFromQuery = u.searchParams.get("trackid") || u.searchParams.get("id");
+      const id = idFromPath ? idFromPath[1] : idFromQuery;
+      if (!id) return null;
+      return {
+        provider: "beatstars",
+        src: `https://main.v2.beatstars.com/embed/track?id=${id}`,
+        height: 200,
       };
     }
   } catch {
@@ -841,6 +883,14 @@ function ChatView({
   const activeTargetId = internalTarget || targetMessageId;
   const [achievement, setAchievement] = useState<Achievement | null>(null);
   const [genreFilter, setGenreFilter] = useState<GenreCategory | "all">("all");
+  const [composerGenre, setComposerGenre] = useState<GenreCategory>("other");
+
+  // Default the composer's genre to the wolf's profile genre once profile loads.
+  useEffect(() => {
+    if (profile?.wolf_id) {
+      setComposerGenre(categorizeWolfId(profile.wolf_id));
+    }
+  }, [profile?.wolf_id]);
   const [howtoDismissed, setHowtoDismissed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -1143,6 +1193,9 @@ function ChatView({
         // Only capture song_url in the #songs room so Spotify / Apple
         // embeds don't leak into #general or #beats.
         song_url: roomId === "songs" ? extractSongLink(body) : null,
+        // Tag the message with the composer's selected genre when in
+        // #songs / #beats — drives the genre filter chips.
+        genre: roomId === "songs" || roomId === "beats" ? composerGenre : null,
       });
     } finally {
       setSending(false);
@@ -1313,11 +1366,19 @@ function ChatView({
   const activeRoom = HUB_ROOMS.find((r) => r.id === roomId) || HUB_ROOMS[0];
 
   // Filter the rendered list by selected genre when in #songs / #beats.
-  // #general ignores the filter (text-only chat).
+  // #general ignores the filter (text-only chat). Per-message genre wins
+  // (set explicitly by the composer); falls back to the author's wolf
+  // category for older messages without a stored genre.
+  function messageCategory(m: HubMessage): GenreCategory {
+    if (m.genre && (GENRE_CHIPS as { id: string }[]).some((c) => c.id === m.genre)) {
+      return m.genre as GenreCategory;
+    }
+    return categorizeWolfId(m.author_wolf_id);
+  }
   const filteredMessages =
     genreFilter === "all" || roomId === "global"
       ? messages
-      : messages.filter((m) => categorizeWolfId(m.author_wolf_id) === genreFilter);
+      : messages.filter((m) => messageCategory(m) === genreFilter);
 
   return (
     <div className="rounded-2xl border border-white/10 bg-wolf-card/40 backdrop-blur-sm">
@@ -1850,6 +1911,20 @@ function ChatView({
             rows={1}
             className="min-h-[40px] max-h-32 flex-1 resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-wolf-muted/60 focus:border-[#9b6dff]/40 focus:outline-none"
           />
+          {(roomId === "songs" || roomId === "beats") && (
+            <select
+              value={composerGenre}
+              onChange={(e) => setComposerGenre(e.target.value as GenreCategory)}
+              title="Genre tag for this drop"
+              className="flex-shrink-0 rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-xs font-semibold text-white transition-all hover:border-[#f5c518]/40 focus:border-[#f5c518]/60 focus:outline-none"
+            >
+              {GENRE_CHIPS.filter((c) => c.id !== "all").map((c) => (
+                <option key={c.id} value={c.id} className="bg-wolf-card">
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             onClick={handleSendText}
             disabled={!draft.trim() || sending}

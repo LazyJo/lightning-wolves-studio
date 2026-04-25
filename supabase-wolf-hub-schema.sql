@@ -182,6 +182,12 @@ ALTER TABLE hub_dms DROP CONSTRAINT IF EXISTS hub_dms_content_present;
 ALTER TABLE hub_dms ADD CONSTRAINT hub_dms_content_present
   CHECK (body IS NOT NULL OR image_url IS NOT NULL OR audio_url IS NOT NULL);
 
+-- Per-message genre tag (idempotent). The filter chips on #songs / #beats
+-- read this column when present, falling back to the author's wolf-genre
+-- category. Stores one of: hiphop / pop / electronic / rnb / country /
+-- visual / other (matches the categorizeGenreText buckets in the client).
+ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS genre TEXT;
+
 -- 24-hour stories. RLS filters by expires_at so expired rows disappear
 -- automatically without a cron — cleanup is a nice-to-have, not required.
 CREATE TABLE IF NOT EXISTS hub_stories (

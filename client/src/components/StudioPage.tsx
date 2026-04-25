@@ -59,6 +59,10 @@ interface Props {
   onWolfMap?: () => void;
   studioView?: string;
   onStudioNav?: (view: string) => void;
+  // Hub → Studio per-beat conversion: when set, mount the template
+  // editor with the audio prefetched from this URL.
+  initialAudioUrl?: string;
+  initialAudioName?: string;
 }
 
 type View =
@@ -574,7 +578,7 @@ const LYRIC_VIDEO_MODES: View[] = ["scenes", "remix", "performance"];
 type PendingMode = "scenes" | "remix" | "performance" | null;
 
 // Main Studio Page
-export default function StudioPage({ wolf, onBack, onWolfMap, studioView: externalView, onStudioNav }: Props) {
+export default function StudioPage({ wolf, onBack, onWolfMap, studioView: externalView, onStudioNav, initialAudioUrl, initialAudioName }: Props) {
   const [internalView, setInternalView] = useState<View>("dashboard");
 
   // LYRC-style Template flow — one upload, many renders.
@@ -582,6 +586,11 @@ export default function StudioPage({ wolf, onBack, onWolfMap, studioView: extern
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [pendingMode, setPendingMode] = useState<PendingMode>(null);
   const [showTemplateReady, setShowTemplateReady] = useState(false);
+  // Audio prefilled from a Hub beat — consumed once on mount, then
+  // cleared so a "Back to Dashboard" doesn't re-trigger the fetch.
+  const [prefillAudio, setPrefillAudio] = useState<{ url: string; name: string } | null>(
+    initialAudioUrl ? { url: initialAudioUrl, name: initialAudioName || "beat" } : null
+  );
 
   // Use external view state if provided (from App.tsx via Navbar), otherwise internal
   const view = (externalView as View) || internalView;
@@ -589,6 +598,15 @@ export default function StudioPage({ wolf, onBack, onWolfMap, studioView: extern
     if (onStudioNav) onStudioNav(v);
     else setInternalView(v);
   };
+
+  // When opened from Hub with a prefill, bounce straight into the
+  // template editor so the user sees their beat ready to lyric-ify.
+  useEffect(() => {
+    if (!prefillAudio) return;
+    setEditingTemplate(null);
+    setView("template-editor");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillAudio?.url]);
 
   // When the Dashboard asks for a mode tile, bounce through the Templates
   // list first (LYRC's 3-step setup lives on the template, not the mode).
@@ -675,9 +693,12 @@ export default function StudioPage({ wolf, onBack, onWolfMap, studioView: extern
         ) : view === "template-editor" ? (
           <TemplateEditor
             initial={editingTemplate}
+            prefillAudioUrl={!editingTemplate ? prefillAudio?.url : undefined}
+            prefillAudioName={!editingTemplate ? prefillAudio?.name : undefined}
             wolf={wolf ? { artist: wolf.artist, genre: wolf.genre, id: wolf.id } : null}
             onBack={() => {
               setEditingTemplate(null);
+              setPrefillAudio(null);
               setView("templates");
             }}
             onSaved={(tpl) => {

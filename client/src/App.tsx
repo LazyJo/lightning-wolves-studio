@@ -38,7 +38,7 @@ type Page =
   | { type: "pricing" }
   | { type: "wolf-map" }
   | { type: "wolf-hub"; targetMessageId?: string; targetRoomId?: string }
-  | { type: "studio"; wolf: Wolf | null }
+  | { type: "studio"; wolf: Wolf | null; initialAudioUrl?: string; initialAudioName?: string }
   | { type: "auth" }
   | { type: "join-pack" }
   | { type: "create-profile"; pendingApplyGigId?: string }
@@ -199,6 +199,14 @@ export default function App() {
     setPage({ type: "studio", wolf: wolf || null });
     setStudioView("dashboard");
     if (wolf) setWolfColor(wolf.color);
+    window.scrollTo(0, 0);
+  }, []);
+
+  // Hub → Studio per-beat conversion: open Studio with a prefilled audio
+  // URL so the template editor can hydrate it on mount.
+  const goToStudioWithAudio = useCallback((audio: { url: string; name: string }) => {
+    setPage({ type: "studio", wolf: null, initialAudioUrl: audio.url, initialAudioName: audio.name });
+    setStudioView("dashboard");
     window.scrollTo(0, 0);
   }, []);
 
@@ -389,6 +397,7 @@ export default function App() {
                 onBack={goHome}
                 onAuth={goToAuth}
                 onTryStudio={() => goToStudio()}
+                onMakeLyricVideo={goToStudioWithAudio}
                 initialRoomId={page.targetRoomId}
                 targetMessageId={page.targetMessageId}
               />
@@ -397,6 +406,8 @@ export default function App() {
             {page.type === "studio" && (
               <StudioPage
                 wolf={page.wolf}
+                initialAudioUrl={page.initialAudioUrl}
+                initialAudioName={page.initialAudioName}
                 onBack={goHome}
                 onWolfMap={goToWolfMap}
                 studioView={studioView}

@@ -454,11 +454,12 @@ interface Props {
   onBack: () => void;
   onAuth: () => void;
   onTryStudio?: () => void;
+  onMakeLyricVideo?: (audio: { url: string; name: string }) => void;
   initialRoomId?: string;
   targetMessageId?: string;
 }
 
-export default function WolfHubPage({ onBack, onAuth, onTryStudio, initialRoomId, targetMessageId }: Props) {
+export default function WolfHubPage({ onBack, onAuth, onTryStudio, onMakeLyricVideo, initialRoomId, targetMessageId }: Props) {
   const { session, loading: sessionLoading, signOut } = useSession();
   const { markRead: markHubRead } = useHubNotifications();
   const [tab, setTab] = useState<"chat" | "media" | "profile" | "dms">("chat");
@@ -692,6 +693,7 @@ export default function WolfHubPage({ onBack, onAuth, onTryStudio, initialRoomId
             isAdmin={profile?.role === "admin"}
             initialRoomId={initialRoomId}
             targetMessageId={targetMessageId}
+            onMakeLyricVideo={onMakeLyricVideo}
           />
         )}
         {tab === "media" && (
@@ -916,12 +918,14 @@ function ChatView({
   isAdmin,
   initialRoomId,
   targetMessageId,
+  onMakeLyricVideo,
 }: {
   profile: Profile | null;
   onViewUser: (userId: string) => void;
   isAdmin: boolean;
   initialRoomId?: string;
   targetMessageId?: string;
+  onMakeLyricVideo?: (audio: { url: string; name: string }) => void;
 }) {
   const [messages, setMessages] = useState<HubMessage[]>([]);
   const [reactions, setReactions] = useState<Map<string, HubReaction[]>>(new Map());
@@ -1779,6 +1783,21 @@ function ChatView({
                                       url={m.audio_url}
                                       title={(m.body || "beat").replace(/^🎵\s*/, "").trim()}
                                     />
+                                  )}
+                                  {m.audio_url && onMakeLyricVideo && (
+                                    <button
+                                      onClick={() =>
+                                        onMakeLyricVideo({
+                                          url: m.audio_url!,
+                                          name: (m.body || "beat").replace(/^🎵\s*/, "").trim() || "beat",
+                                        })
+                                      }
+                                      className="inline-flex items-center gap-1.5 rounded-full border border-wolf-gold/40 bg-gradient-to-r from-wolf-gold/15 to-wolf-amber/10 px-2.5 py-1 text-xs font-semibold text-wolf-gold transition-all hover:border-wolf-gold/70 hover:bg-wolf-gold/25"
+                                      title="Open this beat in Studio as a lyric video starting point"
+                                    >
+                                      <span className="text-sm">🎬</span>
+                                      <span>Make lyric video</span>
+                                    </button>
                                   )}
                                 </div>
                               );

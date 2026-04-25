@@ -27,6 +27,10 @@ interface Props {
   onSaved: (t: Template) => void;
   initial?: Template | null;
   wolf?: { artist: string; genre: string; id: string } | null;
+  // Hub → Studio handoff: a remote audio URL to prefetch as the
+  // starting point. Skipped when `initial` is set (editing existing).
+  prefillAudioUrl?: string;
+  prefillAudioName?: string;
 }
 
 /* ─── Color tokens — Lightning Wolves brand palette ──────────────────── */
@@ -53,8 +57,10 @@ type LyricsState = "pending" | "loading" | "ready" | "error";
 
 const DURATIONS = [15, 20, 25, 30] as const;
 
-export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props) {
+export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefillAudioUrl, prefillAudioName }: Props) {
   const { create } = useTemplates();
+  const [prefillFetching, setPrefillFetching] = useState(false);
+  const [prefillError, setPrefillError] = useState<string>("");
 
   /* ── Audio ───────────────────────────────────────────────────────── */
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -134,6 +140,41 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
       el.removeEventListener("pause", onPause);
     };
   }, [audioUrl]);
+
+  // Hub → Studio prefill: when launched with a remote audio URL,
+  // download the file and feed it into the normal upload flow so the
+  // rest of the editor (transcribe, markers, save) just works.
+  useEffect(() => {
+    if (!prefillAudioUrl || initial || audioFile || prefillFetching) return;
+    let cancelled = false;
+    setPrefillFetching(true);
+    setPrefillError("");
+    (async () => {
+      try {
+        const res = await fetch(prefillAudioUrl);
+        if (!res.ok) throw new Error(`Could not load that beat (HTTP ${res.status})`);
+        const blob = await res.blob();
+        if (cancelled) return;
+        const ext = (blob.type.split("/")[1] || "mp3").split(";")[0];
+        const safeName = (prefillAudioName || "beat").replace(/[^a-zA-Z0-9-_ .]/g, "").trim() || "beat";
+        const file = new File([blob], `${safeName}.${ext}`, {
+          type: blob.type || "audio/mpeg",
+        });
+        handleFile(file);
+        if (!saveName) setSaveName(safeName);
+      } catch (err) {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : "Could not load that beat";
+        setPrefillError(`${msg}. Upload it manually below.`);
+      } finally {
+        if (!cancelled) setPrefillFetching(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillAudioUrl]);
 
   /* ── Confirm selection (kicks off transcription) ─────────────────── */
   const handleConfirmSelection = () => {
@@ -342,7 +383,18 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
           activeColor={C.gold}
           icon={<Music2 size={16} />}
         >
-          {!audioUrl ? (
+          {prefillFetching ? (
+            <div
+              className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-12 text-sm text-wolf-muted"
+              style={{ borderColor: `${C.gold}40` }}
+            >
+              <Loader2 size={24} className="animate-spin" style={{ color: C.gold }} />
+              <span className="font-semibold text-white">
+                Loading your beat from the Hub…
+              </span>
+              <span className="text-[10px] opacity-60">{prefillAudioName}</span>
+            </div>
+          ) : !audioUrl ? (
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-4 py-12 text-sm text-wolf-muted transition-all hover:text-white"
@@ -352,6 +404,11 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf }: Props
               <span className="font-semibold text-white">Drop audio or click</span>
               <span className="text-[10px] opacity-60">MP3, WAV, M4A up to 100MB</span>
               <span className="text-[10px] opacity-60">Minimum 15s, select 15-30s clip</span>
+              {prefillError && (
+                <span className="mt-2 max-w-xs text-[10px] text-red-300/80">
+                  {prefillError}
+                </span>
+              )}
             </button>
           ) : (
             <div className="space-y-3">

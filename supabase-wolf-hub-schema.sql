@@ -194,6 +194,40 @@ ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS genre TEXT;
 -- other. Only set in #songs (beats are instrumental by default).
 ALTER TABLE hub_messages ADD COLUMN IF NOT EXISTS language TEXT;
 
+-- Profile platform links — wolves can list where to find them on
+-- streaming + social platforms, plus one free-form bio URL (the
+-- Instagram-style link). Live follower counts will land in a separate
+-- table later; these columns just hold the URL strings.
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio_url         TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS spotify_url     TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS apple_music_url TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS youtube_url     TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS soundcloud_url  TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS beatstars_url   TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS instagram_url   TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS tiktok_url      TEXT;
+
+-- Public-facing slice of profiles. The base table's SELECT policy is
+-- locked to the owner so email + role aren't leaked; this view exposes
+-- only the columns wolves want public on their profile (display name,
+-- avatar, platform links). Authenticated and anon roles can SELECT.
+CREATE OR REPLACE VIEW public_profiles AS
+SELECT
+  id,
+  display_name,
+  wolf_id,
+  avatar_url,
+  bio_url,
+  spotify_url,
+  apple_music_url,
+  youtube_url,
+  soundcloud_url,
+  beatstars_url,
+  instagram_url,
+  tiktok_url
+FROM profiles;
+GRANT SELECT ON public_profiles TO anon, authenticated;
+
 -- 24-hour stories. RLS filters by expires_at so expired rows disappear
 -- automatically without a cron — cleanup is a nice-to-have, not required.
 CREATE TABLE IF NOT EXISTS hub_stories (

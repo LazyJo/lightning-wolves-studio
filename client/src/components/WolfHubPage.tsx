@@ -175,7 +175,40 @@ interface Profile {
   email: string | null;
   avatar_url: string | null;
   role?: string | null;
+  bio_url?: string | null;
+  spotify_url?: string | null;
+  apple_music_url?: string | null;
+  youtube_url?: string | null;
+  soundcloud_url?: string | null;
+  beatstars_url?: string | null;
+  instagram_url?: string | null;
+  tiktok_url?: string | null;
 }
+
+// Platform pill metadata. Order = display order on the profile.
+const PROFILE_PLATFORMS: {
+  field: keyof Pick<
+    Profile,
+    | "spotify_url"
+    | "apple_music_url"
+    | "youtube_url"
+    | "soundcloud_url"
+    | "beatstars_url"
+    | "instagram_url"
+    | "tiktok_url"
+  >;
+  label: string;
+  emoji: string;
+  placeholder: string;
+}[] = [
+  { field: "spotify_url",     label: "Spotify",     emoji: "🟢", placeholder: "https://open.spotify.com/artist/…" },
+  { field: "apple_music_url", label: "Apple Music", emoji: "🍎", placeholder: "https://music.apple.com/artist/…" },
+  { field: "youtube_url",     label: "YouTube",     emoji: "📺", placeholder: "https://youtube.com/@…" },
+  { field: "soundcloud_url",  label: "SoundCloud",  emoji: "☁️", placeholder: "https://soundcloud.com/…" },
+  { field: "beatstars_url",   label: "BeatStars",   emoji: "🥁", placeholder: "https://www.beatstars.com/…" },
+  { field: "instagram_url",   label: "Instagram",   emoji: "📷", placeholder: "https://instagram.com/…" },
+  { field: "tiktok_url",      label: "TikTok",      emoji: "🎵", placeholder: "https://tiktok.com/@…" },
+];
 
 /* ─── Helpers ─── */
 
@@ -491,7 +524,9 @@ export default function WolfHubPage({ onBack, onAuth, initialRoomId, targetMessa
       if (!sb || cancelled) return;
       const { data } = await sb
         .from("profiles")
-        .select("id, display_name, wolf_id, email, avatar_url, role")
+        .select(
+          "id, display_name, wolf_id, email, avatar_url, role, bio_url, spotify_url, apple_music_url, youtube_url, soundcloud_url, beatstars_url, instagram_url, tiktok_url"
+        )
         .eq("id", session.user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -2933,9 +2968,35 @@ function ProfileView({
   const [lightningReceived, setLightningReceived] = useState(0);
   const [lightningGiven, setLightningGiven] = useState(0);
   const [profileAwards, setProfileAwards] = useState<PackAward[]>([]);
+  const [profilePublic, setProfilePublic] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [openPost, setOpenPost] = useState<HubPost | null>(null);
+
+  // Pull the public slice of this wolf's profile so we can render their
+  // bio link + platform URLs even when viewing another wolf (the base
+  // profiles table is RLS-locked to the owner; the public_profiles view
+  // exposes only the safe public columns).
+  useEffect(() => {
+    if (!targetId) return;
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("public_profiles")
+        .select(
+          "id, display_name, wolf_id, avatar_url, bio_url, spotify_url, apple_music_url, youtube_url, soundcloud_url, beatstars_url, instagram_url, tiktok_url"
+        )
+        .eq("id", targetId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setProfilePublic(data as Profile);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [targetId]);
 
   // Pull this wolf's pack awards (server endpoint returns recent ones).
   useEffect(() => {
@@ -3194,6 +3255,51 @@ function ProfileView({
             )}
           </div>
         </div>
+        {(() => {
+          // Source of truth for the public-facing fields. Own profile reads
+          // straight from props; other wolves come through the public_profiles
+          // view fetched above.
+          const publicData: Profile | null = isOwn ? profile : profilePublic;
+          const bioHref = publicData?.bio_url || null;
+          const platformLinks = PROFILE_PLATFORMS.filter(
+            (p) => !!publicData?.[p.field]
+          );
+          if (!bioHref && platformLinks.length === 0) return null;
+          return (
+            <div className="mt-4 space-y-2">
+              {bioHref && (
+                <a
+                  href={bioHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 rounded-lg border border-[#f5c518]/30 bg-[#f5c518]/[0.06] px-4 py-2 text-sm font-semibold text-[#f5c518] transition-all hover:border-[#f5c518]/60 hover:bg-[#f5c518]/10"
+                >
+                  🌐 <span className="truncate">{bioHref.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>
+                </a>
+              )}
+              {platformLinks.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {platformLinks.map((p) => {
+                    const url = publicData?.[p.field] as string;
+                    return (
+                      <a
+                        key={p.field}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`${p.label} →`}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:bg-[#9b6dff]/[0.05]"
+                      >
+                        <span>{p.emoji}</span>
+                        <span>{p.label}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
         {isOwn ? (
           <button
             onClick={() => setEditing(true)}
@@ -3332,6 +3438,14 @@ function EditProfileModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [bioUrl, setBioUrl] = useState<string>(profile.bio_url || "");
+  const [platformUrls, setPlatformUrls] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    PROFILE_PLATFORMS.forEach((p) => {
+      init[p.field] = (profile[p.field] as string | null) || "";
+    });
+    return init;
+  });
 
   async function uploadAvatarBlob(blob: Blob) {
     setUploadingAvatar(true);
@@ -3371,9 +3485,24 @@ function EditProfileModal({
         setError("Connection error — try again.");
         return;
       }
+      // Normalise empty strings to null so the column stays clean.
+      const norm = (s: string) => {
+        const t = s.trim();
+        return t.length === 0 ? null : t;
+      };
+      const platformPatch: Record<string, string | null> = {};
+      PROFILE_PLATFORMS.forEach((p) => {
+        platformPatch[p.field] = norm(platformUrls[p.field] || "");
+      });
       const { error: err } = await sb
         .from("profiles")
-        .update({ display_name: trimmed, wolf_id: wolfId, avatar_url: avatarUrl })
+        .update({
+          display_name: trimmed,
+          wolf_id: wolfId,
+          avatar_url: avatarUrl,
+          bio_url: norm(bioUrl),
+          ...platformPatch,
+        })
         .eq("id", profile.id);
       if (err) {
         setError(err.message);
@@ -3399,7 +3528,18 @@ function EditProfileModal({
           .update({ author_name: trimmed, author_wolf_id: wolfId, author_avatar_url: avatarUrl })
           .eq("author_id", profile.id),
       ]);
-      onSaved({ ...profile, display_name: trimmed, wolf_id: wolfId, avatar_url: avatarUrl });
+      const updated: Profile = {
+        ...profile,
+        display_name: trimmed,
+        wolf_id: wolfId,
+        avatar_url: avatarUrl,
+        bio_url: norm(bioUrl),
+      };
+      PROFILE_PLATFORMS.forEach((p) => {
+        (updated as unknown as Record<string, string | null>)[p.field] =
+          platformPatch[p.field];
+      });
+      onSaved(updated);
     } finally {
       setSaving(false);
     }
@@ -3519,6 +3659,48 @@ function EditProfileModal({
                   </div>
                   <span className="text-xs text-white">{w.label}</span>
                 </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
+              Bio link
+            </label>
+            <input
+              value={bioUrl}
+              onChange={(e) => setBioUrl(e.target.value)}
+              type="url"
+              placeholder="https://your-website.com or Linktree…"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white focus:border-[#9b6dff]/40 focus:outline-none"
+            />
+            <p className="mt-1 text-[10px] text-wolf-muted">
+              One link the pack can tap from your profile (Linktree, merch, your site).
+            </p>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
+              Find me on
+            </label>
+            <div className="grid gap-2">
+              {PROFILE_PLATFORMS.map((p) => (
+                <div key={p.field} className="flex items-center gap-2">
+                  <span
+                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-base"
+                    title={p.label}
+                  >
+                    {p.emoji}
+                  </span>
+                  <input
+                    value={platformUrls[p.field] || ""}
+                    onChange={(e) =>
+                      setPlatformUrls((prev) => ({ ...prev, [p.field]: e.target.value }))
+                    }
+                    type="url"
+                    placeholder={p.placeholder}
+                    aria-label={`${p.label} URL`}
+                    className="flex-1 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white placeholder:text-wolf-muted/50 focus:border-[#9b6dff]/40 focus:outline-none"
+                  />
+                </div>
               ))}
             </div>
           </div>

@@ -30,6 +30,7 @@ import LightningAchievement, {
   type Achievement,
   consumeNextTier,
 } from "./LightningAchievement";
+import AvatarCropper from "./AvatarCropper";
 
 /* ─── Types (match supabase-wolf-hub-schema.sql) ─── */
 
@@ -2921,11 +2922,12 @@ function EditProfileModal({
   const [wolfId, setWolfId] = useState(profile.wolf_id || "yellow");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatar_url);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [pendingCropFile, setPendingCropFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleAvatarPick(file: File) {
+  async function uploadAvatarBlob(blob: Blob) {
     setUploadingAvatar(true);
     setError(null);
     try {
@@ -2934,11 +2936,10 @@ function EditProfileModal({
         setError("Connection error — try again.");
         return;
       }
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `avatars/${profile.id}/${Date.now()}.${ext}`;
+      const path = `avatars/${profile.id}/${Date.now()}.png`;
       const { error: upErr } = await sb.storage
         .from("wolf-hub-media")
-        .upload(path, file, { contentType: file.type });
+        .upload(path, blob, { contentType: "image/png" });
       if (upErr) {
         setError(upErr.message);
         return;
@@ -3013,6 +3014,14 @@ function EditProfileModal({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-wolf-card"
       >
+        <AvatarCropper
+          file={pendingCropFile}
+          onCancel={() => setPendingCropFile(null)}
+          onConfirm={(blob) => {
+            setPendingCropFile(null);
+            uploadAvatarBlob(blob);
+          }}
+        />
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
           <h3 className="font-semibold text-white">Edit profile</h3>
           <button
@@ -3042,7 +3051,8 @@ function EditProfileModal({
                   className="hidden"
                   onChange={(e) => {
                     const f = e.target.files?.[0];
-                    if (f) handleAvatarPick(f);
+                    if (f) setPendingCropFile(f);
+                    if (avatarInputRef.current) avatarInputRef.current.value = "";
                   }}
                 />
                 <button

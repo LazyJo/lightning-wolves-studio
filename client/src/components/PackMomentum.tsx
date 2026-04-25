@@ -1,7 +1,36 @@
-import { motion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useInView } from "motion/react";
 import { Users, MapPin, Calendar, Zap } from "lucide-react";
 import { activeWolves, territories } from "../data/wolves";
 import { gigEvents } from "../data/events";
+
+/** Eased count-up — animates from 0 to `value` once it scrolls into view. */
+function CountUp({ value, durationMs = 1200 }: { value: number; durationMs?: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.6 });
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    if (value <= 0) {
+      setDisplay(0);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / durationMs);
+      // easeOutCubic — fast then settles
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(value * eased));
+      if (t < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, value, durationMs]);
+
+  return <span ref={ref}>{display}</span>;
+}
 
 /**
  * Pack Momentum — a horizontal stat strip between the hero and the
@@ -62,7 +91,7 @@ export default function PackMomentum() {
                   className="text-2xl font-bold leading-none text-white"
                   style={{ fontFamily: "var(--font-heading)" }}
                 >
-                  {s.value}
+                  <CountUp value={s.value} />
                 </p>
                 <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-wolf-muted">
                   {s.label}

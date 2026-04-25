@@ -8,9 +8,10 @@ interface Props {
   index: number;
   onClick?: (wolf: Wolf) => void;
   lightningCount?: number;
+  isHottest?: boolean;
 }
 
-export default function WolfCard({ wolf, index, onClick, lightningCount = 0 }: Props) {
+export default function WolfCard({ wolf, index, onClick, lightningCount = 0, isHottest = false }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const isClickable =
     wolf.status === "active" || wolf.status === "special" || wolf.status === "cta";
@@ -156,6 +157,24 @@ export default function WolfCard({ wolf, index, onClick, lightningCount = 0 }: P
           }}
         >
           ⚡⚡ {lightningCount}
+        </span>
+      )}
+
+      {/* Hottest wolf — single winner across the roster */}
+      {isHottest && !isFullyLocked && (
+        <span
+          className="absolute right-2 top-2 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+          style={{
+            borderColor: "rgba(245,197,24,0.55)",
+            backgroundColor: "rgba(0,0,0,0.55)",
+            color: "#f5c518",
+            textShadow: "0 0 8px rgba(245,197,24,0.7)",
+            boxShadow: "0 0 12px rgba(245,197,24,0.35)",
+            backdropFilter: "blur(4px)",
+          }}
+          title="Most ⚡⚡ in the pack"
+        >
+          🌟 Hottest
         </span>
       )}
     </motion.div>

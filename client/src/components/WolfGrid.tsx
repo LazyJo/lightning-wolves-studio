@@ -73,15 +73,28 @@ export default function WolfGrid({ onSelectWolf }: { onSelectWolf?: (wolf: Wolf)
           <div className="absolute -bottom-px -right-px h-6 w-6 border-b-2 border-r-2 border-wolf-gold/40 rounded-br-2xl" />
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-4">
-            {wolves.map((wolf, i) => (
-              <WolfCard
-                key={wolf.id}
-                wolf={wolf}
-                index={i}
-                onClick={onSelectWolf}
-                lightningCount={lightningByWolfId[wolf.id] || 0}
-              />
-            ))}
+            {(() => {
+              // Find the wolf id with the highest ⚡⚡ count (>= 1) so a
+              // single "🌟 Hottest" winner pops on the roster.
+              let topId: string | null = null;
+              let topCount = 0;
+              for (const [id, count] of Object.entries(lightningByWolfId)) {
+                if (count > topCount) {
+                  topCount = count;
+                  topId = id;
+                }
+              }
+              return wolves.map((wolf, i) => (
+                <WolfCard
+                  key={wolf.id}
+                  wolf={wolf}
+                  index={i}
+                  onClick={onSelectWolf}
+                  lightningCount={lightningByWolfId[wolf.id] || 0}
+                  isHottest={topId === wolf.id && topCount >= 1}
+                />
+              ));
+            })()}
           </div>
         </div>
       </div>

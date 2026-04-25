@@ -11,8 +11,9 @@ import {
   Bookmark,
   BookmarkCheck,
   Check,
+  ExternalLink,
 } from "lucide-react";
-import { gigEvents, GIG_ROLES, gigRoleMeta } from "../data/events";
+import { gigEvents, GIG_ROLES, gigRoleMeta, TIERS_WITH_WEBSITE } from "../data/events";
 import type { GigEvent, GigRole } from "../data/events";
 import { useSavedGigs } from "../lib/useSavedGigs";
 import { useAppliedGigs } from "../lib/useAppliedGigs";
@@ -567,6 +568,22 @@ function EventDetail({
             {event.description}
           </p>
         </div>
+
+        {event.tier && TIERS_WITH_WEBSITE.includes(event.tier) && event.websiteUrl && (
+          <a
+            href={event.websiteUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={
+              event.tier === "label-agency"
+                ? "mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-wolf-gold/40 bg-gradient-to-r from-wolf-gold/15 to-wolf-amber/10 py-3 text-sm font-bold text-wolf-gold transition-all hover:border-wolf-gold/70 hover:bg-wolf-gold/20"
+                : "mb-3 flex w-full items-center justify-center gap-2 rounded-xl border border-wolf-border/40 bg-black/30 py-2.5 text-xs font-semibold text-wolf-muted transition-all hover:border-wolf-gold/40 hover:text-wolf-gold"
+            }
+          >
+            <ExternalLink size={event.tier === "label-agency" ? 14 : 12} />
+            {new URL(event.websiteUrl).hostname.replace(/^www\./, "")}
+          </a>
+        )}
 
         {applied ? (
           <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-green-400/40 bg-green-400/10 py-3.5 text-sm font-bold text-green-300">

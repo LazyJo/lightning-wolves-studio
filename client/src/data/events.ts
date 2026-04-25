@@ -4,6 +4,14 @@
 // collaboration roles and live only in Versus / Explore.
 export type GigRole = "artist" | "photographer" | "videographer";
 
+// Which promoter plan was used to post the listing. Single Gig is the
+// €49 one-shot; Venue + Label are the monthly plans that unlock the
+// outbound website link on the listing.
+export type PromoterTierId = "single-gig" | "venue" | "label-agency";
+
+// Tiers that get an outbound website link on their listing.
+export const TIERS_WITH_WEBSITE: PromoterTierId[] = ["venue", "label-agency"];
+
 export interface GigApplication {
   id: string;            // Stable per gig+applicant so shortlist state can key on it
   name: string;          // Applicant display name
@@ -41,6 +49,13 @@ export interface GigEvent {
   // Applications received for this gig. Seeded with realistic mock
   // talent so the organizer inbox has shape before Supabase is wired.
   applications?: GigApplication[];
+  // Promoter plan the listing was posted under. Drives the outbound
+  // website-link gate: only Venue + Label/Agency tiers can attach a
+  // `websiteUrl`, which is the upsell pull for Single Gig posters.
+  tier?: PromoterTierId;
+  // Optional outbound link to the organizer's site / event page. Only
+  // rendered for tiers in TIERS_WITH_WEBSITE, even if set on others.
+  websiteUrl?: string;
 }
 
 // Mock events — spread across current + near-future territories so the
@@ -59,6 +74,8 @@ export const gigEvents: GigEvent[] = [
     isoDate: "2026-05-24",
     lookingFor: ["artist", "videographer", "photographer"],
     budget: "€800 + travel",
+    tier: "label-agency",
+    websiteUrl: "https://lightningwolves.live/bloodmoon",
     description:
       "400-cap warehouse show in the Brussels canal district. Headliner slot + 2 openers. Pro sound, full lighting rig. Looking for a videographer to cut a 3-minute aftermovie and a photographer for press shots. Drinks on the house.",
     booked: [
@@ -128,6 +145,8 @@ export const gigEvents: GigEvent[] = [
     isoDate: "2026-06-14",
     lookingFor: ["artist", "photographer"],
     budget: "€1500 + flights",
+    tier: "venue",
+    websiteUrl: "https://afrofrequency.com/sankofa",
     description:
       "3-day Afrobeats + diaspora hip-hop festival, 2,000 tickets sold. 20-min festival slot for an international guest artist. Photographer brief: capture performances, crowd, and behind-the-scenes for the 2027 campaign.",
     booked: [{ wolfId: "yellow", role: "artist" }], // Lazy Jo (Ghanaian roots)
@@ -177,6 +196,7 @@ export const gigEvents: GigEvent[] = [
     isoDate: "2026-05-30",
     lookingFor: ["artist", "videographer"],
     budget: "€400",
+    tier: "single-gig",
     description:
       "Sunset rooftop show, 80-cap intimate crowd. Looking for a French-speaking melodic artist (20-min set) and a videographer who can deliver a cinematic live recording within 72h. Full PA provided.",
     booked: [{ wolfId: "purple", role: "artist" }], // Zirka (French HH)
@@ -225,6 +245,7 @@ export const gigEvents: GigEvent[] = [
     isoDate: "2026-07-04",
     lookingFor: ["artist", "photographer"],
     budget: "£600 + accom",
+    tier: "single-gig",
     description:
       "Sweaty 250-cap basement, peak-time slot (01:30). Drill / UK rap flavour, but open to hard melodic. Photographer: grainy, high-contrast, capture the whole night incl. green room.",
     applications: [
@@ -262,6 +283,8 @@ export const gigEvents: GigEvent[] = [
     isoDate: "2026-08-02",
     lookingFor: ["artist", "videographer", "photographer"],
     budget: "$1200 + flights",
+    tier: "venue",
+    websiteUrl: "https://loft27.nyc",
     description:
       "Invite-only loft session, ~120 tastemakers + industry. 25-min live set, 2 songs pre-approved by curation team. We need a Loft 27 recap reel (videographer) and the full photo package for the series.",
     booked: [{ wolfId: "orange", role: "artist" }], // Rosakay
@@ -311,6 +334,7 @@ export const gigEvents: GigEvent[] = [
     isoDate: "2026-06-22",
     lookingFor: ["videographer"],
     budget: "₦350,000",
+    tier: "single-gig",
     description:
       "Closing set afterparty following the Island FM live broadcast. Need one videographer embedded with the talent from soundcheck to last drink. Final edit brief: 90-second vertical cut-down for IG/TikTok.",
     applications: [
@@ -484,6 +508,7 @@ export const promoterTiers: PromoterTier[] = [
       "Receive applications in-app",
       "Country + role filtering",
       "No subscription — pay once",
+      "In-app applications only — no outbound link",
     ],
   },
   {
@@ -500,6 +525,7 @@ export const promoterTiers: PromoterTier[] = [
       "Unlimited event listings",
       "60-day visibility per listing",
       "Verified organizer badge \u2714",
+      "\u{1F310} Outbound website link on every listing",
       "Direct message with applicants",
       "Basic analytics (views, applies)",
       "Cancel anytime",
@@ -518,8 +544,8 @@ export const promoterTiers: PromoterTier[] = [
       "Everything in Venue",
       "Priority placement on the board",
       "Featured hero slot rotation",
+      "\u{1F310} Featured website link + custom organizer page",
       "Full analytics + export",
-      "Custom organizer page",
       "Multi-seat team access",
       "Priority support",
     ],

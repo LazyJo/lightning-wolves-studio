@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { useI18n } from "../lib/i18n";
+import { RatingBurst, type RatingKind } from "./RatingBurst";
 
 interface Props {
   onWolfMap: () => void;
@@ -11,6 +13,13 @@ interface Props {
 
 export default function Footer({ onWolfMap, onStudio, onPricing, onJoinPack, onGoldenBoard }: Props) {
   const { t } = useI18n();
+  const [burst, setBurst] = useState<{ kind: RatingKind; id: number } | null>(null);
+
+  useEffect(() => {
+    if (!burst) return;
+    const timer = window.setTimeout(() => setBurst(null), 800);
+    return () => window.clearTimeout(timer);
+  }, [burst]);
 
   const studioLinks: { label: string; action?: () => void }[] = [
     { label: "Lyrics Studio", action: onStudio },
@@ -27,6 +36,7 @@ export default function Footer({ onWolfMap, onStudio, onPricing, onJoinPack, onG
 
   return (
     <footer className="border-t border-wolf-border/20 py-16">
+      <RatingBurst kind={burst?.kind ?? null} />
       <div className="mx-auto max-w-6xl px-6">
         <motion.div
           initial={{ opacity: 0 }}
@@ -35,7 +45,13 @@ export default function Footer({ onWolfMap, onStudio, onPricing, onJoinPack, onG
           className="grid gap-12 md:grid-cols-4"
         >
           <div>
-            <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setBurst({ kind: "lightning", id: Date.now() })}
+              title="⚡⚡"
+              aria-label="Strike lightning"
+              className="flex items-center gap-3 transition-transform hover:scale-[1.02] active:scale-95"
+            >
               <img
                 src="/LightningWolvesLogoTransparentBG.png"
                 alt="Lightning Wolves"
@@ -47,7 +63,7 @@ export default function Footer({ onWolfMap, onStudio, onPricing, onJoinPack, onG
               >
                 LIGHTNING <span className="text-wolf-gold">WOLVES</span>
               </span>
-            </div>
+            </button>
             <p className="mt-4 text-sm leading-relaxed text-wolf-muted">
               {t("footer.desc")}
             </p>

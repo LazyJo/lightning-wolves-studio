@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { initSupabase } from "../lib/supabaseClient";
 import BeatWaveform from "./BeatWaveform";
+
+const ROTATE_INTERVAL_MS = 10_000;
 
 interface Spot {
   messageId: string;
@@ -89,7 +91,9 @@ export default function LightningSpotlight({
 }: {
   onWolfHub: (target?: { messageId: string; roomId: string }) => void;
 }) {
-  const [spot, setSpot] = useState<Spot | null>(null);
+  const [spots, setSpots] = useState<Spot[]>([]);
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const refetchTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -134,9 +138,12 @@ export default function LightningSpotlight({
           }
         }
       );
-      const top = Array.from(tally.values()).sort((a, b) => b.bolts - a.bolts)[0];
-      if (!top || top.bolts < 1) return;
-      setSpot(top);
+      const sorted = Array.from(tally.values())
+        .sort((a, b) => b.bolts - a.bolts)
+        .slice(0, 5);
+      if (!sorted.length) return;
+      setSpots(sorted);
+      setIndex((i) => (i >= sorted.length ? 0 : i));
     }
 
     let sub: { unsubscribe: () => void } | null = null;
@@ -171,7 +178,19 @@ export default function LightningSpotlight({
     };
   }, []);
 
-  if (!spot) return null;
+  // Auto-rotate through the top 5 every 10s. Pauses when the user
+  // manually picks a dot — they probably want to listen to that one.
+  useEffect(() => {
+    if (paused || spots.length <= 1) return;
+    const id = window.setInterval(() => {
+      setIndex((i) => (i + 1) % spots.length);
+    }, ROTATE_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [paused, spots.length]);
+
+  if (spots.length === 0) return null;
+  const safeIndex = Math.min(index, spots.length - 1);
+  const spot = spots[safeIndex];
   const title = titleFor(spot);
   const author = spot.authorName || "a wolf";
   const kind = spot.songUrl ? "🎧" : "🥁";
@@ -187,75 +206,114 @@ export default function LightningSpotlight({
         className="relative overflow-hidden rounded-2xl border border-[#f5c518]/30 bg-gradient-to-br from-[#f5c518]/[0.08] via-transparent to-[#f5c518]/[0.03] p-5"
         style={{ boxShadow: "0 0 22px rgba(245,197,24,0.12)" }}
       >
-        <div className="flex items-center gap-4">
-          <span
-            className="flex-shrink-0 text-3xl"
-            style={{ filter: "drop-shadow(0 0 12px #f5c518)" }}
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={spot.messageId}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.35, ease: [0.2, 1, 0.3, 1] }}
           >
-            ⚡⚡
-          </span>
-          <div className="min-w-0 flex-1">
-            <div
-              className="mb-1 text-[10px] font-bold uppercase tracking-[0.3em]"
-              style={{ color: "#f5c518", textShadow: "0 0 8px rgba(245,197,24,0.5)" }}
-            >
-              Striking in the Hub this week
-            </div>
-            <div className="flex items-baseline gap-2 truncate">
-              <span className="text-base">{kind}</span>
-              <span className="truncate text-lg font-bold text-white sm:text-xl">
-                {title}
+            <div className="flex items-center gap-4">
+              <span
+                className="flex-shrink-0 text-3xl"
+                style={{ filter: "drop-shadow(0 0 12px #f5c518)" }}
+              >
+                ⚡⚡
               </span>
-              <span className="truncate text-xs text-wolf-muted">by {author}</span>
+              <div className="min-w-0 flex-1">
+                <div
+                  className="mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.3em]"
+                  style={{ color: "#f5c518", textShadow: "0 0 8px rgba(245,197,24,0.5)" }}
+                >
+                  <span>Striking in the Hub this week</span>
+                  {spots.length > 1 && (
+                    <span className="text-wolf-muted/80">
+                      {safeIndex + 1}/{spots.length}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-baseline gap-2 truncate">
+                  <span className="text-base">{kind}</span>
+                  <span className="truncate text-lg font-bold text-white sm:text-xl">
+                    {title}
+                  </span>
+                  <span className="truncate text-xs text-wolf-muted">by {author}</span>
+                </div>
+              </div>
+              <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
+                <span
+                  className="text-2xl font-black"
+                  style={{
+                    color: "#f5c518",
+                    textShadow: "0 0 14px rgba(245,197,24,0.7)",
+                  }}
+                >
+                  {spot.bolts}
+                </span>
+                <span className="text-[9px] font-bold uppercase tracking-wider text-wolf-muted">
+                  ⚡⚡ bolts
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  onWolfHub({
+                    messageId: spot.messageId,
+                    roomId: spot.songUrl ? "songs" : "beats",
+                  })
+                }
+                className="hidden flex-shrink-0 rounded-full border border-[#f5c518]/30 bg-black/40 px-3 py-1.5 text-xs font-semibold text-[#f5c518] transition-all hover:border-[#f5c518]/60 hover:bg-[#f5c518]/10 sm:inline"
+              >
+                Open Hub →
+              </button>
             </div>
-          </div>
-          <div className="flex flex-shrink-0 flex-col items-end gap-0.5">
-            <span
-              className="text-2xl font-black"
-              style={{
-                color: "#f5c518",
-                textShadow: "0 0 14px rgba(245,197,24,0.7)",
-              }}
-            >
-              {spot.bolts}
-            </span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-wolf-muted">
-              ⚡⚡ bolts
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              onWolfHub({
-                messageId: spot.messageId,
-                roomId: spot.songUrl ? "songs" : "beats",
-              })
-            }
-            className="hidden flex-shrink-0 rounded-full border border-[#f5c518]/30 bg-black/40 px-3 py-1.5 text-xs font-semibold text-[#f5c518] transition-all hover:border-[#f5c518]/60 hover:bg-[#f5c518]/10 sm:inline"
-          >
-            Open Hub →
-          </button>
-        </div>
 
-        {/* Inline playback — Spotify/Apple embed for song links, waveform for beats */}
-        {embed && (
-          <div className="mt-4 overflow-hidden rounded-xl">
-            <iframe
-              src={embed.src}
-              width="100%"
-              height={embed.height}
-              frameBorder={0}
-              allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
-              loading="lazy"
-              className="block"
-              style={{ border: 0, minWidth: "260px" }}
-              title={`${embed.provider} player`}
-            />
-          </div>
-        )}
-        {!embed && spot.audioUrl && (
-          <div className="mt-4">
-            <BeatWaveform audioUrl={spot.audioUrl} />
+            {/* Inline playback — Spotify/Apple embed for song links, waveform for beats */}
+            {embed && (
+              <div className="mt-4 overflow-hidden rounded-xl">
+                <iframe
+                  src={embed.src}
+                  width="100%"
+                  height={embed.height}
+                  frameBorder={0}
+                  allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write"
+                  loading="lazy"
+                  className="block"
+                  style={{ border: 0, minWidth: "260px" }}
+                  title={`${embed.provider} player`}
+                />
+              </div>
+            )}
+            {!embed && spot.audioUrl && (
+              <div className="mt-4">
+                <BeatWaveform audioUrl={spot.audioUrl} />
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {spots.length > 1 && (
+          <div className="mt-4 flex justify-center gap-1.5">
+            {spots.map((s, i) => (
+              <button
+                key={s.messageId}
+                type="button"
+                onClick={() => {
+                  setIndex(i);
+                  setPaused(true);
+                }}
+                aria-label={`Go to track ${i + 1}`}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === safeIndex ? "w-6 bg-[#f5c518]" : "w-1.5 bg-white/20 hover:bg-white/40"
+                }`}
+                style={
+                  i === safeIndex
+                    ? { boxShadow: "0 0 8px rgba(245,197,24,0.6)" }
+                    : undefined
+                }
+              />
+            ))}
           </div>
         )}
       </motion.div>

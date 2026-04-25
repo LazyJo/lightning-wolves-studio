@@ -1192,6 +1192,30 @@ function ChatView({
     const kind = ratingKindFromEmoji(emoji);
     if (kind) setBurst({ kind, id: Date.now() });
     if (emoji === "⚡⚡" && !howtoDismissed) dismissHowto();
+    // Single-vote rule: a wolf can only have ONE rating (⚡⚡/🔥/✅/🗑️) on a
+    // given track. If they already picked a different rating, swap it out.
+    // Plain emoji reactions (🔥❤️🐺 etc. from the picker) stay multi-select.
+    const isRating = SONG_RATINGS.some((r) => r.emoji === emoji);
+    let priorRating: HubReaction | null = null;
+    if (isRating) {
+      priorRating =
+        (reactions.get(messageId) || []).find(
+          (r) =>
+            r.user_id === profile.id &&
+            r.emoji !== emoji &&
+            SONG_RATINGS.some((s) => s.emoji === r.emoji)
+        ) || null;
+      if (priorRating) {
+        setReactions((prev) => {
+          const next = new Map(prev);
+          const arr = (next.get(messageId) || []).filter((x) => x.id !== priorRating!.id);
+          next.set(messageId, arr);
+          return next;
+        });
+        // Fire-and-forget; the realtime DELETE echo will reconcile if anyone races.
+        sb.from("hub_reactions").delete().eq("id", priorRating.id).then(() => {});
+      }
+    }
     // Optimistic add — swap in the real row once the insert resolves.
     const tempId = `optimistic-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const temp: HubReaction = { id: tempId, message_id: messageId, user_id: profile.id, emoji };

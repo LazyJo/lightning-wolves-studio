@@ -3805,6 +3805,7 @@ interface HubDM {
   sender_avatar_url?: string | null;
   body: string | null;
   image_url: string | null;
+  audio_url?: string | null;
   created_at: string;
 }
 
@@ -4033,8 +4034,10 @@ function DMThread({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
 
   // Partner display data comes from their latest incoming DM (same denorm
   // pattern as Wolf Hub profile view).
@@ -4055,8 +4058,8 @@ function DMThread({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length]);
 
-  async function sendDM(body: string | null, imageUrl: string | null) {
-    if (!body && !imageUrl) return;
+  async function sendDM(body: string | null, imageUrl: string | null, audioUrl: string | null = null) {
+    if (!body && !imageUrl && !audioUrl) return;
     setSending(true);
     try {
       const sb = getSupabase();
@@ -4069,6 +4072,7 @@ function DMThread({
         sender_avatar_url: profile.avatar_url,
         body,
         image_url: imageUrl,
+        audio_url: audioUrl,
       });
     } finally {
       setSending(false);
@@ -4098,6 +4102,26 @@ function DMThread({
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleAudioPick(file: File) {
+    setUploadingAudio(true);
+    try {
+      const sb = getSupabase();
+      if (!sb) return;
+      const ext = file.name.split(".").pop() || "mp3";
+      const path = `dms/${profile.id}/audio-${Date.now()}.${ext}`;
+      const { error: upErr } = await sb.storage
+        .from("wolf-hub-media")
+        .upload(path, file, { contentType: file.type || "audio/mpeg" });
+      if (upErr) return;
+      const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
+      const title = file.name.replace(/\.[^.]+$/, "");
+      await sendDM(`🎵 ${title}`, null, urlData.publicUrl);
+    } finally {
+      setUploadingAudio(false);
+      if (audioInputRef.current) audioInputRef.current.value = "";
     }
   }
 
@@ -4164,6 +4188,11 @@ function DMThread({
                     loading="lazy"
                   />
                 )}
+                {m.audio_url && (
+                  <div className={m.body ? "mt-2" : ""}>
+                    <BeatWaveform audioUrl={m.audio_url} />
+                  </div>
+                )}
                 <div
                   className={`mt-1 text-[9px] ${isMine ? "text-white/60 text-right" : "text-wolf-muted"}`}
                 >
@@ -4188,6 +4217,16 @@ function DMThread({
               if (f) handleImagePick(f);
             }}
           />
+          <input
+            ref={audioInputRef}
+            type="file"
+            accept="audio/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleAudioPick(f);
+            }}
+          />
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
@@ -4195,6 +4234,14 @@ function DMThread({
             title="Send image"
           >
             {uploading ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
+          </button>
+          <button
+            onClick={() => audioInputRef.current?.click()}
+            disabled={uploadingAudio}
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border border-[#f5c518]/30 bg-[#f5c518]/[0.05] text-[#f5c518] transition-all hover:border-[#f5c518]/60 hover:bg-[#f5c518]/10 disabled:opacity-40"
+            title="Send beat / audio"
+          >
+            {uploadingAudio ? <Loader2 size={16} className="animate-spin" /> : <span className="text-base leading-none">🎵</span>}
           </button>
           <textarea
             value={draft}

@@ -173,6 +173,15 @@ CREATE INDEX IF NOT EXISTS hub_dms_recipient_created_idx
   ON hub_dms (recipient_id, created_at DESC)
   WHERE deleted_at IS NULL;
 
+-- Audio support for DMs (added after the BeatWaveform component shipped).
+-- Idempotent: safe to re-run on a DB that already has the column. Drops
+-- the old "body or image" content check and replaces it with a wider
+-- one that also accepts audio.
+ALTER TABLE hub_dms ADD COLUMN IF NOT EXISTS audio_url TEXT;
+ALTER TABLE hub_dms DROP CONSTRAINT IF EXISTS hub_dms_content_present;
+ALTER TABLE hub_dms ADD CONSTRAINT hub_dms_content_present
+  CHECK (body IS NOT NULL OR image_url IS NOT NULL OR audio_url IS NOT NULL);
+
 -- 24-hour stories. RLS filters by expires_at so expired rows disappear
 -- automatically without a cron — cleanup is a nice-to-have, not required.
 CREATE TABLE IF NOT EXISTS hub_stories (

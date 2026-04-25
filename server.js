@@ -1223,6 +1223,96 @@ app.get('/api/pack-awards', async (req, res) => {
   }
 });
 
+// ─── Stripe MRR (admin-only) ─────────────────────────────────────────────────
+// Pulls real recurring revenue from Stripe Billing — sums every active
+// subscription's price * quantity normalized to a monthly cadence
+// (yearly intervals divided by 12, weekly multiplied by ~4.33). Cached
+// in-memory for 5 min so the admin dashboard doesn't hammer the API
+// every page load. Returns mocked: true with no MRR when STRIPE_SECRET_KEY
+// is missing — UI falls back to the tier-count estimate in that case.
+const MRR_CACHE_MS = 5 * 60 * 1000;
+let mrrCache = null;
+
+function intervalToMonthlyMultiplier(interval, count) {
+  const c = count || 1;
+  if (interval === 'month') return 1 / c;
+  if (interval === 'year')  return 1 / (12 * c);
+  if (interval === 'week')  return 4.33 / c;
+  if (interval === 'day')   return 30 / c;
+  return 1; // unknown — treat as monthly
+}
+
+app.get('/api/admin/mrr', async (req, res) => {
+  try {
+    const user = await getUserFromToken(req);
+    if (!user) return res.status(401).json({ error: 'unauthenticated' });
+    const profile = await getProfile(user.id);
+    if (!profile || profile.role !== 'admin') {
+      return res.status(403).json({ error: 'admin only' });
+    }
+
+    if (!stripe) {
+      return res.json({
+        mocked: true,
+        mrrCents: 0,
+        currency: 'eur',
+        activeSubscriptions: 0,
+        generatedAt: new Date().toISOString(),
+        note: 'Stripe not configured — UI shows tier-count estimate.',
+      });
+    }
+
+    const force = req.query.refresh === '1';
+    if (!force && mrrCache && Date.now() - mrrCache.cachedAt < MRR_CACHE_MS) {
+      return res.json(mrrCache.payload);
+    }
+
+    let mrrCents = 0;
+    let activeSubscriptions = 0;
+    let currency = 'eur';
+    let cursor = null;
+    // Page through Stripe — 100/page cap, will rarely take more than a
+    // single round-trip until subs grow past 100 active. Cancelled +
+    // unpaid subs are excluded by status='active'.
+    for (let i = 0; i < 20; i++) {
+      const list = await stripe.subscriptions.list({
+        status: 'active',
+        limit: 100,
+        starting_after: cursor || undefined,
+        expand: ['data.items.data.price'],
+      });
+      for (const sub of list.data) {
+        activeSubscriptions += 1;
+        for (const item of sub.items.data) {
+          const price = item.price;
+          if (!price?.recurring) continue;
+          const monthly =
+            (price.unit_amount || 0) *
+            (item.quantity || 1) *
+            intervalToMonthlyMultiplier(price.recurring.interval, price.recurring.interval_count);
+          mrrCents += monthly;
+          if (price.currency) currency = price.currency;
+        }
+      }
+      if (!list.has_more) break;
+      cursor = list.data[list.data.length - 1]?.id;
+    }
+
+    const payload = {
+      mocked: false,
+      mrrCents: Math.round(mrrCents),
+      currency,
+      activeSubscriptions,
+      generatedAt: new Date().toISOString(),
+    };
+    mrrCache = { cachedAt: Date.now(), payload };
+    res.json(payload);
+  } catch (err) {
+    console.error('MRR fetch error:', err);
+    res.status(500).json({ error: err.message || 'MRR fetch failed' });
+  }
+});
+
 // ─── Fallback to index.html (SPA) ────────────────────────────────────────────
 app.get('*', (req, res) => {
   // Try multiple paths (local dev vs Vercel deployment)

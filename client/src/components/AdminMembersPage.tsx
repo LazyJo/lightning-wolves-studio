@@ -584,6 +584,15 @@ function MembersTab({
 
 /* ─── Subscriptions tab ─── */
 
+interface MrrPayload {
+  mocked: boolean;
+  mrrCents: number;
+  currency: string;
+  activeSubscriptions: number;
+  generatedAt: string;
+  note?: string;
+}
+
 function SubscriptionsTab({ members }: { members: MemberWithCounts[] }) {
   const tierCounts = useMemo(() => {
     const counts: Record<string, number> = {
@@ -600,11 +609,51 @@ function SubscriptionsTab({ members }: { members: MemberWithCounts[] }) {
     return counts;
   }, [members]);
 
-  const mrr = useMemo(() => {
+  // Tier-count estimate — used as a fallback when /api/admin/mrr is
+  // unavailable or Stripe isn't configured. Real numbers replace this
+  // the moment STRIPE_SECRET_KEY lands and we get a live response.
+  const estimatedMrr = useMemo(() => {
     return Object.entries(tierCounts).reduce((sum, [tier, count]) => {
       return sum + (TIER_PRICE[tier] || 0) * count;
     }, 0);
   }, [tierCounts]);
+
+  const [mrrData, setMrrData] = useState<MrrPayload | null>(null);
+  const [mrrLoading, setMrrLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const sb = await initSupabase();
+        const sess = sb ? (await sb.auth.getSession()).data.session : null;
+        const headers: Record<string, string> = {};
+        if (sess?.access_token) headers.Authorization = `Bearer ${sess.access_token}`;
+        const r = await fetch("/api/admin/mrr", { headers });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const json = (await r.json()) as MrrPayload;
+        if (!cancelled) setMrrData(json);
+      } catch {
+        // Fall through to the tier-count estimate.
+      } finally {
+        if (!cancelled) setMrrLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const liveMrr = mrrData && !mrrData.mocked;
+  const mrrLabel = liveMrr ? "MRR (Stripe)" : "Estimated MRR";
+  const mrrValue = liveMrr
+    ? `€${Math.round((mrrData?.mrrCents ?? 0) / 100).toLocaleString()}`
+    : `€${estimatedMrr.toLocaleString()}`;
+  const mrrHint = mrrLoading
+    ? "Loading…"
+    : liveMrr
+      ? `${mrrData?.activeSubscriptions ?? 0} active subs · live`
+      : "Sum of monthly tier prices";
 
   const paying = members.filter(
     (m) => m.tier && m.tier !== "free" && m.stripe_subscription_id
@@ -622,10 +671,10 @@ function SubscriptionsTab({ members }: { members: MemberWithCounts[] }) {
           hint={`${Math.round((paying.length / totalMembers) * 100)}% conversion`}
         />
         <StatCard
-          label="Estimated MRR"
-          value={`€${mrr.toLocaleString()}`}
+          label={mrrLabel}
+          value={mrrValue}
           icon={<TrendingUp size={14} />}
-          hint="Sum of monthly tier prices"
+          hint={mrrHint}
         />
         <StatCard
           label="Free wolves"

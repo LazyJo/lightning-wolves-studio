@@ -8,6 +8,7 @@ import WolfGrid from "./components/WolfGrid";
 import Features from "./components/Features";
 import FeaturedArtists from "./components/FeaturedArtists";
 import CTA from "./components/CTA";
+import StudioNudgeBanner from "./components/StudioNudgeBanner";
 import Footer from "./components/Footer";
 import LightningCanvas from "./components/LightningCanvas";
 import WolfProfilePage from "./components/WolfProfilePage";
@@ -339,6 +340,14 @@ export default function App() {
             {page.type === "home" && (
               <>
                 <Hero onStudio={() => goToStudio()} />
+                <div className="mx-auto max-w-4xl px-6">
+                  <StudioNudgeBanner
+                    onTryStudio={() => goToStudio()}
+                    storageKey="lw-home-studio-nudge-dismissed"
+                    headline="Studio is free to try — no signup required"
+                    subline="100 credits, watermark-free preview, drop in your audio and ship."
+                  />
+                </div>
                 <PackMomentum />
                 <LightningSpotlight onWolfHub={goToWolfHub} />
                 <WolfGrid onSelectWolf={handleWolfSelect} />

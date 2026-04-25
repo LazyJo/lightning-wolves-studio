@@ -3,24 +3,36 @@ import { motion, AnimatePresence } from "motion/react";
 import { Sparkles, X as XIcon, ArrowRight } from "lucide-react";
 import { useCredits } from "../lib/useCredits";
 
-const DISMISS_KEY = "lw-hub-studio-nudge-dismissed";
+const DEFAULT_DISMISS_KEY = "lw-hub-studio-nudge-dismissed";
 
 interface Props {
   onTryStudio: () => void;
+  // Override the localStorage key so different surfaces (Hub vs
+  // homepage) decay their dismissal state independently.
+  storageKey?: string;
+  // Optional headline override — homepage targets cold visitors with
+  // a slightly different angle than the in-Hub conversion play.
+  headline?: string;
+  subline?: string;
 }
 
 /**
- * Hub → Studio conversion nudge. Renders for free-tier users only,
- * pulls them out of the chat-only Hub loop and into the paid Studio
- * surface. Dismissible — localStorage-keyed, no re-show within the
- * same browser. Auto-hidden once the user upgrades.
+ * Studio conversion nudge. Renders for free-tier users only,
+ * pulls them into the paid Studio surface. Dismissible —
+ * localStorage-keyed, no re-show within the same browser.
+ * Auto-hidden once the user upgrades.
  */
-export default function StudioNudgeBanner({ onTryStudio }: Props) {
+export default function StudioNudgeBanner({
+  onTryStudio,
+  storageKey = DEFAULT_DISMISS_KEY,
+  headline = "Make a lyric video for your next drop",
+  subline = "100 free credits. Drop your audio, pick a wolf, post the same day.",
+}: Props) {
   const { plan, loading } = useCredits();
   const [dismissed, setDismissed] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
     try {
-      return window.localStorage.getItem(DISMISS_KEY) === "1";
+      return window.localStorage.getItem(storageKey) === "1";
     } catch {
       return false;
     }
@@ -29,7 +41,7 @@ export default function StudioNudgeBanner({ onTryStudio }: Props) {
   const dismiss = () => {
     setDismissed(true);
     try {
-      window.localStorage.setItem(DISMISS_KEY, "1");
+      window.localStorage.setItem(storageKey, "1");
     } catch {
       /* localStorage denied — in-memory dismiss still holds for the session */
     }
@@ -68,10 +80,10 @@ export default function StudioNudgeBanner({ onTryStudio }: Props) {
                 Studio is free to try
               </p>
               <p className="text-sm font-bold leading-snug text-white sm:text-[15px]">
-                Make a lyric video for your next drop
+                {headline}
               </p>
               <p className="mt-0.5 text-[11px] leading-snug text-wolf-muted sm:text-xs">
-                100 free credits. Drop your audio, pick a wolf, post the same day.
+                {subline}
               </p>
             </div>
           </div>

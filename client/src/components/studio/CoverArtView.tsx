@@ -21,6 +21,7 @@ import {
 import { useSession } from "../../lib/useSession";
 import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
 import { useCredits } from "../../lib/useCredits";
+import { useStudioPrefs } from "../../lib/useStudioPrefs";
 
 interface Props {
   onBack: () => void;
@@ -78,14 +79,19 @@ export default function CoverArtView({ onBack, wolf }: Props) {
   const { accessToken } = useSession();
   const loneWolf = useLoneWolfCredits();
   const { plan } = useCredits();
+  const prefs = useStudioPrefs();
   const isElite = plan.tier === "elite";
 
-  // Default to the first model the user actually has access to.
-  const defaultModel =
-    AI_MODELS.find((m) => !m.eliteOnly || isElite)?.id || AI_MODELS[0].id;
+  // Honour the user's Settings preference if they have access to that model,
+  // otherwise fall back to the first model their tier allows.
+  const preferred = AI_MODELS.find((m) => m.id === prefs.defaultCoverModel);
+  const preferredAllowed = preferred && (!preferred.eliteOnly || isElite);
+  const defaultModel = preferredAllowed
+    ? preferred!.id
+    : AI_MODELS.find((m) => !m.eliteOnly || isElite)?.id || AI_MODELS[0].id;
   const [modelId, setModelId] = useState(defaultModel);
   const [prompt, setPrompt] = useState("");
-  const [aspect, setAspect] = useState<(typeof ASPECTS)[number]>("1:1");
+  const [aspect, setAspect] = useState<(typeof ASPECTS)[number]>(prefs.defaultAspect);
   const [resolution, setResolution] = useState<(typeof RESOLUTIONS)[number]>("2K");
   const [refImages, setRefImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { initSupabase } from "./supabaseClient";
 import { useSession } from "./useSession";
 
@@ -15,12 +15,29 @@ export interface Profile {
 /**
  * Loads the current user's profile row. Returns isAdmin convenience,
  * loading state, and a refetch trigger. Used by App.tsx to gate the
- * admin nav entry.
+ * admin nav entry, and by Settings to refresh after wolf_id changes
+ * without forcing a full page reload.
  */
 export function useProfile() {
   const { user } = useSession();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refetch = useCallback(async () => {
+    if (!user) {
+      setProfile(null);
+      return null;
+    }
+    const sb = await initSupabase();
+    if (!sb) return null;
+    const { data } = await sb
+      .from("profiles")
+      .select("id, email, display_name, role, wolf_id, avatar_url, created_at")
+      .eq("id", user.id)
+      .maybeSingle();
+    setProfile(data as Profile | null);
+    return data as Profile | null;
+  }, [user?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,25 +48,18 @@ export function useProfile() {
     }
     setLoading(true);
     (async () => {
-      const sb = await initSupabase();
-      if (!sb || cancelled) return;
-      const { data } = await sb
-        .from("profiles")
-        .select("id, email, display_name, role, wolf_id, avatar_url, created_at")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (cancelled) return;
-      setProfile(data as Profile | null);
-      setLoading(false);
+      await refetch();
+      if (!cancelled) setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, refetch]);
 
   return {
     profile,
     loading,
     isAdmin: profile?.role === "admin",
+    refetch,
   };
 }

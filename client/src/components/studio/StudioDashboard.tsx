@@ -19,6 +19,12 @@ import {
   Loader2,
   LogOut,
   Eye,
+  CreditCard,
+  Volume2,
+  Wand2,
+  Trash2,
+  AlertTriangle,
+  ChevronRight,
 } from "lucide-react";
 import type { Wolf } from "../../data/wolves";
 import { tierLabel, tierColor } from "../../lib/useCredits";
@@ -27,6 +33,9 @@ import { useProfile } from "../../lib/useProfile";
 import { getSupabase } from "../../lib/supabaseClient";
 import { useReducedMotion, setReducedMotion } from "../../lib/useReducedMotion";
 import { useSession } from "../../lib/useSession";
+import { useStudioPrefs, setStudioPref } from "../../lib/useStudioPrefs";
+import { openBillingPortal } from "../../lib/checkout";
+import { clearCoverArtHistory } from "../../lib/api";
 import TemplatesList from "./TemplatesList";
 
 type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art" | "artist-page";
@@ -97,7 +106,7 @@ const TOOL_ICONS: Record<string, string> = {
 export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool, onBack, onWolfMap, onWolfHub, t, onNewTemplate, onOpenTemplate }: Props) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { activities } = useRecentActivity();
-  const { profile } = useProfile();
+  const { profile, refetch: refetchProfile } = useProfile();
   const [showWolfPicker, setShowWolfPicker] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
@@ -612,8 +621,11 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
         {showSettings && (
           <SettingsModal
             profileId={profile?.id || null}
+            profileEmail={profile?.email || null}
             currentWolfId={profile?.wolf_id || null}
+            tier={plan.tier}
             onClose={() => setShowSettings(false)}
+            onProfileChanged={refetchProfile}
           />
         )}
       </AnimatePresence>
@@ -763,20 +775,41 @@ function WolfColorPickerModal({
   );
 }
 
-/* ─── Settings modal — accent color, motion, sign out ─── */
+/* ─── Settings modal — full preferences panel ─── */
+
+const COVER_MODELS = [
+  { id: "nanobanana-pro", label: "NanoBanana Pro" },
+  { id: "nanobanana", label: "NanoBanana" },
+  { id: "grok-imagine", label: "Grok Imagine" },
+  { id: "seedream-4.5", label: "Seedream 4.5" },
+];
+
+const ASPECT_OPTIONS = ["1:1", "4:5", "16:9"] as const;
+
+const LYRIC_STYLES = ["neon", "minimal", "cinematic", "vhs", "noir"] as const;
 
 function SettingsModal({
   profileId,
+  profileEmail,
   currentWolfId,
+  tier,
   onClose,
+  onProfileChanged,
 }: {
   profileId: string | null;
+  profileEmail: string | null;
   currentWolfId: string | null;
+  tier: string;
   onClose: () => void;
+  onProfileChanged: () => Promise<unknown>;
 }) {
   const reducedMotion = useReducedMotion();
-  const { signOut } = useSession();
+  const prefs = useStudioPrefs();
+  const { signOut, accessToken } = useSession();
   const [savingWolf, setSavingWolf] = useState<string | null>(null);
+  const [openingPortal, setOpeningPortal] = useState(false);
+  const [confirmingClear, setConfirmingClear] = useState<"covers" | "wolves" | null>(null);
+  const [clearing, setClearing] = useState(false);
 
   async function pickWolf(wolfId: string) {
     if (!profileId || savingWolf) return;
@@ -785,11 +818,55 @@ function SettingsModal({
       const sb = getSupabase();
       if (!sb) return;
       await sb.from("profiles").update({ wolf_id: wolfId }).eq("id", profileId);
-      window.location.reload();
+      // Refetch instead of reloading — keeps the user in the studio.
+      await onProfileChanged();
     } finally {
       setSavingWolf(null);
     }
   }
+
+  async function manageSubscription() {
+    if (!accessToken || openingPortal) return;
+    setOpeningPortal(true);
+    try {
+      await openBillingPortal(accessToken);
+    } catch (err) {
+      console.error("[settings] billing portal failed", err);
+    } finally {
+      setOpeningPortal(false);
+    }
+  }
+
+  async function clearCovers() {
+    if (clearing) return;
+    setClearing(true);
+    try {
+      try {
+        localStorage.removeItem("cover-art-history");
+      } catch { /* ignore */ }
+      if (accessToken) {
+        try {
+          await clearCoverArtHistory(accessToken);
+        } catch (err) {
+          console.error("[settings] clear cover art server-side failed", err);
+        }
+      }
+    } finally {
+      setClearing(false);
+      setConfirmingClear(null);
+    }
+  }
+
+  function clearWolves() {
+    try {
+      localStorage.removeItem("lw-saved-wolves");
+      // Notify other tabs / hooks watching the storage event.
+      window.dispatchEvent(new StorageEvent("storage", { key: "lw-saved-wolves" }));
+    } catch { /* ignore */ }
+    setConfirmingClear(null);
+  }
+
+  const tierBadgeColor = tierColor(tier);
 
   return (
     <motion.div
@@ -797,7 +874,7 @@ function SettingsModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4 py-8 backdrop-blur-sm"
     >
       <motion.div
         initial={{ scale: 0.95, y: 20 }}
@@ -809,7 +886,7 @@ function SettingsModal({
         <button
           onClick={onClose}
           aria-label="Close settings"
-          className="absolute right-3 top-3 rounded-lg p-1.5 text-wolf-muted transition-colors hover:bg-white/5 hover:text-white"
+          className="absolute right-3 top-3 z-10 rounded-lg p-1.5 text-wolf-muted transition-colors hover:bg-white/5 hover:text-white"
         >
           <X size={16} />
         </button>
@@ -822,15 +899,46 @@ function SettingsModal({
             Settings
           </h3>
           <p className="mt-0.5 text-xs text-wolf-muted">
-            Theme, motion, and account.
+            Theme, audio, defaults, and account.
           </p>
         </div>
 
-        {/* Accent color (wolf swatches) */}
-        <div className="border-t border-white/5 px-6 py-5">
-          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-wolf-muted">
-            Accent color
-          </p>
+        {/* ── Account ── */}
+        {profileId && (
+          <SettingsSection icon={CreditCard} label="Account">
+            <div className="mb-3 rounded-lg border border-white/5 bg-black/30 p-3">
+              <p className="text-[10px] uppercase tracking-wider text-wolf-muted">
+                Signed in as
+              </p>
+              <p className="mt-0.5 truncate text-sm font-medium text-white">
+                {profileEmail || "—"}
+              </p>
+              <div className="mt-2 inline-flex items-center gap-1.5">
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                  style={{ backgroundColor: `${tierBadgeColor}20`, color: tierBadgeColor }}
+                >
+                  {tierLabel(tier)}
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={manageSubscription}
+              disabled={openingPortal || tier === "free"}
+              className="inline-flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50"
+              title={tier === "free" ? "Upgrade first to manage your subscription" : undefined}
+            >
+              <span className="flex items-center gap-2">
+                {openingPortal ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
+                Manage subscription
+              </span>
+              <ChevronRight size={14} className="text-wolf-muted" />
+            </button>
+          </SettingsSection>
+        )}
+
+        {/* ── Appearance: accent color ── */}
+        <SettingsSection label="Accent color">
           {profileId ? (
             <div className="flex flex-wrap gap-3">
               {THEME_COLORS.map((c) => {
@@ -865,38 +973,151 @@ function SettingsModal({
               Sign in to save your theme across devices.
             </p>
           )}
-        </div>
+        </SettingsSection>
 
-        {/* Reduce motion */}
-        <div className="flex items-center justify-between border-t border-white/5 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <Eye size={15} className="text-wolf-muted" />
-            <div>
-              <p className="text-sm font-semibold text-white">Reduce motion</p>
-              <p className="text-[11px] text-wolf-muted">
-                Calms the louder animations.
-              </p>
+        {/* ── Motion ── */}
+        <SettingsSection>
+          <ToggleRow
+            icon={Eye}
+            title="Reduce motion"
+            subtitle="Calms the louder animations."
+            checked={reducedMotion}
+            onChange={(v) => setReducedMotion(v)}
+          />
+        </SettingsSection>
+
+        {/* ── Audio ── */}
+        <SettingsSection icon={Volume2} label="Audio">
+          <div className="mb-3">
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-xs text-wolf-muted">Default beat volume</span>
+              <span className="text-xs font-medium text-white">
+                {Math.round(prefs.beatVolume * 100)}%
+              </span>
             </div>
-          </div>
-          <button
-            onClick={() => setReducedMotion(!reducedMotion)}
-            role="switch"
-            aria-checked={reducedMotion}
-            className="relative h-6 w-11 rounded-full transition-colors"
-            style={{
-              backgroundColor: reducedMotion ? "#f5c518" : "rgba(255,255,255,0.12)",
-            }}
-          >
-            <span
-              className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
-              style={{
-                transform: reducedMotion ? "translateX(22px)" : "translateX(2px)",
-              }}
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(prefs.beatVolume * 100)}
+              onChange={(e) => setStudioPref("beatVolume", Number(e.target.value) / 100)}
+              className="w-full accent-wolf-gold"
+              aria-label="Default beat volume"
             />
-          </button>
-        </div>
+          </div>
+          <ToggleRow
+            title="Autoplay on hover"
+            subtitle="Beats start playing when you hover their card."
+            checked={prefs.beatAutoplay}
+            onChange={(v) => setStudioPref("beatAutoplay", v)}
+          />
+        </SettingsSection>
 
-        {/* Sign out */}
+        {/* ── Studio defaults ── */}
+        <SettingsSection icon={Wand2} label="Studio defaults">
+          <SelectRow
+            label="Default cover art model"
+            value={prefs.defaultCoverModel}
+            onChange={(v) => setStudioPref("defaultCoverModel", v)}
+            options={COVER_MODELS.map((m) => ({ value: m.id, label: m.label }))}
+          />
+          <SelectRow
+            label="Default aspect ratio"
+            value={prefs.defaultAspect}
+            onChange={(v) => setStudioPref("defaultAspect", v as "1:1" | "4:5" | "16:9")}
+            options={ASPECT_OPTIONS.map((a) => ({ value: a, label: a }))}
+          />
+          <SelectRow
+            label="Default lyric style"
+            value={prefs.defaultLyricStyle}
+            onChange={(v) => setStudioPref("defaultLyricStyle", v)}
+            options={LYRIC_STYLES.map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }))}
+          />
+        </SettingsSection>
+
+        {/* ── Notifications ── */}
+        <SettingsSection icon={Bell} label="Notifications">
+          <p className="mb-3 text-[11px] text-wolf-muted">
+            Choose what the bell will ping you for once notifications launch.
+          </p>
+          <ToggleRow
+            title="Direct messages"
+            checked={prefs.notifyDM}
+            onChange={(v) => setStudioPref("notifyDM", v)}
+            compact
+          />
+          <ToggleRow
+            title="Pack awards"
+            checked={prefs.notifyAwards}
+            onChange={(v) => setStudioPref("notifyAwards", v)}
+            compact
+          />
+          <ToggleRow
+            title="Replies & mentions"
+            checked={prefs.notifyReplies}
+            onChange={(v) => setStudioPref("notifyReplies", v)}
+            compact
+          />
+          <ToggleRow
+            title="Gig responses"
+            checked={prefs.notifyGigs}
+            onChange={(v) => setStudioPref("notifyGigs", v)}
+            compact
+          />
+          <ToggleRow
+            title="Email digest"
+            subtitle="Weekly summary of activity."
+            checked={prefs.notifyEmail}
+            onChange={(v) => setStudioPref("notifyEmail", v)}
+          />
+        </SettingsSection>
+
+        {/* ── Data ── */}
+        <SettingsSection icon={Trash2} label="Data">
+          {confirmingClear === "covers" ? (
+            <ConfirmRow
+              text="Clear all cover art history?"
+              loading={clearing}
+              onConfirm={clearCovers}
+              onCancel={() => setConfirmingClear(null)}
+            />
+          ) : (
+            <ActionRow
+              label="Clear cover art history"
+              onClick={() => setConfirmingClear("covers")}
+            />
+          )}
+          {confirmingClear === "wolves" ? (
+            <ConfirmRow
+              text="Clear your saved wolves?"
+              onConfirm={clearWolves}
+              onCancel={() => setConfirmingClear(null)}
+            />
+          ) : (
+            <ActionRow
+              label="Clear saved wolves"
+              onClick={() => setConfirmingClear("wolves")}
+            />
+          )}
+        </SettingsSection>
+
+        {/* ── Danger zone ── */}
+        {profileId && (
+          <SettingsSection icon={AlertTriangle} label="Danger zone" tone="danger">
+            <p className="mb-3 text-[11px] text-wolf-muted">
+              Account deletion is handled manually for now — drop us a line and
+              we'll wipe everything within 24 hours.
+            </p>
+            <a
+              href="mailto:Lazyjo.official@gmail.com?subject=Delete%20my%20Lightning%20Wolves%20account"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 py-2 text-xs font-semibold text-red-300 transition-colors hover:bg-red-500/10"
+            >
+              Request account deletion
+            </a>
+          </SettingsSection>
+        )}
+
+        {/* ── Sign out ── */}
         {profileId && (
           <div className="border-t border-white/5 px-6 py-4">
             <button
@@ -913,5 +1134,152 @@ function SettingsModal({
         )}
       </motion.div>
     </motion.div>
+  );
+}
+
+/* ─── Settings modal sub-components ─── */
+
+function SettingsSection({
+  icon: Icon,
+  label,
+  tone,
+  children,
+}: {
+  icon?: typeof Settings;
+  label?: string;
+  tone?: "danger";
+  children: React.ReactNode;
+}) {
+  const labelColor = tone === "danger" ? "text-red-300/80" : "text-wolf-muted";
+  return (
+    <div className="border-t border-white/5 px-6 py-5">
+      {label && (
+        <div className="mb-3 flex items-center gap-1.5">
+          {Icon && <Icon size={12} className={labelColor} />}
+          <p className={`text-[10px] font-bold uppercase tracking-[0.2em] ${labelColor}`}>
+            {label}
+          </p>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function ToggleRow({
+  icon: Icon,
+  title,
+  subtitle,
+  checked,
+  onChange,
+  compact,
+}: {
+  icon?: typeof Settings;
+  title: string;
+  subtitle?: string;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={`flex items-center justify-between ${compact ? "py-1.5" : "py-1"}`}>
+      <div className="flex items-center gap-3">
+        {Icon && <Icon size={15} className="text-wolf-muted" />}
+        <div>
+          <p className="text-sm font-semibold text-white">{title}</p>
+          {subtitle && <p className="text-[11px] text-wolf-muted">{subtitle}</p>}
+        </div>
+      </div>
+      <button
+        onClick={() => onChange(!checked)}
+        role="switch"
+        aria-checked={checked}
+        aria-label={title}
+        className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
+        style={{
+          backgroundColor: checked ? "#f5c518" : "rgba(255,255,255,0.12)",
+        }}
+      >
+        <span
+          className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
+          style={{ transform: checked ? "translateX(22px)" : "translateX(2px)" }}
+        />
+      </button>
+    </div>
+  );
+}
+
+function SelectRow({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="mb-2 flex items-center justify-between gap-3">
+      <span className="text-sm text-white">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white focus:border-wolf-gold/40 focus:outline-none"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value} className="bg-wolf-bg text-white">
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ActionRow({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="mb-2 inline-flex w-full items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 text-sm text-white transition-colors hover:bg-white/[0.06]"
+    >
+      <span>{label}</span>
+      <ChevronRight size={14} className="text-wolf-muted" />
+    </button>
+  );
+}
+
+function ConfirmRow({
+  text,
+  loading,
+  onConfirm,
+  onCancel,
+}: {
+  text: string;
+  loading?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="mb-2 rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+      <p className="mb-2 text-xs text-red-200">{text}</p>
+      <div className="flex gap-2">
+        <button
+          onClick={onConfirm}
+          disabled={loading}
+          className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-md bg-red-500/30 py-1.5 text-xs font-semibold text-red-100 transition-colors hover:bg-red-500/40 disabled:opacity-50"
+        >
+          {loading && <Loader2 size={11} className="animate-spin" />}
+          Yes, clear
+        </button>
+        <button
+          onClick={onCancel}
+          className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs text-wolf-muted transition-colors hover:text-white"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
   );
 }

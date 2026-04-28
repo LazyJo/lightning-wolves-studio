@@ -17,12 +17,16 @@ import {
   X,
   Check,
   Loader2,
+  LogOut,
+  Eye,
 } from "lucide-react";
 import type { Wolf } from "../../data/wolves";
 import { tierLabel, tierColor } from "../../lib/useCredits";
 import { useRecentActivity, formatTimeAgo } from "../../lib/useRecentActivity";
 import { useProfile } from "../../lib/useProfile";
 import { getSupabase } from "../../lib/supabaseClient";
+import { useReducedMotion, setReducedMotion } from "../../lib/useReducedMotion";
+import { useSession } from "../../lib/useSession";
 import TemplatesList from "./TemplatesList";
 
 type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art" | "artist-page";
@@ -95,6 +99,7 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
   const { activities } = useRecentActivity();
   const { profile } = useProfile();
   const [showWolfPicker, setShowWolfPicker] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // First-visit wolf picker: signed-in user without a wolf_id chooses
   // their accent wolf so the studio themes itself.
@@ -178,10 +183,19 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
             </div>
 
             <div className="flex items-center gap-1">
-              <button className="rounded-lg p-2 text-wolf-muted transition-colors hover:bg-wolf-surface hover:text-white">
+              <button
+                onClick={() => setShowSettings(true)}
+                aria-label="Settings"
+                title="Settings"
+                className="rounded-lg p-2 text-wolf-muted transition-colors hover:bg-wolf-surface hover:text-white"
+              >
                 <Settings size={16} />
               </button>
-              <button className="rounded-lg p-2 text-wolf-muted transition-colors hover:bg-wolf-surface hover:text-white">
+              <button
+                aria-label="Notifications"
+                title="Notifications — coming soon"
+                className="rounded-lg p-2 text-wolf-muted transition-colors hover:bg-wolf-surface hover:text-white"
+              >
                 <Bell size={16} />
               </button>
             </div>
@@ -595,6 +609,13 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
             onSaved={() => setShowWolfPicker(false)}
           />
         )}
+        {showSettings && (
+          <SettingsModal
+            profileId={profile?.id || null}
+            currentWolfId={profile?.wolf_id || null}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
       </AnimatePresence>
     </>
   );
@@ -737,6 +758,159 @@ function WolfColorPickerModal({
             Set my theme
           </button>
         </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ─── Settings modal — accent color, motion, sign out ─── */
+
+function SettingsModal({
+  profileId,
+  currentWolfId,
+  onClose,
+}: {
+  profileId: string | null;
+  currentWolfId: string | null;
+  onClose: () => void;
+}) {
+  const reducedMotion = useReducedMotion();
+  const { signOut } = useSession();
+  const [savingWolf, setSavingWolf] = useState<string | null>(null);
+
+  async function pickWolf(wolfId: string) {
+    if (!profileId || savingWolf) return;
+    setSavingWolf(wolfId);
+    try {
+      const sb = getSupabase();
+      if (!sb) return;
+      await sb.from("profiles").update({ wolf_id: wolfId }).eq("id", profileId);
+      window.location.reload();
+    } finally {
+      setSavingWolf(null);
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-wolf-card"
+      >
+        <button
+          onClick={onClose}
+          aria-label="Close settings"
+          className="absolute right-3 top-3 rounded-lg p-1.5 text-wolf-muted transition-colors hover:bg-white/5 hover:text-white"
+        >
+          <X size={16} />
+        </button>
+
+        <div className="px-6 pt-6 pb-4">
+          <h3
+            className="text-2xl font-bold text-white"
+            style={{ fontFamily: "var(--font-heading)" }}
+          >
+            Settings
+          </h3>
+          <p className="mt-0.5 text-xs text-wolf-muted">
+            Theme, motion, and account.
+          </p>
+        </div>
+
+        {/* Accent color (wolf swatches) */}
+        <div className="border-t border-white/5 px-6 py-5">
+          <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-wolf-muted">
+            Accent color
+          </p>
+          {profileId ? (
+            <div className="flex flex-wrap gap-3">
+              {THEME_COLORS.map((c) => {
+                const isCurrent = currentWolfId === c.id;
+                const isSaving = savingWolf === c.id;
+                return (
+                  <button
+                    key={c.id}
+                    onClick={() => pickWolf(c.id)}
+                    disabled={!!savingWolf}
+                    aria-label={`${c.id} theme`}
+                    aria-pressed={isCurrent}
+                    className="relative flex h-10 w-10 items-center justify-center rounded-full transition-transform hover:scale-110 disabled:opacity-50"
+                    style={{
+                      backgroundColor: c.color,
+                      boxShadow: isCurrent
+                        ? `0 0 0 2px ${c.color}, 0 0 18px ${c.color}aa`
+                        : `0 4px 12px ${c.color}40`,
+                    }}
+                  >
+                    {isSaving ? (
+                      <Loader2 size={14} className="animate-spin text-black" />
+                    ) : isCurrent ? (
+                      <Check size={14} className="text-black" strokeWidth={3} />
+                    ) : null}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-wolf-muted">
+              Sign in to save your theme across devices.
+            </p>
+          )}
+        </div>
+
+        {/* Reduce motion */}
+        <div className="flex items-center justify-between border-t border-white/5 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <Eye size={15} className="text-wolf-muted" />
+            <div>
+              <p className="text-sm font-semibold text-white">Reduce motion</p>
+              <p className="text-[11px] text-wolf-muted">
+                Calms the louder animations.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setReducedMotion(!reducedMotion)}
+            role="switch"
+            aria-checked={reducedMotion}
+            className="relative h-6 w-11 rounded-full transition-colors"
+            style={{
+              backgroundColor: reducedMotion ? "#f5c518" : "rgba(255,255,255,0.12)",
+            }}
+          >
+            <span
+              className="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
+              style={{
+                transform: reducedMotion ? "translateX(22px)" : "translateX(2px)",
+              }}
+            />
+          </button>
+        </div>
+
+        {/* Sign out */}
+        {profileId && (
+          <div className="border-t border-white/5 px-6 py-4">
+            <button
+              onClick={async () => {
+                await signOut();
+                window.location.reload();
+              }}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/5 py-2.5 text-sm font-semibold text-red-300 transition-colors hover:bg-red-500/10"
+            >
+              <LogOut size={14} />
+              Sign out
+            </button>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

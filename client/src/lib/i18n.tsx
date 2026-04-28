@@ -13,9 +13,9 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Hero
     "hero.badge": "AI Lyrics Studio × Global Artist Network",
-    "hero.title1": "WHICH WOLF",
-    "hero.title2": "ARE YOU?",
-    "hero.subtitle": "Turn your songs into cinematic lyric videos in minutes — and link up with a global pack of real artists. Pick a wolf to start.",
+    "hero.title1": "TURN YOUR SONGS",
+    "hero.title2": "INTO LIGHTNING",
+    "hero.subtitle": "AI lyric videos in minutes — drop in your audio and meet a global pack of real artists.",
     "hero.cta1": "Meet The Pack",
     "hero.cta2": "How It Works",
 
@@ -40,7 +40,7 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Featured Artists
     "artists.label": "The Roster",
-    "artists.title": "MEET THE WOLVES",
+    "artists.title": "ON ROTATION",
     "artists.viewProfile": "View Profile",
 
     // CTA
@@ -279,9 +279,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.enterStudio": "Naar Studio",
 
     "hero.badge": "AI-Aangedreven Lyrics Studio",
-    "hero.title1": "WELKE WOLF",
-    "hero.title2": "BEN JIJ?",
-    "hero.subtitle": "Kies je wolf. Ga de studio in. Creëer iets legendarisch.",
+    "hero.title1": "VAN SONG",
+    "hero.title2": "NAAR BLIKSEM",
+    "hero.subtitle": "AI lyric video's in minuten — drop je audio en ontmoet een wereldwijde pack echte artiesten.",
     "hero.cta1": "Ontmoet De Pack",
     "hero.cta2": "Hoe Het Werkt",
 
@@ -301,7 +301,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "features.conquerDesc": "Word lid van het Lightning Wolves-roster. Word uitgelicht, bouw je fanbase op en groei je carrière.",
 
     "artists.label": "Het Roster",
-    "artists.title": "ONTMOET DE WOLVES",
+    "artists.title": "NU IN ROTATIE",
     "artists.viewProfile": "Bekijk Profiel",
 
     "cta.title1": "KLAAR OM TE",
@@ -529,9 +529,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.enterStudio": "Entrer au Studio",
 
     "hero.badge": "Studio de Lyrics propulsé par l'IA",
-    "hero.title1": "QUEL LOUP",
-    "hero.title2": "ES-TU ?",
-    "hero.subtitle": "Choisis ton loup. Entre au studio. Crée quelque chose de légendaire.",
+    "hero.title1": "TES SONS",
+    "hero.title2": "EN ÉCLAIRS",
+    "hero.subtitle": "Clips lyriques IA en minutes — pose ton audio et rejoins une meute mondiale d'artistes.",
     "hero.cta1": "Rencontre La Meute",
     "hero.cta2": "Comment Ça Marche",
 
@@ -551,7 +551,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "features.conquerDesc": "Rejoins le roster Lightning Wolves. Sois mis en avant, construis ta fanbase et fais grandir ta carrière.",
 
     "artists.label": "Le Roster",
-    "artists.title": "RENCONTRE LES LOUPS",
+    "artists.title": "EN ROTATION",
     "artists.viewProfile": "Voir le Profil",
 
     "cta.title1": "PRÊT À",
@@ -779,9 +779,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.enterStudio": "Entrar al Studio",
 
     "hero.badge": "Studio de Lyrics con IA",
-    "hero.title1": "¿QUÉ LOBO",
-    "hero.title2": "ERES TÚ?",
-    "hero.subtitle": "Elige tu lobo. Entra al estudio. Crea algo legendario.",
+    "hero.title1": "TUS CANCIONES",
+    "hero.title2": "EN RELÁMPAGO",
+    "hero.subtitle": "Videos líricos con IA en minutos — sube tu audio y conoce una manada global de artistas reales.",
     "hero.cta1": "Conoce La Manada",
     "hero.cta2": "Cómo Funciona",
 
@@ -801,7 +801,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "features.conquerDesc": "Únete al roster de Lightning Wolves. Destaca, construye tu fanbase y haz crecer tu carrera.",
 
     "artists.label": "El Roster",
-    "artists.title": "CONOCE A LOS LOBOS",
+    "artists.title": "EN ROTACIÓN",
     "artists.viewProfile": "Ver Perfil",
 
     "cta.title1": "¿LISTO PARA",

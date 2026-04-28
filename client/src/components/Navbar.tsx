@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, Zap, Globe, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell, Shield, Sparkles } from "lucide-react";
+import { Menu, X, Zap, Globe, Globe2, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell, Shield, Sparkles } from "lucide-react";
 import { useI18n, LANGUAGES } from "../lib/i18n";
 import { useHubNotifications } from "../lib/useHubNotifications";
 import { initSupabase } from "../lib/supabaseClient";
@@ -243,13 +243,13 @@ export default function Navbar({
                 <span className="text-sm font-bold text-wolf-gold">{credits ?? 0}</span>
                 <span className="text-[10px] text-wolf-muted group-hover:text-wolf-gold/80">credits</span>
               </button>
-              {/* Notification bell with LYRC-style red badge */}
+              {/* Wolf Hub shortcut — global activity map */}
               <button
                 onClick={onNotifications}
                 className="relative rounded-lg border border-white/10 bg-white/[0.03] p-2 text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold"
-                title="Notifications"
+                title="Wolf Hub"
               >
-                <Bell size={14} />
+                <Globe2 size={14} />
                 {notifications > 0 && (
                   <span
                     className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white"

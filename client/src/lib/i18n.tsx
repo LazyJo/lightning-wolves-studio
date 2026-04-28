@@ -14,7 +14,7 @@ const translations: Record<Lang, Record<string, string>> = {
     // Hero
     "hero.badge": "AI Lyrics Studio × Global Artist Network",
     "hero.title1": "TURN YOUR SONGS",
-    "hero.title2": "INTO LIGHTNING",
+    "hero.title2": "INTO LIGHTNING VIEWS",
     "hero.subtitle": "AI lyric videos in minutes — drop in your audio and meet a global pack of real artists.",
     "hero.cta1": "Meet The Pack",
     "hero.cta2": "How It Works",
@@ -279,8 +279,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.enterStudio": "Naar Studio",
 
     "hero.badge": "AI-Aangedreven Lyrics Studio",
-    "hero.title1": "VAN SONG",
-    "hero.title2": "NAAR BLIKSEM",
+    "hero.title1": "MAAK VAN JE SONGS",
+    "hero.title2": "LIGHTNING VIEWS",
     "hero.subtitle": "AI lyric video's in minuten — drop je audio en ontmoet een wereldwijde pack echte artiesten.",
     "hero.cta1": "Ontmoet De Pack",
     "hero.cta2": "Hoe Het Werkt",
@@ -529,8 +529,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.enterStudio": "Entrer au Studio",
 
     "hero.badge": "Studio de Lyrics propulsé par l'IA",
-    "hero.title1": "TES SONS",
-    "hero.title2": "EN ÉCLAIRS",
+    "hero.title1": "TRANSFORME TES SONS",
+    "hero.title2": "EN LIGHTNING VIEWS",
     "hero.subtitle": "Clips lyriques IA en minutes — pose ton audio et rejoins une meute mondiale d'artistes.",
     "hero.cta1": "Rencontre La Meute",
     "hero.cta2": "Comment Ça Marche",
@@ -779,8 +779,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "nav.enterStudio": "Entrar al Studio",
 
     "hero.badge": "Studio de Lyrics con IA",
-    "hero.title1": "TUS CANCIONES",
-    "hero.title2": "EN RELÁMPAGO",
+    "hero.title1": "CONVIERTE TUS CANCIONES",
+    "hero.title2": "EN LIGHTNING VIEWS",
     "hero.subtitle": "Videos líricos con IA en minutos — sube tu audio y conoce una manada global de artistas reales.",
     "hero.cta1": "Conoce La Manada",
     "hero.cta2": "Cómo Funciona",

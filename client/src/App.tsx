@@ -424,6 +424,7 @@ export default function App() {
                 initialAudioName={page.initialAudioName}
                 onBack={goHome}
                 onWolfMap={goToWolfMap}
+                onWolfHub={() => goToWolfHub()}
                 studioView={studioView}
                 onStudioNav={(v) => {
                   if (v === "pricing") { goToPricing(); return; }

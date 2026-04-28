@@ -57,6 +57,7 @@ interface Props {
   wolf: Wolf | null;
   onBack: () => void;
   onWolfMap?: () => void;
+  onWolfHub?: () => void;
   studioView?: string;
   onStudioNav?: (view: string) => void;
   // Hub → Studio per-beat conversion: when set, mount the template
@@ -582,7 +583,7 @@ const LYRIC_VIDEO_MODES: View[] = ["scenes", "remix", "performance"];
 type PendingMode = "scenes" | "remix" | "performance" | null;
 
 // Main Studio Page
-export default function StudioPage({ wolf, onBack, onWolfMap, studioView: externalView, onStudioNav, initialAudioUrl, initialAudioName, onAuthRequired, onSharedToHub }: Props) {
+export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioView: externalView, onStudioNav, initialAudioUrl, initialAudioName, onAuthRequired, onSharedToHub }: Props) {
   const [internalView, setInternalView] = useState<View>("dashboard");
 
   // LYRC-style Template flow — one upload, many renders.
@@ -678,6 +679,7 @@ export default function StudioPage({ wolf, onBack, onWolfMap, studioView: extern
             onSelectTool={(v) => handleDashboardTool(v as View)}
             onBack={onBack}
             onWolfMap={onWolfMap}
+            onWolfHub={onWolfHub}
             t={t}
             onNewTemplate={() => {
               setEditingTemplate(null);

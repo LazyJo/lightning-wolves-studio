@@ -44,6 +44,7 @@ interface Props {
   onSelectTool: (view: View) => void;
   onBack: () => void;
   onWolfMap?: () => void;
+  onWolfHub?: () => void;
   t: (key: string) => string;
   /** Jump straight to the TemplateEditor (new template) */
   onNewTemplate?: () => void;
@@ -89,7 +90,7 @@ const TOOL_ICONS: Record<string, string> = {
   "cover-art": "Image",
 };
 
-export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool, onBack, onWolfMap, t, onNewTemplate, onOpenTemplate }: Props) {
+export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool, onBack, onWolfMap, onWolfHub, t, onNewTemplate, onOpenTemplate }: Props) {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { activities } = useRecentActivity();
   const { profile } = useProfile();
@@ -453,6 +454,32 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
               viewport={{ once: true }}
               transition={{ delay: 0.05 }}
               onClick={onWolfMap}
+              className="group cursor-pointer rounded-xl border border-wolf-border/20 bg-wolf-card/50 p-5 transition-all hover:border-wolf-border/40"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: `${accentColor}12` }}
+                  >
+                    <span className="text-lg">🗺️</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">Wolf Map</p>
+                    <p className="text-xs text-wolf-muted">Explore territories worldwide</p>
+                  </div>
+                </div>
+                <ArrowRight size={16} className="text-wolf-muted transition-transform group-hover:translate-x-1" />
+              </div>
+            </motion.div>
+          )}
+          {onWolfHub && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              onClick={onWolfHub}
               className="group cursor-pointer rounded-xl border border-wolf-border/20 bg-wolf-card/50 p-5 transition-all hover:border-wolf-border/40"
             >
               <div className="flex items-center justify-between">

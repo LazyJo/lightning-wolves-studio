@@ -9,13 +9,13 @@ import {
   AlertCircle,
   Info,
   Sparkles,
+  Download,
   X,
 } from "lucide-react";
-import { generate, type GenerationPack } from "../../lib/api";
+import { generateVisual } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
 import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
 import { useCredits } from "../../lib/useCredits";
-import GenerationResults from "./GenerationResults";
 
 interface Props {
   onBack: () => void;
@@ -64,8 +64,9 @@ export default function CoverArtView({ onBack, wolf }: Props) {
   const [refImages, setRefImages] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState<"starting" | "processing" | null>(null);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<GenerationPack | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const activeModel = AI_MODELS.find((m) => m.id === modelId)!;
@@ -84,53 +85,35 @@ export default function CoverArtView({ onBack, wolf }: Props) {
   const handleGenerate = useCallback(async () => {
     if (!canGenerate) return;
     setLoading(true);
+    setProgress("starting");
     setError("");
+    setImageUrl(null);
     try {
-      const res = await generate({
-        title: "Cover Art",
-        artist: wolf?.artist || "Lightning Wolves",
-        genre: wolf?.genre || "Hip-Hop",
-        language: "English",
-        mood: `Cover art design. Model: ${activeModel.name}. Prompt: ${prompt}. Format: ${aspect}, ${resolution}. ${refImages.length} reference images provided.`,
-        wolfId: wolf?.id,
+      const final = await generateVisual({
+        modelId,
+        prompt: `${prompt}\n\n[Format: ${aspect}, ${resolution}${refImages.length ? `, ${refImages.length} reference images` : ""}]`,
+        type: "cover",
+        accessToken: accessToken || undefined,
+        options: { aspectRatio: aspect },
+        onProgress: (s) => {
+          if (s.status === "starting" || s.status === "processing") {
+            setProgress(s.status);
+          }
+        },
       });
-      setResult(res.pack);
-      if (!accessToken) loneWolf.consume();
+      if (final.status === "succeeded" && final.output && final.output.length > 0) {
+        setImageUrl(final.output[0]);
+        if (!accessToken) loneWolf.consume();
+      } else {
+        setError(final.error || "Generation finished but produced no image.");
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Generation failed.");
     } finally {
       setLoading(false);
+      setProgress(null);
     }
-  }, [canGenerate, wolf, activeModel, prompt, aspect, resolution, refImages.length, accessToken, loneWolf]);
-
-  /* ── Result view ───────────────────────────────────────────────── */
-  if (result) {
-    return (
-      <div>
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          onClick={onBack}
-          className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
-        >
-          <ArrowLeft size={16} /> Back to Dashboard
-        </motion.button>
-        <div className="space-y-6">
-          <GenerationResults pack={result} accentColor={CA.blue} />
-          <button
-            onClick={() => {
-              setResult(null);
-              setPrompt("");
-            }}
-            className="w-full rounded-xl border py-3 text-sm font-semibold text-wolf-muted hover:text-wolf-gold"
-            style={{ borderColor: CA.border }}
-          >
-            Generate Another
-          </button>
-        </div>
-      </div>
-    );
-  }
+  }, [canGenerate, modelId, prompt, aspect, resolution, refImages.length, accessToken, loneWolf]);
 
   const validationMessage = prompt.trim().length < 10
     ? "Describe your cover art in detail to generate."
@@ -410,7 +393,8 @@ export default function CoverArtView({ onBack, wolf }: Props) {
               Your Cover Art
             </p>
             <button
-              disabled={loading}
+              disabled={loading || !imageUrl}
+              onClick={() => { setImageUrl(null); setError(""); }}
               className="inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-[11px] font-semibold transition-all disabled:opacity-40"
               style={{ borderColor: CA.blueBorder, color: CA.blue }}
             >
@@ -435,8 +419,69 @@ export default function CoverArtView({ onBack, wolf }: Props) {
                   >
                     <Wand2 size={40} style={{ color: CA.blue }} />
                   </motion.div>
-                  <p className="text-sm font-semibold text-white">Generating cover art...</p>
-                  <p className="text-xs text-wolf-muted">Est. ~1m 51s</p>
+                  <p className="text-sm font-semibold text-white">
+                    {progress === "starting" ? "Queued…" : "Generating cover art…"}
+                  </p>
+                  <p className="text-xs text-wolf-muted">Usually 30–90 seconds</p>
+                </motion.div>
+              ) : imageUrl ? (
+                <motion.div
+                  key="success"
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center gap-4"
+                >
+                  <div
+                    className="overflow-hidden rounded-xl border"
+                    style={{ borderColor: CA.blueBorder }}
+                  >
+                    <img
+                      src={imageUrl}
+                      alt="Generated cover art"
+                      className="block max-h-[480px] w-auto object-contain"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <a
+                      href={imageUrl}
+                      download={`cover-art-${Date.now()}.png`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold transition-all"
+                      style={{
+                        background: `linear-gradient(90deg, ${CA.blue}, ${CA.purple})`,
+                        color: "#000",
+                      }}
+                    >
+                      <Download size={12} /> Download
+                    </a>
+                    <button
+                      onClick={() => { setImageUrl(null); }}
+                      className="inline-flex items-center gap-1.5 rounded-lg border px-4 py-2 text-xs font-semibold transition-all hover:bg-white/5"
+                      style={{ borderColor: CA.blueBorder, color: CA.blue }}
+                    >
+                      <Sparkles size={12} /> Generate Another
+                    </button>
+                  </div>
+                </motion.div>
+              ) : error ? (
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center gap-3 py-20 text-center"
+                >
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
+                    <AlertCircle size={26} className="text-red-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-white">Generation failed</p>
+                  <p className="max-w-sm text-xs text-red-300/90">{error}</p>
+                  <button
+                    onClick={() => setError("")}
+                    className="text-[11px] text-wolf-muted hover:text-wolf-gold"
+                  >
+                    Try again
+                  </button>
                 </motion.div>
               ) : (
                 <motion.div

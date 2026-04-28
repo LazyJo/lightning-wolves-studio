@@ -149,6 +149,52 @@ export async function generateVisuals(params: {
   return { success: result.status === "succeeded", generation: result };
 }
 
+// ─── Cover Art history (per-user, server-side) ──────────────────────────────
+
+export interface CoverArtItem {
+  id: string;
+  image_url: string;
+  prompt: string | null;
+  model_id: string | null;
+  aspect: string | null;
+  resolution: string | null;
+  created_at: string;
+}
+
+export async function listCoverArtHistory(accessToken: string): Promise<CoverArtItem[]> {
+  const res = await fetch(`${API}/api/cover-art/history`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error("Failed to load gallery");
+  const data = await res.json();
+  return data.items || [];
+}
+
+export async function saveCoverArtHistory(
+  accessToken: string,
+  payload: { imageUrl: string; prompt?: string; modelId?: string; aspect?: string; resolution?: string }
+): Promise<CoverArtItem> {
+  const res = await fetch(`${API}/api/cover-art/history`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error("Failed to save");
+  const data = await res.json();
+  return data.item;
+}
+
+export async function clearCoverArtHistory(accessToken: string): Promise<void> {
+  const res = await fetch(`${API}/api/cover-art/history/all`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error("Failed to clear");
+}
+
 // ─── Whisper Transcription ───────────────────────────────────────────────────
 
 export interface TranscribeResult {

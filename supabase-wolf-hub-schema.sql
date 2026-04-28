@@ -550,3 +550,35 @@ CREATE POLICY "wolf_hub_media_insert" ON storage.objects
 DROP POLICY IF EXISTS "wolf_hub_media_delete_own" ON storage.objects;
 CREATE POLICY "wolf_hub_media_delete_own" ON storage.objects
   FOR DELETE USING (bucket_id = 'wolf-hub-media' AND auth.uid() = owner);
+
+-- ── Cover Art history (per user, syncs across devices) ──────────────────────
+-- Saved gallery on the right rail of CoverArtView. localStorage on the
+-- client is the fallback for guests; signed-in wolves get a real DB row
+-- per generation so the gallery survives device + browser changes
+-- (and the upcoming native app reads from the same table).
+CREATE TABLE IF NOT EXISTS public.cover_art_history (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id     UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  image_url   TEXT NOT NULL,
+  prompt      TEXT,
+  model_id    TEXT,
+  aspect      TEXT,
+  resolution  TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS cover_art_history_user_idx
+  ON public.cover_art_history (user_id, created_at DESC);
+
+ALTER TABLE public.cover_art_history ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS cover_art_history_select_own ON public.cover_art_history;
+CREATE POLICY cover_art_history_select_own ON public.cover_art_history
+  FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS cover_art_history_insert_own ON public.cover_art_history;
+CREATE POLICY cover_art_history_insert_own ON public.cover_art_history
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS cover_art_history_delete_own ON public.cover_art_history;
+CREATE POLICY cover_art_history_delete_own ON public.cover_art_history
+  FOR DELETE USING (auth.uid() = user_id);

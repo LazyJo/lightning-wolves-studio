@@ -12,7 +12,12 @@ import {
   Download,
   X,
 } from "lucide-react";
-import { generateVisual } from "../../lib/api";
+import {
+  generateVisual,
+  listCoverArtHistory,
+  saveCoverArtHistory,
+  clearCoverArtHistory,
+} from "../../lib/api";
 import { useSession } from "../../lib/useSession";
 import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
 import { useCredits } from "../../lib/useCredits";
@@ -91,9 +96,46 @@ export default function CoverArtView({ onBack, wolf }: Props) {
   const [history, setHistory] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Hydrate gallery: signed-in wolves pull from the server (synced across
+  // devices); guests fall back to localStorage. If a signed-in wolf has
+  // local entries from before they signed up, lift them up server-side
+  // on first sync so the gallery "follows" them into their account.
   useEffect(() => {
-    setHistory(loadHistory());
-  }, []);
+    let cancelled = false;
+    (async () => {
+      if (accessToken) {
+        try {
+          const items = await listCoverArtHistory(accessToken);
+          if (cancelled) return;
+          const serverUrls = items.map((i) => i.image_url);
+          const locals = loadHistory();
+          const orphans = locals.filter((u) => !serverUrls.includes(u));
+          if (orphans.length > 0) {
+            // Best-effort backfill — failures don't block the gallery.
+            for (const url of orphans) {
+              try {
+                await saveCoverArtHistory(accessToken, { imageUrl: url });
+              } catch { /* ignore */ }
+            }
+            try {
+              localStorage.removeItem(HISTORY_KEY);
+            } catch { /* ignore */ }
+            const merged = await listCoverArtHistory(accessToken);
+            if (!cancelled) setHistory(merged.map((i) => i.image_url));
+          } else {
+            setHistory(serverUrls);
+          }
+        } catch {
+          // Server unreachable — degrade to localStorage so the user
+          // doesn't see an empty gallery.
+          if (!cancelled) setHistory(loadHistory());
+        }
+      } else {
+        setHistory(loadHistory());
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [accessToken]);
 
   const activeModel = AI_MODELS.find((m) => m.id === modelId)!;
   const isLoneWolf = !accessToken;
@@ -130,12 +172,25 @@ export default function CoverArtView({ onBack, wolf }: Props) {
       if (final.status === "succeeded" && final.output && final.output.length > 0) {
         const url = final.output[0];
         setImageUrl(url);
-        setHistory((prev) => {
-          const next = [url, ...prev.filter((u) => u !== url)].slice(0, HISTORY_MAX);
-          saveHistory(next);
-          return next;
-        });
-        if (!accessToken) loneWolf.consume();
+        setHistory((prev) => [url, ...prev.filter((u) => u !== url)].slice(0, HISTORY_MAX));
+        if (accessToken) {
+          // Persist server-side so the entry follows the wolf across devices.
+          // If the save fails, fall back to localStorage so they don't lose it.
+          try {
+            await saveCoverArtHistory(accessToken, {
+              imageUrl: url,
+              prompt,
+              modelId,
+              aspect,
+              resolution,
+            });
+          } catch {
+            saveHistory([url, ...loadHistory().filter((u) => u !== url)].slice(0, HISTORY_MAX));
+          }
+        } else {
+          saveHistory([url, ...loadHistory().filter((u) => u !== url)].slice(0, HISTORY_MAX));
+          loneWolf.consume();
+        }
       } else {
         setError(final.error || "Generation finished but produced no image.");
       }
@@ -444,10 +499,14 @@ export default function CoverArtView({ onBack, wolf }: Props) {
                     Saved · {history.length}
                   </p>
                   <button
-                    onClick={() => {
-                      if (confirm("Clear all saved cover art? This cannot be undone.")) {
-                        setHistory([]);
-                        saveHistory([]);
+                    onClick={async () => {
+                      if (!confirm("Clear all saved cover art? This cannot be undone.")) return;
+                      setHistory([]);
+                      saveHistory([]);
+                      if (accessToken) {
+                        try {
+                          await clearCoverArtHistory(accessToken);
+                        } catch { /* server clear failed — local is already empty */ }
                       }
                     }}
                     className="text-[10px] text-wolf-muted hover:text-red-300"

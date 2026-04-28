@@ -1313,6 +1313,84 @@ app.get('/api/admin/mrr', async (req, res) => {
   }
 });
 
+// ─── Cover Art history (per-user gallery) ────────────────────────────────────
+// Signed-in wolves' generations sync across devices via this table.
+// Lone Wolves keep their gallery in localStorage on the client.
+app.get('/api/cover-art/history', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'database offline' });
+    const user = await getUserFromToken(req);
+    if (!user) return res.status(401).json({ error: 'unauthenticated' });
+    const { data, error } = await supabase
+      .from('cover_art_history')
+      .select('id, image_url, prompt, model_id, aspect, resolution, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(48);
+    if (error) throw error;
+    res.json({ items: data || [] });
+  } catch (err) {
+    console.error('Cover art history list error:', err);
+    res.status(500).json({ error: err.message || 'list failed' });
+  }
+});
+
+app.post('/api/cover-art/history', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'database offline' });
+    const user = await getUserFromToken(req);
+    if (!user) return res.status(401).json({ error: 'unauthenticated' });
+    const { imageUrl, prompt, modelId, aspect, resolution } = req.body || {};
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      return res.status(400).json({ error: 'imageUrl required' });
+    }
+    const { data, error } = await supabase
+      .from('cover_art_history')
+      .insert({
+        user_id: user.id,
+        image_url: imageUrl,
+        prompt: prompt || null,
+        model_id: modelId || null,
+        aspect: aspect || null,
+        resolution: resolution || null,
+      })
+      .select('id, image_url, prompt, model_id, aspect, resolution, created_at')
+      .single();
+    if (error) throw error;
+    res.json({ item: data });
+  } catch (err) {
+    console.error('Cover art history save error:', err);
+    res.status(500).json({ error: err.message || 'save failed' });
+  }
+});
+
+app.delete('/api/cover-art/history/:id', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'database offline' });
+    const user = await getUserFromToken(req);
+    if (!user) return res.status(401).json({ error: 'unauthenticated' });
+    const id = req.params.id;
+    if (id === 'all') {
+      const { error } = await supabase
+        .from('cover_art_history')
+        .delete()
+        .eq('user_id', user.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('cover_art_history')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+      if (error) throw error;
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Cover art history delete error:', err);
+    res.status(500).json({ error: err.message || 'delete failed' });
+  }
+});
+
 // ─── Fallback to index.html (SPA) ────────────────────────────────────────────
 app.get('*', (req, res) => {
   // Try multiple paths (local dev vs Vercel deployment)

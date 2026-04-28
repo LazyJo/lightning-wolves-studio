@@ -195,7 +195,10 @@ function GenerationView({
 
   const { profile } = useProfile();
   const themeAccent = profile?.wolf_id ? THEME_TO_COLOR[profile.wolf_id] : null;
-  const accentColor = wolf?.color || themeAccent || "#f5c518";
+  // Signed-in wolves' theme pick wins over the page.wolf prop, so the
+  // Settings → Accent color picker actually changes the studio chrome
+  // even when entering studio from a specific wolf profile.
+  const accentColor = themeAccent || wolf?.color || "#f5c518";
   const toolInfo = toolDefs.find((td) => td.id === tool);
   const { t } = useI18n();
 
@@ -643,7 +646,10 @@ export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioV
 
   const { profile } = useProfile();
   const themeAccent = profile?.wolf_id ? THEME_TO_COLOR[profile.wolf_id] : null;
-  const accentColor = wolf?.color || themeAccent || "#f5c518";
+  // Signed-in wolves' theme pick wins over the page.wolf prop, so the
+  // Settings → Accent color picker actually changes the studio chrome
+  // even when entering studio from a specific wolf profile.
+  const accentColor = themeAccent || wolf?.color || "#f5c518";
   const { plan, deductCredits } = useCredits();
   const tColor = tierColor(plan.tier);
   const { t } = useI18n();

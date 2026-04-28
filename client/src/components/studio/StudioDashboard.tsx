@@ -817,9 +817,18 @@ function SettingsModal({
     try {
       const sb = getSupabase();
       if (!sb) return;
-      await sb.from("profiles").update({ wolf_id: wolfId }).eq("id", profileId);
+      const { error } = await sb
+        .from("profiles")
+        .update({ wolf_id: wolfId })
+        .eq("id", profileId);
+      if (error) {
+        console.error("[settings] failed to update accent color", error);
+        return;
+      }
       // Refetch instead of reloading — keeps the user in the studio.
       await onProfileChanged();
+    } catch (err) {
+      console.error("[settings] failed to update accent color", err);
     } finally {
       setSavingWolf(null);
     }

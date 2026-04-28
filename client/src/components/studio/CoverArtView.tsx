@@ -125,10 +125,12 @@ export default function CoverArtView({ onBack, wolf }: Props) {
           } else {
             setHistory(serverUrls);
           }
-        } catch {
-          // Server unreachable — degrade to localStorage so the user
-          // doesn't see an empty gallery.
-          if (!cancelled) setHistory(loadHistory());
+        } catch (err) {
+          console.error("[cover-art] gallery fetch failed", err);
+          if (!cancelled) {
+            setError("Couldn't load your saved gallery. Pull-to-refresh or try again.");
+            setHistory(loadHistory());
+          }
         }
       } else {
         setHistory(loadHistory());
@@ -184,7 +186,8 @@ export default function CoverArtView({ onBack, wolf }: Props) {
               aspect,
               resolution,
             });
-          } catch {
+          } catch (err) {
+            console.error("[cover-art] server save failed, kept locally", err);
             saveHistory([url, ...loadHistory().filter((u) => u !== url)].slice(0, HISTORY_MAX));
           }
         } else {

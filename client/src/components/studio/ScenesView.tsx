@@ -24,7 +24,6 @@ import {
   type VisualStatusResult,
 } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
-import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, type Template } from "../../lib/templates";
@@ -81,7 +80,6 @@ const SC = {
 
 export default function ScenesView({ onBack, template }: Props) {
   const { accessToken } = useSession();
-  const loneWolf = useLoneWolfCredits();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
   const [presetId, setPresetId] = useState<string | null>(DEFAULT_PRESET.id);
@@ -108,9 +106,8 @@ export default function ScenesView({ onBack, template }: Props) {
 
   const model = VIDEO_MODELS.find((m) => m.id === modelId)!;
   const totalCredits = model.credits * MAX_SCENES;
-  const isLoneWolf = !accessToken;
-  const hasQuota = !isLoneWolf || loneWolf.remaining > 0;
-  const canGenerate = stage === "idle" && hasQuota && hasValidStyle;
+  // Studio is signup-gated — server enforces credit quota.
+  const canGenerate = stage === "idle" && hasValidStyle;
 
   const resetAll = () => {
     setScenes([]);
@@ -120,10 +117,6 @@ export default function ScenesView({ onBack, template }: Props) {
   };
 
   const handleGenerate = useCallback(async () => {
-    if (!accessToken && loneWolf.remaining === 0) {
-      setError("You've used your 3 free generations. Sign in to keep going.");
-      return;
-    }
     setError("");
     setFinalUrl(null);
     setScenes([]);
@@ -229,7 +222,6 @@ export default function ScenesView({ onBack, template }: Props) {
       });
 
       setFinalUrl(mp4);
-      if (!accessToken) loneWolf.consume();
       setStage("done");
       setStageLog("");
     } catch (err: unknown) {
@@ -237,7 +229,7 @@ export default function ScenesView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, loneWolf, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg]);
+  }, [accessToken, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg]);
 
   const completedScenes = useMemo(
     () => scenes.filter((s) => s.status === "succeeded").length,
@@ -247,8 +239,6 @@ export default function ScenesView({ onBack, template }: Props) {
   /* ── Validation helper ───────────────────────────────────────────── */
   const validationMessage = !hasValidStyle
     ? "Pick a scene or write a custom prompt above."
-    : isLoneWolf && loneWolf.remaining === 0
-    ? "Out of free generations — sign in to keep going."
     : null;
 
   /* ────────────────────────────────────────────────────────────────── */
@@ -525,9 +515,7 @@ export default function ScenesView({ onBack, template }: Props) {
                   className="rounded px-2 py-0.5 text-[11px] font-bold"
                   style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
                 >
-                  {isLoneWolf
-                    ? `${loneWolf.remaining}/${loneWolf.total} free`
-                    : `💎 ${totalCredits}`}
+                  💎 {totalCredits}
                 </span>
               </span>
             ) : (
@@ -561,14 +549,6 @@ export default function ScenesView({ onBack, template }: Props) {
             </div>
           )}
 
-          {/* Lone Wolf footer copy */}
-          {isLoneWolf && !validationMessage && (
-            <p className="text-center text-[10px] text-wolf-muted">
-              {loneWolf.remaining > 0
-                ? `🐺 Lone Wolf mode — ${loneWolf.remaining} free ${loneWolf.remaining === 1 ? "generation" : "generations"} left.`
-                : "You've used all 3 free generations. Sign in to keep creating."}
-            </p>
-          )}
         </motion.div>
 
         {/* ── Right panel: gallery / pipeline / preview ── */}

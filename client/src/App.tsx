@@ -41,7 +41,7 @@ type Page =
   | { type: "wolf-map" }
   | { type: "wolf-hub"; targetMessageId?: string; targetRoomId?: string }
   | { type: "studio"; wolf: Wolf | null; initialAudioUrl?: string; initialAudioName?: string }
-  | { type: "auth" }
+  | { type: "auth"; nextStudio?: { wolf: Wolf | null; initialAudioUrl?: string; initialAudioName?: string } }
   | { type: "join-pack" }
   | { type: "create-profile"; pendingApplyGigId?: string }
   | { type: "versus"; territory?: string; challengeWolf?: Wolf; roleFilter?: WolfRole }
@@ -198,19 +198,36 @@ export default function App() {
   }, []);
 
   const goToStudio = useCallback((wolf?: Wolf) => {
+    // Hard signup gate: studio access requires an account so credits and
+    // gallery actually belong to a person, not a localStorage bucket.
+    // Stash the intended destination on the auth page so success bounces
+    // straight into the studio with the same wolf.
+    if (!accessToken) {
+      setPage({ type: "auth", nextStudio: { wolf: wolf || null } });
+      window.scrollTo(0, 0);
+      return;
+    }
     setPage({ type: "studio", wolf: wolf || null });
     setStudioView("dashboard");
     if (wolf) setWolfColor(wolf.color);
     window.scrollTo(0, 0);
-  }, []);
+  }, [accessToken]);
 
   // Hub → Studio per-beat conversion: open Studio with a prefilled audio
   // URL so the template editor can hydrate it on mount.
   const goToStudioWithAudio = useCallback((audio: { url: string; name: string }) => {
+    if (!accessToken) {
+      setPage({
+        type: "auth",
+        nextStudio: { wolf: null, initialAudioUrl: audio.url, initialAudioName: audio.name },
+      });
+      window.scrollTo(0, 0);
+      return;
+    }
     setPage({ type: "studio", wolf: null, initialAudioUrl: audio.url, initialAudioName: audio.name });
     setStudioView("dashboard");
     window.scrollTo(0, 0);
-  }, []);
+  }, [accessToken]);
 
   const goToAuth = useCallback(() => {
     setPage({ type: "auth" });
@@ -345,8 +362,8 @@ export default function App() {
                   <StudioNudgeBanner
                     onTryStudio={() => goToStudio()}
                     storageKey="lw-home-studio-nudge-dismissed"
-                    headline="Studio is free to try — no signup required"
-                    subline="100 credits, watermark-free preview, drop in your audio and ship."
+                    headline="Studio is free — sign up, get 100 credits"
+                    subline="Watermark-free preview, gallery synced across devices, drop in your audio and ship."
                   />
                 </div>
                 <PackMomentum />
@@ -438,7 +455,27 @@ export default function App() {
             )}
 
             {page.type === "auth" && (
-              <AuthPage onBack={goHome} onSuccess={goHome} />
+              <AuthPage
+                onBack={goHome}
+                onSuccess={() => {
+                  // If they got here via the studio gate, drop them into
+                  // the studio with the wolf/audio they originally clicked.
+                  if (page.nextStudio) {
+                    setPage({
+                      type: "studio",
+                      wolf: page.nextStudio.wolf,
+                      initialAudioUrl: page.nextStudio.initialAudioUrl,
+                      initialAudioName: page.nextStudio.initialAudioName,
+                    });
+                    setStudioView("dashboard");
+                    if (page.nextStudio.wolf) setWolfColor(page.nextStudio.wolf.color);
+                    window.scrollTo(0, 0);
+                    return;
+                  }
+                  goHome();
+                }}
+                nextLabel={page.nextStudio ? "studio" : undefined}
+              />
             )}
 
             {page.type === "join-pack" && (

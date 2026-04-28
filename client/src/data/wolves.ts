@@ -192,7 +192,7 @@ export const wolves: Wolf[] = [
   {
     id: "lone-wolf",
     artist: "Lone Wolf",
-    genre: "3 Free Generations",
+    genre: "100 Free Credits",
     color: "#f5c518",
     image: "/wolf-hub.png",
     status: "special",

@@ -36,6 +36,7 @@ import { useSession } from "../../lib/useSession";
 import { useStudioPrefs, setStudioPref } from "../../lib/useStudioPrefs";
 import { openBillingPortal } from "../../lib/checkout";
 import { clearCoverArtHistory } from "../../lib/api";
+import { useHubNotifications } from "../../lib/useHubNotifications";
 import TemplatesList from "./TemplatesList";
 
 type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art" | "artist-page";
@@ -107,8 +108,10 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const { activities } = useRecentActivity();
   const { profile, refetch: refetchProfile } = useProfile();
+  const { count: hubUnread, markRead: markHubRead } = useHubNotifications();
   const [showWolfPicker, setShowWolfPicker] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // First-visit wolf picker: signed-in user without a wolf_id chooses
   // their accent wolf so the studio themes itself.
@@ -191,7 +194,7 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
+            <div className="relative flex items-center gap-1">
               <button
                 onClick={() => setShowSettings(true)}
                 aria-label="Settings"
@@ -201,12 +204,35 @@ export default function StudioDashboard({ wolf, accentColor, plan, onSelectTool,
                 <Settings size={16} />
               </button>
               <button
+                onClick={() => {
+                  setShowNotifications((v) => !v);
+                  // Open implies read — clear the badge.
+                  if (hubUnread > 0) markHubRead();
+                }}
                 aria-label="Notifications"
-                title="Notifications — coming soon"
-                className="rounded-lg p-2 text-wolf-muted transition-colors hover:bg-wolf-surface hover:text-white"
+                title="Notifications"
+                className="relative rounded-lg p-2 text-wolf-muted transition-colors hover:bg-wolf-surface hover:text-white"
               >
                 <Bell size={16} />
+                {hubUnread > 0 && (
+                  <span
+                    className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[9px] font-bold text-white"
+                    style={{ backgroundColor: "#ef4444" }}
+                  >
+                    {hubUnread > 99 ? "99+" : hubUnread}
+                  </span>
+                )}
               </button>
+
+              <AnimatePresence>
+                {showNotifications && (
+                  <NotificationsPanel
+                    activities={activities}
+                    onClose={() => setShowNotifications(false)}
+                    onOpenHub={onWolfHub}
+                  />
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -771,6 +797,90 @@ function WolfColorPickerModal({
           </button>
         </div>
       </motion.div>
+    </motion.div>
+  );
+}
+
+/* ─── Notifications dropdown — anchored under the bell ─── */
+
+function NotificationsPanel({
+  activities,
+  onClose,
+  onOpenHub,
+}: {
+  activities: { id: string; tool: string; title: string; timestamp: number }[];
+  onClose: () => void;
+  onOpenHub?: () => void;
+}) {
+  // Click outside closes.
+  useEffect(() => {
+    const onDoc = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-notifications-panel]") && !target.closest('button[aria-label="Notifications"]')) {
+        onClose();
+      }
+    };
+    window.addEventListener("mousedown", onDoc);
+    return () => window.removeEventListener("mousedown", onDoc);
+  }, [onClose]);
+
+  const recent = activities.slice(0, 6);
+
+  return (
+    <motion.div
+      data-notifications-panel
+      initial={{ opacity: 0, y: -8, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+      transition={{ duration: 0.15 }}
+      className="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-xl border border-white/10 bg-wolf-card shadow-xl"
+    >
+      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wolf-muted">
+          Notifications
+        </p>
+        <button
+          onClick={onClose}
+          aria-label="Close notifications"
+          className="rounded p-0.5 text-wolf-muted transition-colors hover:text-white"
+        >
+          <X size={12} />
+        </button>
+      </div>
+
+      {recent.length === 0 ? (
+        <div className="px-4 py-8 text-center">
+          <Bell size={20} className="mx-auto mb-2 text-wolf-muted/40" />
+          <p className="text-sm font-semibold text-white">No notifications yet</p>
+          <p className="mt-1 text-[11px] text-wolf-muted">
+            Hub activity, awards, and replies will land here.
+          </p>
+        </div>
+      ) : (
+        <div className="max-h-80 overflow-y-auto py-1">
+          {recent.map((a) => (
+            <div key={a.id} className="flex items-start gap-3 px-4 py-2.5 transition-colors hover:bg-white/[0.02]">
+              <Clock size={12} className="mt-1 shrink-0 text-wolf-muted" />
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium text-white">{a.title}</p>
+                <p className="text-[10px] text-wolf-muted">
+                  {a.tool} · {formatTimeAgo(a.timestamp)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {onOpenHub && (
+        <button
+          onClick={() => { onOpenHub(); onClose(); }}
+          className="flex w-full items-center justify-between border-t border-white/5 px-4 py-2.5 text-xs font-semibold text-wolf-gold transition-colors hover:bg-white/[0.02]"
+        >
+          Open Wolf Hub
+          <ChevronRight size={12} />
+        </button>
+      )}
     </motion.div>
   );
 }

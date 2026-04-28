@@ -22,7 +22,6 @@ import {
   type VisualStatusResult,
 } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
-import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, type Template } from "../../lib/templates";
@@ -69,7 +68,6 @@ const P = {
 
 export default function PerformanceView({ onBack, template }: Props) {
   const { accessToken } = useSession();
-  const loneWolf = useLoneWolfCredits();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
   const [styleIdx, setStyleIdx] = useState(0);
@@ -91,9 +89,8 @@ export default function PerformanceView({ onBack, template }: Props) {
   const activeRes = RESOLUTIONS.find((r) => r.id === resolution)!;
   const totalCredits = model.credits + activeRes.credits;
 
-  const isLoneWolf = !accessToken;
-  const hasQuota = !isLoneWolf || loneWolf.remaining > 0;
-  const canGenerate = stage === "idle" && !!clipFile && hasQuota;
+  // Studio is signup-gated — server enforces credit quota.
+  const canGenerate = stage === "idle" && !!clipFile;
 
   // Step 1 = source clip uploaded; step 2 = actively generating
   const step1Done = !!clipFile;
@@ -120,10 +117,6 @@ export default function PerformanceView({ onBack, template }: Props) {
   const handleGenerate = useCallback(async () => {
     if (!clipFile) {
       setError("Drop in a clip to stylize first.");
-      return;
-    }
-    if (!accessToken && loneWolf.remaining === 0) {
-      setError("You've used your 3 free generations. Sign in to keep going.");
       return;
     }
     setError("");
@@ -176,7 +169,6 @@ export default function PerformanceView({ onBack, template }: Props) {
       });
 
       setFinalUrl(mp4);
-      if (!accessToken) loneWolf.consume();
       setStage("done");
       setStageLog("");
     } catch (err: unknown) {
@@ -184,12 +176,10 @@ export default function PerformanceView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [clipFile, accessToken, loneWolf, styleIdx, modelId, ratio, resolution, template, initFfmpeg]);
+  }, [clipFile, accessToken, styleIdx, modelId, ratio, resolution, template, initFfmpeg]);
 
   const validationMessage = !clipFile
     ? "Add a reference clip above to start."
-    : isLoneWolf && loneWolf.remaining === 0
-    ? "Out of free generations — sign in to keep going."
     : null;
 
   return (
@@ -423,9 +413,7 @@ export default function PerformanceView({ onBack, template }: Props) {
                   className="rounded px-2 py-0.5 text-[11px] font-bold"
                   style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
                 >
-                  {isLoneWolf
-                    ? `${loneWolf.remaining}/${loneWolf.total} free`
-                    : `💎 ${totalCredits}`}
+                  💎 {totalCredits}
                 </span>
               </span>
             ) : (
@@ -458,13 +446,6 @@ export default function PerformanceView({ onBack, template }: Props) {
             </div>
           )}
 
-          {isLoneWolf && !validationMessage && (
-            <p className="text-center text-[10px] text-wolf-muted">
-              {loneWolf.remaining > 0
-                ? `🐺 Lone Wolf mode — ${loneWolf.remaining} free ${loneWolf.remaining === 1 ? "generation" : "generations"} left.`
-                : "You've used all 3 free generations. Sign in to keep creating."}
-            </p>
-          )}
         </motion.div>
 
         {/* ── Right panel: STYLE IMAGES / pipeline / preview ── */}

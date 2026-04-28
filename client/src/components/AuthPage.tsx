@@ -7,9 +7,12 @@ import { initSupabase } from "../lib/supabaseClient";
 interface Props {
   onBack: () => void;
   onSuccess: () => void;
+  /** When set (e.g. "studio"), surfaces a perks blurb so the user knows
+   *  why we're asking them to sign up before letting them in. */
+  nextLabel?: string;
 }
 
-export default function AuthPage({ onBack, onSuccess }: Props) {
+export default function AuthPage({ onBack, onSuccess, nextLabel }: Props) {
   const { t } = useI18n();
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const [showPassword, setShowPassword] = useState(false);
@@ -159,13 +162,20 @@ export default function AuthPage({ onBack, onSuccess }: Props) {
               ? t("auth.joinPack")
               : "Reset password"}
           </h1>
-          <p className="mb-8 text-center text-sm text-wolf-muted">
+          <p className="mb-4 text-center text-sm text-wolf-muted">
             {mode === "signin"
               ? t("auth.signInSubtitle")
               : mode === "signup"
               ? t("auth.signUpSubtitle")
               : "Enter your email and we'll send a reset link."}
           </p>
+
+          {nextLabel === "studio" && mode !== "forgot" && (
+            <div className="mb-6 rounded-xl border border-wolf-gold/20 bg-wolf-gold/5 p-3 text-center text-[11px] text-wolf-gold/90">
+              <span className="font-semibold">Free signup</span> · 100 credits
+              · watermark-free exports · gallery synced across devices
+            </div>
+          )}
 
           {/* Mode toggle (hidden in forgot mode) */}
           {mode !== "forgot" && (

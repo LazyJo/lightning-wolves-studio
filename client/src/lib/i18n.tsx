@@ -24,7 +24,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "grid.title": "THE PACK",
     "grid.subtitle": "Every wolf is a real artist you can meet, swipe, and collaborate with. Pick one — they'll theme your studio and you'll see them again on the Wolf Map.",
     "grid.comingSoon": "Coming Soon",
-    "grid.noAccount": "No account needed",
+    "grid.noAccount": "Free signup · 100 credits",
 
     // Features
     "features.label": "The Ecosystem",
@@ -289,7 +289,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "grid.title": "DE PACK",
     "grid.subtitle": "Elke wolf vertegenwoordigt een unieke artiest en stijl. Kies de jouwe en begin met creëren.",
     "grid.comingSoon": "Binnenkort",
-    "grid.noAccount": "Geen account nodig",
+    "grid.noAccount": "Gratis aanmelden · 100 credits",
 
     "features.label": "Het Ecosysteem",
     "features.title": "HOE HET WERKT",
@@ -539,7 +539,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "grid.title": "LA MEUTE",
     "grid.subtitle": "Chaque loup représente un artiste et un style unique. Choisis le tien et commence à créer.",
     "grid.comingSoon": "Bientôt",
-    "grid.noAccount": "Pas de compte nécessaire",
+    "grid.noAccount": "Inscription gratuite · 100 crédits",
 
     "features.label": "L'Écosystème",
     "features.title": "COMMENT ÇA MARCHE",
@@ -789,7 +789,7 @@ const translations: Record<Lang, Record<string, string>> = {
     "grid.title": "LA MANADA",
     "grid.subtitle": "Cada lobo representa un artista y estilo único. Elige el tuyo y empieza a crear.",
     "grid.comingSoon": "Próximamente",
-    "grid.noAccount": "Sin cuenta necesaria",
+    "grid.noAccount": "Registro gratis · 100 créditos",
 
     "features.label": "El Ecosistema",
     "features.title": "CÓMO FUNCIONA",

@@ -140,9 +140,9 @@ export default function WolfCard({ wolf, index, onClick, lightningCount = 0, isH
         {wolf.genre}
       </span>
 
-      {/* Special badge for Lone Wolf */}
+      {/* Special badge for Lone Wolf — free signup tile */}
       {wolf.status === "special" && (
-        <span className="mt-2 text-xs text-wolf-gold/60">No account needed</span>
+        <span className="mt-2 text-xs text-wolf-gold/60">Free signup · 100 credits</span>
       )}
 
       {/* Lightning received — only if this wolf has been rated */}

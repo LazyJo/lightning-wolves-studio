@@ -19,7 +19,6 @@ import {
   clearCoverArtHistory,
 } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
-import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
 import { useCredits } from "../../lib/useCredits";
 import { useStudioPrefs } from "../../lib/useStudioPrefs";
 
@@ -77,7 +76,6 @@ const CA = {
 
 export default function CoverArtView({ onBack, wolf }: Props) {
   const { accessToken } = useSession();
-  const loneWolf = useLoneWolfCredits();
   const { plan } = useCredits();
   const prefs = useStudioPrefs();
   const isElite = plan.tier === "elite";
@@ -146,9 +144,10 @@ export default function CoverArtView({ onBack, wolf }: Props) {
   }, [accessToken]);
 
   const activeModel = AI_MODELS.find((m) => m.id === modelId)!;
-  const isLoneWolf = !accessToken;
-  const hasQuota = !isLoneWolf || loneWolf.remaining > 0;
-  const canGenerate = !loading && prompt.trim().length >= 10 && hasQuota;
+  // Studio is gated by signup so accessToken is always present here.
+  // Server-side credits enforcement covers quota; the prompt-length check
+  // is the only client-side gate on the generate button.
+  const canGenerate = !loading && prompt.trim().length >= 10;
 
   const handleRefImages = (files: FileList | null) => {
     if (!files) return;
@@ -196,9 +195,6 @@ export default function CoverArtView({ onBack, wolf }: Props) {
             console.error("[cover-art] server save failed, kept locally", err);
             saveHistory([url, ...loadHistory().filter((u) => u !== url)].slice(0, HISTORY_MAX));
           }
-        } else {
-          saveHistory([url, ...loadHistory().filter((u) => u !== url)].slice(0, HISTORY_MAX));
-          loneWolf.consume();
         }
       } else {
         setError(final.error || "Generation finished but produced no image.");
@@ -209,12 +205,10 @@ export default function CoverArtView({ onBack, wolf }: Props) {
       setLoading(false);
       setProgress(null);
     }
-  }, [canGenerate, modelId, prompt, aspect, resolution, refImages.length, accessToken, loneWolf]);
+  }, [canGenerate, modelId, prompt, aspect, resolution, refImages.length, accessToken]);
 
   const validationMessage = prompt.trim().length < 10
     ? "Describe your cover art in detail to generate."
-    : isLoneWolf && loneWolf.remaining === 0
-    ? "Out of free generations — sign in to keep going."
     : null;
 
   return (
@@ -426,9 +420,7 @@ export default function CoverArtView({ onBack, wolf }: Props) {
                   className="rounded px-2 py-0.5 text-[11px] font-bold"
                   style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
                 >
-                  {isLoneWolf
-                    ? `${loneWolf.remaining}/${loneWolf.total} free`
-                    : `💎 ${CREDIT_COST}`}
+                  💎 {CREDIT_COST}
                 </span>
               </>
             )}
@@ -467,13 +459,6 @@ export default function CoverArtView({ onBack, wolf }: Props) {
             </p>
           </div>
 
-          {isLoneWolf && !validationMessage && (
-            <p className="text-center text-[10px] text-wolf-muted">
-              {loneWolf.remaining > 0
-                ? `🐺 Lone Wolf mode — ${loneWolf.remaining} free ${loneWolf.remaining === 1 ? "generation" : "generations"} left.`
-                : "You've used all 3 free generations. Sign in to keep creating."}
-            </p>
-          )}
         </motion.div>
 
         {/* ── Right panel ── */}

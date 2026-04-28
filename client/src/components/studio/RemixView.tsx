@@ -19,7 +19,6 @@ import {
   Info,
 } from "lucide-react";
 import { useSession } from "../../lib/useSession";
-import { useLoneWolfCredits } from "../../lib/useLoneWolfCredits";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, type Template } from "../../lib/templates";
@@ -71,7 +70,6 @@ const R = {
 
 export default function RemixView({ onBack, template }: Props) {
   const { accessToken } = useSession();
-  const loneWolf = useLoneWolfCredits();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
   const [clips, setClips] = useState<UserClip[]>([]);
@@ -88,8 +86,8 @@ export default function RemixView({ onBack, template }: Props) {
   const [finalUrl, setFinalUrl] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
-  const isLoneWolf = !accessToken;
-  const hasQuota = !isLoneWolf || loneWolf.remaining > 0;
+  // Studio is signup-gated — server enforces credit quota.
+  const hasQuota = true;
 
   // Segments: respect NO CUTS, otherwise use template markers or even-split.
   const segments = useMemo<Array<{ start: number; end: number }>>(() => {
@@ -149,10 +147,6 @@ export default function RemixView({ onBack, template }: Props) {
   };
 
   const handleGenerate = useCallback(async () => {
-    if (!accessToken && loneWolf.remaining === 0) {
-      setError("You've used your 3 free generations. Sign in to keep going.");
-      return;
-    }
     if (clips.length === 0) {
       setError("Add at least one video clip to remix.");
       return;
@@ -183,7 +177,6 @@ export default function RemixView({ onBack, template }: Props) {
       });
 
       setFinalUrl(mp4);
-      if (!accessToken) loneWolf.consume();
       setStage("done");
       setStageLog("");
     } catch (err: unknown) {
@@ -191,7 +184,7 @@ export default function RemixView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, loneWolf, clips, shuffle, segments, template, ratio, initFfmpeg]);
+  }, [accessToken, clips, shuffle, segments, template, ratio, initFfmpeg]);
 
   const exportDisabled = !canGenerate;
 
@@ -484,7 +477,7 @@ export default function RemixView({ onBack, template }: Props) {
                   <Download size={14} />
                   Export
                   <span className="rounded px-1.5 py-0.5 text-[10px] font-bold" style={{ backgroundColor: "rgba(0,0,0,0.25)" }}>
-                    {isLoneWolf ? `${loneWolf.remaining}/${loneWolf.total} free` : "💎 15"}
+                    💎 15
                   </span>
                 </>
               )}
@@ -498,13 +491,6 @@ export default function RemixView({ onBack, template }: Props) {
             <span className="text-wolf-muted/60">· Powered by ffmpeg.wasm</span>
           </div>
 
-          {isLoneWolf && (
-            <p className="text-center text-[10px] text-wolf-muted">
-              {loneWolf.remaining > 0
-                ? `🐺 Lone Wolf mode — ${loneWolf.remaining} free ${loneWolf.remaining === 1 ? "export" : "exports"} left.`
-                : "Out of free exports — sign in to keep going."}
-            </p>
-          )}
         </motion.div>
 
         {/* ── Right: preview + timeline slots ── */}

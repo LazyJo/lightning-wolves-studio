@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
@@ -37,6 +37,27 @@ const ASPECTS = ["1:1", "4:5", "16:9"] as const;
 const RESOLUTIONS = ["2K", "4K"] as const;
 const MAX_REFS = 14;
 const CREDIT_COST = 12;
+const HISTORY_KEY = "cover-art-history";
+const HISTORY_MAX = 24;
+
+function loadHistory(): string[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(urls: string[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(urls.slice(0, HISTORY_MAX)));
+  } catch {
+    // localStorage full or disabled — silently ignore.
+  }
+}
 
 /* ─── Cover Art palette — blue (Drippydesigns wolf) ───────────────────── */
 const CA = {
@@ -67,7 +88,12 @@ export default function CoverArtView({ onBack, wolf }: Props) {
   const [progress, setProgress] = useState<"starting" | "processing" | null>(null);
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setHistory(loadHistory());
+  }, []);
 
   const activeModel = AI_MODELS.find((m) => m.id === modelId)!;
   const isLoneWolf = !accessToken;
@@ -102,7 +128,13 @@ export default function CoverArtView({ onBack, wolf }: Props) {
         },
       });
       if (final.status === "succeeded" && final.output && final.output.length > 0) {
-        setImageUrl(final.output[0]);
+        const url = final.output[0];
+        setImageUrl(url);
+        setHistory((prev) => {
+          const next = [url, ...prev.filter((u) => u !== url)].slice(0, HISTORY_MAX);
+          saveHistory(next);
+          return next;
+        });
         if (!accessToken) loneWolf.consume();
       } else {
         setError(final.error || "Generation finished but produced no image.");
@@ -405,6 +437,55 @@ export default function CoverArtView({ onBack, wolf }: Props) {
             className="min-h-[460px] rounded-b-2xl border border-dashed p-5"
             style={{ borderColor: CA.border }}
           >
+            {history.length > 0 && (
+              <div className="mb-5">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-wolf-muted">
+                    Saved · {history.length}
+                  </p>
+                  <button
+                    onClick={() => {
+                      if (confirm("Clear all saved cover art? This cannot be undone.")) {
+                        setHistory([]);
+                        saveHistory([]);
+                      }
+                    }}
+                    className="text-[10px] text-wolf-muted hover:text-red-300"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {history.map((url) => {
+                    const active = url === imageUrl;
+                    return (
+                      <button
+                        key={url}
+                        onClick={() => { setImageUrl(url); setError(""); }}
+                        className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all"
+                        style={{
+                          borderColor: active ? CA.blue : "transparent",
+                          boxShadow: active ? `0 0 0 1px ${CA.blueBorder}` : "none",
+                        }}
+                      >
+                        <img src={url} alt="" className="h-full w-full object-cover" />
+                        <a
+                          href={url}
+                          download={`cover-art-${Date.now()}.png`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute inset-0 flex items-center justify-center bg-black/60 opacity-0 transition-opacity group-hover:opacity-100"
+                          aria-label="Download cover art"
+                        >
+                          <Download size={14} className="text-white" />
+                        </a>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <AnimatePresence mode="wait">
               {loading ? (
                 <motion.div

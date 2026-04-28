@@ -30,6 +30,7 @@ import AdminMembersPage from "./components/AdminMembersPage";
 import { useCredits } from "./lib/useCredits";
 import { useSession } from "./lib/useSession";
 import { useProfile } from "./lib/useProfile";
+import { useHubNotifications } from "./lib/useHubNotifications";
 import { startCheckout, type TierSlug, type BillingInterval } from "./lib/checkout";
 import { wolfBySlug } from "./data/wolves";
 import type { Wolf, WolfRole } from "./data/wolves";
@@ -80,6 +81,7 @@ export default function App() {
   const { plan } = useCredits();
   const { accessToken } = useSession();
   const { profile, isAdmin } = useProfile();
+  const { count: hubUnread } = useHubNotifications();
 
   // Mirror the user's chosen theme colour from their profile into the global
   // wolfColor so every accent (studio, lightning canvas, navbar pills) follows
@@ -315,6 +317,8 @@ export default function App() {
           credits={plan.credits}
           tier={plan.tier}
           wolfColor={wolfColor}
+          notifications={hubUnread}
+          onNotifications={() => goToWolfHub()}
         />
 
         {/* Post-checkout banner — renders above the page content */}

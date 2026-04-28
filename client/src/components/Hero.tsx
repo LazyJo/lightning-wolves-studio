@@ -29,11 +29,11 @@ export default function Hero({ onStudio }: Props) {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          className="mx-auto max-w-4xl text-3xl font-bold leading-[1.1] tracking-wider text-white sm:text-5xl md:text-7xl lg:text-8xl"
+          className="mx-auto max-w-5xl text-balance text-3xl font-bold leading-[1.05] tracking-wider text-white sm:text-4xl md:text-5xl lg:text-6xl"
           style={{ fontFamily: "var(--font-heading)" }}
         >
-          {t("hero.title1")}{" "}
-          <span className="bg-gradient-to-r from-wolf-gold to-wolf-amber bg-clip-text text-transparent">
+          <span className="block">{t("hero.title1")}</span>
+          <span className="block bg-gradient-to-r from-wolf-gold to-wolf-amber bg-clip-text text-transparent">
             {t("hero.title2")}
           </span>
         </motion.h1>

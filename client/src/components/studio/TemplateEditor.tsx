@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
@@ -561,50 +561,27 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
                     <audio ref={audioRef} src={audioUrl} className="hidden" />
                   </div>
 
-                  {/* Lyrics strip — each transcribed word rendered at its */}
-                  {/* timestamp position so the user can see what's being */}
-                  {/* sung at every point on the timeline. Click a word to */}
-                  {/* drop a marker there. The currently-playing word */}
-                  {/* highlights amber so it doubles as a karaoke readout. */}
+                  {/* Karaoke-style lyrics block — every transcribed word */}
+                  {/* rendered as a clickable chip in flowing reading order. */}
+                  {/* The currently-playing word lights up amber and the */}
+                  {/* container auto-scrolls to keep it visible, so this */}
+                  {/* doubles as a karaoke read-along. Click a word to seek */}
+                  {/* the audio there AND drop a cut marker on its start — */}
+                  {/* fastest path for "mark this beat on this lyric." */}
                   {wordTimings.length > 0 && audioDuration > 0 && (
-                    <div className="relative h-9 overflow-hidden border-t border-b" style={{ borderColor: `${C.amber}25`, backgroundColor: "rgba(0,0,0,0.35)" }}>
-                      {wordTimings.map((w, i) => {
-                        const left = (w.start / audioDuration) * 100;
-                        const isActive = currentTime >= w.start && currentTime < w.end;
-                        // Stagger vertically (4 rows) so dense passages
-                        // don't overlap into a smudge.
-                        const row = i % 4;
-                        return (
-                          <button
-                            key={i}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const el = audioRef.current;
-                              if (el) el.currentTime = w.start;
-                              setCutMarkers((prev) =>
-                                [...prev, w.start]
-                                  .filter((v, idx, arr) => arr.findIndex((x) => Math.abs(x - v) < 0.1) === idx)
-                                  .sort((a, b) => a - b)
-                              );
-                            }}
-                            title={`${w.word} · ${w.start.toFixed(2)}s — click to mark this beat`}
-                            className="absolute -translate-x-1/2 whitespace-nowrap rounded px-1 text-[9px] font-semibold transition-all hover:bg-white/10"
-                            style={{
-                              left: `${left}%`,
-                              top: `${row * 5 + 2}px`,
-                              color: isActive ? "#000" : `${C.amber}`,
-                              backgroundColor: isActive ? C.amber : "transparent",
-                              opacity: isActive ? 1 : 0.85,
-                              maxWidth: "60px",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {w.word}
-                          </button>
+                    <KaraokeLyrics
+                      words={wordTimings}
+                      currentTime={currentTime}
+                      onPickWord={(t) => {
+                        const el = audioRef.current;
+                        if (el) el.currentTime = t;
+                        setCutMarkers((prev) =>
+                          [...prev, t]
+                            .filter((v, idx, arr) => arr.findIndex((x) => Math.abs(x - v) < 0.1) === idx)
+                            .sort((a, b) => a - b)
                         );
-                      })}
-                    </div>
+                      }}
+                    />
                   )}
 
                   <div
@@ -860,16 +837,98 @@ function LyricsSuccess({ words, transcript }: { words: number; transcript: strin
         <CheckCircle size={11} /> READY FOR PREVIEW
       </div>
       {transcript && (
-        <details className="w-full">
-          <summary className="cursor-pointer text-center text-[10px] text-wolf-muted hover:text-white">
-            View transcript ({words} words)
-          </summary>
-          <div className="mt-2 max-h-32 overflow-y-auto rounded-lg p-3 text-[11px] leading-relaxed text-slate-300"
+        <div className="w-full">
+          <p className="mb-2 text-center text-[10px] uppercase tracking-wider text-wolf-muted">
+            Transcript · {words} words
+          </p>
+          <div className="max-h-48 overflow-y-auto rounded-lg p-3 text-[12px] leading-relaxed text-slate-200"
             style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
             {transcript}
           </div>
-        </details>
+        </div>
       )}
+    </div>
+  );
+}
+
+// Karaoke read-along for the Cut Markers step. Renders the full lyrics
+// in reading order (line-wrapping like real text) with each word as a
+// clickable chip. The active word — the one whose [start, end) span
+// contains `currentTime` — gets a solid amber pill so the user can see
+// exactly what's being sung. The container auto-scrolls so the active
+// word stays in view during playback.
+function KaraokeLyrics({
+  words,
+  currentTime,
+  onPickWord,
+}: {
+  words: WordTiming[];
+  currentTime: number;
+  onPickWord: (t: number) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const activeIdx = useMemo(() => {
+    if (!words.length) return -1;
+    // Linear scan is fine — typical 3-min track has ~600 words.
+    let idx = -1;
+    for (let i = 0; i < words.length; i++) {
+      if (currentTime >= words[i].start && currentTime < words[i].end) {
+        idx = i;
+        break;
+      }
+      if (words[i].start > currentTime) break;
+    }
+    return idx;
+  }, [words, currentTime]);
+
+  // Keep the active word centered in the scroll container as playback advances.
+  useEffect(() => {
+    if (activeIdx < 0 || !containerRef.current) return;
+    const el = containerRef.current.querySelector<HTMLButtonElement>(`[data-word-idx="${activeIdx}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+  }, [activeIdx]);
+
+  return (
+    <div
+      className="relative border-t border-b px-3 py-3"
+      style={{ borderColor: `${C.amber}30`, backgroundColor: "rgba(0,0,0,0.45)" }}
+    >
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: C.amber }}>
+          🎤 Lyrics · click a word to mark its beat
+        </span>
+        <span className="text-[9px] text-wolf-muted">
+          {words.length} words
+        </span>
+      </div>
+      <div
+        ref={containerRef}
+        className="max-h-32 overflow-y-auto leading-relaxed"
+        style={{ scrollbarWidth: "thin" }}
+      >
+        <p className="text-[14px] font-semibold text-slate-200">
+          {words.map((w, i) => {
+            const isActive = i === activeIdx;
+            const isPast = !isActive && activeIdx >= 0 && i < activeIdx;
+            return (
+              <button
+                key={i}
+                data-word-idx={i}
+                onClick={() => onPickWord(w.start)}
+                title={`${w.start.toFixed(2)}s — click to mark this beat`}
+                className="mr-1 inline rounded px-0.5 transition-all hover:bg-white/15 hover:text-white"
+                style={{
+                  color: isActive ? "#000" : isPast ? `${C.amber}cc` : "#cbd5e1",
+                  backgroundColor: isActive ? C.amber : "transparent",
+                  fontWeight: isActive ? 800 : 600,
+                }}
+              >
+                {w.word}
+              </button>
+            );
+          })}
+        </p>
+      </div>
     </div>
   );
 }

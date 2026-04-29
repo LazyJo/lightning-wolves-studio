@@ -44,7 +44,6 @@ const AI_MODELS: {
 }[] = [
   { id: "nanobanana-2",   name: "NanoBanana 2",   badge: "NEW", credits: 10, eliteOnly: true },
   { id: "nanobanana-pro", name: "NanoBanana Pro", badge: null,  credits: 15 },
-  { id: "nanobanana",     name: "NanoBanana",     badge: null,  credits: 12 },
   { id: "grok-imagine",   name: "Grok Imagine",   badge: null,  credits: 15 },
   { id: "seedream-4.5",   name: "Seedream 4.5",   badge: null,  credits: 12 },
 ];

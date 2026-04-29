@@ -560,6 +560,53 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
                     </button>
                     <audio ref={audioRef} src={audioUrl} className="hidden" />
                   </div>
+
+                  {/* Lyrics strip — each transcribed word rendered at its */}
+                  {/* timestamp position so the user can see what's being */}
+                  {/* sung at every point on the timeline. Click a word to */}
+                  {/* drop a marker there. The currently-playing word */}
+                  {/* highlights amber so it doubles as a karaoke readout. */}
+                  {wordTimings.length > 0 && audioDuration > 0 && (
+                    <div className="relative h-9 overflow-hidden border-t border-b" style={{ borderColor: `${C.amber}25`, backgroundColor: "rgba(0,0,0,0.35)" }}>
+                      {wordTimings.map((w, i) => {
+                        const left = (w.start / audioDuration) * 100;
+                        const isActive = currentTime >= w.start && currentTime < w.end;
+                        // Stagger vertically (4 rows) so dense passages
+                        // don't overlap into a smudge.
+                        const row = i % 4;
+                        return (
+                          <button
+                            key={i}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const el = audioRef.current;
+                              if (el) el.currentTime = w.start;
+                              setCutMarkers((prev) =>
+                                [...prev, w.start]
+                                  .filter((v, idx, arr) => arr.findIndex((x) => Math.abs(x - v) < 0.1) === idx)
+                                  .sort((a, b) => a - b)
+                              );
+                            }}
+                            title={`${w.word} · ${w.start.toFixed(2)}s — click to mark this beat`}
+                            className="absolute -translate-x-1/2 whitespace-nowrap rounded px-1 text-[9px] font-semibold transition-all hover:bg-white/10"
+                            style={{
+                              left: `${left}%`,
+                              top: `${row * 5 + 2}px`,
+                              color: isActive ? "#000" : `${C.amber}`,
+                              backgroundColor: isActive ? C.amber : "transparent",
+                              opacity: isActive ? 1 : 0.85,
+                              maxWidth: "60px",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {w.word}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   <div
                     ref={timelineRef}
                     className="relative h-12 cursor-crosshair touch-none select-none"

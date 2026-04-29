@@ -198,7 +198,10 @@ export default function WaveformSelector({
         </button>
 
         <span className="font-mono text-xs text-wolf-muted">
-          {formatTime(currentTime)} / {formatTime(totalDuration)}
+          {/* Clip-relative readout — playback is constrained to the */}
+          {/* selected region in togglePlay, so the user sees position */}
+          {/* within the clip (not the full track). */}
+          {formatTime(Math.max(0, Math.min(currentTime - regionStart, selectedDuration)))} / {formatTime(selectedDuration)}
         </span>
 
         <div className="flex-1" />

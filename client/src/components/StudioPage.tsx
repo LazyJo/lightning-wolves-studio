@@ -26,6 +26,7 @@ import ScenesViewComponent from "./studio/ScenesView";
 import PerformanceViewComponent from "./studio/PerformanceView";
 import CoverArtViewComponent from "./studio/CoverArtView";
 import ArtistPageBuilder from "./studio/ArtistPageBuilder";
+import CreditGrantToast from "./studio/CreditGrantToast";
 import { loadTemplate, type Template } from "../lib/templates";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -671,6 +672,7 @@ export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioV
 
   return (
     <div className="min-h-screen pt-20">
+      <CreditGrantToast />
       <div
         className="fixed inset-0 z-0"
         style={{ background: `radial-gradient(ellipse at 50% 30%, ${accentColor}05, transparent 60%)` }}

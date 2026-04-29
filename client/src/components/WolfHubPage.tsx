@@ -18,6 +18,7 @@ import {
   User as UserIcon,
   Edit2,
   Grid3x3,
+  CornerDownRight,
 } from "lucide-react";
 import { getSupabase, initSupabase } from "../lib/supabaseClient";
 import { useSession } from "../lib/useSession";
@@ -115,6 +116,10 @@ interface HubMessage {
   genre?: string | null;
   language?: string | null;
   from_studio?: boolean | null;
+  // When set, this message is a reply to that parent. The parent
+  // already exists in the same room (RLS-allowed). UI surfaces a
+  // "↳ Replying to {parent}" snippet that jumps on click.
+  thread_parent_id?: string | null;
   created_at: string;
   edited_at?: string | null;
 }
@@ -937,6 +942,10 @@ function ChatView({
   const [pickerFor, setPickerFor] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
+  // Linear-thread model: when set, the next composer send is tagged
+  // with thread_parent_id; render shows a "↳ Replying to {parent}"
+  // snippet at the top of the bubble that jumps to the parent on click.
+  const [replyingTo, setReplyingTo] = useState<HubMessage | null>(null);
   const [roomId, setRoomId] = useState<string>(initialRoomId || "global");
   const [unreadByRoom, setUnreadByRoom] = useState<Record<string, number>>({});
   const [burst, setBurst] = useState<{ kind: RatingKind; id: number } | null>(null);
@@ -1261,7 +1270,14 @@ function ChatView({
         genre: roomId === "songs" || roomId === "beats" ? composerGenre : null,
         // Lyrics-language only for #songs (beats are instrumental by default).
         language: roomId === "songs" ? composerLang : null,
+        // Thread link — populated only when the composer is replying.
+        // The parent must live in the same room (DB has no constraint
+        // for that yet; we just don't expose cross-room replies in UI).
+        thread_parent_id: replyingTo?.id ?? null,
       });
+      // Clear the reply target only after a successful insert so a
+      // network error keeps the user's reply context intact.
+      if (replyingTo) setReplyingTo(null);
     } finally {
       setSending(false);
     }
@@ -1719,6 +1735,32 @@ function ChatView({
                       </div>
                     ) : (
                       <>
+                        {m.thread_parent_id && (() => {
+                          const parent = messages.find((p) => p.id === m.thread_parent_id);
+                          if (!parent) return null;
+                          const parentName = parent.author_name || "Wolf";
+                          const parentSnippet =
+                            parent.body
+                              ? parent.body.slice(0, 80) + (parent.body.length > 80 ? "…" : "")
+                              : parent.audio_url
+                              ? "🎵 audio"
+                              : parent.image_url
+                              ? "🖼 image"
+                              : "—";
+                          return (
+                            <button
+                              onClick={() => setInternalTarget(parent.id)}
+                              className="mb-1.5 flex items-start gap-1 rounded-md border-l-2 border-[#9b6dff]/50 bg-white/[0.03] px-2 py-1 text-left text-[11px] text-wolf-muted transition-colors hover:bg-white/[0.06] hover:text-white"
+                              title="Jump to original"
+                            >
+                              <CornerDownRight size={11} className="mt-0.5 flex-shrink-0 text-[#9b6dff]" />
+                              <span className="min-w-0 flex-1 truncate">
+                                <span className="font-semibold text-[#c8a4ff]">{parentName}</span>
+                                <span className="ml-1 opacity-70">{parentSnippet}</span>
+                              </span>
+                            </button>
+                          );
+                        })()}
                         {m.body && (
                           <p className="whitespace-pre-wrap break-words text-sm">
                             {m.body}
@@ -1934,6 +1976,18 @@ function ChatView({
                         )}
                       </AnimatePresence>
                     </div>
+                    <button
+                      onClick={() => {
+                        setReplyingTo(m);
+                        // Editing-while-reply doesn't make sense, so
+                        // exit edit mode if the user picked Reply mid-edit.
+                        setEditingId(null);
+                      }}
+                      className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-wolf-muted transition-all hover:border-[#9b6dff]/40 hover:text-white"
+                      title="Reply"
+                    >
+                      <CornerDownRight size={11} />
+                    </button>
                     {isMine && m.body && (
                       <button
                         onClick={() => {
@@ -1964,6 +2018,35 @@ function ChatView({
 
       {/* Composer */}
       <div className="border-t border-white/10 p-3 sm:p-4">
+        {replyingTo && (
+          <div className="mb-2 flex items-start gap-2 rounded-lg border border-[#9b6dff]/40 bg-[#9b6dff]/[0.06] px-3 py-2 text-xs">
+            <CornerDownRight size={13} className="mt-0.5 flex-shrink-0 text-[#9b6dff]" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] uppercase tracking-wider text-wolf-muted">
+                Replying to{" "}
+                <span className="font-bold text-[#c8a4ff]">
+                  {replyingTo.author_name || "Wolf"}
+                </span>
+              </p>
+              <p className="mt-0.5 truncate text-white/80">
+                {replyingTo.body
+                  ? replyingTo.body.slice(0, 120) + (replyingTo.body.length > 120 ? "…" : "")
+                  : replyingTo.audio_url
+                  ? "🎵 audio"
+                  : replyingTo.image_url
+                  ? "🖼 image"
+                  : "—"}
+              </p>
+            </div>
+            <button
+              onClick={() => setReplyingTo(null)}
+              className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-wolf-muted transition-colors hover:bg-white/10 hover:text-white"
+              title="Cancel reply"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
         {/* Prominent "Drop a beat" CTA in #beats room */}
         {roomId === "beats" && (
           <button

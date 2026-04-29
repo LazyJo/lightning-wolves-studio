@@ -328,9 +328,15 @@ ALTER TABLE hub_dms           ENABLE ROW LEVEL SECURITY;
 
 -- Messages: any signed-in user reads non-deleted; author inserts as self;
 -- author soft-deletes their own (update deleted_at); service role full access.
+-- Banned-author content is hidden from non-admin viewers (soft-hide). Admins
+-- still see everything so they can moderate / unban with full context.
 DROP POLICY IF EXISTS hub_msg_select ON hub_messages;
 CREATE POLICY hub_msg_select ON hub_messages
-  FOR SELECT USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND deleted_at IS NULL
+    AND (NOT is_banned(author_id) OR is_admin(auth.uid()))
+  );
 
 DROP POLICY IF EXISTS hub_msg_insert ON hub_messages;
 CREATE POLICY hub_msg_insert ON hub_messages
@@ -352,10 +358,14 @@ DROP POLICY IF EXISTS hub_msg_service ON hub_messages;
 CREATE POLICY hub_msg_service ON hub_messages
   FOR ALL USING (auth.role() = 'service_role');
 
--- Posts: same pattern
+-- Posts: same pattern, also soft-hide banned authors from non-admins.
 DROP POLICY IF EXISTS hub_post_select ON hub_posts;
 CREATE POLICY hub_post_select ON hub_posts
-  FOR SELECT USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND deleted_at IS NULL
+    AND (NOT is_banned(author_id) OR is_admin(auth.uid()))
+  );
 
 DROP POLICY IF EXISTS hub_post_insert ON hub_posts;
 CREATE POLICY hub_post_insert ON hub_posts
@@ -377,10 +387,15 @@ DROP POLICY IF EXISTS hub_post_service ON hub_posts;
 CREATE POLICY hub_post_service ON hub_posts
   FOR ALL USING (auth.role() = 'service_role');
 
--- Reactions: any signed-in reads; user inserts/deletes their own
+-- Reactions: any signed-in reads; user inserts/deletes their own.
+-- Reactions from banned wolves are hidden the same way the message
+-- itself would be — keeps leaderboards / Spotlight / counts honest.
 DROP POLICY IF EXISTS hub_reaction_select ON hub_reactions;
 CREATE POLICY hub_reaction_select ON hub_reactions
-  FOR SELECT USING (auth.uid() IS NOT NULL);
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND (NOT is_banned(user_id) OR is_admin(auth.uid()))
+  );
 
 DROP POLICY IF EXISTS hub_reaction_insert ON hub_reactions;
 CREATE POLICY hub_reaction_insert ON hub_reactions
@@ -390,10 +405,14 @@ DROP POLICY IF EXISTS hub_reaction_delete_own ON hub_reactions;
 CREATE POLICY hub_reaction_delete_own ON hub_reactions
   FOR DELETE USING (auth.uid() = user_id);
 
--- Post likes: any signed-in reads; user inserts/deletes their own
+-- Post likes: any signed-in reads; user inserts/deletes their own.
+-- Banned likes hidden from non-admins so like counts stay clean.
 DROP POLICY IF EXISTS hub_like_select ON hub_post_likes;
 CREATE POLICY hub_like_select ON hub_post_likes
-  FOR SELECT USING (auth.uid() IS NOT NULL);
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND (NOT is_banned(user_id) OR is_admin(auth.uid()))
+  );
 
 DROP POLICY IF EXISTS hub_like_insert ON hub_post_likes;
 CREATE POLICY hub_like_insert ON hub_post_likes
@@ -403,10 +422,15 @@ DROP POLICY IF EXISTS hub_like_delete_own ON hub_post_likes;
 CREATE POLICY hub_like_delete_own ON hub_post_likes
   FOR DELETE USING (auth.uid() = user_id);
 
--- Post comments: signed-in reads non-deleted; author inserts / deletes own
+-- Post comments: signed-in reads non-deleted; author inserts / deletes own.
+-- Soft-hide banned commenters from non-admins.
 DROP POLICY IF EXISTS hub_comment_select ON hub_post_comments;
 CREATE POLICY hub_comment_select ON hub_post_comments
-  FOR SELECT USING (auth.uid() IS NOT NULL AND deleted_at IS NULL);
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND deleted_at IS NULL
+    AND (NOT is_banned(author_id) OR is_admin(auth.uid()))
+  );
 
 DROP POLICY IF EXISTS hub_comment_insert ON hub_post_comments;
 CREATE POLICY hub_comment_insert ON hub_post_comments
@@ -424,10 +448,15 @@ DROP POLICY IF EXISTS hub_comment_service ON hub_post_comments;
 CREATE POLICY hub_comment_service ON hub_post_comments
   FOR ALL USING (auth.role() = 'service_role');
 
--- Stories: signed-in reads non-expired; author inserts / deletes own
+-- Stories: signed-in reads non-expired; author inserts / deletes own.
+-- Soft-hide banned authors' stories from non-admins.
 DROP POLICY IF EXISTS hub_story_select ON hub_stories;
 CREATE POLICY hub_story_select ON hub_stories
-  FOR SELECT USING (auth.uid() IS NOT NULL AND expires_at > now());
+  FOR SELECT USING (
+    auth.uid() IS NOT NULL
+    AND expires_at > now()
+    AND (NOT is_banned(author_id) OR is_admin(auth.uid()))
+  );
 
 DROP POLICY IF EXISTS hub_story_insert ON hub_stories;
 CREATE POLICY hub_story_insert ON hub_stories

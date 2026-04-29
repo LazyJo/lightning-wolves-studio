@@ -582,3 +582,51 @@ CREATE POLICY cover_art_history_insert_own ON public.cover_art_history
 DROP POLICY IF EXISTS cover_art_history_delete_own ON public.cover_art_history;
 CREATE POLICY cover_art_history_delete_own ON public.cover_art_history
   FOR DELETE USING (auth.uid() = user_id);
+
+-- ── Credit requests (out-of-credits → ask the admin) ───────────────────────
+-- When a wolf hits INSUFFICIENT_CREDITS on /api/generate-visuals they can
+-- file a request from the error UI. Admins see pending requests in the
+-- Members page and decide how many credits to grant (which then bumps
+-- profiles.wolf_credits in the same admin action).
+CREATE TABLE IF NOT EXISTS public.credit_requests (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  message         TEXT,
+  needed_credits  INT,
+  model_id        TEXT,
+  status          TEXT NOT NULL DEFAULT 'pending'
+                    CHECK (status IN ('pending','granted','denied')),
+  granted_amount  INT,
+  granted_by      UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  granted_at      TIMESTAMPTZ,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS credit_requests_status_idx
+  ON public.credit_requests (status, created_at DESC);
+CREATE INDEX IF NOT EXISTS credit_requests_user_idx
+  ON public.credit_requests (user_id, created_at DESC);
+
+ALTER TABLE public.credit_requests ENABLE ROW LEVEL SECURITY;
+
+-- Wolves can read their own requests (so the UI can show "request pending"),
+-- and admins can read everyone's via is_admin().
+DROP POLICY IF EXISTS credit_requests_select_own ON public.credit_requests;
+CREATE POLICY credit_requests_select_own ON public.credit_requests
+  FOR SELECT USING (auth.uid() = user_id OR is_admin(auth.uid()));
+
+-- Wolves create their own requests; the row is locked to their user_id
+-- and starts in 'pending' (never 'granted'/'denied' on insert).
+DROP POLICY IF EXISTS credit_requests_insert_own ON public.credit_requests;
+CREATE POLICY credit_requests_insert_own ON public.credit_requests
+  FOR INSERT WITH CHECK (
+    auth.uid() = user_id
+    AND status = 'pending'
+    AND NOT is_banned(auth.uid())
+  );
+
+-- Only admins can move a request out of 'pending'. Approvals are paired
+-- with a profiles.wolf_credits update from the server so the grant +
+-- the audit row stay atomic on the admin side.
+DROP POLICY IF EXISTS credit_requests_admin_update ON public.credit_requests;
+CREATE POLICY credit_requests_admin_update ON public.credit_requests
+  FOR UPDATE USING (is_admin(auth.uid()));

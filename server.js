@@ -1428,6 +1428,171 @@ app.delete('/api/cover-art/history/:id', async (req, res) => {
   }
 });
 
+// ─── Credit requests (out-of-credits → ask the admin) ───────────────────────
+// Wolves who hit INSUFFICIENT_CREDITS on /api/generate-visuals can file a
+// request from the error UI. Admins approve from the Members page; the
+// approval bumps profiles.wolf_credits and stamps the row as 'granted'
+// in the same atomic admin step.
+app.post('/api/credit-requests', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'database offline' });
+    const user = await getUserFromToken(req);
+    if (!user) return res.status(401).json({ error: 'unauthenticated' });
+    const { message, neededCredits, modelId } = req.body || {};
+
+    // Avoid duplicate noise — if the wolf already has a pending request,
+    // surface it instead of creating a second row.
+    const { data: existing } = await supabase
+      .from('credit_requests')
+      .select('id, message, needed_credits, model_id, status, created_at')
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (existing) return res.json({ item: existing, alreadyPending: true });
+
+    const { data, error } = await supabase
+      .from('credit_requests')
+      .insert({
+        user_id: user.id,
+        message: typeof message === 'string' ? message.slice(0, 500) : null,
+        needed_credits: Number.isInteger(neededCredits) ? neededCredits : null,
+        model_id: typeof modelId === 'string' ? modelId.slice(0, 64) : null,
+      })
+      .select('id, message, needed_credits, model_id, status, created_at')
+      .single();
+    if (error) throw error;
+    res.json({ item: data, alreadyPending: false });
+  } catch (err) {
+    console.error('Credit request create error:', err);
+    res.status(500).json({ error: err.message || 'request failed' });
+  }
+});
+
+app.get('/api/credit-requests', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'database offline' });
+    const user = await getUserFromToken(req);
+    if (!user) return res.status(401).json({ error: 'unauthenticated' });
+    const profile = await getProfile(user.id);
+    if (!profile || profile.role !== 'admin') {
+      return res.status(403).json({ error: 'admin only' });
+    }
+    const status = req.query.status === 'all' ? null : (req.query.status || 'pending');
+    let q = supabase
+      .from('credit_requests')
+      .select(`
+        id, message, needed_credits, model_id, status, granted_amount,
+        granted_by, granted_at, created_at,
+        user:profiles!credit_requests_user_id_fkey (id, display_name, email, wolf_id, wolf_credits)
+      `)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    if (status) q = q.eq('status', status);
+    const { data, error } = await q;
+    if (error) throw error;
+    res.json({ items: data || [] });
+  } catch (err) {
+    console.error('Credit request list error:', err);
+    res.status(500).json({ error: err.message || 'list failed' });
+  }
+});
+
+// Admin grant: bumps profiles.wolf_credits by `amount` and stamps the
+// request as 'granted'. Both writes go through the service-role
+// supabase client so the wolf_credits update doesn't depend on the
+// admin's own RLS context.
+app.post('/api/credit-requests/:id/grant', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'database offline' });
+    const user = await getUserFromToken(req);
+    if (!user) return res.status(401).json({ error: 'unauthenticated' });
+    const profile = await getProfile(user.id);
+    if (!profile || profile.role !== 'admin') {
+      return res.status(403).json({ error: 'admin only' });
+    }
+    const id = req.params.id;
+    const { amount } = req.body || {};
+    if (!Number.isInteger(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'amount must be a positive integer' });
+    }
+
+    // Look up the target wolf so we can compute their new balance.
+    const { data: reqRow, error: reqErr } = await supabase
+      .from('credit_requests')
+      .select('id, user_id, status')
+      .eq('id', id)
+      .maybeSingle();
+    if (reqErr) throw reqErr;
+    if (!reqRow) return res.status(404).json({ error: 'request not found' });
+    if (reqRow.status !== 'pending') {
+      return res.status(409).json({ error: 'request already resolved' });
+    }
+
+    const { data: targetProfile, error: profErr } = await supabase
+      .from('profiles')
+      .select('id, wolf_credits')
+      .eq('id', reqRow.user_id)
+      .maybeSingle();
+    if (profErr) throw profErr;
+    if (!targetProfile) return res.status(404).json({ error: 'target wolf not found' });
+
+    const nextCredits = (targetProfile.wolf_credits ?? 0) + amount;
+    const { error: updErr } = await supabase
+      .from('profiles')
+      .update({ wolf_credits: nextCredits })
+      .eq('id', reqRow.user_id);
+    if (updErr) throw updErr;
+
+    const { data: updated, error: stampErr } = await supabase
+      .from('credit_requests')
+      .update({
+        status: 'granted',
+        granted_amount: amount,
+        granted_by: user.id,
+        granted_at: new Date().toISOString(),
+      })
+      .eq('id', id)
+      .select('id, status, granted_amount, granted_by, granted_at')
+      .single();
+    if (stampErr) throw stampErr;
+
+    res.json({ item: updated, newCredits: nextCredits });
+  } catch (err) {
+    console.error('Credit request grant error:', err);
+    res.status(500).json({ error: err.message || 'grant failed' });
+  }
+});
+
+app.post('/api/credit-requests/:id/deny', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'database offline' });
+    const user = await getUserFromToken(req);
+    if (!user) return res.status(401).json({ error: 'unauthenticated' });
+    const profile = await getProfile(user.id);
+    if (!profile || profile.role !== 'admin') {
+      return res.status(403).json({ error: 'admin only' });
+    }
+    const { data, error } = await supabase
+      .from('credit_requests')
+      .update({
+        status: 'denied',
+        granted_by: user.id,
+        granted_at: new Date().toISOString(),
+      })
+      .eq('id', req.params.id)
+      .eq('status', 'pending')
+      .select('id, status, granted_at')
+      .single();
+    if (error) throw error;
+    res.json({ item: data });
+  } catch (err) {
+    console.error('Credit request deny error:', err);
+    res.status(500).json({ error: err.message || 'deny failed' });
+  }
+});
+
 // ─── Fallback to index.html (SPA) ────────────────────────────────────────────
 app.get('*', (req, res) => {
   // Try multiple paths (local dev vs Vercel deployment)

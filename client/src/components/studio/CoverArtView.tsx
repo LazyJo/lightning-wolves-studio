@@ -18,9 +18,11 @@ import {
   saveCoverArtHistory,
   clearCoverArtHistory,
   deleteCoverArtHistory,
+  createCreditRequest,
 } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
 import { useCredits } from "../../lib/useCredits";
+import { useProfile } from "../../lib/useProfile";
 import { useStudioPrefs } from "../../lib/useStudioPrefs";
 
 interface Props {
@@ -91,8 +93,13 @@ const CA = {
 export default function CoverArtView({ onBack, wolf }: Props) {
   const { accessToken } = useSession();
   const { plan } = useCredits();
+  const { profile } = useProfile();
   const prefs = useStudioPrefs();
   const isElite = plan.tier === "elite";
+  // "Ask Lazy Jo" is for the inner-circle pack only — Lightning Wolves
+  // members + admins. Public free-tier signups can still upgrade via
+  // the Pricing page if they want more credits.
+  const canAskAdmin = profile?.role === "member" || profile?.role === "admin";
 
   // Honour the user's Settings preference if they have access to that model,
   // otherwise fall back to the first model their tier allows.
@@ -113,6 +120,13 @@ export default function CoverArtView({ onBack, wolf }: Props) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [history, setHistory] = useState<GalleryEntry[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  // Set when the latest error was INSUFFICIENT_CREDITS — drives the
+  // "Ask Lazy Jo" CTA + modal in the error pane.
+  const [needsCreditsRequest, setNeedsCreditsRequest] = useState(false);
+  const [askModalOpen, setAskModalOpen] = useState(false);
+  const [askMessage, setAskMessage] = useState("");
+  const [askSubmitting, setAskSubmitting] = useState(false);
+  const [askResult, setAskResult] = useState<"sent" | "already" | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Hydrate gallery: signed-in wolves pull from the server (synced across
@@ -203,6 +217,8 @@ export default function CoverArtView({ onBack, wolf }: Props) {
     setLoading(true);
     setProgress("starting");
     setError("");
+    setNeedsCreditsRequest(false);
+    setAskResult(null);
     setImageUrl(null);
     try {
       const final = await generateVisual({
@@ -263,11 +279,35 @@ export default function CoverArtView({ onBack, wolf }: Props) {
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Generation failed.");
+      const code = (err as { code?: string } | null)?.code;
+      setNeedsCreditsRequest(code === "INSUFFICIENT_CREDITS");
     } finally {
       setLoading(false);
       setProgress(null);
     }
   }, [canGenerate, modelId, prompt, aspect, resolution, refImages.length, accessToken]);
+
+  const submitCreditAsk = useCallback(async () => {
+    if (!accessToken || askSubmitting) return;
+    setAskSubmitting(true);
+    try {
+      const { alreadyPending } = await createCreditRequest(accessToken, {
+        message: askMessage.trim() || undefined,
+        neededCredits: activeModel.credits,
+        modelId,
+      });
+      setAskResult(alreadyPending ? "already" : "sent");
+      setAskModalOpen(false);
+      setAskMessage("");
+    } catch (err) {
+      console.error("[cover-art] credit request failed", err);
+      window.alert(
+        err instanceof Error ? err.message : "Couldn't send the request — try again.",
+      );
+    } finally {
+      setAskSubmitting(false);
+    }
+  }, [accessToken, askSubmitting, askMessage, activeModel.credits, modelId]);
 
   const validationMessage = prompt.trim().length < 10
     ? "Describe your cover art in detail to generate."
@@ -677,14 +717,39 @@ export default function CoverArtView({ onBack, wolf }: Props) {
                   <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
                     <AlertCircle size={26} className="text-red-400" />
                   </div>
-                  <p className="text-sm font-semibold text-white">Generation failed</p>
+                  <p className="text-sm font-semibold text-white">
+                    {needsCreditsRequest ? "Out of credits" : "Generation failed"}
+                  </p>
                   <p className="max-w-sm text-xs text-red-300/90">{error}</p>
-                  <button
-                    onClick={() => setError("")}
-                    className="text-[11px] text-wolf-muted hover:text-wolf-gold"
-                  >
-                    Try again
-                  </button>
+                  {needsCreditsRequest && askResult === "sent" && (
+                    <p className="max-w-sm rounded-lg border border-wolf-gold/40 bg-wolf-gold/[0.08] px-3 py-2 text-[11px] text-wolf-gold">
+                      🐺 Sent! Lazy Jo will review your request soon.
+                    </p>
+                  )}
+                  {needsCreditsRequest && askResult === "already" && (
+                    <p className="max-w-sm rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-[11px] text-wolf-muted">
+                      You already have a pending request — sit tight.
+                    </p>
+                  )}
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {needsCreditsRequest && canAskAdmin && askResult == null && (
+                      <button
+                        onClick={() => setAskModalOpen(true)}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-black transition-all"
+                        style={{
+                          background: `linear-gradient(90deg, ${CA.blue}, ${CA.purple})`,
+                        }}
+                      >
+                        🐺 Ask Lazy Jo
+                      </button>
+                    )}
+                    <button
+                      onClick={() => { setError(""); setNeedsCreditsRequest(false); }}
+                      className="text-[11px] text-wolf-muted hover:text-wolf-gold"
+                    >
+                      Try again
+                    </button>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div
@@ -709,6 +774,69 @@ export default function CoverArtView({ onBack, wolf }: Props) {
           </div>
         </motion.div>
       </div>
+
+      {/* Ask Lazy Jo modal — Lightning Wolves member top-up request */}
+      {askModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 px-4"
+          onClick={() => !askSubmitting && setAskModalOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-2xl border bg-[#0b0b0f] p-5 shadow-2xl"
+            style={{ borderColor: CA.blueBorder }}
+          >
+            <div className="mb-3 flex items-center gap-2">
+              <div
+                className="flex h-9 w-9 items-center justify-center rounded-full text-base"
+                style={{ background: `linear-gradient(135deg, ${CA.blue}, ${CA.purple})` }}
+              >
+                🐺
+              </div>
+              <div>
+                <p className="text-sm font-bold text-white">Ask Lazy Jo for credits</p>
+                <p className="text-[11px] text-wolf-muted">
+                  He'll grant a top-up that lands on your account.
+                </p>
+              </div>
+            </div>
+            <textarea
+              value={askMessage}
+              onChange={(e) => setAskMessage(e.target.value.slice(0, 500))}
+              placeholder="Optional note — what are you working on?"
+              rows={4}
+              className="w-full resize-none rounded-lg border bg-transparent p-3 text-sm text-white placeholder:text-wolf-muted/40 focus:outline-none"
+              style={{ borderColor: CA.border }}
+            />
+            <div className="mt-1 text-right text-[10px] text-wolf-muted">
+              {askMessage.length}/500
+            </div>
+            <div className="mt-3 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setAskModalOpen(false)}
+                disabled={askSubmitting}
+                className="rounded-lg px-3 py-2 text-xs font-semibold text-wolf-muted transition-colors hover:text-white disabled:opacity-40"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { void submitCreditAsk(); }}
+                disabled={askSubmitting}
+                className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-black transition-all disabled:opacity-40"
+                style={{ background: `linear-gradient(90deg, ${CA.blue}, ${CA.purple})` }}
+              >
+                {askSubmitting ? (
+                  <>
+                    <Loader2 size={12} className="animate-spin" /> Sending…
+                  </>
+                ) : (
+                  <>🐺 Send to Lazy Jo</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

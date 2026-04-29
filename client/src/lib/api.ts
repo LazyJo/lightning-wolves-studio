@@ -62,7 +62,13 @@ export async function startVisualGeneration(params: {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Generation failed" }));
-    throw new Error(err.message || err.error || "Generation failed");
+    // Attach the server's structured error code so callers can branch
+    // on `INSUFFICIENT_CREDITS` etc. without sniffing the message string.
+    const e: Error & { code?: string } = new Error(
+      err.message || err.error || "Generation failed",
+    );
+    if (typeof err.error === "string") e.code = err.error;
+    throw e;
   }
   const data = await res.json();
   return data.generation as VisualStartResult;
@@ -201,6 +207,99 @@ export async function deleteCoverArtHistory(accessToken: string, id: string): Pr
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error("Failed to delete");
+}
+
+// ─── Credit requests (out-of-credits → ask Lazy Jo) ─────────────────────────
+
+export interface CreditRequest {
+  id: string;
+  message: string | null;
+  needed_credits: number | null;
+  model_id: string | null;
+  status: "pending" | "granted" | "denied";
+  granted_amount?: number | null;
+  granted_by?: string | null;
+  granted_at?: string | null;
+  created_at: string;
+  // Only present in admin list responses (server denormalizes the
+  // requesting wolf's profile so the table can render it without a
+  // second roundtrip).
+  user?: {
+    id: string;
+    display_name: string | null;
+    email: string | null;
+    wolf_id: string | null;
+    wolf_credits: number | null;
+  } | null;
+}
+
+export async function createCreditRequest(
+  accessToken: string,
+  payload: { message?: string; neededCredits?: number; modelId?: string },
+): Promise<{ item: CreditRequest; alreadyPending: boolean }> {
+  const res = await fetch(`${API}/api/credit-requests`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Request failed" }));
+    throw new Error(err.message || err.error || "Request failed");
+  }
+  return res.json();
+}
+
+export async function listCreditRequests(
+  accessToken: string,
+  status: "pending" | "granted" | "denied" | "all" = "pending",
+): Promise<CreditRequest[]> {
+  const res = await fetch(
+    `${API}/api/credit-requests?status=${encodeURIComponent(status)}`,
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
+  if (!res.ok) throw new Error("Failed to load credit requests");
+  const data = await res.json();
+  return data.items || [];
+}
+
+export async function grantCreditRequest(
+  accessToken: string,
+  id: string,
+  amount: number,
+): Promise<{ item: CreditRequest; newCredits: number }> {
+  const res = await fetch(
+    `${API}/api/credit-requests/${encodeURIComponent(id)}/grant`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ amount }),
+    },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Grant failed" }));
+    throw new Error(err.message || err.error || "Grant failed");
+  }
+  return res.json();
+}
+
+export async function denyCreditRequest(
+  accessToken: string,
+  id: string,
+): Promise<void> {
+  const res = await fetch(
+    `${API}/api/credit-requests/${encodeURIComponent(id)}/deny`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  );
+  if (!res.ok) throw new Error("Deny failed");
 }
 
 // ─── Whisper Transcription ───────────────────────────────────────────────────

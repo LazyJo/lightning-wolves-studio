@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -19,6 +19,13 @@ import {
 } from "lucide-react";
 import { initSupabase } from "../lib/supabaseClient";
 import { useProfile } from "../lib/useProfile";
+import { useSession } from "../lib/useSession";
+import {
+  listCreditRequests,
+  grantCreditRequest,
+  denyCreditRequest,
+  type CreditRequest,
+} from "../lib/api";
 
 /* ─── Types & helpers ─── */
 
@@ -84,7 +91,7 @@ function displayNameOf(m: { display_name: string | null; email: string | null })
   return m.display_name || m.email?.split("@")[0] || "Wolf";
 }
 
-type Tab = "members" | "subscriptions" | "hub" | "studio";
+type Tab = "members" | "subscriptions" | "hub" | "studio" | "requests";
 
 interface Props {
   onBack: () => void;
@@ -94,6 +101,7 @@ interface Props {
 
 export default function AdminPage({ onBack }: Props) {
   const { profile, loading: profileLoading, isAdmin } = useProfile();
+  const { accessToken } = useSession();
   const [members, setMembers] = useState<MemberWithCounts[]>([]);
   const [hubStats, setHubStats] = useState<{
     posts: number;
@@ -115,6 +123,22 @@ export default function AdminPage({ onBack }: Props) {
   });
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("members");
+  const [pendingRequestCount, setPendingRequestCount] = useState(0);
+
+  // Keep the Requests tab badge fresh even before the tab is opened.
+  useEffect(() => {
+    if (!isAdmin || !accessToken) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const items = await listCreditRequests(accessToken, "pending");
+        if (!cancelled) setPendingRequestCount(items.length);
+      } catch (err) {
+        console.warn("[admin] pending count fetch failed", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [isAdmin, accessToken]);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -289,6 +313,14 @@ export default function AdminPage({ onBack }: Props) {
           <TabBtn active={tab === "studio"} onClick={() => setTab("studio")}>
             <Sparkles size={14} /> Studio Activity
           </TabBtn>
+          <TabBtn active={tab === "requests"} onClick={() => setTab("requests")}>
+            <Zap size={14} /> Requests
+            {pendingRequestCount > 0 && (
+              <span className="ml-1 rounded-full bg-wolf-gold px-1.5 py-0.5 text-[9px] font-bold text-black">
+                {pendingRequestCount}
+              </span>
+            )}
+          </TabBtn>
         </div>
 
         {loading ? (
@@ -345,12 +377,67 @@ export default function AdminPage({ onBack }: Props) {
                     window.alert(`Failed to update credits: ${error.message}`);
                   }
                 }}
+                onAdjustTier={async (id, nextTier) => {
+                  const prev = members.find((m) => m.id === id)?.tier ?? null;
+                  setMembers((curr) =>
+                    curr.map((m) => (m.id === id ? { ...m, tier: nextTier } : m))
+                  );
+                  const sb = await initSupabase();
+                  if (!sb) return;
+                  const { error } = await sb
+                    .from("profiles")
+                    .update({ tier: nextTier })
+                    .eq("id", id);
+                  if (error) {
+                    setMembers((curr) =>
+                      curr.map((m) => (m.id === id ? { ...m, tier: prev } : m))
+                    );
+                    window.alert(`Failed to update tier: ${error.message}`);
+                  }
+                }}
+                onAdjustRole={async (id, nextRole) => {
+                  // Roles gate access to inner-pack features (the "Ask
+                  // Lazy Jo" credit-request CTA, etc). Promoting a wolf
+                  // to 'member' opens those flows; demoting back to
+                  // 'public' closes them.
+                  const prev = members.find((m) => m.id === id)?.role ?? "public";
+                  setMembers((curr) =>
+                    curr.map((m) => (m.id === id ? { ...m, role: nextRole } : m))
+                  );
+                  const sb = await initSupabase();
+                  if (!sb) return;
+                  const { error } = await sb
+                    .from("profiles")
+                    .update({ role: nextRole })
+                    .eq("id", id);
+                  if (error) {
+                    setMembers((curr) =>
+                      curr.map((m) => (m.id === id ? { ...m, role: prev } : m))
+                    );
+                    window.alert(`Failed to update role: ${error.message}`);
+                  }
+                }}
               />
             )}
             {tab === "subscriptions" && <SubscriptionsTab members={members} />}
             {tab === "hub" && <HubActivityTab members={members} stats={hubStats} />}
             {tab === "studio" && (
               <StudioActivityTab members={members} stats={studioStats} />
+            )}
+            {tab === "requests" && (
+              <RequestsTab
+                onMembersChanged={(targetId, nextCredits) => {
+                  // Mirror the granted top-up into the Members table
+                  // so the credits column updates immediately without
+                  // a tab-switch refresh.
+                  setMembers((curr) =>
+                    curr.map((m) =>
+                      m.id === targetId ? { ...m, wolf_credits: nextCredits } : m,
+                    ),
+                  );
+                }}
+                onPendingCountChange={setPendingRequestCount}
+              />
             )}
           </>
         )}
@@ -445,16 +532,34 @@ function TierBadge({ tier }: { tier: string | null }) {
 
 /* ─── Members tab ─── */
 
+const TIER_OPTIONS: Array<{ id: string; label: string }> = [
+  { id: "free",    label: "Free" },
+  { id: "starter", label: "Starter (€9/mo)" },
+  { id: "creator", label: "Creator (€29/mo)" },
+  { id: "pro",     label: "Pro (€49/mo)" },
+  { id: "elite",   label: "Elite (€89/mo)" },
+];
+
+const ROLE_OPTIONS: Array<{ id: string; label: string }> = [
+  { id: "public", label: "Public (free signup)" },
+  { id: "member", label: "Member (Lightning Wolves pack)" },
+  { id: "admin",  label: "Admin (operator)" },
+];
+
 function MembersTab({
   members,
   selfId,
   onToggleBan,
   onAdjustCredits,
+  onAdjustTier,
+  onAdjustRole,
 }: {
   members: MemberWithCounts[];
   selfId: string | null;
   onToggleBan: (id: string, next: boolean) => void;
   onAdjustCredits: (id: string, nextCredits: number) => void;
+  onAdjustTier: (id: string, nextTier: string) => void;
+  onAdjustRole: (id: string, nextRole: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const filtered = useMemo(() => {
@@ -554,10 +659,80 @@ function MembersTab({
                         {m.email || <span className="opacity-50">—</span>}
                       </td>
                       <td className="px-4 py-3">
-                        <RoleBadge role={m.role} />
+                        <button
+                          onClick={() => {
+                            const current = m.role || "public";
+                            const numbered = ROLE_OPTIONS.map(
+                              (r, idx) => `${idx + 1}. ${r.label}${r.id === current ? "  (current)" : ""}`,
+                            ).join("\n");
+                            const raw = window.prompt(
+                              `Change role for ${name}\n\n${numbered}\n\nEnter the number (1–${ROLE_OPTIONS.length}) or the role id:`,
+                              "",
+                            );
+                            if (raw == null) return;
+                            const trimmed = raw.trim().toLowerCase();
+                            if (!trimmed) return;
+                            const byNumber = Number(trimmed);
+                            const next = Number.isInteger(byNumber) && byNumber >= 1 && byNumber <= ROLE_OPTIONS.length
+                              ? ROLE_OPTIONS[byNumber - 1].id
+                              : ROLE_OPTIONS.find((r) => r.id === trimmed)?.id;
+                            if (!next) {
+                              window.alert("Couldn't match that to a role.");
+                              return;
+                            }
+                            if (next === current) return;
+                            if (
+                              !window.confirm(
+                                `Move ${name} from ${current} → ${next}?`,
+                              )
+                            ) {
+                              return;
+                            }
+                            onAdjustRole(m.id, next);
+                          }}
+                          title="Click to change this wolf's role"
+                          className="rounded-lg border border-transparent transition-all hover:border-white/20"
+                        >
+                          <RoleBadge role={m.role} />
+                        </button>
                       </td>
                       <td className="px-4 py-3">
-                        <TierBadge tier={m.tier} />
+                        <button
+                          onClick={() => {
+                            const current = m.tier || "free";
+                            const numbered = TIER_OPTIONS.map(
+                              (t, idx) => `${idx + 1}. ${t.label}${t.id === current ? "  (current)" : ""}`,
+                            ).join("\n");
+                            const raw = window.prompt(
+                              `Change tier for ${name}\n\n${numbered}\n\nEnter the number (1–${TIER_OPTIONS.length}) or the tier id:`,
+                              "",
+                            );
+                            if (raw == null) return;
+                            const trimmed = raw.trim().toLowerCase();
+                            if (!trimmed) return;
+                            const byNumber = Number(trimmed);
+                            const next = Number.isInteger(byNumber) && byNumber >= 1 && byNumber <= TIER_OPTIONS.length
+                              ? TIER_OPTIONS[byNumber - 1].id
+                              : TIER_OPTIONS.find((t) => t.id === trimmed)?.id;
+                            if (!next) {
+                              window.alert("Couldn't match that to a tier.");
+                              return;
+                            }
+                            if (next === current) return;
+                            if (
+                              !window.confirm(
+                                `Move ${name} from ${current} → ${next}?`,
+                              )
+                            ) {
+                              return;
+                            }
+                            onAdjustTier(m.id, next);
+                          }}
+                          title="Click to change this wolf's tier"
+                          className="rounded-lg border border-transparent transition-all hover:border-white/20"
+                        >
+                          <TierBadge tier={m.tier} />
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
@@ -1039,6 +1214,208 @@ function Leaderboard({
             );
           })}
         </ul>
+      )}
+    </div>
+  );
+}
+
+/* ─── Credit requests tab ─── */
+
+function RequestsTab({
+  onMembersChanged,
+  onPendingCountChange,
+}: {
+  onMembersChanged: (targetId: string, nextCredits: number) => void;
+  onPendingCountChange: (count: number) => void;
+}) {
+  const { accessToken } = useSession();
+  const [items, setItems] = useState<CreditRequest[]>([]);
+  const [filter, setFilter] = useState<"pending" | "granted" | "denied" | "all">("pending");
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+
+  const refetch = useCallback(async () => {
+    if (!accessToken) return;
+    setLoading(true);
+    try {
+      const next = await listCreditRequests(accessToken, filter);
+      setItems(next);
+      // The pending count badge always tracks the pending bucket
+      // regardless of what filter the admin is currently viewing.
+      if (filter === "pending") {
+        onPendingCountChange(next.length);
+      } else {
+        const pendingItems = await listCreditRequests(accessToken, "pending");
+        onPendingCountChange(pendingItems.length);
+      }
+    } catch (err) {
+      console.error("[admin] credit request fetch failed", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken, filter, onPendingCountChange]);
+
+  useEffect(() => { void refetch(); }, [refetch]);
+
+  const handleGrant = async (req: CreditRequest) => {
+    if (!accessToken) return;
+    const wolfName = req.user?.display_name || req.user?.email || "this wolf";
+    const suggested = req.needed_credits ?? 100;
+    const raw = window.prompt(
+      `Grant credits to ${wolfName}\n\nThey asked for ${req.needed_credits ?? "?"} (current balance: ${req.user?.wolf_credits ?? 0}).\n\nHow many credits do you want to give?`,
+      String(suggested),
+    );
+    if (raw == null) return;
+    const amount = Number(raw.trim());
+    if (!Number.isInteger(amount) || amount <= 0) {
+      window.alert("Enter a positive whole number.");
+      return;
+    }
+    if (!window.confirm(`Grant ${amount} credits to ${wolfName}?`)) return;
+
+    setBusyId(req.id);
+    try {
+      const { newCredits } = await grantCreditRequest(accessToken, req.id, amount);
+      if (req.user?.id) onMembersChanged(req.user.id, newCredits);
+      await refetch();
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Failed to grant credits.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const handleDeny = async (req: CreditRequest) => {
+    if (!accessToken) return;
+    const wolfName = req.user?.display_name || req.user?.email || "this wolf";
+    if (!window.confirm(`Deny ${wolfName}'s credit request?`)) return;
+    setBusyId(req.id);
+    try {
+      await denyCreditRequest(accessToken, req.id);
+      await refetch();
+    } catch (err) {
+      window.alert(
+        err instanceof Error ? err.message : "Failed to deny request.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center gap-2">
+        {(["pending", "granted", "denied", "all"] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setFilter(f)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition-all ${
+              filter === f
+                ? "bg-wolf-gold/20 text-wolf-gold"
+                : "text-wolf-muted hover:text-white"
+            }`}
+          >
+            {f}
+          </button>
+        ))}
+        <span className="ml-auto text-[11px] text-wolf-muted">
+          {loading ? "Loading…" : `${items.length} ${filter === "all" ? "total" : filter}`}
+        </span>
+      </div>
+
+      {!loading && items.length === 0 ? (
+        <div className="rounded-2xl border border-white/10 bg-wolf-card/40 px-6 py-16 text-center text-sm text-wolf-muted backdrop-blur-sm">
+          {filter === "pending"
+            ? "No pending credit requests. The pack is happy."
+            : `No ${filter} requests yet.`}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {items.map((r) => {
+            const wolfName = r.user?.display_name || r.user?.email?.split("@")[0] || "Wolf";
+            const accent = wolfAccent(r.user?.wolf_id ?? null);
+            const created = fmtDate(r.created_at);
+            return (
+              <motion.div
+                key={r.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-2xl border border-white/10 bg-wolf-card/40 p-4 backdrop-blur-sm"
+              >
+                <div className="flex flex-wrap items-start gap-3">
+                  <div
+                    className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold text-black"
+                    style={{ backgroundColor: accent }}
+                  >
+                    {wolfName.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-semibold text-white">{wolfName}</span>
+                      <span className="text-xs text-wolf-muted">
+                        {r.user?.email}
+                      </span>
+                      <span className="text-[10px] uppercase tracking-wider text-wolf-muted">
+                        · {created}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-xs">
+                      <span className="text-wolf-muted">
+                        Balance: <span className="text-white">{r.user?.wolf_credits ?? 0}</span>
+                      </span>
+                      {r.needed_credits != null && (
+                        <span className="text-wolf-muted">
+                          Needed: <span className="text-white">{r.needed_credits}</span>
+                        </span>
+                      )}
+                      {r.model_id && (
+                        <span className="text-wolf-muted">
+                          Tool: <span className="text-white">{r.model_id}</span>
+                        </span>
+                      )}
+                    </div>
+                    {r.message && (
+                      <p className="mt-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-white/90">
+                        “{r.message}”
+                      </p>
+                    )}
+                    {r.status === "granted" && (
+                      <p className="mt-2 text-[11px] text-green-300">
+                        ✅ Granted {r.granted_amount} credits
+                        {r.granted_at ? ` on ${fmtDate(r.granted_at)}` : ""}.
+                      </p>
+                    )}
+                    {r.status === "denied" && (
+                      <p className="mt-2 text-[11px] text-red-300/80">
+                        Denied{r.granted_at ? ` on ${fmtDate(r.granted_at)}` : ""}.
+                      </p>
+                    )}
+                  </div>
+                  {r.status === "pending" && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleGrant(r)}
+                        disabled={busyId === r.id}
+                        className="inline-flex items-center gap-1 rounded-lg border border-wolf-gold/40 bg-wolf-gold/10 px-3 py-1.5 text-xs font-bold text-wolf-gold transition-all hover:border-wolf-gold/70 hover:bg-wolf-gold/20 disabled:opacity-40"
+                      >
+                        <Zap size={12} /> Grant
+                      </button>
+                      <button
+                        onClick={() => handleDeny(r)}
+                        disabled={busyId === r.id}
+                        className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-wolf-muted transition-all hover:border-red-400/60 hover:text-red-300 disabled:opacity-40"
+                      >
+                        Deny
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
       )}
     </div>
   );

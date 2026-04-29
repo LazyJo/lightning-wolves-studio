@@ -337,6 +337,14 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
 
   return (
     <div className="pb-32">
+      {/* Always-mounted hidden audio element. Previously this lived inside */}
+      {/* Step 3's markersActive block, which meant `audioRef.current` was */}
+      {/* still null when the wrapping useEffect (deps: [audioUrl]) tried */}
+      {/* to attach a `loadedmetadata` listener on first upload — so */}
+      {/* `audioDuration` never got set and the karaoke / playhead-on- */}
+      {/* timeline UIs that gate on `audioDuration > 0` stayed empty. */}
+      {audioUrl && <audio ref={audioRef} src={audioUrl} className="hidden" />}
+
       <motion.button
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -558,7 +566,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
                     >
                       {playing ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
                     </button>
-                    <audio ref={audioRef} src={audioUrl} className="hidden" />
+                    {/* audio element lives at component-top (mounts on URL set) */}
                   </div>
 
                   {/* Karaoke-style lyrics block — every transcribed word */}

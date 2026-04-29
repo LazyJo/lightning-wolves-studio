@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSession } from "./useSession";
 
 export interface UserPlan {
   tier: "free" | "starter" | "creator" | "pro" | "elite";
@@ -49,6 +50,7 @@ const PLANS: Record<string, Omit<UserPlan, "credits" | "isGuest">> = {
 };
 
 export function useCredits() {
+  const { accessToken, loading: sessionLoading } = useSession();
   const [plan, setPlan] = useState<UserPlan>({
     tier: "free",
     credits: 100,
@@ -60,24 +62,36 @@ export function useCredits() {
   });
   const [loading, setLoading] = useState(true);
 
-  // Fetch from API
+  // Pull the live balance from the server. The endpoint switches on the
+  // Authorization header — without it the server returns the guest fallback
+  // (100 credits, free tier) which is why the navbar used to show a stale
+  // "100 credits" for everyone. Refetch whenever the access token changes
+  // so a sign-in/out flips to the real balance immediately.
+  const refreshCredits = useCallback(async () => {
+    setLoading(true);
+    try {
+      const headers: Record<string, string> = {};
+      if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+      const res = await fetch("/api/credits", { headers });
+      const data = await res.json();
+      const tier = data.tier || "free";
+      const planInfo = PLANS[tier] || PLANS.free;
+      setPlan({
+        ...planInfo,
+        credits: data.credits ?? 100,
+        isGuest: data.isGuest ?? true,
+      });
+    } catch {
+      // Fallback to whatever is in local state.
+    } finally {
+      setLoading(false);
+    }
+  }, [accessToken]);
+
   useEffect(() => {
-    fetch("/api/credits")
-      .then((r) => r.json())
-      .then((data) => {
-        const tier = data.tier || "free";
-        const planInfo = PLANS[tier] || PLANS.free;
-        setPlan({
-          ...planInfo,
-          credits: data.credits ?? 100,
-          isGuest: data.isGuest ?? true,
-        });
-      })
-      .catch(() => {
-        // Fallback to local state
-      })
-      .finally(() => setLoading(false));
-  }, []);
+    if (sessionLoading) return;
+    void refreshCredits();
+  }, [sessionLoading, refreshCredits]);
 
   const deductCredits = useCallback((amount: number) => {
     setPlan((p) => ({ ...p, credits: Math.max(0, p.credits - amount) }));
@@ -88,7 +102,7 @@ export function useCredits() {
     [plan.credits]
   );
 
-  return { plan, loading, deductCredits, hasEnoughCredits };
+  return { plan, loading, deductCredits, hasEnoughCredits, refreshCredits };
 }
 
 export function tierLabel(tier: string): string {

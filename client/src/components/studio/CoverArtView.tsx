@@ -31,18 +31,27 @@ interface Props {
 // eliteOnly: gates the model to the Elite tier. Matches the
 // "Early access to new AI models" pricing-page promise. Non-Elite
 // users see the option with a locked label but can't select it.
-const AI_MODELS: { id: string; name: string; badge: string | null; eliteOnly?: boolean }[] = [
-  { id: "nanobanana-2", name: "NanoBanana 2", badge: "NEW", eliteOnly: true },
-  { id: "nanobanana-pro", name: "NanoBanana Pro", badge: null },
-  { id: "nanobanana", name: "NanoBanana", badge: null },
-  { id: "grok-imagine", name: "Grok Imagine", badge: null },
-  { id: "seedream-4.5", name: "Seedream 4.5", badge: null },
+//
+// `credits` mirrors server.js VISION_MODELS[id].credits — the server is
+// the source of truth and rejects with INSUFFICIENT_CREDITS if it
+// doesn't match. Keep this list in sync when adjusting prices.
+const AI_MODELS: {
+  id: string;
+  name: string;
+  badge: string | null;
+  credits: number;
+  eliteOnly?: boolean;
+}[] = [
+  { id: "nanobanana-2",   name: "NanoBanana 2",   badge: "NEW", credits: 10, eliteOnly: true },
+  { id: "nanobanana-pro", name: "NanoBanana Pro", badge: null,  credits: 15 },
+  { id: "nanobanana",     name: "NanoBanana",     badge: null,  credits: 12 },
+  { id: "grok-imagine",   name: "Grok Imagine",   badge: null,  credits: 15 },
+  { id: "seedream-4.5",   name: "Seedream 4.5",   badge: null,  credits: 12 },
 ];
 
 const ASPECTS = ["1:1", "4:5", "16:9"] as const;
 const RESOLUTIONS = ["2K", "4K"] as const;
 const MAX_REFS = 14;
-const CREDIT_COST = 12;
 const HISTORY_KEY = "cover-art-history";
 const HISTORY_MAX = 24;
 
@@ -474,7 +483,7 @@ export default function CoverArtView({ onBack, wolf }: Props) {
                   className="rounded px-2 py-0.5 text-[11px] font-bold"
                   style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
                 >
-                  💎 {CREDIT_COST}
+                  💎 {activeModel.credits}
                 </span>
               </>
             )}

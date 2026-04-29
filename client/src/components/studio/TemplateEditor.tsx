@@ -126,7 +126,18 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     const el = audioRef.current;
     if (!el) return;
     const onLoaded = () => setAudioDuration(el.duration || 0);
-    const onTime = () => setCurrentTime(el.currentTime);
+    const onTime = () => {
+      setCurrentTime(el.currentTime);
+      // Auto-pause at the end of the user's selected clip so playback
+      // stays scoped to the 15/20/25/30s region picked in Step 1. Use a
+      // ref-derived clip end rather than closing over state, so the
+      // bound is fresh even after the user nudges the region.
+      const clipEnd = regionStartRef.current + selectedDurationRef.current;
+      if (clipEnd > 0 && el.currentTime >= clipEnd) {
+        el.pause();
+        el.currentTime = regionStartRef.current;
+      }
+    };
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
     el.addEventListener("loadedmetadata", onLoaded);
@@ -140,6 +151,14 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
       el.removeEventListener("pause", onPause);
     };
   }, [audioUrl]);
+
+  // Mirror clip bounds into refs so the timeupdate listener (registered
+  // once per audioUrl) always reads the latest values without needing
+  // the listener to re-attach on every region nudge.
+  const regionStartRef = useRef(regionStart);
+  const selectedDurationRef = useRef(selectedDuration);
+  useEffect(() => { regionStartRef.current = regionStart; }, [regionStart]);
+  useEffect(() => { selectedDurationRef.current = selectedDuration; }, [selectedDuration]);
 
   // Hub → Studio prefill: when launched with a remote audio URL,
   // download the file and feed it into the normal upload flow so the
@@ -558,8 +577,19 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
                       onClick={() => {
                         const el = audioRef.current;
                         if (!el) return;
-                        if (playing) el.pause();
-                        else el.play();
+                        if (playing) {
+                          el.pause();
+                          return;
+                        }
+                        // Step 3 should preview the user's selected clip,
+                        // not the whole track. Seek to regionStart on play
+                        // (or just before, if currentTime is already inside
+                        // the clip — then resume from where we paused).
+                        const clipEnd = regionStart + selectedDuration;
+                        if (el.currentTime < regionStart || el.currentTime >= clipEnd - 0.05) {
+                          el.currentTime = regionStart;
+                        }
+                        void el.play();
                       }}
                       className="flex h-14 w-14 items-center justify-center rounded-full border-2 text-white transition-transform hover:scale-105"
                       style={{ borderColor: `${C.amber}80` }}
@@ -576,10 +606,12 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
                   {/* doubles as a karaoke read-along. Click a word to seek */}
                   {/* the audio there AND drop a cut marker on its start — */}
                   {/* fastest path for "mark this beat on this lyric." */}
-                  {wordTimings.length > 0 && audioDuration > 0 && (
+                  {wordTimings.length > 0 && (
                     <KaraokeLyrics
                       words={wordTimings}
                       currentTime={currentTime}
+                      clipStart={regionStart}
+                      clipEnd={regionStart + selectedDuration}
                       onPickWord={(t) => {
                         const el = audioRef.current;
                         if (el) el.currentTime = t;
@@ -868,26 +900,39 @@ function LyricsSuccess({ words, transcript }: { words: number; transcript: strin
 function KaraokeLyrics({
   words,
   currentTime,
+  clipStart,
+  clipEnd,
   onPickWord,
 }: {
   words: WordTiming[];
   currentTime: number;
+  clipStart: number;
+  clipEnd: number;
   onPickWord: (t: number) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Whisper transcribes the whole upload, so wordTimings span the full
+  // track. The user only marks beats inside their picked clip — filter
+  // to that range so the karaoke only shows what's actually playing
+  // when they hit the Step 3 play button.
+  const clipWords = useMemo(() => {
+    if (clipEnd <= clipStart) return words;
+    return words.filter((w) => w.end > clipStart && w.start < clipEnd);
+  }, [words, clipStart, clipEnd]);
+
   const activeIdx = useMemo(() => {
-    if (!words.length) return -1;
-    // Linear scan is fine — typical 3-min track has ~600 words.
+    if (!clipWords.length) return -1;
     let idx = -1;
-    for (let i = 0; i < words.length; i++) {
-      if (currentTime >= words[i].start && currentTime < words[i].end) {
+    for (let i = 0; i < clipWords.length; i++) {
+      if (currentTime >= clipWords[i].start && currentTime < clipWords[i].end) {
         idx = i;
         break;
       }
-      if (words[i].start > currentTime) break;
+      if (clipWords[i].start > currentTime) break;
     }
     return idx;
-  }, [words, currentTime]);
+  }, [clipWords, currentTime]);
 
   // Keep the active word centered in the scroll container as playback advances.
   useEffect(() => {
@@ -895,6 +940,17 @@ function KaraokeLyrics({
     const el = containerRef.current.querySelector<HTMLButtonElement>(`[data-word-idx="${activeIdx}"]`);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
   }, [activeIdx]);
+
+  if (clipWords.length === 0) {
+    return (
+      <div
+        className="border-t border-b px-3 py-4 text-center text-[10px] text-wolf-muted"
+        style={{ borderColor: `${C.amber}30`, backgroundColor: "rgba(0,0,0,0.45)" }}
+      >
+        🎤 No lyrics in this clip range — pick a different section in Step 1 or skip.
+      </div>
+    );
+  }
 
   return (
     <div
@@ -906,7 +962,7 @@ function KaraokeLyrics({
           🎤 Lyrics · click a word to mark its beat
         </span>
         <span className="text-[9px] text-wolf-muted">
-          {words.length} words
+          {clipWords.length} words in clip
         </span>
       </div>
       <div
@@ -915,7 +971,7 @@ function KaraokeLyrics({
         style={{ scrollbarWidth: "thin" }}
       >
         <p className="text-[14px] font-semibold text-slate-200">
-          {words.map((w, i) => {
+          {clipWords.map((w, i) => {
             const isActive = i === activeIdx;
             const isPast = !isActive && activeIdx >= 0 && i < activeIdx;
             return (

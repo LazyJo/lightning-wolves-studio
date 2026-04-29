@@ -195,6 +195,14 @@ export async function clearCoverArtHistory(accessToken: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to clear");
 }
 
+export async function deleteCoverArtHistory(accessToken: string, id: string): Promise<void> {
+  const res = await fetch(`${API}/api/cover-art/history/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) throw new Error("Failed to delete");
+}
+
 // ─── Whisper Transcription ───────────────────────────────────────────────────
 
 export interface TranscribeResult {

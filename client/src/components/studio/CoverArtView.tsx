@@ -17,6 +17,7 @@ import {
   listCoverArtHistory,
   saveCoverArtHistory,
   clearCoverArtHistory,
+  deleteCoverArtHistory,
 } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
 import { useCredits } from "../../lib/useCredits";
@@ -44,6 +45,11 @@ const MAX_REFS = 14;
 const CREDIT_COST = 12;
 const HISTORY_KEY = "cover-art-history";
 const HISTORY_MAX = 24;
+
+// Gallery entries carry an optional `id`: signed-in wolves get a server
+// row id so we can delete a single broken entry; guests are id-less and
+// we mutate localStorage directly.
+type GalleryEntry = { id: string | null; url: string };
 
 function loadHistory(): string[] {
   try {
@@ -97,51 +103,78 @@ export default function CoverArtView({ onBack, wolf }: Props) {
   const [progress, setProgress] = useState<"starting" | "processing" | null>(null);
   const [error, setError] = useState("");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<GalleryEntry[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Hydrate gallery: signed-in wolves pull from the server (synced across
   // devices); guests fall back to localStorage. If a signed-in wolf has
   // local entries from before they signed up, lift them up server-side
   // on first sync so the gallery "follows" them into their account.
+  const refreshGallery = useCallback(async (): Promise<void> => {
+    setRefreshing(true);
+    try {
+      if (accessToken) {
+        const items = await listCoverArtHistory(accessToken);
+        const serverUrls = items.map((i) => i.image_url);
+        const locals = loadHistory();
+        const orphans = locals.filter((u) => !serverUrls.includes(u));
+        if (orphans.length > 0) {
+          // Best-effort backfill — failures don't block the gallery.
+          for (const url of orphans) {
+            try {
+              await saveCoverArtHistory(accessToken, { imageUrl: url });
+            } catch { /* ignore */ }
+          }
+          try { localStorage.removeItem(HISTORY_KEY); } catch { /* ignore */ }
+          const merged = await listCoverArtHistory(accessToken);
+          setHistory(merged.map((i) => ({ id: i.id, url: i.image_url })));
+        } else {
+          setHistory(items.map((i) => ({ id: i.id, url: i.image_url })));
+        }
+        setError("");
+      } else {
+        setHistory(loadHistory().map((url) => ({ id: null, url })));
+      }
+    } catch (err) {
+      console.error("[cover-art] gallery fetch failed", err);
+      setError("Couldn't load your saved gallery. Hit Refresh to try again.");
+      setHistory(loadHistory().map((url) => ({ id: null, url })));
+    } finally {
+      setRefreshing(false);
+    }
+  }, [accessToken]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (accessToken) {
-        try {
-          const items = await listCoverArtHistory(accessToken);
-          if (cancelled) return;
-          const serverUrls = items.map((i) => i.image_url);
-          const locals = loadHistory();
-          const orphans = locals.filter((u) => !serverUrls.includes(u));
-          if (orphans.length > 0) {
-            // Best-effort backfill — failures don't block the gallery.
-            for (const url of orphans) {
-              try {
-                await saveCoverArtHistory(accessToken, { imageUrl: url });
-              } catch { /* ignore */ }
-            }
-            try {
-              localStorage.removeItem(HISTORY_KEY);
-            } catch { /* ignore */ }
-            const merged = await listCoverArtHistory(accessToken);
-            if (!cancelled) setHistory(merged.map((i) => i.image_url));
-          } else {
-            setHistory(serverUrls);
-          }
-        } catch (err) {
-          console.error("[cover-art] gallery fetch failed", err);
-          if (!cancelled) {
-            setError("Couldn't load your saved gallery. Pull-to-refresh or try again.");
-            setHistory(loadHistory());
-          }
-        }
-      } else {
-        setHistory(loadHistory());
-      }
+      if (cancelled) return;
+      await refreshGallery();
     })();
     return () => { cancelled = true; };
-  }, [accessToken]);
+  }, [refreshGallery]);
+
+  // Auto-prune broken thumbnails. Old Replicate-URL rows that pre-date
+  // the rehost-on-save behaviour will 404 forever — remove them from the
+  // server (signed-in) or localStorage (guest) the moment the <img>
+  // load fails so the gallery self-heals.
+  const handleBrokenThumbnail = useCallback(
+    async (entry: GalleryEntry) => {
+      setHistory((prev) => prev.filter((e) => e.url !== entry.url));
+      if (entry.id && accessToken) {
+        try {
+          await deleteCoverArtHistory(accessToken, entry.id);
+        } catch (err) {
+          console.warn("[cover-art] failed to prune broken entry", err);
+        }
+      } else if (!accessToken) {
+        try {
+          saveHistory(loadHistory().filter((u) => u !== entry.url));
+        } catch { /* ignore */ }
+      }
+    },
+    [accessToken],
+  );
 
   const activeModel = AI_MODELS.find((m) => m.id === modelId)!;
   // Studio is gated by signup so accessToken is always present here.
@@ -179,22 +212,43 @@ export default function CoverArtView({ onBack, wolf }: Props) {
       if (final.status === "succeeded" && final.output && final.output.length > 0) {
         const url = final.output[0];
         setImageUrl(url);
-        setHistory((prev) => [url, ...prev.filter((u) => u !== url)].slice(0, HISTORY_MAX));
+        // Optimistic add — id-less entry until the server returns the
+        // rehosted URL + row id.
+        setHistory((prev) =>
+          [{ id: null, url }, ...prev.filter((e) => e.url !== url)].slice(0, HISTORY_MAX),
+        );
         if (accessToken) {
-          // Persist server-side so the entry follows the wolf across devices.
-          // If the save fails, fall back to localStorage so they don't lose it.
+          // Persist server-side. The server rehosts external URLs into
+          // our own bucket so the entry survives the source URL's
+          // expiry — the response carries the permanent URL we should
+          // store going forward.
           try {
-            await saveCoverArtHistory(accessToken, {
+            const saved = await saveCoverArtHistory(accessToken, {
               imageUrl: url,
               prompt,
               modelId,
               aspect,
               resolution,
             });
+            const stableUrl = saved.image_url;
+            setHistory((prev) => {
+              const filtered = prev.filter(
+                (e) => e.url !== url && e.url !== stableUrl,
+              );
+              return [{ id: saved.id, url: stableUrl }, ...filtered].slice(0, HISTORY_MAX);
+            });
+            // Flip the active preview onto the rehosted URL too — the
+            // Replicate URL is still valid for the next ~hour, but the
+            // Download button should always point at the permanent one.
+            if (stableUrl !== url) setImageUrl(stableUrl);
           } catch (err) {
             console.error("[cover-art] server save failed, kept locally", err);
             saveHistory([url, ...loadHistory().filter((u) => u !== url)].slice(0, HISTORY_MAX));
           }
+        } else {
+          // Guest: persist URL to localStorage so the entry survives a
+          // refresh inside the current browser session.
+          saveHistory([url, ...loadHistory().filter((u) => u !== url)].slice(0, HISTORY_MAX));
         }
       } else {
         setError(final.error || "Generation finished but produced no image.");
@@ -474,12 +528,14 @@ export default function CoverArtView({ onBack, wolf }: Props) {
               Your Cover Art
             </p>
             <button
-              disabled={loading || !imageUrl}
-              onClick={() => { setImageUrl(null); setError(""); }}
+              disabled={loading || refreshing}
+              onClick={() => { void refreshGallery(); }}
               className="inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-[11px] font-semibold transition-all disabled:opacity-40"
               style={{ borderColor: CA.blueBorder, color: CA.blue }}
+              title="Reload your saved gallery from the server"
             >
-              <RefreshCw size={11} /> Refresh
+              <RefreshCw size={11} className={refreshing ? "animate-spin" : ""} />
+              {refreshing ? "Refreshing…" : "Refresh"}
             </button>
           </div>
           <div
@@ -509,21 +565,26 @@ export default function CoverArtView({ onBack, wolf }: Props) {
                   </button>
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-1">
-                  {history.map((url) => {
-                    const active = url === imageUrl;
+                  {history.map((entry) => {
+                    const active = entry.url === imageUrl;
                     return (
                       <button
-                        key={url}
-                        onClick={() => { setImageUrl(url); setError(""); }}
+                        key={entry.id ?? entry.url}
+                        onClick={() => { setImageUrl(entry.url); setError(""); }}
                         className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-all"
                         style={{
                           borderColor: active ? CA.blue : "transparent",
                           boxShadow: active ? `0 0 0 1px ${CA.blueBorder}` : "none",
                         }}
                       >
-                        <img src={url} alt="" className="h-full w-full object-cover" />
+                        <img
+                          src={entry.url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                          onError={() => { void handleBrokenThumbnail(entry); }}
+                        />
                         <a
-                          href={url}
+                          href={entry.url}
                           download={`cover-art-${Date.now()}.png`}
                           target="_blank"
                           rel="noopener noreferrer"

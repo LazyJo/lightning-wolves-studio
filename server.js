@@ -1335,6 +1335,28 @@ app.get('/api/cover-art/history', async (req, res) => {
   }
 });
 
+// Replicate output URLs expire after ~1 hour, which left signed-in
+// wolves staring at broken thumbnails after a relog. We mirror every
+// inbound URL into our own `wolf-hub-media` bucket so the gallery is
+// permanent until the user manually deletes an entry.
+async function rehostCoverArtToStorage(srcUrl, userId) {
+  const resp = await fetch(srcUrl);
+  if (!resp.ok) throw new Error(`fetch ${resp.status}`);
+  const contentType = resp.headers.get('content-type') || 'image/png';
+  const buf = Buffer.from(await resp.arrayBuffer());
+  const extFromCT = (contentType.split('/')[1] || 'png').toLowerCase();
+  const ext = extFromCT.replace(/[^a-z0-9]/g, '').slice(0, 5) || 'png';
+  const rand = Math.random().toString(36).slice(2, 8);
+  const path = `cover-art/${userId}/${Date.now()}-${rand}.${ext}`;
+  const { error: upErr } = await supabase.storage
+    .from('wolf-hub-media')
+    .upload(path, buf, { contentType, upsert: false });
+  if (upErr) throw upErr;
+  const { data: urlData } = supabase.storage.from('wolf-hub-media').getPublicUrl(path);
+  if (!urlData?.publicUrl) throw new Error('no public url');
+  return urlData.publicUrl;
+}
+
 app.post('/api/cover-art/history', async (req, res) => {
   try {
     if (!supabase) return res.status(503).json({ error: 'database offline' });
@@ -1344,11 +1366,26 @@ app.post('/api/cover-art/history', async (req, res) => {
     if (!imageUrl || typeof imageUrl !== 'string') {
       return res.status(400).json({ error: 'imageUrl required' });
     }
+
+    // Rehost any URL we don't already own. If the URL is already on our
+    // bucket (legacy backfill or retry path) skip the round-trip.
+    let storedUrl = imageUrl;
+    const alreadyOurs = imageUrl.includes('/wolf-hub-media/');
+    if (!alreadyOurs) {
+      try {
+        storedUrl = await rehostCoverArtToStorage(imageUrl, user.id);
+      } catch (rehostErr) {
+        console.warn('[cover-art] rehost failed, falling back to source URL:', rehostErr.message || rehostErr);
+        // Save the original URL anyway — the user still sees it for ~1h
+        // and we'd rather log + degrade than fail the save outright.
+      }
+    }
+
     const { data, error } = await supabase
       .from('cover_art_history')
       .insert({
         user_id: user.id,
-        image_url: imageUrl,
+        image_url: storedUrl,
         prompt: prompt || null,
         model_id: modelId || null,
         aspect: aspect || null,

@@ -1428,6 +1428,100 @@ app.delete('/api/cover-art/history/:id', async (req, res) => {
   }
 });
 
+// ─── Social stats (YouTube subscriber counts on profile pills) ──────────────
+// Pulls live subscriber counts from the YouTube Data API for any wolf whose
+// `youtube_url` is set. Cached in-memory per channel for 1h so we don't blow
+// through the daily quota on every profile open. Returns `{ youtubeSubs:
+// null }` (rather than 4xx) when the key is missing or the URL doesn't
+// resolve — the UI just hides the count badge gracefully in that case.
+const SOCIAL_CACHE_MS = 60 * 60 * 1000;
+const socialCache = new Map(); // key: cacheKey → { value, cachedAt }
+
+// Map a YouTube URL Joeri's wolves paste into something the Data API can
+// resolve. Supports the four common shapes:
+//   • https://youtube.com/@handle  → forHandle=@handle
+//   • https://youtube.com/channel/UCxxx → id=UCxxx
+//   • https://youtube.com/c/Name → forUsername=Name (legacy)
+//   • https://youtube.com/user/Name → forUsername=Name (legacy)
+// Returns { param, value } the Data API accepts, or null if unparseable.
+function parseYouTubeQuery(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  let u;
+  try { u = new URL(rawUrl); } catch { return null; }
+  if (!/youtube\.com$|youtu\.be$/.test(u.hostname.replace(/^www\./, ''))) return null;
+  const pathParts = u.pathname.split('/').filter(Boolean);
+  // /@handle
+  if (pathParts[0]?.startsWith('@')) {
+    return { param: 'forHandle', value: pathParts[0] };
+  }
+  // /channel/UCxxx
+  if (pathParts[0] === 'channel' && pathParts[1]?.startsWith('UC')) {
+    return { param: 'id', value: pathParts[1] };
+  }
+  // /c/Name or /user/Name
+  if ((pathParts[0] === 'c' || pathParts[0] === 'user') && pathParts[1]) {
+    return { param: 'forUsername', value: pathParts[1] };
+  }
+  return null;
+}
+
+async function fetchYouTubeSubs(rawUrl) {
+  const key = process.env.YOUTUBE_API_KEY;
+  if (!key) return { count: null, reason: 'no_key' };
+  const q = parseYouTubeQuery(rawUrl);
+  if (!q) return { count: null, reason: 'unparseable_url' };
+
+  const params = new URLSearchParams({
+    part: 'statistics',
+    [q.param]: q.value,
+    key,
+  });
+  const apiUrl = `https://www.googleapis.com/youtube/v3/channels?${params.toString()}`;
+  const resp = await fetch(apiUrl);
+  if (!resp.ok) return { count: null, reason: `http_${resp.status}` };
+  const data = await resp.json();
+  const channel = data.items?.[0];
+  if (!channel) return { count: null, reason: 'no_channel' };
+  // hiddenSubscriberCount means the channel has chosen to hide the count
+  // (we still want to surface that gracefully rather than show a stale 0).
+  if (channel.statistics?.hiddenSubscriberCount) {
+    return { count: null, reason: 'hidden' };
+  }
+  const raw = channel.statistics?.subscriberCount;
+  const num = typeof raw === 'string' ? Number(raw) : null;
+  return { count: Number.isFinite(num) ? num : null, reason: 'ok' };
+}
+
+app.get('/api/social-stats', async (req, res) => {
+  try {
+    const youtubeUrl = typeof req.query.youtube === 'string' ? req.query.youtube : null;
+    const force = req.query.refresh === '1';
+    const out = { youtubeSubs: null, youtubeReason: null, cachedAt: null };
+
+    if (youtubeUrl) {
+      const cacheKey = `yt:${youtubeUrl}`;
+      const cached = socialCache.get(cacheKey);
+      if (!force && cached && Date.now() - cached.cachedAt < SOCIAL_CACHE_MS) {
+        out.youtubeSubs = cached.value.count;
+        out.youtubeReason = cached.value.reason;
+        out.cachedAt = new Date(cached.cachedAt).toISOString();
+      } else {
+        const fresh = await fetchYouTubeSubs(youtubeUrl);
+        socialCache.set(cacheKey, { value: fresh, cachedAt: Date.now() });
+        out.youtubeSubs = fresh.count;
+        out.youtubeReason = fresh.reason;
+        out.cachedAt = new Date().toISOString();
+      }
+    }
+
+    res.json(out);
+  } catch (err) {
+    console.error('Social stats error:', err);
+    // Never 500 the UI for this — degrade to null counts.
+    res.json({ youtubeSubs: null, youtubeReason: 'error', cachedAt: null });
+  }
+});
+
 // ─── Credit requests (out-of-credits → ask the admin) ───────────────────────
 // Wolves who hit INSUFFICIENT_CREDITS on /api/generate-visuals can file a
 // request from the error UI. Admins approve from the Members page; the

@@ -23,6 +23,7 @@ import {
 import { getSupabase, initSupabase } from "../lib/supabaseClient";
 import { useSession } from "../lib/useSession";
 import { useHubNotifications } from "../lib/useHubNotifications";
+import { useSocialStats, formatCount } from "../lib/useSocialStats";
 import { RatingBurst, ratingKindFromEmoji, type RatingKind } from "./RatingBurst";
 import BeatWaveform from "./BeatWaveform";
 import LightningTicker from "./LightningTicker";
@@ -3392,6 +3393,9 @@ function ProfileView({
                 <div className="flex flex-wrap gap-1.5">
                   {platformLinks.map((p) => {
                     const url = publicData?.[p.field] as string;
+                    if (p.field === "youtube_url") {
+                      return <YouTubePill key={p.field} url={url} label={p.label} emoji={p.emoji} />;
+                    }
                     return (
                       <a
                         key={p.field}
@@ -5374,6 +5378,34 @@ function TopLightningTracks({
         </div>
       )}
     </div>
+  );
+}
+
+// ─── YouTube pill with live subscriber count ─────────────────────────────────
+// Renders the same pill shape as the other platforms but appends a "12.4K"
+// suffix once the count is fetched. Loading state is silent (no spinner) so
+// the pill doesn't shift mid-render — the suffix just pops in when ready.
+// Falls back gracefully to label-only if the channel hides its count, the
+// URL is unparseable, or the server doesn't have YOUTUBE_API_KEY configured.
+function YouTubePill({ url, label, emoji }: { url: string; label: string; emoji: string }) {
+  const { youtubeSubs } = useSocialStats({ youtube_url: url });
+  const formatted = formatCount(youtubeSubs);
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={formatted ? `${formatted} subscribers · ${label} →` : `${label} →`}
+      className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:bg-[#9b6dff]/[0.05]"
+    >
+      <span>{emoji}</span>
+      <span>{label}</span>
+      {formatted && (
+        <span className="rounded-full bg-[#f5c518]/15 px-1.5 py-0.5 text-[10px] font-bold text-[#f5c518]">
+          {formatted}
+        </span>
+      )}
+    </a>
   );
 }
 

@@ -319,6 +319,32 @@ export default function AdminPage({ onBack }: Props) {
                     );
                   }
                 }}
+                onAdjustCredits={async (id, nextCredits) => {
+                  // Optimistic update first; revert if the DB rejects.
+                  // RLS policy `profiles_admin_update_all` lets admin
+                  // update any profile row, so a direct supabase call
+                  // is the same shape as ban/unban.
+                  const prev = members.find((m) => m.id === id)?.wolf_credits ?? 0;
+                  setMembers((curr) =>
+                    curr.map((m) =>
+                      m.id === id ? { ...m, wolf_credits: nextCredits } : m
+                    )
+                  );
+                  const sb = await initSupabase();
+                  if (!sb) return;
+                  const { error } = await sb
+                    .from("profiles")
+                    .update({ wolf_credits: nextCredits })
+                    .eq("id", id);
+                  if (error) {
+                    setMembers((curr) =>
+                      curr.map((m) =>
+                        m.id === id ? { ...m, wolf_credits: prev } : m
+                      )
+                    );
+                    window.alert(`Failed to update credits: ${error.message}`);
+                  }
+                }}
               />
             )}
             {tab === "subscriptions" && <SubscriptionsTab members={members} />}
@@ -423,10 +449,12 @@ function MembersTab({
   members,
   selfId,
   onToggleBan,
+  onAdjustCredits,
 }: {
   members: MemberWithCounts[];
   selfId: string | null;
   onToggleBan: (id: string, next: boolean) => void;
+  onAdjustCredits: (id: string, nextCredits: number) => void;
 }) {
   const [search, setSearch] = useState("");
   const filtered = useMemo(() => {
@@ -486,6 +514,7 @@ function MembersTab({
                   <th className="px-4 py-3 text-left font-medium">Email</th>
                   <th className="px-4 py-3 text-left font-medium">Role</th>
                   <th className="px-4 py-3 text-left font-medium">Plan</th>
+                  <th className="px-4 py-3 text-right font-medium">💎 Credits</th>
                   <th className="px-4 py-3 text-right font-medium">Posts</th>
                   <th className="px-4 py-3 text-right font-medium">Msgs</th>
                   <th className="px-4 py-3 text-right font-medium">Joined</th>
@@ -529,6 +558,47 @@ function MembersTab({
                       </td>
                       <td className="px-4 py-3">
                         <TierBadge tier={m.tier} />
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <button
+                          onClick={() => {
+                            // Prompt accepts a signed delta (e.g. "+1000"
+                            // grants 1000, "-50" deducts 50) or a bare
+                            // absolute value to hard-set the balance.
+                            const current = m.wolf_credits ?? 0;
+                            const raw = window.prompt(
+                              `Adjust credits for ${name}\n\nCurrent: ${current}\n\nEnter +N to grant, -N to deduct, or just N to set the balance directly:`,
+                              "+100",
+                            );
+                            if (raw == null) return;
+                            const trimmed = raw.trim();
+                            if (!trimmed) return;
+                            const isDelta = trimmed.startsWith("+") || trimmed.startsWith("-");
+                            const parsed = Number(trimmed);
+                            if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
+                              window.alert("Couldn't parse that as a whole number.");
+                              return;
+                            }
+                            const next = isDelta ? current + parsed : parsed;
+                            if (next < 0) {
+                              window.alert("Credits can't go negative.");
+                              return;
+                            }
+                            if (
+                              !window.confirm(
+                                `Set ${name}'s credits: ${current} → ${next}?`,
+                              )
+                            ) {
+                              return;
+                            }
+                            onAdjustCredits(m.id, next);
+                          }}
+                          title="Click to grant or deduct credits"
+                          className="inline-flex items-center gap-1 rounded-lg border border-wolf-gold/20 bg-wolf-gold/[0.05] px-2 py-1 text-xs font-bold text-wolf-gold transition-all hover:border-wolf-gold/60 hover:bg-wolf-gold/15"
+                        >
+                          <Zap size={11} />
+                          {m.wolf_credits ?? 0}
+                        </button>
                       </td>
                       <td className="px-4 py-3 text-right text-white">{m.postCount}</td>
                       <td className="px-4 py-3 text-right text-white">

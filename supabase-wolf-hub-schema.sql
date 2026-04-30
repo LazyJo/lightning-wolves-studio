@@ -245,6 +245,8 @@ ALTER TABLE profiles ADD COLUMN IF NOT EXISTS soundcloud_url  TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS beatstars_url   TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS instagram_url   TEXT;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS tiktok_url      TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS even_url        TEXT;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS merch_url       TEXT;
 
 -- Public-facing slice of profiles. The base table's SELECT policy is
 -- locked to the owner so email + role aren't leaked; this view exposes
@@ -263,7 +265,9 @@ SELECT
   soundcloud_url,
   beatstars_url,
   instagram_url,
-  tiktok_url
+  tiktok_url,
+  even_url,
+  merch_url
 FROM profiles;
 GRANT SELECT ON public_profiles TO anon, authenticated;
 

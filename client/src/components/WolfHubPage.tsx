@@ -191,9 +191,13 @@ interface Profile {
   beatstars_url?: string | null;
   instagram_url?: string | null;
   tiktok_url?: string | null;
+  even_url?: string | null;
+  merch_url?: string | null;
 }
 
 // Platform pill metadata. Order = display order on the profile.
+// `accent` flags pills that should render in a non-default highlight
+// colour (e.g. "red" for the EVEN + Merch CTA pair).
 const PROFILE_PLATFORMS: {
   field: keyof Pick<
     Profile,
@@ -204,10 +208,13 @@ const PROFILE_PLATFORMS: {
     | "beatstars_url"
     | "instagram_url"
     | "tiktok_url"
+    | "even_url"
+    | "merch_url"
   >;
   label: string;
   emoji: string;
   placeholder: string;
+  accent?: "red";
 }[] = [
   { field: "spotify_url",     label: "Spotify",     emoji: "🟢", placeholder: "https://open.spotify.com/artist/…" },
   { field: "apple_music_url", label: "Apple Music", emoji: "🍎", placeholder: "https://music.apple.com/artist/…" },
@@ -216,6 +223,8 @@ const PROFILE_PLATFORMS: {
   { field: "beatstars_url",   label: "BeatStars",   emoji: "🥁", placeholder: "https://www.beatstars.com/…" },
   { field: "instagram_url",   label: "Instagram",   emoji: "📷", placeholder: "https://instagram.com/…" },
   { field: "tiktok_url",      label: "TikTok",      emoji: "🎵", placeholder: "https://tiktok.com/@…" },
+  { field: "even_url",        label: "EVEN",        emoji: "💎", placeholder: "https://www.even.biz/l/…",      accent: "red" },
+  { field: "merch_url",       label: "Merch",       emoji: "🛍️", placeholder: "https://www.even.biz/l/… or your shop URL", accent: "red" },
 ];
 
 /* ─── Helpers ─── */
@@ -535,7 +544,7 @@ export default function WolfHubPage({ onBack, onAuth, onTryStudio, onMakeLyricVi
       const { data } = await sb
         .from("profiles")
         .select(
-          "id, display_name, wolf_id, email, avatar_url, role, bio_url, spotify_url, apple_music_url, youtube_url, soundcloud_url, beatstars_url, instagram_url, tiktok_url"
+          "id, display_name, wolf_id, email, avatar_url, role, bio_url, spotify_url, apple_music_url, youtube_url, soundcloud_url, beatstars_url, instagram_url, tiktok_url, even_url, merch_url"
         )
         .eq("id", session.user.id)
         .maybeSingle();
@@ -3098,7 +3107,7 @@ function ProfileView({
       const { data } = await sb
         .from("public_profiles")
         .select(
-          "id, display_name, wolf_id, avatar_url, bio_url, spotify_url, apple_music_url, youtube_url, soundcloud_url, beatstars_url, instagram_url, tiktok_url"
+          "id, display_name, wolf_id, avatar_url, bio_url, spotify_url, apple_music_url, youtube_url, soundcloud_url, beatstars_url, instagram_url, tiktok_url, even_url, merch_url"
         )
         .eq("id", targetId)
         .maybeSingle();
@@ -3396,6 +3405,7 @@ function ProfileView({
                     if (p.field === "youtube_url") {
                       return <YouTubePill key={p.field} url={url} label={p.label} emoji={p.emoji} />;
                     }
+                    const redAccent = p.accent === "red";
                     return (
                       <a
                         key={p.field}
@@ -3403,7 +3413,11 @@ function ProfileView({
                         target="_blank"
                         rel="noopener noreferrer"
                         title={`${p.label} →`}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:bg-[#9b6dff]/[0.05]"
+                        className={
+                          redAccent
+                            ? "inline-flex items-center gap-1.5 rounded-full border border-[#ef4444]/40 bg-[#ef4444]/[0.10] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:border-[#ef4444]/70 hover:bg-[#ef4444]/[0.18]"
+                            : "inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:bg-[#9b6dff]/[0.05]"
+                        }
                       >
                         <span>{p.emoji}</span>
                         <span>{p.label}</span>

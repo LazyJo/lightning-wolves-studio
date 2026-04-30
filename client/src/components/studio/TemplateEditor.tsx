@@ -21,6 +21,7 @@ import { transcribeAudio, uploadFile } from "../../lib/api";
 import { useTemplates } from "../../lib/useTemplates";
 import type { Template, WordTiming } from "../../lib/templates";
 import WaveformSelector from "./WaveformSelector";
+import LyricsEditor from "./LyricsEditor";
 
 interface Props {
   onBack: () => void;
@@ -77,6 +78,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
   /* ── Lyrics ──────────────────────────────────────────────────────── */
   const [transcript, setTranscript] = useState(initial?.transcript || "");
   const [wordTimings, setWordTimings] = useState<WordTiming[]>(initial?.wordTimings || []);
+  const [transcriptSegments, setTranscriptSegments] = useState<{ start: number; end: number; text: string }[]>([]);
   const [language, setLanguage] = useState(initial?.language || "en");
   const [lyricsState, setLyricsState] = useState<LyricsState>(
     initial?.wordTimings?.length ? "ready" : "pending"
@@ -115,6 +117,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     setAudioConfirmed(false);
     setTranscript("");
     setWordTimings([]);
+    setTranscriptSegments([]);
     setLyricsState("pending");
     setCutMarkers([]);
     setSaveError("");
@@ -202,7 +205,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     if (!wordTimings.length) handleTranscribe();
   };
 
-  const handleTranscribe = useCallback(async () => {
+  const handleTranscribe = useCallback(async (lang: string = "English") => {
     if (!audioFile) return;
     setLyricsState("loading");
     setLyricsError("");
@@ -218,7 +221,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     }, 300);
 
     try {
-      const tr = await transcribeAudio(audioFile, "English");
+      const tr = await transcribeAudio(audioFile, lang);
       const words: WordTiming[] = (tr.words?.length ? tr.words : []).map((w) => ({
         word: w.word,
         start: w.start,
@@ -239,6 +242,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
       }
       setTranscript(tr.text || "");
       setWordTimings(words);
+      setTranscriptSegments(tr.segments || []);
       setLanguage(tr.language || "en");
       setLyricsProgress(100);
       uploadFile(audioFile).catch(() => {});
@@ -267,7 +271,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
   }, []);
 
   /* ── Cut markers ─────────────────────────────────────────────────── */
-  const addMarkerAtPlayhead = () => {
+  const addMarkerAtPlayhead = useCallback(() => {
     if (!audioDuration) return;
     const snapped = Math.round(currentTime * 20) / 20;
     setCutMarkers((prev) =>
@@ -275,8 +279,63 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
         .filter((v, i, arr) => arr.findIndex((x) => Math.abs(x - v) < 0.1) === i)
         .sort((a, b) => a - b)
     );
-  };
+  }, [audioDuration, currentTime]);
   const removeMarker = (idx: number) => setCutMarkers((prev) => prev.filter((_, i) => i !== idx));
+
+  /* ── Step 3 helpers: clip-scoped playback + active word ─────────── */
+  const togglePlayClip = useCallback(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (!el.paused) {
+      el.pause();
+      return;
+    }
+    const clipEnd = regionStart + selectedDuration;
+    if (el.currentTime < regionStart || el.currentTime >= clipEnd - 0.05) {
+      el.currentTime = regionStart;
+    }
+    void el.play();
+  }, [regionStart, selectedDuration]);
+
+  // Active word for the big karaoke overlay on Step 3. Holds the last-sung
+  // word during inter-word gaps so the screen never goes blank mid-clip
+  // (LYRC-style sustain). Limited to words inside the picked clip.
+  const activeWord = useMemo<WordTiming | null>(() => {
+    if (!wordTimings.length) return null;
+    const clipEnd = regionStart + selectedDuration;
+    let last: WordTiming | null = null;
+    for (const w of wordTimings) {
+      if (w.end <= regionStart) continue;
+      if (w.start >= clipEnd) break;
+      if (currentTime >= w.start && currentTime < w.end) return w;
+      if (w.start <= currentTime) last = w;
+    }
+    return last;
+  }, [wordTimings, currentTime, regionStart, selectedDuration]);
+
+  // Step 3 keyboard shortcuts: Space toggles clip play, N drops a marker
+  // at the playhead, Cmd/Ctrl+Z undoes the last marker. Only bound while
+  // Step 3 is active so it doesn't fight other panels' inputs.
+  const lyricsStateActive = lyricsState === "ready" || lyricsState === "error";
+  useEffect(() => {
+    if (!lyricsStateActive) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlayClip();
+      } else if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        addMarkerAtPlayhead();
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        setCutMarkers((prev) => prev.slice(0, -1));
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lyricsStateActive, togglePlayClip, addMarkerAtPlayhead]);
 
   const onMarkerPointerDown = (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => {
     if (!audioDuration || e.button !== 0) return;
@@ -547,7 +606,41 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
           ) : lyricsState === "loading" ? (
             <LyricsLoading progress={lyricsProgress} elapsed={lyricsElapsed} />
           ) : lyricsState === "ready" ? (
-            <LyricsSuccess words={wordTimings.length} transcript={transcript} />
+            <LyricsEditor
+              lyrics={transcript}
+              segments={transcriptSegments.length ? transcriptSegments : undefined}
+              audioUrl={audioUrl || undefined}
+              language={language}
+              accentColor={C.purple}
+              onDone={(editedLyrics, blocks) => {
+                // Rebuild wordTimings from blocks while preserving each
+                // word's original whisper start/end where possible. Step 3's
+                // karaoke reads wordTimings, so we want edits ("just" → "Just",
+                // re-time taps, added/removed words) to flow through there.
+                const flat: WordTiming[] = [];
+                let origIdx = 0;
+                blocks.forEach((b) => {
+                  b.words.forEach((bw, wi) => {
+                    const orig = wordTimings[origIdx];
+                    const explicitStart = typeof bw.start === "number" ? bw.start : null;
+                    const explicitEnd = typeof bw.end === "number" ? bw.end : null;
+                    if (orig && explicitStart === null) {
+                      flat.push({ word: bw.word, start: orig.start, end: orig.end });
+                    } else {
+                      const startT = explicitStart ?? b.startTime + wi * 0.3;
+                      const endT = explicitEnd ?? startT + 0.3;
+                      flat.push({ word: bw.word, start: startT, end: endT });
+                    }
+                    origIdx++;
+                  });
+                });
+                setTranscript(editedLyrics);
+                setWordTimings(flat);
+              }}
+              onRetranscribe={(newLang) => {
+                handleTranscribe(newLang);
+              }}
+            />
           ) : lyricsState === "error" ? (
             <LyricsErrorCard
               message={lyricsError || "Transcription failed."}
@@ -572,106 +665,101 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
             <div className="space-y-3">
               {audioUrl && (
                 <div className="overflow-hidden rounded-xl border bg-black" style={{ borderColor: `${C.amber}30` }}>
-                  <div className="relative flex h-40 items-center justify-center">
+                  {/* Big-word overlay area — the active sung word fills the */}
+                  {/* preview as huge centered text, LYRC-style, sustained */}
+                  {/* across inter-word gaps so the screen never goes blank. */}
+                  <div className="relative flex h-56 items-center justify-center bg-black">
+                    {activeWord ? (
+                      <div
+                        key={`${activeWord.word}-${activeWord.start.toFixed(3)}`}
+                        className="select-none px-6 text-center"
+                        style={{
+                          fontSize: "clamp(56px, 14vw, 110px)",
+                          color: "#fff",
+                          fontWeight: 900,
+                          letterSpacing: "0.02em",
+                          textTransform: "uppercase",
+                          WebkitTextStroke: `2px ${C.amber}`,
+                          textShadow: `0 0 28px ${C.amber}55, 0 0 6px ${C.amber}99`,
+                          fontFamily: "var(--font-display)",
+                          lineHeight: 1,
+                        }}
+                      >
+                        {activeWord.word}
+                      </div>
+                    ) : (
+                      <div className="text-center text-[11px] uppercase tracking-[0.25em] text-wolf-muted">
+                        {wordTimings.length > 0 ? "Press play to preview" : "No transcription"}
+                      </div>
+                    )}
+
+                    {/* Restart-clip button — bottom-left corner */}
                     <button
                       onClick={() => {
                         const el = audioRef.current;
                         if (!el) return;
-                        if (playing) {
-                          el.pause();
-                          return;
-                        }
-                        // Step 3 should preview the user's selected clip,
-                        // not the whole track. Seek to regionStart on play
-                        // (or just before, if currentTime is already inside
-                        // the clip — then resume from where we paused).
-                        const clipEnd = regionStart + selectedDuration;
-                        if (el.currentTime < regionStart || el.currentTime >= clipEnd - 0.05) {
-                          el.currentTime = regionStart;
-                        }
-                        void el.play();
+                        el.currentTime = regionStart;
+                        if (el.paused) void el.play();
                       }}
-                      className="flex h-14 w-14 items-center justify-center rounded-full border-2 text-white transition-transform hover:scale-105"
-                      style={{ borderColor: `${C.amber}80` }}
+                      title="Restart clip"
+                      className="absolute bottom-3 left-3 flex h-8 w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:text-white"
+                      style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
                     >
-                      {playing ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
+                      <ArrowLeft size={14} />
                     </button>
-                    {/* audio element lives at component-top (mounts on URL set) */}
+
+                    {/* Big play/pause toggle — bottom-right corner */}
+                    <button
+                      onClick={togglePlayClip}
+                      className="absolute bottom-3 right-3 flex h-11 w-11 items-center justify-center rounded-full border-2 text-white transition-transform hover:scale-105"
+                      style={{ borderColor: `${C.amber}80`, backgroundColor: "rgba(0,0,0,0.55)" }}
+                    >
+                      {playing ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+                    </button>
                   </div>
 
-                  {/* Karaoke-style lyrics block — every transcribed word */}
-                  {/* rendered as a clickable chip in flowing reading order. */}
-                  {/* The currently-playing word lights up amber and the */}
-                  {/* container auto-scrolls to keep it visible, so this */}
-                  {/* doubles as a karaoke read-along. Click a word to seek */}
-                  {/* the audio there AND drop a cut marker on its start — */}
-                  {/* fastest path for "mark this beat on this lyric." */}
-                  {wordTimings.length > 0 && (
-                    <KaraokeLyrics
-                      words={wordTimings}
-                      currentTime={currentTime}
-                      clipStart={regionStart}
-                      clipEnd={regionStart + selectedDuration}
-                      onPickWord={(t) => {
-                        const el = audioRef.current;
-                        if (el) el.currentTime = t;
-                        setCutMarkers((prev) =>
-                          [...prev, t]
-                            .filter((v, idx, arr) => arr.findIndex((x) => Math.abs(x - v) < 0.1) === idx)
-                            .sort((a, b) => a - b)
-                        );
-                      }}
-                    />
-                  )}
-
-                  <div
-                    ref={timelineRef}
-                    className="relative h-12 cursor-crosshair touch-none select-none"
-                    style={{ backgroundColor: "rgba(58,214,255,0.08)" }}
-                    onClick={(e) => {
-                      if (!audioDuration) return;
-                      const rect = timelineRef.current?.getBoundingClientRect();
-                      if (!rect) return;
-                      const pct = (e.clientX - rect.left) / rect.width;
-                      const t = Math.round(pct * audioDuration * 20) / 20;
+                  {/* Real wavesurfer waveform with cut-marker overlays. */}
+                  <ClipWaveform
+                    rootRef={timelineRef}
+                    audioUrl={audioUrl}
+                    audioDuration={audioDuration}
+                    currentTime={currentTime}
+                    cutMarkers={cutMarkers}
+                    draggingIdx={draggingIdx}
+                    onSeek={(t) => {
+                      const el = audioRef.current;
+                      if (el) el.currentTime = t;
+                    }}
+                    onAddMarker={(t) =>
                       setCutMarkers((prev) =>
                         [...prev, t]
                           .filter((v, i, arr) => arr.findIndex((x) => Math.abs(x - v) < 0.1) === i)
                           .sort((a, b) => a - b)
-                      );
-                    }}
-                  >
-                    <div
-                      className="absolute top-0 bottom-0 w-px"
-                      style={{
-                        left: `${audioDuration ? (currentTime / audioDuration) * 100 : 0}%`,
-                        backgroundColor: C.amber,
-                      }}
-                    />
-                    {cutMarkers.map((t, idx) => (
-                      <button
-                        key={idx}
-                        onPointerDown={onMarkerPointerDown(idx)}
-                        onPointerMove={onMarkerPointerMove(idx)}
-                        onPointerUp={onMarkerPointerUp(idx)}
-                        onPointerCancel={onMarkerPointerUp(idx)}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (e.shiftKey) removeMarker(idx);
-                        }}
-                        title={`${t.toFixed(2)}s — drag to move, shift-click to remove`}
-                        className={`absolute top-0 bottom-0 w-1.5 -translate-x-1/2 rounded transition-all ${
-                          draggingIdx === idx ? "cursor-grabbing scale-y-110" : "cursor-grab"
-                        }`}
-                        style={{
-                          left: `${audioDuration ? (t / audioDuration) * 100 : 0}%`,
-                          backgroundColor: draggingIdx === idx ? "#fff" : C.amber,
-                        }}
-                      />
-                    ))}
-                  </div>
+                      )
+                    }
+                    onMarkerPointerDown={onMarkerPointerDown}
+                    onMarkerPointerMove={onMarkerPointerMove}
+                    onMarkerPointerUp={onMarkerPointerUp}
+                    onMarkerRemove={removeMarker}
+                  />
                 </div>
               )}
+
+              {/* Keyboard shortcut hints — matches LYRC */}
+              <div className="flex items-center gap-3 text-[10px] text-wolf-muted">
+                <span className="inline-flex items-center gap-1.5">
+                  <kbd className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[9px] text-white/80">Space</kbd>
+                  play
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <kbd className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[9px] text-white/80">N</kbd>
+                  cut
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <kbd className="rounded border border-white/15 bg-white/5 px-1.5 py-0.5 font-mono text-[9px] text-white/80">⌘Z</kbd>
+                  undo
+                </span>
+              </div>
 
               <div className="flex items-center gap-2">
                 <button
@@ -856,143 +944,142 @@ function LyricsLoading({ progress, elapsed }: { progress: number; elapsed: numbe
   );
 }
 
-function LyricsSuccess({ words, transcript }: { words: number; transcript: string }) {
-  return (
-    <div className="flex flex-col items-center gap-3 py-2">
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="text-xl font-bold"
-        style={{ color: C.green, fontFamily: "var(--font-display)" }}
-      >
-        Lyrics Transcribed
-      </motion.div>
-      <p className="text-center text-[11px] text-wolf-muted">
-        Your lyrics have been automatically transcribed and are ready to preview
-      </p>
-      <div
-        className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider"
-        style={{ borderColor: `${C.green}50`, color: C.green }}
-      >
-        <CheckCircle size={11} /> READY FOR PREVIEW
-      </div>
-      {transcript && (
-        <div className="w-full">
-          <p className="mb-2 text-center text-[10px] uppercase tracking-wider text-wolf-muted">
-            Transcript · {words} words
-          </p>
-          <div className="max-h-48 overflow-y-auto rounded-lg p-3 text-[12px] leading-relaxed text-slate-200"
-            style={{ backgroundColor: "rgba(255,255,255,0.03)" }}>
-            {transcript}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-// Karaoke read-along for the Cut Markers step. Renders the full lyrics
-// in reading order (line-wrapping like real text) with each word as a
-// clickable chip. The active word — the one whose [start, end) span
-// contains `currentTime` — gets a solid amber pill so the user can see
-// exactly what's being sung. The container auto-scrolls so the active
-// word stays in view during playback.
-function KaraokeLyrics({
-  words,
+// Real wavesurfer-rendered waveform for Step 3, with cut-marker overlays.
+// Loads peaks from the audio URL once and lets the parent drive the
+// playhead via the `currentTime` prop, so wavesurfer's cursor stays in
+// sync with the shared <audio> element without giving wavesurfer
+// playback control. Click on the waveform → onSeek; click on empty
+// space → onAddMarker (the marker layer absorbs its own clicks).
+function ClipWaveform({
+  rootRef,
+  audioUrl,
+  audioDuration,
   currentTime,
-  clipStart,
-  clipEnd,
-  onPickWord,
+  cutMarkers,
+  draggingIdx,
+  onSeek,
+  onAddMarker,
+  onMarkerPointerDown,
+  onMarkerPointerMove,
+  onMarkerPointerUp,
+  onMarkerRemove,
 }: {
-  words: WordTiming[];
+  rootRef: React.RefObject<HTMLDivElement | null>;
+  audioUrl: string;
+  audioDuration: number;
   currentTime: number;
-  clipStart: number;
-  clipEnd: number;
-  onPickWord: (t: number) => void;
+  cutMarkers: number[];
+  draggingIdx: number | null;
+  onSeek: (t: number) => void;
+  onAddMarker: (t: number) => void;
+  onMarkerPointerDown: (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => void;
+  onMarkerPointerMove: (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => void;
+  onMarkerPointerUp: (idx: number) => (e: React.PointerEvent<HTMLButtonElement>) => void;
+  onMarkerRemove: (idx: number) => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const wfRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const wsRef = useRef<any>(null);
+  const [wsReady, setWsReady] = useState(false);
 
-  // Whisper transcribes the whole upload, so wordTimings span the full
-  // track. The user only marks beats inside their picked clip — filter
-  // to that range so the karaoke only shows what's actually playing
-  // when they hit the Step 3 play button.
-  const clipWords = useMemo(() => {
-    if (clipEnd <= clipStart) return words;
-    return words.filter((w) => w.end > clipStart && w.start < clipEnd);
-  }, [words, clipStart, clipEnd]);
-
-  const activeIdx = useMemo(() => {
-    if (!clipWords.length) return -1;
-    let idx = -1;
-    for (let i = 0; i < clipWords.length; i++) {
-      if (currentTime >= clipWords[i].start && currentTime < clipWords[i].end) {
-        idx = i;
-        break;
-      }
-      if (clipWords[i].start > currentTime) break;
-    }
-    return idx;
-  }, [clipWords, currentTime]);
-
-  // Keep the active word centered in the scroll container as playback advances.
+  // Mount wavesurfer once per audio URL.
   useEffect(() => {
-    if (activeIdx < 0 || !containerRef.current) return;
-    const el = containerRef.current.querySelector<HTMLButtonElement>(`[data-word-idx="${activeIdx}"]`);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-  }, [activeIdx]);
+    if (!wfRef.current || !audioUrl) return;
+    let destroyed = false;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let ws: any = null;
 
-  if (clipWords.length === 0) {
-    return (
-      <div
-        className="border-t border-b px-3 py-4 text-center text-[10px] text-wolf-muted"
-        style={{ borderColor: `${C.amber}30`, backgroundColor: "rgba(0,0,0,0.45)" }}
-      >
-        🎤 No lyrics in this clip range — pick a different section in Step 1 or skip.
-      </div>
-    );
-  }
+    (async () => {
+      const WaveSurfer = (await import("wavesurfer.js")).default;
+      if (destroyed || !wfRef.current) return;
+      ws = WaveSurfer.create({
+        container: wfRef.current,
+        waveColor: "rgba(58,214,255,0.45)",
+        progressColor: "rgba(58,214,255,0.95)",
+        cursorColor: "#ffffff",
+        cursorWidth: 2,
+        barWidth: 2,
+        barGap: 1,
+        barRadius: 1,
+        height: 70,
+        normalize: true,
+        interact: true,
+        url: audioUrl,
+      });
+      wsRef.current = ws;
+      ws.on("ready", () => setWsReady(true));
+    })();
+
+    return () => {
+      destroyed = true;
+      setWsReady(false);
+      if (ws) {
+        try { ws.destroy(); } catch { /* noop */ }
+      }
+      wsRef.current = null;
+    };
+  }, [audioUrl]);
+
+  // Drive wavesurfer's cursor from the parent's currentTime so the
+  // playhead stays in sync with the shared <audio> element.
+  useEffect(() => {
+    const ws = wsRef.current;
+    if (!ws || !wsReady) return;
+    try {
+      ws.setTime(currentTime);
+    } catch { /* noop — instance may be tearing down */ }
+  }, [currentTime, wsReady]);
 
   return (
-    <div
-      className="relative border-t border-b px-3 py-3"
-      style={{ borderColor: `${C.amber}30`, backgroundColor: "rgba(0,0,0,0.45)" }}
-    >
-      <div className="mb-1.5 flex items-center justify-between">
-        <span className="text-[9px] font-bold uppercase tracking-[0.2em]" style={{ color: C.amber }}>
-          🎤 Lyrics · click a word to mark its beat
-        </span>
-        <span className="text-[9px] text-wolf-muted">
-          {clipWords.length} words in clip
-        </span>
-      </div>
+    <div ref={rootRef} className="relative" style={{ backgroundColor: "rgba(58,214,255,0.05)" }}>
       <div
-        ref={containerRef}
-        className="max-h-32 overflow-y-auto leading-relaxed"
-        style={{ scrollbarWidth: "thin" }}
-      >
-        <p className="text-[14px] font-semibold text-slate-200">
-          {clipWords.map((w, i) => {
-            const isActive = i === activeIdx;
-            const isPast = !isActive && activeIdx >= 0 && i < activeIdx;
-            return (
-              <button
-                key={i}
-                data-word-idx={i}
-                onClick={() => onPickWord(w.start)}
-                title={`${w.start.toFixed(2)}s — click to mark this beat`}
-                className="mr-1 inline rounded px-0.5 transition-all hover:bg-white/15 hover:text-white"
-                style={{
-                  color: isActive ? "#000" : isPast ? `${C.amber}cc` : "#cbd5e1",
-                  backgroundColor: isActive ? C.amber : "transparent",
-                  fontWeight: isActive ? 800 : 600,
-                }}
-              >
-                {w.word}
-              </button>
-            );
-          })}
-        </p>
-      </div>
+        ref={wfRef}
+        className="cursor-crosshair touch-none select-none"
+        onClick={(e) => {
+          if (!audioDuration) return;
+          // Wavesurfer's own interaction handles seeks via clicks on the
+          // canvas — we don't want to also add a marker on the same
+          // click, so only add when the click lands outside the canvas.
+          const target = e.target as HTMLElement;
+          if (target.tagName === "CANVAS") {
+            const rect = wfRef.current?.getBoundingClientRect();
+            if (rect) {
+              const pct = (e.clientX - rect.left) / rect.width;
+              onSeek(Math.max(0, Math.min(audioDuration, pct * audioDuration)));
+            }
+            return;
+          }
+          const rect = wfRef.current?.getBoundingClientRect();
+          if (!rect) return;
+          const pct = (e.clientX - rect.left) / rect.width;
+          const t = Math.round(pct * audioDuration * 20) / 20;
+          onAddMarker(t);
+        }}
+      />
+      {/* Cut-marker overlays — drag, shift-click to remove */}
+      {cutMarkers.map((t, idx) => (
+        <button
+          key={idx}
+          onPointerDown={onMarkerPointerDown(idx)}
+          onPointerMove={onMarkerPointerMove(idx)}
+          onPointerUp={onMarkerPointerUp(idx)}
+          onPointerCancel={onMarkerPointerUp(idx)}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (e.shiftKey) onMarkerRemove(idx);
+          }}
+          title={`${t.toFixed(2)}s — drag to move, shift-click to remove`}
+          className={`absolute top-0 bottom-0 w-1.5 -translate-x-1/2 rounded transition-all ${
+            draggingIdx === idx ? "cursor-grabbing scale-y-110" : "cursor-grab"
+          }`}
+          style={{
+            left: `${audioDuration ? (t / audioDuration) * 100 : 0}%`,
+            backgroundColor: draggingIdx === idx ? "#fff" : "#f5c518",
+            zIndex: 10,
+          }}
+        />
+      ))}
     </div>
   );
 }

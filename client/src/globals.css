@@ -62,3 +62,24 @@ h1, h2, h3 {
 .animate-float {
   animation: float 4s ease-in-out infinite;
 }
+
+/* CTA breathing glow — EVEN / Merch profile pills. Pulses the
+   box-shadow halo size + intensity so the buttons feel "alive"
+   without changing their position or opacity (no layout shift). */
+@keyframes cta-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 10px rgba(var(--cta-glow), 0.45),
+      0 0 22px rgba(var(--cta-glow), 0.18),
+      inset 0 0 6px rgba(var(--cta-glow), 0.10);
+  }
+  50% {
+    box-shadow:
+      0 0 18px rgba(var(--cta-glow), 0.75),
+      0 0 38px rgba(var(--cta-glow), 0.32),
+      inset 0 0 10px rgba(var(--cta-glow), 0.18);
+  }
+}
+.animate-cta-glow {
+  animation: cta-glow-pulse 2.4s ease-in-out infinite;
+}

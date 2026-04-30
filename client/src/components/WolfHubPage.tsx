@@ -214,17 +214,23 @@ const PROFILE_PLATFORMS: {
   label: string;
   emoji: string;
   placeholder: string;
+  // Brand tint — colored border + soft glow on the chip pill. `glow`
+  // is "r,g,b" so it can be plugged into rgba(). Default platforms
+  // (no tint) keep the neutral white-on-glass look.
+  tint?: { hex: string; glow: string };
+  // CTA accent — bigger, bolder, breathing glow. EVEN + Merch are
+  // conversion buttons, not just links; they live above the rest.
   accent?: "red" | "gold";
 }[] = [
-  { field: "spotify_url",     label: "Spotify",     emoji: "🟢", placeholder: "https://open.spotify.com/artist/…" },
+  { field: "spotify_url",     label: "Spotify",     emoji: "🟢", placeholder: "https://open.spotify.com/artist/…",       tint: { hex: "#1ed760", glow: "30,215,96" } },
   { field: "apple_music_url", label: "Apple Music", emoji: "🍎", placeholder: "https://music.apple.com/artist/…" },
-  { field: "youtube_url",     label: "YouTube",     emoji: "📺", placeholder: "https://youtube.com/@…" },
-  { field: "soundcloud_url",  label: "SoundCloud",  emoji: "☁️", placeholder: "https://soundcloud.com/…" },
+  { field: "youtube_url",     label: "YouTube",     emoji: "📺", placeholder: "https://youtube.com/@…",                  tint: { hex: "#ff0033", glow: "255,0,51"  } },
+  { field: "soundcloud_url",  label: "SoundCloud",  emoji: "☁️", placeholder: "https://soundcloud.com/…",                tint: { hex: "#ff5500", glow: "255,85,0"  } },
   { field: "beatstars_url",   label: "BeatStars",   emoji: "🥁", placeholder: "https://www.beatstars.com/…" },
-  { field: "instagram_url",   label: "Instagram",   emoji: "📷", placeholder: "https://instagram.com/…" },
+  { field: "instagram_url",   label: "Instagram",   emoji: "📷", placeholder: "https://instagram.com/…",                 tint: { hex: "#a855f7", glow: "168,85,247" } },
   { field: "tiktok_url",      label: "TikTok",      emoji: "🎵", placeholder: "https://tiktok.com/@…" },
-  { field: "even_url",        label: "EVEN",        emoji: "",   placeholder: "https://www.even.biz/l/…",      accent: "red"  },
-  { field: "merch_url",       label: "MERCH",       emoji: "",   placeholder: "https://www.even.biz/l/… or your shop URL", accent: "gold" },
+  { field: "even_url",        label: "EVEN",        emoji: "",   placeholder: "https://www.even.biz/l/… or any link",    accent: "red"  },
+  { field: "merch_url",       label: "MERCH",       emoji: "",   placeholder: "https://www.even.biz/l/… or any shop URL", accent: "gold" },
 ];
 
 /* ─── Helpers ─── */
@@ -3403,13 +3409,16 @@ function ProfileView({
                   {platformLinks.map((p) => {
                     const url = publicData?.[p.field] as string;
                     if (p.field === "youtube_url") {
-                      return <YouTubePill key={p.field} url={url} label={p.label} emoji={p.emoji} />;
+                      return <YouTubePill key={p.field} url={url} label={p.label} emoji={p.emoji} tint={p.tint} />;
                     }
                     if (p.accent) {
-                      // CTA pill — bigger, bolder, glowing. EVEN/Merch
-                      // are paid-conversion buttons, not just platform
-                      // links, so they get a totally different look.
-                      const tint =
+                      // CTA pill — bigger, bolder, breathing glow.
+                      // EVEN/Merch are conversion buttons, not just
+                      // platform links, and now that the regular pills
+                      // got brand glows we lean even harder on size +
+                      // animation to keep the CTAs the loudest things
+                      // on the row.
+                      const ctaTint =
                         p.accent === "red"
                           ? { hex: "#ef4444", glow: "239,68,68" }
                           : { hex: "#facc15", glow: "250,204,21" };
@@ -3420,15 +3429,41 @@ function ProfileView({
                           target="_blank"
                           rel="noopener noreferrer"
                           title={`${p.label} →`}
-                          className="group relative inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-white transition-all hover:scale-[1.04]"
+                          className="animate-cta-glow relative inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-white transition-transform hover:scale-[1.06]"
                           style={{
-                            borderColor: tint.hex,
-                            background: `linear-gradient(135deg, rgba(${tint.glow},0.22) 0%, rgba(0,0,0,0.65) 60%, rgba(${tint.glow},0.18) 100%)`,
-                            boxShadow: `0 0 14px rgba(${tint.glow},0.55), 0 0 30px rgba(${tint.glow},0.25), inset 0 0 8px rgba(${tint.glow},0.12)`,
-                            textShadow: `0 0 6px rgba(${tint.glow},0.6)`,
+                            borderColor: ctaTint.hex,
+                            background: `linear-gradient(135deg, rgba(${ctaTint.glow},0.28) 0%, rgba(0,0,0,0.7) 55%, rgba(${ctaTint.glow},0.22) 100%)`,
+                            textShadow: `0 0 6px rgba(${ctaTint.glow},0.6)`,
+                            // CSS variable consumed by the cta-glow-pulse keyframes.
+                            ["--cta-glow" as string]: ctaTint.glow,
                           }}
                         >
                           {p.label}
+                        </a>
+                      );
+                    }
+                    if (p.tint) {
+                      // Branded chip — same shape as a default pill but
+                      // with the platform's signature colour for the
+                      // border, hover bg, and a soft outer halo. Quiet
+                      // enough to not compete with the CTA pair.
+                      const t = p.tint;
+                      return (
+                        <a
+                          key={p.field}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`${p.label} →`}
+                          className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:scale-[1.03]"
+                          style={{
+                            borderColor: `rgba(${t.glow},0.45)`,
+                            backgroundColor: `rgba(${t.glow},0.07)`,
+                            boxShadow: `0 0 10px rgba(${t.glow},0.28)`,
+                          }}
+                        >
+                          <span>{p.emoji}</span>
+                          <span>{p.label}</span>
                         </a>
                       );
                     }
@@ -5445,9 +5480,36 @@ function TopLightningTracks({
 // the pill doesn't shift mid-render — the suffix just pops in when ready.
 // Falls back gracefully to label-only if the channel hides its count, the
 // URL is unparseable, or the server doesn't have YOUTUBE_API_KEY configured.
-function YouTubePill({ url, label, emoji }: { url: string; label: string; emoji: string }) {
+function YouTubePill({ url, label, emoji, tint }: { url: string; label: string; emoji: string; tint?: { hex: string; glow: string } }) {
   const { youtubeSubs } = useSocialStats({ youtube_url: url });
   const formatted = formatCount(youtubeSubs);
+  if (tint) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={formatted ? `${formatted} subscribers · ${label} →` : `${label} →`}
+        className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:scale-[1.03]"
+        style={{
+          borderColor: `rgba(${tint.glow},0.45)`,
+          backgroundColor: `rgba(${tint.glow},0.07)`,
+          boxShadow: `0 0 10px rgba(${tint.glow},0.28)`,
+        }}
+      >
+        <span>{emoji}</span>
+        <span>{label}</span>
+        {formatted && (
+          <span
+            className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+            style={{ backgroundColor: `rgba(${tint.glow},0.18)`, color: tint.hex }}
+          >
+            {formatted}
+          </span>
+        )}
+      </a>
+    );
+  }
   return (
     <a
       href={url}

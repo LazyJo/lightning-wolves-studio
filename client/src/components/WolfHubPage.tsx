@@ -214,7 +214,7 @@ const PROFILE_PLATFORMS: {
   label: string;
   emoji: string;
   placeholder: string;
-  accent?: "red";
+  accent?: "red" | "gold";
 }[] = [
   { field: "spotify_url",     label: "Spotify",     emoji: "🟢", placeholder: "https://open.spotify.com/artist/…" },
   { field: "apple_music_url", label: "Apple Music", emoji: "🍎", placeholder: "https://music.apple.com/artist/…" },
@@ -223,8 +223,8 @@ const PROFILE_PLATFORMS: {
   { field: "beatstars_url",   label: "BeatStars",   emoji: "🥁", placeholder: "https://www.beatstars.com/…" },
   { field: "instagram_url",   label: "Instagram",   emoji: "📷", placeholder: "https://instagram.com/…" },
   { field: "tiktok_url",      label: "TikTok",      emoji: "🎵", placeholder: "https://tiktok.com/@…" },
-  { field: "even_url",        label: "EVEN",        emoji: "💎", placeholder: "https://www.even.biz/l/…",      accent: "red" },
-  { field: "merch_url",       label: "Merch",       emoji: "🛍️", placeholder: "https://www.even.biz/l/… or your shop URL", accent: "red" },
+  { field: "even_url",        label: "EVEN",        emoji: "",   placeholder: "https://www.even.biz/l/…",      accent: "red"  },
+  { field: "merch_url",       label: "MERCH",       emoji: "",   placeholder: "https://www.even.biz/l/… or your shop URL", accent: "gold" },
 ];
 
 /* ─── Helpers ─── */
@@ -3405,7 +3405,33 @@ function ProfileView({
                     if (p.field === "youtube_url") {
                       return <YouTubePill key={p.field} url={url} label={p.label} emoji={p.emoji} />;
                     }
-                    const redAccent = p.accent === "red";
+                    if (p.accent) {
+                      // CTA pill — bigger, bolder, glowing. EVEN/Merch
+                      // are paid-conversion buttons, not just platform
+                      // links, so they get a totally different look.
+                      const tint =
+                        p.accent === "red"
+                          ? { hex: "#ef4444", glow: "239,68,68" }
+                          : { hex: "#facc15", glow: "250,204,21" };
+                      return (
+                        <a
+                          key={p.field}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`${p.label} →`}
+                          className="group relative inline-flex items-center gap-1.5 rounded-full border-2 px-4 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.18em] text-white transition-all hover:scale-[1.04]"
+                          style={{
+                            borderColor: tint.hex,
+                            background: `linear-gradient(135deg, rgba(${tint.glow},0.22) 0%, rgba(0,0,0,0.65) 60%, rgba(${tint.glow},0.18) 100%)`,
+                            boxShadow: `0 0 14px rgba(${tint.glow},0.55), 0 0 30px rgba(${tint.glow},0.25), inset 0 0 8px rgba(${tint.glow},0.12)`,
+                            textShadow: `0 0 6px rgba(${tint.glow},0.6)`,
+                          }}
+                        >
+                          {p.label}
+                        </a>
+                      );
+                    }
                     return (
                       <a
                         key={p.field}
@@ -3413,11 +3439,7 @@ function ProfileView({
                         target="_blank"
                         rel="noopener noreferrer"
                         title={`${p.label} →`}
-                        className={
-                          redAccent
-                            ? "inline-flex items-center gap-1.5 rounded-full border border-[#ef4444]/40 bg-[#ef4444]/[0.10] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:border-[#ef4444]/70 hover:bg-[#ef4444]/[0.18]"
-                            : "inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:bg-[#9b6dff]/[0.05]"
-                        }
+                        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-white transition-all hover:border-[#9b6dff]/40 hover:bg-[#9b6dff]/[0.05]"
                       >
                         <span>{p.emoji}</span>
                         <span>{p.label}</span>
@@ -3811,14 +3833,35 @@ function EditProfileModal({
               Find me on
             </label>
             <div className="grid gap-2">
-              {PROFILE_PLATFORMS.map((p) => (
+              {PROFILE_PLATFORMS.map((p) => {
+                const accentTint =
+                  p.accent === "red"
+                    ? { hex: "#ef4444", glow: "239,68,68" }
+                    : p.accent === "gold"
+                    ? { hex: "#facc15", glow: "250,204,21" }
+                    : null;
+                return (
                 <div key={p.field} className="flex items-center gap-2">
-                  <span
-                    className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-base"
-                    title={p.label}
-                  >
-                    {p.emoji}
-                  </span>
+                  {accentTint ? (
+                    <span
+                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border-2 text-[11px] font-extrabold uppercase text-white"
+                      title={p.label}
+                      style={{
+                        borderColor: accentTint.hex,
+                        backgroundColor: `rgba(${accentTint.glow},0.12)`,
+                        boxShadow: `0 0 8px rgba(${accentTint.glow},0.4)`,
+                      }}
+                    >
+                      {p.label[0]}
+                    </span>
+                  ) : (
+                    <span
+                      className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] text-base"
+                      title={p.label}
+                    >
+                      {p.emoji}
+                    </span>
+                  )}
                   <input
                     value={platformUrls[p.field] || ""}
                     onChange={(e) =>
@@ -3830,7 +3873,8 @@ function EditProfileModal({
                     className="flex-1 rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-xs text-white placeholder:text-wolf-muted/50 focus:border-[#9b6dff]/40 focus:outline-none"
                   />
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}

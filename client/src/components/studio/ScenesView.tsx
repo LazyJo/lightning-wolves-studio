@@ -145,7 +145,10 @@ export default function ScenesView({ onBack, template }: Props) {
   const [resolution, setResolution] = useState<(typeof RESOLUTIONS)[number]>("480p");
   const [videoStyle, setVideoStyle] = useState<(typeof VIDEO_STYLES)[number]>("Realistic");
   const [lyricAdherence, setLyricAdherence] = useState<boolean>(true);
-  const [showPicker, setShowPicker] = useState(false);
+  // Picker is open by default so the full 50-scene library is visible
+  // immediately (LYRC-style CHOOSE SCENE grid). User can collapse it
+  // once they've locked in a preset they like.
+  const [showPicker, setShowPicker] = useState(true);
 
   // Resolve the active style prompt — either a preset or the custom text.
   const activePreset: ScenePreset | null =
@@ -751,15 +754,9 @@ export default function ScenesView({ onBack, template }: Props) {
             <ScenePresetPicker
               selectedId={presetId}
               customPrompt={customPrompt}
-              onSelect={(p) => {
-                setPresetId(p.id);
-                setShowPicker(false);
-              }}
+              onSelect={(p) => setPresetId(p.id)}
               onCustomChange={setCustomPrompt}
-              onSelectCustom={() => {
-                setPresetId(null);
-                setShowPicker(false);
-              }}
+              onSelectCustom={() => setPresetId(null)}
               accent={SC.accent}
             />
           </motion.div>

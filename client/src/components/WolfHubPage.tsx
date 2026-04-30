@@ -3706,7 +3706,7 @@ function EditProfileModal({
             <X size={18} />
           </button>
         </div>
-        <div className="space-y-4 p-5">
+        <div className="max-h-[70vh] space-y-4 overflow-y-auto p-5">
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
               Profile photo

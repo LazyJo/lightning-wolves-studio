@@ -297,6 +297,35 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     void el.play();
   }, [regionStart, selectedDuration]);
 
+  // Clip-scoped views of the whisper output. The user picked a 15/20/25/30s
+  // window in Step 1; everything from Step 2 onwards (and the saved
+  // template) should reflect ONLY that window, not the whole song. Whisper
+  // transcribed the full upload (so we have segment + word timestamps for
+  // the whole track) — these memos slice it down to the picked clip and
+  // re-zero the timestamps so the LyricsEditor renders BLOCK 1 starting at
+  // 0.0s instead of 0:48.
+  const clipSegments = useMemo(() => {
+    if (!transcriptSegments.length) return [];
+    const clipEnd = regionStart + selectedDuration;
+    return transcriptSegments
+      .filter((s) => s.end > regionStart && s.start < clipEnd)
+      .map((s) => ({
+        start: Math.max(0, s.start - regionStart),
+        end: Math.min(selectedDuration, s.end - regionStart),
+        text: s.text,
+      }));
+  }, [transcriptSegments, regionStart, selectedDuration]);
+
+  const clipTranscript = useMemo(
+    () => clipSegments.map((s) => s.text).join(" ").replace(/\s+/g, " ").trim(),
+    [clipSegments]
+  );
+
+  const clipWordTimings = useMemo(() => {
+    const clipEnd = regionStart + selectedDuration;
+    return wordTimings.filter((w) => w.end > regionStart && w.start < clipEnd);
+  }, [wordTimings, regionStart, selectedDuration]);
+
   // Active word for the big karaoke overlay on Step 3. Holds the last-sung
   // word during inter-word gaps so the screen never goes blank mid-clip
   // (LYRC-style sustain). Limited to words inside the picked clip.
@@ -385,6 +414,10 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     setSaving(true);
     setSaveError("");
     try {
+      // Persist clip-only data. If the user transcribed but never opened
+      // the LyricsEditor → Done loop, transcript/wordTimings still hold the
+      // full-song output. Use clipTranscript/clipWordTimings so the saved
+      // template always represents the picked window.
       const saved = await create({
         id: initial?.id,
         title,
@@ -394,8 +427,8 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
         audioMimeType: audioFile?.type || initial?.audioMimeType || "audio/mpeg",
         audioFilename: audioFile?.name || initial?.audioFilename || "audio.mp3",
         audioDurationSec: audioDuration,
-        transcript,
-        wordTimings,
+        transcript: clipTranscript || transcript,
+        wordTimings: clipWordTimings.length ? clipWordTimings : wordTimings,
         srt: "",
         cutMarkers,
         wolfId: wolf?.id || initial?.wolfId,
@@ -408,7 +441,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     } finally {
       setSaving(false);
     }
-  }, [saveName, audioFile, initial, language, audioDuration, transcript, wordTimings, cutMarkers, wolf, create, onSaved]);
+  }, [saveName, audioFile, initial, language, audioDuration, transcript, wordTimings, clipTranscript, clipWordTimings, cutMarkers, wolf, create, onSaved]);
 
   /* ── Render ──────────────────────────────────────────────────────── */
   const headingTitle = initial ? "EDIT TEMPLATE" : "CREATE TEMPLATE";
@@ -607,29 +640,39 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
             <LyricsLoading progress={lyricsProgress} elapsed={lyricsElapsed} />
           ) : lyricsState === "ready" ? (
             <LyricsEditor
-              lyrics={transcript}
-              segments={transcriptSegments.length ? transcriptSegments : undefined}
+              // Clip-scoped lyrics — Step 2 only shows words inside the
+              // user's picked window (e.g. 0:48–1:03), not the full song.
+              // The LyricsEditor component receives clip-relative
+              // timestamps (Block 1 starts at 0.0s), so on Done we add
+              // regionStart back when reconstructing absolute wordTimings.
+              lyrics={clipTranscript}
+              segments={clipSegments.length ? clipSegments : undefined}
               audioUrl={audioUrl || undefined}
               language={language}
               accentColor={C.purple}
               onDone={(editedLyrics, blocks) => {
-                // Rebuild wordTimings from blocks while preserving each
-                // word's original whisper start/end where possible. Step 3's
-                // karaoke reads wordTimings, so we want edits ("just" → "Just",
-                // re-time taps, added/removed words) to flow through there.
+                // Blocks come back with clip-relative times — add regionStart
+                // to land back on absolute song time. Rebuilds clipWordTimings
+                // and replaces the global wordTimings + transcript with the
+                // clip-only edited result. After Done the saved template
+                // represents only the picked window.
                 const flat: WordTiming[] = [];
                 let origIdx = 0;
                 blocks.forEach((b) => {
                   b.words.forEach((bw, wi) => {
-                    const orig = wordTimings[origIdx];
+                    const orig = clipWordTimings[origIdx];
                     const explicitStart = typeof bw.start === "number" ? bw.start : null;
                     const explicitEnd = typeof bw.end === "number" ? bw.end : null;
                     if (orig && explicitStart === null) {
                       flat.push({ word: bw.word, start: orig.start, end: orig.end });
                     } else {
-                      const startT = explicitStart ?? b.startTime + wi * 0.3;
-                      const endT = explicitEnd ?? startT + 0.3;
-                      flat.push({ word: bw.word, start: startT, end: endT });
+                      const relStart = explicitStart ?? b.startTime + wi * 0.3;
+                      const relEnd = explicitEnd ?? relStart + 0.3;
+                      flat.push({
+                        word: bw.word,
+                        start: relStart + regionStart,
+                        end: relEnd + regionStart,
+                      });
                     }
                     origIdx++;
                   });

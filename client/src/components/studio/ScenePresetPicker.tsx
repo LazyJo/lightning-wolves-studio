@@ -80,8 +80,9 @@ export default function ScenePresetPicker({
         ))}
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+      {/* Grid — wider on large screens so more of the 50-preset library
+          is visible at once (matches LYRC's wide CHOOSE SCENE grid). */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6">
         {/* Custom tile — always first */}
         <CustomTile
           selected={customSelected}
@@ -101,6 +102,11 @@ export default function ScenePresetPicker({
           />
         ))}
       </div>
+
+      <p className="mt-3 text-center text-[10px] uppercase tracking-[0.2em] text-wolf-muted">
+        {filtered.length} {filter === "all" ? "" : `${filter} `}scenes
+        {filter !== "all" && ` · ${scenePresets.length} total`}
+      </p>
     </div>
   );
 }

@@ -18,7 +18,6 @@ import {
   Info,
 } from "lucide-react";
 import {
-  generate,
   startVisualGeneration,
   pollVisual,
   type VisualStatusResult,
@@ -61,6 +60,63 @@ interface SceneJob {
 }
 
 const MAX_SCENES = 6;
+// Most video models won't accept fractional durations or anything under
+// ~3-4s. Clamp each segment's render duration into the model's accepted
+// range — ffmpeg trims back to the segment's true length on assembly so
+// the audio still lines up with the lyrics.
+const MIN_SCENE_DURATION_S = 4;
+
+/**
+ * Turn a saved Template into a list of scene sections to render.
+ * Order of preference:
+ *   1. cutMarkers — the user's explicit beat-drops, treated as boundaries.
+ *   2. wordTimings + gap-detection — natural phrase boundaries (>0.5s
+ *      gap = new section). Mirrors LYRC's "1 scene per lyric block".
+ *   3. Even-spaced fallback — N evenly-divided sections so we always
+ *      have something to render even on instrumental tracks.
+ * Each returned section carries the lyrics that fall inside its window
+ * so per-scene prompts can mention what's being sung in that beat.
+ */
+function deriveSceneSections(template: Template): { start: number; end: number; lyrics: string }[] {
+  const dur = template.audioDurationSec || 0;
+  const markers = template.cutMarkers || [];
+  const words = template.wordTimings || [];
+
+  let boundaries: number[];
+  if (markers.length > 0) {
+    boundaries = Array.from(new Set([0, ...markers, dur])).sort((a, b) => a - b);
+  } else if (words.length > 0) {
+    const groups = new Set<number>([0]);
+    for (let i = 1; i < words.length; i++) {
+      const gap = words[i].start - words[i - 1].end;
+      if (gap > 0.5) groups.add(words[i].start);
+    }
+    groups.add(dur);
+    boundaries = [...groups].sort((a, b) => a - b);
+  } else {
+    boundaries = Array.from({ length: MAX_SCENES + 1 }, (_, i) => (dur / MAX_SCENES) * i);
+  }
+
+  const sections: { start: number; end: number; lyrics: string }[] = [];
+  for (let i = 0; i < boundaries.length - 1; i++) {
+    const start = boundaries[i];
+    const end = boundaries[i + 1];
+    if (end - start < 0.5) continue; // skip slivers
+    const lyrics = words
+      .filter((w) => w.start >= start && w.end <= end)
+      .map((w) => w.word)
+      .join(" ")
+      .trim();
+    sections.push({ start, end, lyrics });
+  }
+  // Cap at MAX_SCENES so a heavily-marker'd template doesn't accidentally
+  // try to render 30 clips. Drop the shortest sections first.
+  if (sections.length > MAX_SCENES) {
+    const sorted = [...sections].sort((a, b) => (b.end - b.start) - (a.end - a.start)).slice(0, MAX_SCENES);
+    return sorted.sort((a, b) => a.start - b.start);
+  }
+  return sections;
+}
 
 /* ─── Scenes theme — green accent (Shiteux wolf) ──────────────────────── */
 // Scenes is the AI visuals surface; the green reads as "generation /
@@ -105,7 +161,12 @@ export default function ScenesView({ onBack, template }: Props) {
   const [error, setError] = useState<string>("");
 
   const model = VIDEO_MODELS.find((m) => m.id === modelId)!;
-  const totalCredits = model.credits * MAX_SCENES;
+  // Derive segments up-front so the credit count + section preview both
+  // reflect what we'll actually render. Recomputed when the template's
+  // markers / words change (template prop is stable per session, so this
+  // is effectively memoized for free).
+  const sceneSections = useMemo(() => deriveSceneSections(template), [template]);
+  const totalCredits = model.credits * Math.max(1, sceneSections.length);
   // Studio is signup-gated — server enforces credit quota.
   const canGenerate = stage === "idle" && hasValidStyle;
 
@@ -122,33 +183,31 @@ export default function ScenesView({ onBack, template }: Props) {
     setScenes([]);
 
     try {
-      // ── 1. Plan scenes with Claude, seeded by the template's transcript ──
+      // ── 1. Lock in the lyric-block sections we'll render ──
+      // Earlier this called Claude to plan a fixed-count list of prompts
+      // from the overall transcript. Replaced with a deterministic split
+      // by lyric block (LYRC parity) so:
+      //   • count of scenes = count of sections (3-MAX_SCENES)
+      //   • per-scene duration = section's actual length
+      //   • per-scene prompt = preset prompt + that section's lyrics
+      // Saves a Claude call (faster, cheaper) and the result lines up
+      // with the audio without ffmpeg having to stretch clips.
       setStage("planning");
-      setStageLog("Writing scene prompts from your lyrics…");
-      const pack = await generate({
-        title: template.title,
-        artist: template.artist,
-        genre: template.genre,
-        language: template.language || "English",
-        mood: `${stylePrompt}. Match transcript: "${template.transcript.slice(0, 400)}"`,
-        wolfId: template.wolfId,
-      });
-
-      const prompts = (pack.pack.prompts || []).slice(0, MAX_SCENES);
-      if (prompts.length === 0) {
-        throw new Error("No scene prompts returned — try a different style preset.");
+      setStageLog(`Slicing ${sceneSections.length} scenes from your lyric blocks…`);
+      if (sceneSections.length === 0) {
+        throw new Error("Couldn't find any sections to render — re-save the template.");
       }
 
-      const initial: SceneJob[] = prompts.map((p) => ({
-        section: p.section,
-        prompt: p.prompt,
+      const initial: SceneJob[] = sceneSections.map((s, i) => ({
+        section: s.lyrics ? s.lyrics.split(/\s+/).slice(0, 4).join(" ") : `Scene ${i + 1}`,
+        prompt: s.lyrics ? `Lyric in this beat: "${s.lyrics}"` : "Instrumental section",
         status: "pending",
       }));
       setScenes(initial);
 
       // ── 2. Render every scene in parallel ───────────────────────────────
       setStage("rendering");
-      setStageLog(`Rendering ${prompts.length} scenes in parallel — this takes a minute.`);
+      setStageLog(`Rendering ${sceneSections.length} scenes in parallel — this takes a minute.`);
 
       // Translate the UI's videoStyle toggle into a prompt prefix —
       // kling + sora don't expose a style enum, so the effect has to
@@ -159,18 +218,26 @@ export default function ScenesView({ onBack, template }: Props) {
           : "";
 
       const results = await Promise.all(
-        prompts.map(async (p, idx) => {
+        sceneSections.map(async (sec, idx) => {
           try {
-            const finalPrompt = [stylePrefix, stylePrompt, p.prompt]
+            const finalPrompt = [
+              stylePrefix,
+              stylePrompt,
+              sec.lyrics ? `Lyric in this beat: "${sec.lyrics}"` : "",
+            ]
               .filter(Boolean)
               .join(" ");
+            const sectionDuration = Math.max(
+              MIN_SCENE_DURATION_S,
+              Math.round(sec.end - sec.start),
+            );
             const start = await startVisualGeneration({
               modelId,
               prompt: finalPrompt,
               type: "scene",
-              accessToken,
+              accessToken: accessToken ?? undefined,
               options: {
-                duration: 5,
+                duration: sectionDuration,
                 aspectRatio: ratio,
                 resolution,
                 lyricAdherence,
@@ -229,7 +296,7 @@ export default function ScenesView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg]);
+  }, [accessToken, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg, sceneSections]);
 
   const completedScenes = useMemo(
     () => scenes.filter((s) => s.status === "succeeded").length,

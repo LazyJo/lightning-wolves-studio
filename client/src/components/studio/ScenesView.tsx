@@ -249,7 +249,11 @@ export default function ScenesView({ onBack, template }: Props) {
             setScenes((prev) => prev.map((s, i) => (i === idx ? { ...s, status: start.status } : s)));
             const final = await pollVisual(start.id, {
               intervalMs: 3000,
-              timeoutMs: 4 * 60 * 1000,
+              // Kling v1.6 std often takes 4-6 min per clip, longer when
+              // multiple are queued in parallel. Old 4-min limit timed
+              // out before Replicate finished. 12 min covers the worst
+              // case without leaving the user waiting forever on a real hang.
+              timeoutMs: 12 * 60 * 1000,
               onProgress: (s) =>
                 setScenes((prev) =>
                   prev.map((sc, i) =>

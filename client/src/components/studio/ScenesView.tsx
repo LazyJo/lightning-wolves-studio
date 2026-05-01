@@ -621,8 +621,58 @@ export default function ScenesView({ onBack, template }: Props) {
 
         </motion.div>
 
-        {/* ── Right panel: gallery / pipeline / preview ── */}
+        {/* ── Right panel: picker (when open) OR gallery/pipeline/preview ── */}
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+          <AnimatePresence mode="wait">
+          {showPicker ? (
+            <motion.div
+              key="picker"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div
+                className="flex items-center justify-between rounded-t-2xl border border-b-0 px-5 py-3.5"
+                style={{ borderColor: SC.border }}
+              >
+                <p
+                  className="text-[11px] font-bold uppercase tracking-[0.25em]"
+                  style={{ color: SC.accent }}
+                >
+                  Choose a different scene
+                </p>
+                <button
+                  onClick={() => setShowPicker(false)}
+                  className="inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-[11px] font-semibold transition-all"
+                  style={{ borderColor: SC.accentBorder, color: SC.accent }}
+                >
+                  <X size={11} /> Close
+                </button>
+              </div>
+              <div
+                className="rounded-b-2xl border border-t-0 p-3"
+                style={{ borderColor: SC.border }}
+              >
+                <ScenePresetPicker
+                  selectedId={presetId}
+                  customPrompt={customPrompt}
+                  onSelect={(p) => {
+                    setPresetId(p.id);
+                    setShowPicker(false);
+                  }}
+                  onCustomChange={setCustomPrompt}
+                  onSelectCustom={() => setPresetId(null)}
+                  accent={SC.accent}
+                />
+              </div>
+            </motion.div>
+          ) : (
+          <motion.div
+            key="results"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
           <div
             className="flex items-center justify-between rounded-t-2xl border border-b-0 px-5 py-3.5"
             style={{ borderColor: SC.border }}
@@ -728,40 +778,11 @@ export default function ScenesView({ onBack, template }: Props) {
               )}
             </AnimatePresence>
           </div>
+          </motion.div>
+          )}
+          </AnimatePresence>
         </motion.div>
       </div>
-
-      {/* ── Full preset picker — toggled via SCENE card's Change button ── */}
-      <AnimatePresence>
-        {showPicker && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-6 overflow-hidden"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-[0.25em] text-wolf-muted">
-                Choose a different scene
-              </p>
-              <button
-                onClick={() => setShowPicker(false)}
-                className="inline-flex items-center gap-1 text-[11px] text-wolf-muted hover:text-white"
-              >
-                <X size={12} /> Close
-              </button>
-            </div>
-            <ScenePresetPicker
-              selectedId={presetId}
-              customPrompt={customPrompt}
-              onSelect={(p) => setPresetId(p.id)}
-              onCustomChange={setCustomPrompt}
-              onSelectCustom={() => setPresetId(null)}
-              accent={SC.accent}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

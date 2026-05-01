@@ -666,13 +666,26 @@ const VISION_MODELS = {
     status: 'access',
     kind: 'video',
     provider: 'replicate',
-    replicateModel: 'kwaivgi/kling-v2.1',
-    buildInput: (prompt, opts = {}) => ({
-      prompt,
-      duration: opts.duration || 5,
-      aspect_ratio: opts.aspectRatio || '16:9',
-      negative_prompt: opts.negativePrompt || '',
-    }),
+    // v1.6-standard supports text-to-video (no start_image required).
+    // v2.0+ are image-to-video only — would need a separate frame-gen step.
+    replicateModel: 'kwaivgi/kling-v1.6-standard',
+    buildInput: (prompt, opts = {}) => {
+      // Kling only accepts duration ∈ {5, 10}. Round each section to the
+      // closer legal value so the API doesn't 422.
+      const requested = Number(opts.duration) || 5;
+      const duration = requested >= 7.5 ? 10 : 5;
+      // Same for aspect_ratio — must be 16:9, 9:16, or 1:1.
+      const allowedRatios = ['16:9', '9:16', '1:1'];
+      const aspect_ratio = allowedRatios.includes(opts.aspectRatio)
+        ? opts.aspectRatio
+        : '16:9';
+      return {
+        prompt,
+        duration,
+        aspect_ratio,
+        negative_prompt: opts.negativePrompt || '',
+      };
+    },
   },
   'seedream-4.5': {
     name: 'Seedream 4.5',

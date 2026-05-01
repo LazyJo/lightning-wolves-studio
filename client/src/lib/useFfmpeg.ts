@@ -1,6 +1,17 @@
 import { useCallback, useRef, useState } from "react";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { toBlobURL, fetchFile } from "@ffmpeg/util";
+import { fetchFile } from "@ffmpeg/util";
+
+// Self-hosted ffmpeg-core UMD bundle. Files live in client/public/ffmpeg/
+// and are served same-origin from lightningwolves.studio at /ffmpeg/...
+//
+// Why not @ffmpeg/core via Vite ?url imports? The package's `exports` field
+// only exposes the ESM build, but ffmpeg.wasm's worker uses importScripts()
+// which only loads classic (UMD) scripts. Same-origin static files dodge
+// every CORS / null-origin / module-format pitfall we hit on prod with
+// the unpkg+blob-URL load path that printed "failed to import ffmpeg-core.js".
+const coreURL = "/ffmpeg/ffmpeg-core.js";
+const wasmURL = "/ffmpeg/ffmpeg-core.wasm";
 
 /**
  * ffmpeg.wasm is ~25MB — only load it when the user actually starts
@@ -9,12 +20,6 @@ import { toBlobURL, fetchFile } from "@ffmpeg/util";
  * Loading is idempotent: calling ensureLoaded() multiple times is cheap
  * after the first hit.
  */
-
-// CDN-hosted core + wasm. jsdelivr is preferred over unpkg here because
-// workers occasionally fail to follow unpkg's 301-style version redirects;
-// jsdelivr serves the resolved URL directly. Pinned to 0.12.6 — that's
-// the canonical pairing with @ffmpeg/ffmpeg@0.12.15 in production reports.
-const CORE_BASE = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd";
 
 let sharedFfmpeg: FFmpeg | null = null;
 let loadPromise: Promise<FFmpeg> | null = null;
@@ -27,25 +32,7 @@ async function ensureLoaded(onLog?: (msg: string) => void): Promise<FFmpeg> {
   if (onLog) ff.on("log", ({ message }) => onLog(message));
 
   loadPromise = (async () => {
-    // Two-attempt load: try direct cross-origin URLs first (fastest, no
-    // extra fetch), fall back to blob-URL conversion if the worker can't
-    // import the cross-origin script in this browser. The previous
-    // direct-blob-only approach was failing on prod with "failed to
-    // import ffmpeg-core.js" — surfacing both attempts gives us a
-    // deterministic load on a wider range of setups.
-    try {
-      await ff.load({
-        coreURL: `${CORE_BASE}/ffmpeg-core.js`,
-        wasmURL: `${CORE_BASE}/ffmpeg-core.wasm`,
-      });
-    } catch (directErr) {
-      // eslint-disable-next-line no-console
-      console.warn("ffmpeg direct-URL load failed, retrying via blob URL:", directErr);
-      await ff.load({
-        coreURL: await toBlobURL(`${CORE_BASE}/ffmpeg-core.js`, "text/javascript"),
-        wasmURL: await toBlobURL(`${CORE_BASE}/ffmpeg-core.wasm`, "application/wasm"),
-      });
-    }
+    await ff.load({ coreURL, wasmURL });
     sharedFfmpeg = ff;
     return ff;
   })();

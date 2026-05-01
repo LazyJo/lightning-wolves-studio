@@ -173,7 +173,9 @@ export default function ScenesView({ onBack, template }: Props) {
   // it's free. Custom path still hits Replicate per-section.
   const totalCredits = activePreset ? 0 : model.credits * Math.max(1, sceneSections.length);
   // Studio is signup-gated — server enforces credit quota.
-  const canGenerate = stage === "idle" && hasValidStyle;
+  // Allow regenerating from "done"/"error" too so a failed render doesn't
+  // strand the user on a disabled button until they refresh.
+  const canGenerate = (stage === "idle" || stage === "done" || stage === "error") && hasValidStyle;
 
   const resetAll = () => {
     setScenes([]);

@@ -169,7 +169,9 @@ export default function ScenesView({ onBack, template }: Props) {
   // markers / words change (template prop is stable per session, so this
   // is effectively memoized for free).
   const sceneSections = useMemo(() => deriveSceneSections(template), [template]);
-  const totalCredits = model.credits * Math.max(1, sceneSections.length);
+  // Preset path runs fully in-browser via ffmpeg.wasm — no API spend, so
+  // it's free. Custom path still hits Replicate per-section.
+  const totalCredits = activePreset ? 0 : model.credits * Math.max(1, sceneSections.length);
   // Studio is signup-gated — server enforces credit quota.
   const canGenerate = stage === "idle" && hasValidStyle;
 
@@ -186,15 +188,37 @@ export default function ScenesView({ onBack, template }: Props) {
     setScenes([]);
 
     try {
-      // ── 1. Lock in the lyric-block sections we'll render ──
-      // Earlier this called Claude to plan a fixed-count list of prompts
-      // from the overall transcript. Replaced with a deterministic split
-      // by lyric block (LYRC parity) so:
-      //   • count of scenes = count of sections (3-MAX_SCENES)
-      //   • per-scene duration = section's actual length
-      //   • per-scene prompt = preset prompt + that section's lyrics
-      // Saves a Claude call (faster, cheaper) and the result lines up
-      // with the audio without ffmpeg having to stretch clips.
+      const ff = await initFfmpeg();
+      const audioFile = await getTemplateAudioFile(template.id);
+      if (!audioFile) throw new Error("Template audio is missing — re-upload in the editor.");
+
+      // ── Fast path: preset selected → loop the curated /scenes/<id>.jpg
+      // backdrop and burn the karaoke lyrics on top. No AI calls, no
+      // network for the visual track, ~10-15s end-to-end. This is what
+      // makes Scenes feel like LYRC — instant after pick.
+      if (activePreset) {
+        setStage("assembling");
+        setStageLog("Rendering your lyric video…");
+
+        const mp4 = await assembleLyricVideo({
+          ffmpeg: ff,
+          bgImageUrl: `/scenes/${activePreset.id}.jpg`,
+          audioFile,
+          wordTimings: template.wordTimings,
+          srt: template.srt,
+          audioDurationSec: template.audioDurationSec,
+          aspectRatio: ratio,
+          onStage: (s) => setStageLog(s),
+        });
+
+        setFinalUrl(mp4);
+        setStage("done");
+        setStageLog("");
+        return;
+      }
+
+      // ── Slow path: Custom prompt → AI text-to-video per lyric block
+      // ────────────────────────────────────────────────────────────────
       setStage("planning");
       setStageLog(`Slicing ${sceneSections.length} scenes from your lyric blocks…`);
       if (sceneSections.length === 0) {
@@ -208,7 +232,6 @@ export default function ScenesView({ onBack, template }: Props) {
       }));
       setScenes(initial);
 
-      // ── 2. Render every scene in parallel ───────────────────────────────
       setStage("rendering");
       setStageLog(`Rendering ${sceneSections.length} scenes in parallel — this takes a minute.`);
 
@@ -249,10 +272,6 @@ export default function ScenesView({ onBack, template }: Props) {
             setScenes((prev) => prev.map((s, i) => (i === idx ? { ...s, status: start.status } : s)));
             const final = await pollVisual(start.id, {
               intervalMs: 3000,
-              // Kling v1.6 std often takes 4-6 min per clip, longer when
-              // multiple are queued in parallel. Old 4-min limit timed
-              // out before Replicate finished. 12 min covers the worst
-              // case without leaving the user waiting forever on a real hang.
               timeoutMs: 12 * 60 * 1000,
               onProgress: (s) =>
                 setScenes((prev) =>
@@ -279,18 +298,16 @@ export default function ScenesView({ onBack, template }: Props) {
         })
       );
 
-      // ── 3. Assemble with ffmpeg.wasm using the template's audio + SRT ──
       setStage("assembling");
-      setStageLog("Loading the video engine…");
-      const ff = await initFfmpeg();
-      const audioFile = await getTemplateAudioFile(template.id);
-      if (!audioFile) throw new Error("Template audio is missing — re-upload in the editor.");
+      setStageLog("Stitching scenes with karaoke…");
 
       const mp4 = await assembleLyricVideo({
         ffmpeg: ff,
         clipUrls: results,
         audioFile,
+        wordTimings: template.wordTimings,
         srt: template.srt,
+        audioDurationSec: template.audioDurationSec,
         aspectRatio: ratio,
         onStage: (s) => setStageLog(s),
       });
@@ -303,7 +320,7 @@ export default function ScenesView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg, sceneSections]);
+  }, [accessToken, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg, sceneSections, activePreset]);
 
   const completedScenes = useMemo(
     () => scenes.filter((s) => s.status === "succeeded").length,
@@ -589,7 +606,7 @@ export default function ScenesView({ onBack, template }: Props) {
                   className="rounded px-2 py-0.5 text-[11px] font-bold"
                   style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
                 >
-                  💎 {totalCredits}
+                  {activePreset ? "FREE" : `💎 ${totalCredits}`}
                 </span>
               </span>
             ) : (
@@ -597,7 +614,7 @@ export default function ScenesView({ onBack, template }: Props) {
                 <Loader2 size={15} className="animate-spin" />
                 {stage === "planning" && "Writing scenes…"}
                 {stage === "rendering" && `Rendering ${completedScenes}/${scenes.length}…`}
-                {stage === "assembling" && "Stitching video…"}
+                {stage === "assembling" && (activePreset ? "Rendering karaoke…" : "Stitching video…")}
               </span>
             )}
           </button>

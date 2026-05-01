@@ -76,44 +76,77 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
     const imgBytes = await fetchFile(args.bgImageUrl);
     await ffmpeg.writeFile("bg.jpg", imgBytes);
 
-    log("Rendering lyric video…");
-    // Ken-burns: scale up by ~12% over the song, very slow zoom — keeps
-    // a still feeling cinematic without obvious cropping. d=1 keeps the
-    // zoompan stateful per frame so the zoom progresses smoothly.
     const dur = Math.max(5, args.audioDurationSec ?? 60);
-    const totalFrames = Math.ceil(dur * fps);
-    const zoomStep = (0.12 / totalFrames).toFixed(6); // grow zoom by 12% over song
-    const vfChain = [
-      // 1. Cover-fit the source image into the canvas.
-      `scale=${w * 2}:${h * 2}:force_original_aspect_ratio=increase`,
-      `crop=${w * 2}:${h * 2}`,
-      // 2. Ken-burns: slow continuous zoom-in. s= must match crop above.
-      `zoompan=z='min(zoom+${zoomStep},1.12)':d=1:s=${w * 2}x${h * 2}:fps=${fps}`,
-      // 3. Down-scale to final canvas size (smoother than zoompan at small s).
-      `scale=${w}:${h}`,
-      // 4. Karaoke / subtitle overlay.
-      overlay.filter,
-    ]
-      .filter(Boolean)
-      .join(",");
 
-    await ffmpeg.exec([
-      "-loop", "1",
-      "-framerate", String(fps),
-      "-t", String(dur),
-      "-i", "bg.jpg",
-      "-i", "song.audio",
-      "-vf", vfChain,
-      "-c:v", "libx264",
-      "-preset", "ultrafast",
-      "-tune", "stillimage",
-      "-pix_fmt", "yuv420p",
-      "-c:a", "aac",
-      "-b:a", "128k",
-      "-shortest",
-      "-movflags", "+faststart",
-      "final.mp4",
-    ]);
+    // Filter chain. Kept deliberately minimal — just scale, crop, and
+    // (optionally) subtitles. Anything fancier (zoompan, blend, etc.)
+    // has been observed to break ffmpeg.wasm builds that lack a filter
+    // or behave oddly with `-loop 1` infinite inputs.
+    const baseFilter = `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}`;
+
+    // Subtitle attempt order: ASS karaoke → SRT static → no overlay.
+    // This way the user always gets *some* video out of the door even
+    // if libass can't render karaoke effects in the bundled wasm.
+    const attempts: Array<{ label: string; vf: string; pre?: () => Promise<void> }> = [];
+    if (overlay.kind === "ass") {
+      attempts.push({
+        label: "ASS karaoke",
+        vf: `${baseFilter},subtitles=subs.ass`,
+        pre: async () => {
+          // ASS already written above; nothing to do here.
+        },
+      });
+      // Fallback 1: also try plain SRT — derive an SRT from the ASS dialogues.
+      if (args.srt) {
+        attempts.push({
+          label: "static SRT",
+          vf: `${baseFilter},subtitles=subs.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=60'`,
+          pre: async () => {
+            await ffmpeg.writeFile("subs.srt", new TextEncoder().encode(args.srt!));
+          },
+        });
+      }
+    } else if (overlay.kind === "srt") {
+      attempts.push({
+        label: "static SRT",
+        vf: `${baseFilter},${overlay.filter}`,
+      });
+    }
+    // Fallback 2 (always present): no overlay at all — just image + audio.
+    attempts.push({ label: "no overlay", vf: baseFilter });
+
+    let lastErr: unknown = null;
+    for (const attempt of attempts) {
+      try {
+        if (attempt.pre) await attempt.pre();
+        log(`Rendering lyric video (${attempt.label})…`);
+        await ffmpeg.exec([
+          "-loop", "1",
+          "-framerate", String(fps),
+          "-t", String(dur),
+          "-i", "bg.jpg",
+          "-i", "song.audio",
+          "-vf", attempt.vf,
+          "-c:v", "libx264",
+          "-preset", "ultrafast",
+          "-tune", "stillimage",
+          "-pix_fmt", "yuv420p",
+          "-c:a", "aac",
+          "-b:a", "128k",
+          "-shortest",
+          "-movflags", "+faststart",
+          "final.mp4",
+        ]);
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
+        // Surface attempt failure but keep going through the fallback chain.
+        // eslint-disable-next-line no-console
+        console.warn(`assembleLyricVideo: '${attempt.label}' attempt failed`, e);
+      }
+    }
+    if (lastErr) throw lastErr;
   } else {
     // ── Clip-stitch path (AI Custom flow) ──────────────────────────────
     const clipUrls = args.clipUrls!;

@@ -316,7 +316,21 @@ export default function ScenesView({ onBack, template }: Props) {
       setStage("done");
       setStageLog("");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Generation failed";
+      // Always log the raw error to the browser console — many ffmpeg.wasm
+      // and Replicate errors carry useful detail that doesn't survive
+      // .toString(). Then surface a human-readable summary into the UI so
+      // we never get a silent "Generation failed" again.
+      // eslint-disable-next-line no-console
+      console.error("Scenes generation failed:", err);
+      let msg = "Generation failed";
+      if (err instanceof Error) {
+        msg = err.message || err.name || err.toString();
+        if (!msg || msg === "Error") msg = String(err);
+      } else if (typeof err === "string") {
+        msg = err;
+      } else if (err) {
+        try { msg = JSON.stringify(err); } catch { msg = String(err); }
+      }
       setError(msg);
       setStage("error");
     }

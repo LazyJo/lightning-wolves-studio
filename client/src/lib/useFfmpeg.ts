@@ -2,17 +2,23 @@ import { useCallback, useRef, useState } from "react";
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 
-// Self-hosted ffmpeg-core UMD bundle, served same-origin from
+// Self-hosted ffmpeg-core ESM bundle, served same-origin from
 // lightningwolves.studio/ffmpeg/... (files copied into client/public/ffmpeg/
 // by the postinstall script).
 //
+// IMPORTANT: must be the ESM build, not UMD. @ffmpeg/ffmpeg 0.12.x spawns
+// its worker as { type: "module" }, so importScripts() is undefined and
+// the worker falls back to `await import(coreURL)`. That dynamic import
+// only resolves against a real ES module — the UMD bundle returns
+// .default === undefined and the worker throws "failed to import
+// ffmpeg-core.js".
+//
 // Two-step load below:
 //   1. Try absolute same-origin URLs (fast path — no extra fetch).
-//   2. If the worker's importScripts() rejects them (Vercel sends
-//      Content-Disposition: inline; filename=... which some browsers
-//      treat as "download, don't execute"), fall back to fetching the
-//      file ourselves and passing a blob: URL — that strips the
-//      offending header and always works.
+//   2. If anything in the worker's load path rejects (rare — usually a
+//      header / MIME problem), fetch the bytes ourselves and pass a
+//      blob: URL. Worth keeping as a defensive fallback even though the
+//      ESM path should now succeed on the first try.
 const corePath = "/ffmpeg/ffmpeg-core.js";
 const wasmPath = "/ffmpeg/ffmpeg-core.wasm";
 

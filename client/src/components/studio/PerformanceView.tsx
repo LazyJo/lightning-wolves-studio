@@ -143,9 +143,13 @@ export default function PerformanceView({ onBack, template }: Props) {
       });
       setJobStatus(start.status);
 
+      // Kling Motion's stylize pass takes 3-10 min on heavy clips — the
+      // earlier 5-min cap was timing out perfectly-fine generations. Match
+      // ScenesView's 12-min budget so users get the video instead of an
+      // error after waiting most of the way through the render.
       const final = await pollVisual(start.id, {
         intervalMs: 3000,
-        timeoutMs: 5 * 60 * 1000,
+        timeoutMs: 12 * 60 * 1000,
         onProgress: (s) => setJobStatus(s.status),
       });
       if (final.status !== "succeeded" || !final.output?.length) {
@@ -531,6 +535,26 @@ export default function PerformanceView({ onBack, template }: Props) {
                     Drop a clip on the left, pick a style, hit Generate.
                   </p>
                 </motion.div>
+              ) : stage === "error" ? (
+                <motion.div
+                  key="pipeline-error"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center gap-2 py-20 text-center"
+                >
+                  <div
+                    className="flex h-14 w-14 items-center justify-center rounded-full"
+                    style={{ backgroundColor: "rgba(248,113,113,0.12)" }}
+                  >
+                    <AlertCircle size={26} className="text-red-300" />
+                  </div>
+                  <p className="mt-2 text-sm font-semibold text-white">
+                    Generation didn't finish
+                  </p>
+                  <p className="text-xs text-wolf-muted">
+                    See the banner above. Tweak the clip or pick a lighter resolution and try again.
+                  </p>
+                </motion.div>
               ) : (
                 <motion.div
                   key="pipeline"
@@ -545,7 +569,9 @@ export default function PerformanceView({ onBack, template }: Props) {
                     <Loader2 size={16} className="animate-spin" />
                     {stage === "rendering"
                       ? `Stylizing — status: ${jobStatus || "starting"}`
-                      : "Stitching video with your audio + lyrics…"}
+                      : stage === "assembling"
+                      ? "Stitching video with your audio + lyrics…"
+                      : "Working…"}
                   </div>
                   {stageLog && <p className="text-center text-xs text-wolf-muted">{stageLog}</p>}
                   {clipUrl && stage === "rendering" && (

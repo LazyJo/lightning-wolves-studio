@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
@@ -86,6 +86,15 @@ export default function RemixView({ onBack, template }: Props) {
   const [finalUrl, setFinalUrl] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
 
+  // Pre-export preview: cycle through uploaded clips on the song timeline,
+  // muted, with the song playing on top — gives the user an instant feel
+  // for how the remix will land before they spend ffmpeg time exporting.
+  const [previewing, setPreviewing] = useState(false);
+  const [previewIdx, setPreviewIdx] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
   // Studio is signup-gated — server enforces credit quota.
   const hasQuota = true;
 
@@ -113,6 +122,72 @@ export default function RemixView({ onBack, template }: Props) {
 
   const slotsFilled = Math.min(clips.length, segments.length);
   const canGenerate = stage === "idle" && clips.length > 0 && hasQuota;
+  const canPreview = clips.length > 0 && !!audioUrl;
+
+  // Lazy-load the template's audio into a blob: URL the first time a
+  // preview-capable clip lands. We hold this for the whole session so
+  // toggling preview on/off doesn't re-fetch from IndexedDB every time.
+  useEffect(() => {
+    let cancelled = false;
+    let createdUrl: string | null = null;
+    if (clips.length > 0 && !audioUrl) {
+      (async () => {
+        try {
+          const file = await getTemplateAudioFile(template.id);
+          if (cancelled || !file) return;
+          createdUrl = URL.createObjectURL(file);
+          setAudioUrl(createdUrl);
+        } catch {
+          // Audio missing isn't fatal for preview — clip still renders.
+        }
+      })();
+    }
+    return () => {
+      cancelled = true;
+      // Don't revoke here — we want the URL to survive the next render.
+      // Cleanup happens on unmount (separate effect below).
+      void createdUrl;
+    };
+  }, [clips.length, audioUrl, template.id]);
+
+  // Revoke the audio URL on unmount so we don't leak the blob.
+  useEffect(() => {
+    return () => {
+      if (audioUrl?.startsWith("blob:")) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
+
+  // Step the preview clip every ~segment duration so the user sees a
+  // shuffled cycle through their library while the song plays.
+  useEffect(() => {
+    if (!previewing || clips.length === 0) return;
+    const segDur = segments[previewIdx % Math.max(1, segments.length)];
+    const ms = Math.max(800, ((segDur?.end ?? 2) - (segDur?.start ?? 0)) * 1000);
+    const t = window.setTimeout(() => {
+      setPreviewIdx((i) => (i + 1) % clips.length);
+    }, ms);
+    return () => window.clearTimeout(t);
+  }, [previewing, previewIdx, clips.length, segments]);
+
+  const togglePreview = useCallback(() => {
+    if (!canPreview) {
+      if (clips.length === 0) setError("Add at least one video clip to preview.");
+      return;
+    }
+    if (previewing) {
+      audioRef.current?.pause();
+      videoRef.current?.pause();
+      setPreviewing(false);
+      return;
+    }
+    setPreviewIdx(0);
+    setPreviewing(true);
+    // Allow the next render to mount the <audio>/<video> before play().
+    requestAnimationFrame(() => {
+      audioRef.current?.play().catch(() => undefined);
+      videoRef.current?.play().catch(() => undefined);
+    });
+  }, [canPreview, clips.length, previewing]);
 
   const addClips = (files: FileList | File[]) => {
     const next: UserClip[] = [];
@@ -153,6 +228,13 @@ export default function RemixView({ onBack, template }: Props) {
     }
     setError("");
     setFinalUrl(null);
+    // Pause the in-page preview so we don't have two audio sources fighting
+    // each other once the exported MP4 starts playing.
+    if (previewing) {
+      audioRef.current?.pause();
+      videoRef.current?.pause();
+      setPreviewing(false);
+    }
 
     try {
       setStage("assembling");
@@ -184,7 +266,7 @@ export default function RemixView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, clips, shuffle, segments, template, ratio, initFfmpeg]);
+  }, [accessToken, clips, shuffle, segments, template, ratio, initFfmpeg, previewing]);
 
   const exportDisabled = !canGenerate;
 
@@ -532,21 +614,64 @@ export default function RemixView({ onBack, template }: Props) {
                   className="w-full"
                   style={{ aspectRatio: ratio === "9:16" ? "9/16" : "16/9", maxHeight: 520, objectFit: "contain", backgroundColor: "#000" }}
                 />
-              ) : (
+              ) : previewing && clips.length > 0 ? (
                 <motion.div
+                  key="preview"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="relative"
+                  style={{ aspectRatio: ratio === "9:16" ? "9/16" : "16/9", maxHeight: 520 }}
+                >
+                  <video
+                    ref={videoRef}
+                    key={clips[previewIdx % clips.length]?.id}
+                    src={clips[previewIdx % clips.length]?.url}
+                    autoPlay
+                    muted
+                    playsInline
+                    loop
+                    className="h-full w-full object-cover"
+                  />
+                  <button
+                    onClick={togglePreview}
+                    className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors hover:bg-black/30"
+                    aria-label="Pause preview"
+                  >
+                    <span
+                      className="rounded-full border-2 bg-black/40 p-3 opacity-0 transition-opacity hover:opacity-100"
+                      style={{ borderColor: `${R.cyan}80` }}
+                    >
+                      <Play size={22} style={{ color: R.cyan }} />
+                    </span>
+                  </button>
+                  {/* Hidden audio element drives the song behind the cycling clips. */}
+                  {audioUrl && (
+                    <audio
+                      ref={audioRef}
+                      src={audioUrl}
+                      autoPlay
+                      onEnded={() => setPreviewing(false)}
+                    />
+                  )}
+                </motion.div>
+              ) : (
+                <motion.button
                   key="placeholder"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex items-center justify-center"
+                  onClick={togglePreview}
+                  disabled={!canPreview}
+                  className="group flex w-full items-center justify-center disabled:cursor-not-allowed"
                   style={{ aspectRatio: ratio === "9:16" ? "9/16" : "16/9", maxHeight: 520 }}
+                  aria-label={canPreview ? "Preview remix" : "Upload clips to preview"}
                 >
                   <div
-                    className="flex h-16 w-16 items-center justify-center rounded-full border-2"
-                    style={{ borderColor: `${R.cyan}60` }}
+                    className="flex h-16 w-16 items-center justify-center rounded-full border-2 transition-all group-enabled:group-hover:scale-110 group-disabled:opacity-40"
+                    style={{ borderColor: canPreview ? R.cyan : `${R.cyan}40` }}
                   >
                     <Play size={22} className="ml-1" style={{ color: R.cyan }} />
                   </div>
-                </motion.div>
+                </motion.button>
               )}
             </AnimatePresence>
           </div>

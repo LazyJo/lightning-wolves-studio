@@ -22,6 +22,13 @@ import { useSession } from "../../lib/useSession";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
+import {
+  PUBLIC_CLIPS,
+  PUBLIC_CLIP_CATEGORIES,
+  clipsByCategory,
+  type PublicClip,
+  type PublicClipCategory,
+} from "../../data/publicClips";
 
 const ratios = ["9:16", "16:9"] as const;
 
@@ -94,6 +101,39 @@ export default function RemixView({ onBack, template }: Props) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+
+  // Public Library overlay — opens when user clicks the 🌐 Public tile.
+  // Lets them grab Pexels CC0 footage straight into the local clips list
+  // without uploading anything themselves. The catalog ships static (see
+  // data/publicClips.ts) so there's no runtime API call latency.
+  const [publicLibraryOpen, setPublicLibraryOpen] = useState(false);
+  const [publicCategory, setPublicCategory] = useState<PublicClipCategory | "all">("all");
+  const [importingClipId, setImportingClipId] = useState<number | null>(null);
+
+  const importPublicClip = useCallback(async (clip: PublicClip) => {
+    setImportingClipId(clip.id);
+    setError("");
+    try {
+      // Direct fetch from Pexels CDN — `Access-Control-Allow-Origin: *`
+      // makes this safe from a browser context. No backend proxy needed.
+      const res = await fetch(clip.mp4Url);
+      if (!res.ok) throw new Error(`Failed to fetch clip: ${res.status}`);
+      const blob = await res.blob();
+      const filename = `${clip.name.toLowerCase().replace(/\s+/g, "-")}-${clip.id}.mp4`;
+      const file = new File([blob], filename, { type: "video/mp4" });
+      const userClip: UserClip = {
+        id: `public-${clip.id}-${Date.now()}`,
+        file,
+        url: URL.createObjectURL(file),
+      };
+      setClips((prev) => [...prev, userClip]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to import clip";
+      setError(`Couldn't import "${clip.name}": ${msg}`);
+    } finally {
+      setImportingClipId(null);
+    }
+  }, []);
 
   // Studio is signup-gated — server enforces credit quota.
   const hasQuota = true;
@@ -347,9 +387,17 @@ export default function RemixView({ onBack, template }: Props) {
               </button>
             </div>
 
-            {/* Category tiles — placeholder counts for Public Library / Uploaded / Saved */}
+            {/* Category tiles — Public opens the Pexels library overlay,
+                Uploaded reflects the local clips list, Saved is a placeholder
+                for future per-user bookmarks. */}
             <div className="mb-3 grid grid-cols-3 gap-1.5">
-              <CategoryTile icon="🌐" label="Public" count={0} color={R.amber} />
+              <CategoryTile
+                icon="🌐"
+                label="Public"
+                count={PUBLIC_CLIPS.length}
+                color={R.amber}
+                onClick={() => setPublicLibraryOpen(true)}
+              />
               <CategoryTile icon="📚" label="Uploaded" count={clips.length} color={R.purple} active />
               <CategoryTile icon="⭐" label="Saved" count={0} color={R.blue} />
             </div>
@@ -788,7 +836,158 @@ export default function RemixView({ onBack, template }: Props) {
           )}
         </motion.div>
       </div>
+
+      {/* ── Public Library overlay ─────────────────────────────────────
+         Pexels CC0 catalog — the legal alternative to LYRC's user-uploaded
+         library (which contains pirated movie clips). All clips here are
+         royalty-free, no attribution required, no copyright risk. */}
+      <AnimatePresence>
+        {publicLibraryOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/80 p-4 pt-16 backdrop-blur"
+            onClick={() => setPublicLibraryOpen(false)}
+          >
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 20, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-5xl rounded-2xl border bg-wolf-bg p-5"
+              style={{ borderColor: R.border }}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.25em]" style={{ color: R.amber }}>
+                    🌐 Public Library
+                  </p>
+                  <h2 className="mt-1 text-xl font-black text-white">
+                    Royalty-free clips from Pexels
+                  </h2>
+                  <p className="mt-1 text-xs text-wolf-muted">
+                    Click a clip to add it to your timeline. All clips are CC0 — free for commercial use, no attribution required.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setPublicLibraryOpen(false)}
+                  aria-label="Close library"
+                  className="rounded-lg border p-2 text-wolf-muted transition-colors hover:text-white"
+                  style={{ borderColor: R.border }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Category filter chips */}
+              <div className="mb-4 flex flex-wrap gap-1.5">
+                <CategoryChip
+                  active={publicCategory === "all"}
+                  onClick={() => setPublicCategory("all")}
+                  label="All"
+                  emoji="🌐"
+                  count={PUBLIC_CLIPS.length}
+                />
+                {PUBLIC_CLIP_CATEGORIES.map((c) => {
+                  const count = clipsByCategory(c.id).length;
+                  if (count === 0) return null;
+                  return (
+                    <CategoryChip
+                      key={c.id}
+                      active={publicCategory === c.id}
+                      onClick={() => setPublicCategory(c.id)}
+                      label={c.label}
+                      emoji={c.emoji}
+                      count={count}
+                    />
+                  );
+                })}
+              </div>
+
+              {/* Clip grid */}
+              {clipsByCategory(publicCategory).length === 0 ? (
+                <div className="rounded-xl border border-dashed p-8 text-center text-xs text-wolf-muted" style={{ borderColor: R.border }}>
+                  <p className="text-sm font-semibold text-white">Library is empty</p>
+                  <p className="mt-1">
+                    Run <code className="rounded bg-black/40 px-1 py-0.5 text-[10px]">PEXELS_API_KEY=&lt;key&gt; node scripts/curate-public-clips.mjs</code> to populate.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+                  {clipsByCategory(publicCategory).map((clip) => {
+                    const isImporting = importingClipId === clip.id;
+                    return (
+                      <button
+                        key={clip.id}
+                        onClick={() => importPublicClip(clip)}
+                        disabled={isImporting}
+                        className="group relative overflow-hidden rounded-lg border text-left transition-all hover:scale-[1.02] disabled:cursor-wait disabled:opacity-60"
+                        style={{ borderColor: R.border, backgroundColor: "rgba(0,0,0,0.4)" }}
+                      >
+                        <div className="aspect-video overflow-hidden bg-black">
+                          <img
+                            src={clip.thumbUrl}
+                            alt={clip.name}
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                        <div className="p-2">
+                          <p className="truncate text-[11px] font-semibold text-white">{clip.name}</p>
+                          <p className="text-[10px] text-wolf-muted">
+                            {clip.duration}s · {clip.width}×{clip.height}
+                          </p>
+                        </div>
+                        {isImporting && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/60">
+                            <Loader2 size={20} className="animate-spin" style={{ color: R.amber }} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              <p className="mt-4 text-center text-[10px] text-wolf-muted/70">
+                Clips by Pexels community photographers · Pexels License (free for commercial use)
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+function CategoryChip({
+  active,
+  onClick,
+  label,
+  emoji,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  emoji: string;
+  count: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold transition-all"
+      style={
+        active
+          ? { borderColor: "#f5c518", backgroundColor: "rgba(245,197,24,0.14)", color: "#f5c518" }
+          : { borderColor: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.55)" }
+      }
+    >
+      <span>{emoji}</span>
+      {label}
+      <span className="rounded-full bg-black/30 px-1.5 py-0.5 text-[9px]">{count}</span>
+    </button>
   );
 }
 
@@ -800,16 +999,22 @@ function CategoryTile({
   count,
   color,
   active,
+  onClick,
 }: {
   icon: string;
   label: string;
   count: number;
   color: string;
   active?: boolean;
+  onClick?: () => void;
 }) {
+  const Wrapper: React.ElementType = onClick ? "button" : "div";
   return (
-    <div
-      className="flex flex-col items-start gap-0.5 rounded-lg border-l-2 p-2"
+    <Wrapper
+      onClick={onClick}
+      className={`flex flex-col items-start gap-0.5 rounded-lg border-l-2 p-2 text-left ${
+        onClick ? "transition-all hover:scale-[1.02]" : ""
+      }`}
       style={{
         borderLeftColor: color,
         backgroundColor: active ? `${color}15` : "rgba(0,0,0,0.3)",
@@ -822,7 +1027,7 @@ function CategoryTile({
       <span className="text-[10px] font-mono" style={{ color: active ? color : R.mute }}>
         {count}
       </span>
-    </div>
+    </Wrapper>
   );
 }
 

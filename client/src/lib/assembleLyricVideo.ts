@@ -191,6 +191,7 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
           "-c:a", "aac",
           "-b:a", "128k",
           "-shortest",
+          "-t", String(dur), // hard output cap — belt-and-suspenders for -shortest
           "-movflags", "+faststart",
           "final.mp4",
         ]);
@@ -269,13 +270,19 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
           ...audioInputArgs,
         ];
         if (attempt.vf) args2.push("-vf", attempt.vf);
+        // Always re-encode the video stream — `-c:v copy` makes ffmpeg.wasm
+        // ignore -shortest in some 0.12.x builds, which is exactly the
+        // "Remix exports the whole song" bug Jo flagged 2026-05-03 even
+        // after the audio was trimmed correctly. libx264 + an explicit
+        // output-side -t guarantees the file is exactly clipDuration.
         args2.push(
-          "-c:v", attempt.vf ? "libx264" : "copy",
+          "-c:v", "libx264",
           "-preset", "ultrafast",
           "-pix_fmt", "yuv420p",
           "-c:a", "aac",
           "-b:a", "128k",
           "-shortest",
+          "-t", String(dur),
           "-movflags", "+faststart",
           "final.mp4",
         );

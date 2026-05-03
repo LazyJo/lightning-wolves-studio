@@ -169,6 +169,8 @@ export default function ScenesView({ onBack, template }: Props) {
   const [error, setError] = useState<string>("");
 
   const model = VIDEO_MODELS.find((m) => m.id === modelId)!;
+  const renderWindow = resolveClipWindow(template);
+  const legacyClip = typeof template.clipDuration !== "number";
   // Derive segments up-front so the credit count + section preview both
   // reflect what we'll actually render. Recomputed when the template's
   // markers / words change (template prop is stable per session, so this
@@ -462,8 +464,13 @@ export default function ScenesView({ onBack, template }: Props) {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-white">{template.title}</p>
                 <p className="text-[10px] text-wolf-muted">
-                  {template.audioDurationSec.toFixed(0)}s · {ratio} · {template.cutMarkers.length} cuts
+                  {renderWindow.duration.toFixed(0)}s · {ratio} · {template.cutMarkers.length} cuts
                 </p>
+                {legacyClip && (
+                  <p className="text-[10px]" style={{ color: SC.warn }}>
+                    Legacy template — re-save to lock your 15s window.
+                  </p>
+                )}
               </div>
             </div>
           </SectionCard>

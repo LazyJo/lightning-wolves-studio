@@ -88,6 +88,12 @@ export default function PerformanceView({ onBack, template }: Props) {
   const model = STYLIZE_MODELS.find((m) => m.id === modelId)!;
   const activeRes = RESOLUTIONS.find((r) => r.id === resolution)!;
   const totalCredits = model.credits + activeRes.credits;
+  // Render-window meta — surfaces the actual slice duration on the
+  // template card. `legacyClip` flags pre-2026-05-03 templates that don't
+  // have clipDuration saved; we hint the user to re-save so the new
+  // pipeline can render only the picked window.
+  const renderWindow = resolveClipWindow(template);
+  const legacyClip = typeof template.clipDuration !== "number";
 
   // Studio is signup-gated — server enforces credit quota.
   const canGenerate = stage === "idle" && !!clipFile;
@@ -260,7 +266,12 @@ export default function PerformanceView({ onBack, template }: Props) {
                   {template.title}
                 </p>
                 <p className="text-[10px]" style={{ color: P.pink, opacity: 0.7 }}>
-                  {template.audioDurationSec.toFixed(0)}s · {ratio}
+                  {renderWindow.duration.toFixed(0)}s · {ratio}
+                  {legacyClip && (
+                    <span className="ml-1" style={{ color: P.warn }}>
+                      · re-save to lock 15s
+                    </span>
+                  )}
                 </p>
               </div>
             </div>

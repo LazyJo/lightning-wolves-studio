@@ -122,6 +122,8 @@ export default function RemixView({ onBack, template }: Props) {
 
   const slotsFilled = Math.min(clips.length, segments.length);
   const canGenerate = stage === "idle" && clips.length > 0 && hasQuota;
+  const renderWindow = resolveClipWindow(template);
+  const legacyClip = typeof template.clipDuration !== "number";
   const canPreview = clips.length > 0 && !!audioUrl;
 
   // Lazy-load the template's audio into a blob: URL the first time a
@@ -422,9 +424,14 @@ export default function RemixView({ onBack, template }: Props) {
                   {template.title}
                 </span>
                 <span className="text-[10px] text-wolf-muted">
-                  {template.audioDurationSec.toFixed(0)}s · {template.cutMarkers.length || segments.length}
+                  {renderWindow.duration.toFixed(0)}s · {template.cutMarkers.length || segments.length}
                 </span>
               </div>
+              {legacyClip && (
+                <p className="mt-1 text-[10px]" style={{ color: "#f5b14a" }}>
+                  Legacy template — re-save in the editor to lock your 15s window.
+                </p>
+              )}
             </div>
 
             {/* NO CUTS toggle */}

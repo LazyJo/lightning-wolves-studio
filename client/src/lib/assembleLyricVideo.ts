@@ -86,25 +86,34 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
 
   // ── Inputs: audio + lyric overlay are shared by both modes ──────────
   log("Loading audio…");
-  await ffmpeg.writeFile("song.audio", new Uint8Array(await audioFile.arrayBuffer()));
+  // Preserve the source extension so ffmpeg.wasm's libavformat can probe
+  // the container (mp3 / m4a / wav / webm). A previous attempt wrote the
+  // audio to "song.audio" with no extension and tried to pre-trim it via
+  // a separate ffmpeg.exec call to "song.clip.audio" — that produced
+  // ErrnoError: FS error in Scenes because libavformat couldn't pick a
+  // muxer for the extension-less output. Now we write to song.<ext> and
+  // do the trim INLINE on the final command via -ss / -t before -i, which
+  // is faster and dodges the muxer-guess problem entirely.
+  const ext = (() => {
+    const name = audioFile.name || "";
+    const dot = name.lastIndexOf(".");
+    if (dot > 0) return name.slice(dot + 1).toLowerCase();
+    if (audioFile.type.includes("mpeg") || audioFile.type.includes("mp3")) return "mp3";
+    if (audioFile.type.includes("wav")) return "wav";
+    if (audioFile.type.includes("ogg")) return "ogg";
+    if (audioFile.type.includes("webm")) return "webm";
+    if (audioFile.type.includes("mp4") || audioFile.type.includes("m4a")) return "m4a";
+    return "mp3"; // safe default — server-side audio is usually mp3.
+  })();
+  const audioPath = `song.${ext}`;
+  await ffmpeg.writeFile(audioPath, new Uint8Array(await audioFile.arrayBuffer()));
 
-  // Pre-trim the audio to the picked window so every downstream filter
-  // operates on clip-length (not full-song-length) media. Doing the trim
-  // in a separate step keeps the main filter chains simple and avoids
-  // -ss-on-input gotchas with subtitle filters.
-  if (clipStart > 0 || dur < (args.audioDurationSec ?? Infinity)) {
-    await ffmpeg.exec([
-      "-ss", String(clipStart),
-      "-t", String(dur),
-      "-i", "song.audio",
-      "-c", "copy",
-      "song.clip.audio",
-    ]);
-  } else {
-    // No trim needed — alias the original so the rest of the pipeline
-    // can always read song.clip.audio.
-    await ffmpeg.exec(["-i", "song.audio", "-c", "copy", "song.clip.audio"]);
-  }
+  // Audio-input flags applied to the final ffmpeg.exec in each branch:
+  // -ss before -i = fast input seek (start of clip window),
+  // -t after the seek bounds the input duration to clipDuration.
+  const audioInputArgs = (clipStart > 0 || dur < (args.audioDurationSec ?? Infinity))
+    ? ["-ss", String(clipStart), "-t", String(dur), "-i", audioPath]
+    : ["-i", audioPath];
 
   const overlay = buildOverlay(args, w, h);
   if (overlay.kind === "ass") {
@@ -173,7 +182,7 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
           "-framerate", String(fps),
           "-t", String(dur),
           "-i", "bg.jpg",
-          "-i", "song.clip.audio",
+          ...audioInputArgs,
           "-vf", attempt.vf,
           "-c:v", "libx264",
           "-preset", "ultrafast",
@@ -257,7 +266,7 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
         if (attempt.pre) await attempt.pre();
         const args2: string[] = [
           "-i", "silent.mp4",
-          "-i", "song.clip.audio",
+          ...audioInputArgs,
         ];
         if (attempt.vf) args2.push("-vf", attempt.vf);
         args2.push(

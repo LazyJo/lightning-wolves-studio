@@ -99,8 +99,14 @@ export default function RemixView({ onBack, template }: Props) {
   const hasQuota = true;
 
   // Segments: respect NO CUTS, otherwise use template markers or even-split.
+  // CRITICAL: timeline length is the CLIP window, not the full song. cutMarkers
+  // and wordTimings are already saved in clip-relative time, so the bounds
+  // we slice between have to live in that same coordinate system. Using
+  // audioDurationSec here was the bug Jo flagged 2026-05-03 — silent.mp4
+  // ended up 134s long even though the audio was trimmed to 15s, so the
+  // exported video played the whole song behind a stretched timeline.
   const segments = useMemo<Array<{ start: number; end: number }>>(() => {
-    const total = template.audioDurationSec || 0;
+    const total = resolveClipWindow(template).duration;
     if (total === 0) return [];
     if (noCuts) return [{ start: 0, end: total }];
     const markers = [...template.cutMarkers].sort((a, b) => a - b);
@@ -118,7 +124,7 @@ export default function RemixView({ onBack, template }: Props) {
       start: i * step,
       end: Math.min(total, (i + 1) * step),
     }));
-  }, [template.cutMarkers, template.audioDurationSec, clips.length, noCuts]);
+  }, [template, clips.length, noCuts]);
 
   const slotsFilled = Math.min(clips.length, segments.length);
   const canGenerate = stage === "idle" && clips.length > 0 && hasQuota;

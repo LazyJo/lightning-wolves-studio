@@ -176,9 +176,10 @@ export default function ScenesView({ onBack, template }: Props) {
   // markers / words change (template prop is stable per session, so this
   // is effectively memoized for free).
   const sceneSections = useMemo(() => deriveSceneSections(template), [template]);
-  // Preset path runs fully in-browser via ffmpeg.wasm — no API spend, so
-  // it's free. Custom path still hits Replicate per-section.
-  const totalCredits = activePreset ? 0 : model.credits * Math.max(1, sceneSections.length);
+  // Every render hits Replicate Kling now (LYRC parity — see handleGenerate
+  // comment). Cost = model.credits per scene section, with at least one
+  // section so a single-block clip still shows a non-zero number.
+  const totalCredits = model.credits * Math.max(1, sceneSections.length);
   // Studio is signup-gated — server enforces credit quota.
   // Allow regenerating from "done"/"error" too so a failed render doesn't
   // strand the user on a disabled button until they refresh.
@@ -201,35 +202,14 @@ export default function ScenesView({ onBack, template }: Props) {
       const audioFile = await getTemplateAudioFile(template.id);
       if (!audioFile) throw new Error("Template audio is missing — re-upload in the editor.");
 
-      // ── Fast path: preset selected → loop the curated /scenes/<id>.jpg
-      // backdrop and burn the karaoke lyrics on top. No AI calls, no
-      // network for the visual track, ~10-15s end-to-end. This is what
-      // makes Scenes feel like LYRC — instant after pick.
-      if (activePreset) {
-        setStage("assembling");
-        setStageLog("Rendering your lyric video…");
-
-        const window = resolveClipWindow(template);
-        const mp4 = await assembleLyricVideo({
-          ffmpeg: ff,
-          bgImageUrl: `/scenes/${activePreset.id}.jpg`,
-          audioFile,
-          wordTimings: template.wordTimings,
-          srt: template.srt,
-          audioDurationSec: template.audioDurationSec,
-          clipStart: window.start,
-          clipDuration: window.duration,
-          aspectRatio: ratio,
-          onStage: (s) => setStageLog(s),
-        });
-
-        setFinalUrl(mp4);
-        setStage("done");
-        setStageLog("");
-        return;
-      }
-
-      // ── Slow path: Custom prompt → AI text-to-video per lyric block
+      // ── LYRC parity: every render goes through Replicate Kling, whether
+      // the user picked a curated preset or wrote a custom prompt. The
+      // preset's `prompt` string is plumbed in as the style guide so
+      // "Late Night Drive" still feels distinct from "Studio Session" —
+      // but the OUTPUT is a freshly AI-generated video, not a panning
+      // still image. The earlier image-only fast path felt like a
+      // slideshow next to LYRC's real motion footage; Jo flagged it
+      // 2026-05-03 and asked for parity.
       // ────────────────────────────────────────────────────────────────
       setStage("planning");
       setStageLog(`Slicing ${sceneSections.length} scenes from your lyric blocks…`);
@@ -349,7 +329,7 @@ export default function ScenesView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg, sceneSections, activePreset]);
+  }, [accessToken, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg, sceneSections]);
 
   const completedScenes = useMemo(
     () => scenes.filter((s) => s.status === "succeeded").length,
@@ -640,7 +620,7 @@ export default function ScenesView({ onBack, template }: Props) {
                   className="rounded px-2 py-0.5 text-[11px] font-bold"
                   style={{ backgroundColor: "rgba(0,0,0,0.25)" }}
                 >
-                  {activePreset ? "FREE" : `💎 ${totalCredits}`}
+                  💎 {totalCredits}
                 </span>
               </span>
             ) : (
@@ -648,7 +628,7 @@ export default function ScenesView({ onBack, template }: Props) {
                 <Loader2 size={15} className="animate-spin" />
                 {stage === "planning" && "Writing scenes…"}
                 {stage === "rendering" && `Rendering ${completedScenes}/${scenes.length}…`}
-                {stage === "assembling" && (activePreset ? "Rendering karaoke…" : "Stitching video…")}
+                {stage === "assembling" && "Stitching video…"}
               </span>
             )}
           </button>
@@ -672,6 +652,16 @@ export default function ScenesView({ onBack, template }: Props) {
             >
               {validationMessage}
             </div>
+          )}
+
+          {/* Render-time expectation — Kling stylize is 3-10 min per scene
+              and runs in parallel, so a typical 15s clip with 2 sections
+              lands in 3-5 min. Set the user's expectation up-front so they
+              don't think it hung. */}
+          {stage === "idle" && hasValidStyle && (
+            <p className="text-center text-[10px] text-wolf-muted/70">
+              Renders take ~3–5 min — your clip is AI-generated frame-by-frame.
+            </p>
           )}
 
         </motion.div>

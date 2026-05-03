@@ -24,7 +24,7 @@ import {
 import { useSession } from "../../lib/useSession";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
-import { getTemplateAudioFile, type Template } from "../../lib/templates";
+import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
 
 const PERFORMANCE_STYLES = [
   { id: "anime", name: "Anime", prompt: "anime style, bold outlines, vibrant colors, dynamic action" },
@@ -130,13 +130,16 @@ export default function PerformanceView({ onBack, template }: Props) {
       setStageLog("Stylizing your clip — Kling re-renders it frame by frame.");
       setJobStatus("starting");
 
+      const window0 = resolveClipWindow(template);
       const start = await startVisualGeneration({
         modelId,
         prompt,
         type: "performance",
         accessToken,
         options: {
-          duration: Math.min(10, Math.ceil(template.audioDurationSec)),
+          // Bound to the picked clip window — and Kling tops out at 10s
+          // for v1.6 standard, so clamp accordingly.
+          duration: Math.max(2, Math.min(10, Math.ceil(window0.duration))),
           aspectRatio: ratio,
           resolution,
         },
@@ -163,11 +166,16 @@ export default function PerformanceView({ onBack, template }: Props) {
       const audioFile = await getTemplateAudioFile(template.id);
       if (!audioFile) throw new Error("Template audio missing — re-upload in the editor.");
 
+      const window = resolveClipWindow(template);
       const mp4 = await assembleLyricVideo({
         ffmpeg: ff,
         clipUrls: [stylizedUrl],
         audioFile,
+        wordTimings: template.wordTimings,
         srt: template.srt,
+        audioDurationSec: template.audioDurationSec,
+        clipStart: window.start,
+        clipDuration: window.duration,
         aspectRatio: ratio,
         onStage: (s) => setStageLog(s),
       });

@@ -427,6 +427,10 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
         audioMimeType: audioFile?.type || initial?.audioMimeType || "audio/mpeg",
         audioFilename: audioFile?.name || initial?.audioFilename || "audio.mp3",
         audioDurationSec: audioDuration,
+        // Persist the picked window so Scenes/Remix/Performance render only
+        // the slice the user paid for, not the whole song.
+        clipStart: regionStart,
+        clipDuration: selectedDuration,
         transcript: clipTranscript || transcript,
         wordTimings: clipWordTimings.length ? clipWordTimings : wordTimings,
         srt: "",
@@ -441,7 +445,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     } finally {
       setSaving(false);
     }
-  }, [saveName, audioFile, initial, language, audioDuration, transcript, wordTimings, clipTranscript, clipWordTimings, cutMarkers, wolf, create, onSaved]);
+  }, [saveName, audioFile, initial, language, audioDuration, regionStart, selectedDuration, transcript, wordTimings, clipTranscript, clipWordTimings, cutMarkers, wolf, create, onSaved]);
 
   /* ── Render ──────────────────────────────────────────────────────── */
   const headingTitle = initial ? "EDIT TEMPLATE" : "CREATE TEMPLATE";

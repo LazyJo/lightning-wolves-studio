@@ -32,6 +32,19 @@ export interface TemplateMeta {
   audioMimeType: string;
   audioFilename: string;
   audioDurationSec: number;
+  /**
+   * Clip window picked in Step 1 (Audio). The saved transcript + wordTimings
+   * are RELATIVE to clipStart (0..clipDuration). Renderers must trim the
+   * stored full-song audio to this window before muxing — without it, every
+   * output plays the whole 2–3 min song with lyrics covering only the first
+   * 15s, which is the wrong UX (and the bug Jo flagged 2026-05-03).
+   *
+   * Both fields are optional for backwards compat: pre-2026-05-03 templates
+   * default `clipStart=0` and `clipDuration=max(wordTimings.end)` so they
+   * still render the slice they actually have lyrics for.
+   */
+  clipStart?: number;
+  clipDuration?: number;
   transcript: string;
   wordTimings: WordTiming[];
   srt: string;               // Derived from wordTimings, ready for ffmpeg overlay
@@ -188,6 +201,8 @@ export async function saveTemplate(
     audioMimeType: input.audioMimeType,
     audioFilename: input.audioFilename,
     audioDurationSec: input.audioDurationSec,
+    clipStart: input.clipStart,
+    clipDuration: input.clipDuration,
     transcript: input.transcript,
     wordTimings: input.wordTimings,
     srt,
@@ -208,6 +223,27 @@ export async function saveTemplate(
   const blob = input.audioBlob || (await idbGet(id));
   if (!blob) throw new Error("Template saved but audio blob is missing.");
   return { ...meta, audioUrl: URL.createObjectURL(blob) };
+}
+
+/**
+ * Resolve the audio window an output should cover for a given template.
+ *
+ *   • New templates carry explicit clipStart + clipDuration → use them.
+ *   • Pre-2026-05-03 templates have neither, but their wordTimings are
+ *     already clip-relative (start at 0). Fall back to that range so the
+ *     render still matches the lyrics rather than playing the whole song.
+ *   • Empty / instrumental → fall back to the full audio.
+ */
+export function resolveClipWindow(t: TemplateMeta): { start: number; duration: number } {
+  const start = t.clipStart ?? 0;
+  if (typeof t.clipDuration === "number" && t.clipDuration > 0) {
+    return { start, duration: t.clipDuration };
+  }
+  if (t.wordTimings && t.wordTimings.length > 0) {
+    const lastEnd = t.wordTimings[t.wordTimings.length - 1].end;
+    if (lastEnd > 0) return { start, duration: lastEnd };
+  }
+  return { start, duration: t.audioDurationSec };
 }
 
 export async function deleteTemplate(id: string): Promise<void> {

@@ -21,7 +21,7 @@ import {
 import { useSession } from "../../lib/useSession";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
-import { getTemplateAudioFile, type Template } from "../../lib/templates";
+import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
 
 const ratios = ["9:16", "16:9"] as const;
 
@@ -249,11 +249,19 @@ export default function RemixView({ onBack, template }: Props) {
 
       const clipUrls = segments.map((_, i) => pool[i % pool.length].url);
 
+      const window = resolveClipWindow(template);
       const mp4 = await assembleLyricVideo({
         ffmpeg: ff,
         clipUrls,
         audioFile,
+        // Pass wordTimings so the export gets brand-gold karaoke (LYRC-style)
+        // instead of plain SRT — and so Remix matches the lyric burn-in the
+        // user already sees in Scenes.
+        wordTimings: template.wordTimings,
         srt: template.srt,
+        audioDurationSec: template.audioDurationSec,
+        clipStart: window.start,
+        clipDuration: window.duration,
         aspectRatio: ratio,
         onStage: (s) => setStageLog(s),
       });

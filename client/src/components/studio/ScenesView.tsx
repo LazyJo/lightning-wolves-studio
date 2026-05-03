@@ -25,7 +25,7 @@ import {
 import { useSession } from "../../lib/useSession";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
-import { getTemplateAudioFile, type Template } from "../../lib/templates";
+import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
 import ScenePresetPicker from "./ScenePresetPicker";
 import { scenePresets, type ScenePreset } from "../../data/scenePresets";
 
@@ -78,7 +78,12 @@ const MIN_SCENE_DURATION_S = 4;
  * so per-scene prompts can mention what's being sung in that beat.
  */
 function deriveSceneSections(template: Template): { start: number; end: number; lyrics: string }[] {
-  const dur = template.audioDurationSec || 0;
+  // Boundaries live in CLIP-RELATIVE time so the rendered scenes line up
+  // with the trimmed audio instead of the full song. wordTimings are
+  // already clip-relative; cutMarkers were captured in clip-relative time
+  // too (they're set inside the picked window).
+  const window = resolveClipWindow(template);
+  const dur = window.duration;
   const markers = template.cutMarkers || [];
   const words = template.wordTimings || [];
 
@@ -202,6 +207,7 @@ export default function ScenesView({ onBack, template }: Props) {
         setStage("assembling");
         setStageLog("Rendering your lyric video…");
 
+        const window = resolveClipWindow(template);
         const mp4 = await assembleLyricVideo({
           ffmpeg: ff,
           bgImageUrl: `/scenes/${activePreset.id}.jpg`,
@@ -209,6 +215,8 @@ export default function ScenesView({ onBack, template }: Props) {
           wordTimings: template.wordTimings,
           srt: template.srt,
           audioDurationSec: template.audioDurationSec,
+          clipStart: window.start,
+          clipDuration: window.duration,
           aspectRatio: ratio,
           onStage: (s) => setStageLog(s),
         });
@@ -303,6 +311,7 @@ export default function ScenesView({ onBack, template }: Props) {
       setStage("assembling");
       setStageLog("Stitching scenes with karaoke…");
 
+      const window = resolveClipWindow(template);
       const mp4 = await assembleLyricVideo({
         ffmpeg: ff,
         clipUrls: results,
@@ -310,6 +319,8 @@ export default function ScenesView({ onBack, template }: Props) {
         wordTimings: template.wordTimings,
         srt: template.srt,
         audioDurationSec: template.audioDurationSec,
+        clipStart: window.start,
+        clipDuration: window.duration,
         aspectRatio: ratio,
         onStage: (s) => setStageLog(s),
       });

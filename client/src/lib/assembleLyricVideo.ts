@@ -18,11 +18,23 @@ export interface AssembleArgs {
   audioFile: File;           // The user's original song audio
   /**
    * Word-level timings for karaoke-style word highlighting. When omitted,
-   * we fall back to a static SRT (`srt`) burned in.
+   * we fall back to a static SRT (`srt`) burned in. Times are CLIP-relative
+   * (i.e. start at 0 for the picked clip window) so they line up with the
+   * trimmed audio below.
    */
   wordTimings?: WordTiming[];
   srt?: string;              // Static SRT fallback when wordTimings is absent
   audioDurationSec?: number; // Used to size the output and bound zoom motion
+  /**
+   * Clip window inside the source song. When set, the audio is trimmed to
+   * `[clipStart, clipStart+clipDuration]` and the visual is bounded to
+   * `clipDuration` so the output covers ONLY the picked slice — not the
+   * full song. Required to fix the "whole-song output" bug Jo flagged on
+   * 2026-05-03; without it Scenes/Remix/Performance all default to the
+   * full audio length.
+   */
+  clipStart?: number;
+  clipDuration?: number;
   aspectRatio?: "9:16" | "16:9";
   onStage?: (stage: string) => void;
 }
@@ -59,9 +71,40 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
     throw new Error("No backdrop provided to assemble.");
   }
 
+  // ── Resolve the clip window the output should cover ────────────────
+  // If the caller passed clipDuration, render only that slice. Otherwise
+  // fall back to audioDurationSec, otherwise to a sane minimum. This is
+  // what makes Scenes/Remix/Performance honour the user's picked window
+  // instead of always rendering the whole song.
+  const clipStart = Math.max(0, args.clipStart ?? 0);
+  const clipDuration = (() => {
+    if (typeof args.clipDuration === "number" && args.clipDuration > 0) return args.clipDuration;
+    if (typeof args.audioDurationSec === "number" && args.audioDurationSec > 0) return args.audioDurationSec;
+    return 15;
+  })();
+  const dur = Math.max(2, clipDuration);
+
   // ── Inputs: audio + lyric overlay are shared by both modes ──────────
   log("Loading audio…");
   await ffmpeg.writeFile("song.audio", new Uint8Array(await audioFile.arrayBuffer()));
+
+  // Pre-trim the audio to the picked window so every downstream filter
+  // operates on clip-length (not full-song-length) media. Doing the trim
+  // in a separate step keeps the main filter chains simple and avoids
+  // -ss-on-input gotchas with subtitle filters.
+  if (clipStart > 0 || dur < (args.audioDurationSec ?? Infinity)) {
+    await ffmpeg.exec([
+      "-ss", String(clipStart),
+      "-t", String(dur),
+      "-i", "song.audio",
+      "-c", "copy",
+      "song.clip.audio",
+    ]);
+  } else {
+    // No trim needed — alias the original so the rest of the pipeline
+    // can always read song.clip.audio.
+    await ffmpeg.exec(["-i", "song.audio", "-c", "copy", "song.clip.audio"]);
+  }
 
   const overlay = buildOverlay(args, w, h);
   if (overlay.kind === "ass") {
@@ -76,13 +119,18 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
     const imgBytes = await fetchFile(args.bgImageUrl);
     await ffmpeg.writeFile("bg.jpg", imgBytes);
 
-    const dur = Math.max(5, args.audioDurationSec ?? 60);
-
-    // Filter chain. Kept deliberately minimal — just scale, crop, and
-    // (optionally) subtitles. Anything fancier (zoompan, blend, etc.)
-    // has been observed to break ffmpeg.wasm builds that lack a filter
-    // or behave oddly with `-loop 1` infinite inputs.
-    const baseFilter = `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}`;
+    // Ken-Burns zoompan: render the still image as a slowly-zooming video
+    // so output reads as motion rather than a frozen frame (the "it's just
+    // an image" complaint Jo flagged 2026-05-03). zoompan rebuilds frames
+    // from a still input and is supported in the standard ffmpeg.wasm
+    // single-thread build. Use a high upscale (2400×) before zoompan so
+    // the zoomed frame still has detail, then crop to canvas.
+    const totalFrames = Math.max(2, Math.round(dur * fps));
+    const baseFilter = [
+      `scale=2400:-1:flags=lanczos`,
+      `zoompan=z='min(zoom+0.0010,1.20)':d=${totalFrames}:s=${w}x${h}:fps=${fps}`,
+      `crop=${w}:${h}`,
+    ].join(",");
 
     // Subtitle attempt order: ASS karaoke → SRT static → no overlay.
     // This way the user always gets *some* video out of the door even
@@ -125,11 +173,11 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
           "-framerate", String(fps),
           "-t", String(dur),
           "-i", "bg.jpg",
-          "-i", "song.audio",
+          "-i", "song.clip.audio",
           "-vf", attempt.vf,
           "-c:v", "libx264",
           "-preset", "ultrafast",
-          "-tune", "stillimage",
+          // Drop the stillimage tune — incompatible with zoompan motion.
           "-pix_fmt", "yuv420p",
           "-c:a", "aac",
           "-b:a", "128k",
@@ -181,22 +229,57 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
     ]);
 
     log("Adding audio + lyrics…");
-    const muxArgs = [
-      "-i", "silent.mp4",
-      "-i", "song.audio",
-    ];
-    if (overlay.filter) muxArgs.push("-vf", overlay.filter);
-    muxArgs.push(
-      "-c:v", overlay.filter ? "libx264" : "copy",
-      "-preset", "ultrafast",
-      "-pix_fmt", "yuv420p",
-      "-c:a", "aac",
-      "-b:a", "128k",
-      "-shortest",
-      "-movflags", "+faststart",
-      "final.mp4",
-    );
-    await ffmpeg.exec(muxArgs);
+    // Same fallback chain as the image path — ASS karaoke first (so Remix
+    // gets the brand-gold word-by-word burn-in too), then static SRT, then
+    // no overlay. Without this Remix exports came back with no lyrics on
+    // top because the single-attempt mux was failing silently for some
+    // template SRT shapes (the bug Jo flagged 2026-05-03).
+    const attempts: Array<{ label: string; vf: string | null; pre?: () => Promise<void> }> = [];
+    if (overlay.kind === "ass") {
+      attempts.push({ label: "ASS karaoke", vf: "subtitles=subs.ass" });
+      if (args.srt) {
+        attempts.push({
+          label: "static SRT",
+          vf: "subtitles=subs.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=60'",
+          pre: async () => {
+            await ffmpeg.writeFile("subs.srt", new TextEncoder().encode(args.srt!));
+          },
+        });
+      }
+    } else if (overlay.kind === "srt") {
+      attempts.push({ label: "static SRT", vf: overlay.filter });
+    }
+    attempts.push({ label: "no overlay", vf: null });
+
+    let lastErr: unknown = null;
+    for (const attempt of attempts) {
+      try {
+        if (attempt.pre) await attempt.pre();
+        const args2: string[] = [
+          "-i", "silent.mp4",
+          "-i", "song.clip.audio",
+        ];
+        if (attempt.vf) args2.push("-vf", attempt.vf);
+        args2.push(
+          "-c:v", attempt.vf ? "libx264" : "copy",
+          "-preset", "ultrafast",
+          "-pix_fmt", "yuv420p",
+          "-c:a", "aac",
+          "-b:a", "128k",
+          "-shortest",
+          "-movflags", "+faststart",
+          "final.mp4",
+        );
+        await ffmpeg.exec(args2);
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
+        // eslint-disable-next-line no-console
+        console.warn(`assembleLyricVideo: '${attempt.label}' attempt failed`, e);
+      }
+    }
+    if (lastErr) throw lastErr;
   }
 
   // ── Pull the result out ─────────────────────────────────────────────

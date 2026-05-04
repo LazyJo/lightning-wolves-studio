@@ -225,25 +225,30 @@ export async function saveTemplate(
   return { ...meta, audioUrl: URL.createObjectURL(blob) };
 }
 
+/** Hard cap for legacy templates without explicit clipDuration. Stops
+ *  Scenes/Remix/Performance from rendering the entire song when no clip
+ *  selection was saved. User can re-edit to pick a different window. */
+const LEGACY_PREVIEW_CAP_SEC = 15;
+
 /**
  * Resolve the audio window an output should cover for a given template.
  *
  *   • New templates carry explicit clipStart + clipDuration → use them.
- *   • Pre-2026-05-03 templates have neither, but their wordTimings are
- *     already clip-relative (start at 0). Fall back to that range so the
- *     render still matches the lyrics rather than playing the whole song.
- *   • Empty / instrumental → fall back to the full audio.
+ *   • Pre-2026-05-03 templates have neither — they get capped to a 15s
+ *     preview window starting at 0 so renders don't accidentally cover
+ *     the full song. The legacy-template hint on the dashboard tells
+ *     the user to re-save with a real clip selection.
+ *   • Empty / instrumental → same 15s cap.
  */
 export function resolveClipWindow(t: TemplateMeta): { start: number; duration: number } {
   const start = t.clipStart ?? 0;
   if (typeof t.clipDuration === "number" && t.clipDuration > 0) {
     return { start, duration: t.clipDuration };
   }
-  if (t.wordTimings && t.wordTimings.length > 0) {
-    const lastEnd = t.wordTimings[t.wordTimings.length - 1].end;
-    if (lastEnd > 0) return { start, duration: lastEnd };
-  }
-  return { start, duration: t.audioDurationSec };
+  const fallbackSource = t.wordTimings && t.wordTimings.length > 0
+    ? t.wordTimings[t.wordTimings.length - 1].end
+    : t.audioDurationSec;
+  return { start, duration: Math.min(LEGACY_PREVIEW_CAP_SEC, fallbackSource || LEGACY_PREVIEW_CAP_SEC) };
 }
 
 export async function deleteTemplate(id: string): Promise<void> {

@@ -308,17 +308,21 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
 /* ─── Overlay builder ───────────────────────────────────────────────── */
 
 interface OverlaySpec {
-  kind: "ass" | "srt" | "none";
+  kind: "drawtext" | "ass" | "srt" | "none";
   body: string;
   filter: string; // ffmpeg -vf fragment, "" if no overlay
 }
 
 function buildOverlay(args: AssembleArgs, w: number, h: number): OverlaySpec {
   if (args.wordTimings && args.wordTimings.length > 0) {
+    // Primary path: drawtext per word. Uses ffmpeg.wasm's bundled freetype
+    // and default Liberation Sans — no libass + no font search, which is
+    // what was silently failing the ASS karaoke attempt and leaving the
+    // export with no lyrics at all (Jo, 2026-05-04).
     return {
-      kind: "ass",
-      body: buildKaraokeAss(args.wordTimings, w, h),
-      filter: "ass=subs.ass",
+      kind: "drawtext",
+      body: buildKaraokeAss(args.wordTimings, w, h), // kept as ASS fallback body
+      filter: buildDrawtextFilter(args.wordTimings, args.clipStart ?? 0, w, h),
     };
   }
   if (args.srt && args.srt.trim().length > 0) {
@@ -329,6 +333,62 @@ function buildOverlay(args: AssembleArgs, w: number, h: number): OverlaySpec {
     };
   }
   return { kind: "none", body: "", filter: "" };
+}
+
+/**
+ * Build a chain of drawtext filters — one per word — that pop the active
+ * sung word in big gold text centered on the canvas. This matches LYRC's
+ * "huge active word fills the preview" style and dodges libass entirely.
+ *
+ * Timing: drawtext `enable` runs in OUTPUT timestamps. Because the audio
+ * is `-ss clipStart -t dur` seeked, output t=0 corresponds to original
+ * clipStart in the source. wordTimings can be either clip-relative (new
+ * templates: already 0..dur) or full-song-time (legacy templates). We
+ * subtract clipStart so both shapes align with the trimmed audio.
+ */
+function buildDrawtextFilter(
+  words: WordTiming[],
+  clipStart: number,
+  _w: number,
+  h: number,
+): string {
+  const fontSize = Math.round(h * 0.085);
+  const yOffset = Math.round(h * 0.46);
+  const filters = words
+    .map((word) => {
+      const start = Math.max(0, word.start - clipStart);
+      const end = Math.max(start + 0.08, word.end - clipStart);
+      const text = escapeDrawtext(word.word);
+      if (!text) return "";
+      // Two stacked drawtexts per word: thick black outline + gold fill on top.
+      const enable = `between(t,${start.toFixed(3)},${end.toFixed(3)})`;
+      return [
+        `drawtext=text='${text}'`,
+        `:fontcolor=#FACC15`,
+        `:fontsize=${fontSize}`,
+        `:x=(w-text_w)/2`,
+        `:y=${yOffset}`,
+        `:borderw=${Math.max(3, Math.round(fontSize / 14))}`,
+        `:bordercolor=black@0.85`,
+        `:shadowx=0`,
+        `:shadowy=4`,
+        `:shadowcolor=black@0.55`,
+        `:enable='${enable}'`,
+      ].join("");
+    })
+    .filter(Boolean)
+    .join(",");
+  return filters || "null";
+}
+
+/** Escape text for ffmpeg drawtext text='...': : , % \ ' all need it. */
+function escapeDrawtext(text: string): string {
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\\\'")
+    .replace(/:/g, "\\:")
+    .replace(/,/g, "\\,")
+    .replace(/%/g, "\\%");
 }
 
 /**

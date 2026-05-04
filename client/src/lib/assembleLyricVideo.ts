@@ -116,7 +116,10 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
     : ["-i", audioPath];
 
   const overlay = buildOverlay(args, w, h);
-  if (overlay.kind === "ass") {
+  // For "drawtext" we also write subs.ass — it's our ASS-karaoke fallback
+  // body, used if drawtext somehow fails. SRT body always lives in args.srt
+  // and is written lazily by the SRT attempt's pre() hook.
+  if (overlay.kind === "ass" || overlay.kind === "drawtext") {
     await ffmpeg.writeFile("subs.ass", new TextEncoder().encode(overlay.body));
   } else if (overlay.kind === "srt") {
     await ffmpeg.writeFile("subs.srt", new TextEncoder().encode(overlay.body));
@@ -141,35 +144,39 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
       `crop=${w}:${h}`,
     ].join(",");
 
-    // Subtitle attempt order: ASS karaoke → SRT static → no overlay.
-    // This way the user always gets *some* video out of the door even
-    // if libass can't render karaoke effects in the bundled wasm.
+    // Overlay attempt order: drawtext per-word → ASS karaoke → SRT → none.
+    // drawtext is primary because it works without libass + font lookup,
+    // which was failing silently and leaving exports with no lyrics.
     const attempts: Array<{ label: string; vf: string; pre?: () => Promise<void> }> = [];
-    if (overlay.kind === "ass") {
+    if (overlay.kind === "drawtext") {
+      attempts.push({ label: "drawtext per-word", vf: `${baseFilter},${overlay.filter}` });
+      // Keep ASS as a backup so the karaoke effect is still available
+      // wherever libass + fonts happen to work.
       attempts.push({
         label: "ASS karaoke",
         vf: `${baseFilter},subtitles=subs.ass`,
+      });
+    } else if (overlay.kind === "ass") {
+      attempts.push({
+        label: "ASS karaoke",
+        vf: `${baseFilter},subtitles=subs.ass`,
+      });
+    }
+    if (overlay.kind !== "none" && args.srt) {
+      attempts.push({
+        label: "static SRT",
+        vf: `${baseFilter},subtitles=subs.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=60'`,
         pre: async () => {
-          // ASS already written above; nothing to do here.
+          await ffmpeg.writeFile("subs.srt", new TextEncoder().encode(args.srt!));
         },
       });
-      // Fallback 1: also try plain SRT — derive an SRT from the ASS dialogues.
-      if (args.srt) {
-        attempts.push({
-          label: "static SRT",
-          vf: `${baseFilter},subtitles=subs.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=60'`,
-          pre: async () => {
-            await ffmpeg.writeFile("subs.srt", new TextEncoder().encode(args.srt!));
-          },
-        });
-      }
     } else if (overlay.kind === "srt") {
       attempts.push({
         label: "static SRT",
         vf: `${baseFilter},${overlay.filter}`,
       });
     }
-    // Fallback 2 (always present): no overlay at all — just image + audio.
+    // Last resort: no overlay at all — just image + audio.
     attempts.push({ label: "no overlay", vf: baseFilter });
 
     let lastErr: unknown = null;
@@ -239,23 +246,25 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
     ]);
 
     log("Adding audio + lyrics…");
-    // Same fallback chain as the image path — ASS karaoke first (so Remix
-    // gets the brand-gold word-by-word burn-in too), then static SRT, then
-    // no overlay. Without this Remix exports came back with no lyrics on
-    // top because the single-attempt mux was failing silently for some
-    // template SRT shapes (the bug Jo flagged 2026-05-03).
+    // Overlay attempt order matches the image path: drawtext per-word →
+    // ASS karaoke → SRT → none. drawtext is primary so Remix exports
+    // actually carry lyrics even when libass + font search fails inside
+    // ffmpeg.wasm (Jo's "no lyrics" bug, 2026-05-04).
     const attempts: Array<{ label: string; vf: string | null; pre?: () => Promise<void> }> = [];
-    if (overlay.kind === "ass") {
+    if (overlay.kind === "drawtext") {
+      attempts.push({ label: "drawtext per-word", vf: overlay.filter });
       attempts.push({ label: "ASS karaoke", vf: "subtitles=subs.ass" });
-      if (args.srt) {
-        attempts.push({
-          label: "static SRT",
-          vf: "subtitles=subs.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=60'",
-          pre: async () => {
-            await ffmpeg.writeFile("subs.srt", new TextEncoder().encode(args.srt!));
-          },
-        });
-      }
+    } else if (overlay.kind === "ass") {
+      attempts.push({ label: "ASS karaoke", vf: "subtitles=subs.ass" });
+    }
+    if (overlay.kind !== "none" && args.srt) {
+      attempts.push({
+        label: "static SRT",
+        vf: "subtitles=subs.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=60'",
+        pre: async () => {
+          await ffmpeg.writeFile("subs.srt", new TextEncoder().encode(args.srt!));
+        },
+      });
     } else if (overlay.kind === "srt") {
       attempts.push({ label: "static SRT", vf: overlay.filter });
     }

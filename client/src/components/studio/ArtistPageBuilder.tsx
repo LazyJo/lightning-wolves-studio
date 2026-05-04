@@ -21,6 +21,8 @@ import {
   ExternalLink,
   Music2,
   MapPin,
+  Smartphone,
+  Monitor,
 } from "lucide-react";
 import { useArtistPage, type ArtistPageData, type LayoutStyle, type LinkStyle, type ColorMode, type CardShape, type IconShape, type ReleaseStyle } from "../../lib/useArtistPage";
 
@@ -371,7 +373,7 @@ function BuilderView(props: BuilderProps) {
           animate={{ opacity: 1, x: 0 }}
           className="flex items-start justify-center"
         >
-          <PhonePreview data={props.data} />
+          <PreviewPane data={props.data} />
         </motion.div>
       </div>
     </div>
@@ -1016,10 +1018,190 @@ function DesignTab({ data, update }: { data: ArtistPageData; update: (p: Partial
 }
 
 /* ──────────────────────────────────────────────────────────────────── */
-/* ── Phone preview ─────────────────────────────────────────────── */
+/* ── Preview pane — Mobile / Desktop with 13"/15"/24" sizes ────── */
 /* ──────────────────────────────────────────────────────────────────── */
 
+type PreviewMode = "mobile" | "desktop";
+type DesktopSize = "13" | "15" | "24";
+
+const DESKTOP_SIZES: Record<DesktopSize, { w: number; h: number; label: string }> = {
+  "13": { w: 480, h: 300, label: "13-inch" },
+  "15": { w: 560, h: 350, label: "15-inch" },
+  "24": { w: 720, h: 405, label: "24-inch" },
+};
+
+function PreviewPane({ data }: { data: ArtistPageData }) {
+  const [mode, setMode] = useState<PreviewMode>("mobile");
+  const [size, setSize] = useState<DesktopSize>("15");
+
+  return (
+    <div className="sticky top-4 flex flex-col items-center">
+      {/* Mode toggle */}
+      <div
+        className="mb-3 inline-flex rounded-lg border p-0.5"
+        style={{ borderColor: A.border, backgroundColor: "rgba(0,0,0,0.3)" }}
+      >
+        <PreviewModeButton
+          active={mode === "mobile"}
+          onClick={() => setMode("mobile")}
+          icon={<Smartphone size={12} />}
+          label="Mobile"
+        />
+        <PreviewModeButton
+          active={mode === "desktop"}
+          onClick={() => setMode("desktop")}
+          icon={<Monitor size={12} />}
+          label="Desktop"
+        />
+      </div>
+
+      {/* Desktop size sub-selector */}
+      {mode === "desktop" && (
+        <div
+          className="mb-3 inline-flex rounded-lg border p-0.5 text-[10px]"
+          style={{ borderColor: A.border, backgroundColor: "rgba(0,0,0,0.3)" }}
+        >
+          {(Object.keys(DESKTOP_SIZES) as DesktopSize[]).map((s) => {
+            const active = size === s;
+            return (
+              <button
+                key={s}
+                onClick={() => setSize(s)}
+                className="rounded-md px-2.5 py-1 font-bold uppercase tracking-wider transition-all"
+                style={
+                  active
+                    ? { backgroundColor: A.blueSoft, color: A.blue }
+                    : { color: A.mute }
+                }
+              >
+                {DESKTOP_SIZES[s].label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Frame */}
+      {mode === "mobile" ? (
+        <PhonePreview data={data} />
+      ) : (
+        <DesktopPreview data={data} size={size} />
+      )}
+
+      <p className="mt-3 text-center text-[10px] text-wolf-muted">
+        <Eye size={10} className="mr-1 inline" />
+        Live preview · updates as you edit
+      </p>
+    </div>
+  );
+}
+
+function PreviewModeButton({
+  active,
+  onClick,
+  icon,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-all"
+      style={
+        active
+          ? { backgroundColor: A.blueSoft, color: A.blue }
+          : { color: A.mute }
+      }
+    >
+      {icon}
+      {label}
+    </button>
+  );
+}
+
+/* Desktop preview — browser chrome wrapping the artist page in a centered card */
+function DesktopPreview({ data, size }: { data: ArtistPageData; size: DesktopSize }) {
+  const { w, h } = DESKTOP_SIZES[size];
+  const url = `lightningwolves.studio/${data.handle || "your-handle"}`;
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl border-2 shadow-2xl"
+      style={{
+        width: w,
+        height: h,
+        borderColor: "#1a1a1f",
+        backgroundColor: "#0c0c10",
+      }}
+    >
+      {/* Browser chrome */}
+      <div
+        className="flex h-7 items-center gap-2 border-b px-3"
+        style={{ borderColor: "rgba(255,255,255,0.06)", backgroundColor: "#15151b" }}
+      >
+        <div className="flex gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#ff5f57" }} />
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#febc2e" }} />
+          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "#28c840" }} />
+        </div>
+        <div
+          className="flex-1 truncate rounded-md px-2 py-0.5 text-center text-[9px] text-white/50"
+          style={{ backgroundColor: "rgba(255,255,255,0.04)" }}
+        >
+          {url}
+        </div>
+      </div>
+
+      {/* Page viewport — artist page sits in a centered max-w-sm column */}
+      <div
+        className="h-[calc(100%-1.75rem)] overflow-y-auto"
+        style={{ backgroundColor: data.backgroundColor }}
+      >
+        <div className="mx-auto max-w-sm p-4">
+          <ArtistPageBody data={data} compact />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PhonePreview({ data }: { data: ArtistPageData }) {
+  return (
+    <div
+      className="relative mx-auto overflow-hidden rounded-[40px] border-4 shadow-2xl"
+      style={{
+        width: 320,
+        height: 650,
+        borderColor: "#1a1a1f",
+        backgroundColor: data.backgroundColor,
+      }}
+    >
+      {/* Notch */}
+      <div
+        className="absolute left-1/2 top-1 z-10 h-5 w-28 -translate-x-1/2 rounded-b-2xl"
+        style={{ backgroundColor: "#000" }}
+      />
+
+      {/* Page content */}
+      <div className="h-full overflow-y-auto p-5 pt-10">
+        <ArtistPageBody data={data} />
+      </div>
+
+      {/* Home indicator */}
+      <div
+        className="absolute bottom-1.5 left-1/2 h-1 w-28 -translate-x-1/2 rounded-full"
+        style={{ backgroundColor: "rgba(255,255,255,0.3)" }}
+      />
+    </div>
+  );
+}
+
+/* Reusable artist page body — shared between phone + desktop preview frames */
+function ArtistPageBody({ data, compact = false }: { data: ArtistPageData; compact?: boolean }) {
   const cardRadius = data.cardShape === "pill" ? "9999px" : data.cardShape === "square" ? "4px" : "16px";
   const iconRadius = data.iconShape === "circle" ? "9999px" : data.iconShape === "square" ? "4px" : "10px";
 
@@ -1034,165 +1216,135 @@ function PhonePreview({ data }: { data: ArtistPageData }) {
     }
   };
 
+  const avatarSize = compact ? "h-14 w-14" : "h-20 w-20";
+
   return (
-    <div className="sticky top-4">
+    <div className="flex flex-col items-center">
+      {/* Avatar */}
       <div
-        className="relative mx-auto overflow-hidden rounded-[40px] border-4 shadow-2xl"
+        className={`${avatarSize} flex items-center justify-center overflow-hidden border-2`}
         style={{
-          width: 320,
-          height: 650,
-          borderColor: "#1a1a1f",
-          backgroundColor: data.backgroundColor,
+          borderRadius: iconRadius,
+          borderColor: data.themeColor,
+          backgroundColor: `${data.themeColor}20`,
         }}
       >
-        {/* Notch */}
-        <div
-          className="absolute left-1/2 top-1 z-10 h-5 w-28 -translate-x-1/2 rounded-b-2xl"
-          style={{ backgroundColor: "#000" }}
-        />
-
-        {/* Page content */}
-        <div className="h-full overflow-y-auto p-5 pt-10">
-          <div className="flex flex-col items-center">
-            {/* Avatar */}
-            <div
-              className="flex h-20 w-20 items-center justify-center overflow-hidden border-2"
-              style={{
-                borderRadius: iconRadius,
-                borderColor: data.themeColor,
-                backgroundColor: `${data.themeColor}20`,
-              }}
-            >
-              {data.photoUrl ? (
-                <img src={data.photoUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span
-                  className="text-2xl font-bold"
-                  style={{ color: data.themeColor }}
-                >
-                  {data.displayName.charAt(0).toUpperCase() || "?"}
-                </span>
-              )}
-            </div>
-
-            {/* Name */}
-            <h1
-              className="mt-3 text-center text-xl font-bold text-white"
-              style={{ fontFamily: data.headingFont }}
-            >
-              {data.displayName || "Your Name"}
-            </h1>
-
-            {/* Roles */}
-            {data.roles.length > 0 && (
-              <div className="mt-1 flex flex-wrap justify-center gap-1">
-                {data.roles.map((r) => (
-                  <span
-                    key={r}
-                    className="rounded-full px-2 py-0.5 text-[9px] font-semibold"
-                    style={{
-                      backgroundColor: `${data.themeColor}18`,
-                      color: data.themeColor,
-                    }}
-                  >
-                    {r}
-                  </span>
-                ))}
-              </div>
-            )}
-
-            {/* Location */}
-            {data.location && (
-              <p className="mt-1 inline-flex items-center gap-1 text-[10px] text-white/60">
-                <MapPin size={9} /> {data.location}
-              </p>
-            )}
-
-            {/* Bio */}
-            {data.bio && (
-              <p
-                className="mt-1 text-center text-[11px] text-white/70"
-                style={{ fontFamily: data.bodyFont }}
-              >
-                {data.bio}
-              </p>
-            )}
-
-            {/* Social icons row */}
-            {data.socialLinks.length > 0 && (
-              <div className="mt-4 flex flex-wrap justify-center gap-2">
-                {data.socialLinks.map((s, i) => {
-                  const platform = SOCIAL_PLATFORMS.find((p) => p.id === s.platform);
-                  const Icon = platform?.icon || Globe;
-                  return (
-                    <div
-                      key={i}
-                      className="flex h-8 w-8 items-center justify-center border"
-                      style={{
-                        borderRadius: iconRadius,
-                        borderColor: `${data.themeColor}40`,
-                        backgroundColor: `${data.themeColor}15`,
-                      }}
-                    >
-                      <Icon size={13} style={{ color: platform?.color || data.themeColor }} />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Custom links */}
-            {data.customLinks.length > 0 && (
-              <div className="mt-5 w-full space-y-2">
-                {data.customLinks.map((l, i) => {
-                  const isAlt = data.colorMode === "alternating" && i % 2 === 1;
-                  const style = linkStyleClass(!isAlt);
-                  return (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between px-4 py-3 text-[12px] font-semibold"
-                      style={{ ...style, borderRadius: cardRadius }}
-                    >
-                      <span>{l.label}</span>
-                      <ExternalLink size={11} />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Empty state when nothing yet */}
-            {data.socialLinks.length === 0 && data.customLinks.length === 0 && (
-              <p className="mt-10 text-center text-[11px] text-white/40">
-                Add some links on the Links tab to bring your page to life.
-              </p>
-            )}
-
-            {/* Branding */}
-            {data.showBranding && (
-              <div className="mt-auto pt-12 text-center">
-                <p className="text-[9px] text-white/30">
-                  Made with{" "}
-                  <span className="font-bold" style={{ color: data.themeColor }}>
-                    ⚡ Lightning Wolves
-                  </span>
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Home indicator */}
-        <div
-          className="absolute bottom-1.5 left-1/2 h-1 w-28 -translate-x-1/2 rounded-full"
-          style={{ backgroundColor: "rgba(255,255,255,0.3)" }}
-        />
+        {data.photoUrl ? (
+          <img src={data.photoUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span
+            className={compact ? "text-lg font-bold" : "text-2xl font-bold"}
+            style={{ color: data.themeColor }}
+          >
+            {data.displayName.charAt(0).toUpperCase() || "?"}
+          </span>
+        )}
       </div>
 
-      <p className="mt-3 text-center text-[10px] text-wolf-muted">
-        <Eye size={10} className="mr-1 inline" />
-        Live preview · updates as you edit
-      </p>
+      {/* Name */}
+      <h1
+        className={`mt-3 text-center font-bold text-white ${compact ? "text-base" : "text-xl"}`}
+        style={{ fontFamily: data.headingFont }}
+      >
+        {data.displayName || "Your Name"}
+      </h1>
+
+      {/* Roles */}
+      {data.roles.length > 0 && (
+        <div className="mt-1 flex flex-wrap justify-center gap-1">
+          {data.roles.map((r) => (
+            <span
+              key={r}
+              className="rounded-full px-2 py-0.5 text-[9px] font-semibold"
+              style={{
+                backgroundColor: `${data.themeColor}18`,
+                color: data.themeColor,
+              }}
+            >
+              {r}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Location */}
+      {data.location && (
+        <p className="mt-1 inline-flex items-center gap-1 text-[10px] text-white/60">
+          <MapPin size={9} /> {data.location}
+        </p>
+      )}
+
+      {/* Bio */}
+      {data.bio && (
+        <p
+          className="mt-1 text-center text-[11px] text-white/70"
+          style={{ fontFamily: data.bodyFont }}
+        >
+          {data.bio}
+        </p>
+      )}
+
+      {/* Social icons row */}
+      {data.socialLinks.length > 0 && (
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
+          {data.socialLinks.map((s, i) => {
+            const platform = SOCIAL_PLATFORMS.find((p) => p.id === s.platform);
+            const Icon = platform?.icon || Globe;
+            return (
+              <div
+                key={i}
+                className="flex h-8 w-8 items-center justify-center border"
+                style={{
+                  borderRadius: iconRadius,
+                  borderColor: `${data.themeColor}40`,
+                  backgroundColor: `${data.themeColor}15`,
+                }}
+              >
+                <Icon size={13} style={{ color: platform?.color || data.themeColor }} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Custom links */}
+      {data.customLinks.length > 0 && (
+        <div className="mt-5 w-full space-y-2">
+          {data.customLinks.map((l, i) => {
+            const isAlt = data.colorMode === "alternating" && i % 2 === 1;
+            const style = linkStyleClass(!isAlt);
+            return (
+              <div
+                key={i}
+                className="flex items-center justify-between px-4 py-3 text-[12px] font-semibold"
+                style={{ ...style, borderRadius: cardRadius }}
+              >
+                <span>{l.label}</span>
+                <ExternalLink size={11} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Empty state when nothing yet */}
+      {data.socialLinks.length === 0 && data.customLinks.length === 0 && (
+        <p className="mt-10 text-center text-[11px] text-white/40">
+          Add some links on the Links tab to bring your page to life.
+        </p>
+      )}
+
+      {/* Branding */}
+      {data.showBranding && (
+        <div className="mt-auto pt-12 text-center">
+          <p className="text-[9px] text-white/30">
+            Made with{" "}
+            <span className="font-bold" style={{ color: data.themeColor }}>
+              ⚡ Lightning Wolves
+            </span>
+          </p>
+        </div>
+      )}
     </div>
   );
 }

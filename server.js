@@ -344,13 +344,19 @@ const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 
  * client gets real per-word timing for karaoke. whisper-large-v3 handles
  * songs whisper-1 chokes on deterministically (heavy mixes, effects, accents).
  *
+ * Two intake modes:
+ *  - JSON `{ audioUrl, language }` — preferred. Client uploads the file directly
+ *    to Supabase Storage, then sends us the public URL. This bypasses Vercel's
+ *    4.5 MB request body limit (which silently breaks any song bigger than that
+ *    on multipart upload).
+ *  - multipart `file` — legacy path, only works for compressed clips < 4.5 MB.
+ *
  * (Demucs vocal-isolation pre-step was attempted and rolled back — the
  * Replicate model identifiers couldn't be verified live. Comes back once we
  * confirm the right `owner/name:version` against Replicate's API.)
  */
 app.post('/api/transcribe', memUpload.single('file'), async (req, res) => {
   try {
-    if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
     if (!groq && !openai) {
       return res.status(500).json({
         error: 'No transcription provider configured. Set GROQ_API_KEY (preferred) or OPENAI_API_KEY in Vercel.',
@@ -360,9 +366,29 @@ app.post('/api/transcribe', memUpload.single('file'), async (req, res) => {
     const langMap = { French: 'fr', Dutch: 'nl', Spanish: 'es', English: 'en' };
     const langCode = langMap[req.body.language] || 'en';
 
-    const buildFile = () => new File([req.file.buffer], req.file.originalname || 'audio.mp3', {
-      type: req.file.mimetype || 'audio/mpeg',
-    });
+    // Resolve the audio source. Prefer the URL path (no Vercel body limit).
+    let audioBuffer;
+    let filename;
+    let contentType;
+    const audioUrl = typeof req.body.audioUrl === 'string' ? req.body.audioUrl : null;
+    if (audioUrl) {
+      try { new URL(audioUrl); } catch { return res.status(400).json({ error: 'Invalid audioUrl' }); }
+      const fetched = await fetch(audioUrl);
+      if (!fetched.ok) {
+        return res.status(400).json({ error: `Could not fetch audio from URL (HTTP ${fetched.status})` });
+      }
+      audioBuffer = Buffer.from(await fetched.arrayBuffer());
+      filename = audioUrl.split('/').pop()?.split('?')[0] || 'audio.mp3';
+      contentType = fetched.headers.get('content-type') || 'audio/mpeg';
+    } else if (req.file) {
+      audioBuffer = req.file.buffer;
+      filename = req.file.originalname || 'audio.mp3';
+      contentType = req.file.mimetype || 'audio/mpeg';
+    } else {
+      return res.status(400).json({ error: 'No audio provided. Send JSON {audioUrl} or multipart file.' });
+    }
+
+    const buildFile = () => new File([audioBuffer], filename, { type: contentType });
 
     const tryProvider = async (client, model, label) => {
       const transcription = await client.audio.transcriptions.create({

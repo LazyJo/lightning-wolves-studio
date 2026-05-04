@@ -1,3 +1,5 @@
+import { initSupabase } from "./supabaseClient";
+
 const API = "";
 
 // ─── Wolf Vision: Models + Credits ───────────────────────────────────────────
@@ -313,109 +315,36 @@ export interface TranscribeResult {
   duration: number;
 }
 
-// Compress audio to webm/opus in the browser (WAV is too big for serverless)
-async function compressAudio(file: File): Promise<File> {
-  // If already compressed format, skip
-  if (file.type.includes("mp3") || file.type.includes("mpeg") || file.type.includes("ogg") || file.type.includes("webm")) {
-    return file;
-  }
-
-  return new Promise((resolve, reject) => {
-    const audio = new Audio();
-    audio.src = URL.createObjectURL(file);
-
-    audio.onloadedmetadata = async () => {
-      try {
-        const audioCtx = new AudioContext();
-        const arrayBuffer = await file.arrayBuffer();
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-
-        // Create offline context to render
-        const offlineCtx = new OfflineAudioContext(
-          audioBuffer.numberOfChannels,
-          audioBuffer.length,
-          audioBuffer.sampleRate
-        );
-        const source = offlineCtx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(offlineCtx.destination);
-        source.start();
-
-        const rendered = await offlineCtx.startRendering();
-
-        // Encode as WAV but smaller (16-bit mono downmix)
-        const numChannels = 1; // mono
-        const sampleRate = Math.min(rendered.sampleRate, 16000); // 16kHz is enough for speech
-        const length = Math.floor(rendered.length * sampleRate / rendered.sampleRate);
-
-        // Simple downsample + mono mix
-        const samples = new Float32Array(length);
-        const ratio = rendered.sampleRate / sampleRate;
-        for (let i = 0; i < length; i++) {
-          const srcIdx = Math.floor(i * ratio);
-          let sum = 0;
-          for (let ch = 0; ch < rendered.numberOfChannels; ch++) {
-            sum += rendered.getChannelData(ch)[srcIdx] || 0;
-          }
-          samples[i] = sum / rendered.numberOfChannels;
-        }
-
-        // Encode as 16-bit PCM WAV
-        const buffer = new ArrayBuffer(44 + samples.length * 2);
-        const view = new DataView(buffer);
-        const writeString = (offset: number, str: string) => {
-          for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
-        };
-        writeString(0, "RIFF");
-        view.setUint32(4, 36 + samples.length * 2, true);
-        writeString(8, "WAVE");
-        writeString(12, "fmt ");
-        view.setUint32(16, 16, true);
-        view.setUint16(20, 1, true); // PCM
-        view.setUint16(22, numChannels, true);
-        view.setUint32(24, sampleRate, true);
-        view.setUint32(28, sampleRate * numChannels * 2, true);
-        view.setUint16(32, numChannels * 2, true);
-        view.setUint16(34, 16, true);
-        writeString(36, "data");
-        view.setUint32(40, samples.length * 2, true);
-        for (let i = 0; i < samples.length; i++) {
-          const s = Math.max(-1, Math.min(1, samples[i]));
-          view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-        }
-
-        const blob = new Blob([buffer], { type: "audio/wav" });
-        const compressed = new File([blob], file.name.replace(/\.\w+$/, ".wav"), { type: "audio/wav" });
-
-        audioCtx.close();
-        URL.revokeObjectURL(audio.src);
-        resolve(compressed);
-      } catch (err) {
-        URL.revokeObjectURL(audio.src);
-        resolve(file); // fallback to original
-      }
-    };
-
-    audio.onerror = () => {
-      URL.revokeObjectURL(audio.src);
-      resolve(file); // fallback
-    };
-  });
-}
-
 export async function transcribeAudio(file: File, language: string = "English"): Promise<TranscribeResult> {
-  // Compress audio to reduce file size (WAV→small WAV mono 16kHz)
-  const compressed = await compressAudio(file);
-  console.log(`Audio compressed: ${(file.size / 1024 / 1024).toFixed(1)}MB → ${(compressed.size / 1024 / 1024).toFixed(1)}MB`);
+  // Upload directly to Supabase Storage to bypass Vercel's 4.5MB request body
+  // limit (any normal song is 5–8 MB and gets rejected with FUNCTION_PAYLOAD_TOO_LARGE
+  // before our function even runs). The server then fetches the audio from the
+  // public URL we hand it.
+  const sb = await initSupabase();
+  if (!sb) throw new Error("Supabase not configured");
+  const { data: sess } = await sb.auth.getSession();
+  const userId = sess?.session?.user?.id;
+  if (!userId) throw new Error("Sign in to transcribe");
 
-  const formData = new FormData();
-  formData.append("file", compressed);
-  formData.append("language", language);
+  const ext = (file.name.split(".").pop() || "mp3").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp3";
+  const path = `transcribe-tmp/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error: upErr } = await sb.storage
+    .from("wolf-hub-media")
+    .upload(path, file, { contentType: file.type || "audio/mpeg", upsert: false });
+  if (upErr) throw new Error(`Audio upload failed: ${upErr.message}`);
 
-  const res = await fetch(`${API}/api/transcribe`, { method: "POST", body: formData });
+  const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
+  const audioUrl = urlData?.publicUrl;
+  if (!audioUrl) throw new Error("Could not resolve uploaded audio URL");
+
+  const res = await fetch(`${API}/api/transcribe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ audioUrl, language }),
+  });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Transcription failed" }));
-    throw new Error(err.error || "Transcription failed");
+    const err = await res.json().catch(() => ({ error: `Transcription failed (HTTP ${res.status})` }));
+    throw new Error(err.error || `Transcription failed (HTTP ${res.status})`);
   }
 
   const data = await res.json();

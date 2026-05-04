@@ -31,6 +31,14 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 // ─── OpenAI (Whisper) ────────────────────────────────────────────────────────
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
+// ─── Groq (Whisper-large-v3, OpenAI-compatible) ─────────────────────────────
+// Same SDK, different base URL. whisper-large-v3 handles songs that whisper-1
+// silently chokes on (heavy production, vocal effects, accents). OpenAI is the
+// fallback when GROQ_API_KEY is missing or Groq fails mid-request.
+const groq = process.env.GROQ_API_KEY
+  ? new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1' })
+  : null;
+
 // ─── Stripe ──────────────────────────────────────────────────────────────────
 let stripe = null;
 if (process.env.STRIPE_SECRET_KEY) {
@@ -331,45 +339,58 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 /**
- * Transcription — OpenAI whisper-1 with both segment AND word
- * timestamps. The previous version requested only segment-level
- * timestamps, so the client was faking word timing by splitting
- * segment text evenly across the segment duration — that's why
- * karaoke beats drift relative to the actual sung word. Now Whisper
- * returns real word timestamps and the client uses them directly.
+ * Transcription — Groq whisper-large-v3 (primary) with OpenAI whisper-1
+ * fallback. Both return verbose_json with segment + word timestamps so the
+ * client gets real per-word timing for karaoke. whisper-large-v3 handles
+ * songs whisper-1 chokes on deterministically (heavy mixes, effects, accents).
  *
- * (Demucs vocal-isolation pre-step was attempted and rolled back —
- * the Replicate model identifiers couldn't be verified live and the
- * call failed in production. Coming back in a follow-up once we
+ * (Demucs vocal-isolation pre-step was attempted and rolled back — the
+ * Replicate model identifiers couldn't be verified live. Comes back once we
  * confirm the right `owner/name:version` against Replicate's API.)
  */
 app.post('/api/transcribe', memUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
-    if (!openai) {
+    if (!groq && !openai) {
       return res.status(500).json({
-        error: 'OPENAI_API_KEY not configured. Add it in Vercel Environment Variables.',
+        error: 'No transcription provider configured. Set GROQ_API_KEY (preferred) or OPENAI_API_KEY in Vercel.',
       });
     }
 
     const langMap = { French: 'fr', Dutch: 'nl', Spanish: 'es', English: 'en' };
     const langCode = langMap[req.body.language] || 'en';
 
-    const file = new File([req.file.buffer], req.file.originalname || 'audio.mp3', {
+    const buildFile = () => new File([req.file.buffer], req.file.originalname || 'audio.mp3', {
       type: req.file.mimetype || 'audio/mpeg',
     });
 
-    const transcription = await openai.audio.transcriptions.create({
-      file,
-      model: 'whisper-1',
-      response_format: 'verbose_json',
-      // Request real word timestamps — was 'segment' only before.
-      // The 'word' granularity is what makes karaoke land on the actual
-      // sung word instead of an evenly-distributed approximation.
-      timestamp_granularities: ['segment', 'word'],
-      language: langCode,
-    });
+    const tryProvider = async (client, model, label) => {
+      const transcription = await client.audio.transcriptions.create({
+        file: buildFile(),
+        model,
+        response_format: 'verbose_json',
+        timestamp_granularities: ['segment', 'word'],
+        language: langCode,
+      });
+      return { transcription, label };
+    };
 
+    let result;
+    let groqError;
+    if (groq) {
+      try {
+        result = await tryProvider(groq, 'whisper-large-v3', 'groq');
+      } catch (err) {
+        groqError = err;
+        console.warn('[transcribe] Groq failed, falling back to OpenAI:', err?.error?.message || err?.message);
+      }
+    }
+    if (!result) {
+      if (!openai) throw groqError || new Error('Groq unavailable and no OpenAI fallback configured');
+      result = await tryProvider(openai, 'whisper-1', 'openai');
+    }
+
+    const { transcription, label } = result;
     res.json({
       success: true,
       text: transcription.text || '',
@@ -377,10 +398,9 @@ app.post('/api/transcribe', memUpload.single('file'), async (req, res) => {
       words: transcription.words || [],
       language: transcription.language || langCode,
       duration: transcription.duration,
+      provider: label,
     });
   } catch (err) {
-    // Surface the upstream error message so the client (and Vercel logs)
-    // show the real failure cause instead of a generic "Transcription failed".
     console.error('[transcribe] error:', err);
     const detail = err?.error?.message || err?.message || 'Transcription failed';
     res.status(500).json({ error: detail });

@@ -22,7 +22,8 @@ import TemplateEditor from "./studio/TemplateEditor";
 import TemplatesList from "./studio/TemplatesList";
 import TemplateModePicker from "./studio/TemplateModePicker";
 import TemplateReadyModal, { hasSeenTemplateReady } from "./studio/TemplateReadyModal";
-import GenerateView from "./studio/GenerateView";
+import ScenesViewComponent from "./studio/ScenesView";
+import PerformanceViewComponent from "./studio/PerformanceView";
 import CoverArtViewComponent from "./studio/CoverArtView";
 import ArtistPageBuilder from "./studio/ArtistPageBuilder";
 import CreditGrantToast from "./studio/CreditGrantToast";
@@ -744,18 +745,18 @@ export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioV
             onAuthRequired={onAuthRequired}
             onShared={onSharedToHub}
           />
-        ) : (view === "scenes" || view === "performance") && currentTemplate ? (
-          // Scenes + Performance now share the merged GenerateView shell.
-          // Cover Art also lives there when launched from a template; the
-          // standalone /cover-art route below still works for freestyle.
-          <GenerateView
+        ) : view === "scenes" && currentTemplate ? (
+          <ScenesViewComponent
             template={currentTemplate}
-            initialTab={view === "performance" ? "performance" : "scenes"}
             onBack={() => setView("template-modes")}
-            wolf={wolf}
           />
         ) : view === "remix" && currentTemplate ? (
           <RemixViewComponent
+            template={currentTemplate}
+            onBack={() => setView("template-modes")}
+          />
+        ) : view === "performance" && currentTemplate ? (
+          <PerformanceViewComponent
             template={currentTemplate}
             onBack={() => setView("template-modes")}
           />
@@ -771,19 +772,7 @@ export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioV
             onOpen={openTemplate}
             accentColor={accentColor}
           />
-        ) : view === "cover-art" && currentTemplate ? (
-          // Template-aware Cover Art — launched from inside a template's
-          // mode picker — uses the merged GenerateView with the Cover Art
-          // tab pre-selected so the user can hop to Scenes/Performance.
-          <GenerateView
-            template={currentTemplate}
-            initialTab="coverart"
-            onBack={() => setView("template-modes")}
-            wolf={wolf}
-          />
         ) : view === "cover-art" ? (
-          // Freestyle Cover Art — launched from the dashboard tile, no
-          // template context. Standalone surface preserved for that path.
           <CoverArtViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "artist-page" ? (
           <ArtistPageBuilder onBack={() => setView("dashboard")} wolf={wolf} />

@@ -216,9 +216,8 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     lyricsTickerRef.current = window.setInterval(() => {
       const el = (Date.now() - startedAt) / 1000;
       setLyricsElapsed(el);
-      // Fake progress — ease toward 95% over ~35s to match the new
-      // Demucs-then-Whisper pipeline cadence; snap to 100 on done.
-      setLyricsProgress((p) => Math.min(95, p + (95 - p) * 0.035));
+      // Fake progress — ease toward 95% over ~15s; snap to 100 on done.
+      setLyricsProgress((p) => Math.min(95, p + (95 - p) * 0.08));
     }, 300);
 
     try {
@@ -955,20 +954,12 @@ function EmptyNote({ icon, label }: { icon: React.ReactNode; label: string }) {
 }
 
 function LyricsLoading({ progress, elapsed }: { progress: number; elapsed: number }) {
-  // Stage labels derived from elapsed time. Mirrors the server pipeline:
-  // 1) ~3s buffering & upload
-  // 2) Demucs vocal isolation runs ~10-30s on a 15-30s clip
-  // 3) whisper-large-v3 transcription runs ~5-10s
-  // CapCut does the same dance — we surface it so the wait feels like
-  // craftsmanship instead of a hang.
   const stage =
     elapsed < 3
       ? { headline: "Loading your audio…", sub: "Sending it to the studio engine" }
-      : elapsed < 25
-        ? { headline: "Isolating vocals from the music…", sub: "CapCut-style — strips drums + bass for clean lyrics" }
-        : elapsed < 40
-          ? { headline: "Reading the lyrics…", sub: "whisper-large-v3 with word-level timing" }
-          : { headline: "Almost done…", sub: "Lining up word timings for karaoke" };
+      : elapsed < 12
+        ? { headline: "Reading the lyrics…", sub: "Whisper — word-level timing for karaoke" }
+        : { headline: "Almost done…", sub: "Lining up word timings" };
 
   return (
     <div className="flex flex-col items-center gap-4 py-6">
@@ -1005,7 +996,7 @@ function LyricsLoading({ progress, elapsed }: { progress: number; elapsed: numbe
 
       <p className="text-[10px] text-wolf-muted">{stage.sub}</p>
       <p className="font-mono text-xs text-white">{formatElapsed(elapsed)}</p>
-      <p className="text-[10px] text-wolf-muted">Usually takes 25-40 seconds</p>
+      <p className="text-[10px] text-wolf-muted">Usually takes 5-15 seconds</p>
     </div>
   );
 }

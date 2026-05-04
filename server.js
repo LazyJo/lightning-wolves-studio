@@ -331,130 +331,59 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
 /**
- * CapCut-class transcription pipeline.
+ * Transcription — OpenAI whisper-1 with both segment AND word
+ * timestamps. The previous version requested only segment-level
+ * timestamps, so the client was faking word timing by splitting
+ * segment text evenly across the segment duration — that's why
+ * karaoke beats drift relative to the actual sung word. Now Whisper
+ * returns real word timestamps and the client uses them directly.
  *
- *   1. Replicate Demucs splits vocals out of the mix (htdemucs).
- *      Whisper struggles with vocals buried under drums + synths;
- *      isolating the vocal stem first is the single biggest accuracy
- *      lever. ~$0.014 / track, ~10-30s for a 15-30s clip.
- *   2. Replicate `incredibly-fast-whisper` runs whisper-large-v3 on
- *      the vocals-only audio with word-level timestamps. ~$0.001 /
- *      track, ~5-10s.
- *   3. Returns the same shape as the old whisper-1 path so the client
- *      doesn't change.
- *
- * Falls back to OpenAI whisper-1 (with word timestamps now requested)
- * when REPLICATE_API_TOKEN is missing or either Replicate call fails.
+ * (Demucs vocal-isolation pre-step was attempted and rolled back —
+ * the Replicate model identifiers couldn't be verified live and the
+ * call failed in production. Coming back in a follow-up once we
+ * confirm the right `owner/name:version` against Replicate's API.)
  */
-async function transcribeViaReplicate(buffer, mimetype, langCode) {
-  if (!replicate) throw new Error('REPLICATE_NOT_CONFIGURED');
-  // Replicate accepts data: URIs for audio inputs up to ~256MB. Our
-  // multer limit is 25MB and the client compresses to mono 16kHz so
-  // typical payloads are <2MB after base64 expansion.
-  const audioDataUri = `data:${mimetype || 'audio/mpeg'};base64,${buffer.toString('base64')}`;
-
-  // 1. Demucs — vocal isolation. The model returns URLs for each stem;
-  //    we only need `vocals`. `htdemucs` is the latest and best.
-  const demucsOut = await replicate.run('ryan5453/demucs', {
-    input: {
-      audio: audioDataUri,
-      stem: 'vocals',
-      model: 'htdemucs',
-      output_format: 'mp3',
-    },
-  });
-  const vocalsUrl = demucsOut?.vocals || demucsOut?.[0] || demucsOut;
-  if (!vocalsUrl || typeof vocalsUrl !== 'string') {
-    throw new Error('Demucs returned no vocals stem');
-  }
-
-  // 2. Whisper-large-v3 with word timestamps on the isolated vocals.
-  const whisperOut = await replicate.run('vaibhavs10/incredibly-fast-whisper', {
-    input: {
-      audio: vocalsUrl,
-      task: 'transcribe',
-      language: langCode || 'english',
-      batch_size: 24,
-      timestamp: 'word',
-    },
-  });
-
-  // 3. Normalise — incredibly-fast-whisper returns either
-  //    `{ text, chunks: [{text, timestamp:[s,e]}] }` (word mode) or
-  //    `{ text, segments: [...] }` depending on version. Cover both.
-  const text = (whisperOut?.text || '').trim();
-  const rawWords = whisperOut?.chunks || whisperOut?.words || [];
-  const words = rawWords
-    .map((w) => {
-      const start = Array.isArray(w.timestamp) ? Number(w.timestamp[0]) : Number(w.start);
-      const end = Array.isArray(w.timestamp) ? Number(w.timestamp[1] ?? w.timestamp[0]) : Number(w.end);
-      const word = (w.text || w.word || '').trim();
-      if (!word || !Number.isFinite(start)) return null;
-      return { word, start, end: Number.isFinite(end) && end > start ? end : start + 0.3 };
-    })
-    .filter(Boolean);
-
-  return {
-    text,
-    words,
-    segments: [],
-    language: langCode,
-  };
-}
-
-async function transcribeViaOpenAI(buffer, originalname, mimetype, langCode) {
-  if (!openai) throw new Error('OPENAI_NOT_CONFIGURED');
-  const file = new File([buffer], originalname || 'audio.mp3', { type: mimetype || 'audio/mpeg' });
-  // Request both segment AND word granularities so the client gets real
-  // word timestamps for karaoke instead of evenly-distributed approximations.
-  const transcription = await openai.audio.transcriptions.create({
-    file,
-    model: 'whisper-1',
-    response_format: 'verbose_json',
-    timestamp_granularities: ['segment', 'word'],
-    language: langCode,
-  });
-  return {
-    text: transcription.text || '',
-    words: transcription.words || [],
-    segments: transcription.segments || [],
-    language: transcription.language || langCode,
-    duration: transcription.duration,
-  };
-}
-
 app.post('/api/transcribe', memUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No audio file provided' });
+    if (!openai) {
+      return res.status(500).json({
+        error: 'OPENAI_API_KEY not configured. Add it in Vercel Environment Variables.',
+      });
+    }
 
     const langMap = { French: 'fr', Dutch: 'nl', Spanish: 'es', English: 'en' };
     const langCode = langMap[req.body.language] || 'en';
 
-    // Try the high-quality Replicate path first; fall back to OpenAI
-    // Whisper-1 with word timestamps if Replicate is unavailable or fails.
-    let result = null;
-    let usedPath = 'replicate';
-    try {
-      result = await transcribeViaReplicate(req.file.buffer, req.file.mimetype, langCode);
-      if (!result.text) throw new Error('Replicate returned empty transcript');
-    } catch (replicateErr) {
-      console.warn('[transcribe] Replicate path failed, falling back to OpenAI:', replicateErr?.message || replicateErr);
-      usedPath = 'openai';
-      result = await transcribeViaOpenAI(req.file.buffer, req.file.originalname, req.file.mimetype, langCode);
-    }
+    const file = new File([req.file.buffer], req.file.originalname || 'audio.mp3', {
+      type: req.file.mimetype || 'audio/mpeg',
+    });
+
+    const transcription = await openai.audio.transcriptions.create({
+      file,
+      model: 'whisper-1',
+      response_format: 'verbose_json',
+      // Request real word timestamps — was 'segment' only before.
+      // The 'word' granularity is what makes karaoke land on the actual
+      // sung word instead of an evenly-distributed approximation.
+      timestamp_granularities: ['segment', 'word'],
+      language: langCode,
+    });
 
     res.json({
       success: true,
-      text: result.text,
-      segments: result.segments || [],
-      words: result.words || [],
-      language: result.language || langCode,
-      duration: result.duration,
-      provider: usedPath,
+      text: transcription.text || '',
+      segments: transcription.segments || [],
+      words: transcription.words || [],
+      language: transcription.language || langCode,
+      duration: transcription.duration,
     });
   } catch (err) {
-    console.error('Transcribe error:', err);
-    res.status(500).json({ error: err.message || 'Transcription failed' });
+    // Surface the upstream error message so the client (and Vercel logs)
+    // show the real failure cause instead of a generic "Transcription failed".
+    console.error('[transcribe] error:', err);
+    const detail = err?.error?.message || err?.message || 'Transcription failed';
+    res.status(500).json({ error: detail });
   }
 });
 

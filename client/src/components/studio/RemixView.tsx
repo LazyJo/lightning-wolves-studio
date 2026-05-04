@@ -18,7 +18,6 @@ import {
   Library,
   Info,
 } from "lucide-react";
-import { useSession } from "../../lib/useSession";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
@@ -76,7 +75,6 @@ const R = {
 };
 
 export default function RemixView({ onBack, template }: Props) {
-  const { accessToken } = useSession();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
   const [clips, setClips] = useState<UserClip[]>([]);
@@ -110,15 +108,20 @@ export default function RemixView({ onBack, template }: Props) {
   const [publicCategory, setPublicCategory] = useState<PublicClipCategory | "all">("all");
   const [importingClipId, setImportingClipId] = useState<number | null>(null);
 
+  const importAbortRef = useRef<AbortController | null>(null);
+  useEffect(() => () => importAbortRef.current?.abort(), []);
+
   const importPublicClip = useCallback(async (clip: PublicClip) => {
+    importAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    importAbortRef.current = ctrl;
     setImportingClipId(clip.id);
     setError("");
     try {
-      // Direct fetch from Pexels CDN — `Access-Control-Allow-Origin: *`
-      // makes this safe from a browser context. No backend proxy needed.
-      const res = await fetch(clip.mp4Url);
+      const res = await fetch(clip.mp4Url, { signal: ctrl.signal });
       if (!res.ok) throw new Error(`Failed to fetch clip: ${res.status}`);
       const blob = await res.blob();
+      if (ctrl.signal.aborted) return;
       const filename = `${clip.name.toLowerCase().replace(/\s+/g, "-")}-${clip.id}.mp4`;
       const file = new File([blob], filename, { type: "video/mp4" });
       const userClip: UserClip = {
@@ -128,10 +131,12 @@ export default function RemixView({ onBack, template }: Props) {
       };
       setClips((prev) => [...prev, userClip]);
     } catch (err) {
+      if ((err as Error)?.name === "AbortError") return;
       const msg = err instanceof Error ? err.message : "Failed to import clip";
       setError(`Couldn't import "${clip.name}": ${msg}`);
     } finally {
-      setImportingClipId(null);
+      if (importAbortRef.current === ctrl) importAbortRef.current = null;
+      setImportingClipId((cur) => (cur === clip.id ? null : cur));
     }
   }, []);
 
@@ -322,7 +327,7 @@ export default function RemixView({ onBack, template }: Props) {
       setError(msg);
       setStage("error");
     }
-  }, [accessToken, clips, shuffle, segments, template, ratio, initFfmpeg, previewing]);
+  }, [clips, shuffle, segments, template, ratio, initFfmpeg, previewing]);
 
   const exportDisabled = !canGenerate;
 
@@ -767,7 +772,7 @@ export default function RemixView({ onBack, template }: Props) {
                 Timeline
               </p>
               <p className="text-[10px] text-wolf-muted">
-                {segments.length} slot{segments.length === 1 ? "" : "s"} · {template.audioDurationSec.toFixed(0)}s total
+                {segments.length} slot{segments.length === 1 ? "" : "s"} · {renderWindow.duration.toFixed(0)}s total
               </p>
             </div>
             <div className="flex gap-1.5 overflow-x-auto">

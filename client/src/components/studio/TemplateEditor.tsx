@@ -245,7 +245,10 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
       setTranscriptSegments(tr.segments || []);
       setLanguage(tr.language || "en");
       setLyricsProgress(100);
-      uploadFile(audioFile).catch(() => {});
+      uploadFile(audioFile).catch((e) => {
+        // eslint-disable-next-line no-console
+        console.warn("[studio] background audio upload failed (transcript still saved locally)", e);
+      });
       if (words.length === 0 && !tr.text) {
         setLyricsState("error");
         setLyricsError("Could not detect vocals in the audio. This may be an instrumental track — enter lyrics manually or skip.");

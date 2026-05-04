@@ -301,7 +301,7 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
   // ── Pull the result out ─────────────────────────────────────────────
   log("Finalising…");
   const out = await ffmpeg.readFile("final.mp4");
-  const blob = new Blob([out as Uint8Array], { type: "video/mp4" });
+  const blob = new Blob([out as BlobPart], { type: "video/mp4" });
   return URL.createObjectURL(blob);
 }
 

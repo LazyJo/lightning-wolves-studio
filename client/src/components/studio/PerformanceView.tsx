@@ -141,7 +141,7 @@ export default function PerformanceView({ onBack, template }: Props) {
         modelId,
         prompt,
         type: "performance",
-        accessToken,
+        accessToken: accessToken ?? undefined,
         options: {
           // Bound to the picked clip window — and Kling tops out at 10s
           // for v1.6 standard, so clamp accordingly.
@@ -415,6 +415,20 @@ export default function PerformanceView({ onBack, template }: Props) {
               The closer your clip's framing matches the style's energy, the better the final result. 5-10s takes work best.
             </p>
           </div>
+
+          {/* Kling 10s cap warning — render is silently truncated otherwise */}
+          {renderWindow.duration > 10 && (
+            <div
+              className="flex items-start gap-2 rounded-xl border p-3 text-[11px]"
+              style={{ borderColor: `${P.warn}40`, backgroundColor: P.warnSoft }}
+            >
+              <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: P.warn }} />
+              <p className="text-wolf-muted">
+                <span className="font-bold" style={{ color: P.warn }}>Heads up:</span>{" "}
+                Kling stylizes the first 10 seconds. Your clip is {renderWindow.duration.toFixed(0)}s — re-pick a tighter window in Step 1 to stylize the part you want.
+              </p>
+            </div>
+          )}
 
           {/* Generate CTA */}
           <button

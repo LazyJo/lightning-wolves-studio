@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, lazy, Suspense } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import Navbar from "./components/Navbar";
 import Hero from "./components/Hero";
@@ -16,7 +16,9 @@ import WolfProfilePage from "./components/WolfProfilePage";
 import PricingPage from "./components/PricingPage";
 import WolfMapPage from "./components/WolfMapPage";
 import WolfHubPage from "./components/WolfHubPage";
-import StudioPage from "./components/StudioPage";
+// Studio pulls ffmpeg + wavesurfer + every Studio surface (~600KB+).
+// Lazy so the marketing landing doesn't pay for it on first paint.
+const StudioPage = lazy(() => import("./components/StudioPage"));
 import AuthPage from "./components/AuthPage";
 import JoinPackPage from "./components/JoinPackPage";
 import CreateProfilePage from "./components/CreateProfilePage";
@@ -439,23 +441,34 @@ export default function App() {
             )}
 
             {page.type === "studio" && (
-              <StudioPage
-                wolf={page.wolf}
-                initialAudioUrl={page.initialAudioUrl}
-                initialAudioName={page.initialAudioName}
-                onBack={goHome}
-                onWolfMap={goToWolfMap}
-                onWolfHub={() => goToWolfHub()}
-                studioView={studioView}
-                onStudioNav={(v) => {
-                  if (v === "pricing") { goToPricing(); return; }
-                  setStudioView(v); window.scrollTo(0, 0);
-                }}
-                onAuthRequired={goToAuth}
-                onSharedToHub={(messageId) =>
-                  goToWolfHub({ messageId, roomId: "beats" })
+              <Suspense
+                fallback={
+                  <div className="flex min-h-[60vh] items-center justify-center text-wolf-muted">
+                    <div className="flex items-center gap-3 text-sm">
+                      <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-wolf-gold" />
+                      Loading Studio…
+                    </div>
+                  </div>
                 }
-              />
+              >
+                <StudioPage
+                  wolf={page.wolf}
+                  initialAudioUrl={page.initialAudioUrl}
+                  initialAudioName={page.initialAudioName}
+                  onBack={goHome}
+                  onWolfMap={goToWolfMap}
+                  onWolfHub={() => goToWolfHub()}
+                  studioView={studioView}
+                  onStudioNav={(v) => {
+                    if (v === "pricing") { goToPricing(); return; }
+                    setStudioView(v); window.scrollTo(0, 0);
+                  }}
+                  onAuthRequired={goToAuth}
+                  onSharedToHub={(messageId) =>
+                    goToWolfHub({ messageId, roomId: "beats" })
+                  }
+                />
+              </Suspense>
             )}
 
             {page.type === "auth" && (

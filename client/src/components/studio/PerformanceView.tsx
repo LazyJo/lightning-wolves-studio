@@ -50,6 +50,9 @@ const RESOLUTIONS = [
 interface Props {
   onBack: () => void;
   template: Template;
+  /** Hide back-button + big heading when rendered as a tab body inside
+   *  the GenerateView shell (the shell owns those). */
+  embedded?: boolean;
 }
 
 type Stage = "idle" | "rendering" | "assembling" | "done" | "error";
@@ -66,7 +69,7 @@ const P = {
   done: "#69f0ae",
 };
 
-export default function PerformanceView({ onBack, template }: Props) {
+export default function PerformanceView({ onBack, template, embedded = false }: Props) {
   const { accessToken } = useSession();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
@@ -201,34 +204,40 @@ export default function PerformanceView({ onBack, template }: Props) {
     : null;
 
   return (
-    <div className="pb-16">
-      <motion.button
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        onClick={onBack}
-        className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
-      >
-        <ArrowLeft size={16} />
-        Back to {template.title}
-      </motion.button>
+    <div className={embedded ? "" : "pb-16"}>
+      {!embedded && (
+        <motion.button
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          onClick={onBack}
+          className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
+        >
+          <ArrowLeft size={16} />
+          Back to {template.title}
+        </motion.button>
+      )}
 
-      <motion.h1
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-4xl font-black tracking-[0.05em] sm:text-5xl"
-        style={{
-          fontFamily: "var(--font-display)",
-          backgroundImage: `linear-gradient(90deg, ${P.pink}, #ff9ef2, #ffffff)`,
-          backgroundClip: "text",
-          WebkitBackgroundClip: "text",
-          color: "transparent",
-        }}
-      >
-        PERFORMANCE
-      </motion.h1>
-      <p className="mb-6 text-xs text-wolf-muted">
-        Style-transfer your own footage. Drop a clip, pick a vibe, we re-render it and lock it to your track.
-      </p>
+      {!embedded && (
+        <>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl font-black tracking-[0.05em] sm:text-5xl"
+            style={{
+              fontFamily: "var(--font-display)",
+              backgroundImage: `linear-gradient(90deg, ${P.pink}, #ff9ef2, #ffffff)`,
+              backgroundClip: "text",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            PERFORMANCE
+          </motion.h1>
+          <p className="mb-6 text-xs text-wolf-muted">
+            Style-transfer your own footage. Drop a clip, pick a vibe, we re-render it and lock it to your track.
+          </p>
+        </>
+      )}
 
       {error && (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-300">

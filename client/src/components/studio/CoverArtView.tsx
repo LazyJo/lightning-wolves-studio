@@ -28,6 +28,9 @@ import { useStudioPrefs } from "../../lib/useStudioPrefs";
 interface Props {
   onBack: () => void;
   wolf?: { artist: string; genre: string; color: string; id: string } | null;
+  /** Hide back-button + big heading when rendered as a tab body inside
+   *  the GenerateView shell (the shell owns those). */
+  embedded?: boolean;
 }
 
 // eliteOnly: gates the model to the Elite tier. Matches the
@@ -90,7 +93,7 @@ const CA = {
   border: "rgba(255,255,255,0.08)",
 };
 
-export default function CoverArtView({ onBack, wolf }: Props) {
+export default function CoverArtView({ onBack, wolf, embedded = false }: Props) {
   const { accessToken } = useSession();
   const { plan } = useCredits();
   const { profile } = useProfile();
@@ -314,31 +317,37 @@ export default function CoverArtView({ onBack, wolf }: Props) {
     : null;
 
   return (
-    <div className="pb-16">
-      <motion.button
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        onClick={onBack}
-        className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
-      >
-        <ArrowLeft size={16} /> Back to Dashboard
-      </motion.button>
+    <div className={embedded ? "" : "pb-16"}>
+      {!embedded && (
+        <motion.button
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          onClick={onBack}
+          className="mb-6 inline-flex items-center gap-2 text-sm text-wolf-muted transition-colors hover:text-wolf-gold"
+        >
+          <ArrowLeft size={16} /> Back to Dashboard
+        </motion.button>
+      )}
 
-      <motion.h1
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-4xl font-black tracking-[0.05em] sm:text-5xl"
-        style={{
-          fontFamily: "var(--font-display)",
-          backgroundImage: `linear-gradient(90deg, ${CA.blue}, #b6d4ff, #ffffff)`,
-          backgroundClip: "text",
-          WebkitBackgroundClip: "text",
-          color: "transparent",
-        }}
-      >
-        COVER ART
-      </motion.h1>
-      <p className="mb-6 text-xs text-wolf-muted">Generate album and single artwork with AI.</p>
+      {!embedded && (
+        <>
+          <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl font-black tracking-[0.05em] sm:text-5xl"
+            style={{
+              fontFamily: "var(--font-display)",
+              backgroundImage: `linear-gradient(90deg, ${CA.blue}, #b6d4ff, #ffffff)`,
+              backgroundClip: "text",
+              WebkitBackgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            COVER ART
+          </motion.h1>
+          <p className="mb-6 text-xs text-wolf-muted">Generate album and single artwork with AI.</p>
+        </>
+      )}
 
       {error && (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-300">

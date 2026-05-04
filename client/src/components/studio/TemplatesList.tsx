@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { Music, Plus, Trash2, Scissors, Mic, Clock } from "lucide-react";
 import { useTemplates } from "../../lib/useTemplates";
+import { resolveClipWindow } from "../../lib/templates";
 
 interface Props {
   onNew: () => void;
@@ -77,8 +78,15 @@ export default function TemplatesList({ onNew, onOpen, accentColor = "#f5c518" }
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((t) => {
-            const duration = t.audioDurationSec
-              ? `${t.audioDurationSec.toFixed(0)}s`
+            // Show the picked CLIP duration, not full song length. Without
+            // this the dashboard card says "134s" for a template the user
+            // saved as a 15s slice — confusing, since every render only
+            // covers the picked window. resolveClipWindow falls back
+            // gracefully for legacy pre-2026-05-03 templates that were
+            // saved before clipDuration existed as a field.
+            const window = resolveClipWindow(t);
+            const duration = window.duration > 0
+              ? `${window.duration.toFixed(0)}s`
               : "—";
             return (
               <motion.div

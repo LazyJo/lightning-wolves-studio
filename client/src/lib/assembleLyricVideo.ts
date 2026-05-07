@@ -408,7 +408,11 @@ function buildDrawtextFilter(
   const fontSize = Math.round(h * 0.085 * style.sizeMul * userScale);
   const yOffset = Math.round(h * 0.46);
   const fillColor = style.fillHex;
-  const outlineColor = style.outlineHex;
+  // ffmpeg drawtext accepts `name@alpha` (named-color form) or hex with the
+  // alpha encoded as the 7th-8th byte. The bare `#RRGGBB@alpha` shape is
+  // NOT valid — it parses as an invalid color and the whole drawtext
+  // expression silently fails, falling through to the no-overlay path.
+  const outlineColorWithAlpha = `${style.outlineHex}D9`; // 0.85 * 255 ≈ 217 = 0xD9
   const filters = words
     .map((word) => {
       const start = Math.max(0, word.start - clipStart);
@@ -424,7 +428,7 @@ function buildDrawtextFilter(
         `:x=(w-text_w)/2`,
         `:y=${yOffset}`,
         `:borderw=${Math.max(3, Math.round(fontSize / 14))}`,
-        `:bordercolor=${outlineColor}@0.85`,
+        `:bordercolor=${outlineColorWithAlpha}`,
         `:shadowx=0`,
         `:shadowy=4`,
         `:shadowcolor=black@0.55`,

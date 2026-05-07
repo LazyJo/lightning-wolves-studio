@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
+import { LYRIC_STYLES } from "../../lib/lyricStyles";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
 import {
   PUBLIC_CLIPS,
@@ -43,22 +44,6 @@ interface UserClip {
 }
 
 type Stage = "idle" | "assembling" | "done" | "error";
-
-/* ─── Lyric style presets — 8 mini-typography variants (LYRC parity) ───
-   These are purely display presets for now; the ffmpeg SRT overlay uses
-   the template's built-in styling. Each preset shapes how the style
-   label renders in the selector and (future) which font/weight/stroke
-   combo the overlay will use. */
-const LYRIC_STYLES: { id: string; label: string; preview: string; font: string; color?: string; bg?: string; italic?: boolean }[] = [
-  { id: "default", label: "Default", preview: "✦", font: "var(--font-body)" },
-  { id: "none", label: "None", preview: "—", font: "var(--font-body)" },
-  { id: "heartless", label: "Heartless", preview: "THE", font: "var(--font-display)", color: "#f5c518", italic: true },
-  { id: "fly", label: "Fly", preview: "THE", font: "var(--font-display)", color: "#fff" },
-  { id: "pikachu", label: "Pikachu", preview: "THE QUICK", font: "var(--font-display)", color: "#f5c518" },
-  { id: "wave", label: "Wave", preview: "THE QUICK", font: "var(--font-heading)", color: "#fff" },
-  { id: "hotpink", label: "HOTPINK", preview: "THE", font: "var(--font-display)", color: "#E040FB" },
-  { id: "brat", label: "Brat", preview: "the quick", font: "var(--font-body)", color: "#a0ffdc" },
-];
 
 const CLIP_RATIOS = ["All Ratios", "9:16", "16:9", "1:1"] as const;
 
@@ -316,6 +301,8 @@ export default function RemixView({ onBack, template }: Props) {
         clipStart: window.start,
         clipDuration: window.duration,
         aspectRatio: ratio,
+        lyricStyleId: lyricStyle,
+        lyricScale: scale,
         onStage: (s) => setStageLog(s),
       });
 
@@ -527,7 +514,7 @@ export default function RemixView({ onBack, template }: Props) {
                         className="flex h-7 w-full items-center justify-center overflow-hidden"
                         style={{
                           fontFamily: s.font,
-                          color: s.color || "#fff",
+                          color: s.none ? "#888" : s.fillHex,
                           fontStyle: s.italic ? "italic" : "normal",
                           fontWeight: 900,
                           fontSize: s.preview.length > 4 ? "8px" : "11px",

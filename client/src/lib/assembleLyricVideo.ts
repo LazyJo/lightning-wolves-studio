@@ -1,6 +1,7 @@
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import type { WordTiming } from "./templates";
+import { getLyricStyle, hexToAssBgr, type LyricStyleSpec } from "./lyricStyles";
 
 export interface AssembleArgs {
   ffmpeg: FFmpeg;
@@ -36,6 +37,17 @@ export interface AssembleArgs {
   clipStart?: number;
   clipDuration?: number;
   aspectRatio?: "9:16" | "16:9";
+  /**
+   * Lyric style preset id (see `lyricStyles.ts`). Drives drawtext / ASS /
+   * SRT colors and a per-style size multiplier. When the preset is "none"
+   * the lyric overlay is skipped entirely. Defaults to "default".
+   */
+  lyricStyleId?: string;
+  /**
+   * User-driven font scale multiplier (~0.3–1.5). Applied on top of the
+   * preset's own sizeMul. Defaults to 1.0.
+   */
+  lyricScale?: number;
   onStage?: (stage: string) => void;
 }
 
@@ -165,7 +177,7 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
     if (overlay.kind !== "none" && args.srt) {
       attempts.push({
         label: "static SRT",
-        vf: `${baseFilter},subtitles=subs.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=60'`,
+        vf: `${baseFilter},subtitles=subs.srt:force_style='${srtForceStyle(getLyricStyle(args.lyricStyleId), clampScale(args.lyricScale))}'`,
         pre: async () => {
           await ffmpeg.writeFile("subs.srt", new TextEncoder().encode(args.srt!));
         },
@@ -260,7 +272,7 @@ export async function assembleLyricVideo(args: AssembleArgs): Promise<string> {
     if (overlay.kind !== "none" && args.srt) {
       attempts.push({
         label: "static SRT",
-        vf: "subtitles=subs.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=60'",
+        vf: `subtitles=subs.srt:force_style='${srtForceStyle(getLyricStyle(args.lyricStyleId), clampScale(args.lyricScale))}'`,
         pre: async () => {
           await ffmpeg.writeFile("subs.srt", new TextEncoder().encode(args.srt!));
         },
@@ -323,6 +335,11 @@ interface OverlaySpec {
 }
 
 function buildOverlay(args: AssembleArgs, w: number, h: number): OverlaySpec {
+  const style = getLyricStyle(args.lyricStyleId);
+  const userScale = clampScale(args.lyricScale);
+  // The "None" preset opts out of any burned-in lyrics — return a no-op
+  // overlay regardless of whether wordTimings/srt are available.
+  if (style.none) return { kind: "none", body: "", filter: "" };
   if (args.wordTimings && args.wordTimings.length > 0) {
     // Primary path: drawtext per word. Uses ffmpeg.wasm's bundled freetype
     // and default Liberation Sans — no libass + no font search, which is
@@ -330,18 +347,43 @@ function buildOverlay(args: AssembleArgs, w: number, h: number): OverlaySpec {
     // export with no lyrics at all (Jo, 2026-05-04).
     return {
       kind: "drawtext",
-      body: buildKaraokeAss(args.wordTimings, w, h), // kept as ASS fallback body
-      filter: buildDrawtextFilter(args.wordTimings, args.clipStart ?? 0, w, h),
+      body: buildKaraokeAss(args.wordTimings, w, h, style, userScale),
+      filter: buildDrawtextFilter(args.wordTimings, args.clipStart ?? 0, w, h, style, userScale),
     };
   }
   if (args.srt && args.srt.trim().length > 0) {
     return {
       kind: "srt",
       body: args.srt,
-      filter: "subtitles=subs.srt:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF&,OutlineColour=&H000000&,BorderStyle=1,Outline=2,Shadow=0,Alignment=2,MarginV=60'",
+      filter: `subtitles=subs.srt:force_style='${srtForceStyle(style, userScale)}'`,
     };
   }
   return { kind: "none", body: "", filter: "" };
+}
+
+function clampScale(v: number | undefined): number {
+  if (typeof v !== "number" || !isFinite(v)) return 1.0;
+  return Math.max(0.3, Math.min(1.5, v));
+}
+
+/** ffmpeg `subtitles=...:force_style='...'` body. Mirrors the legacy hard
+ *  default, but with PrimaryColour/OutlineColour pulled from the picked
+ *  style and FontSize multiplied by the combined size factor. */
+function srtForceStyle(style: LyricStyleSpec, userScale: number): string {
+  const fontSize = Math.round(18 * style.sizeMul * userScale);
+  const primary = hexToAssBgr(style.fillHex);
+  const outline = hexToAssBgr(style.outlineHex);
+  return [
+    "FontName=Arial",
+    `FontSize=${fontSize}`,
+    `PrimaryColour=${primary}`,
+    `OutlineColour=${outline}`,
+    "BorderStyle=1",
+    "Outline=2",
+    "Shadow=0",
+    "Alignment=2",
+    "MarginV=60",
+  ].join(",");
 }
 
 /**
@@ -360,25 +402,29 @@ function buildDrawtextFilter(
   clipStart: number,
   _w: number,
   h: number,
+  style: LyricStyleSpec,
+  userScale: number,
 ): string {
-  const fontSize = Math.round(h * 0.085);
+  const fontSize = Math.round(h * 0.085 * style.sizeMul * userScale);
   const yOffset = Math.round(h * 0.46);
+  const fillColor = style.fillHex;
+  const outlineColor = style.outlineHex;
   const filters = words
     .map((word) => {
       const start = Math.max(0, word.start - clipStart);
       const end = Math.max(start + 0.08, word.end - clipStart);
       const text = escapeDrawtext(word.word);
       if (!text) return "";
-      // Two stacked drawtexts per word: thick black outline + gold fill on top.
+      // drawtext per word: thick outline + style fill on top.
       const enable = `between(t,${start.toFixed(3)},${end.toFixed(3)})`;
       return [
         `drawtext=text='${text}'`,
-        `:fontcolor=#FACC15`,
+        `:fontcolor=${fillColor}`,
         `:fontsize=${fontSize}`,
         `:x=(w-text_w)/2`,
         `:y=${yOffset}`,
         `:borderw=${Math.max(3, Math.round(fontSize / 14))}`,
-        `:bordercolor=black@0.85`,
+        `:bordercolor=${outlineColor}@0.85`,
         `:shadowx=0`,
         `:shadowy=4`,
         `:shadowcolor=black@0.55`,
@@ -409,7 +455,13 @@ function escapeDrawtext(text: string): string {
  *   gold #facc15 → BGR 15CCFA → &H0015CCFA
  *   white        → &H00FFFFFF
  */
-function buildKaraokeAss(words: WordTiming[], width: number, height: number): string {
+function buildKaraokeAss(
+  words: WordTiming[],
+  width: number,
+  height: number,
+  style: LyricStyleSpec,
+  userScale: number,
+): string {
   const wordsPerLine = 4;
   const lines: WordTiming[][] = [];
   for (let i = 0; i < words.length; i += wordsPerLine) {
@@ -430,9 +482,12 @@ function buildKaraokeAss(words: WordTiming[], width: number, height: number): st
   });
 
   // Font + margin scale with canvas height so 9:16 and 16:9 read the same.
-  const fontSize = Math.max(36, Math.round(height * 0.058));
+  const fontSize = Math.max(36, Math.round(height * 0.058 * style.sizeMul * userScale));
   const marginV = Math.round(height * 0.12);
   const outline = Math.max(2, Math.round(fontSize / 18));
+  const primary = hexToAssBgr(style.fillHex);
+  const outlineColor = hexToAssBgr(style.outlineHex);
+  const italic = style.italic ? 1 : 0;
 
   return [
     "[Script Info]",
@@ -444,7 +499,7 @@ function buildKaraokeAss(words: WordTiming[], width: number, height: number): st
     "",
     "[V4+ Styles]",
     "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding",
-    `Style: Default,Arial,${fontSize},&H0015CCFA,&H00FFFFFF,&H00000000,&H64000000,1,0,0,0,100,100,0,0,1,${outline},2,2,40,40,${marginV},1`,
+    `Style: Default,Arial,${fontSize},${primary},&H00FFFFFF,${outlineColor},&H64000000,1,${italic},0,0,100,100,0,0,1,${outline},2,2,40,40,${marginV},1`,
     "",
     "[Events]",
     "Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text",

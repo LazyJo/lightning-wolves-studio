@@ -408,11 +408,13 @@ function buildDrawtextFilter(
   const fontSize = Math.round(h * 0.085 * style.sizeMul * userScale);
   const yOffset = Math.round(h * 0.46);
   const fillColor = style.fillHex;
-  // ffmpeg drawtext accepts `name@alpha` (named-color form) or hex with the
-  // alpha encoded as the 7th-8th byte. The bare `#RRGGBB@alpha` shape is
-  // NOT valid — it parses as an invalid color and the whole drawtext
-  // expression silently fails, falling through to the no-overlay path.
-  const outlineColorWithAlpha = `${style.outlineHex}D9`; // 0.85 * 255 ≈ 217 = 0xD9
+  // Outline color: use the named-color form `black@0.85` when the outline
+  // is plain black (all current presets do). The hex `#RRGGBBAA` shape
+  // also works, but only in some ffmpeg.wasm builds — the named form is
+  // the canonical syntax that works everywhere and matches the
+  // pre-2026-05-07 hardcoded value, so stick with it for compat.
+  const isBlack = /^#?0{6}$/.test(style.outlineHex.replace("#", ""));
+  const outlineSpec = isBlack ? "black@0.85" : `${style.outlineHex}D9`;
   const filters = words
     .map((word) => {
       const start = Math.max(0, word.start - clipStart);
@@ -428,7 +430,7 @@ function buildDrawtextFilter(
         `:x=(w-text_w)/2`,
         `:y=${yOffset}`,
         `:borderw=${Math.max(3, Math.round(fontSize / 14))}`,
-        `:bordercolor=${outlineColorWithAlpha}`,
+        `:bordercolor=${outlineSpec}`,
         `:shadowx=0`,
         `:shadowy=4`,
         `:shadowcolor=black@0.55`,

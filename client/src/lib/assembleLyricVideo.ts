@@ -2,6 +2,7 @@ import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import type { WordTiming } from "./templates";
 import { getLyricStyle, hexToAssBgr, type LyricStyleSpec } from "./lyricStyles";
+import { FFMPEG_FONT_MEMFS } from "./useFfmpeg";
 
 export interface AssembleArgs {
   ffmpeg: FFmpeg;
@@ -425,6 +426,10 @@ function buildDrawtextFilter(
       const enable = `between(t,${start.toFixed(3)},${end.toFixed(3)})`;
       return [
         `drawtext=text='${text}'`,
+        // Without :fontfile= libavfilter has no font to load inside the
+        // ffmpeg.wasm sandbox and drawtext silently renders 0 glyphs.
+        // useFfmpeg writes the bundled TTF to MEMFS at FFMPEG_FONT_MEMFS.
+        `:fontfile=${FFMPEG_FONT_MEMFS}`,
         `:fontcolor=${fillColor}`,
         `:fontsize=${fontSize}`,
         `:x=(w-text_w)/2`,

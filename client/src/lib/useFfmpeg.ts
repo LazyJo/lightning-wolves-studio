@@ -21,6 +21,14 @@ import { fetchFile } from "@ffmpeg/util";
 //      ESM path should now succeed on the first try.
 const corePath = "/ffmpeg/ffmpeg-core.js";
 const wasmPath = "/ffmpeg/ffmpeg-core.wasm";
+// Bundled lyric font, shipped from client/public/fonts/. Written into the
+// ffmpeg.wasm MEMFS once on load so the drawtext filter's `:fontfile=`
+// directive resolves. Without this, libavfilter's drawtext can't find any
+// font in the WASM sandbox and renders 0 glyphs *silently* — no exception,
+// just blank text. (Symptom Jo hit 2026-05-07: "0 colored pixels" for both
+// Default and Hotpink presets.)
+const fontPath = "/fonts/BebasNeue-Regular.ttf";
+const fontMemfs = "font.ttf";
 
 /**
  * ffmpeg.wasm is ~25MB — only load it when the user actually starts
@@ -70,6 +78,23 @@ async function ensureLoaded(onLog?: (msg: string) => void): Promise<FFmpeg> {
       ]);
       await ff.load({ coreURL: coreBlob, wasmURL: wasmBlob });
     }
+    // Provision the bundled font into MEMFS so drawtext's `:fontfile=`
+    // resolves. Best-effort — if the asset can't be fetched the render
+    // still runs, drawtext just won't pick up the font (and we'll fall
+    // back through the overlay chain).
+    try {
+      const r = await fetch(fontPath);
+      if (r.ok) {
+        const buf = new Uint8Array(await r.arrayBuffer());
+        await ff.writeFile(fontMemfs, buf);
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn(`ffmpeg font fetch failed: ${r.status} ${fontPath}`);
+      }
+    } catch (fontErr) {
+      // eslint-disable-next-line no-console
+      console.warn("ffmpeg font provisioning failed:", fontErr);
+    }
     sharedFfmpeg = ff;
     return ff;
   })();
@@ -78,6 +103,13 @@ async function ensureLoaded(onLog?: (msg: string) => void): Promise<FFmpeg> {
 }
 
 export { fetchFile };
+
+/**
+ * MEMFS path of the bundled lyric font, written by `ensureLoaded`. Pass
+ * this to drawtext via `:fontfile=` so libavfilter actually has a font
+ * to render with — see comment near `fontPath` above for the full why.
+ */
+export const FFMPEG_FONT_MEMFS = fontMemfs;
 
 export function useFfmpeg() {
   const [loading, setLoading] = useState(false);

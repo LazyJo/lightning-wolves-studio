@@ -315,11 +315,76 @@ export interface TranscribeResult {
   duration: number;
 }
 
-export async function transcribeAudio(file: File, language: string = "English"): Promise<TranscribeResult> {
+// ─── Vocal isolation (Demucs stem separation) ────────────────────────────────
+// Separating the vocal stem from the full mix before transcription is the
+// single biggest lyric-accuracy win: whisper hears the words instead of the
+// production burying them. Async because Demucs runs 30s–2min on Replicate.
+
+export async function startVocalSeparation(audioUrl: string): Promise<{ id: string; status: string }> {
+  const res = await fetch(`${API}/api/separate-vocals`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ audioUrl }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Vocal isolation failed" }));
+    throw new Error(err.error || "Vocal isolation failed");
+  }
+  return res.json();
+}
+
+export async function getVocalSeparationStatus(
+  id: string,
+): Promise<{ status: string; vocalsUrl: string | null; error: string | null }> {
+  const res = await fetch(`${API}/api/separate-vocals/${encodeURIComponent(id)}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Status check failed" }));
+    throw new Error(err.error || "Status check failed");
+  }
+  return res.json();
+}
+
+// Isolate the vocal stem and return its URL. Returns null on ANY failure
+// (offline, model error, timeout, abort) so the caller can fall back to
+// transcribing the original mix — vocal isolation should only ever help, never
+// break a transcription that would otherwise have worked.
+async function isolateVocalStem(
+  audioUrl: string,
+  opts: { signal?: AbortSignal } = {},
+): Promise<string | null> {
+  try {
+    const { id } = await startVocalSeparation(audioUrl);
+    const deadline = Date.now() + 4 * 60 * 1000; // 4 min cap
+    while (Date.now() < deadline) {
+      if (opts.signal?.aborted) return null;
+      await new Promise((r) => setTimeout(r, 3000));
+      const s = await getVocalSeparationStatus(id);
+      if (s.status === "succeeded") return s.vocalsUrl;
+      if (s.status === "failed" || s.status === "canceled") return null;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export type TranscribeStage = "uploading" | "isolating" | "transcribing";
+
+export async function transcribeAudio(
+  file: File,
+  language: string = "English",
+  opts: {
+    /** Isolate the vocal stem before transcribing (default true). */
+    isolateVocals?: boolean;
+    onStage?: (stage: TranscribeStage) => void;
+    signal?: AbortSignal;
+  } = {},
+): Promise<TranscribeResult> {
   // Upload directly to Supabase Storage to bypass Vercel's 4.5MB request body
   // limit (any normal song is 5–8 MB and gets rejected with FUNCTION_PAYLOAD_TOO_LARGE
   // before our function even runs). The server then fetches the audio from the
   // public URL we hand it.
+  opts.onStage?.("uploading");
   const sb = await initSupabase();
   if (!sb) throw new Error("Supabase not configured");
   const { data: sess } = await sb.auth.getSession();
@@ -337,10 +402,20 @@ export async function transcribeAudio(file: File, language: string = "English"):
   const audioUrl = urlData?.publicUrl;
   if (!audioUrl) throw new Error("Could not resolve uploaded audio URL");
 
+  // Isolate the vocal stem first (default on). Falls back to the original mix
+  // if separation is offline or fails, so this never regresses transcription.
+  let transcribeUrl = audioUrl;
+  if (opts.isolateVocals !== false) {
+    opts.onStage?.("isolating");
+    const vocalsUrl = await isolateVocalStem(audioUrl, { signal: opts.signal });
+    if (vocalsUrl) transcribeUrl = vocalsUrl;
+  }
+
+  opts.onStage?.("transcribing");
   const res = await fetch(`${API}/api/transcribe`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ audioUrl, language }),
+    body: JSON.stringify({ audioUrl: transcribeUrl, language }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: `Transcription failed (HTTP ${res.status})` }));

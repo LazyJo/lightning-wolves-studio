@@ -17,7 +17,7 @@ import {
   Wand2,
   FileText,
 } from "lucide-react";
-import { transcribeAudio, uploadFile } from "../../lib/api";
+import { transcribeAudio, uploadFile, type TranscribeStage } from "../../lib/api";
 import { useTemplates } from "../../lib/useTemplates";
 import type { Template, WordTiming } from "../../lib/templates";
 import WaveformSelector from "./WaveformSelector";
@@ -86,6 +86,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
   const [lyricsError, setLyricsError] = useState<string>("");
   const [lyricsProgress, setLyricsProgress] = useState(0);
   const [lyricsElapsed, setLyricsElapsed] = useState(0);
+  const [lyricsStage, setLyricsStage] = useState<TranscribeStage | null>(null);
   const lyricsTickerRef = useRef<number | null>(null);
 
   /* ── Markers ─────────────────────────────────────────────────────── */
@@ -211,6 +212,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     setLyricsError("");
     setLyricsProgress(0);
     setLyricsElapsed(0);
+    setLyricsStage("uploading");
 
     const startedAt = Date.now();
     lyricsTickerRef.current = window.setInterval(() => {
@@ -221,7 +223,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     }, 300);
 
     try {
-      const tr = await transcribeAudio(audioFile, lang);
+      const tr = await transcribeAudio(audioFile, lang, { onStage: setLyricsStage });
       const words: WordTiming[] = (tr.words?.length ? tr.words : []).map((w) => ({
         word: w.word,
         start: w.start,
@@ -260,6 +262,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
       setLyricsError(msg);
       setLyricsState("error");
     } finally {
+      setLyricsStage(null);
       if (lyricsTickerRef.current != null) {
         clearInterval(lyricsTickerRef.current);
         lyricsTickerRef.current = null;
@@ -644,7 +647,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
           {!lyricsActive ? (
             <EmptyNote icon={<FileText size={22} />} label="Complete audio step first" />
           ) : lyricsState === "loading" ? (
-            <LyricsLoading progress={lyricsProgress} elapsed={lyricsElapsed} />
+            <LyricsLoading progress={lyricsProgress} elapsed={lyricsElapsed} stage={lyricsStage} />
           ) : lyricsState === "ready" ? (
             <LyricsEditor
               // Clip-scoped lyrics — Step 2 only shows words inside the
@@ -953,13 +956,30 @@ function EmptyNote({ icon, label }: { icon: React.ReactNode; label: string }) {
   );
 }
 
-function LyricsLoading({ progress, elapsed }: { progress: number; elapsed: number }) {
+function LyricsLoading({
+  progress,
+  elapsed,
+  stage: stageId,
+}: {
+  progress: number;
+  elapsed: number;
+  stage?: TranscribeStage | null;
+}) {
+  // Explicit pipeline stage wins; fall back to the elapsed-time heuristic.
+  // Vocal isolation (Demucs) is the long pole — it can run a minute or more, so
+  // give it its own headline instead of letting the timer drift to "Almost done".
   const stage =
-    elapsed < 3
+    stageId === "uploading"
       ? { headline: "Loading your audio…", sub: "Sending it to the studio engine" }
-      : elapsed < 12
-        ? { headline: "Reading the lyrics…", sub: "Whisper — word-level timing for karaoke" }
-        : { headline: "Almost done…", sub: "Lining up word timings" };
+      : stageId === "isolating"
+        ? { headline: "Isolating vocals…", sub: "Splitting the vocal from the mix for cleaner lyrics" }
+        : stageId === "transcribing"
+          ? { headline: "Reading the lyrics…", sub: "Whisper — word-level timing for karaoke" }
+          : elapsed < 3
+            ? { headline: "Loading your audio…", sub: "Sending it to the studio engine" }
+            : elapsed < 12
+              ? { headline: "Reading the lyrics…", sub: "Whisper — word-level timing for karaoke" }
+              : { headline: "Almost done…", sub: "Lining up word timings" };
 
   return (
     <div className="flex flex-col items-center gap-4 py-6">

@@ -433,6 +433,78 @@ app.post('/api/transcribe', memUpload.single('file'), async (req, res) => {
   }
 });
 
+// ─── Vocal isolation (Demucs stem separation) ───────────────────────────────
+// Heavily-produced songs bury the vocal under the mix, so whisper mishears the
+// lyrics or returns nothing at all. We isolate the vocal stem FIRST, then
+// transcribe that clean stem — the single biggest accuracy win for lyric
+// burn-in. Demucs takes 30s–2min (past Vercel's 60s function cap), so this is
+// async: create returns a Replicate prediction id, client polls the status route.
+//
+// Model: cjwbw/demucs. Input `audio` (URL), `stem:"vocals"` returns just the
+// vocal + an accompaniment mix; output is an object keyed by stem name. The
+// version is resolved live from Replicate so it can't silently go stale — the
+// hardcoded hash is only a fallback if that lookup fails.
+const DEMUCS_FALLBACK_VERSION =
+  '25a173108cff36ef9f80f854c162d01df9e6528be175794b81158fa03836d953';
+let demucsVersionCache = null;
+async function resolveDemucsVersion() {
+  if (demucsVersionCache) return demucsVersionCache;
+  try {
+    const model = await replicate.models.get('cjwbw', 'demucs');
+    demucsVersionCache = model?.latest_version?.id || DEMUCS_FALLBACK_VERSION;
+  } catch (err) {
+    console.warn('[separate-vocals] version lookup failed, using fallback:', err?.message);
+    demucsVersionCache = DEMUCS_FALLBACK_VERSION;
+  }
+  return demucsVersionCache;
+}
+
+app.post('/api/separate-vocals', async (req, res) => {
+  try {
+    if (!replicate) {
+      return res.status(503).json({ error: 'Vocal isolation offline — REPLICATE_API_TOKEN not set.' });
+    }
+    const audioUrl = typeof req.body?.audioUrl === 'string' ? req.body.audioUrl : null;
+    if (!audioUrl) return res.status(400).json({ error: 'audioUrl required' });
+    try { new URL(audioUrl); } catch { return res.status(400).json({ error: 'Invalid audioUrl' }); }
+
+    const version = await resolveDemucsVersion();
+    const prediction = await replicate.predictions.create({
+      version,
+      input: { audio: audioUrl, stem: 'vocals', model_name: 'htdemucs', output_format: 'mp3' },
+    });
+    res.json({ id: prediction.id, status: prediction.status });
+  } catch (err) {
+    console.error('[separate-vocals] create error:', err);
+    res.status(500).json({ error: err?.message || 'Vocal isolation failed to start' });
+  }
+});
+
+app.get('/api/separate-vocals/:id', async (req, res) => {
+  try {
+    if (!replicate) return res.status(503).json({ error: 'Replicate not configured' });
+    const prediction = await replicate.predictions.get(req.params.id);
+    // Output is an object { vocals, drums, bass, ... }; with stem="vocals" only
+    // `vocals` and an accompaniment track are populated. Tolerate string / array
+    // shapes too in case the model build changes its return type.
+    const out = prediction.output;
+    let vocalsUrl = null;
+    if (out) {
+      if (typeof out === 'string') vocalsUrl = out;
+      else if (typeof out.vocals === 'string') vocalsUrl = out.vocals;
+      else if (Array.isArray(out)) vocalsUrl = out.find((u) => typeof u === 'string' && /vocal/i.test(u)) || out[0] || null;
+    }
+    res.json({
+      status: prediction.status,
+      vocalsUrl: prediction.status === 'succeeded' ? vocalsUrl : null,
+      error: prediction.error || null,
+    });
+  } catch (err) {
+    console.error('[separate-vocals] status error:', err);
+    res.status(500).json({ error: err?.message || 'Status check failed' });
+  }
+});
+
 // Main generation endpoint
 app.post('/api/generate', async (req, res) => {
   try {

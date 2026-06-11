@@ -413,12 +413,27 @@ export async function transcribeAudio(
   const userId = sess?.session?.user?.id;
   if (!userId) throw new Error("Sign in to transcribe");
 
+  // Supabase Storage caps uploads at the bucket's file_size_limit (currently
+  // 50 MB — the project ceiling). A full-length WAV can blow past that, and the
+  // raw Supabase error ("The object exceeded the maximum allowed size") is
+  // useless to a musician. Catch it (and pre-empt it) with an actionable message.
+  const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+  const tooLargeMsg =
+    "This song is too large to upload (the limit is 50 MB). It's almost certainly an uncompressed WAV — " +
+    "export it as an MP3 (a fraction of the size, no quality loss you'll hear) and upload that instead.";
+  if (file.size > MAX_UPLOAD_BYTES) throw new Error(tooLargeMsg);
+
   const ext = (file.name.split(".").pop() || "mp3").toLowerCase().replace(/[^a-z0-9]/g, "") || "mp3";
   const path = `transcribe-tmp/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error: upErr } = await sb.storage
     .from("wolf-hub-media")
     .upload(path, file, { contentType: file.type || "audio/mpeg", upsert: false });
-  if (upErr) throw new Error(`Audio upload failed: ${upErr.message}`);
+  if (upErr) {
+    if (/maximum allowed size|exceeded|too large|payload too large|413/i.test(upErr.message)) {
+      throw new Error(tooLargeMsg);
+    }
+    throw new Error(`Audio upload failed: ${upErr.message}`);
+  }
 
   const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
   const audioUrl = urlData?.publicUrl;

@@ -352,18 +352,40 @@ async function isolateVocalStem(
   audioUrl: string,
   opts: { signal?: AbortSignal } = {},
 ): Promise<string | null> {
+  // 8-min cap: Demucs is cold-start + processing, which measured ~3.5 min on a
+  // 6-min track. 4 min was too tight — a slow cold-start timed out and silently
+  // fell back to the un-separated mix, which looks exactly like "not working".
   try {
     const { id } = await startVocalSeparation(audioUrl);
-    const deadline = Date.now() + 4 * 60 * 1000; // 4 min cap
+    // eslint-disable-next-line no-console
+    console.info("[transcribe] vocal isolation started", id);
+    const deadline = Date.now() + 8 * 60 * 1000;
     while (Date.now() < deadline) {
       if (opts.signal?.aborted) return null;
       await new Promise((r) => setTimeout(r, 3000));
       const s = await getVocalSeparationStatus(id);
-      if (s.status === "succeeded") return s.vocalsUrl;
-      if (s.status === "failed" || s.status === "canceled") return null;
+      if (s.status === "succeeded") {
+        if (s.vocalsUrl) {
+          // eslint-disable-next-line no-console
+          console.info("[transcribe] vocal isolation OK — transcribing the isolated stem");
+          return s.vocalsUrl;
+        }
+        // eslint-disable-next-line no-console
+        console.warn("[transcribe] isolation succeeded but no vocals URL — using original mix");
+        return null;
+      }
+      if (s.status === "failed" || s.status === "canceled") {
+        // eslint-disable-next-line no-console
+        console.warn("[transcribe] vocal isolation failed — falling back to original mix:", s.error);
+        return null;
+      }
     }
+    // eslint-disable-next-line no-console
+    console.warn("[transcribe] vocal isolation timed out (8 min) — falling back to original mix");
     return null;
-  } catch {
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[transcribe] vocal isolation errored — falling back to original mix:", err);
     return null;
   }
 }

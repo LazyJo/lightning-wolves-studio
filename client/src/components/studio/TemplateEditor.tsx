@@ -88,6 +88,9 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
   const [lyricsElapsed, setLyricsElapsed] = useState(0);
   const [lyricsStage, setLyricsStage] = useState<TranscribeStage | null>(null);
   const lyricsTickerRef = useRef<number | null>(null);
+  // Per-stage progress ceiling so the bar advances through upload → isolate →
+  // transcribe instead of parking at 95% for the whole (now ~1–2 min) flow.
+  const progressCeilingRef = useRef(25);
 
   /* ── Markers ─────────────────────────────────────────────────────── */
   const [cutMarkers, setCutMarkers] = useState<number[]>(initial?.cutMarkers || []);
@@ -213,17 +216,28 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     setLyricsProgress(0);
     setLyricsElapsed(0);
     setLyricsStage("uploading");
+    progressCeilingRef.current = 25;
 
     const startedAt = Date.now();
     lyricsTickerRef.current = window.setInterval(() => {
       const el = (Date.now() - startedAt) / 1000;
       setLyricsElapsed(el);
-      // Fake progress — ease toward 95% over ~15s; snap to 100 on done.
-      setLyricsProgress((p) => Math.min(95, p + (95 - p) * 0.08));
+      // Ease toward the current stage's ceiling; snap to 100 on done. Each
+      // stage raises the ceiling so the bar keeps moving across the long
+      // vocal-isolation step instead of stalling.
+      setLyricsProgress((p) => Math.min(progressCeilingRef.current, p + (progressCeilingRef.current - p) * 0.06));
     }, 300);
 
+    // Raise the progress ceiling as the pipeline advances through its stages.
+    const onStage = (stage: TranscribeStage) => {
+      setLyricsStage(stage);
+      progressCeilingRef.current = stage === "uploading" ? 25 : stage === "isolating" ? 72 : 97;
+      if (stage === "isolating") setLyricsProgress((p) => Math.max(p, 28));
+      if (stage === "transcribing") setLyricsProgress((p) => Math.max(p, 74));
+    };
+
     try {
-      const tr = await transcribeAudio(audioFile, lang, { onStage: setLyricsStage });
+      const tr = await transcribeAudio(audioFile, lang, { onStage });
       const words: WordTiming[] = (tr.words?.length ? tr.words : []).map((w) => ({
         word: w.word,
         start: w.start,
@@ -1016,7 +1030,9 @@ function LyricsLoading({
 
       <p className="text-[10px] text-wolf-muted">{stage.sub}</p>
       <p className="font-mono text-xs text-white">{formatElapsed(elapsed)}</p>
-      <p className="text-[10px] text-wolf-muted">Usually takes 5-15 seconds</p>
+      <p className="text-[10px] text-wolf-muted">
+        {stageId === "isolating" ? "Splitting vocals can take a minute or two — hang tight" : "Usually takes up to a minute"}
+      </p>
     </div>
   );
 }

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
-import { LYRIC_STYLES } from "../../lib/lyricStyles";
+import { LYRIC_STYLES, getLyricStyle } from "../../lib/lyricStyles";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
 import {
   PUBLIC_CLIPS,
@@ -81,6 +81,11 @@ export default function RemixView({ onBack, template }: Props) {
   // for how the remix will land before they spend ffmpeg time exporting.
   const [previewing, setPreviewing] = useState(false);
   const [previewIdx, setPreviewIdx] = useState(0);
+  // Absolute song-time (seconds) of the preview playhead. Drives the synced
+  // lyric overlay. wordTimings are saved in ABSOLUTE song time (the editor
+  // filters them to the clip but does NOT re-zero), so we match against the
+  // raw audio.currentTime — same coordinate system the export's drawtext uses.
+  const [previewTime, setPreviewTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
@@ -162,6 +167,29 @@ export default function RemixView({ onBack, template }: Props) {
   const legacyClip = typeof template.clipDuration !== "number";
   const canPreview = clips.length > 0 && !!audioUrl;
 
+  // The lyric style picked in the controls. `none` opts out of any overlay,
+  // matching the export. fillHex drives the on-screen word colour so the
+  // preview reflects the burn-in the user will actually get.
+  const previewStyle = getLyricStyle(lyricStyle);
+  const showPreviewLyrics = !!previewStyle && !previewStyle.none && !!template.wordTimings?.length;
+
+  // Active word for the on-screen overlay, synced to the preview playhead.
+  // Sustains the last-sung word through inter-word gaps (LYRC-style) so the
+  // screen doesn't flicker blank between words. Bounded to the clip window.
+  const previewWord = useMemo<{ word: string; start: number; end: number } | null>(() => {
+    const wt = template.wordTimings;
+    if (!wt || !wt.length) return null;
+    const clipEnd = renderWindow.start + renderWindow.duration;
+    let last: { word: string; start: number; end: number } | null = null;
+    for (const w of wt) {
+      if (w.end <= renderWindow.start) continue;
+      if (w.start >= clipEnd) break;
+      if (previewTime >= w.start && previewTime < w.end) return w;
+      if (w.start <= previewTime) last = w;
+    }
+    return last;
+  }, [template.wordTimings, previewTime, renderWindow.start, renderWindow.duration]);
+
   // Lazy-load the template's audio into a blob: URL the first time a
   // preview-capable clip lands. We hold this for the whole session so
   // toggling preview on/off doesn't re-fetch from IndexedDB every time.
@@ -219,13 +247,19 @@ export default function RemixView({ onBack, template }: Props) {
       return;
     }
     setPreviewIdx(0);
+    setPreviewTime(renderWindow.start);
     setPreviewing(true);
     // Allow the next render to mount the <audio>/<video> before play().
+    // Seek the song to the clip window so the preview plays ONLY the selected
+    // part (not the whole track), matching what the export will render.
     requestAnimationFrame(() => {
-      audioRef.current?.play().catch(() => undefined);
+      if (audioRef.current) {
+        try { audioRef.current.currentTime = renderWindow.start; } catch { /* not seekable yet */ }
+        audioRef.current.play().catch(() => undefined);
+      }
       videoRef.current?.play().catch(() => undefined);
     });
-  }, [canPreview, clips.length, previewing]);
+  }, [canPreview, clips.length, previewing, renderWindow.start]);
 
   const addClips = (files: FileList | File[]) => {
     const next: UserClip[] = [];
@@ -705,12 +739,50 @@ export default function RemixView({ onBack, template }: Props) {
                       <Play size={22} style={{ color: R.cyan }} />
                     </span>
                   </button>
-                  {/* Hidden audio element drives the song behind the cycling clips. */}
+                  {/* Synced lyric overlay — shows the burned-in word the export
+                      will render, in the picked style's colour. */}
+                  {showPreviewLyrics && previewWord && (
+                    <div className="pointer-events-none absolute inset-x-0 bottom-[14%] flex justify-center px-4">
+                      <span
+                        className="text-center font-extrabold uppercase leading-none tracking-tight"
+                        style={{
+                          color: previewStyle?.fillHex,
+                          fontStyle: previewStyle?.italic ? "italic" : "normal",
+                          fontSize: `clamp(1.5rem, ${7 * (previewStyle?.sizeMul ?? 1)}vw, 4rem)`,
+                          textShadow: "0 2px 14px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.9)",
+                          WebkitTextStroke: "1px rgba(0,0,0,0.55)",
+                        }}
+                      >
+                        {previewWord.word}
+                      </span>
+                    </div>
+                  )}
+                  {/* Hidden audio element drives the song behind the cycling clips.
+                      Seeks to the clip window and loops within it so the preview
+                      plays ONLY the selected part, not the whole song. */}
                   {audioUrl && (
                     <audio
                       ref={audioRef}
                       src={audioUrl}
                       autoPlay
+                      onLoadedMetadata={(e) => {
+                        const a = e.currentTarget;
+                        if (Math.abs(a.currentTime - renderWindow.start) > 0.3) {
+                          try { a.currentTime = renderWindow.start; } catch { /* ignore */ }
+                        }
+                      }}
+                      onTimeUpdate={(e) => {
+                        const a = e.currentTarget;
+                        const end = renderWindow.start + renderWindow.duration;
+                        if (a.currentTime >= end) {
+                          // Loop back to the clip start and re-sync the clip cycle.
+                          try { a.currentTime = renderWindow.start; } catch { /* ignore */ }
+                          setPreviewIdx(0);
+                          setPreviewTime(renderWindow.start);
+                        } else {
+                          setPreviewTime(a.currentTime);
+                        }
+                      }}
                       onEnded={() => setPreviewing(false)}
                     />
                   )}

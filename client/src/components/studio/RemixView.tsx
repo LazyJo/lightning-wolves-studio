@@ -21,6 +21,7 @@ import {
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { LYRIC_STYLES, getLyricStyle } from "../../lib/lyricStyles";
+import { saveStudioVideo } from "../../lib/api";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
 import {
   PUBLIC_CLIPS,
@@ -74,6 +75,7 @@ export default function RemixView({ onBack, template }: Props) {
   const [stage, setStage] = useState<Stage>("idle");
   const [stageLog, setStageLog] = useState<string>("");
   const [finalUrl, setFinalUrl] = useState<string | null>(null);
+  const [savedToLibrary, setSavedToLibrary] = useState<"idle" | "saving" | "saved">("idle");
   const [error, setError] = useState<string>("");
 
   // Pre-export preview: cycle through uploaded clips on the song timeline,
@@ -300,6 +302,7 @@ export default function RemixView({ onBack, template }: Props) {
     }
     setError("");
     setFinalUrl(null);
+    setSavedToLibrary("idle");
     // Pause the in-page preview so we don't have two audio sources fighting
     // each other once the exported MP4 starts playing.
     if (previewing) {
@@ -343,6 +346,16 @@ export default function RemixView({ onBack, template }: Props) {
       setFinalUrl(mp4);
       setStage("done");
       setStageLog("");
+
+      // Auto-save the finished export to the user's video library (best-effort;
+      // never blocks the download). assembleLyricVideo returns a blob: URL, so
+      // pull the bytes back out to upload.
+      setSavedToLibrary("saving");
+      fetch(mp4)
+        .then((r) => r.blob())
+        .then((b) => saveStudioVideo(b, { title: template.title || "Remix", mode: "remix" }))
+        .then((v) => setSavedToLibrary(v ? "saved" : "idle"))
+        .catch(() => setSavedToLibrary("idle"));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Remix failed";
       setError(msg);
@@ -897,6 +910,18 @@ export default function RemixView({ onBack, template }: Props) {
             >
               <CheckCircle size={16} /> Remix ready — preview above.
             </div>
+          )}
+
+          {stage === "done" && (
+            <p className="text-center text-[11px] text-wolf-muted">
+              {savedToLibrary === "saving" ? (
+                <><Loader2 size={11} className="mr-1 inline animate-spin" /> Saving to your videos…</>
+              ) : savedToLibrary === "saved" ? (
+                <><CheckCircle size={11} className="mr-1 inline" style={{ color: R.cyan }} /> Saved to My Videos — find it anytime in the library.</>
+              ) : (
+                "Sign in to auto-save exports to your video library."
+              )}
+            </p>
           )}
         </motion.div>
       </div>

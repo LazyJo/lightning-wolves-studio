@@ -26,6 +26,7 @@ import ScenesViewComponent from "./studio/ScenesView";
 import PerformanceViewComponent from "./studio/PerformanceView";
 import CoverArtViewComponent from "./studio/CoverArtView";
 import ArtistPageBuilder from "./studio/ArtistPageBuilder";
+import VideoLibraryView from "./studio/VideoLibraryView";
 import CreditGrantToast from "./studio/CreditGrantToast";
 import { loadTemplate, type Template } from "../lib/templates";
 import { motion, AnimatePresence } from "motion/react";
@@ -80,7 +81,8 @@ type View =
   | "remix"
   | "performance"
   | "cover-art"
-  | "artist-page";
+  | "artist-page"
+  | "library";           // My Videos — saved exports gallery
 type Tab = "lyrics" | "srt" | "beats" | "prompts";
 
 // Demo content
@@ -776,6 +778,8 @@ export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioV
           <CoverArtViewComponent onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "artist-page" ? (
           <ArtistPageBuilder onBack={() => setView("dashboard")} wolf={wolf} />
+        ) : view === "library" ? (
+          <VideoLibraryView onBack={() => setView("dashboard")} />
         ) : null}
       </div>
 

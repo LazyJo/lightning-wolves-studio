@@ -19,6 +19,7 @@ import {
 import {
   startVisualGeneration,
   pollVisual,
+  saveStudioVideo,
   type VisualStatusResult,
 } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
@@ -189,6 +190,11 @@ export default function PerformanceView({ onBack, template }: Props) {
       setFinalUrl(mp4);
       setStage("done");
       setStageLog("");
+      // Auto-save to the user's video library (best-effort, never blocks).
+      fetch(mp4)
+        .then((r) => r.blob())
+        .then((b) => saveStudioVideo(b, { title: template.title || "Performance", mode: "performance" }))
+        .catch(() => undefined);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Generation failed";
       setError(msg);

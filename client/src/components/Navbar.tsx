@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Menu, X, Zap, Globe, Globe2, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell, Shield, Sparkles } from "lucide-react";
+import { Menu, X, Zap, Globe, Globe2, Music, Shuffle, Film, Video, Image, LayoutDashboard, Bell, Shield, Sparkles, Library } from "lucide-react";
 import { useI18n, LANGUAGES } from "../lib/i18n";
 import { useHubNotifications } from "../lib/useHubNotifications";
 import { initSupabase } from "../lib/supabaseClient";
@@ -13,6 +13,7 @@ const STUDIO_TOOLS = [
   { id: "scenes", label: "Scenes", icon: Film },
   { id: "performance", label: "Performance", icon: Video },
   { id: "cover-art", label: "Cover Art", icon: Image },
+  { id: "library", label: "My Videos", icon: Library },
   { id: "pricing", label: "Pricing", icon: Zap },
 ];
 

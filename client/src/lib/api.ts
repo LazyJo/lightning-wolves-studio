@@ -157,6 +157,110 @@ export async function generateVisuals(params: {
   return { success: result.status === "succeeded", generation: result };
 }
 
+// ─── Studio video library (saved exports) ───────────────────────────────────
+// Finished MP4 exports are stored per-user straight in Supabase Storage under
+// video-exports/{userId}/. We don't need a DB table: the bucket's RLS already
+// allows authenticated insert, public read/list, and owner-only delete — so we
+// list the user's folder directly and encode title+mode into the filename.
+
+export interface StudioVideo {
+  id: string; // storage object name (the filename)
+  path: string; // full storage path within the bucket
+  url: string; // public URL
+  title: string;
+  mode: string; // "remix" | "scenes" | "performance" | "video"
+  createdAt: number; // ms epoch
+  size: number; // bytes (0 if unknown)
+}
+
+// Reversible, storage-key-safe encoding of the (possibly unicode) title.
+const encMeta = (s: string): string =>
+  btoa(unescape(encodeURIComponent(s))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const decMeta = (s: string): string => {
+  try {
+    return decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/"))));
+  } catch {
+    return s;
+  }
+};
+
+type SupabaseClientResolved = NonNullable<Awaited<ReturnType<typeof initSupabase>>>;
+async function studioVideoDir(): Promise<{ sb: SupabaseClientResolved; userId: string } | null> {
+  const sb = await initSupabase();
+  if (!sb) return null;
+  const { data: sess } = await sb.auth.getSession();
+  const userId = sess?.session?.user?.id;
+  if (!userId) return null;
+  return { sb, userId };
+}
+
+// Persist a finished export. Best-effort: returns null (and logs) on any
+// failure so a storage hiccup never blocks the user from downloading.
+export async function saveStudioVideo(
+  blob: Blob,
+  opts: { title: string; mode: string },
+): Promise<StudioVideo | null> {
+  const ctx = await studioVideoDir();
+  if (!ctx) return null; // guests don't get a library
+  const ts = Date.now();
+  const name = `${ts}__${opts.mode}__${encMeta(opts.title || "Untitled")}.mp4`;
+  const path = `video-exports/${ctx.userId}/${name}`;
+  try {
+    const { error } = await ctx.sb.storage
+      .from("wolf-hub-media")
+      .upload(path, blob, { contentType: "video/mp4", upsert: false });
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.warn("[library] save failed:", error.message);
+      return null;
+    }
+    const { data } = ctx.sb.storage.from("wolf-hub-media").getPublicUrl(path);
+    return { id: name, path, url: data?.publicUrl || "", title: opts.title, mode: opts.mode, createdAt: ts, size: blob.size };
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn("[library] save errored:", err);
+    return null;
+  }
+}
+
+export async function listStudioVideos(): Promise<StudioVideo[]> {
+  const ctx = await studioVideoDir();
+  if (!ctx) return [];
+  const dir = `video-exports/${ctx.userId}`;
+  const { data, error } = await ctx.sb.storage
+    .from("wolf-hub-media")
+    .list(dir, { limit: 200, sortBy: { column: "created_at", order: "desc" } });
+  if (error || !data) return [];
+  return data
+    .filter((f) => f.name.endsWith(".mp4"))
+    .map((f) => {
+      const base = f.name.replace(/\.mp4$/, "");
+      const parts = base.split("__");
+      const tsStr = parts[0];
+      const mode = parts[1] || "video";
+      const b64 = parts.slice(2).join("__");
+      const path = `${dir}/${f.name}`;
+      const { data: u } = ctx.sb.storage.from("wolf-hub-media").getPublicUrl(path);
+      const createdAt = Number(tsStr) || (f.created_at ? Date.parse(f.created_at) : 0);
+      return {
+        id: f.name,
+        path,
+        url: u?.publicUrl || "",
+        title: b64 ? decMeta(b64) : base,
+        mode,
+        createdAt,
+        size: (f.metadata?.size as number) || 0,
+      };
+    })
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
+export async function deleteStudioVideo(path: string): Promise<void> {
+  const ctx = await studioVideoDir();
+  if (!ctx) return;
+  await ctx.sb.storage.from("wolf-hub-media").remove([path]);
+}
+
 // ─── Cover Art history (per-user, server-side) ──────────────────────────────
 
 export interface CoverArtItem {

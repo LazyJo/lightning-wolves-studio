@@ -20,6 +20,7 @@ import {
 import {
   startVisualGeneration,
   pollVisual,
+  saveStudioVideo,
   type VisualStatusResult,
 } from "../../lib/api";
 import { useSession } from "../../lib/useSession";
@@ -310,6 +311,11 @@ export default function ScenesView({ onBack, template }: Props) {
       setFinalUrl(mp4);
       setStage("done");
       setStageLog("");
+      // Auto-save to the user's video library (best-effort, never blocks).
+      fetch(mp4)
+        .then((r) => r.blob())
+        .then((b) => saveStudioVideo(b, { title: template.title || "Scenes", mode: "scenes" }))
+        .catch(() => undefined);
     } catch (err: unknown) {
       // Always log the raw error to the browser console — many ffmpeg.wasm
       // and Replicate errors carry useful detail that doesn't survive

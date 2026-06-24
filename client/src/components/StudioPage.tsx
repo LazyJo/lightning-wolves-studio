@@ -29,6 +29,7 @@ import ArtistPageBuilder from "./studio/ArtistPageBuilder";
 import VideoLibraryView from "./studio/VideoLibraryView";
 import CreditGrantToast from "./studio/CreditGrantToast";
 import { loadTemplate, type Template } from "../lib/templates";
+import { loadDemoTemplate, DEMO_TEMPLATE_ID } from "../lib/demoLoader";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
@@ -657,6 +658,19 @@ export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioV
   const tColor = tierColor(plan.tier);
   const { t } = useI18n();
 
+  // Activation quick-win: seed the bundled Lazy Jo demo template and drop the
+  // user straight into the mode picker — a finished, word-synced lyric video
+  // is then one tap away, no upload or transcription wait.
+  const tryDemo = async () => {
+    try {
+      await loadDemoTemplate();
+      await openTemplate(DEMO_TEMPLATE_ID);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error("Demo template load failed:", e);
+    }
+  };
+
   const openTemplate = async (id: string) => {
     const loaded = await loadTemplate(id);
     if (!loaded) return;
@@ -704,6 +718,7 @@ export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioV
               setView("template-editor");
             }}
             onOpen={openTemplate}
+            onTryDemo={tryDemo}
             accentColor={accentColor}
           />
         ) : view === "template-editor" ? (

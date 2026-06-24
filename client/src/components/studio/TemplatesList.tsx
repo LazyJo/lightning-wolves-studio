@@ -1,11 +1,13 @@
 import { motion } from "motion/react";
-import { Music, Plus, Trash2, Scissors, Mic, Clock } from "lucide-react";
+import { Music, Plus, Trash2, Scissors, Mic, Clock, Play } from "lucide-react";
 import { useTemplates } from "../../lib/useTemplates";
 import { resolveClipWindow } from "../../lib/templates";
 
 interface Props {
   onNew: () => void;
   onOpen: (id: string) => void;
+  /** Seed + open the bundled demo template (instant aha, no upload). */
+  onTryDemo?: () => void;
   /** Current theme accent. Falls back to wolf-gold if not provided. */
   accentColor?: string;
 }
@@ -17,7 +19,7 @@ interface Props {
  * flow since that's the only path that unlocks Scenes / Remix /
  * Performance downstream.
  */
-export default function TemplatesList({ onNew, onOpen, accentColor = "#f5c518" }: Props) {
+export default function TemplatesList({ onNew, onOpen, onTryDemo, accentColor = "#f5c518" }: Props) {
   const { templates, remove } = useTemplates();
 
   return (
@@ -44,6 +46,40 @@ export default function TemplatesList({ onNew, onOpen, accentColor = "#f5c518" }
       </div>
 
       {templates.length === 0 ? (
+        <div className="flex flex-col gap-3">
+          {onTryDemo && (
+            <motion.button
+              onClick={onTryDemo}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="group flex w-full items-center justify-between gap-4 rounded-2xl border p-5 text-left transition-all hover:opacity-95"
+              style={{
+                borderColor: `${accentColor}59`,
+                background: `linear-gradient(135deg, ${accentColor}22, ${accentColor}0a)`,
+              }}
+            >
+              <div className="flex items-center gap-4">
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                  style={{ backgroundColor: accentColor, color: "#000" }}
+                >
+                  <Play size={20} className="fill-black" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-white">See it instantly — no upload needed</p>
+                  <p className="mt-1 text-xs text-wolf-muted">
+                    Load a real Lazy Jo track and make a word-synced lyric video in seconds.
+                  </p>
+                </div>
+              </div>
+              <span
+                className="hidden shrink-0 rounded-lg px-4 py-2 text-sm font-bold text-black sm:inline-block"
+                style={{ background: accentColor }}
+              >
+                Try the demo
+              </span>
+            </motion.button>
+          )}
         <motion.button
           onClick={onNew}
           initial={{ opacity: 0, y: 10 }}
@@ -75,6 +111,7 @@ export default function TemplatesList({ onNew, onOpen, accentColor = "#f5c518" }
             </p>
           </div>
         </motion.button>
+        </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {templates.map((t) => {

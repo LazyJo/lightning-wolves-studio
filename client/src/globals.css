@@ -19,13 +19,46 @@
   box-sizing: border-box;
 }
 
+html {
+  /* Stop mobile browsers (esp. Android Chrome) from auto-inflating text,
+     which recalculates layout and makes the page visibly "breathe" /
+     resize. Pin it to 100% so our own sizing is the only source of truth. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+html,
 body {
   margin: 0;
+  /* Never allow a stray wide element to widen the layout viewport — on
+     mobile that triggers a zoom-to-fit / zoom-back oscillation. */
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+body {
   font-family: var(--font-body);
   background-color: var(--color-wolf-bg);
   color: var(--color-wolf-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Full-height containers: prefer the DYNAMIC viewport height on mobile.
+   Plain 100vh is the *largest* viewport (toolbar hidden); on a short page
+   like the sign-in card it leaves the container taller than the visible
+   area, so the smallest scroll toggles the address bar — which resizes the
+   viewport, re-toggles the bar, and the screen appears to grow/shrink every
+   second. `dvh` tracks the live viewport so there's nothing to ping-pong.
+   On desktop dvh == vh, so this is a no-op there. Overrides Tailwind's
+   `.min-h-screen` / `.h-screen` (loaded above via @import). */
+@supports (min-height: 100dvh) {
+  .min-h-screen {
+    min-height: 100dvh;
+  }
+  .h-screen {
+    height: 100dvh;
+  }
 }
 
 h1, h2, h3 {

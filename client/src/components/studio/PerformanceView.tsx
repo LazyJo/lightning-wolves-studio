@@ -27,6 +27,8 @@ import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
 import ExportMomentum from "./ExportMomentum";
+import OutOfCreditsCard from "./OutOfCreditsCard";
+import { useCredits } from "../../lib/useCredits";
 
 const PERFORMANCE_STYLES = [
   { id: "anime", name: "Anime", prompt: "anime style, bold outlines, vibrant colors, dynamic action" },
@@ -89,6 +91,8 @@ export default function PerformanceView({ onBack, template, onUpgrade, onAuthReq
   const [jobStatus, setJobStatus] = useState<VisualStatusResult["status"] | null>(null);
   const [finalUrl, setFinalUrl] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
+  const [outOfCredits, setOutOfCredits] = useState(false);
+  const { plan, hasEnoughCredits } = useCredits();
 
   const model = STYLIZE_MODELS.find((m) => m.id === modelId)!;
   const activeRes = RESOLUTIONS.find((r) => r.id === resolution)!;
@@ -122,6 +126,7 @@ export default function PerformanceView({ onBack, template, onUpgrade, onAuthReq
     setFinalUrl(null);
     setJobStatus(null);
     setError("");
+    setOutOfCredits(false);
     setStage("idle");
   };
 
@@ -131,6 +136,13 @@ export default function PerformanceView({ onBack, template, onUpgrade, onAuthReq
       return;
     }
     setError("");
+    setOutOfCredits(false);
+    // Pre-flight: short-circuit a signed-in user without the credits to the
+    // upgrade card instead of letting the server 403 strand them.
+    if (!plan.isGuest && !hasEnoughCredits(totalCredits)) {
+      setOutOfCredits(true);
+      return;
+    }
     setFinalUrl(null);
 
     const style = PERFORMANCE_STYLES[styleIdx];
@@ -201,10 +213,14 @@ export default function PerformanceView({ onBack, template, onUpgrade, onAuthReq
         .catch(() => undefined);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Generation failed";
-      setError(msg);
+      if ((err as { code?: string })?.code === "INSUFFICIENT_CREDITS" || /not enough credits|insufficient/i.test(msg)) {
+        setOutOfCredits(true);
+      } else {
+        setError(msg);
+      }
       setStage("error");
     }
-  }, [clipFile, accessToken, styleIdx, modelId, ratio, resolution, template, initFfmpeg]);
+  }, [clipFile, accessToken, styleIdx, modelId, ratio, resolution, template, initFfmpeg, plan.isGuest, hasEnoughCredits, totalCredits]);
 
   const validationMessage = !clipFile
     ? "Add a reference clip above to start."
@@ -240,7 +256,15 @@ export default function PerformanceView({ onBack, template, onUpgrade, onAuthReq
         Style-transfer your own footage. Drop a clip, pick a vibe, we re-render it and lock it to your track.
       </p>
 
-      {error && (
+      {outOfCredits && (
+        <OutOfCreditsCard
+          accent={P.pink}
+          needed={totalCredits}
+          current={plan.credits}
+          onUpgrade={onUpgrade ?? (() => {})}
+        />
+      )}
+      {error && !outOfCredits && (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-300">
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
           <span>{error}</span>

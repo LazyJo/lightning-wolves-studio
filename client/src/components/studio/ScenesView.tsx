@@ -28,6 +28,8 @@ import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
 import ExportMomentum from "./ExportMomentum";
+import OutOfCreditsCard from "./OutOfCreditsCard";
+import { useCredits } from "../../lib/useCredits";
 import ScenePresetPicker from "./ScenePresetPicker";
 import { scenePresets, type ScenePreset } from "../../data/scenePresets";
 
@@ -172,6 +174,8 @@ export default function ScenesView({ onBack, template, onUpgrade, onAuthRequired
   const [scenes, setScenes] = useState<SceneJob[]>([]);
   const [finalUrl, setFinalUrl] = useState<string | null>(null);
   const [error, setError] = useState<string>("");
+  const [outOfCredits, setOutOfCredits] = useState(false);
+  const { plan, hasEnoughCredits } = useCredits();
 
   const model = VIDEO_MODELS.find((m) => m.id === modelId)!;
   const renderWindow = resolveClipWindow(template);
@@ -194,13 +198,22 @@ export default function ScenesView({ onBack, template, onUpgrade, onAuthRequired
     setScenes([]);
     setFinalUrl(null);
     setError("");
+    setOutOfCredits(false);
     setStage("idle");
   };
 
   const handleGenerate = useCallback(async () => {
     setError("");
+    setOutOfCredits(false);
     setFinalUrl(null);
     setScenes([]);
+
+    // Pre-flight: a signed-in user without the credits will only get a
+    // server 403 — short-circuit to the upgrade card instead of a dead end.
+    if (!plan.isGuest && !hasEnoughCredits(totalCredits)) {
+      setOutOfCredits(true);
+      return;
+    }
 
     try {
       const ff = await initFfmpeg();
@@ -336,10 +349,14 @@ export default function ScenesView({ onBack, template, onUpgrade, onAuthRequired
       } else if (err) {
         try { msg = JSON.stringify(err); } catch { msg = String(err); }
       }
-      setError(msg);
+      if ((err as { code?: string })?.code === "INSUFFICIENT_CREDITS" || /not enough credits|insufficient/i.test(msg)) {
+        setOutOfCredits(true);
+      } else {
+        setError(msg);
+      }
       setStage("error");
     }
-  }, [accessToken, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg, sceneSections]);
+  }, [accessToken, template, stylePrompt, modelId, ratio, resolution, videoStyle, lyricAdherence, initFfmpeg, sceneSections, plan.isGuest, hasEnoughCredits, totalCredits]);
 
   const completedScenes = useMemo(
     () => scenes.filter((s) => s.status === "succeeded").length,
@@ -387,7 +404,15 @@ export default function ScenesView({ onBack, template, onUpgrade, onAuthRequired
         preset
       </p>
 
-      {error && (
+      {outOfCredits && (
+        <OutOfCreditsCard
+          accent={SC.accent}
+          needed={totalCredits}
+          current={plan.credits}
+          onUpgrade={onUpgrade ?? (() => {})}
+        />
+      )}
+      {error && !outOfCredits && (
         <div className="mb-4 flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-300">
           <AlertCircle size={16} className="mt-0.5 shrink-0" />
           <span>{error}</span>

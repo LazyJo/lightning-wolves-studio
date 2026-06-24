@@ -751,16 +751,25 @@ export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioV
           <ScenesViewComponent
             template={currentTemplate}
             onBack={() => setView("template-modes")}
+            onUpgrade={() => onStudioNav?.("pricing")}
+            onAuthRequired={onAuthRequired}
+            onSharedToHub={onSharedToHub}
           />
         ) : view === "remix" && currentTemplate ? (
           <RemixViewComponent
             template={currentTemplate}
             onBack={() => setView("template-modes")}
+            onUpgrade={() => onStudioNav?.("pricing")}
+            onAuthRequired={onAuthRequired}
+            onSharedToHub={onSharedToHub}
           />
         ) : view === "performance" && currentTemplate ? (
           <PerformanceViewComponent
             template={currentTemplate}
             onBack={() => setView("template-modes")}
+            onUpgrade={() => onStudioNav?.("pricing")}
+            onAuthRequired={onAuthRequired}
+            onSharedToHub={onSharedToHub}
           />
         ) : LYRIC_VIDEO_MODES.includes(view) && !currentTemplate ? (
           // Someone deep-linked to a mode without a template — bounce

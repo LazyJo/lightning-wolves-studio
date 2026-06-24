@@ -22,6 +22,7 @@ import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { LYRIC_STYLES, getLyricStyle } from "../../lib/lyricStyles";
 import { saveStudioVideo } from "../../lib/api";
+import ExportMomentum from "./ExportMomentum";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
 import {
   PUBLIC_CLIPS,
@@ -36,6 +37,9 @@ const ratios = ["9:16", "16:9"] as const;
 interface Props {
   onBack: () => void;
   template: Template;
+  onUpgrade?: () => void;
+  onAuthRequired?: () => void;
+  onSharedToHub?: (messageId: string) => void;
 }
 
 interface UserClip {
@@ -60,7 +64,7 @@ const R = {
   border: "rgba(255,255,255,0.08)",
 };
 
-export default function RemixView({ onBack, template }: Props) {
+export default function RemixView({ onBack, template, onUpgrade, onAuthRequired, onSharedToHub }: Props) {
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
   const [clips, setClips] = useState<UserClip[]>([]);
@@ -910,6 +914,17 @@ export default function RemixView({ onBack, template }: Props) {
             >
               <CheckCircle size={16} /> Remix ready — preview above.
             </div>
+          )}
+
+          {stage === "done" && finalUrl && (
+            <ExportMomentum
+              template={template}
+              accent={R.cyan}
+              modeLabel="Remix"
+              onUpgrade={onUpgrade ?? (() => {})}
+              onAuthRequired={onAuthRequired}
+              onSharedToHub={onSharedToHub}
+            />
           )}
 
           {stage === "done" && (

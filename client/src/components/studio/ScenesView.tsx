@@ -27,6 +27,7 @@ import { useSession } from "../../lib/useSession";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
+import ExportMomentum from "./ExportMomentum";
 import ScenePresetPicker from "./ScenePresetPicker";
 import { scenePresets, type ScenePreset } from "../../data/scenePresets";
 
@@ -48,6 +49,9 @@ const VIDEO_STYLES = ["Realistic", "Anime"] as const;
 interface Props {
   onBack: () => void;
   template: Template;
+  onUpgrade?: () => void;
+  onAuthRequired?: () => void;
+  onSharedToHub?: (messageId: string) => void;
 }
 
 type Stage = "idle" | "planning" | "rendering" | "assembling" | "done" | "error";
@@ -140,7 +144,7 @@ const SC = {
   border: "rgba(255,255,255,0.08)",
 };
 
-export default function ScenesView({ onBack, template }: Props) {
+export default function ScenesView({ onBack, template, onUpgrade, onAuthRequired, onSharedToHub }: Props) {
   const { accessToken } = useSession();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
@@ -787,6 +791,14 @@ export default function ScenesView({ onBack, template }: Props) {
                       <RotateCcw size={14} /> New
                     </button>
                   </div>
+                  <ExportMomentum
+                    template={template}
+                    accent={SC.accent}
+                    modeLabel="Scenes"
+                    onUpgrade={onUpgrade ?? (() => {})}
+                    onAuthRequired={onAuthRequired}
+                    onSharedToHub={onSharedToHub}
+                  />
                 </motion.div>
               ) : stage === "idle" ? (
                 <motion.div

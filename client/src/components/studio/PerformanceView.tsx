@@ -26,6 +26,7 @@ import { useSession } from "../../lib/useSession";
 import { useFfmpeg } from "../../lib/useFfmpeg";
 import { assembleLyricVideo } from "../../lib/assembleLyricVideo";
 import { getTemplateAudioFile, resolveClipWindow, type Template } from "../../lib/templates";
+import ExportMomentum from "./ExportMomentum";
 
 const PERFORMANCE_STYLES = [
   { id: "anime", name: "Anime", prompt: "anime style, bold outlines, vibrant colors, dynamic action" },
@@ -51,6 +52,9 @@ const RESOLUTIONS = [
 interface Props {
   onBack: () => void;
   template: Template;
+  onUpgrade?: () => void;
+  onAuthRequired?: () => void;
+  onSharedToHub?: (messageId: string) => void;
 }
 
 type Stage = "idle" | "rendering" | "assembling" | "done" | "error";
@@ -67,7 +71,7 @@ const P = {
   done: "#69f0ae",
 };
 
-export default function PerformanceView({ onBack, template }: Props) {
+export default function PerformanceView({ onBack, template, onUpgrade, onAuthRequired, onSharedToHub }: Props) {
   const { accessToken } = useSession();
   const { init: initFfmpeg, loading: ffmpegLoading, ready: ffmpegReady } = useFfmpeg();
 
@@ -555,6 +559,14 @@ export default function PerformanceView({ onBack, template }: Props) {
                       <RotateCcw size={14} /> New
                     </button>
                   </div>
+                  <ExportMomentum
+                    template={template}
+                    accent={P.pink}
+                    modeLabel="Performance"
+                    onUpgrade={onUpgrade ?? (() => {})}
+                    onAuthRequired={onAuthRequired}
+                    onSharedToHub={onSharedToHub}
+                  />
                 </motion.div>
               ) : stage === "idle" ? (
                 <motion.div

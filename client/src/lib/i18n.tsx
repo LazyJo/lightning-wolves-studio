@@ -18,6 +18,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.subtitle": "AI lyric videos in minutes — drop in your audio and meet a global pack of real artists.",
     "hero.cta1": "Meet The Pack",
     "hero.cta2": "How It Works",
+    "hero.ctaStudio": "Make a lyric video — free",
+    "hero.trust": "Free to start · 100 credits · no card needed",
 
     // Wolf Grid
     "grid.label": "Meet The Pack",
@@ -285,6 +287,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.subtitle": "AI lyric video's in minuten — drop je audio en ontmoet een wereldwijde pack echte artiesten.",
     "hero.cta1": "Ontmoet De Pack",
     "hero.cta2": "Hoe Het Werkt",
+    "hero.ctaStudio": "Maak een lyric video — gratis",
+    "hero.trust": "Gratis starten · 100 credits · geen kaart nodig",
 
     "grid.label": "Kies Je Wolf",
     "grid.title": "DE PACK",
@@ -536,6 +540,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.subtitle": "Clips lyriques IA en minutes — pose ton audio et rejoins une meute mondiale d'artistes.",
     "hero.cta1": "Rencontre La Meute",
     "hero.cta2": "Comment Ça Marche",
+    "hero.ctaStudio": "Crée une vidéo lyrics — gratuit",
+    "hero.trust": "Gratuit · 100 crédits · sans carte",
 
     "grid.label": "Choisis Ton Loup",
     "grid.title": "LA MEUTE",
@@ -787,6 +793,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.subtitle": "Videos líricos con IA en minutos — sube tu audio y conoce una manada global de artistas reales.",
     "hero.cta1": "Conoce La Manada",
     "hero.cta2": "Cómo Funciona",
+    "hero.ctaStudio": "Crea un video con letras — gratis",
+    "hero.trust": "Gratis · 100 créditos · sin tarjeta",
 
     "grid.label": "Elige Tu Lobo",
     "grid.title": "LA MANADA",
@@ -1038,6 +1046,8 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.subtitle": "AIリリックビデオを数分で。音源をドロップして、世界中のリアルなアーティストとつながろう。",
     "hero.cta1": "パックに会う",
     "hero.cta2": "使い方",
+    "hero.ctaStudio": "リリックビデオを作る — 無料",
+    "hero.trust": "無料で開始 · 100クレジット · カード不要",
 
     "grid.label": "パックに会う",
     "grid.title": "ザ・パック",

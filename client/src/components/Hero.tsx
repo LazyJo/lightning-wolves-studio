@@ -53,20 +53,32 @@ export default function Hero({ onStudio }: Props) {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
         >
+          {/* Primary: straight into the product — the action ad traffic came for. */}
+          <button
+            onClick={() => onStudio?.()}
+            className="group inline-flex items-center gap-2 rounded-lg bg-wolf-gold px-8 py-3.5 font-semibold text-black transition-all hover:bg-wolf-amber hover:shadow-lg hover:shadow-wolf-gold/25"
+          >
+            <Zap size={18} className="fill-black" />
+            {t("hero.ctaStudio")}
+          </button>
           <a
             href="#wolves"
-            className="group inline-flex items-center gap-2 rounded-lg bg-wolf-gold px-8 py-3.5 font-semibold text-black transition-all hover:bg-wolf-amber hover:shadow-lg hover:shadow-wolf-gold/25"
+            className="inline-flex items-center gap-2 rounded-lg border border-wolf-border px-8 py-3.5 font-semibold text-wolf-text transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5"
           >
             {t("hero.cta1")}
             <ChevronDown size={18} className="transition-transform group-hover:translate-y-0.5" />
           </a>
-          <a
-            href="#features"
-            className="inline-flex items-center rounded-lg border border-wolf-border px-8 py-3.5 font-semibold text-wolf-text transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5"
-          >
-            {t("hero.cta2")}
-          </a>
         </motion.div>
+
+        {/* Friction-reducer: the free offer was buried before — surface it. */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, delay: 0.85 }}
+          className="mt-4 text-xs text-wolf-muted"
+        >
+          {t("hero.trust")}
+        </motion.p>
       </div>
 
       <motion.div

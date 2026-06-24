@@ -1616,7 +1616,7 @@ function ChatView({
       )}
       <div
         ref={scrollRef}
-        className="flex h-[55vh] min-h-[400px] flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-6"
+        className="flex h-[55dvh] min-h-[400px] flex-col gap-3 overflow-y-auto px-4 py-4 sm:px-6"
       >
         {loading && <ChatSkeleton />}
 
@@ -3014,12 +3014,12 @@ function ComposePostModal({
           ) : (
             <div className="overflow-hidden rounded-xl bg-black">
               {isVideo ? (
-                <video src={previewUrl!} controls className="max-h-[50vh] w-full" />
+                <video src={previewUrl!} controls className="max-h-[50dvh] w-full" />
               ) : (
                 <img
                   src={previewUrl!}
                   alt="preview"
-                  className="max-h-[50vh] w-full object-contain"
+                  className="max-h-[50dvh] w-full object-contain"
                 />
               )}
             </div>
@@ -3763,7 +3763,7 @@ function EditProfileModal({
             <X size={18} />
           </button>
         </div>
-        <div className="max-h-[70vh] space-y-4 overflow-y-auto p-5">
+        <div className="max-h-[70dvh] space-y-4 overflow-y-auto p-5">
           <div>
             <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-wolf-muted">
               Profile photo
@@ -3978,12 +3978,12 @@ function PostDetailModal({
             <span className="text-[11px] text-wolf-muted">{timeAgo(post.created_at)}</span>
           </div>
         </div>
-        <div className="flex max-h-[70vh] justify-center bg-black">
+        <div className="flex max-h-[70dvh] justify-center bg-black">
           {post.media_type === "image" ? (
             <img
               src={post.media_url}
               alt={post.caption || "post"}
-              className="max-h-[70vh] w-full object-contain"
+              className="max-h-[70dvh] w-full object-contain"
             />
           ) : (
             <video
@@ -3991,7 +3991,7 @@ function PostDetailModal({
               controls
               autoPlay
               playsInline
-              className="max-h-[70vh] w-full"
+              className="max-h-[70dvh] w-full"
             />
           )}
         </div>
@@ -4389,12 +4389,12 @@ function StoryComposerModal({
           ) : (
             <div className="overflow-hidden rounded-xl bg-black">
               {isVideo ? (
-                <video src={previewUrl!} controls className="max-h-[50vh] w-full" />
+                <video src={previewUrl!} controls className="max-h-[50dvh] w-full" />
               ) : (
                 <img
                   src={previewUrl!}
                   alt="preview"
-                  className="max-h-[50vh] w-full object-contain"
+                  className="max-h-[50dvh] w-full object-contain"
                 />
               )}
             </div>
@@ -4782,7 +4782,7 @@ function DMThread({
       {/* Messages */}
       <div
         ref={scrollRef}
-        className="flex h-[55vh] min-h-[360px] flex-col gap-2 overflow-y-auto px-4 py-4 sm:px-6"
+        className="flex h-[55dvh] min-h-[360px] flex-col gap-2 overflow-y-auto px-4 py-4 sm:px-6"
       >
         {messages.length === 0 && (
           <div className="flex flex-1 items-center justify-center">

@@ -139,7 +139,7 @@ function ClaimView({
   const isValid = sanitized.length >= 3 && sanitized.length <= 30;
 
   return (
-    <div className="flex min-h-[calc(100vh-140px)] items-center justify-center px-4">
+    <div className="flex min-h-[calc(100dvh-140px)] items-center justify-center px-4">
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}

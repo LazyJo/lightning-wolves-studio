@@ -443,7 +443,7 @@ export default function App() {
             {page.type === "studio" && (
               <Suspense
                 fallback={
-                  <div className="flex min-h-[60vh] items-center justify-center text-wolf-muted">
+                  <div className="flex min-h-[60dvh] items-center justify-center text-wolf-muted">
                     <div className="flex items-center gap-3 text-sm">
                       <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-wolf-gold" />
                       Loading Studio…

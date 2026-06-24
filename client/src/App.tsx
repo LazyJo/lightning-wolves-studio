@@ -10,6 +10,7 @@ import FeaturedArtists from "./components/FeaturedArtists";
 import CTA from "./components/CTA";
 import StudioNudgeBanner from "./components/StudioNudgeBanner";
 import StudioShowcase from "./components/StudioShowcase";
+import DemoShowcase from "./components/DemoShowcase";
 import Footer from "./components/Footer";
 import LightningCanvas from "./components/LightningCanvas";
 import WolfProfilePage from "./components/WolfProfilePage";
@@ -364,6 +365,7 @@ export default function App() {
             {page.type === "home" && (
               <>
                 <Hero onStudio={() => goToStudio()} />
+                <DemoShowcase onTryStudio={() => goToStudio()} />
                 <div className="mx-auto max-w-4xl px-6">
                   <StudioNudgeBanner
                     onTryStudio={() => goToStudio()}

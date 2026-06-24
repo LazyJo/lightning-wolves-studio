@@ -20,6 +20,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.cta2": "How It Works",
     "hero.ctaStudio": "Make a lyric video — free",
     "hero.trust": "Free to start · 100 credits · no card needed",
+    "demo.badge": "Real lyric video",
+    "demo.title": "This is what you'll make",
+    "demo.subtitle": "“Myself” by Lazy Jo — drop in your audio, get a word-synced lyric video in minutes.",
 
     // Wolf Grid
     "grid.label": "Meet The Pack",
@@ -289,6 +292,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.cta2": "Hoe Het Werkt",
     "hero.ctaStudio": "Maak een lyric video — gratis",
     "hero.trust": "Gratis starten · 100 credits · geen kaart nodig",
+    "demo.badge": "Echte lyric video",
+    "demo.title": "Dit ga jij maken",
+    "demo.subtitle": "“Myself” van Lazy Jo — drop je audio en krijg in minuten een lyric video met gesynchroniseerde woorden.",
 
     "grid.label": "Kies Je Wolf",
     "grid.title": "DE PACK",
@@ -1048,6 +1054,9 @@ const translations: Record<Lang, Record<string, string>> = {
     "hero.cta2": "使い方",
     "hero.ctaStudio": "リリックビデオを作る — 無料",
     "hero.trust": "無料で開始 · 100クレジット · カード不要",
+    "demo.badge": "リアルなリリックビデオ",
+    "demo.title": "あなたが作れるもの",
+    "demo.subtitle": "Lazy Joの「Myself」— 音源を入れるだけで、数分で歌詞同期のリリックビデオに。",
 
     "grid.label": "パックに会う",
     "grid.title": "ザ・パック",

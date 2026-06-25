@@ -44,20 +44,30 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Full-height containers: prefer the DYNAMIC viewport height on mobile.
-   Plain 100vh is the *largest* viewport (toolbar hidden); on a short page
-   like the sign-in card it leaves the container taller than the visible
-   area, so the smallest scroll toggles the address bar — which resizes the
-   viewport, re-toggles the bar, and the screen appears to grow/shrink every
-   second. `dvh` tracks the live viewport so there's nothing to ping-pong.
-   On desktop dvh == vh, so this is a no-op there. Overrides Tailwind's
+/* Full-height containers: pin to the SMALL viewport height on mobile.
+   Three sizing units behave very differently when the URL bar slides:
+     - 100vh  = the *largest* viewport (toolbar hidden). On a short page the
+       container is taller than the visible area, so the tiniest scroll
+       toggles the address bar, which resizes the viewport, re-toggles the
+       bar… → the screen "grows/shrinks every second" (ping-pong).
+     - 100dvh = tracks the *live* viewport. It fixes the short-page ping-pong,
+       BUT on a tall, scrollable page (e.g. the Studio template editor) it
+       updates continuously *while the URL bar animates during scroll*, so
+       the full-height wrapper reflows on every frame → visible jitter/shake.
+     - 100svh = the *smallest* viewport (toolbar visible). It's the only
+       STABLE option: the container always fits inside the visible area, so it
+       never triggers the toolbar to toggle and never animates during scroll.
+       Fixes both the short-page ping-pong AND the tall-page scroll jitter.
+   These are all `min-height`, so content still grows past svh (no clipping);
+   any gap when the toolbar hides is filled by the dark fixed background.
+   On desktop svh == vh, so this is a no-op there. Overrides Tailwind's
    `.min-h-screen` / `.h-screen` (loaded above via @import). */
-@supports (min-height: 100dvh) {
+@supports (min-height: 100svh) {
   .min-h-screen {
-    min-height: 100dvh;
+    min-height: 100svh;
   }
   .h-screen {
-    height: 100dvh;
+    height: 100svh;
   }
 }
 

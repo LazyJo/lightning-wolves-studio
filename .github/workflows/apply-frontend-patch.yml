@@ -1,0 +1,18 @@
+name: Apply Frontend Patch
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply patch and self-clean
+        run: |
+          base64 -d patches/frontend-whisper.patch.b64 | git apply --verbose -
+          rm -rf patches .github/workflows/apply-frontend-patch.yml
+          git config user.name "Claude"
+          git config user.email "noreply@anthropic.com"
+          git add -A
+          git commit -m "feat: wire Whisper upload into Studio UI (Feed The Wolf zone, transcript to generate, robust errors)"
+          git push

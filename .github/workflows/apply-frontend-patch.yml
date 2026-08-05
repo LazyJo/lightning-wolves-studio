@@ -9,6 +9,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Apply patch and self-clean
         run: |
+          sed -i 's/NyArMTA0MywvIEBA/NyArMTA0Myw3IEBA/' patches/frontend-whisper.patch.b64
           base64 -d patches/frontend-whisper.patch.b64 | git apply --verbose -
           rm -rf patches .github/workflows/apply-frontend-patch.yml
           git config user.name "Claude"

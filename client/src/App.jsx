@@ -957,6 +957,8 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
   const [meta,         setMeta]         = useState(null)
   const [activeTab,    setActiveTab]    = useState('lyrics')
   const [uploadInfo,   setUploadInfo]   = useState(null)
+  const [uploading,    setUploading]    = useState(false)
+  const [transcript,   setTranscript]   = useState(null)
   const [dragover,     setDragover]     = useState(false)
   const fileInputRef = useRef(null)
 
@@ -972,29 +974,58 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
     } catch { /* ignore */ }
   }, [])
 
-  function handleFile(file) {
+  async function handleFile(file) {
     const sizeMB = (file.size / 1024 / 1024).toFixed(1)
-    setUploadInfo({ text: `✓ ${file.name} · ${sizeMB} MB`, color: '#3ddc84' })
+    if (file.size > 25 * 1024 * 1024) {
+      setUploadInfo({ text: `✗ ${file.name} is ${sizeMB} MB — max 25 MB`, color: '#ff4455' })
+      return
+    }
+    setUploading(true)
+    setTranscript(null)
+    setUploadInfo({ text: `🐺 Wolf is listening… (${file.name})`, color: 'var(--accent)' })
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const text = await res.text()
+      let json
+      try { json = JSON.parse(text) } catch {
+        throw new Error(res.status === 504 ? 'Transcription timed out — try a shorter file' : `Server error (${res.status})`)
+      }
+      if (!res.ok) throw new Error(json.error || 'Upload failed')
+      setTranscript(json.transcript)
+      setUploadInfo({ text: `✓ Track consumed — ${file.name} · ${json.transcript.segments.length} lines transcribed`, color: '#3ddc84' })
+    } catch (err) {
+      setTranscript(null)
+      setUploadInfo({ text: `✗ ${err.message}`, color: '#ff4455' })
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function handleGenerate() {
     setGenError('')
     if (!title || !artist || !genre) { setGenError('Please fill in Song Title, Artist Name, and Genre.'); return }
-    if (generating) return
+    if (generating || uploading) return
     setGenerating(true)
     setPack(null); setMeta(null)
     try {
       const body = { title, artist, genre, language, wolfId: wolf?.id }
-      if (bpm)   body.bpm  = bpm
-      if (mood)  body.mood = mood
-      if (token) body.token = token
+      if (bpm)        body.bpm  = bpm
+      if (mood)       body.mood = mood
+      if (token)      body.token = token
+      if (transcript) body.transcript = transcript
 
       const res  = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
-      const json = await res.json()
+      const text = await res.text()
+      let json
+      try { json = JSON.parse(text) } catch {
+        throw new Error(res.status === 504 ? 'Request timed out — try again' : `Server error (${res.status}): ${text.slice(0, 100) || 'empty response'}`)
+      }
       if (!res.ok) {
         if (json.error === 'LIMIT_REACHED') { onShowLimitModal(); return }
         throw new Error(json.error || 'Generation failed')
@@ -1012,7 +1043,7 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
 
   function handleNewTrack() {
     setTitle(''); setBpm(''); setMood('')
-    setUploadInfo(null); setPack(null); setMeta(null); setGenError('')
+    setUploadInfo(null); setTranscript(null); setPack(null); setMeta(null); setGenError('')
     localStorage.removeItem('lw_last_pack'); localStorage.removeItem('lw_last_meta')
   }
 
@@ -1061,19 +1092,19 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
         {/* LEFT PANEL */}
         <aside className="left-panel">
           <div className="field-group">
-            <label className="field-label">Reference Track</label>
+            <label className="field-label">Feed The Wolf</label>
             <div
               className={`upload-zone${dragover ? ' dragover' : ''}`}
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => !uploading && fileInputRef.current?.click()}
               onDragOver={e => { e.preventDefault(); setDragover(true) }}
               onDragLeave={() => setDragover(false)}
-              onDrop={e => { e.preventDefault(); setDragover(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f) }}
+              onDrop={e => { e.preventDefault(); setDragover(false); const f = e.dataTransfer.files[0]; if (f && !uploading) handleFile(f) }}
             >
-              <input ref={fileInputRef} type="file" accept="audio/*,video/*" hidden
+              <input ref={fileInputRef} type="file" accept=".mp3,.mp4,.wav,.m4a,audio/*,video/*" hidden
                      onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]) }} />
-              <div className="upload-icon">🎵</div>
-              <div className="upload-text">Drag &amp; drop audio or video</div>
-              <div className="upload-sub">or click to browse · max 50MB</div>
+              <div className="upload-icon">🐺</div>
+              <div className="upload-text">Drop your track — Whisper listens</div>
+              <div className="upload-sub">MP3, MP4, WAV, M4A · max 25MB</div>
               {uploadInfo && (
                 <div className="upload-info" style={uploadInfo.color ? { color: uploadInfo.color } : {}}>
                   {uploadInfo.text}
@@ -1111,9 +1142,9 @@ function StudioPage({ wolf, user, profile, token, supabase, onChangeWolf, onShow
             <textarea rows="3" placeholder="e.g. Late night drive, introspective…" value={mood} onChange={e => setMood(e.target.value)}></textarea>
           </div>
 
-          <button className="btn-generate" onClick={handleGenerate} disabled={generating}>
+          <button className="btn-generate" onClick={handleGenerate} disabled={generating || uploading}>
             <span className="btn-lightning">⚡</span>
-            <span className="btn-text">{generating ? 'GENERATING…' : 'GENERATE'}</span>
+            <span className="btn-text">{uploading ? 'LISTENING…' : generating ? 'GENERATING…' : 'GENERATE'}</span>
           </button>
           {genError && <div className="gen-error">{genError}</div>}
         </aside>

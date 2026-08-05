@@ -13,10 +13,13 @@ export default function LightningCanvas({ color = "#f5c518" }: Props) {
   }, [color]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const maybeCanvas = canvasRef.current;
+    if (!maybeCanvas) return;
+    const maybeCtx = maybeCanvas.getContext("2d");
+    if (!maybeCtx) return;
+    // Non-nullable locals so closures below keep the narrowing.
+    const canvas: HTMLCanvasElement = maybeCanvas;
+    const ctx: CanvasRenderingContext2D = maybeCtx;
 
     let animId: number;
     let frame = 0;

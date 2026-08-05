@@ -13,23 +13,35 @@ import StudioShowcase from "./components/StudioShowcase";
 import DemoShowcase from "./components/DemoShowcase";
 import Footer from "./components/Footer";
 import LightningCanvas from "./components/LightningCanvas";
-import WolfProfilePage from "./components/WolfProfilePage";
-import PricingPage from "./components/PricingPage";
-import WolfMapPage from "./components/WolfMapPage";
-import WolfHubPage from "./components/WolfHubPage";
-// Studio pulls ffmpeg + wavesurfer + every Studio surface (~600KB+).
-// Lazy so the marketing landing doesn't pay for it on first paint.
+// Every non-home page is lazy so the landing only ships what it paints.
+// Biggest wins: WolfHubPage (three.js) and WolfMapPage (react-simple-maps/d3)
+// no longer sit in the entry chunk; Studio keeps ffmpeg + wavesurfer out too.
+const WolfProfilePage = lazy(() => import("./components/WolfProfilePage"));
+const PricingPage = lazy(() => import("./components/PricingPage"));
+const WolfMapPage = lazy(() => import("./components/WolfMapPage"));
+const WolfHubPage = lazy(() => import("./components/WolfHubPage"));
 const StudioPage = lazy(() => import("./components/StudioPage"));
-import AuthPage from "./components/AuthPage";
-import JoinPackPage from "./components/JoinPackPage";
-import CreateProfilePage from "./components/CreateProfilePage";
-import VersusPage from "./components/VersusPage";
-import ExplorePage from "./components/ExplorePage";
-import GoldenBoardPage from "./components/GoldenBoardPage";
-import PromoterPricingPage from "./components/PromoterPricingPage";
-import PromoterCheckoutPage from "./components/PromoterCheckoutPage";
-import OrganizerInboxPage from "./components/OrganizerInboxPage";
-import AdminMembersPage from "./components/AdminMembersPage";
+const AuthPage = lazy(() => import("./components/AuthPage"));
+const JoinPackPage = lazy(() => import("./components/JoinPackPage"));
+const CreateProfilePage = lazy(() => import("./components/CreateProfilePage"));
+const VersusPage = lazy(() => import("./components/VersusPage"));
+const ExplorePage = lazy(() => import("./components/ExplorePage"));
+const GoldenBoardPage = lazy(() => import("./components/GoldenBoardPage"));
+const PromoterPricingPage = lazy(() => import("./components/PromoterPricingPage"));
+const PromoterCheckoutPage = lazy(() => import("./components/PromoterCheckoutPage"));
+const OrganizerInboxPage = lazy(() => import("./components/OrganizerInboxPage"));
+const AdminMembersPage = lazy(() => import("./components/AdminMembersPage"));
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-[60dvh] items-center justify-center text-wolf-muted">
+      <div className="flex items-center gap-3 text-sm">
+        <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-wolf-gold" />
+        Loading…
+      </div>
+    </div>
+  );
+}
 import { useCredits } from "./lib/useCredits";
 import { useSession } from "./lib/useSession";
 import { useProfile } from "./lib/useProfile";
@@ -362,6 +374,7 @@ export default function App() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
           >
+            <Suspense fallback={<PageLoader />}>
             {page.type === "home" && (
               <>
                 <Hero onStudio={() => goToStudio()} />
@@ -583,6 +596,7 @@ export default function App() {
             {page.type === "admin-members" && (
               <AdminMembersPage onBack={goHome} />
             )}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
 

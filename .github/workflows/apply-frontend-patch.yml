@@ -1,5 +1,8 @@
 name: Apply Frontend Patch
-on: workflow_dispatch
+on:
+  push:
+    paths:
+      - '.github/workflows/apply-frontend-patch.yml'
 permissions:
   contents: write
 jobs:

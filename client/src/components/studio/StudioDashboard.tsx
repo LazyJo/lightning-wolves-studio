@@ -39,7 +39,7 @@ import { clearCoverArtHistory } from "../../lib/api";
 import { useHubNotifications } from "../../lib/useHubNotifications";
 import TemplatesList from "./TemplatesList";
 
-type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art" | "artist-page";
+type View = "dashboard" | "remix" | "template" | "scenes" | "performance" | "cover-art" | "artist-page" | "lyrics-pack";
 
 interface Plan {
   tier: string;
@@ -81,6 +81,7 @@ const toolDefs: {
   { id: "scenes", titleKey: "studio.scenes", descKey: "studio.scenesDesc", icon: Film, color: "#69f0ae", badge: "AI", credits: 60 },
   { id: "performance", titleKey: "studio.performance", descKey: "studio.performanceDesc", icon: Video, color: "#E040FB", badge: "AI", credits: 15 },
   { id: "cover-art", titleKey: "studio.coverArt", descKey: "studio.coverArtDesc", icon: Image, color: "#82b1ff", credits: 12 },
+  { id: "lyrics-pack", titleKey: "studio.lyricsPack", descKey: "studio.lyricsPackDesc", icon: Wand2, color: "#ff6b9d", badge: "FABLE 5", credits: 0 },
 ];
 
 const stepDefs = [

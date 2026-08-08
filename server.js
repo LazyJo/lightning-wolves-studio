@@ -549,19 +549,38 @@ app.post('/api/generate', async (req, res) => {
     }
 
     // ── Build Claude prompt ────────────────────────────────────────────────
-    const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Generate complete, authentic, emotionally resonant song content tailored precisely to the genre, language and vibe provided. Always respond with valid JSON only, no markdown, no explanation outside the JSON.`;
+    // Fable 5 responds best to goals over prescriptions — output shape is
+    // enforced by output_config.format below, so the prompt is pure craft.
+    const systemPrompt = `You are Lightning Wolves Lyrics Studio — a professional AI music production assistant for independent artists. Write like a seasoned songwriter and creative director: lyrics with a real emotional arc and a hook that sticks, beat cuts a video editor would actually place, cinematic visual prompts an AI video model can execute, and social tips grounded in how this genre actually performs. Everything tailored precisely to the genre, language, and vibe provided.`;
 
     const userPrompt = buildUserPrompt({ title, artist, genre, bpm, language, mood });
 
-    // ── Call Claude ────────────────────────────────────────────────────────
-    const message = await anthropic.messages.create({
-      model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+    // ── Call Claude (Fable 5) ──────────────────────────────────────────────
+    // - Thinking is always on for Fable — never send a `thinking` param.
+    // - max_tokens caps thinking + response together, so 16K, not 4K.
+    // - effort "low" keeps latency inside Vercel's 60s function cap while
+    //   still beating the old claude-sonnet-4 output quality.
+    // - fallbacks:"default" re-runs a rare safety decline on Opus in the
+    //   same call instead of surfacing an error to the artist.
+    const message = await anthropic.messages.create(
+      {
+        model: process.env.CLAUDE_MODEL || 'claude-fable-5',
+        max_tokens: 16000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+        output_config: { effort: 'low', format: { type: 'json_schema', schema: LYRICS_PACK_SCHEMA } },
+        fallbacks: 'default',
+      },
+      { headers: { 'anthropic-beta': 'server-side-fallback-2026-07-01' } },
+    );
 
-    const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+    if (message.stop_reason === 'refusal') {
+      // Whole fallback chain declined — extremely rare for lyrics content.
+      return res.status(502).json({ error: 'The AI declined this request. Try rephrasing the title or mood.' });
+    }
+
+    const textBlock = message.content.find((b) => b.type === 'text');
+    const raw = textBlock ? textBlock.text : '';
 
     // Robust JSON extraction — handle markdown fences, extra text, etc.
     let pack;
@@ -1866,6 +1885,60 @@ app.listen(PORT, () => {
 module.exports = app;
 
 // ─── Prompt builder ───────────────────────────────────────────────────────────
+// Structured-outputs schema for /api/generate — mirrors the JSON shape that
+// buildUserPrompt describes. Enforced server-side by the API (output_config
+// .format), so the response is guaranteed-valid JSON in exactly this shape.
+// Note: structured outputs forbid min/max constraints — content requirements
+// (line counts, SRT formatting) stay in the prompt.
+const LYRICS_PACK_SCHEMA = {
+  type: 'object',
+  properties: {
+    lyrics: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { ts: { type: 'string' }, text: { type: 'string' } },
+        required: ['ts', 'text'],
+        additionalProperties: false,
+      },
+    },
+    srt: { type: 'string' },
+    beats: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          ts: { type: 'string' },
+          label: { type: 'string' },
+          type: { type: 'string', enum: ['CUT', 'FADE', 'ZOOM', 'FLASH'] },
+        },
+        required: ['ts', 'label', 'type'],
+        additionalProperties: false,
+      },
+    },
+    prompts: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { section: { type: 'string' }, prompt: { type: 'string' } },
+        required: ['section', 'prompt'],
+        additionalProperties: false,
+      },
+    },
+    tips: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { title: { type: 'string' }, tip: { type: 'string' } },
+        required: ['title', 'tip'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['lyrics', 'srt', 'beats', 'prompts', 'tips'],
+  additionalProperties: false,
+};
+
 function buildUserPrompt({ title, artist, genre, bpm, language, mood }) {
   return `Generate a complete music production pack for the following track:
 

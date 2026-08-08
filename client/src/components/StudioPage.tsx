@@ -30,6 +30,7 @@ import VideoLibraryView from "./studio/VideoLibraryView";
 import CreditGrantToast from "./studio/CreditGrantToast";
 import { loadTemplate, type Template } from "../lib/templates";
 import { loadDemoTemplate, DEMO_TEMPLATE_ID } from "../lib/demoLoader";
+import { generate, formatLyrics, formatBeats, formatPrompts, type GenerationPack } from "../lib/api";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ArrowLeft,
@@ -83,7 +84,8 @@ type View =
   | "performance"
   | "cover-art"
   | "artist-page"
-  | "library";           // My Videos — saved exports gallery
+  | "library"            // My Videos — saved exports gallery
+  | "lyrics-pack";       // AI lyrics pack generator (Claude Fable 5)
 type Tab = "lyrics" | "srt" | "beats" | "prompts";
 
 // Demo content
@@ -163,6 +165,7 @@ YouTube Shorts: Full chorus with lyric overlay animation`;
 const toolDefs = [
   { id: "remix" as View, titleKey: "studio.remix", descKey: "studio.remixDesc", icon: Shuffle, color: "#f5c518", popular: true, tags: ["YouTube import", "Auto scene detect", "Shuffle clips"] },
   { id: "template" as View, titleKey: "studio.newTemplate", descKey: "studio.newTemplateDesc", icon: Music, color: "#ff6b9d" },
+  { id: "lyrics-pack" as View, titleKey: "studio.lyricsPack", descKey: "studio.lyricsPackDesc", icon: Music, color: "#ff6b9d" },
   { id: "scenes" as View, titleKey: "studio.scenes", descKey: "studio.scenesDesc", icon: Film, color: "#69f0ae", badge: "AI" },
   { id: "performance" as View, titleKey: "studio.performance", descKey: "studio.performanceDesc", icon: Video, color: "#E040FB", badge: "AI" },
   { id: "cover-art" as View, titleKey: "studio.coverArt", descKey: "studio.coverArtDesc", icon: Image, color: "#82b1ff" },
@@ -195,6 +198,8 @@ function GenerationView({
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [pack, setPack] = useState<GenerationPack | null>(null);
+  const [genError, setGenError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { profile } = useProfile();
@@ -228,17 +233,43 @@ function GenerationView({
   }, [fileUrl]);
 
   const handleGenerate = useCallback(async () => {
-    if (!fileName && !youtubeUrl && !prompt) return;
+    // Real AI generation (Fable 5 server-side) — was a hard-coded demo
+    // animation before 2026-06. Title is the only true requirement; fall
+    // back to the uploaded filename so drag-drop-first users aren't blocked.
+    const effectiveTitle =
+      title.trim() || fileName.replace(/\.[a-z0-9]+$/i, "").trim();
+    if (!effectiveTitle) {
+      setGenError("Give your track a title first.");
+      return;
+    }
+    setGenError("");
+    setPack(null);
     setIsGenerating(true);
     setStep("transcribing");
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 900));
     setStep("analyzing");
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 900));
+    // "writing" stays up for the whole model call — Fable 5 thinks + writes
+    // for ~30-60s, so the step bar reflects real work, not a fake timer.
     setStep("writing");
-    await new Promise((r) => setTimeout(r, 2000));
-    setStep("done");
-    setIsGenerating(false);
-  }, [fileName, youtubeUrl, prompt]);
+    try {
+      const result = await generate({
+        title: effectiveTitle,
+        artist: profile?.display_name || wolf?.artist || "Independent Artist",
+        genre,
+        language,
+        mood: prompt.trim() || undefined,
+        wolfId: wolf?.id,
+      });
+      setPack(result.pack);
+      setStep("done");
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Generation failed — try again.");
+      setStep("upload");
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [title, fileName, genre, language, prompt, profile, wolf]);
 
   const copyToClipboard = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
@@ -261,14 +292,23 @@ function GenerationView({
     { id: "prompts", label: "AI PROMPTS", icon: Video },
   ];
 
-  const tabContent: Record<Tab, string> = {
-    lyrics: DEMO_LYRICS,
-    srt: DEMO_SRT,
-    beats: DEMO_BEATS,
-    prompts: DEMO_PROMPTS,
-  };
+  // Real Fable 5 pack when a generation has run; demo content as the
+  // pre-generation preview so the tabs are never empty.
+  const tabContent: Record<Tab, string> = pack
+    ? {
+        lyrics: formatLyrics(pack.lyrics),
+        srt: pack.srt,
+        beats: formatBeats(pack.beats),
+        prompts: formatPrompts(pack.prompts, pack.tips),
+      }
+    : {
+        lyrics: DEMO_LYRICS,
+        srt: DEMO_SRT,
+        beats: DEMO_BEATS,
+        prompts: DEMO_PROMPTS,
+      };
 
-  const hasInput = !!fileName || !!youtubeUrl || !!prompt;
+  const hasInput = !!title.trim() || !!fileName || !!youtubeUrl || !!prompt;
 
   return (
     <div>
@@ -503,6 +543,16 @@ function GenerationView({
               <Zap size={16} className="mr-2 inline" />
               GENERATE
             </motion.button>
+
+            {genError && (
+              <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/5 px-4 py-3 text-sm text-red-300">
+                {genError}
+              </div>
+            )}
+
+            <p className="mt-3 text-center text-[11px] text-wolf-muted">
+              ● Running smoothly · Powered by Claude Fable 5
+            </p>
           </motion.div>
         )}
 
@@ -518,9 +568,13 @@ function GenerationView({
             <p className="text-lg text-white" style={{ fontFamily: "var(--font-display)" }}>
               {step === "transcribing" && "TRANSCRIBING AUDIO..."}
               {step === "analyzing" && "ANALYZING BEATS..."}
-              {step === "writing" && "GENERATING CONTENT..."}
+              {step === "writing" && "FABLE 5 IS WRITING YOUR PACK..."}
             </p>
-            <p className="mt-2 text-sm text-wolf-muted">This usually takes 15-30 seconds</p>
+            <p className="mt-2 text-sm text-wolf-muted">
+              {step === "writing"
+                ? "Claude Fable 5 is thinking through your lyrics, beat cuts, and scene prompts — up to a minute for the good stuff."
+                : "This usually takes under a minute"}
+            </p>
           </motion.div>
         )}
 
@@ -804,6 +858,8 @@ export default function StudioPage({ wolf, onBack, onWolfMap, onWolfHub, studioV
           <ArtistPageBuilder onBack={() => setView("dashboard")} wolf={wolf} />
         ) : view === "library" ? (
           <VideoLibraryView onBack={() => setView("dashboard")} />
+        ) : view === "lyrics-pack" ? (
+          <GenerationView tool={view} wolf={wolf} onBack={() => setView("dashboard")} />
         ) : null}
       </div>
 

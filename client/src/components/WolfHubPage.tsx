@@ -483,7 +483,7 @@ interface Props {
 
 export default function WolfHubPage({ onBack, onAuth, onTryStudio, onMakeLyricVideo, initialRoomId, targetMessageId }: Props) {
   const { session, loading: sessionLoading, signOut } = useSession();
-  const { markRead: markHubRead } = useHubNotifications();
+  const { markRead: markHubRead, dmCount, refresh: refreshHubNotifications } = useHubNotifications();
   const [tab, setTab] = useState<"chat" | "media" | "profile" | "dms">("chat");
   const [dmPartnerId, setDmPartnerId] = useState<string | null>(null);
 
@@ -493,11 +493,14 @@ export default function WolfHubPage({ onBack, onAuth, onTryStudio, onMakeLyricVi
     setTab("dms");
   };
 
-  // Opening the Wolf Hub clears the unread badge in the navbar.
+  // Clear the navbar activity badge only once the MEDIA tab is actually
+  // viewed — that's where the counted events (likes/comments/stories) live.
+  // Clearing on Hub open (which lands on Chat) destroyed the trail: users
+  // saw "3", clicked, and the three things were nowhere to be found.
   useEffect(() => {
-    if (session?.user) markHubRead();
+    if (session?.user && tab === "media") markHubRead();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
+  }, [session?.user?.id, tab]);
   const [profile, setProfile] = useState<Profile | null>(null);
   // Which wolf's profile the Profile tab is showing. null = own profile.
   const [viewingUserId, setViewingUserId] = useState<string | null>(null);
@@ -680,9 +683,21 @@ export default function WolfHubPage({ onBack, onAuth, onTryStudio, onMakeLyricVi
               <MessageCircle size={15} />
               Chat
             </TabButton>
-            <TabButton active={tab === "dms"} onClick={() => setTab("dms")}>
+            <TabButton
+              active={tab === "dms"}
+              onClick={() => {
+                setTab("dms");
+                // Re-count on open so the badge reflects threads just read.
+                refreshHubNotifications();
+              }}
+            >
               <Send size={14} />
               DMs
+              {dmCount > 0 && (
+                <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[#E040FB] px-1 text-[10px] font-bold text-white">
+                  {dmCount > 9 ? "9+" : dmCount}
+                </span>
+              )}
             </TabButton>
           </div>
           {onlineCount > 0 && (
@@ -953,6 +968,7 @@ function ChatView({
   const [reactions, setReactions] = useState<Map<string, HubReaction[]>>(new Map());
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pickerFor, setPickerFor] = useState<string | null>(null);
@@ -1062,6 +1078,7 @@ function ChatView({
     };
   }, [profile?.id]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const prevRoomRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
@@ -1255,21 +1272,36 @@ function ChatView({
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+    const isRoomSwitch = prevRoomRef.current !== roomId;
+    prevRoomRef.current = roomId;
+    // A deep-linked message owns the viewport — never yank away from it
+    // (this effect runs after the smooth-scroll effect and used to cancel it).
+    if (activeTargetId && messages.some((m) => m.id === activeTargetId)) return;
+    if (isRoomSwitch) {
+      el.scrollTop = el.scrollHeight;
+      return;
+    }
+    // Follow new messages only when the reader is already near the bottom;
+    // don't yank someone who is scrolled up reading history.
+    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 300;
+    if (nearBottom) el.scrollTop = el.scrollHeight;
+  }, [messages.length, roomId, activeTargetId]);
 
   async function sendMessage(
     body: string | null,
     imageUrl: string | null,
     audioUrl: string | null = null
-  ) {
-    if (!profile) return;
-    if (!body && !imageUrl && !audioUrl) return;
+  ): Promise<boolean> {
+    if (!profile) return false;
+    if (!body && !imageUrl && !audioUrl) return false;
     setSending(true);
     try {
       const sb = getSupabase();
-      if (!sb) return;
-      await sb.from("hub_messages").insert({
+      if (!sb) {
+        setSendError("Not connected — refresh and try again.");
+        return false;
+      }
+      const { error } = await sb.from("hub_messages").insert({
         author_id: profile.id,
         author_name: profile.display_name || profile.email?.split("@")[0] || null,
         author_wolf_id: profile.wolf_id,
@@ -1291,9 +1323,15 @@ function ChatView({
         // for that yet; we just don't expose cross-room replies in UI).
         thread_parent_id: replyingTo?.id ?? null,
       });
+      if (error) {
+        setSendError("Couldn't send — check your connection and try again.");
+        return false;
+      }
+      setSendError("");
       // Clear the reply target only after a successful insert so a
       // network error keeps the user's reply context intact.
       if (replyingTo) setReplyingTo(null);
+      return true;
     } finally {
       setSending(false);
     }
@@ -1303,11 +1341,18 @@ function ChatView({
     const body = draft.trim();
     if (!body) return;
     setDraft("");
-    await sendMessage(body, null);
+    const ok = await sendMessage(body, null);
+    // Failed send: restore the draft so the message isn't lost.
+    if (!ok) setDraft(body);
   }
 
   async function handleImagePick(file: File) {
     if (!profile) return;
+    if (file.size > 25 * 1024 * 1024) {
+      setSendError("That image is over 25 MB — pick a smaller one.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setUploading(true);
     try {
       const sb = getSupabase();
@@ -1317,7 +1362,10 @@ function ChatView({
       const { error: upErr } = await sb.storage
         .from("wolf-hub-media")
         .upload(path, file, { contentType: file.type });
-      if (upErr) return;
+      if (upErr) {
+        setSendError(`Upload failed: ${upErr.message}`);
+        return;
+      }
       const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
       await sendMessage(null, urlData.publicUrl);
     } finally {
@@ -1328,6 +1376,11 @@ function ChatView({
 
   async function handleBeatPick(file: File) {
     if (!profile) return;
+    if (file.size > 25 * 1024 * 1024) {
+      setSendError("That beat is over 25 MB — export a smaller MP3 and retry.");
+      if (audioInputRef.current) audioInputRef.current.value = "";
+      return;
+    }
     setUploading(true);
     try {
       const sb = getSupabase();
@@ -1337,7 +1390,10 @@ function ChatView({
       const { error: upErr } = await sb.storage
         .from("wolf-hub-media")
         .upload(path, file, { contentType: file.type || "audio/mpeg" });
-      if (upErr) return;
+      if (upErr) {
+        setSendError(`Upload failed: ${upErr.message}`);
+        return;
+      }
       const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
       // Derive a friendly title from the filename minus ext
       const title = file.name.replace(/\.[^.]+$/, "");
@@ -1627,6 +1683,28 @@ function ChatView({
             </p>
           </div>
         )}
+        {/* Filters matched nothing (but the room has messages) — explain it
+            in the message pane itself instead of leaving it silently blank.
+            Works in #beats too, where the chip row has no inline hint. */}
+        {!loading &&
+          messages.length > 0 &&
+          filteredMessages.length === 0 &&
+          (genreFilter !== "all" || langFilter !== "all") && (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <p className="text-center text-sm text-wolf-muted">
+                Nothing matches this filter yet.
+              </p>
+              <button
+                onClick={() => {
+                  setGenreFilter("all");
+                  setLangFilter("all");
+                }}
+                className="rounded-full border border-[#f5c518]/40 bg-[#f5c518]/10 px-4 py-1.5 text-xs font-bold text-[#f5c518] transition-all hover:bg-[#f5c518]/20"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
         {!loading &&
           filteredMessages.map((m) => {
             const isMine = m.author_id === profile?.id;
@@ -2077,7 +2155,9 @@ function ChatView({
             )}
           </button>
         )}
-        <div className="flex items-end gap-2">
+        {/* flex-wrap: on narrow screens the genre/language selects wrap to
+            their own row instead of crushing the textarea to ~90px. */}
+        <div className="flex flex-wrap items-end gap-2">
           <input
             ref={fileInputRef}
             type="file"
@@ -2125,7 +2205,7 @@ function ChatView({
                 : "Say something to the pack…"
             }
             rows={1}
-            className="min-h-[40px] max-h-32 flex-1 resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-wolf-muted/60 focus:border-[#9b6dff]/40 focus:outline-none"
+            className="min-h-[40px] min-w-[140px] max-h-32 flex-1 resize-none rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-wolf-muted/60 focus:border-[#9b6dff]/40 focus:outline-none"
           />
           {(roomId === "songs" || roomId === "beats") && (
             <select
@@ -2164,6 +2244,17 @@ function ChatView({
             {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
         </div>
+        {sendError && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-red-300">
+            <span className="flex-1">{sendError}</span>
+            <button
+              onClick={() => setSendError("")}
+              className="rounded px-2 py-0.5 text-red-300/70 hover:text-red-200"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2852,7 +2943,7 @@ function PostCard({
                           setEditingCommentId(c.id);
                           setCommentDraft(c.body);
                         }}
-                        className="text-wolf-muted/60 opacity-0 transition-opacity hover:text-white group-hover:opacity-100"
+                        className="text-wolf-muted/60 opacity-100 transition-opacity hover:text-white sm:opacity-0 sm:group-hover:opacity-100"
                         title="Edit comment"
                       >
                         <Edit2 size={11} />
@@ -2861,7 +2952,7 @@ function PostCard({
                     {(isMyComment || isAdmin) && (
                       <button
                         onClick={() => onDeleteComment(c.id)}
-                        className="text-wolf-muted/60 opacity-0 transition-opacity hover:text-red-400 group-hover:opacity-100"
+                        className="text-wolf-muted/60 opacity-100 transition-opacity hover:text-red-400 sm:opacity-0 sm:group-hover:opacity-100"
                         title={isMyComment ? "Delete comment" : "Delete comment (admin)"}
                       >
                         <Trash2 size={11} />
@@ -4023,8 +4114,10 @@ function StoryRings({
 
   return (
     <div className="mb-5 flex gap-4 overflow-x-auto pb-2">
-      {/* "Your story" / Add button */}
-      {profile && !hasOwnStory && (
+      {/* "Your story" / Add button — always available while signed in.
+          (It used to disappear once you had an active story, locking you
+          out of posting another for 24h.) */}
+      {profile && (
         <button
           onClick={onAddStory}
           className="flex flex-shrink-0 flex-col items-center gap-1.5"
@@ -4035,7 +4128,9 @@ function StoryRings({
               +
             </span>
           </div>
-          <span className="text-[10px] text-wolf-muted">Your story</span>
+          <span className="text-[10px] text-wolf-muted">
+            {hasOwnStory ? "Add more" : "Your story"}
+          </span>
         </button>
       )}
 
@@ -4506,15 +4601,23 @@ function DMsView({
     };
   }, [profile?.id]);
 
+  // Partner identities we had to look up because every message in the thread
+  // was sent by US (the denormalised sender_* fields only describe the other
+  // side when they have replied at least once).
+  const [lookedUpPartners, setLookedUpPartners] = useState<
+    Record<string, { display_name: string | null; wolf_id: string | null; avatar_url: string | null }>
+  >({});
+
   const conversations = useMemo<Conversation[]>(() => {
     if (!profile) return [];
     const map = new Map<string, Conversation>();
     allDMs.forEach((dm) => {
       const isSender = dm.sender_id === profile.id;
       const otherId = isSender ? dm.recipient_id : dm.sender_id;
-      const otherName = isSender ? "Wolf" : dm.sender_name || "Wolf";
-      const otherWolfId = isSender ? null : dm.sender_wolf_id ?? null;
-      const otherAvatarUrl = isSender ? null : dm.sender_avatar_url ?? null;
+      const looked = lookedUpPartners[otherId];
+      const otherName = isSender ? looked?.display_name || "Wolf" : dm.sender_name || "Wolf";
+      const otherWolfId = isSender ? looked?.wolf_id ?? null : dm.sender_wolf_id ?? null;
+      const otherAvatarUrl = isSender ? looked?.avatar_url ?? null : dm.sender_avatar_url ?? null;
       const existing = map.get(otherId);
       if (!existing || new Date(dm.created_at) > new Date(existing.lastMessage.created_at)) {
         map.set(otherId, {
@@ -4537,7 +4640,44 @@ function DMsView({
         new Date(b.lastMessage.created_at).getTime() -
         new Date(a.lastMessage.created_at).getTime()
     );
-  }, [allDMs, profile?.id]);
+  }, [allDMs, profile?.id, lookedUpPartners]);
+
+  // Resolve identities for conversations still showing the "Wolf" placeholder.
+  useEffect(() => {
+    const unknownIds = conversations
+      .filter((c) => c.otherName === "Wolf" && !lookedUpPartners[c.otherId])
+      .map((c) => c.otherId);
+    if (unknownIds.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("public_profiles")
+        .select("id, display_name, wolf_id, avatar_url")
+        .in("id", unknownIds);
+      if (cancelled) return;
+      setLookedUpPartners((prev) => {
+        const next = { ...prev };
+        // Mark every requested id as attempted (null entry) so a missing
+        // profile can't retrigger this effect in a fetch loop.
+        for (const id of unknownIds) {
+          if (!next[id]) next[id] = { display_name: null, wolf_id: null, avatar_url: null };
+        }
+        for (const p of data || []) {
+          next[p.id] = {
+            display_name: p.display_name ?? null,
+            wolf_id: p.wolf_id ?? null,
+            avatar_url: p.avatar_url ?? null,
+          };
+        }
+        return next;
+      });
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [conversations, lookedUpPartners]);
 
   const threadDMs = useMemo(() => {
     if (!openPartnerId || !profile) return [];
@@ -4663,21 +4803,60 @@ function DMThread({
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [dmError, setDmError] = useState("");
+  const [partnerProfile, setPartnerProfile] = useState<{
+    display_name: string | null;
+    wolf_id: string | null;
+    avatar_url: string | null;
+  } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   // Partner display data comes from their latest incoming DM (same denorm
-  // pattern as Wolf Hub profile view).
+  // pattern as Wolf Hub profile view) — but when WE started the thread there
+  // is no incoming message yet, so fall back to their public profile instead
+  // of the old "Wolf a3f2" placeholder.
   const partnerMsg = [...messages].reverse().find((m) => m.sender_id === partnerId);
-  const partnerName = partnerMsg?.sender_name || `Wolf ${partnerId.slice(0, 4)}`;
-  const partnerWolfId = partnerMsg?.sender_wolf_id || null;
-  const partnerAvatarUrl = partnerMsg?.sender_avatar_url || null;
+  useEffect(() => {
+    if (partnerMsg) return; // incoming denorm data wins; no fetch needed
+    let cancelled = false;
+    (async () => {
+      const sb = await initSupabase();
+      if (!sb || cancelled) return;
+      const { data } = await sb
+        .from("public_profiles")
+        .select("display_name, wolf_id, avatar_url")
+        .eq("id", partnerId)
+        .maybeSingle();
+      if (!cancelled && data) setPartnerProfile(data);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [partnerId, !!partnerMsg]);
+  const partnerName =
+    partnerMsg?.sender_name || partnerProfile?.display_name || `Wolf ${partnerId.slice(0, 4)}`;
+  const partnerWolfId = partnerMsg?.sender_wolf_id || partnerProfile?.wolf_id || null;
+  const partnerAvatarUrl = partnerMsg?.sender_avatar_url || partnerProfile?.avatar_url || null;
 
-  // Mark read when opening + when new DMs arrive.
+  // Mark read when opening + when new DMs arrive. Also persist read_at in
+  // the DB (participants may UPDATE per RLS) so the unread badge clears
+  // across devices, not just in this browser's localStorage.
   useEffect(() => {
     if (messages.length > 0) {
       writeLastDM(profile.id, partnerId, messages[messages.length - 1].created_at);
+      const sb = getSupabase();
+      if (sb) {
+        sb.from("hub_dms")
+          .update({ read_at: new Date().toISOString() })
+          .eq("recipient_id", profile.id)
+          .eq("sender_id", partnerId)
+          .is("read_at", null)
+          .then(() => {
+            /* badge refreshes on next poll; failure just leaves it unread */
+          });
+      }
     }
   }, [messages.length, profile.id, partnerId]);
 
@@ -4686,13 +4865,16 @@ function DMThread({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length]);
 
-  async function sendDM(body: string | null, imageUrl: string | null, audioUrl: string | null = null) {
-    if (!body && !imageUrl && !audioUrl) return;
+  async function sendDM(body: string | null, imageUrl: string | null, audioUrl: string | null = null): Promise<boolean> {
+    if (!body && !imageUrl && !audioUrl) return false;
     setSending(true);
     try {
       const sb = getSupabase();
-      if (!sb) return;
-      await sb.from("hub_dms").insert({
+      if (!sb) {
+        setDmError("Not connected — refresh and try again.");
+        return false;
+      }
+      const { error } = await sb.from("hub_dms").insert({
         sender_id: profile.id,
         recipient_id: partnerId,
         sender_name: profile.display_name || profile.email?.split("@")[0] || null,
@@ -4702,6 +4884,12 @@ function DMThread({
         image_url: imageUrl,
         audio_url: audioUrl,
       });
+      if (error) {
+        setDmError("Couldn't send — check your connection and try again.");
+        return false;
+      }
+      setDmError("");
+      return true;
     } finally {
       setSending(false);
     }
@@ -4711,10 +4899,17 @@ function DMThread({
     const body = draft.trim();
     if (!body) return;
     setDraft("");
-    await sendDM(body, null);
+    const ok = await sendDM(body, null);
+    // Failed send: put the text back so nothing is lost.
+    if (!ok) setDraft(body);
   }
 
   async function handleImagePick(file: File) {
+    if (file.size > 25 * 1024 * 1024) {
+      setDmError("That image is over 25 MB — pick a smaller one.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setUploading(true);
     try {
       const sb = getSupabase();
@@ -4724,7 +4919,10 @@ function DMThread({
       const { error: upErr } = await sb.storage
         .from("wolf-hub-media")
         .upload(path, file, { contentType: file.type });
-      if (upErr) return;
+      if (upErr) {
+        setDmError(`Upload failed: ${upErr.message}`);
+        return;
+      }
       const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
       await sendDM(null, urlData.publicUrl);
     } finally {
@@ -4734,6 +4932,11 @@ function DMThread({
   }
 
   async function handleAudioPick(file: File) {
+    if (file.size > 25 * 1024 * 1024) {
+      setDmError("That file is over 25 MB — export a smaller MP3 and retry.");
+      if (audioInputRef.current) audioInputRef.current.value = "";
+      return;
+    }
     setUploadingAudio(true);
     try {
       const sb = getSupabase();
@@ -4743,7 +4946,10 @@ function DMThread({
       const { error: upErr } = await sb.storage
         .from("wolf-hub-media")
         .upload(path, file, { contentType: file.type || "audio/mpeg" });
-      if (upErr) return;
+      if (upErr) {
+        setDmError(`Upload failed: ${upErr.message}`);
+        return;
+      }
       const { data: urlData } = sb.storage.from("wolf-hub-media").getPublicUrl(path);
       const title = file.name.replace(/\.[^.]+$/, "");
       await sendDM(`🎵 ${title}`, null, urlData.publicUrl);
@@ -4893,6 +5099,17 @@ function DMThread({
             {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
         </div>
+        {dmError && (
+          <div className="mt-2 flex items-center gap-2 text-xs text-red-300">
+            <span className="flex-1">{dmError}</span>
+            <button
+              onClick={() => setDmError("")}
+              className="rounded px-2 py-0.5 text-red-300/70 hover:text-red-200"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -4945,6 +5162,8 @@ function SongsLeaderboard({
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    // Collapsed by default — don't burn a 2000-row query the user never sees.
+    if (!expanded) return;
     let cancelled = false;
     (async () => {
       const sb = await initSupabase();
@@ -4998,7 +5217,7 @@ function SongsLeaderboard({
     return () => {
       cancelled = true;
     };
-  }, [win, mode]);
+  }, [win, mode, expanded]);
 
   const title = mode === "songs" ? "Wolves on Repeat" : "Top Producers";
   const hint = mode === "songs" ? "Top 10 by tracks shared" : "Top 10 by beats dropped";
@@ -5122,26 +5341,30 @@ function LightningLeaderboard({
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    // Collapsed by default — don't burn a 2000-row query the user never sees.
+    if (!expanded) return;
     let cancelled = false;
     (async () => {
       const sb = await initSupabase();
       if (!sb || cancelled) return;
       setLoading(true);
+      const startIso = windowStartIso(win);
       const { data } = await sb
         .from("hub_reactions")
         .select(
-          "hub_messages!inner(author_id,author_name,author_wolf_id,author_avatar_url,song_url,audio_url,room_id,deleted_at,created_at)"
+          "created_at, hub_messages!inner(author_id,author_name,author_wolf_id,author_avatar_url,song_url,audio_url,room_id,deleted_at,created_at)"
         )
         .eq("emoji", "⚡⚡")
+        // Window filter in the QUERY, not client-side after the limit —
+        // otherwise "Today" silently under-reports once total ⚡⚡ > 2000.
+        .gt("created_at", startIso)
         .limit(2000);
       if (cancelled) return;
-      const startIso = windowStartIso(win);
       const map = new Map<string, LightningRow>();
       (data || []).forEach((r: { hub_messages: LightningMsg | LightningMsg[] | null }) => {
         const m = Array.isArray(r.hub_messages) ? r.hub_messages[0] : r.hub_messages;
         if (!m) return;
         if (m.deleted_at) return;
-        if (m.created_at < startIso) return;
         if (mode === "songs" && !m.song_url) return;
         if (mode === "beats" && (!m.audio_url || m.room_id !== "beats")) return;
         const cur = map.get(m.author_id);
@@ -5169,7 +5392,7 @@ function LightningLeaderboard({
     return () => {
       cancelled = true;
     };
-  }, [win, mode]);
+  }, [win, mode, expanded]);
 
   const hint =
     mode === "songs"
@@ -5330,27 +5553,31 @@ function TopLightningTracks({
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
+    // Collapsed by default — don't burn a 2000-row query the user never sees.
+    if (!expanded) return;
     let cancelled = false;
     (async () => {
       const sb = await initSupabase();
       if (!sb || cancelled) return;
       setLoading(true);
+      const startIso = windowStartIso(win);
       const { data } = await sb
         .from("hub_reactions")
         .select(
-          "message_id, hub_messages!inner(id,author_name,author_wolf_id,song_url,audio_url,room_id,body,deleted_at,created_at)"
+          "message_id, created_at, hub_messages!inner(id,author_name,author_wolf_id,song_url,audio_url,room_id,body,deleted_at,created_at)"
         )
         .eq("emoji", "⚡⚡")
+        // Window filter in the QUERY — client-side filtering after the limit
+        // silently under-reports once total ⚡⚡ passes 2000.
+        .gt("created_at", startIso)
         .limit(2000);
       if (cancelled) return;
-      const startIso = windowStartIso(win);
       const map = new Map<string, TrackRow>();
       (data || []).forEach(
         (r: { message_id: string; hub_messages: TrackMsg | TrackMsg[] | null }) => {
           const m = Array.isArray(r.hub_messages) ? r.hub_messages[0] : r.hub_messages;
           if (!m) return;
           if (m.deleted_at) return;
-          if (m.created_at < startIso) return;
           if (mode === "songs" && !m.song_url) return;
           if (mode === "beats" && (!m.audio_url || m.room_id !== "beats")) return;
           const cur = map.get(r.message_id);
@@ -5378,7 +5605,7 @@ function TopLightningTracks({
     return () => {
       cancelled = true;
     };
-  }, [win, mode]);
+  }, [win, mode, expanded]);
 
   return (
     <div className="mb-4 overflow-hidden rounded-2xl border border-[#f5c518]/15 bg-gradient-to-br from-[#f5c518]/[0.05] via-transparent to-[#f5c518]/[0.02]">

@@ -42,10 +42,14 @@ function writeLastVisit(iso: string) {
 export function useHubNotifications() {
   const { user } = useSession();
   const [count, setCount] = useState(0);
+  // Unread DMs are tracked separately: they clear when the conversation is
+  // actually opened (hub_dms.read_at), not when the Hub is merely visited.
+  const [dmCount, setDmCount] = useState(0);
 
   const refresh = useCallback(async () => {
     if (!user) {
       setCount(0);
+      setDmCount(0);
       return;
     }
     const sb = await initSupabase();
@@ -61,7 +65,7 @@ export function useHubNotifications() {
       .limit(500);
     const postIds = (myPosts || []).map((p) => p.id);
 
-    const [likesRes, commentsRes, storiesRes] = await Promise.all([
+    const [likesRes, commentsRes, storiesRes, dmsRes] = await Promise.all([
       postIds.length
         ? sb
             .from("hub_post_likes")
@@ -85,11 +89,18 @@ export function useHubNotifications() {
         .neq("author_id", user.id)
         .gt("created_at", lastVisit)
         .gt("expires_at", new Date().toISOString()),
+      sb
+        .from("hub_dms")
+        .select("id", { count: "exact", head: true })
+        .eq("recipient_id", user.id)
+        .is("read_at", null)
+        .is("deleted_at", null),
     ]);
 
     const total =
       (likesRes.count || 0) + (commentsRes.count || 0) + (storiesRes.count || 0);
     setCount(total);
+    setDmCount(dmsRes.count || 0);
   }, [user?.id]);
 
   useEffect(() => {
@@ -111,5 +122,5 @@ export function useHubNotifications() {
     broadcastRead();
   }, []);
 
-  return { count, markRead, refresh };
+  return { count, dmCount, markRead, refresh };
 }

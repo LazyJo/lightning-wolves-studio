@@ -73,7 +73,32 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
   const [currentTime, setCurrentTime] = useState(0);
   const [volume, setVolume] = useState<number>(globalVolume);
   const [showVolumePopover, setShowVolumePopover] = useState(false);
+  // Lazy-init latch: don't create WaveSurfer (which downloads + decodes the
+  // whole audio file) until this card actually scrolls near the viewport.
+  // A #beats room with dozens of drops used to fire dozens of full-file
+  // downloads on entry — brutal on mobile data.
+  const [inView, setInView] = useState(false);
   const muted = volume === 0;
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setInView(true); // ancient browser: behave like before
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setInView(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "300px" } // start decoding just before it scrolls in
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   // Subscribe to global volume changes so dragging the slider on one
   // player updates all of them.
@@ -96,12 +121,19 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
   }, []);
 
   useEffect(() => {
-    if (!containerRef.current || !audioUrl) return;
+    if (!containerRef.current || !audioUrl || !inView) return;
     let destroyed = false;
     setReady(false);
     setError(false);
     setDuration(0);
     setCurrentTime(0);
+
+    // If wavesurfer neither fires `ready` nor `error` (CORS stall, hung
+    // fetch), the play button used to sit behind a permanent spinner.
+    // After 12s give up and flip to the native <audio> fallback.
+    const stallTimer = window.setTimeout(() => {
+      if (!destroyed) setError(true);
+    }, 12_000);
 
     (async () => {
       try {
@@ -122,6 +154,7 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
         wsRef.current = ws;
         ws.on("ready", () => {
           if (destroyed) return;
+          window.clearTimeout(stallTimer);
           setReady(true);
           setDuration(ws.getDuration());
           try {
@@ -152,7 +185,11 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
           );
           if (nextBtn && !nextBtn.disabled) nextBtn.click();
         });
-        ws.on("error", () => !destroyed && setError(true));
+        ws.on("error", () => {
+          if (destroyed) return;
+          window.clearTimeout(stallTimer);
+          setError(true);
+        });
       } catch {
         if (!destroyed) setError(true);
       }
@@ -160,6 +197,7 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
 
     return () => {
       destroyed = true;
+      window.clearTimeout(stallTimer);
       if (currentPlayer === wsRef.current) currentPlayer = null;
       try {
         wsRef.current?.destroy();
@@ -168,7 +206,7 @@ export default function BeatWaveform({ audioUrl, accent = "#f5c518" }: Props) {
       }
       wsRef.current = null;
     };
-  }, [audioUrl, accent]);
+  }, [audioUrl, accent, inView]);
 
   if (error) {
     return (

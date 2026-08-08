@@ -96,7 +96,9 @@ export default function App() {
   const { plan } = useCredits();
   const { accessToken } = useSession();
   const { profile, isAdmin } = useProfile();
-  const { count: hubUnread } = useHubNotifications();
+  const { count: hubActivityUnread, dmCount: hubDmUnread } = useHubNotifications();
+  // Navbar badge = activity (likes/comments/stories) + unread DMs.
+  const hubUnread = hubActivityUnread + hubDmUnread;
 
   // Mirror the user's chosen theme colour from their profile into the global
   // wolfColor so every accent (studio, lightning canvas, navbar pills) follows

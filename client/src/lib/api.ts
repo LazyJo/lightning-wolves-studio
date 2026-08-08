@@ -494,7 +494,33 @@ async function isolateVocalStem(
   }
 }
 
-export type TranscribeStage = "uploading" | "isolating" | "transcribing";
+export type TranscribeStage = "uploading" | "isolating" | "transcribing" | "polishing";
+
+/**
+ * Fable 5 transcript polish — fixes casing/punctuation/mishears on each
+ * Whisper word IN PLACE (guaranteed same word count, so timings are safe)
+ * and returns [VERSE]/[CHORUS] section markers for the transcript view.
+ * Callers should treat any failure as "keep the raw transcription".
+ */
+export async function polishLyrics(params: {
+  words: { word: string; start: number; end: number }[];
+  language?: string;
+  title?: string;
+  artist?: string;
+  genre?: string;
+}): Promise<{ words: string[]; sections: { index: number; label: string }[] }> {
+  const res = await fetch(`${API}/api/polish-lyrics`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Polish failed" }));
+    throw new Error(err.error || "Polish failed");
+  }
+  const data = await res.json();
+  return { words: data.words, sections: data.sections || [] };
+}
 
 export async function transcribeAudio(
   file: File,

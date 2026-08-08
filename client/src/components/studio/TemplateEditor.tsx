@@ -17,7 +17,7 @@ import {
   Wand2,
   FileText,
 } from "lucide-react";
-import { transcribeAudio, uploadFile, type TranscribeStage } from "../../lib/api";
+import { transcribeAudio, uploadFile, polishLyrics, type TranscribeStage } from "../../lib/api";
 import { useTemplates } from "../../lib/useTemplates";
 import type { Template, WordTiming } from "../../lib/templates";
 import WaveformSelector from "./WaveformSelector";
@@ -231,9 +231,11 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
     // Raise the progress ceiling as the pipeline advances through its stages.
     const onStage = (stage: TranscribeStage) => {
       setLyricsStage(stage);
-      progressCeilingRef.current = stage === "uploading" ? 25 : stage === "isolating" ? 72 : 97;
+      progressCeilingRef.current =
+        stage === "uploading" ? 25 : stage === "isolating" ? 68 : stage === "transcribing" ? 90 : 98;
       if (stage === "isolating") setLyricsProgress((p) => Math.max(p, 28));
-      if (stage === "transcribing") setLyricsProgress((p) => Math.max(p, 74));
+      if (stage === "transcribing") setLyricsProgress((p) => Math.max(p, 70));
+      if (stage === "polishing") setLyricsProgress((p) => Math.max(p, 91));
     };
 
     try {
@@ -256,8 +258,49 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
           );
         });
       }
-      setTranscript(tr.text || "");
-      setWordTimings(words);
+      // ── Fable 5 polish: fix casing/punctuation/mishears + section headers.
+      // Word-for-word replacement — timings are never touched. Any failure
+      // silently keeps the raw Whisper output.
+      let finalWords = words;
+      let finalTranscript = tr.text || "";
+      if (words.length >= 4) {
+        onStage("polishing");
+        try {
+          const polished = await polishLyrics({
+            words,
+            language: tr.language,
+            title: saveName || audioFile.name.replace(/\.[a-z0-9]+$/i, ""),
+          });
+          finalWords = words.map((w, i) => ({ ...w, word: polished.words[i] }));
+          // Rebuild the transcript from the corrected words with section
+          // headers on their own lines; soft-wrap at sentence punctuation
+          // or every ~9 words so the editor stays readable.
+          const sectionAt = new Map(polished.sections.map((s) => [s.index, s.label]));
+          const lines: string[] = [];
+          let line: string[] = [];
+          finalWords.forEach((w, i) => {
+            const header = sectionAt.get(i);
+            if (header) {
+              if (line.length) lines.push(line.join(" "));
+              line = [];
+              lines.push(header);
+            }
+            line.push(w.word);
+            if (/[.!?]$/.test(w.word) || line.length >= 9) {
+              lines.push(line.join(" "));
+              line = [];
+            }
+          });
+          if (line.length) lines.push(line.join(" "));
+          finalTranscript = lines.join("\n");
+        } catch (polishErr) {
+          // eslint-disable-next-line no-console
+          console.warn("[studio] lyric polish skipped — keeping raw Whisper output:", polishErr);
+        }
+      }
+
+      setTranscript(finalTranscript);
+      setWordTimings(finalWords);
       setTranscriptSegments(tr.segments || []);
       setLanguage(tr.language || "en");
       setLyricsProgress(100);
@@ -282,7 +325,7 @@ export default function TemplateEditor({ onBack, onSaved, initial, wolf, prefill
         lyricsTickerRef.current = null;
       }
     }
-  }, [audioFile]);
+  }, [audioFile, saveName]);
 
   useEffect(() => {
     return () => {
@@ -989,6 +1032,8 @@ function LyricsLoading({
         ? { headline: "Isolating vocals…", sub: "Splitting the vocal from the mix for cleaner lyrics" }
         : stageId === "transcribing"
           ? { headline: "Reading the lyrics…", sub: "Whisper — word-level timing for karaoke" }
+          : stageId === "polishing"
+          ? { headline: "Polishing the lyrics…", sub: "Claude Fable 5 — punctuation, casing & song sections" }
           : elapsed < 3
             ? { headline: "Loading your audio…", sub: "Sending it to the studio engine" }
             : elapsed < 12

@@ -505,6 +505,94 @@ app.get('/api/separate-vocals/:id', async (req, res) => {
   }
 });
 
+// ── Lyrics polish (Claude Fable 5) ───────────────────────────────────────────
+// Whisper transcripts are scrappy: no punctuation, random casing, misheard
+// words, zero structure. This endpoint corrects each word IN PLACE — the
+// response has exactly as many words as the request, so the client can keep
+// every original timestamp — and returns section markers ([VERSE]/[CHORUS])
+// separately for the transcript view. Timings are never touched.
+const POLISHED_LYRICS_SCHEMA = {
+  type: 'object',
+  properties: {
+    words: { type: 'array', items: { type: 'string' } },
+    sections: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          index: { type: 'integer' },
+          label: { type: 'string' },
+        },
+        required: ['index', 'label'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['words', 'sections'],
+  additionalProperties: false,
+};
+
+app.post('/api/polish-lyrics', async (req, res) => {
+  try {
+    const { words, language, title, artist, genre } = req.body;
+    if (!Array.isArray(words) || words.length === 0) {
+      return res.status(400).json({ error: 'words array required' });
+    }
+    if (words.length > 800) {
+      return res.status(400).json({ error: 'too many words (max 800)' });
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+    }
+
+    const tokens = words.map((w) => String(w.word ?? '').trim());
+    const numbered = tokens.map((t, i) => `${i}: ${t}`).join('\n');
+
+    const systemPrompt = `You are a professional lyric transcription editor. You receive a raw word-per-line Whisper transcription of a song's vocal. Return the SAME number of words, corrected in place:
+- Fix casing and add punctuation (attached to the word it follows).
+- Fix obvious mishearings using the song's context — but stay conservative: when unsure, keep the original word.
+- NEVER merge, split, drop, add, or reorder words. words[i] must be the corrected form of input word i. Same array length, always.
+Also identify song sections. Return them as {index, label} where index is the word index the section starts at and label is like "[INTRO]", "[VERSE 1]", "[CHORUS]", "[BRIDGE]", "[OUTRO]". Only mark sections you are reasonably confident about; an empty array is fine.`;
+
+    const userPrompt = `Song: "${title || 'Unknown'}" by ${artist || 'Unknown'}${genre ? ` (${genre})` : ''}. Language: ${language || 'unknown'}.
+Raw Whisper words (index: word):
+${numbered}`;
+
+    const message = await anthropic.messages.create(
+      {
+        model: process.env.CLAUDE_MODEL || 'claude-fable-5',
+        max_tokens: 16000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }],
+        output_config: { effort: 'low', format: { type: 'json_schema', schema: POLISHED_LYRICS_SCHEMA } },
+        fallbacks: 'default',
+      },
+      { headers: { 'anthropic-beta': 'server-side-fallback-2026-07-01' } },
+    );
+
+    if (message.stop_reason === 'refusal') {
+      return res.status(502).json({ error: 'Polish declined — keeping the raw transcription.' });
+    }
+
+    const textBlock = message.content.find((b) => b.type === 'text');
+    const out = JSON.parse(textBlock ? textBlock.text : '{}');
+
+    // Hard safety gate: the whole design rests on 1:1 word mapping. If the
+    // model merged/dropped anything, reject so the client keeps raw Whisper.
+    if (!Array.isArray(out.words) || out.words.length !== tokens.length) {
+      return res.status(422).json({ error: 'word count mismatch — raw transcription kept' });
+    }
+    const sections = (Array.isArray(out.sections) ? out.sections : [])
+      .filter((s) => Number.isInteger(s.index) && s.index >= 0 && s.index <= tokens.length && typeof s.label === 'string')
+      .sort((a, b) => a.index - b.index);
+
+    res.json({ success: true, words: out.words.map((w) => String(w)), sections });
+  } catch (err) {
+    console.error('Polish-lyrics error:', err);
+    res.status(500).json({ error: err.message || 'Polish failed' });
+  }
+});
+
 // Main generation endpoint
 app.post('/api/generate', async (req, res) => {
   try {

@@ -1,0 +1,5 @@
+node_modules/
+out/
+# Copied from client/public + repo root by scripts/sync-assets.mjs
+public/assets/
+public/fonts/

@@ -118,6 +118,20 @@ must include `Content-Disposition: inline` and `Access-Control-Allow-Origin: *`.
   `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` must all be set on
   Vercel for the AI surfaces to work.
 
+## Motion pieces (`motion/`)
+
+Standalone Remotion project for pro promo videos for Jo's own music and
+profile, rendered offline to MP4. It is **not** in the Vite app or the
+Vercel build. See `motion/README.md`.
+- `npm run render` inside `motion/` syncs assets from `client/public` and
+  renders every composition to `motion/out/` (gitignored).
+- Cuts land on the song's measured beat grid (`src/lib/brand.ts`).
+  *Myself* runs at about 87 BPM, with downbeats every 2.755s from 0.86s.
+- Text-behind-subject uses `public/generated/lazyjo-cutout.png` (rembg
+  birefnet-portrait). That file is committed.
+- In cloud sandboxes, set
+  `REMOTION_BROWSER_EXECUTABLE=/opt/pw-browsers/chromium_headless_shell-*/chrome-linux/headless_shell`.
+
 ## Conventions
 
 - **Per-surface accent color** (LYRC parity):

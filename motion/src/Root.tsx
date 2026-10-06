@@ -3,6 +3,7 @@ import { Composition } from "remotion";
 import { FPS, HEIGHT, WIDTH } from "./lib/brand";
 import { MYSELF_DURATION, MyselfLyricReel } from "./compositions/MyselfLyricReel";
 import { ArtistPromo, PROMO_DURATION } from "./compositions/ArtistPromo";
+import { INTRO_DURATION, LazyJoIntro } from "./compositions/LazyJoIntro";
 
 export const RemotionRoot: React.FC = () => (
   <>
@@ -18,6 +19,14 @@ export const RemotionRoot: React.FC = () => (
       id="LazyJoArtistPromo"
       component={ArtistPromo}
       durationInFrames={PROMO_DURATION}
+      fps={FPS}
+      width={WIDTH}
+      height={HEIGHT}
+    />
+    <Composition
+      id="LazyJoIntro"
+      component={LazyJoIntro}
+      durationInFrames={INTRO_DURATION}
       fps={FPS}
       width={WIDTH}
       height={HEIGHT}

@@ -16,6 +16,7 @@ const assets = {
   "assets/myself.mp3": join(clientPublic, "demo", "lazyjo-myself.mp3"),
   "assets/wolf-card.mp4": join(clientPublic, "Lazy Jo Wolf Card Animation.mp4"),
   "assets/live.mp4": join(clientPublic, "Lazy Jo Performance Video.mp4"),
+  "assets/fire-wolf.mp4": join(clientPublic, "WhatsApp Video 2026-03-31 at 1.55.35 PM.mp4"),
   "assets/logo-wordmark.png": join(clientPublic, "LightningWolvesLogoTransparentBG.png"),
   "assets/wolf-yellow.png": join(clientPublic, "LightningWolfYellowTransparentBG.png"),
   "assets/cosigns/timbaland.jpg": join(clientPublic, "Timbaland.jpeg"),
@@ -29,6 +30,7 @@ const assets = {
 const fontsource = join(motionRoot, "node_modules", "@fontsource");
 const fonts = {
   "fonts/bebas-neue-400.woff2": join(fontsource, "bebas-neue", "files", "bebas-neue-latin-400-normal.woff2"),
+  "fonts/anton-400.woff2": join(fontsource, "anton", "files", "anton-latin-400-normal.woff2"),
   "fonts/syncopate-400.woff2": join(fontsource, "syncopate", "files", "syncopate-latin-400-normal.woff2"),
   "fonts/syncopate-700.woff2": join(fontsource, "syncopate", "files", "syncopate-latin-700-normal.woff2"),
   "fonts/inter-400.woff2": join(fontsource, "inter", "files", "inter-latin-400-normal.woff2"),

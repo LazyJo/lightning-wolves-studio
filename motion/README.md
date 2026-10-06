@@ -14,8 +14,14 @@ Vercel build.
 |---------------------|-----------------|------------|
 | `MyselfLyricReel`   | 1080×1920, 25s  | Kinetic lyric reel for *Myself*: giant key words behind Jo (AI cutout), karaoke captions, duotone live footage, clone/blur moment, glitch, wolf name-drop, end card |
 | `LazyJoArtistPromo` | 1080×1920, 25s  | Artist intro / EPK: title slam over the wolf card, bio poster, *Stay Up* 100K counter, six co-sign cards on the half-bar, live footage, name-drop, end card |
+| `LazyJoIntro`       | 1080×1920, 39s  | Built on the 2026 poster series (`public/posters/`). Sections: ▷ PRESS PLAY cold open, LAZY/JO title, Lomé → Brussels, the sound, *Stay Up* 100K+ odometer, industry acknowledgements told in type (kinetic quotes, a comment, a like, DMs, a CO-SIGNED wall), live footage in sync with its own audio, outro |
 
-Both use the *Myself* live clip as the soundtrack.
+The first two use the *Myself* live clip as the soundtrack. `LazyJoIntro` is
+timed in **beats** (`INTRO_SONG` in `src/compositions/LazyJoIntro.tsx`).
+Right now its soundtrack is the live audio from the performance video. To
+switch to a studio track, change `src`, `firstDownbeat` and `beat` (plus
+`kicks` and `end`). Every section re-times automatically. Re-sync the live
+section if the song changes.
 
 ## Run it
 
@@ -53,9 +59,13 @@ reuses it instead of downloading one.
   rig that shakes and punches, and procedural lightning.
 - `src/components/text.tsx`: auto-fit display words, karaoke captions,
   and kicker labels.
-- `public/generated/lazyjo-cutout.png`: the subject matte, generated once
-  with `rembg` (`birefnet-portrait`). It is committed so nobody has to
-  download the 1GB model.
+- `src/components/poster.tsx`: the poster series in motion: smoke
+  backdrops, per-letter slam type (Anton), cutouts and side labels.
+- `src/components/cosigns.tsx`: the co-sign styles (kinetic quote, censor
+  bar, comment, like notification, DM thread, face wall).
+- `public/generated/*-cutout.png`: subject mattes, generated once with
+  `rembg` (`birefnet-portrait`). They are committed so nobody has to
+  download the 1GB model. `smoke-*.jpg` are procedural textures.
 
 ## Making a new one
 

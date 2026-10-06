@@ -9,10 +9,17 @@ export const COLORS = {
   black: "#050505",
   ink: "#0d0d0d",
   white: "#f7f4ea",
+  // Poster series (2026 key art): cream "LAZY" + accent "JO".
+  cream: "#efe6d2",
+  lime: "#d4ff2a",
+  red: "#e5161d",
+  blue: "#1e5bff",
+  navy: "#040a1c",
 } as const;
 
 export const FONTS = {
   display: "'Bebas Neue', 'Arial Narrow', sans-serif",
+  poster: "'Anton', Impact, sans-serif",
   wide: "'Syncopate', 'Arial Black', sans-serif",
   body: "'Inter', 'Helvetica Neue', Arial, sans-serif",
 } as const;

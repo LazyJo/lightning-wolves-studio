@@ -3,6 +3,7 @@ import { continueRender, delayRender, staticFile } from "remotion";
 
 const FACES: { family: string; file: string; weight: string }[] = [
   { family: "Bebas Neue", file: "fonts/bebas-neue-400.woff2", weight: "400" },
+  { family: "Anton", file: "fonts/anton-400.woff2", weight: "400" },
   { family: "Syncopate", file: "fonts/syncopate-400.woff2", weight: "400" },
   { family: "Syncopate", file: "fonts/syncopate-700.woff2", weight: "700" },
   { family: "Inter", file: "fonts/inter-400.woff2", weight: "400" },

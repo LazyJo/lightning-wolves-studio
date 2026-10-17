@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>I'M LOST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+html,body{height:100%}
+body{margin:0; background:#050c1e; color:#eaf4ff; overflow:hidden;
+  font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; transition:opacity .4s}
+#hud.off{opacity:0}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#9fe8ff; line-height:1}
+#ml{font-size:11px; letter-spacing:.18em; color:#5f86b8; margin-top:3px}
+#pips{display:flex; gap:4px; margin-top:8px}
+#pips i{width:10px; height:4px; background:#9fe8ff30; border-radius:1px}
+#pips i.on{background:#9fe8ff}
+#hearts{display:flex; gap:4px; margin-top:7px; color:#9fe8ff}
+#hearts i{display:block; width:13px; height:12px}
+#hearts svg{display:block; width:100%; height:100%; fill:currentColor}
+#hearts i.out{color:#9fe8ff30; animation:pop .5s ease-out}
+@keyframes pop{0%{color:#ffffff; transform:scale(1.7)} 35%{color:#ffffff; transform:scale(1.3)} 100%{color:#9fe8ff30; transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){ #hearts i.out{animation:none} }
+#msg{position:fixed; left:0; right:0; top:26%; text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:30px; opacity:0; transition:opacity .25s; text-shadow:0 0 22px #0a1430}
+#msg.on{opacity:1}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:14px;
+  letter-spacing:.1em; color:#8fb4dd; margin-top:6px}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
+  gap:16px; background:radial-gradient(64% 54% at 50% 40%, #12305c 0%, #050c1e 78%); z-index:9;
+  text-align:center; padding:26px; overflow-y:auto}
+/* two springs instead of justify-content:center, so a card taller than a sideways
+   phone scrolls from its top instead of losing its title off the top edge */
+#veil .sp{flex:1 0 0; display:block}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(34px,10vw,66px); line-height:1;
+  background:linear-gradient(172deg,#ffffff 18%,#67c8ff 112%);
+  -webkit-background-clip:text; background-clip:text; color:transparent}
+#veil .by{font-family:"Barlow Condensed",sans-serif; letter-spacing:.42em; font-size:14px; color:#8fb4dd; margin:0 0 -8px}
+#veil p{margin:0; color:#8fb4dd; font-size:17px; max-width:34ch}
+#veil b{color:#9fe8ff}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:#2f8fe0; color:#041024; border:0;
+  border-radius:4px; padding:16px 38px; cursor:pointer; margin-top:4px}
+#veil small{color:#4e6c93; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#go.alt{background:none; color:#9fe8ff; border:1.5px solid #2f8fe0; font-size:15px; padding:12px 30px; margin-top:0}
+#next{font-family:Bungee,sans-serif; font-size:19px; background:#2f8fe0; color:#041024; text-decoration:none;
+  border-radius:4px; padding:13px 34px 11px; margin-top:4px; line-height:1.1}
+#next small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px;
+  letter-spacing:.16em; color:#041024; opacity:.75; margin-top:3px}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em;
+  text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #9fe8ff; outline-offset:3px}
+/* a sideways phone: last, so it wins over the rules above */
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px}
+  #veil h1{font-size:44px} #outs{max-width:none} #next{padding:10px 30px 8px} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud"><div id="m">0</div><div id="ml">METRES</div><div id="pips"></div><div id="hearts"></div></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by">LAZY JO</p>
+  <h1>I'M LOST</h1>
+  <p>Fly the saucer. Get through the walls. <b id="hn">6 hearts</b> &middot; every hit costs one.</p>
+  <p><b>Tap a side</b> to bank &middot; <b>tap the middle</b> to lift over a low wall or a hole</p>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>2 &middot; SOMEBODY</small></a>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= I'M LOST =================
+   Level 1 of JAVEDA. You are the blue saucer. Walls come down the corridor and
+   you go round or over them. At the end the road tears open, a vortex takes him
+   across space and drops him on Earth - which is how he ends up on foot on a
+   planet that isn't his, which is what the song is about.
+
+   Making the player the UFO deletes the whole character-animation problem: a
+   saucer has no run cycle, no skeleton and no face. It banks, bobs and glows,
+   and all three are two lines of rotation each. */
+
+const SPEED0 = 7.0, SPEED1 = 19.0, RAMP = 240;
+const speedAt = d => SPEED1 - (SPEED1 - SPEED0) * Math.exp(-d / RAMP);
+const CP_EVERY = 110, CP_TOTAL = 10;
+const LANE = 2.3, LANE_MS = 150;
+const HOP_T = .72, HOP_H = 2.6;       // the lift that clears a low wall
+const FLY_Y = 1.25;                   // cruising height above the road
+const COYOTE = .10, BUFFER = .16;
+// 6, one more than the saucer gets elsewhere: ~2 hits a run are the back-to-back
+// low walls at full speed, which even a perfect bot clips, so 6 leaves 4 for real
+// mistakes. Measured: a good player fails 19% of runs on 5, 8% on 6.
+const HEARTS = 6;
+
+/* Every outbound link lives here, as in the main JAVEDA game: elements carry
+   data-link="merch" etc and get their href on boot. Level 2 is still in the main
+   game, so "next" is that page. The playlist has its ?si= share token stripped. */
+const LINKS = {
+  next:    "https://claude.ai/code/artifact/99eddaf0-496d-42e1-be68-a1d09502d2b6",
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+
+/* Inside the JAVEDA hub (lightningwolves.studio/javeda opens this page in a
+   frame with ?hub=1) the hub owns the player: it saves each result to their
+   profile and decides what "next level" means. Opened on its own, nothing
+   here changes. */
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("next").addEventListener("click", e => {
+  e.preventDefault(); toHub({ type:"javeda:next", level:"lvl1" });
+});
+
+// metres flown, and on a clear a bonus for getting there, for every heart left
+// and for not being hit at all - so ~3500 is a perfect run
+function score(){
+  const m = Math.floor(S.dist);
+  return S.fail ? m : m + 1000 + S.hearts*150 + (S.hits === 0 ? 500 : 0);
+}
+
+/* ---- palette, taken off the single cover ---- */
+const C = {
+  night:0x050c1e, deep:0x0a1836, road:0x0d1f42, kerb:0x1b3a6b,
+  hull:0x2f6fc9, hullDark:0x12356b, dome:0xbfe9ff, rim:0x67e8f9,
+  beam:0x9fe8ff, wall:0x16294f, wallLip:0x67e8f9, low:0x1d3a2e, lowLip:0xffd60a,
+  pit:0x02060f, pitLip:0xff3d8b
+};
+
+let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spark;
+let vortex, cine, cineCam, cs;          // the ending: its own scene, see renderEnd()
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const walls = [], lamps = [];
+const cab = document.getElementById("cab");
+
+/* ---- the saucer, built from primitives: no model file, nothing to download ---- */
+function buildUFO(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 12),
+    new THREE.MeshStandardMaterial({ color:C.hull, roughness:.42, metalness:.35, flatShading:false }));
+  hull.scale.set(1, .22, 1); g.add(hull);
+  const under = new THREE.Mesh(new THREE.SphereGeometry(.82, 24, 10),
+    new THREE.MeshStandardMaterial({ color:C.hullDark, roughness:.6 }));
+  under.scale.set(1, .20, 1); under.position.y = -.10; g.add(under);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.44, 22, 14, 0, Math.PI*2, 0, Math.PI/2),
+    new THREE.MeshStandardMaterial({ color:C.dome, roughness:.12, metalness:.1,
+      transparent:true, opacity:.9, emissive:0x2a6a9c, emissiveIntensity:.5 }));
+  dome.position.y = .12; g.add(dome);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.86, .055, 8, 40),
+    new THREE.MeshBasicMaterial({ color:C.rim }));
+  ring.rotation.x = Math.PI/2; ring.position.y = -.02; g.add(ring);
+  // the running lights round the rim - these are what read at distance
+  const lightGrp = new THREE.Group();
+  for (let i = 0; i < 10; i++){
+    const a = i/10*Math.PI*2;
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.072, 8, 6),
+      new THREE.MeshBasicMaterial({ color:C.rim }));
+    b.position.set(Math.cos(a)*.88, -.04, Math.sin(a)*.88);
+    lightGrp.add(b);
+  }
+  g.add(lightGrp); g.userData.lights = lightGrp;
+  return g;
+}
+function buildBeam(){
+  const m = new THREE.Mesh(new THREE.ConeGeometry(1.05, 1, 22, 1, true),
+    new THREE.MeshBasicMaterial({ color:C.beam, transparent:true, opacity:.14,
+      side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
+  m.rotation.x = Math.PI; return m;
+}
+
+/* ---- the walls. They have to read instantly as "you cannot pass here", so the
+   tall ones get a bright lip along the top and the low ones a gold lip, which is
+   the only thing on screen that colour. ---- */
+function makeWall(lanesFrom, lanesTo, low){
+  const w = (lanesTo - lanesFrom + 1) * LANE;
+  const h = low ? 1.0 : 4.4;
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, .55),
+    new THREE.MeshStandardMaterial({ color: low ? C.low : C.wall, roughness:.85 }));
+  body.position.y = h/2; g.add(body);
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(w + .12, .17, .72),
+    new THREE.MeshBasicMaterial({ color: low ? C.lowLip : C.wallLip }));
+  lip.position.y = h; g.add(lip);
+  for (let i = 0; i < Math.max(2, Math.round(w/1.1)); i++){     // hazard ticks
+    const t = new THREE.Mesh(new THREE.BoxGeometry(.1, h*.84, .62),
+      new THREE.MeshBasicMaterial({ color: low ? C.lowLip : C.wallLip,
+        transparent:true, opacity:.22 }));
+    t.position.set(-w/2 + (i+.5)*(w/Math.max(2, Math.round(w/1.1))), h/2, 0); g.add(t);
+  }
+  g.position.x = ((lanesFrom + lanesTo)/2) * LANE;
+  g.userData = { from:lanesFrom, to:lanesTo, low, h };
+  return g;
+}
+/* A hole in the road. Mechanically the opposite of a tall wall: a wall you go
+   AROUND, a hole you go OVER. That is what makes both controls matter - before
+   this, the lift button only existed for the occasional low wall. The rim is
+   magenta because cyan already means wall and gold already means low wall. */
+function makeHole(from, to){
+  const w = (to - from + 1) * LANE;
+  const g = new THREE.Group();
+  const pit = new THREE.Mesh(new THREE.BoxGeometry(w - .08, 2.2, 3.0),
+    new THREE.MeshBasicMaterial({ color:C.pit }));
+  pit.position.y = -1.08; g.add(pit);
+  for (const dz of [-1.5, 1.5]){
+    const lip = new THREE.Mesh(new THREE.BoxGeometry(w, .07, .22),
+      new THREE.MeshBasicMaterial({ color:C.pitLip }));
+    lip.position.set(0, .04, dz); g.add(lip);
+  }
+  for (const dx of [-w/2, w/2]){
+    const lip = new THREE.Mesh(new THREE.BoxGeometry(.1, .07, 3.0),
+      new THREE.MeshBasicMaterial({ color:C.pitLip }));
+    lip.position.set(dx, .04, 0); g.add(lip);
+  }
+  g.position.x = ((from + to) / 2) * LANE;
+  g.userData = { from, to, hole:true, h:0 };
+  return g;
+}
+function rnd(n){ const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); }
+function buildWalls(){
+  // every wall leaves at least one lane open, and never the same one twice running
+  let last = 0;
+  for (let i = 1; i < 190; i++){
+    const z = -(i * 11 + 24);
+    const r = rnd(i * 3.7);
+    let gap = Math.floor(rnd(i * 9.1) * 3) - 1;
+    if (gap === last && i > 1) gap = gap === 1 ? -1 : gap + 1;
+    last = gap;
+    if (r < .20){                       // a low one, spanning everything: lift over it
+      const w = makeWall(-1, 1, true);
+      w.position.z = z; scene.add(w); walls.push(w);
+    } else if (r < .44){                // a hole: one or two lanes torn out
+      const a = Math.floor(rnd(i*5.3)*3) - 1;
+      const b = rnd(i*7.7) < .45 ? Math.min(1, a + 1) : a;
+      const hl = makeHole(a, b);
+      hl.position.z = z; scene.add(hl); walls.push(hl);
+    } else {
+      const lanes = [-1, 0, 1].filter(l => l !== gap);
+      // one slab per blocked lane, so the open lane is unmistakable
+      for (const l of lanes){
+        const w = makeWall(l, l, false);
+        w.position.set(l * LANE, 0, z); scene.add(w); walls.push(w);
+      }
+    }
+  }
+}
+
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true });
+  ren.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  ren.setSize(innerWidth, innerHeight);
+  cab.appendChild(ren.domElement);
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(C.night);
+  scene.fog = new THREE.Fog(C.night, 22, 72);
+  cam = new THREE.PerspectiveCamera(52, innerWidth/innerHeight, .1, 400);
+
+  scene.add(new THREE.AmbientLight(0x5b7fb5, .85));
+  const key = new THREE.DirectionalLight(0xbcd8ff, .75); key.position.set(4, 10, 6); scene.add(key);
+  const back = new THREE.DirectionalLight(C.rim, .55); back.position.set(-5, 3, -9); scene.add(back);
+
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(LANE*3 + .9, 2600),
+    new THREE.MeshStandardMaterial({ color:C.road, roughness:1 }));
+  road.rotation.x = -Math.PI/2; road.position.z = -1200; scene.add(road);
+  const land = new THREE.Mesh(new THREE.PlaneGeometry(240, 2600),
+    new THREE.MeshStandardMaterial({ color:C.deep, roughness:1 }));
+  land.rotation.x = -Math.PI/2; land.position.set(0, -.06, -1200); scene.add(land);
+  for (const sx of [-1, 1]){                                   // kerbs
+    const k = new THREE.Mesh(new THREE.BoxGeometry(.3, .22, 2600),
+      new THREE.MeshStandardMaterial({ color:C.kerb, roughness:.9 }));
+    k.position.set(sx * (LANE*1.5 + .45), .11, -1200); scene.add(k);
+  }
+  for (const lx of [-.5, .5]){                                  // lane dashes
+    for (let i = 0; i < 300; i++){
+      const d = new THREE.Mesh(new THREE.BoxGeometry(.12, .02, 2.0),
+        new THREE.MeshBasicMaterial({ color:C.rim, transparent:true, opacity:.45 }));
+      d.position.set(lx*LANE*2, .02, -i*6.2); scene.add(d);
+    }
+  }
+  for (let i = 0; i < 120; i++){                                // street lamps, for pace
+    for (const sx of [-1, 1]){
+      const p = new THREE.Mesh(new THREE.BoxGeometry(.14, 5.2, .14),
+        new THREE.MeshStandardMaterial({ color:0x18305c, roughness:.9 }));
+      p.position.set(sx*(LANE*1.5 + 1.5), 2.6, -i*21); scene.add(p);
+      const b = new THREE.Mesh(new THREE.SphereGeometry(.26, 10, 8),
+        new THREE.MeshBasicMaterial({ color:0xbfe2ff }));
+      b.position.set(sx*(LANE*1.5 + 1.5), 5.25, -i*21); scene.add(b); lamps.push(b);
+    }
+  }
+
+  ufo = new THREE.Group();
+  hullGrp = buildUFO(); ufo.add(hullGrp);
+  beam = buildBeam(); ufo.add(beam);
+  beamLight = new THREE.PointLight(C.beam, 1.5, 9, 2); beamLight.position.y = -.4; ufo.add(beamLight);
+  scene.add(ufo);
+
+  spark = new THREE.Group(); scene.add(spark);
+  for (let i = 0; i < 44; i++){
+    const s = new THREE.Mesh(new THREE.BoxGeometry(.11, .11, .11),
+      new THREE.MeshBasicMaterial({ color: i%3 ? C.rim : 0xffd60a }));
+    s.visible = false; s.userData = { v:new THREE.Vector3() }; spark.add(s);
+  }
+
+  buildWalls();
+  vortex = buildVortex(); scene.add(vortex);
+  buildEnding();
+  clock = new THREE.Clock();
+  addEventListener("resize", () => {
+    ren.setSize(innerWidth, innerHeight);
+    for (const c of [cam, cineCam]){ c.aspect = innerWidth/innerHeight; c.updateProjectionMatrix(); }
+  });
+}
+
+/* ---- state ---- */
+let S;
+function reset(){
+  S = { t:0, dist:0, lane:0, laneX:0, laneFrom:0, laneT:9, y:0, vy:0, airT:0,
+        up:false, lastDown:0, bufAt:-9, started:false, done:false, cp:0, hits:0,
+        speed:SPEED0, camX:0, camV:0, crash:-1, msgT:0, spin:0, tilt:0, inv:0,
+        hearts:HEARTS, fail:false, end:-1, e0:null };
+  // reset() runs once at module scope, before boot() has built anything, so all
+  // of these have to tolerate a world that does not exist yet
+  walls.forEach(w => { w.userData.hit = false; w.scale.y = 1; });
+  if (spark) spark.children.forEach(s => s.visible = false);
+  if (ufo) ufo.scale.setScalar(1);
+  if (vortex) vortex.visible = false;
+  if (cs) resetEnding();
+  document.getElementById("hud").classList.remove("off");
+  document.getElementById("flash").style.opacity = 0;
+  // and msgEl is a const further down, still in its dead zone on that first call
+  document.getElementById("msg").classList.remove("on");
+}
+reset();
+
+const song = new Audio("lvl1.mp3"); song.preload = "auto"; song.loop = true;
+let ac = null, bus = null;
+function blip(kind){
+  if (!ac) return;
+  const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = kind === "crash" ? 900 : 4000;
+  o.type = kind === "crash" ? "sawtooth" : "triangle";
+  const hz = kind === "lift" ? 520 : kind === "bank" ? 820 : 150;
+  o.frequency.setValueAtTime(hz, t);
+  o.frequency.exponentialRampToValueAtTime(kind === "crash" ? 44 : hz*1.7, t + (kind === "crash" ? .7 : .13));
+  g.gain.setValueAtTime(kind === "crash" ? .34 : .09, t);
+  g.gain.exponentialRampToValueAtTime(.0001, t + (kind === "crash" ? .9 : .2));
+  o.connect(f); f.connect(g); g.connect(bus); o.start(t); o.stop(t + 1);
+}
+
+function act(dir){
+  if (!S.started || S.done || S.crash >= 0 || S.end >= 0) return;
+  if (dir === 0){
+    if (!S.up || S.t - S.lastDown < COYOTE) lift(); else S.bufAt = S.t;
+  } else {
+    const n = Math.max(-1, Math.min(1, S.lane + dir));
+    if (n !== S.lane){ S.laneFrom = S.laneX; S.lane = n; S.laneT = 0; blip("bank"); }
+  }
+}
+function lift(){
+  if (S.up && S.t - S.lastDown >= COYOTE) return;
+  S.up = true; S.airT = 0; S.vy = 4*HOP_H/HOP_T; blip("lift");
+}
+let pd = null;
+addEventListener("pointerdown", e => {
+  if (!document.getElementById("veil").classList.contains("hid")) return;
+  e.preventDefault(); pd = { x:e.clientX, y:e.clientY, t:performance.now() };
+}, { passive:false });
+addEventListener("pointerup", e => {
+  if (!pd) return;
+  const dx = e.clientX-pd.x, dy = e.clientY-pd.y, ms = performance.now()-pd.t;
+  if (ms < 400 && Math.hypot(dx,dy) > 32){
+    if (Math.abs(dx) > Math.abs(dy)) act(dx>0?1:-1); else if (dy<0) act(0);
+  } else { const f = pd.x/innerWidth; act(f<.32?-1:f>.68?1:0); }
+  pd = null;
+});
+addEventListener("keydown", e => {
+  if (["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key)) e.preventDefault();
+  if (e.key === "ArrowLeft") act(-1);
+  if (e.key === "ArrowRight") act(1);
+  if (e.key === "ArrowUp" || e.key === " ") act(0);
+});
+
+const msgEl = document.getElementById("msg");
+function say(a, b, t){ msgEl.innerHTML = a + (b ? "<small>"+b+"</small>" : ""); msgEl.classList.add("on"); S.msgT = t; }
+
+function burst(x, y, z, n){
+  let k = 0;
+  for (const s of spark.children){
+    if (k++ >= n) break;
+    s.visible = true; s.position.set(x, y, z);
+    s.userData.v.set((Math.random()-.5)*9, Math.random()*7+1.5, (Math.random()-.5)*6);
+  }
+}
+
+const easeOut = u => 1 - Math.pow(1-u, 3);
+function update(dt){
+  S.t += dt;
+
+  /* ---- the ending: the vortex. Scripted, unavoidable, and the whole reason the
+     level exists - this is how he ends up on Earth. Only the sounds and the
+     one-off bursts live here; renderEnd() works everything else out from S.end. ---- */
+  if (S.end >= 0){
+    const t0 = S.end, t = S.end += dt;
+    const at = x => t0 < x && t >= x;
+    if (at(.05)) sweep("sawtooth", 55, 700, END.pull, .2, 1200);        // the road tearing open
+    if (at(END.space)) sweep("triangle", 1900, 110, 2.6, .16, 5000);   // the warp
+    if (at(END.entry)) sweep("sawtooth", 110, 38, 1.5, .22, 700);      // atmosphere
+    if (at(END.touch)){ blip("crash"); cineBurst(landPos(END.touch, V1), 26); }
+    if (t > END.touch && t < END.rest && Math.floor(t/.07) !== Math.floor(t0/.07)) puff(landPos(t, V1), .5);
+    if (t > END.rest && Math.floor(t/.24) !== Math.floor(t0/.24)) puff(landPos(t, V1).setY(.7), 1);
+    if (t >= END.out && !S.done){ S.done = true; finish(); }
+    return;
+  }
+
+  /* ---- out of hearts: he goes down on the road. ---- */
+  if (S.crash >= 0){
+    S.crash += dt;
+    S.speed = Math.max(0, S.speed - dt * 11);
+    S.dist += S.speed * dt;
+    S.spin += dt * (2.6 + S.crash * 3.2);
+    S.tilt = Math.min(1.25, S.tilt + dt * 1.5);
+    S.vy -= 13 * dt; S.y = Math.max(-FLY_Y + .22, S.y + S.vy * dt);
+    if (S.y <= -FLY_Y + .23 && S.vy < 0){ S.vy = -S.vy * .34; if (Math.abs(S.vy) > 1) burst(S.laneX*LANE, .3, -S.dist, 14); }
+    if (S.crash > (S.fail ? 2.4 : 3.6) && !S.done){ S.done = true; finish(); }
+    return;
+  }
+
+  S.speed = speedAt(S.dist);
+  S.dist += S.speed * dt;
+
+  S.laneT += dt;
+  const u = Math.min(1, S.laneT/(LANE_MS/1000));
+  S.laneX = S.laneFrom + (S.lane - S.laneFrom)*easeOut(u);
+
+  if (S.up){
+    S.airT += dt; S.vy -= (8*HOP_H/(HOP_T*HOP_T))*dt; S.y += S.vy*dt;
+    if (S.y <= 0){ S.y = 0; S.up = false; S.lastDown = S.t; S.vy = 0;
+      if (S.t - S.bufAt < BUFFER){ S.bufAt = -9; lift(); } }
+  } else S.lastDown = S.t;
+
+  /* Collision. A 3.2m shunt was less than the 11m wall spacing, so he was
+     re-hitting the same slab every frame and ploughing straight through it -
+     22 walls clipped in one run with nobody even touching the controls. Now a
+     hit throws him well clear and buys a moment of grace. */
+  if (S.inv > 0) S.inv -= dt;
+  const myZ = -S.dist;
+  for (const w of walls){
+    if (w.userData.hit || S.inv > 0) continue;
+    const dz = w.position.z - myZ;
+    if (dz > 0 || dz < -1.1) continue;
+    w.userData.hit = true;
+    const inLane = S.lane >= w.userData.from && S.lane <= w.userData.to;
+    if (!inLane) continue;
+    if (w.userData.low && S.y > 0.75) continue;             // cleared the low wall
+    if (w.userData.hole && S.y > 0.70) continue;            // flew over the hole
+    S.hits++; S.hearts = Math.max(0, S.hearts - 1); S.inv = .95;
+    // on the finish line he is not shunted back off it, so if his last heart goes
+    // on the same frame, the ending below still fires: the story wins over a fail
+    const atEnd = S.dist >= CP_TOTAL * CP_EVERY;
+    if (!atEnd) S.dist = Math.max(0, S.dist - 7.5);
+    S.laneX = S.lane; S.laneFrom = S.lane; S.laneT = 9;
+    burst(S.laneX*LANE, FLY_Y + S.y, myZ, 10);
+    blip("crash"); S.tilt = 0; S.camV += 16;
+    /* Out of hearts. Same fall as the ending, because a crash should feel like a
+       crash - but this one is a fail and never reaches finish()'s ending copy, and
+       it says so: "..." belongs to the ending. Speed is cut so the slide stops
+       short of the wall he just bounced off. */
+    if (!S.hearts && !atEnd){
+      S.fail = true; S.crash = 0; S.vy = 1.4; S.speed *= .35;
+      burst(S.laneX*LANE, FLY_Y + S.y, -S.dist, 18);
+      say("OUT OF HEARTS", "", 1.6); return;
+    }
+    break;
+  }
+
+  const cp = Math.floor(S.dist / CP_EVERY);
+  if (cp > S.cp){
+    S.cp = cp;
+    if (cp >= CP_TOTAL){ S.end = 0; S.e0 = { x:S.laneX*LANE, y:FLY_Y + S.y, z:-S.dist };
+      document.getElementById("hud").classList.add("off"); msgEl.classList.remove("on"); return; }
+    say("CHECKPOINT " + cp + " / " + CP_TOTAL, "", 1.5);
+  }
+
+  // in 1/60 s steps: past ~1/21 s a single step of this spring blows up, and a
+  // hit's kick then throws the camera off the saucer on a slow phone
+  const target = S.laneX * LANE * .38;
+  for (let n = Math.ceil(dt * 60), h = dt / n, i = 0; i < n; i++){
+    S.camV += (-(19*19)*(S.camX - target) - 2*.9*19*S.camV) * h;
+    S.camX += S.camV * h;
+  }
+
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) msgEl.classList.remove("on"); }
+}
+
+function render(dt){
+  if (S.end >= 0){ renderEnd(dt); return; }
+  const y = FLY_Y + S.y;
+  ufo.position.set(S.laneX*LANE, y, -S.dist);
+  // bank into the turn, bob on the cruise, and a slow idle spin on the hull
+  const bank = (S.lane - S.laneX) * -0.95;
+  ufo.rotation.z = bank + (S.crash >= 0 ? Math.sin(S.spin*1.7) * S.tilt : 0);
+  ufo.rotation.x = (S.crash >= 0 ? S.tilt * .7 : -0.04 + Math.sin(S.t*1.6)*.02);
+  ufo.rotation.y = S.spin + S.t * .45;
+  hullGrp.position.y = S.crash >= 0 ? 0 : Math.sin(S.t*2.1)*.055;
+  hullGrp.userData.lights.rotation.y = -S.t * 1.9;
+
+  const hgt = Math.max(.4, y);
+  beam.scale.set(1, hgt, 1); beam.position.y = -hgt/2;
+  beam.material.opacity = (S.crash >= 0 ? .05 : .14) + Math.sin(S.t*5)*.012;
+  beamLight.intensity = S.crash >= 0 ? .3 : 1.4 + Math.sin(S.t*7)*.2;
+
+  for (const s of spark.children){
+    if (!s.visible) continue;
+    s.userData.v.y -= 15*dt;
+    s.position.addScaledVector(s.userData.v, dt);
+    s.rotation.x += dt*7; s.rotation.y += dt*5;
+    if (s.position.y < 0) s.visible = false;
+  }
+  // going down, the camera pulls back past walls he has already passed - drop
+  // those, or the fall plays out behind the back of a slab
+  for (const w of walls) w.visible = Math.abs(w.position.z + S.dist) < 62 &&
+    !(S.crash >= 0 && w.position.z > -S.dist + .6);
+  for (const b of lamps) b.visible = Math.abs(b.position.z + S.dist) < 90;
+
+  const back = S.crash >= 0 ? 8.5 + S.crash*2.2 : 7.2;
+  cam.position.set(S.camX, 3.1 + y*.30 + (S.crash >= 0 ? S.crash*.7 : 0), -S.dist + back);
+  cam.lookAt(S.camX*.55, 1.4 + S.y*.5, -S.dist - 9);
+  ren.render(scene, cam);
+  document.getElementById("m").textContent = Math.floor(S.dist);
+}
+
+/* ================= THE ENDING =================
+   At 1100 m the road opens. A vortex takes the saucer, throws it across space
+   and drops it on Earth. It is a film, not a level: no input, no hearts, about
+   twelve seconds on the song. Like the saucer, all of it is primitives - no
+   model files, no textures to download (Earth is painted on a canvas at boot).
+   Every beat is a time in END, and renderEnd() works the whole frame out from
+   S.end alone, so it plays the same on a fast phone and a slow one. */
+const END = { open:.7, pull:1.95, space:2.15, earth:4.4, entry:6.9, land:8.4,
+              touch:9.2, rest:10.5, dim:11.5, out:12.6 };
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const span = (t, a, b) => clamp01((t - a) / (b - a));
+const smooth = u => u*u*(3 - 2*u);
+const V1 = new THREE.Vector3(), V2 = new THREE.Vector3(), UP = new THREE.Vector3(0, 1, 0);
+const flashEl = document.getElementById("flash");
+
+function sweep(type, f0, f1, dur, gain, lp){
+  if (!ac) return;
+  const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp; o.type = type;
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + dur*.3);
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + .05);
+}
+const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity,
+  blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+
+/* The vortex stands across the road like the walls did, so it reads as the last
+   thing in the corridor. Its arms are the hole's magenta and the wall's cyan:
+   everything that has been in his way, turning. */
+function buildVortex(){
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshBasicMaterial({ color:0x01030a })));
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(1, .045, 8, 64), new THREE.MeshBasicMaterial({ color:C.rim })));
+  const halo = new THREE.Mesh(new THREE.RingGeometry(1, 1.6, 48), glowMat(C.rim, .09));
+  g.add(halo);
+  const arms = new THREE.Group();
+  for (let a = 0; a < 3; a++) for (let i = 0; i < 36; i++){
+    const r = .1 + i/36*.95, th = a/3*Math.PI*2 + r*5.2, s = .06 + r*.08;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(s, s, .02), glowMat(i % 3 ? C.pitLip : C.rim, .3 + r*.6));
+    m.position.set(Math.cos(th)*r, Math.sin(th)*r, .02); m.rotation.z = th; arms.add(m);
+  }
+  g.add(arms);
+  const light = new THREE.PointLight(C.pitLip, 0, 22, 2); light.position.z = 1.2; g.add(light);
+  g.userData = { arms, halo, light };
+  g.visible = false; return g;
+}
+
+/* Earth, painted at boot: sea, blobs of land, a cloud layer, and city lights on
+   the land - it is night where he comes down. */
+function paintEarth(){
+  const mk = () => { const c = document.createElement("canvas"); c.width = 512; c.height = 256; return c; };
+  const land = mk(), lights = mk(), clouds = mk();
+  const a = land.getContext("2d"), b = lights.getContext("2d"), c = clouds.getContext("2d");
+  const sea = a.createLinearGradient(0, 0, 0, 256);
+  sea.addColorStop(0, "#0a2550"); sea.addColorStop(.5, "#12437f"); sea.addColorStop(1, "#0a2550");
+  a.fillStyle = sea; a.fillRect(0, 0, 512, 256);
+  b.fillStyle = "#000"; b.fillRect(0, 0, 512, 256);
+  for (let i = 0; i < 24; i++){
+    const cx = rnd(i*1.7 + .3)*512, cy = 48 + rnd(i*2.9 + .1)*160;
+    for (let k = 0; k < 14; k++){
+      const x = cx + (rnd(i*31 + k*1.3) - .5)*96, y = cy + (rnd(i*17 + k*2.1) - .5)*52, r = 6 + rnd(i*7 + k*.9)*17;
+      a.fillStyle = k % 4 ? "#2d6a4b" : "#6b7040";
+      a.beginPath(); a.ellipse(x, y, r*1.4, r, 0, 0, 7); a.fill();
+      b.fillStyle = "#ffcf7a";
+      for (let n = 0; n < 5; n++){ b.globalAlpha = .4 + rnd(i*13 + k*5 + n)*.6;
+        b.fillRect(x + (rnd(i + k*5 + n*1.7) - .5)*r*2, y + (rnd(i*3 + k + n*7.3) - .5)*r*1.3, 1.6, 1.6); }
+    }
+  }
+  b.globalAlpha = 1;
+  for (let i = 0; i < 70; i++){
+    c.fillStyle = "rgba(235,245,255," + (.12 + rnd(i*4.1)*.3) + ")";
+    c.beginPath(); c.ellipse(rnd(i*2.3)*512, 20 + rnd(i*5.7)*216, 10 + rnd(i*1.9)*40, 4 + rnd(i*3.3)*9, 0, 0, 7); c.fill();
+  }
+  return { land:new THREE.CanvasTexture(land), lights:new THREE.CanvasTexture(lights), clouds:new THREE.CanvasTexture(clouds) };
+}
+
+function buildEnding(){
+  cine = new THREE.Scene();
+  cine.background = new THREE.Color(0x01030a);
+  cineCam = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, .1, 900);
+  cine.add(new THREE.AmbientLight(0x5b7fb5, .55));
+  const sun = new THREE.DirectionalLight(0xfff1dc, 1.15); sun.position.set(9, 4, 3); cine.add(sun);
+  cs = {};
+
+  // space: star streaks that get longer the faster he goes, and the rings of the tunnel
+  const N = 700;
+  cs.st = [];
+  for (let i = 0; i < N; i++){ const a = Math.random()*6.283, r = 2.5 + Math.random()*60;
+    cs.st.push({ x:Math.cos(a)*r, y:Math.sin(a)*r, z:-Math.random()*420 }); }
+  const sg = new THREE.BufferGeometry();
+  sg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(N*6), 3));
+  cs.stars = new THREE.LineSegments(sg, new THREE.LineBasicMaterial({ color:0xdff4ff, transparent:true }));
+  cine.add(cs.stars);
+  cs.rings = [];
+  for (let i = 0; i < 12; i++){
+    const r = new THREE.Mesh(new THREE.TorusGeometry(7, .09, 6, 56), glowMat(i % 2 ? C.pitLip : C.rim, .8));
+    cine.add(r); cs.rings.push(r);
+  }
+
+  const tx = paintEarth();
+  cs.earth = new THREE.Group();
+  cs.globe = new THREE.Mesh(new THREE.SphereGeometry(30, 48, 32), new THREE.MeshStandardMaterial({
+    map:tx.land, emissiveMap:tx.lights, emissive:0xffffff, emissiveIntensity:.7, roughness:.9 }));
+  cs.clouds = new THREE.Mesh(new THREE.SphereGeometry(30.4, 48, 32),
+    new THREE.MeshStandardMaterial({ map:tx.clouds, transparent:true, depthWrite:false }));
+  const air = new THREE.Mesh(new THREE.SphereGeometry(31.8, 48, 32), glowMat(0x5fb4ff, .1));
+  air.material.side = THREE.BackSide;
+  cs.earth.add(cs.globe, cs.clouds, air);
+  cine.add(cs.earth);
+
+  // the saucer again, plus the fire it brings down through the air
+  cs.ufo = buildUFO(); cine.add(cs.ufo);
+  cs.dome = cs.ufo.children[2].material;
+  cs.glow = new THREE.PointLight(C.beam, 0, 10, 2); cs.ufo.add(cs.glow);
+  cs.fire = new THREE.Group();
+  [[1.0, 3.4, 0xff5a1f, .35], [.72, 2.6, 0xff9a3d, .5], [.42, 1.7, 0xffe7a8, .7]].forEach(([r, h, c, o]) => {
+    const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 18, 1, true), glowMat(c, o));
+    m.position.y = h/2 - 1.7; m.userData.o = o; cs.fire.add(m);
+  });
+  cine.add(cs.fire);
+  cs.heat = new THREE.PointLight(0xff7a2e, 0, 14, 2); cine.add(cs.heat);
+
+  // Earth, on the ground: a field at night, a city that isn't his, the moon
+  cs.ground = new THREE.Group(); cine.add(cs.ground);
+  const field = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshStandardMaterial({ color:0x0b1a33, roughness:1 }));
+  field.rotation.x = -Math.PI/2; cs.ground.add(field);
+  for (let i = 0; i < 46; i++){
+    const w = 2 + rnd(i*3.1)*4, h = 3 + rnd(i*5.3)*17, d = 3, x = -80 + i*3.6, z = -58 - rnd(i*7.9)*24;
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color:0x0c1832, roughness:.9 }));
+    b.position.set(x, h/2, z); cs.ground.add(b);
+    for (let k = 0; k < 7; k++){
+      if (rnd(i*11 + k*1.7) < .45) continue;
+      const win = new THREE.Mesh(new THREE.PlaneGeometry(.38, .5), new THREE.MeshBasicMaterial({ color:k % 3 ? 0xffd88a : 0x9fe8ff }));
+      win.position.set(x + (rnd(i + k*2.3) - .5)*(w - .6), 1 + rnd(i*2 + k*3.1)*(h - 2), z + d/2 + .01);
+      cs.ground.add(win);
+    }
+  }
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(3.4, 24, 16), new THREE.MeshBasicMaterial({ color:0xdfe9ff }));
+  moon.position.set(34, 36, -110); cs.ground.add(moon);
+  const mh = new THREE.Mesh(new THREE.CircleGeometry(9, 32), glowMat(0x9fc8ff, .12));
+  mh.position.copy(moon.position).add(V1.set(0, 0, -1)); cs.ground.add(mh);
+  const sp = new Float32Array(400*3);
+  for (let i = 0; i < 400; i++){ const a = Math.random()*Math.PI*2, e = .12 + Math.random()*1.3;
+    sp.set([Math.cos(a)*Math.cos(e)*180, 20 + Math.sin(e)*160, Math.sin(a)*Math.cos(e)*180 - 60], i*3); }
+  const skyG = new THREE.BufferGeometry(); skyG.setAttribute("position", new THREE.BufferAttribute(sp, 3));
+  cs.ground.add(new THREE.Points(skyG, new THREE.PointsMaterial({ color:0xdff4ff, size:1.6, sizeAttenuation:false })));
+  cs.scar = new THREE.Mesh(new THREE.PlaneGeometry(1, 1.5), new THREE.MeshBasicMaterial({ color:0x03060f }));
+  cs.scar.rotation.x = -Math.PI/2; cs.ground.add(cs.scar);
+
+  // what flies off it when it lands: sparks, dust along the skid, smoke after
+  cs.sp = []; cs.pf = [];
+  for (let i = 0; i < 30; i++){
+    const s = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .1), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xffb35c : 0xffd60a }));
+    s.userData.v = new THREE.Vector3(); cine.add(s); cs.sp.push(s);
+  }
+  for (let i = 0; i < 40; i++){
+    const p = new THREE.Mesh(new THREE.SphereGeometry(.5, 10, 8), new THREE.MeshBasicMaterial({ color:0x7d93b8, transparent:true, depthWrite:false }));
+    p.userData = { age:0, life:1, rise:0 }; cine.add(p); cs.pf.push(p);
+  }
+  resetEnding();
+}
+function resetEnding(){
+  cs.sp.forEach(s => s.visible = false);
+  cs.pf.forEach(p => p.visible = false);
+  cs.ufo.userData.lights.children.forEach(l => l.visible = true);
+  cs.ufo.scale.setScalar(1);
+  cs.dome.emissiveIntensity = .5;
+  cs.travel = 0;
+}
+function cineBurst(p, n){
+  let k = 0;
+  for (const s of cs.sp){
+    if (k++ >= n) break;
+    s.visible = true; s.position.copy(p);
+    s.userData.v.set((Math.random() - .5)*10, Math.random()*7 + 2, (Math.random() - .5)*7);
+  }
+}
+function puff(p, kind){
+  const f = cs.pf.find(q => !q.visible); if (!f) return;
+  f.visible = true; f.position.copy(p).add(V2.set((Math.random() - .5)*.5, 0, (Math.random() - .5)*.5));
+  f.userData.age = 0; f.userData.life = kind > .7 ? 2.6 : 1.1; f.userData.rise = kind > .7 ? .9 : .25;
+}
+
+// where the saucer is on Earth: in on a long diagonal, then bounce and skid
+const LA = new THREE.Vector3(-34, 24, -46), LB = new THREE.Vector3(0, .42, -6), REST = new THREE.Vector3(7.5, .42, -7.2);
+function landPos(t, out){
+  if (t < END.touch){ const a = span(t, END.land, END.touch); return out.copy(LA).lerp(LB, a*(.55 + .45*a)); }
+  const s = span(t, END.touch, END.rest);
+  return out.set(REST.x*(1 - Math.pow(1 - s, 2.6)),
+    .42 + Math.abs(Math.sin(s*Math.PI*2.4))*1.3*Math.pow(1 - s, 2.2),
+    LB.z + (REST.z - LB.z)*(1 - Math.pow(1 - s, 2)));
+}
+
+function renderEnd(dt){
+  const t = S.end;
+  // white flashes on the two cuts, then a slow fade to the night before the card
+  let fl = Math.max(0, 1 - Math.abs(t - END.space)/.28), col = "#ffffff";
+  fl = Math.max(fl, (1 - Math.abs(t - END.land)/.3)*.9);
+  if (t > END.dim + .2){ fl = span(t, END.dim + .2, END.out); col = "#050c1e"; }
+  flashEl.style.background = col;
+  flashEl.style.opacity = REDUCED && col === "#ffffff" ? fl*.3 : fl;
+  if (t < END.space) endPull(t);
+  else if (t < END.land) endSpace(t, dt);
+  else endLand(t, dt);
+}
+
+/* 1. On the road: the walls ahead sink, the vortex opens, and pulls him in. */
+function endPull(t){
+  const e = S.e0, vz = e.z - 24, vy = 2.5;
+  const o = smooth(span(t, 0, END.open)), u = smooth(span(t, .25, END.pull));
+  vortex.visible = true; vortex.position.set(0, vy, vz);
+  vortex.scale.setScalar(.01 + o*4.4);
+  vortex.userData.arms.rotation.z = -t*(3 + t*2.6);
+  vortex.userData.halo.material.opacity = .09 + Math.sin(t*21)*.04;
+  vortex.userData.light.intensity = o*3.2;
+  for (const w of walls){
+    w.visible = Math.abs(w.position.z - e.z) < 62;
+    if (w.position.z < e.z + 1) w.scale.y = Math.max(.001, 1 - span(t, 0, .6));
+  }
+  ufo.position.set(e.x*(1 - u), e.y + (vy - e.y)*u, e.z + (vz - e.z)*Math.pow(u, 1.6));
+  ufo.rotation.set(Math.sin(t*9)*.25*(1 - u) + u*.9, t*(2 + u*16), Math.sin(t*7)*.3*u);
+  ufo.scale.setScalar(1 - smooth(span(t, END.pull - .55, END.pull))*.98);
+  beam.material.opacity = .14*(1 - u); beamLight.intensity = 1.4*(1 - u);
+  const shake = REDUCED ? 0 : o*.06;
+  cam.position.set(S.camX*(1 - u) + Math.sin(t*53)*shake, 3.1 + e.y*.3 + Math.cos(t*47)*shake,
+    e.z + 7.2 - 14*smooth(span(t, .2, END.pull)));
+  cam.lookAt(0, 1.4 + (vy - 1.4)*u, vz);
+  ren.render(scene, cam);
+}
+
+function fire(t, f, size){
+  cs.fire.scale.set(size, size*(1 + Math.sin(t*40)*.09), size);
+  cs.fire.children.forEach((m, i) => m.material.opacity = f*m.userData.o*(.8 + Math.sin(t*(29 + i*7))*.2));
+}
+
+/* 2. Space: full warp, then it eases off, Earth comes up, and he hits the air. */
+function endSpace(t, dt){
+  cs.ground.visible = false; cs.stars.visible = true; cs.ufo.scale.setScalar(smooth(span(t, END.space, END.space + .35)));
+  const k = t - END.space;
+  const warp = 1 - smooth(span(t, END.earth - .6, END.earth + .9));
+  const v = 26 + warp*240, len = .15 + warp*15;
+  const P = cs.stars.geometry.attributes.position.array;
+  cs.travel += v*dt;
+  cs.st.forEach((s, i) => {
+    s.z += v*dt; if (s.z > 2) s.z -= 420;
+    P.set([s.x, s.y, s.z, s.x, s.y, s.z - len], i*6);
+  });
+  cs.stars.geometry.attributes.position.needsUpdate = true;
+  cs.rings.forEach((r, i) => {
+    r.visible = warp > .02;
+    r.position.z = -((i*22 - cs.travel*.9) % 264 + 264) % 264 - 6;
+    r.material.opacity = warp*.8*clamp01(-r.position.z/40);
+  });
+  const e = span(t, END.earth - .4, END.land), f = span(t, END.entry, END.land);
+  cs.earth.visible = t > END.earth - .4;
+  cs.earth.position.set(6*(1 - e), -4 - 23*e, -400 + 362*Math.pow(e, 2.2));
+  cs.globe.rotation.y = t*.08; cs.clouds.rotation.y = t*.11;
+  cs.ufo.position.set(Math.sin(k*3.1)*.5*(1 - f), Math.cos(k*2.3)*.35 + .6 - f*2.6, -12 - f*2);
+  cs.ufo.rotation.set(k*2.6, k*5, Math.sin(k*1.7)*.8);
+  cs.glow.intensity = 0;
+  cs.fire.visible = f > 0;
+  cs.fire.position.copy(cs.ufo.position).add(V1.set(0, 1.7, 0));
+  cs.fire.quaternion.set(0, 0, 0, 1);
+  fire(t, f, .7 + f*.5);
+  cs.heat.position.copy(cs.ufo.position); cs.heat.intensity = f*3.5;
+  const sh = REDUCED ? 0 : f*.22;
+  cineCam.position.set(Math.sin(t*61)*sh, Math.cos(t*53)*sh, 0);
+  cineCam.lookAt(0, -1.6*e, -10);
+  ren.render(cine, cineCam);
+}
+
+/* 3. Earth: in on fire, a bounce, a long skid, and the lights go out. */
+function endLand(t, dt){
+  cs.ground.visible = true; cs.stars.visible = false; cs.earth.visible = false;
+  cs.rings.forEach(r => r.visible = false);
+  const p = landPos(t, V1), s = span(t, END.touch, END.rest);
+  cs.ufo.scale.setScalar(1);
+  cs.ufo.position.copy(p);
+  const spinT = Math.min(t, END.touch) - END.land;
+  cs.ufo.rotation.set(t < END.touch ? Math.sin(spinT*6)*.5 : .3*smooth(s),
+    spinT*9 + 3*(1 - Math.pow(1 - s, 3)), t < END.touch ? .4 : -.12*smooth(s));
+  // the fire trails back up the way he came, and goes out when he hits
+  const f = t < END.touch ? 1 : 1 - span(t, END.touch, END.touch + .35);
+  cs.fire.visible = f > 0;
+  V2.copy(LA).sub(LB).normalize();
+  cs.fire.position.copy(p).addScaledVector(V2, 1.7);
+  cs.fire.quaternion.setFromUnitVectors(UP, V2);
+  fire(t, f, 1.3);
+  cs.heat.position.copy(p); cs.heat.intensity = f*4;
+  // the rim lights die one at a time, then the dome
+  const dim = span(t, END.rest, END.dim);
+  cs.ufo.userData.lights.children.forEach((l, i) => l.visible = i >= Math.floor(dim*10));
+  cs.ufo.userData.lights.rotation.y = -t*1.9*(1 - dim);
+  cs.dome.emissiveIntensity = .5 - .46*dim;
+  cs.glow.intensity = t < END.touch ? 0 : 1.6*(1 - dim) + (dim < 1 && Math.sin(t*37) > .6 ? .8 : 0);
+  cs.scar.visible = t > END.touch;
+  cs.scar.scale.x = Math.max(.01, p.x); cs.scar.position.set(p.x/2, .01, (LB.z + p.z)/2);
+  for (const q of cs.sp){
+    if (!q.visible) continue;
+    q.userData.v.y -= 15*dt; q.position.addScaledVector(q.userData.v, dt);
+    q.rotation.x += dt*7; if (q.position.y < 0) q.visible = false;
+  }
+  for (const q of cs.pf){
+    if (!q.visible) continue;
+    const u = (q.userData.age += dt)/q.userData.life;
+    if (u >= 1){ q.visible = false; continue; }
+    q.position.y += q.userData.rise*dt;
+    q.scale.setScalar(.4 + u*1.8); q.material.opacity = .3*(1 - u);
+  }
+  const sh = REDUCED ? 0 : .35*Math.exp(-(t - END.touch)*4)*(t > END.touch ? 1 : 0);
+  cineCam.position.set(10.5 + Math.sin(t*59)*sh, 1.9 + Math.cos(t*47)*sh, 1.2);
+  V2.copy(p).multiplyScalar(.55).addScaledVector(REST, .45);
+  cineCam.lookAt(V2.x, V2.y + .3, V2.z);
+  ren.render(cine, cineCam);
+}
+
+const pips = document.getElementById("pips");
+for (let i = 0; i < CP_TOTAL; i++) pips.appendChild(document.createElement("i"));
+document.getElementById("hn").textContent = HEARTS + " hearts";
+const hearts = document.getElementById("hearts");
+for (let i = 0; i < HEARTS; i++){
+  const h = document.createElement("i");
+  h.innerHTML = '<svg viewBox="0 0 12 11" aria-hidden="true"><path d="M6 10.6 1.1 5.6A2.9 2.9 0 0 1 6 1.9a2.9 2.9 0 0 1 4.9 3.7Z"/></svg>';
+  hearts.appendChild(h);
+}
+let lastPip = 0, lastHeart = HEARTS, crashed = null;
+function frame(){
+  try {
+    const dt = Math.min(.05, clock ? clock.getDelta() : .016);
+    if (S.started && !S.done) update(dt);
+    render(dt);
+    if (S.cp !== lastPip){ lastPip = S.cp;
+      [...pips.children].forEach((e,i) => e.classList.toggle("on", i < S.cp)); }
+    // lost hearts go out from the right; adding .out is what plays the pop
+    if (S.hearts !== lastHeart){ lastHeart = S.hearts;
+      [...hearts.children].forEach((e,i) => e.classList.toggle("out", i >= S.hearts)); }
+  } catch (e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+
+function finish(){
+  song.pause();
+  const v = document.getElementById("veil");
+  v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)");
+  const go = document.getElementById("go");
+  go.textContent = "Fly it again";
+  // a win gets the way on (next level, the song, the merch, the fans); a fail
+  // gets one button, because the only thing worth doing then is going again
+  go.classList.toggle("alt", !S.fail);
+  for (const id of ["next", "outs"]) document.getElementById(id).classList.toggle("hid", S.fail);
+  document.getElementById("snd").classList.add("hid");
+  if (HUB) toHub({ type:"javeda:result", level:"lvl1", cleared:!S.fail, score:score(),
+    metres:Math.floor(S.dist), hits:S.hits, hearts:S.hearts });
+  if (S.fail){
+    v.querySelector(".by").textContent = "OUT OF HEARTS";
+    v.querySelector("h1").textContent = "NOT YET";      // not LOST: that word is the story's
+    ps[0].innerHTML = "Out at <b>" + Math.floor(S.dist) + "</b> metres &middot; " +
+      (S.cp ? "checkpoint&nbsp;<b>" + S.cp + "</b>&nbsp;/&nbsp;" + CP_TOTAL : "before the first checkpoint");
+    ps[1].innerHTML = "That isn't how he was meant to go down. <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = "LEVEL 1 COMPLETE";
+  v.querySelector("h1").textContent = "DOWN";
+  ps[0].innerHTML = "Score <b>" + score() + "</b> &middot; " + Math.floor(S.dist) + " metres &middot; " +
+    (S.hits === 0 ? "<b>clean the whole way</b>" : S.hearts ? "<b>"+S.hearts+"</b> heart"+(S.hearts === 1 ? "" : "s")+" left" : "<b>not a heart left</b>") +
+    " &middot; then the sky opened.";
+  ps[1].innerHTML = "He is on foot now, on a planet that isn't his. <b>That is the album.</b>";
+}
+document.getElementById("go").addEventListener("click", () => {
+  reset();
+  document.getElementById("veil").classList.add("hid");
+  try {
+    if (!ac){ ac = new (window.AudioContext||window.webkitAudioContext)();
+      bus = ac.createGain(); bus.gain.value = .5; bus.connect(ac.destination); }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){}
+  try { song.currentTime = 0; } catch(e){}     // a restart is a restart: the song too
+  const p = song.play(); if (p && p.catch) p.catch(()=>{});
+  S.started = true;
+  say("GO", "tap a side to bank - tap the middle to lift", 3);
+});
+
+boot();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

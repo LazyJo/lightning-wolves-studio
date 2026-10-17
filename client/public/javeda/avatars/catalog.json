@@ -1,0 +1,14 @@
+[
+  { "id": "saucer", "name": "Blue Saucer", "cost": 0 },
+  { "id": "bike", "name": "Zirka's Bike", "cost": 0 },
+  { "id": "wolf", "name": "Wolf", "cost": 0 },
+  { "id": "planet", "name": "Planet Javeda", "cost": 0 },
+  { "id": "vortex", "name": "Vortex", "cost": 250 },
+  { "id": "moon", "name": "Night Moon", "cost": 300 },
+  { "id": "earth", "name": "Earth", "cost": 400 },
+  { "id": "redufo", "name": "Red Saucer", "cost": 500 },
+  { "id": "comet", "name": "Re-entry", "cost": 600 },
+  { "id": "headphones", "name": "Stay Up", "cost": 800 },
+  { "id": "goldwolf", "name": "Gold Wolf", "cost": 1200 },
+  { "id": "crown", "name": "Crowned Saucer", "cost": 2000 }
+]

@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="pl-bg" cx=".5" cy=".5" r=".75"><stop offset="0" stop-color="#1c1450"/><stop offset=".6" stop-color="#0a1836"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<radialGradient id="pl-p" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#d2b2ff"/><stop offset=".4" stop-color="#a46bff"/><stop offset=".78" stop-color="#7b2ff7"/><stop offset="1" stop-color="#3b1386"/></radialGradient>
+<clipPath id="pl-c"><circle cx="128" cy="132" r="66"/></clipPath>
+</defs>
+<rect width="256" height="256" fill="url(#pl-bg)"/>
+<g fill="#bfe9ff"><circle cx="40" cy="58" r="1.8"/><circle cx="214" cy="48" r="1.5"/><circle cx="222" cy="186" r="1.4"/><circle cx="46" cy="200" r="1.6"/><circle cx="128" cy="30" r="1.2"/><circle cx="196" cy="226" r="1.2"/></g>
+<path d="M32 132A96 24 0 0 1 224 132" transform="rotate(-16 128 132)" fill="none" stroke="#ff74d4" stroke-width="5" opacity=".45"/>
+<circle cx="128" cy="132" r="66" fill="url(#pl-p)"/>
+<g clip-path="url(#pl-c)" fill="#3b1386" opacity=".35">
+<ellipse cx="128" cy="150" rx="80" ry="7" transform="rotate(-16 128 132)"/>
+<ellipse cx="128" cy="172" rx="80" ry="5" transform="rotate(-16 128 132)"/>
+<circle cx="102" cy="122" r="7"/><circle cx="150" cy="104" r="5"/>
+</g>
+<g transform="translate(74 94) rotate(-55)"><circle cy="-6" r="14" fill="#ff74d4" opacity=".35"/><path d="M-9 3V-7h5V3zM-3 3V-15h6V3zM4 3V-5h5V3z" fill="#ff74d4"/></g>
+<g transform="translate(111 68) rotate(-15)"><circle cy="-6" r="14" fill="#ffd60a" opacity=".35"/><path d="M-9 3V-9h5V3zM-3 3V-14h6V3zM4 3V-7h5V3z" fill="#ffd60a"/></g>
+<g transform="translate(156 72) rotate(25)"><circle cy="-6" r="14" fill="#fff36a" opacity=".35"/><path d="M-9 3V-6h5V3zM-3 3V-16h6V3zM4 3V-9h5V3z" fill="#fff36a"/></g>
+<g transform="translate(188 104) rotate(65)"><circle cy="-6" r="14" fill="#67e8f9" opacity=".35"/><path d="M-9 3V-8h5V3zM-3 3V-13h6V3zM4 3V-6h5V3z" fill="#67e8f9"/></g>
+<path d="M32 132A96 24 0 0 0 224 132" transform="rotate(-16 128 132)" fill="none" stroke="#ff74d4" stroke-width="5" opacity=".7"/>
+</svg>

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="ea-bg" cx=".5" cy=".5" r=".72"><stop offset="0" stop-color="#0a1836"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<radialGradient id="ea-at" gradientUnits="userSpaceOnUse" cx="128" cy="128" r="96"><stop offset=".8" stop-color="#2f6fc9" stop-opacity="0"/><stop offset=".86" stop-color="#67e8f9" stop-opacity=".95"/><stop offset="1" stop-color="#67e8f9" stop-opacity="0"/></radialGradient>
+<radialGradient id="ea-s" cx=".62" cy=".38" r=".75"><stop offset="0" stop-color="#2f6fc9"/><stop offset=".5" stop-color="#12356b"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<clipPath id="ea-c"><circle cx="128" cy="128" r="80"/></clipPath>
+<filter id="ea-gl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
+<path id="ea-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+<g id="ea-l" fill="#ffd60a"><circle cx="76" cy="92" r="3.6"/><circle cx="86" cy="86" r="2.4"/><circle cx="94" cy="98" r="3"/><circle cx="80" cy="108" r="2.4"/><circle cx="70" cy="120" r="3.3"/><circle cx="84" cy="128" r="2.1"/><circle cx="92" cy="140" r="3.9"/><circle cx="100" cy="152" r="2.4"/><circle cx="96" cy="168" r="3"/><circle cx="104" cy="176" r="2.1"/><circle cx="90" cy="184" r="2.4"/><circle cx="146" cy="84" r="3.3"/><circle cx="158" cy="80" r="4.2"/><circle cx="170" cy="86" r="2.7"/><circle cx="184" cy="94" r="3.6"/><circle cx="176" cy="102" r="2.1"/><circle cx="150" cy="98" r="2.4"/><circle cx="164" cy="96" r="3"/><circle cx="144" cy="120" r="2.7"/><circle cx="152" cy="134" r="3.6"/><circle cx="168" cy="128" r="2.4"/><circle cx="176" cy="142" r="3.3"/><circle cx="160" cy="152" r="2.4"/><circle cx="168" cy="166" r="3"/><circle cx="156" cy="174" r="2.1"/><circle cx="138" cy="108" r="2.1"/></g>
+</defs>
+<rect width="256" height="256" fill="url(#ea-bg)"/>
+<g fill="#bfe9ff"><circle cx="40" cy="46" r="1.6"/><circle cx="222" cy="58" r="1.4"/><circle cx="36" cy="204" r="1.4"/><circle cx="214" cy="212" r="1.6"/><circle cx="128" cy="24" r="1.2"/></g>
+<circle cx="128" cy="128" r="96" fill="url(#ea-at)"/>
+<circle cx="128" cy="128" r="80" fill="url(#ea-s)"/>
+<g clip-path="url(#ea-c)" fill="#071530" opacity=".8">
+<path d="M70 80C90 70 112 78 108 96C104 110 92 112 96 128C100 146 116 156 108 178C102 194 90 200 86 188C82 170 74 150 64 138C54 124 54 92 70 80Z"/>
+<path d="M140 74C160 66 186 76 194 92C200 106 186 112 176 110C170 120 186 132 182 150C178 170 164 186 154 182C146 170 150 150 140 138C130 126 128 104 140 94C134 86 134 78 140 74Z"/>
+</g>
+<use href="#ea-l" filter="url(#ea-gl)"/>
+<use href="#ea-l"/>
+<circle cx="128" cy="128" r="80" fill="none" stroke="#9fe8ff" stroke-width="2" opacity=".7"/>
+<path d="M168 58.7A80 80 0 0 1 197.3 168" fill="none" stroke="#fff3c4" stroke-width="5" stroke-linecap="round"/>
+<circle cx="128" cy="128" r="120" fill="none" stroke="#67e8f9" stroke-width="3" opacity=".55"/>
+<use href="#ea-sp" transform="translate(54 56) scale(.7)" fill="#fff"/>
+<use href="#ea-sp" transform="translate(208 196) scale(.55)" fill="#9fe8ff"/>
+</svg>

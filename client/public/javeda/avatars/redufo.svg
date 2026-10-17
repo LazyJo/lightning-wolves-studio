@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="ru-bg" cx=".5" cy=".5" r=".72"><stop offset="0" stop-color="#3a0f2a"/><stop offset=".55" stop-color="#0a1836"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<linearGradient id="ru-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a7a"/><stop offset=".5" stop-color="#e0303f"/><stop offset="1" stop-color="#a01828"/></linearGradient>
+<linearGradient id="ru-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#ffd0d6"/><stop offset="1" stop-color="#ff9aa8"/></linearGradient>
+<linearGradient id="ru-tr" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff3d8b" stop-opacity="0"/><stop offset="1" stop-color="#ff3d8b"/></linearGradient>
+<linearGradient id="ru-gd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".35" stop-color="#ffd60a"/><stop offset=".65" stop-color="#c98a00"/><stop offset="1" stop-color="#ffd60a"/></linearGradient>
+<path id="ru-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#ru-bg)"/>
+<g fill="#bfe9ff"><circle cx="58" cy="62" r="1.6"/><circle cx="196" cy="54" r="1.4"/><circle cx="64" cy="200" r="1.4"/><circle cx="200" cy="196" r="1.6"/></g>
+<g stroke="url(#ru-tr)" stroke-linecap="round" fill="none"><path d="M38 116H78" stroke-width="6"/><path d="M34 138H70" stroke-width="5"/><path d="M44 158H80" stroke-width="5"/></g>
+<g transform="translate(136 130) rotate(-10) scale(.9)">
+<ellipse cy="34" rx="34" ry="10" fill="#5c0f1a"/>
+<ellipse cy="8" rx="88" ry="26" fill="#6b0f1c"/>
+<ellipse rx="88" ry="26" fill="url(#ru-hull)"/>
+<ellipse cy="-6" rx="62" ry="14" fill="#ff9a9a" opacity=".45"/>
+<path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#ru-dome)"/>
+<path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+<g fill="#ffd60a" opacity=".3"><circle cy="30" r="9"/><circle cx="-32" cy="28" r="9"/><circle cx="32" cy="28" r="9"/><circle cx="-62" cy="22" r="9"/><circle cx="62" cy="22" r="9"/></g>
+<g fill="#ffd60a"><circle cy="30" r="4.5"/><circle cx="-32" cy="28" r="4.5"/><circle cx="32" cy="28" r="4.5"/><circle cx="-62" cy="22" r="4.5"/><circle cx="62" cy="22" r="4.5"/></g>
+</g>
+<circle cx="128" cy="128" r="119" fill="none" stroke="url(#ru-gd)" stroke-width="6"/>
+<use href="#ru-sp" transform="translate(186 78) scale(.9)" fill="#ffd60a"/>
+<use href="#ru-sp" transform="translate(66 86) scale(.6)" fill="#fff"/>
+<use href="#ru-sp" transform="translate(176 194) scale(.7)" fill="#ff74d4"/>
+</svg>

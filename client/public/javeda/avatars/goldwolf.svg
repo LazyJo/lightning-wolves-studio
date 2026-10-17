@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="gw-bg" cx=".5" cy=".5" r=".72"><stop offset="0" stop-color="#2a1a50"/><stop offset=".55" stop-color="#0a0f2a"/><stop offset="1" stop-color="#03060f"/></radialGradient>
+<radialGradient id="gw-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd60a" stop-opacity=".45"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></radialGradient>
+<linearGradient id="gw-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".4" stop-color="#ffd60a"/><stop offset="1" stop-color="#c98a00"/></linearGradient>
+<linearGradient id="gw-r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".3" stop-color="#ffd60a"/><stop offset=".55" stop-color="#a86d00"/><stop offset=".8" stop-color="#ffd60a"/><stop offset="1" stop-color="#fff6c8"/></linearGradient>
+<filter id="gw-b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.5"/></filter>
+<path id="gw-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+<path id="gw-bolt" d="M52 66L70 98L56 102L76 136" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</defs>
+<rect width="256" height="256" fill="url(#gw-bg)"/>
+<circle cx="128" cy="130" r="100" fill="url(#gw-gl)"/>
+<g stroke="#9fe8ff"><use href="#gw-bolt" stroke-width="9" opacity=".6" filter="url(#gw-b)"/><use href="#gw-bolt" transform="matrix(-1 0 0 1 256 0)" stroke-width="9" opacity=".6" filter="url(#gw-b)"/><use href="#gw-bolt" stroke="#fff" stroke-width="4"/><use href="#gw-bolt" transform="matrix(-1 0 0 1 256 0)" stroke="#fff" stroke-width="4"/></g>
+<g transform="translate(128 134) scale(.76) translate(-128 -130)">
+<path d="M128 80L108 84L70 38L62 116L40 150L68 158L80 188L108 212L128 222L148 212L176 188L188 158L216 150L194 116L186 38L148 84Z" fill="url(#gw-g)" stroke="#fff1a8" stroke-width="4" stroke-linejoin="round"/>
+<path d="M128 80L148 84L186 38L194 116L216 150L188 158L176 188L148 212L128 222Z" fill="#8a5200" opacity=".25"/>
+<path d="M76 54L102 86L80 104Z" fill="#8a5200"/>
+<path d="M180 54L154 86L176 104Z" fill="#6b3f00"/>
+<path d="M62 116L40 150L68 158L86 142Z" fill="#fff6c8"/>
+<path d="M194 116L216 150L188 158L170 142Z" fill="#f0d878"/>
+<path d="M128 134L100 156L108 198L128 212L148 198L156 156Z" fill="#fff6c8"/>
+<path d="M128 134L156 156L148 198L128 212Z" fill="#f0d878"/>
+<path d="M84 128L114 136L106 148L84 140Z" fill="#050c1e"/>
+<path d="M172 128L142 136L150 148L172 140Z" fill="#050c1e"/>
+<path d="M114 168H142L128 184Z" fill="#050c1e"/>
+<path d="M128 184V194M116 198L128 194L140 198" fill="none" stroke="#050c1e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M136 86L114 112H127L119 132L143 104H130Z" fill="#050c1e"/>
+</g>
+<circle cx="128" cy="128" r="117" fill="none" stroke="#ffd60a" stroke-width="14" opacity=".25" filter="url(#gw-b)"/>
+<circle cx="128" cy="128" r="117" fill="none" stroke="url(#gw-r)" stroke-width="10"/>
+<circle cx="128" cy="128" r="106" fill="none" stroke="#ffd60a" stroke-width="1.5" opacity=".7"/>
+<use href="#gw-sp" transform="translate(196 56) scale(1.1)" fill="#fff6c8"/>
+<use href="#gw-sp" transform="translate(58 210) scale(.7)" fill="#ffd60a"/>
+<use href="#gw-sp" transform="translate(212 196) scale(.6)" fill="#fff"/>
+<use href="#gw-sp" transform="translate(44 52) scale(.6)" fill="#ffd60a"/>
+<use href="#gw-sp" transform="translate(128 22) scale(.5)" fill="#fff"/>
+</svg>

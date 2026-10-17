@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="cr-bg" cx=".5" cy=".5" r=".72"><stop offset="0" stop-color="#3a1670"/><stop offset=".55" stop-color="#140e3e"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<radialGradient id="cr-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff74d4" stop-opacity=".4"/><stop offset="1" stop-color="#a46bff" stop-opacity="0"/></radialGradient>
+<linearGradient id="cr-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd60a" stop-opacity=".7"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></linearGradient>
+<linearGradient id="cr-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b9bf0"/><stop offset=".5" stop-color="#2f6fc9"/><stop offset="1" stop-color="#1d4f9a"/></linearGradient>
+<linearGradient id="cr-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#bfe9ff"/><stop offset="1" stop-color="#7cc4ec"/></linearGradient>
+<linearGradient id="cr-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".45" stop-color="#ffd60a"/><stop offset="1" stop-color="#c98a00"/></linearGradient>
+<linearGradient id="cr-r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".3" stop-color="#ffd60a"/><stop offset=".55" stop-color="#a86d00"/><stop offset=".8" stop-color="#ffd60a"/><stop offset="1" stop-color="#fff6c8"/></linearGradient>
+<filter id="cr-b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.5"/></filter>
+<path id="cr-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#cr-bg)"/>
+<circle cx="128" cy="128" r="104" fill="url(#cr-gl)"/>
+<path d="M112 172H144L176 222H80Z" fill="url(#cr-beam)"/>
+<g transform="translate(128 146) scale(.82)">
+<ellipse cy="34" rx="34" ry="10" fill="#12356b"/>
+<ellipse cy="8" rx="88" ry="26" fill="#c98a00"/>
+<ellipse rx="88" ry="26" fill="url(#cr-hull)"/>
+<ellipse cy="-6" rx="62" ry="14" fill="#7fb4f5" opacity=".45"/>
+<path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#cr-dome)"/>
+<path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+<g fill="#67e8f9"><circle cy="30" r="4.5"/><circle cx="-32" cy="28" r="4.5"/><circle cx="32" cy="28" r="4.5"/><circle cx="-62" cy="22" r="4.5"/><circle cx="62" cy="22" r="4.5"/></g>
+</g>
+<path d="M98 106L92 70L111 86L128 60L145 86L164 70L158 106Z" fill="url(#cr-g)" stroke="#8a5200" stroke-width="2.5" stroke-linejoin="round"/>
+<rect x="98" y="98" width="60" height="9" rx="2" fill="#c98a00"/>
+<circle cx="128" cy="91" r="5" fill="#ff3d8b"/>
+<circle cx="110" cy="96" r="3" fill="#67e8f9"/><circle cx="146" cy="96" r="3" fill="#67e8f9"/>
+<g fill="#fff6c8"><circle cx="92" cy="69" r="3.5"/><circle cx="128" cy="59" r="4"/><circle cx="164" cy="69" r="3.5"/></g>
+<circle cx="128" cy="128" r="117" fill="none" stroke="#ffd60a" stroke-width="14" opacity=".3" filter="url(#cr-b)"/>
+<circle cx="128" cy="128" r="117" fill="none" stroke="url(#cr-r)" stroke-width="10"/>
+<circle cx="128" cy="128" r="106" fill="none" stroke="#ffd60a" stroke-width="1.5" opacity=".7"/>
+<use href="#cr-sp" transform="translate(190 66) scale(1.1)" fill="#fff6c8"/>
+<use href="#cr-sp" transform="translate(62 72) scale(.8)" fill="#ffd60a"/>
+<use href="#cr-sp" transform="translate(206 168) scale(.6)" fill="#ff74d4"/>
+<use href="#cr-sp" transform="translate(52 176) scale(.7)" fill="#fff"/>
+<use href="#cr-sp" transform="translate(170 204) scale(.5)" fill="#ffd60a"/>
+<use href="#cr-sp" transform="translate(86 206) scale(.45)" fill="#9fe8ff"/>
+</svg>

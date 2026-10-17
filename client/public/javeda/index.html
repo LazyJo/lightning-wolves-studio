@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>JAVEDA · Lazy Jo</title>
+<meta name="description" content="JAVEDA, the playable album by Lazy Jo. Every song is a level.">
+<meta name="theme-color" content="#050c1e">
+<link rel="icon" href="avatars/saucer.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+/* JAVEDA hub. One page: who you are, which levels are open, the scoreboard,
+   your profile pictures, and the way out to the music. Single dark theme on
+   purpose - it is space. The levels themselves are their own pages, opened
+   full-screen in a frame, and they report back with postMessage. */
+:root{
+  --night:#050c1e; --deep:#0a1836; --panel:#0e1d3f; --panel-2:#132650; --line:#21386a;
+  --ink:#eaf4ff; --dim:#8fb4dd; --mute:#5f86b8;
+  --cyan:#67e8f9; --beam:#9fe8ff; --blue:#2f8fe0; --magenta:#ff3d8b; --gold:#ffd60a;
+  --violet:#a46bff; --good:#3ddc97; --spot:#1db954;
+  --display:"Bungee","Arial Black",Impact,sans-serif;
+  --ui:"Barlow",system-ui,-apple-system,sans-serif;
+  --cond:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0; background:var(--night); color:var(--ink)}
+body{font:16px/1.45 var(--ui); min-height:100vh;
+  background:radial-gradient(90% 60% at 50% -10%, #17366c 0%, var(--night) 70%) fixed, var(--night)}
+a{color:inherit}
+button{font:inherit; color:inherit; cursor:pointer}
+button:focus-visible, a:focus-visible, input:focus-visible{outline:2px solid var(--beam); outline-offset:2px}
+.hid{display:none!important}
+.wrap{max-width:980px; margin:0 auto; padding:14px 16px 48px; display:grid; gap:22px}
+
+/* top bar */
+.top{display:flex; align-items:center; justify-content:space-between; gap:12px}
+.logo{display:flex; align-items:center; gap:10px; text-decoration:none}
+.logo b{font:400 26px/1 var(--display); letter-spacing:.02em;
+  background:linear-gradient(172deg,#fff 20%,#67c8ff 110%); -webkit-background-clip:text; background-clip:text; color:transparent}
+.logo span{font:700 11px/1 var(--cond); letter-spacing:.3em; color:var(--mute); text-transform:uppercase}
+.me{display:flex; align-items:center; gap:9px; background:var(--panel); border:1px solid var(--line);
+  border-radius:999px; padding:4px 14px 4px 4px; min-width:0}
+.me img{width:36px; height:36px; border-radius:50%; display:block; flex:none}
+.me .who{display:grid; line-height:1.1; min-width:0}
+.me .nm{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px}
+.me .pts{font:700 12px/1.2 var(--cond); letter-spacing:.1em; color:var(--gold)}
+.btn{border:0; border-radius:6px; padding:11px 18px; font:700 15px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase;
+  background:var(--panel-2); color:var(--ink); border:1px solid var(--line); text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:7px}
+.btn:hover{border-color:var(--beam)}
+.btn.primary{background:var(--blue); border-color:var(--blue); color:#041024}
+.btn.primary:hover{background:#45a0ef}
+.btn.small{padding:8px 12px; font-size:13px}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+
+/* hero line */
+.hero{display:grid; gap:4px}
+.hero h1{margin:0; font:400 clamp(30px,7vw,52px)/1 var(--display); letter-spacing:.01em}
+.hero p{margin:0; color:var(--dim); max-width:56ch}
+.banner{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--gold); border-radius:8px; padding:10px 14px; color:var(--dim); font-size:14.5px}
+.banner b{color:var(--ink)}
+
+h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-transform:uppercase; color:var(--mute)}
+
+/* levels */
+.levels{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px}
+.lv{position:relative; overflow:hidden; border-radius:12px; border:1px solid var(--line); background:var(--panel); padding:16px; display:grid; gap:8px; min-height:170px; align-content:start}
+.lv::before{content:""; position:absolute; inset:0; background:var(--art); opacity:.55; pointer-events:none}
+.lv > *{position:relative}
+.lv .no{font:700 12px/1 var(--cond); letter-spacing:.28em; color:var(--dim); text-transform:uppercase}
+.lv .ti{font:400 22px/1.05 var(--display)}
+.lv .ds{font-size:14px; color:var(--dim); margin:0}
+.lv .row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:auto; padding-top:6px}
+.lv .best{font:700 13px/1.2 var(--cond); letter-spacing:.1em; color:var(--gold)}
+.lv .tag{font:700 12px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase; padding:5px 8px; border-radius:4px; background:#ffffff12; color:var(--dim)}
+.lv .tag.ok{background:#3ddc9722; color:var(--good)}
+.lv.locked{filter:saturate(.35)}
+.lv.locked .ti{color:var(--dim)}
+.lv.soon{border-style:dashed; background:transparent; min-height:auto}
+
+/* scoreboard */
+.tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px}
+.tabs button{border:1px solid var(--line); background:var(--panel); border-radius:999px; padding:7px 13px; font:700 13px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; color:var(--dim)}
+.tabs button[aria-selected="true"]{background:var(--blue); border-color:var(--blue); color:#041024}
+.board{background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+.board ol{list-style:none; margin:0; padding:0}
+.board li{display:grid; grid-template-columns:34px 36px 1fr auto; align-items:center; gap:10px; padding:8px 14px; border-top:1px solid #ffffff0d}
+.board li:first-child{border-top:0}
+.board li.you{background:#2f8fe01f}
+.board .rk{font:700 16px/1 var(--cond); color:var(--mute); text-align:right; font-variant-numeric:tabular-nums}
+.board li:nth-child(1) .rk{color:var(--gold)} .board li:nth-child(2) .rk{color:#d6e4f5} .board li:nth-child(3) .rk{color:#e3a36b}
+.board img{width:36px; height:36px; border-radius:50%; display:block}
+.board .un{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.board .val{font:700 17px/1 var(--cond); font-variant-numeric:tabular-nums; color:var(--ink)}
+.board .empty{padding:18px 14px; color:var(--dim); margin:0}
+
+/* links */
+.outs{display:flex; flex-wrap:wrap; gap:8px}
+.outs a{font:700 15px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:12px 15px; border-radius:6px; border:1.5px solid}
+.outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+.outs .merch{color:var(--gold); border-color:#ffd60a80; background:#ffd60a14}
+.outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+.outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+footer{color:var(--mute); font-size:13px}
+
+/* sheets: profile + login */
+.sheet{position:fixed; inset:0; z-index:20; background:#020610cc; display:grid; place-items:center; padding:16px; overflow-y:auto}
+.card{width:min(560px,100%); background:var(--deep); border:1px solid var(--line); border-radius:14px; padding:20px; display:grid; gap:14px; position:relative; max-height:calc(100vh - 32px); overflow-y:auto}
+.card h3{margin:0; font:400 22px/1.1 var(--display)}
+.card p{margin:0; color:var(--dim); font-size:14.5px}
+.x{position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:var(--panel); font-size:18px; line-height:1}
+label.f{display:grid; gap:6px; font:700 12px/1 var(--cond); letter-spacing:.2em; text-transform:uppercase; color:var(--mute)}
+input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; width:100%}
+.err{color:#ff8fae; font-size:14px; min-height:1em}
+.ok-msg{color:var(--good); font-size:14px}
+.pics{display:grid; grid-template-columns:repeat(4,1fr); gap:10px}
+.pic{position:relative; border:2px solid transparent; border-radius:12px; background:var(--panel); padding:6px; display:grid; gap:4px; justify-items:center; text-align:center}
+.pic img{width:100%; aspect-ratio:1; border-radius:10px; display:block}
+.pic .pn{font:700 11.5px/1.1 var(--cond); letter-spacing:.06em; color:var(--dim)}
+.pic.on{border-color:var(--beam)}
+.pic.locked img{filter:grayscale(.7) brightness(.55)}
+.pic .cost{position:absolute; top:10px; left:50%; transform:translateX(-50%); font:700 12px/1 var(--cond); letter-spacing:.06em; color:#041024; background:var(--gold); border-radius:999px; padding:4px 8px; white-space:nowrap}
+.pic.owned .cost{display:none}
+.rules{font-size:13.5px; color:var(--dim); background:var(--panel); border-radius:8px; padding:10px 12px}
+.rules b{color:var(--ink)}
+.or{display:flex; align-items:center; gap:10px; color:var(--mute); font:700 12px/1 var(--cond); letter-spacing:.2em}
+.or::before,.or::after{content:""; flex:1; height:1px; background:var(--line)}
+.switch{background:none; border:0; color:var(--beam); text-decoration:underline; padding:0; font-size:14px}
+
+/* the level, full screen */
+.play{position:fixed; inset:0; z-index:30; background:#000}
+.play iframe{position:absolute; inset:0; width:100%; height:100%; border:0; display:block}
+.play .close{position:absolute; top:max(8px, env(safe-area-inset-top)); left:8px; z-index:2; border:1px solid #ffffff30; background:#050c1ecc; border-radius:999px; padding:7px 12px; font:700 13px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase}
+
+.toast{position:fixed; left:50%; bottom:max(18px, env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:40; background:var(--panel-2); border:1px solid var(--beam); color:var(--ink); border-radius:10px; padding:11px 16px; font-weight:600; max-width:calc(100vw - 32px); box-shadow:0 10px 30px #0008; text-align:center}
+.toast b{color:var(--gold)}
+@media (max-width:520px){ .pics{grid-template-columns:repeat(3,1fr)} .me .nm{max-width:92px} .logo span{display:none} }
+@media (prefers-reduced-motion:no-preference){ .toast{animation:up .25s ease-out} @keyframes up{from{transform:translate(-50%,12px); opacity:0}} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="/javeda/"><b>JAVEDA</b><span>Lazy Jo</span></a>
+    <button class="me" id="meBtn" type="button" aria-label="Your profile">
+      <img id="meImg" src="avatars/saucer.svg" alt="">
+      <span class="who"><span class="nm" id="meName">Guest</span><span class="pts" id="mePts">Guest · not saved</span></span>
+    </button>
+  </header>
+
+  <section class="hero">
+    <h1>The playable album</h1>
+    <p>Every song is a level. Finish one to open the next, then come back and beat your score.</p>
+  </section>
+
+  <div class="banner" id="guestNote"><b>Playing as a guest.</b> Your progress stays on this phone only. <button class="switch" id="loginLink" type="button">Log in</button> to save it, earn points and get on the scoreboard.</div>
+
+  <section aria-labelledby="hLv">
+    <h2 id="hLv">Levels</h2>
+    <div class="levels" id="levels"></div>
+  </section>
+
+  <section aria-labelledby="hBoard">
+    <h2 id="hBoard">Scoreboard</h2>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="board" id="board"><p class="empty">Loading…</p></div>
+  </section>
+
+  <section aria-labelledby="hOut">
+    <h2 id="hOut">The music</h2>
+    <div class="outs">
+      <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+      <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+      <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+      <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+    </div>
+  </section>
+
+  <footer>JAVEDA by Lazy Jo &middot; <a href="/">Lightning Wolves</a>. Points are earned by playing, never by streaming.</footer>
+</div>
+
+<!-- profile -->
+<div class="sheet hid" id="profile" role="dialog" aria-modal="true" aria-labelledby="pfT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="pfT">Your player</h3>
+    <label class="f">Name <input class="in" id="pfName" maxlength="16" autocomplete="nickname" placeholder="3-16 letters or numbers"></label>
+    <div>
+      <h2 style="margin-bottom:8px">Profile picture</h2>
+      <div class="pics" id="pics"></div>
+    </div>
+    <div class="rules" id="pfRules"></div>
+    <div class="err" id="pfErr"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn primary" id="pfSave" type="button">Save</button>
+      <button class="btn" id="pfLogin" type="button">Log in to save</button>
+      <button class="btn small" id="pfOut" type="button">Log out</button>
+    </div>
+  </div>
+</div>
+
+<!-- login -->
+<div class="sheet hid" id="login" role="dialog" aria-modal="true" aria-labelledby="lgT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="lgT">Log in</h3>
+    <p>Your Lightning Wolves account: the same one as the Wolf Hub. Your guest progress comes with you.</p>
+    <button class="btn" id="lgGoogle" type="button">Continue with Google</button>
+    <div class="or">OR</div>
+    <label class="f">Email <input class="in" id="lgEmail" type="email" autocomplete="email"></label>
+    <label class="f">Password <input class="in" id="lgPass" type="password" autocomplete="current-password" minlength="6"></label>
+    <div class="err" id="lgErr"></div>
+    <button class="btn primary" id="lgGo" type="button">Log in</button>
+    <p><span id="lgSwitchTxt">New here?</span> <button class="switch" id="lgSwitch" type="button">Create an account</button></p>
+  </div>
+</div>
+
+<!-- the level -->
+<div class="play hid" id="play">
+  <button class="close" id="playClose" type="button">&#10005; JAVEDA</button>
+  <iframe id="frame" title="JAVEDA level" allow="autoplay; fullscreen"></iframe>
+</div>
+
+<div class="toast hid" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+"use strict";
+/* ================= JAVEDA hub =================
+   Accounts are Lightning Wolves accounts (Supabase auth), so the session is
+   shared with the rest of lightningwolves.studio. Everything a player owns
+   lives in the javeda_* tables and only changes through the javeda_*
+   functions (see supabase-javeda-schema.sql). A guest plays the same game
+   with progress in this browser, and brings it along on first log-in. */
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+
+/* The levels, in play order. `requires` is the gate (the database enforces
+   the same one). `src` is the level's own page. The art is just a gradient
+   per world so the cards read apart. */
+let LEVELS = [
+  { id:"lvl1", num:1, title:"I'M LOST", requires:null, src:"levels/im-lost.html?hub=1",
+    ds:"Fly the blue saucer down the corridor. Round the walls, over the holes.",
+    art:"radial-gradient(120% 90% at 80% 0%, #2f8fe055, transparent 60%), linear-gradient(160deg,#0b2550,#050c1e)" },
+  { id:"lvl2", num:2, title:"SOMEBODY", requires:"lvl1", src:"levels/javeda.html?hub=1&level=lvl2",
+    ds:"Javeda, the dust sea. Nothing out here but heat, sand and what's crawling on it.",
+    art:"radial-gradient(120% 90% at 80% 0%, #ffb02055, transparent 60%), linear-gradient(160deg,#4a2a10,#120a05)" },
+  { id:"lvl9", num:9, title:"OUBLIE-MOI", requires:"lvl2", src:"levels/javeda.html?hub=1&level=lvl9",
+    ds:"District 9 with Zirka. Monsters over the city. Remind them who the Wolves are.",
+    art:"radial-gradient(120% 90% at 80% 0%, #ff3d8b55, transparent 60%), linear-gradient(160deg,#2a1450,#0b0416)" }
+];
+const levelById = id => LEVELS.find(l => l.id === id);
+let AVATARS = [
+  { id:"saucer", name:"Blue Saucer", cost:0 }, { id:"bike", name:"Zirka's Bike", cost:0 },
+  { id:"wolf", name:"Wolf", cost:0 }, { id:"planet", name:"Planet Javeda", cost:0 },
+  { id:"vortex", name:"Vortex", cost:250 }, { id:"moon", name:"Night Moon", cost:300 },
+  { id:"earth", name:"Earth", cost:400 }, { id:"redufo", name:"Red Saucer", cost:500 },
+  { id:"comet", name:"Re-entry", cost:600 }, { id:"headphones", name:"Stay Up", cost:800 },
+  { id:"goldwolf", name:"Gold Wolf", cost:1200 }, { id:"crown", name:"Crowned Saucer", cost:2000 }
+];
+const pic = id => "avatars/" + (AVATARS.some(a => a.id === id) ? id : "saucer") + ".svg";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+const fmt = n => Number(n || 0).toLocaleString("en-US");
+
+/* ---- state ---- */
+const GUEST_KEY = "javeda.guest.v1";
+function loadGuest(){
+  try { const g = JSON.parse(localStorage.getItem(GUEST_KEY)); if (g && typeof g === "object") return { name:"", avatar:"saucer", progress:{}, ...g }; } catch(e){}
+  return { name:"", avatar:"saucer", progress:{} };
+}
+function saveGuest(){ try { localStorage.setItem(GUEST_KEY, JSON.stringify(guest)); } catch(e){} }
+let guest = loadGuest();
+let sb = null, session = null;
+let player = null;          // javeda_players row when signed in and joined
+let progress = {};          // level id -> { cleared, best, metres, runs }
+let owned = new Set();      // bought pictures
+let boardTab = "points";
+
+const signedIn = () => !!(session && player);
+function isOpen(lv){ return !lv.requires || !!(progress[lv.requires] && progress[lv.requires].cleared); }
+
+/* ---- toast ---- */
+let toastT = 0;
+function toast(html, ms = 3600){
+  const t = $("toast"); t.innerHTML = html; t.classList.remove("hid");
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.add("hid"), ms);
+}
+
+/* ---- render ---- */
+function renderMe(){
+  const name = signedIn() ? player.username : (guest.name || "Guest");
+  const av = signedIn() ? player.avatar : guest.avatar;
+  $("meName").textContent = name;
+  $("meImg").src = pic(av);
+  $("mePts").textContent = signedIn() ? fmt(player.points) + " points" : "Guest · not saved";
+  $("guestNote").classList.toggle("hid", !!session);
+}
+function renderLevels(){
+  const html = LEVELS.map(lv => {
+    const p = progress[lv.id] || {};
+    const open = isOpen(lv), done = !!p.cleared;
+    const need = lv.requires ? levelById(lv.requires) : null;
+    return '<article class="lv' + (open ? '' : ' locked') + '" style="--art:' + lv.art + '">' +
+      '<span class="no">Level ' + lv.num + '</span><span class="ti">' + esc(lv.title) + '</span>' +
+      '<p class="ds">' + esc(lv.ds) + '</p>' +
+      '<div class="row">' +
+        (open
+          ? (done ? '<span class="best">Best ' + fmt(p.best) + '</span>' : '<span class="tag">' + (p.runs ? 'Not cleared yet' : 'New') + '</span>') +
+            '<button class="btn ' + (done ? '' : 'primary') + ' small" data-play="' + lv.id + '">' + (done ? 'Replay' : 'Play') + '</button>'
+          : '<span class="tag">&#128274; Finish Level ' + need.num + ' first</span>') +
+      '</div>' + (done ? '<span class="tag ok" style="position:absolute;top:14px;right:14px">Cleared</span>' : '') +
+      '</article>';
+  }).join("") + '<article class="lv soon"><span class="no">Levels 3 - 28</span><p class="ds">One per song on the album. Coming as the songs come.</p></article>';
+  $("levels").innerHTML = html;
+}
+const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl9","Level 9"]];
+function renderTabs(){
+  $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
+}
+async function renderBoard(){
+  const el = $("board");
+  if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
+  const col = boardTab === "points" ? "points" : boardTab + "_best";
+  const { data, error } = await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl9_best")
+    .gt(col, 0).order(col, { ascending:false }).limit(25);
+  if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
+  if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }
+  const mine = signedIn() ? player.username.toLowerCase() : null;
+  el.innerHTML = '<ol>' + data.map((r, i) =>
+    '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '"><span class="rk">' + (i + 1) + '</span>' +
+    '<img src="' + pic(r.avatar) + '" alt=""><span class="un">' + esc(r.username) + '</span>' +
+    '<span class="val">' + fmt(r[col]) + (boardTab === "points" ? ' pts' : '') + '</span></li>').join("") + '</ol>' +
+    (signedIn() ? '' : '<p class="empty" style="border-top:1px solid #ffffff0d">Log in to get your name on here.</p>');
+}
+function renderAll(){ renderMe(); renderLevels(); renderTabs(); renderBoard(); }
+
+/* ---- profile sheet ---- */
+let pickAv = "saucer";
+function openSheet(id){ $(id).classList.remove("hid"); const f = $(id).querySelector("input,button:not(.x)"); if (f) f.focus(); }
+function closeSheet(id){ $(id).classList.add("hid"); }
+document.querySelectorAll(".sheet").forEach(s => {
+  s.addEventListener("click", e => { if (e.target === s || e.target.closest("[data-close]")) closeSheet(s.id); });
+});
+addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".sheet:not(.hid)").forEach(s => closeSheet(s.id)); });
+
+function ownsPic(a){ return a.cost === 0 || owned.has(a.id); }
+function renderPics(){
+  const pts = signedIn() ? player.points : 0;
+  $("pics").innerHTML = AVATARS.map(a => {
+    const have = ownsPic(a);
+    return '<button type="button" class="pic' + (a.id === pickAv ? ' on' : '') + (have ? ' owned' : ' locked') + '" data-pic="' + a.id + '"' +
+      ' aria-label="' + esc(a.name) + (have ? '' : ', ' + a.cost + ' points') + '">' +
+      '<img src="' + pic(a.id) + '" alt="">' + '<span class="cost">' + fmt(a.cost) + ' pts</span>' +
+      '<span class="pn">' + esc(a.name) + '</span></button>';
+  }).join("");
+  $("pfRules").innerHTML = signedIn()
+    ? 'You have <b>' + fmt(pts) + ' points</b>. You earn them by playing: up to <b>40</b> a run for your score, <b>+50</b> for every clear and a big bonus the first time you clear a level. Tap a locked picture to unlock it.'
+    : 'The first four pictures are free. <b>Log in</b> to earn points by playing and unlock the rest.';
+}
+function openProfile(){
+  pickAv = signedIn() ? player.avatar : guest.avatar;
+  $("pfName").value = signedIn() ? player.username : guest.name;
+  $("pfErr").textContent = "";
+  $("pfLogin").classList.toggle("hid", !!session);
+  $("pfOut").classList.toggle("hid", !session);
+  renderPics(); openSheet("profile");
+}
+$("meBtn").onclick = openProfile;
+$("pics").addEventListener("click", async e => {
+  const b = e.target.closest("[data-pic]"); if (!b) return;
+  const a = AVATARS.find(x => x.id === b.dataset.pic);
+  $("pfErr").textContent = "";
+  if (ownsPic(a)){ pickAv = a.id; renderPics(); return; }
+  if (!signedIn()){ $("pfErr").textContent = "Log in to earn points and unlock " + a.name + "."; return; }
+  if (player.points < a.cost){ $("pfErr").textContent = a.name + " costs " + fmt(a.cost) + " points. You have " + fmt(player.points) + "."; return; }
+  if (!confirm("Unlock " + a.name + " for " + fmt(a.cost) + " points?")) return;
+  const { data, error } = await sb.rpc("javeda_buy_avatar", { p_avatar:a.id });
+  if (error){ $("pfErr").textContent = error.message; return; }
+  player = data; owned.add(a.id); pickAv = a.id; renderPics(); renderMe(); renderBoard();
+  toast("Unlocked <b>" + esc(a.name) + "</b>");
+});
+$("pfSave").onclick = async () => {
+  const name = $("pfName").value.trim();
+  if (!/^[A-Za-z0-9_.-]{3,16}$/.test(name)){ $("pfErr").textContent = "Name must be 3-16 letters, numbers, _ . or -"; return; }
+  if (!session){
+    guest.name = name; guest.avatar = pickAv; saveGuest();
+    closeSheet("profile"); renderMe(); toast("Saved on this phone. Log in to keep it everywhere."); return;
+  }
+  const { data, error } = await sb.rpc("javeda_join", { p_username:name, p_avatar:pickAv });
+  if (error){ $("pfErr").textContent = error.message; return; }
+  const first = !player; player = data;
+  if (first) await importGuest();
+  closeSheet("profile"); renderAll(); toast("Saved");
+};
+$("pfLogin").onclick = () => { closeSheet("profile"); openLogin(); };
+$("pfOut").onclick = async () => { await sb.auth.signOut(); closeSheet("profile"); };
+$("loginLink").onclick = () => openLogin();
+
+/* ---- login sheet ---- */
+let signUp = false;
+function openLogin(){
+  if (!sb){ toast("Log-in is offline right now. Your progress is saved on this phone."); return; }
+  $("lgErr").textContent = ""; setMode(false); openSheet("login");
+}
+function setMode(up){
+  signUp = up;
+  $("lgT").textContent = up ? "Create an account" : "Log in";
+  $("lgGo").textContent = up ? "Create account" : "Log in";
+  $("lgSwitchTxt").textContent = up ? "Have an account?" : "New here?";
+  $("lgSwitch").textContent = up ? "Log in" : "Create an account";
+  $("lgPass").autocomplete = up ? "new-password" : "current-password";
+}
+$("lgSwitch").onclick = () => setMode(!signUp);
+$("lgGo").onclick = async () => {
+  const email = $("lgEmail").value.trim(), password = $("lgPass").value;
+  $("lgErr").textContent = "";
+  if (!email || password.length < 6){ $("lgErr").textContent = "Enter your email and a password of 6+ characters."; return; }
+  $("lgGo").disabled = true;
+  const r = signUp
+    ? await sb.auth.signUp({ email, password, options:{ emailRedirectTo: location.origin + "/javeda/" } })
+    : await sb.auth.signInWithPassword({ email, password });
+  $("lgGo").disabled = false;
+  if (r.error){ $("lgErr").textContent = r.error.message; return; }
+  if (signUp && !r.data.session){ $("lgErr").innerHTML = '<span class="ok-msg">Check your email to confirm, then come back and log in.</span>'; return; }
+  closeSheet("login");
+};
+$("lgGoogle").onclick = async () => {
+  const { error } = await sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo: location.origin + "/javeda/" } });
+  if (error) $("lgErr").textContent = error.message.includes("not enabled") ? "Google log-in isn't switched on yet. Use email." : error.message;
+};
+
+/* ---- account ---- */
+async function loadAccount(){
+  player = null; owned = new Set();
+  if (!session){ progress = { ...guest.progress }; renderAll(); return; }
+  const uid = session.user.id;
+  const [p, g, o] = await Promise.all([
+    sb.from("javeda_players").select("*").eq("user_id", uid).maybeSingle(),
+    sb.from("javeda_progress").select("level, cleared, best_score, best_metres, runs").eq("user_id", uid),
+    sb.from("javeda_owned").select("avatar").eq("user_id", uid)
+  ]);
+  player = p.data || null;
+  progress = {};
+  (g.data || []).forEach(r => { progress[r.level] = { cleared:r.cleared, best:r.best_score, metres:r.best_metres, runs:r.runs }; });
+  (o.data || []).forEach(r => owned.add(r.avatar));
+  if (!player){
+    // first log-in: make the player from the guest one, then bring the guest's levels
+    const base = (guest.name || (session.user.email || "wolf").split("@")[0]).replace(/[^A-Za-z0-9_.-]/g, "").slice(0, 16);
+    const name = base.length >= 3 ? base : "wolf" + Math.floor(Math.random()*9000 + 1000);
+    const r = await sb.rpc("javeda_join", { p_username:name, p_avatar:guest.avatar || "saucer" });
+    if (r.error){
+      renderAll(); openProfile();
+      $("pfErr").textContent = r.error.message.includes("taken") ? "Pick a name: " + name + " is taken." : "Pick a name and a picture to start.";
+      return;
+    }
+    player = r.data;
+    await importGuest();
+    return loadAccount();
+  }
+  renderAll();
+}
+async function importGuest(){
+  const has = Object.keys(guest.progress || {}).length;
+  if (!has) return;
+  const { data, error } = await sb.rpc("javeda_import_guest", { p_progress: guest.progress });
+  if (!error && data && data.imported){
+    toast("Your guest progress is saved" + (data.earned ? " · <b>+" + fmt(data.earned) + " points</b>" : ""));
+    guest.progress = {}; saveGuest();
+  }
+}
+
+/* ---- playing ---- */
+let current = null;
+function play(id){
+  const lv = levelById(id);
+  if (!lv || !isOpen(lv)) return;
+  current = lv;
+  $("frame").src = lv.src;
+  $("play").classList.remove("hid");
+  document.body.style.overflow = "hidden";
+}
+function stopPlay(){
+  $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null;
+  document.body.style.overflow = "";
+  renderLevels();
+}
+$("levels").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
+$("tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b){ boardTab = b.dataset.tab; renderTabs(); renderBoard(); } });
+$("playClose").onclick = stopPlay;
+
+async function saveRun(r){
+  const lv = levelById(r.level); if (!lv) return;
+  const was = progress[lv.id] || {};
+  const nextLv = LEVELS.find(l => l.requires === lv.id);
+  const unlocks = r.cleared && !was.cleared && nextLv;
+  if (!signedIn()){
+    const g = guest.progress[lv.id] || { cleared:false, best:0, metres:0, runs:0 };
+    g.cleared = g.cleared || !!r.cleared; g.best = Math.max(g.best, r.score | 0);
+    g.metres = Math.max(g.metres, r.metres | 0); g.runs++;
+    guest.progress[lv.id] = g; saveGuest(); progress = { ...guest.progress };
+    if (unlocks) toast("Level " + nextLv.num + " is open. <b>Log in</b> to save it everywhere.", 5000);
+    return;
+  }
+  let res = await sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:r.score | 0, p_metres:r.metres | 0, p_cleared:!!r.cleared });
+  if (res.error && /slow down/.test(res.error.message)){
+    await new Promise(ok => setTimeout(ok, 10500));
+    res = await sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:r.score | 0, p_metres:r.metres | 0, p_cleared:!!r.cleared });
+  }
+  if (res.error){ toast("That run didn't save: " + esc(res.error.message)); return; }
+  const d = res.data;
+  player = d.player;
+  progress[lv.id] = { cleared:d.progress.cleared, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
+  renderMe(); renderBoard();
+  toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (unlocks ? " · Level " + nextLv.num + " is open" : "") + (d.first_clear ? " · first clear!" : ""), 4500);
+}
+addEventListener("message", e => {
+  // only the level page we opened, from this site
+  if (e.origin !== location.origin || e.source !== $("frame").contentWindow) return;
+  const m = e.data || {};
+  if (m.type === "javeda:result" && current && m.level === current.id) saveRun(m);
+  else if (m.type === "javeda:menu") stopPlay();
+  else if (m.type === "javeda:next"){
+    const nextLv = LEVELS.find(l => l.requires === (m.level || (current && current.id)));
+    if (nextLv && isOpen(nextLv)) play(nextLv.id);
+    else { stopPlay(); if (nextLv) toast("Level " + nextLv.num + " opens when you finish this one."); }
+  }
+});
+
+/* ---- boot ---- */
+renderAll();
+(async () => {
+  try {
+    const r = await fetch("/api/config");
+    const cfg = r.ok ? await r.json() : {};
+    if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase)
+      sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:true, autoRefreshToken:true } });
+  } catch(e){}
+  if (!sb){ progress = { ...guest.progress }; renderAll(); return; }
+  // the live catalogue wins over the built-in copy, so prices can change without a deploy
+  sb.from("javeda_avatars").select("id, name, cost").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
+  const { data } = await sb.auth.getSession();
+  session = data.session; await loadAccount();
+  sb.auth.onAuthStateChange((_e, s) => {
+    const changed = (s && s.user.id) !== (session && session.user.id);
+    session = s; if (changed) loadAccount();
+  });
+})();
+</script>
+</body>
+</html>

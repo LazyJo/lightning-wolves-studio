@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="sa-bg" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#0a1836"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<linearGradient id="sa-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fe8ff" stop-opacity=".85"/><stop offset="1" stop-color="#9fe8ff" stop-opacity="0"/></linearGradient>
+<linearGradient id="sa-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b9bf0"/><stop offset=".5" stop-color="#2f6fc9"/><stop offset="1" stop-color="#1d4f9a"/></linearGradient>
+<linearGradient id="sa-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#bfe9ff"/><stop offset="1" stop-color="#7cc4ec"/></linearGradient>
+</defs>
+<rect width="256" height="256" fill="url(#sa-bg)"/>
+<g fill="#bfe9ff"><circle cx="44" cy="50" r="2"/><circle cx="208" cy="44" r="1.8"/><circle cx="222" cy="116" r="1.4"/><circle cx="34" cy="140" r="1.4"/><circle cx="204" cy="200" r="1.8"/><circle cx="56" cy="206" r="1.5"/><circle cx="166" cy="32" r="1.3"/></g>
+<path d="M108 156H148L190 230H66Z" fill="url(#sa-beam)"/>
+<g transform="translate(128 116)">
+<ellipse cy="34" rx="34" ry="10" fill="#12356b"/>
+<ellipse cy="8" rx="88" ry="26" fill="#12356b"/>
+<ellipse rx="88" ry="26" fill="url(#sa-hull)"/>
+<ellipse cy="-6" rx="62" ry="14" fill="#7fb4f5" opacity=".45"/>
+<path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#sa-dome)"/>
+<path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+<g fill="#67e8f9" opacity=".3"><circle cy="30" r="9"/><circle cx="-32" cy="28" r="9"/><circle cx="32" cy="28" r="9"/><circle cx="-62" cy="22" r="9"/><circle cx="62" cy="22" r="9"/></g>
+<g fill="#67e8f9"><circle cy="30" r="4.5"/><circle cx="-32" cy="28" r="4.5"/><circle cx="32" cy="28" r="4.5"/><circle cx="-62" cy="22" r="4.5"/><circle cx="62" cy="22" r="4.5"/></g>
+</g>
+</svg>

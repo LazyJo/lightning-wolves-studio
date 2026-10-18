@@ -66,6 +66,13 @@ canvas{display:block; touch-action:none}
 #outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
 #outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
 #outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+/* the ride picker: only there once Zirka's bike is earned (Level 2 Part 2) */
+#rides{display:flex; gap:8px}
+#rides button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.1em;
+  text-transform:uppercase; padding:9px 16px; border-radius:4px; cursor:pointer;
+  color:#8fb4dd; background:none; border:1.5px solid #2f8fe055}
+#rides button[aria-pressed="true"]{color:#eaf4ff; border-color:#2f8fe0; background:#2f8fe022}
+#rides button[data-ride="bike"][aria-pressed="true"]{border-color:#a855f7; background:#a855f722}
 #home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em;
   text-transform:uppercase; text-decoration:none; color:#9fe8ff; padding:9px 22px; border-radius:4px;
   border:1.5px solid #2f8fe099; background:#2f8fe014}
@@ -88,6 +95,10 @@ canvas{display:block; touch-action:none}
   <p>Fly the saucer. Get through the walls. <b id="hn">6 hearts</b> &middot; every hit costs one, and two more wait on the road.</p>
   <p><b>Tap a side</b> to bank &middot; <b>tap the middle</b> to lift over a low wall or a hole</p>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>2 &middot; SOMEBODY</small></a>
+  <div id="rides" class="hid" role="group" aria-label="Choose your ride">
+    <button type="button" data-ride="saucer" aria-pressed="true">&#128760; Saucer</button>
+    <button type="button" data-ride="bike" aria-pressed="false">&#127949;&#65039; Zirka's bike</button>
+  </div>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
     <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
@@ -143,6 +154,10 @@ document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset
    here changes. */
 const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+// rides the hub says this player has earned (?rides=bike once Level 2 Part 2 is cleared)
+const RIDES = (new URLSearchParams(location.search).get("rides") || "").split(",");
+let ride = "saucer";
+if (RIDES.includes("bike")) try { if (localStorage.getItem("javeda.ride") === "bike") ride = "bike"; } catch(e){}
 if (HUB) document.getElementById("next").addEventListener("click", e => {
   e.preventDefault(); toHub({ type:"javeda:next", level:"lvl1" });
 });
@@ -166,7 +181,7 @@ const C = {
   pit:0x02060f, pitLip:0xff3d8b
 };
 
-let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spark;
+let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spark, bikeG;
 let vortex, cine, cineCam, cs;          // the ending: its own scene, see renderEnd()
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const walls = [], lamps = [], pickups = [];
@@ -199,6 +214,59 @@ function buildUFO(){
   }
   g.add(lightGrp); g.userData.lights = lightGrp;
   return g;
+}
+/* ---- Zirka's purple bike, the same one as SOMEBODY Part 1. Built along +x,
+   so it is turned a quarter round to face down the road (-z). ---- */
+function buildBike(){
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const dark = new THREE.MeshStandardMaterial({ color:0x1a1024, roughness:.7 });
+  const paint = new THREE.MeshStandardMaterial({ color:C.zirka, roughness:.35, metalness:.45, emissive:0x3b0d73, emissiveIntensity:.4 });
+  const neon = new THREE.MeshBasicMaterial({ color:0xd8b4fe });
+  const wheels = [];
+  for (const x of [-.72, .72]){
+    const w = new THREE.Group(); w.position.set(x, .42, 0); body.add(w); wheels.push(w);
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(.4, .13, 8, 22), dark));
+    const r = new THREE.Mesh(new THREE.TorusGeometry(.4, .025, 6, 26), neon); r.position.z = .1; w.add(r);
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(.7, .05, .05), neon); spoke.position.z = .1; w.add(spoke);
+  }
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.25, .3, .3), paint);
+  frame.position.set(0, .78, 0); frame.rotation.z = .1; body.add(frame);
+  const tank = new THREE.Mesh(new THREE.SphereGeometry(.3, 14, 10), paint);
+  tank.scale.set(1.3, .7, .8); tank.position.set(.22, .98, 0); body.add(tank);
+  const fork = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .9, 6), dark);
+  fork.position.set(.6, .82, 0); fork.rotation.z = -.45; body.add(fork);
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 8), new THREE.MeshBasicMaterial({ color:0xe9d5ff }));
+  lamp.position.set(.84, 1.08, 0); body.add(lamp);
+  const jacket = new THREE.Mesh(new THREE.CylinderGeometry(.17, .22, .62, 10),
+    new THREE.MeshStandardMaterial({ color:0x6d28d9, roughness:.6 }));
+  jacket.position.set(-.1, 1.32, 0); jacket.rotation.z = -.5; body.add(jacket);
+  const helm = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), paint);
+  helm.position.set(.08, 1.66, 0); body.add(helm);
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8, 0, Math.PI), new THREE.MeshBasicMaterial({ color:0xf5d0fe }));
+  visor.rotation.y = Math.PI/2; visor.position.set(.17, 1.68, 0); body.add(visor);
+  // from behind (which is how you see her all game) she needs width: shoulders,
+  // arms out to the bars, and a wide tail light
+  const shoulders = new THREE.Mesh(new THREE.BoxGeometry(.24, .26, .66), new THREE.MeshStandardMaterial({ color:0x6d28d9, roughness:.6 }));
+  shoulders.position.set(-.02, 1.5, 0); shoulders.rotation.z = -.35; body.add(shoulders);
+  for (const zz of [-.3, .3]){
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .62, 6), new THREE.MeshStandardMaterial({ color:0x5b21b6, roughness:.6 }));
+    arm.position.set(.28, 1.32, zz); arm.rotation.z = -1.05; body.add(arm);
+  }
+  const bars = new THREE.Mesh(new THREE.BoxGeometry(.08, .08, .9), dark); bars.position.set(.52, 1.18, 0); body.add(bars);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(.08, .12, .5), new THREE.MeshBasicMaterial({ color:0xff4fd8 }));
+  tail.position.set(-.86, .92, 0); body.add(tail);
+  const tailGlow = new THREE.Mesh(new THREE.CircleGeometry(.3, 20), glow(0xff4fd8, .25));
+  tailGlow.rotation.y = -Math.PI/2; tailGlow.position.set(-.92, .92, 0); body.add(tailGlow);
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(1.0, 6, 18, 1, true), glow(0xc084fc, .1));
+  cone.rotation.z = Math.PI/2; cone.position.set(.84 + 3, .95, 0); body.add(cone);
+  const light = new THREE.PointLight(0xc084fc, 1.6, 10, 2); light.position.set(2, 1.2, 0); body.add(light);
+  body.rotation.y = Math.PI/2; body.scale.setScalar(1.2);
+  g.userData = { body, wheels, cone, light };
+  return g;
+}
+function glow(color, opacity){
+  return new THREE.MeshBasicMaterial({ color, transparent:true, opacity,
+    blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
 }
 function buildBeam(){
   const m = new THREE.Mesh(new THREE.ConeGeometry(1.05, 1, 22, 1, true),
@@ -372,7 +440,9 @@ function boot(){
   hullGrp = buildUFO(); ufo.add(hullGrp);
   beam = buildBeam(); ufo.add(beam);
   beamLight = new THREE.PointLight(C.beam, 1.5, 9, 2); beamLight.position.y = -.4; ufo.add(beamLight);
+  bikeG = buildBike(); ufo.add(bikeG);
   scene.add(ufo);
+  applyRide();
 
   spark = new THREE.Group(); scene.add(spark);
   for (let i = 0; i < 44; i++){
@@ -391,6 +461,21 @@ function boot(){
     for (const c of [cam, cineCam]){ c.aspect = innerWidth/innerHeight; c.updateProjectionMatrix(); }
   });
 }
+
+/* Saucer or bike: the same player, the same physics (a lift is a jump), only
+   the model changes - on the road and in the ending, where it rides into the
+   vortex inside the saucer's slot. */
+function applyRide(){
+  const bike = ride === "bike";
+  if (ufo){ hullGrp.visible = beam.visible = !bike; beamLight.visible = !bike; bikeG.visible = bike; }
+  if (cs){ cs.ufo.children.forEach(c => c.visible = c === cs.bike ? bike : c.isLight || !bike); }
+  document.querySelectorAll("#rides button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.ride === ride)));
+}
+document.querySelectorAll("#rides button").forEach(b => b.addEventListener("click", () => {
+  ride = b.dataset.ride; applyRide();
+  try { localStorage.setItem("javeda.ride", ride); } catch(e){}
+}));
+if (RIDES.includes("bike")) document.getElementById("rides").classList.remove("hid");
 
 /* ---- state ---- */
 let S;
@@ -605,8 +690,14 @@ function render(dt){
   const bank = (S.lane - S.laneX) * -0.95;
   ufo.rotation.z = bank + (S.crash >= 0 ? Math.sin(S.spin*1.7) * S.tilt : 0);
   ufo.rotation.x = (S.crash >= 0 ? S.tilt * .7 : -0.04 + Math.sin(S.t*1.6)*.02);
-  ufo.rotation.y = S.spin + S.t * .45;
+  ufo.rotation.y = S.spin + (ride === "bike" ? 0 : S.t * .45);
   hullGrp.position.y = S.crash >= 0 ? 0 : Math.sin(S.t*2.1)*.055;
+  if (ride === "bike"){
+    // the group flies at FLY_Y like the saucer; the bike is put back down on the road
+    bikeG.position.y = Math.max(0, S.y) - y;
+    bikeG.userData.wheels.forEach(w => w.rotation.z = -S.dist / .5);
+    bikeG.userData.light.intensity = S.crash >= 0 ? 0 : 1.6;
+  }
   hullGrp.userData.lights.rotation.y = -S.t * 1.9;
 
   const hgt = Math.max(.4, y);
@@ -752,6 +843,7 @@ function buildEnding(){
 
   // the saucer again, plus the fire it brings down through the air
   cs.ufo = buildUFO(); cine.add(cs.ufo);
+  cs.bike = buildBike(); cs.bike.visible = false; cs.ufo.add(cs.bike);
   cs.dome = cs.ufo.children[2].material;
   cs.glow = new THREE.PointLight(C.beam, 0, 10, 2); cs.ufo.add(cs.glow);
   cs.fire = new THREE.Group();
@@ -800,6 +892,7 @@ function buildEnding(){
     p.userData = { age:0, life:1, rise:0 }; cine.add(p); cs.pf.push(p);
   }
   resetEnding();
+  applyRide();
 }
 function resetEnding(){
   cs.sp.forEach(s => s.visible = false);
@@ -991,7 +1084,7 @@ function finish(){
   v.classList.remove("hid");
   const ps = v.querySelectorAll("p:not(.by)");
   const go = document.getElementById("go");
-  go.textContent = "Fly it again";
+  go.textContent = ride === "bike" ? "Ride it again" : "Fly it again";
   // both cards get the song, the merch, the fans and the way home; only a win
   // gets Next level, and on a fail "Fly it again" stays the big button
   go.classList.toggle("alt", !S.fail);
@@ -999,7 +1092,7 @@ function finish(){
   for (const id of ["outs", "home"]) document.getElementById(id).classList.remove("hid");
   document.getElementById("snd").classList.add("hid");
   if (HUB) toHub({ type:"javeda:result", level:"lvl1", cleared:!S.fail, score:score(),
-    metres:Math.floor(S.dist), hits:S.hits, hearts:S.hearts });
+    metres:Math.floor(S.dist), hits:S.hits, hearts:S.hearts, ride });
   if (S.fail){
     v.querySelector(".by").textContent = "OUT OF HEARTS";
     v.querySelector("h1").textContent = "NOT YET";      // not LOST: that word is the story's

@@ -11,6 +11,7 @@ client/public/javeda/
 └── levels/
     ├── im-lost.html    # Level 1, 3D saucer runner (three.js r128 from cdnjs) + lvl1.mp3
     ├── somebody.html   # Level 2, 3D desert arena with Zirka (three.js r128) + lvl2.mp3
+    ├── zirkas-ride.html # Level 2 Part 2, Zirka's bike ride to Jo (Level 1's road engine) + lvl2.mp3
     └── javeda.html     # the original JAVEDA game (Level 9 here; songs embedded)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
@@ -41,6 +42,11 @@ scoreboard shows as offline.
   the one before; the hub shows "creator, every level open" and `javeda_submit_run` skips the
   lock for them. Nobody can add themselves: the table is filled by hand in the SQL Editor
   (the statement is in a comment above the table in `supabase-javeda-schema.sql`).
+- **Parts.** A song can have a Part 2, a bonus level (`part:2` in `LEVELS`): it opens when its Part 1
+  is cleared and nothing waits on it. "Next level" always means the next song (`nextMain`).
+  Level 2 Part 2 is ZIRKA'S RIDE (`lvl2b`).
+- **Rides.** Clearing Level 2 Part 2 earns Zirka's bike: the hub opens Level 1 with `?rides=bike` and
+  the level shows a Saucer / Zirka's bike picker. Creators always get it.
 - **Points** come from playing only (never from streaming): up to 40 per run for the
   score, +50 per clear, plus a first-clear bonus (300, Level 9 500). Points buy profile
   pictures (`javeda_buy_avatar`). The first four pictures are free.

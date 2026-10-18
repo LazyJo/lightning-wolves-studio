@@ -253,11 +253,24 @@ let LEVELS = [
   { id:"lvl2", num:2, title:"SOMEBODY", requires:"lvl1", src:"levels/somebody.html?hub=1",
     ds:"The Dust Sea, alone in the saucer. Hold the sand till somebody comes. Ft Zirka.",
     art:"radial-gradient(120% 90% at 80% 0%, #ffb02055, transparent 60%), linear-gradient(160deg,#4a2a10,#120a05)" },
+  // a Part 2 is a bonus level: it opens when its Part 1 is cleared, and nothing waits on it
+  { id:"lvl2b", num:2, part:2, title:"ZIRKA'S RIDE", requires:"lvl2", src:"levels/zirkas-ride.html?hub=1",
+    ds:"Part 2. Be Zirka: ride the purple bike across the Dust Sea to find Jo. Clear it to ride her bike in Level 1.",
+    art:"radial-gradient(120% 90% at 80% 0%, #a855f755, transparent 60%), linear-gradient(160deg,#3a1630,#12070a)" },
   { id:"lvl9", num:9, title:"OUBLIE-MOI", requires:"lvl2", src:"levels/javeda.html?hub=1&level=lvl9",
     ds:"District 9 with Zirka. Monsters over the city. Remind them who the Wolves are.",
     art:"radial-gradient(120% 90% at 80% 0%, #ff3d8b55, transparent 60%), linear-gradient(160deg,#2a1450,#0b0416)" }
 ];
 const levelById = id => LEVELS.find(l => l.id === id);
+const lvName = l => "Level " + l.num + (l.part ? " Part " + l.part : "");
+// "Next level" always means the next song: from a Part 2, the song after its Part 1
+function nextMain(id){
+  const lv = levelById(id); if (!lv) return null;
+  const base = lv.part ? lv.requires : lv.id;
+  return LEVELS.find(l => !l.part && l.requires === base) || null;
+}
+// rides a player has earned, passed to the levels that offer them
+const rides = () => (creator || (progress.lvl2b && progress.lvl2b.cleared)) ? ["bike"] : [];
 let AVATARS = [
   { id:"saucer", name:"Blue Saucer", cost:0 }, { id:"bike", name:"Zirka's Bike", cost:0 },
   { id:"wolf", name:"Wolf", cost:0 }, { id:"planet", name:"Planet Javeda", cost:0 },
@@ -312,7 +325,7 @@ function renderLevels(){
     const open = isOpen(lv), done = !!p.cleared;
     const need = lv.requires ? levelById(lv.requires) : null;
     return '<article class="lv' + (open ? '' : ' locked') + '" style="--art:' + lv.art + '">' +
-      '<span class="no">Level ' + lv.num + '</span><span class="ti">' + esc(lv.title) + '</span>' +
+      '<span class="no">' + lvName(lv) + '</span><span class="ti">' + esc(lv.title) + '</span>' +
       '<p class="ds">' + esc(lv.ds) + '</p>' +
       '<div class="row">' +
         (open
@@ -324,7 +337,7 @@ function renderLevels(){
   }).join("") + '<article class="lv soon"><span class="no">Levels 3 - 28</span><p class="ds">One per song on the album. Coming as the songs come.</p></article>';
   $("levels").innerHTML = html;
 }
-const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl9","Level 9"]];
+const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl9","Level 9"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
 }
@@ -332,7 +345,7 @@ async function renderBoard(){
   const el = $("board");
   if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
   const col = boardTab === "points" ? "points" : boardTab + "_best";
-  const { data, error } = await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl9_best")
+  const { data, error } = await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl9_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }
@@ -488,7 +501,8 @@ function play(id){
   const lv = levelById(id);
   if (!lv || !isOpen(lv)) return;
   current = lv;
-  $("frame").src = lv.src;
+  const r = lv.id === "lvl1" ? rides() : [];
+  $("frame").src = lv.src + (r.length ? "&rides=" + r.join(",") : "");
   $("play").classList.remove("hid");
   document.body.style.overflow = "hidden";
 }
@@ -504,14 +518,16 @@ $("playClose").onclick = stopPlay;
 async function saveRun(r){
   const lv = levelById(r.level); if (!lv) return;
   const was = progress[lv.id] || {};
-  const nextLv = LEVELS.find(l => l.requires === lv.id);
-  const unlocks = r.cleared && !was.cleared && nextLv;
+  // what a first clear opens: the next song, a Part 2, and for Level 2 Part 2 Zirka's bike
+  const opened = r.cleared && !was.cleared ? LEVELS.filter(l => l.requires === lv.id).map(lvName) : [];
+  if (r.cleared && !was.cleared && lv.id === "lvl2b") opened.push("Zirka's bike in Level 1");
+  const unlocks = opened.length ? opened.join(" and ") + (opened.length > 1 ? " are" : " is") + " open" : "";
   if (!signedIn()){
     const g = guest.progress[lv.id] || { cleared:false, best:0, metres:0, runs:0 };
     g.cleared = g.cleared || !!r.cleared; g.best = Math.max(g.best, r.score | 0);
     g.metres = Math.max(g.metres, r.metres | 0); g.runs++;
     guest.progress[lv.id] = g; saveGuest(); progress = { ...guest.progress };
-    if (unlocks) toast("Level " + nextLv.num + " is open. <b>Log in</b> to save it everywhere.", 5000);
+    if (unlocks) toast(unlocks + ". <b>Log in</b> to save it everywhere.", 5000);
     return;
   }
   let res = await sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:r.score | 0, p_metres:r.metres | 0, p_cleared:!!r.cleared });
@@ -524,7 +540,7 @@ async function saveRun(r){
   player = d.player;
   progress[lv.id] = { cleared:d.progress.cleared, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
   renderMe(); renderBoard();
-  toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (unlocks ? " · Level " + nextLv.num + " is open" : "") + (d.first_clear ? " · first clear!" : ""), 4500);
+  toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), 4500);
 }
 addEventListener("message", e => {
   // only the level page we opened, from this site
@@ -533,9 +549,9 @@ addEventListener("message", e => {
   if (m.type === "javeda:result" && current && m.level === current.id) saveRun(m);
   else if (m.type === "javeda:menu") stopPlay();
   else if (m.type === "javeda:next"){
-    const nextLv = LEVELS.find(l => l.requires === (m.level || (current && current.id)));
+    const nextLv = nextMain(m.level || (current && current.id));
     if (nextLv && isOpen(nextLv)) play(nextLv.id);
-    else { stopPlay(); if (nextLv) toast("Level " + nextLv.num + " opens when you finish this one."); }
+    else { stopPlay(); if (nextLv) toast(lvName(nextLv) + " opens when you finish this one."); }
   }
 });
 

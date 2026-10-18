@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>ZIRKA'S RIDE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+html,body{height:100%}
+body{margin:0; background:#14070c; color:#fff1ea; overflow:hidden;
+  font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; transition:opacity .4s}
+#hud.off{opacity:0}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#d8b4fe; line-height:1}
+#ml{font-size:11px; letter-spacing:.18em; color:#c99aa0; margin-top:3px}
+#pips{display:flex; gap:4px; margin-top:8px}
+#pips i{width:10px; height:4px; background:#d8b4fe30; border-radius:1px}
+#pips i.on{background:#d8b4fe}
+#hearts{display:flex; gap:4px; margin-top:7px; color:#d8b4fe}
+#hearts i{display:block; width:13px; height:12px}
+#hearts svg{display:block; width:100%; height:100%; fill:currentColor}
+#hearts i.out{color:#d8b4fe30; animation:pop .5s ease-out}
+@keyframes pop{0%{color:#ffffff; transform:scale(1.7)} 35%{color:#ffffff; transform:scale(1.3)} 100%{color:#d8b4fe30; transform:scale(1)}}
+#hearts i.gain{animation:gain .6s ease-out}
+@keyframes gain{0%{color:#ffffff; transform:scale(1.9)} 100%{color:#d8b4fe; transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){ #hearts i.out, #hearts i.gain{animation:none} }
+#msg{position:fixed; left:0; right:0; top:26%; text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:30px; opacity:0; transition:opacity .25s; text-shadow:0 0 22px #2a0f16}
+#msg.on{opacity:1}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:14px;
+  letter-spacing:.1em; color:#e7b9b0; margin-top:6px}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
+  gap:16px; background:radial-gradient(64% 54% at 50% 40%, #5a2236 0%, #14070c 78%); z-index:9;
+  text-align:center; padding:26px; overflow-y:auto}
+/* two springs instead of justify-content:center, so a card taller than a sideways
+   phone scrolls from its top instead of losing its title off the top edge */
+#veil .sp{flex:1 0 0; display:block}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(34px,10vw,66px); line-height:1;
+  background:linear-gradient(172deg,#ffffff 18%,#c084fc 112%);
+  -webkit-background-clip:text; background-clip:text; color:transparent}
+#veil .by{font-family:"Barlow Condensed",sans-serif; letter-spacing:.42em; font-size:14px; color:#e7b9b0; margin:0 0 -8px}
+#veil p{margin:0; color:#e7b9b0; font-size:17px; max-width:34ch}
+#veil b{color:#d8b4fe}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:#8b5cf6; color:#14051f; border:0;
+  border-radius:4px; padding:16px 38px; cursor:pointer; margin-top:4px}
+#veil small{color:#a8727a; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#go.alt{background:none; color:#d8b4fe; border:1.5px solid #8b5cf6; font-size:15px; padding:12px 30px; margin-top:0}
+#next{font-family:Bungee,sans-serif; font-size:19px; background:#8b5cf6; color:#14051f; text-decoration:none;
+  border-radius:4px; padding:13px 34px 11px; margin-top:4px; line-height:1.1}
+#next small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px;
+  letter-spacing:.16em; color:#14051f; opacity:.75; margin-top:3px}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em;
+  text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em;
+  text-transform:uppercase; text-decoration:none; color:#d8b4fe; padding:9px 22px; border-radius:4px;
+  border:1.5px solid #8b5cf699; background:#8b5cf614}
+#home:hover{color:#fff1ea; border-color:#8b5cf6}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #d8b4fe; outline-offset:3px}
+/* a sideways phone: last, so it wins over the rules above */
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px}
+  #veil h1{font-size:44px} #outs{max-width:none} #next{padding:10px 30px 8px} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud"><div id="m">0</div><div id="ml">METRES</div><div id="pips"></div><div id="hearts"></div></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by">LEVEL 2 &middot; PART 2</p>
+  <h1>ZIRKA'S RIDE</h1>
+  <p>Jo is down somewhere in the Dust Sea. Ride the purple bike to his light. <b id="hn">6 hearts</b> &middot; every hit costs one, and two more wait on the road.</p>
+  <p><b>Tap a side</b> to swerve &middot; <b>tap the middle</b> to jump a low rock or a crack</p>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= ZIRKA'S RIDE =================
+   Level 2, Part 2 of JAVEDA: SOMEBODY from the other side. In Part 1 Jo holds
+   the Dust Sea alone until a purple headlight cuts the dust at 1:12. This is
+   that headlight: Zirka on the purple bike, riding the canyon flat out towards
+   the blue beam on the horizon, and it ends where Part 1's rescue begins - she
+   clears the last dune and he is down there, surrounded.
+
+   It runs on Level 1's road (the same lanes, the same three obstacles in the
+   same colours, the same hearts), so a player who has learned I'M LOST already
+   knows how to ride this. What changes is the world, the bike, and the end. */
+
+const SPEED0 = 7.0, SPEED1 = 19.0, RAMP = 240;
+const speedAt = d => SPEED1 - (SPEED1 - SPEED0) * Math.exp(-d / RAMP);
+const CP_EVERY = 110, CP_TOTAL = 10;
+const LANE = 2.3, LANE_MS = 150;
+const HOP_T = .72, HOP_H = 2.6;       // the lift that clears a low wall
+const FLY_Y = 1.25;                   // cruising height above the road
+const COYOTE = .10, BUFFER = .16;
+// 6, one more than the saucer gets elsewhere: ~2 hits a run are the back-to-back
+// low walls at full speed, which even a perfect bot clips, so 6 leaves 4 for real
+// mistakes. Measured: a good player fails 19% of runs on 5, 8% on 6.
+const HEARTS = 6;
+
+/* Every outbound link lives here, as in the main JAVEDA game: elements carry
+   data-link="merch" etc and get their href on boot. Level 2 is still in the main
+   game, so "next" is that page. The playlist has its ?si= share token stripped. */
+const LINKS = {
+  next:    "https://lightningwolves.studio/javeda/",
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+
+/* Inside the JAVEDA hub (lightningwolves.studio/javeda opens this page in a
+   frame with ?hub=1) the hub owns the player: it saves each result to their
+   profile and decides what "next level" means. Opened on its own, nothing
+   here changes. */
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("next").addEventListener("click", e => {
+  e.preventDefault(); toHub({ type:"javeda:next", level:"lvl2b" });
+});
+// inside the hub, Home is the hub's own level list: it closes this frame
+if (HUB) document.getElementById("home").addEventListener("click", e => {
+  e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" });
+});
+
+// metres flown, and on a clear a bonus for getting there, for every heart left
+// and for not being hit at all - so ~3500 is a perfect run
+function score(){
+  const m = Math.floor(S.dist);
+  return S.fail ? m : m + 1000 + S.hearts*150 + (S.hits === 0 ? 500 : 0);
+}
+
+/* ---- palette: the Dust Sea at dusk, off the SOMEBODY cover. The obstacle
+   lips keep Level 1's colours on purpose - cyan you go round, gold you jump,
+   magenta is a crack - so nothing has to be learned twice. ---- */
+const C = {
+  night:0x3a1a20, deep:0xa8714f, road:0x8a5a3c, kerb:0x6a3a2a, fog:0xa65e4a,
+  hull:0x2f6fc9, hullDark:0x12356b, dome:0xbfe9ff, rim:0x67e8f9,
+  beam:0x9fe8ff, wall:0x5a2a24, wallLip:0x67e8f9, low:0x5e3f22, lowLip:0xffd60a,
+  pit:0x1a0806, pitLip:0xff3d8b, rock:0x6a2e26, zirka:0xa855f7
+};
+
+let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spark;
+let beacon, finale, sky;                // Jo's light on the horizon, and the basin he is down in
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const walls = [], lamps = [], pickups = [];
+const cab = document.getElementById("cab");
+
+/* ---- the saucer, built from primitives: no model file, nothing to download ---- */
+function buildUFO(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 12),
+    new THREE.MeshStandardMaterial({ color:C.hull, roughness:.42, metalness:.35, flatShading:false }));
+  hull.scale.set(1, .22, 1); g.add(hull);
+  const under = new THREE.Mesh(new THREE.SphereGeometry(.82, 24, 10),
+    new THREE.MeshStandardMaterial({ color:C.hullDark, roughness:.6 }));
+  under.scale.set(1, .20, 1); under.position.y = -.10; g.add(under);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.44, 22, 14, 0, Math.PI*2, 0, Math.PI/2),
+    new THREE.MeshStandardMaterial({ color:C.dome, roughness:.12, metalness:.1,
+      transparent:true, opacity:.9, emissive:0x2a6a9c, emissiveIntensity:.5 }));
+  dome.position.y = .12; g.add(dome);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.86, .055, 8, 40),
+    new THREE.MeshBasicMaterial({ color:C.rim }));
+  ring.rotation.x = Math.PI/2; ring.position.y = -.02; g.add(ring);
+  // the running lights round the rim - these are what read at distance
+  const lightGrp = new THREE.Group();
+  for (let i = 0; i < 10; i++){
+    const a = i/10*Math.PI*2;
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.072, 8, 6),
+      new THREE.MeshBasicMaterial({ color:C.rim }));
+    b.position.set(Math.cos(a)*.88, -.04, Math.sin(a)*.88);
+    lightGrp.add(b);
+  }
+  g.add(lightGrp); g.userData.lights = lightGrp;
+  return g;
+}
+/* ---- Zirka's purple bike, the same one as SOMEBODY Part 1. Built along +x,
+   so it is turned a quarter round to face down the road (-z). ---- */
+function buildBike(){
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const dark = new THREE.MeshStandardMaterial({ color:0x1a1024, roughness:.7 });
+  const paint = new THREE.MeshStandardMaterial({ color:C.zirka, roughness:.35, metalness:.45, emissive:0x3b0d73, emissiveIntensity:.4 });
+  const neon = new THREE.MeshBasicMaterial({ color:0xd8b4fe });
+  const wheels = [];
+  for (const x of [-.72, .72]){
+    const w = new THREE.Group(); w.position.set(x, .42, 0); body.add(w); wheels.push(w);
+    w.add(new THREE.Mesh(new THREE.TorusGeometry(.4, .13, 8, 22), dark));
+    const r = new THREE.Mesh(new THREE.TorusGeometry(.4, .025, 6, 26), neon); r.position.z = .1; w.add(r);
+    const spoke = new THREE.Mesh(new THREE.BoxGeometry(.7, .05, .05), neon); spoke.position.z = .1; w.add(spoke);
+  }
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(1.25, .3, .3), paint);
+  frame.position.set(0, .78, 0); frame.rotation.z = .1; body.add(frame);
+  const tank = new THREE.Mesh(new THREE.SphereGeometry(.3, 14, 10), paint);
+  tank.scale.set(1.3, .7, .8); tank.position.set(.22, .98, 0); body.add(tank);
+  const fork = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .9, 6), dark);
+  fork.position.set(.6, .82, 0); fork.rotation.z = -.45; body.add(fork);
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(.13, 12, 8), new THREE.MeshBasicMaterial({ color:0xe9d5ff }));
+  lamp.position.set(.84, 1.08, 0); body.add(lamp);
+  const jacket = new THREE.Mesh(new THREE.CylinderGeometry(.17, .22, .62, 10),
+    new THREE.MeshStandardMaterial({ color:0x6d28d9, roughness:.6 }));
+  jacket.position.set(-.1, 1.32, 0); jacket.rotation.z = -.5; body.add(jacket);
+  const helm = new THREE.Mesh(new THREE.SphereGeometry(.2, 14, 10), paint);
+  helm.position.set(.08, 1.66, 0); body.add(helm);
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8, 0, Math.PI), new THREE.MeshBasicMaterial({ color:0xf5d0fe }));
+  visor.rotation.y = Math.PI/2; visor.position.set(.17, 1.68, 0); body.add(visor);
+  // from behind (which is how you see her all game) she needs width: shoulders,
+  // arms out to the bars, and a wide tail light
+  const shoulders = new THREE.Mesh(new THREE.BoxGeometry(.24, .26, .66), new THREE.MeshStandardMaterial({ color:0x6d28d9, roughness:.6 }));
+  shoulders.position.set(-.02, 1.5, 0); shoulders.rotation.z = -.35; body.add(shoulders);
+  for (const zz of [-.3, .3]){
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, .62, 6), new THREE.MeshStandardMaterial({ color:0x5b21b6, roughness:.6 }));
+    arm.position.set(.28, 1.32, zz); arm.rotation.z = -1.05; body.add(arm);
+  }
+  const bars = new THREE.Mesh(new THREE.BoxGeometry(.08, .08, .9), dark); bars.position.set(.52, 1.18, 0); body.add(bars);
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(.08, .12, .5), new THREE.MeshBasicMaterial({ color:0xff4fd8 }));
+  tail.position.set(-.86, .92, 0); body.add(tail);
+  const tailGlow = new THREE.Mesh(new THREE.CircleGeometry(.3, 20), glow(0xff4fd8, .25));
+  tailGlow.rotation.y = -Math.PI/2; tailGlow.position.set(-.92, .92, 0); body.add(tailGlow);
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(1.0, 6, 18, 1, true), glow(0xc084fc, .1));
+  cone.rotation.z = Math.PI/2; cone.position.set(.84 + 3, .95, 0); body.add(cone);
+  const light = new THREE.PointLight(0xc084fc, 1.6, 10, 2); light.position.set(2, 1.2, 0); body.add(light);
+  body.rotation.y = Math.PI/2; body.scale.setScalar(1.2);
+  g.userData = { body, wheels, cone, light };
+  return g;
+}
+function glow(color, opacity){
+  return new THREE.MeshBasicMaterial({ color, transparent:true, opacity,
+    blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+}
+function buildBeam(){
+  const m = new THREE.Mesh(new THREE.ConeGeometry(1.05, 1, 22, 1, true),
+    new THREE.MeshBasicMaterial({ color:C.beam, transparent:true, opacity:.14,
+      side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
+  m.rotation.x = Math.PI; return m;
+}
+
+/* ---- the walls. They have to read instantly as "you cannot pass here", so the
+   tall ones get a bright lip along the top and the low ones a gold lip, which is
+   the only thing on screen that colour. ---- */
+function makeWall(lanesFrom, lanesTo, low){
+  const w = (lanesTo - lanesFrom + 1) * LANE;
+  const h = low ? 1.0 : 4.4;
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, .55),
+    new THREE.MeshStandardMaterial({ color: low ? C.low : C.wall, roughness:.85 }));
+  body.position.y = h/2; g.add(body);
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(w + .12, .17, .72),
+    new THREE.MeshBasicMaterial({ color: low ? C.lowLip : C.wallLip }));
+  lip.position.y = h; g.add(lip);
+  for (let i = 0; i < Math.max(2, Math.round(w/1.1)); i++){     // hazard ticks
+    const t = new THREE.Mesh(new THREE.BoxGeometry(.1, h*.84, .62),
+      new THREE.MeshBasicMaterial({ color: low ? C.lowLip : C.wallLip,
+        transparent:true, opacity:.22 }));
+    t.position.set(-w/2 + (i+.5)*(w/Math.max(2, Math.round(w/1.1))), h/2, 0); g.add(t);
+  }
+  g.position.x = ((lanesFrom + lanesTo)/2) * LANE;
+  g.userData = { from:lanesFrom, to:lanesTo, low, h };
+  return g;
+}
+/* A hole in the road. Mechanically the opposite of a tall wall: a wall you go
+   AROUND, a hole you go OVER. That is what makes both controls matter - before
+   this, the lift button only existed for the occasional low wall. The rim is
+   magenta because cyan already means wall and gold already means low wall. */
+function makeHole(from, to){
+  const w = (to - from + 1) * LANE;
+  const g = new THREE.Group();
+  const pit = new THREE.Mesh(new THREE.BoxGeometry(w - .08, 2.2, 3.0),
+    new THREE.MeshBasicMaterial({ color:C.pit }));
+  pit.position.y = -1.08; g.add(pit);
+  for (const dz of [-1.5, 1.5]){
+    const lip = new THREE.Mesh(new THREE.BoxGeometry(w, .07, .22),
+      new THREE.MeshBasicMaterial({ color:C.pitLip }));
+    lip.position.set(0, .04, dz); g.add(lip);
+  }
+  for (const dx of [-w/2, w/2]){
+    const lip = new THREE.Mesh(new THREE.BoxGeometry(.1, .07, 3.0),
+      new THREE.MeshBasicMaterial({ color:C.pitLip }));
+    lip.position.set(dx, .04, 0); g.add(lip);
+  }
+  g.position.x = ((from + to) / 2) * LANE;
+  g.userData = { from, to, hole:true, h:0 };
+  return g;
+}
+function rnd(n){ const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); }
+function buildWalls(){
+  // every wall leaves at least one lane open, and never the same one twice running
+  let last = 0;
+  for (let i = 1; i * 11 + 24 < CP_TOTAL * CP_EVERY - 4; i++){
+    const z = -(i * 11 + 24), k = i + 51.3;     // + 51.3: her road, not his
+    const r = rnd(k * 3.7);
+    let gap = Math.floor(rnd(k * 9.1) * 3) - 1;
+    if (gap === last && i > 1) gap = gap === 1 ? -1 : gap + 1;
+    last = gap;
+    if (r < .20){                       // a low one, spanning everything: lift over it
+      const w = makeWall(-1, 1, true);
+      w.position.z = z; scene.add(w); walls.push(w);
+    } else if (r < .44){                // a hole: one or two lanes torn out
+      const a = Math.floor(rnd(k*5.3)*3) - 1;
+      const b = rnd(k*7.7) < .45 ? Math.min(1, a + 1) : a;
+      const hl = makeHole(a, b);
+      hl.position.z = z; scene.add(hl); walls.push(hl);
+    } else {
+      const lanes = [-1, 0, 1].filter(l => l !== gap);
+      // one slab per blocked lane, so the open lane is unmistakable
+      for (const l of lanes){
+        const w = makeWall(l, l, false);
+        w.position.set(l * LANE, 0, z); scene.add(w); walls.push(w);
+      }
+    }
+  }
+}
+
+/* Two spare hearts on the road, just past checkpoints 4 and 8, for the back half
+   where the speed tops out. Each floats at saucer height in a lane the next row
+   leaves open, so going for one never steers him into a wall. They are the HUD's
+   heart colour: the one thing on the road that is good to fly into. */
+const HEART_AT = [4, 8];
+function openLanes(z){
+  const row = walls.filter(w => Math.abs(w.position.z - z) < .5);
+  // a low wall spans every lane but only asks for a lift, so it leaves them open
+  return [-1, 0, 1].filter(l => !row.some(w => !w.userData.low && l >= w.userData.from && l <= w.userData.to));
+}
+function buildHearts(){
+  const sh = new THREE.Shape();
+  sh.moveTo(0, -.5);
+  sh.bezierCurveTo(-.15, -.32, -.5, -.12, -.5, .14);
+  sh.bezierCurveTo(-.5, .4, -.28, .52, -.12, .5);
+  sh.bezierCurveTo(-.04, .49, 0, .42, 0, .34);
+  sh.bezierCurveTo(0, .42, .04, .49, .12, .5);
+  sh.bezierCurveTo(.28, .52, .5, .4, .5, .14);
+  sh.bezierCurveTo(.5, -.12, .15, -.32, 0, -.5);
+  const geo = new THREE.ExtrudeGeometry(sh, { depth:.16, bevelEnabled:true, bevelThickness:.06,
+    bevelSize:.05, bevelSegments:3, curveSegments:10 });
+  geo.center();
+  const mat = new THREE.MeshStandardMaterial({ color:0xdff8ff, emissive:C.beam, emissiveIntensity:.75,
+    roughness:.3, metalness:.1 });
+  const rows = [...new Set(walls.map(w => -w.position.z))].sort((a, b) => a - b);
+  for (const cp of HEART_AT){
+    // between the first two rows past the checkpoint line
+    const i = rows.findIndex(d => d > cp * CP_EVERY), a = rows[i], b = rows[i + 1];
+    const next = openLanes(-b), prev = openLanes(-a);
+    const lane = next.find(l => prev.includes(l)) ?? next[0];
+    const g = new THREE.Group();
+    const heart = new THREE.Mesh(geo, mat); heart.scale.setScalar(1.15); g.add(heart);
+    g.add(new THREE.Mesh(new THREE.CircleGeometry(1.05, 32), glowMat(C.beam, .16)));
+    const pad = new THREE.Mesh(new THREE.RingGeometry(.55, .8, 32), glowMat(C.beam, .4));
+    pad.rotation.x = -Math.PI/2; pad.position.y = -FLY_Y + .03; g.add(pad);
+    g.position.set(lane * LANE, FLY_Y, -(a + b) / 2);
+    g.userData = { lane, got:false, heart };
+    scene.add(g); pickups.push(g);
+  }
+}
+
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true });
+  ren.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  ren.setSize(innerWidth, innerHeight);
+  cab.appendChild(ren.domElement);
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(C.night);
+  scene.fog = new THREE.Fog(C.fog, 26, 110);
+  cam = new THREE.PerspectiveCamera(52, innerWidth/innerHeight, .1, 500);
+
+  scene.add(new THREE.HemisphereLight(0xffc7a6, 0x3a1810, .7));
+  const key = new THREE.DirectionalLight(0xffcfa8, .85); key.position.set(-6, 8, -14); scene.add(key);
+  const back = new THREE.DirectionalLight(0x9fb8ff, .3); back.position.set(5, 6, 9); scene.add(back);
+
+  // the sky goes with the camera: dusk, and a low sun dead ahead
+  const cv = document.createElement("canvas"); cv.width = 4; cv.height = 256;
+  const g2 = cv.getContext("2d"), gr = g2.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, "#1d0c12"); gr.addColorStop(.3, "#3a1a20"); gr.addColorStop(.44, "#7a3a34");
+  gr.addColorStop(.5, "#e8a27f"); gr.addColorStop(.54, "#a65c48"); gr.addColorStop(1, "#5a2c22");
+  g2.fillStyle = gr; g2.fillRect(0, 0, 4, 256);
+  sky = new THREE.Mesh(new THREE.SphereGeometry(420, 32, 16),
+    new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(cv), side:THREE.BackSide, fog:false, depthWrite:false }));
+  const sun = new THREE.Mesh(new THREE.CircleGeometry(30, 40), new THREE.MeshBasicMaterial({ color:0xffd9b8, fog:false }));
+  sun.position.set(70, 30, -400); sky.add(sun);
+  scene.add(sky);
+
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(LANE*3 + .9, 2600),
+    new THREE.MeshStandardMaterial({ color:C.road, roughness:1 }));
+  road.rotation.x = -Math.PI/2; road.position.z = -1200; scene.add(road);
+  const land = new THREE.Mesh(new THREE.PlaneGeometry(240, 2600),
+    new THREE.MeshStandardMaterial({ color:C.deep, roughness:1 }));
+  land.rotation.x = -Math.PI/2; land.position.set(0, -.06, -1200); scene.add(land);
+  for (const lx of [-.5, .5]){                                  // tyre ruts between the lanes
+    for (let i = 0; i < 300; i++){
+      const d = new THREE.Mesh(new THREE.BoxGeometry(.16, .02, 2.6),
+        new THREE.MeshBasicMaterial({ color:0x5a3424, transparent:true, opacity:.55 }));
+      d.position.set(lx*LANE*2, .02, -i*6.2); scene.add(d);
+    }
+  }
+  // the canyon walls, close on both sides - they are what sells the speed
+  const rockMat = new THREE.MeshStandardMaterial({ color:C.rock, roughness:1, flatShading:true });
+  for (let i = 0; i < 140; i++){
+    for (const sx of [-1, 1]){
+      const h = 7 + rnd(i*3.3 + sx)*16, w = 5 + rnd(i*7.1 + sx)*6;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(w*.55, w, h, 5 + (i % 3), 1), rockMat);
+      m.position.set(sx*(LANE*1.5 + 4.5 + w*.6 + rnd(i*5.9 + sx)*3), h/2 - .5, -i*9 - rnd(i)*4);
+      m.rotation.y = rnd(i*2.7 + sx)*3; scene.add(m); lamps.push(m);
+    }
+  }
+
+  // Jo's light: a blue column on the horizon that she rides at the whole way
+  beacon = new THREE.Group();
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 2.6, 160, 16, 1, true), glow(C.beam, .32));
+  col.material.fog = false; col.position.y = 84; beacon.add(col);
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(.5, .9, 160, 12, 1, true), glow(0xffffff, .45));
+  core.material.fog = false; core.position.y = 84; beacon.add(core);
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(9, 32), glow(C.beam, .22));
+  halo.material.fog = false; halo.position.y = 4; beacon.add(halo);
+  beacon.userData = { halo };
+  scene.add(beacon);
+
+  // "ufo" is the player, as in Level 1 - here it is her bike
+  ufo = new THREE.Group();
+  hullGrp = buildBike(); ufo.add(hullGrp);
+  scene.add(ufo);
+
+  spark = new THREE.Group(); scene.add(spark);
+  for (let i = 0; i < 44; i++){
+    const s = new THREE.Mesh(new THREE.BoxGeometry(.11, .11, .11),
+      new THREE.MeshBasicMaterial({ color: i%3 ? 0xffd2b4 : 0xd8b4fe }));
+    s.visible = false; s.userData = { v:new THREE.Vector3() }; spark.add(s);
+  }
+
+  buildWalls();
+  buildHearts();
+  finale = buildFinale(); scene.add(finale);
+  clock = new THREE.Clock();
+  addEventListener("resize", () => {
+    ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix();
+  });
+}
+
+/* ---- state ---- */
+let S;
+function reset(){
+  S = { t:0, dist:0, lane:0, laneX:0, laneFrom:0, laneT:9, y:0, vy:0, airT:0,
+        up:false, lastDown:0, bufAt:-9, started:false, done:false, cp:0, hits:0,
+        speed:SPEED0, camX:0, camV:0, crash:-1, msgT:0, spin:0, tilt:0, inv:0,
+        hearts:HEARTS, fail:false, end:-1, e0:null };
+  // reset() runs once at module scope, before boot() has built anything, so all
+  // of these have to tolerate a world that does not exist yet
+  walls.forEach(w => { w.userData.hit = false; w.scale.y = 1; });
+  pickups.forEach(p => p.userData.got = false);
+  if (spark) spark.children.forEach(s => s.visible = false);
+  if (ufo) ufo.scale.setScalar(1);
+  if (finale) resetFinale();
+  document.getElementById("hud").classList.remove("off");
+  const fl = document.getElementById("flash"); fl.style.opacity = 0; fl.style.background = "";
+  // and msgEl is a const further down, still in its dead zone on that first call
+  document.getElementById("msg").classList.remove("on");
+}
+reset();
+
+// her ride is the first half of SOMEBODY: Part 1 hears her arrive at 1:12
+const song = new Audio("lvl2.mp3"); song.preload = "auto";
+let ac = null, bus = null;
+function blip(kind){
+  if (!ac) return;
+  const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = kind === "crash" ? 900 : 4000;
+  o.type = kind === "crash" ? "sawtooth" : "triangle";
+  const hz = kind === "lift" ? 520 : kind === "bank" ? 820 : 150;
+  o.frequency.setValueAtTime(hz, t);
+  o.frequency.exponentialRampToValueAtTime(kind === "crash" ? 44 : hz*1.7, t + (kind === "crash" ? .7 : .13));
+  g.gain.setValueAtTime(kind === "crash" ? .34 : .09, t);
+  g.gain.exponentialRampToValueAtTime(.0001, t + (kind === "crash" ? .9 : .2));
+  o.connect(f); f.connect(g); g.connect(bus); o.start(t); o.stop(t + 1);
+}
+// a heart: two quick rising notes, brighter than anything the walls make
+function chime(){
+  if (!ac) return;
+  [[880, 0], [1320, .09]].forEach(([hz, d]) => {
+    const t = ac.currentTime + d, o = ac.createOscillator(), g = ac.createGain();
+    o.type = "triangle"; o.frequency.setValueAtTime(hz, t);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.13, t + .02);
+    g.gain.exponentialRampToValueAtTime(.0001, t + .32);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t + .35);
+  });
+}
+
+function act(dir){
+  if (!S.started || S.done || S.crash >= 0 || S.end >= 0) return;
+  if (dir === 0){
+    if (!S.up || S.t - S.lastDown < COYOTE) lift(); else S.bufAt = S.t;
+  } else {
+    const n = Math.max(-1, Math.min(1, S.lane + dir));
+    if (n !== S.lane){ S.laneFrom = S.laneX; S.lane = n; S.laneT = 0; blip("bank"); }
+  }
+}
+function lift(){
+  if (S.up && S.t - S.lastDown >= COYOTE) return;
+  S.up = true; S.airT = 0; S.vy = 4*HOP_H/HOP_T; blip("lift");
+}
+let pd = null;
+addEventListener("pointerdown", e => {
+  if (!document.getElementById("veil").classList.contains("hid")) return;
+  e.preventDefault(); pd = { x:e.clientX, y:e.clientY, t:performance.now() };
+}, { passive:false });
+addEventListener("pointerup", e => {
+  if (!pd) return;
+  const dx = e.clientX-pd.x, dy = e.clientY-pd.y, ms = performance.now()-pd.t;
+  if (ms < 400 && Math.hypot(dx,dy) > 32){
+    if (Math.abs(dx) > Math.abs(dy)) act(dx>0?1:-1); else if (dy<0) act(0);
+  } else { const f = pd.x/innerWidth; act(f<.32?-1:f>.68?1:0); }
+  pd = null;
+});
+addEventListener("keydown", e => {
+  if (["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key)) e.preventDefault();
+  if (e.key === "ArrowLeft") act(-1);
+  if (e.key === "ArrowRight") act(1);
+  if (e.key === "ArrowUp" || e.key === " ") act(0);
+});
+
+const msgEl = document.getElementById("msg");
+function say(a, b, t){ msgEl.innerHTML = a + (b ? "<small>"+b+"</small>" : ""); msgEl.classList.add("on"); S.msgT = t; }
+
+function burst(x, y, z, n){
+  let k = 0;
+  for (const s of spark.children){
+    if (k++ >= n) break;
+    s.visible = true; s.position.set(x, y, z);
+    s.userData.v.set((Math.random()-.5)*9, Math.random()*7+1.5, (Math.random()-.5)*6);
+  }
+}
+
+const easeOut = u => 1 - Math.pow(1-u, 3);
+function update(dt){
+  S.t += dt;
+
+  /* ---- the ending: the crest, the jump, and him. Only the sounds and the
+     one-off bursts live here; renderEnd() works everything else out from S.end. ---- */
+  if (S.end >= 0){
+    const t0 = S.end, t = S.end += dt;
+    const at = x => t0 < x && t >= x;
+    if (at(.05)) sweep("sawtooth", 90, 320, 1.1, .16, 1400);             // full throttle at the crest
+    if (at(END.land)){ blip("crash"); burst(0, .4, FIN.z + FIN.land, 26); }
+    if (at(END.hold)) say("HOLD ON, JO", "", 2.4);
+    if (at(END.line)) say("SOMEBODY'S HERE", "", 2.6);
+    if (t >= END.out && !S.done){ S.done = true; finish(); }
+    return;
+  }
+
+  /* ---- out of hearts: he goes down on the road. ---- */
+  if (S.crash >= 0){
+    S.crash += dt;
+    S.speed = Math.max(0, S.speed - dt * 11);
+    S.dist += S.speed * dt;
+    S.spin += dt * (2.6 + S.crash * 3.2);
+    S.tilt = Math.min(1.25, S.tilt + dt * 1.5);
+    S.vy -= 13 * dt; S.y = Math.max(0, S.y + S.vy * dt);
+    if (S.y <= .01 && S.vy < 0){ S.vy = -S.vy * .34; if (Math.abs(S.vy) > 1) burst(S.laneX*LANE, .3, -S.dist, 14); }
+    if (S.crash > (S.fail ? 2.4 : 3.6) && !S.done){ S.done = true; finish(); }
+    return;
+  }
+
+  S.speed = speedAt(S.dist);
+  S.dist += S.speed * dt;
+
+  S.laneT += dt;
+  const u = Math.min(1, S.laneT/(LANE_MS/1000));
+  S.laneX = S.laneFrom + (S.lane - S.laneFrom)*easeOut(u);
+
+  if (S.up){
+    S.airT += dt; S.vy -= (8*HOP_H/(HOP_T*HOP_T))*dt; S.y += S.vy*dt;
+    if (S.y <= 0){ S.y = 0; S.up = false; S.lastDown = S.t; S.vy = 0;
+      if (S.t - S.bufAt < BUFFER){ S.bufAt = -9; lift(); } }
+  } else S.lastDown = S.t;
+
+  /* Collision. A 3.2m shunt was less than the 11m wall spacing, so he was
+     re-hitting the same slab every frame and ploughing straight through it -
+     22 walls clipped in one run with nobody even touching the controls. Now a
+     hit throws him well clear and buys a moment of grace. */
+  if (S.inv > 0) S.inv -= dt;
+  const myZ = -S.dist;
+  for (const w of walls){
+    if (w.userData.hit || S.inv > 0) continue;
+    const dz = w.position.z - myZ;
+    if (dz > 0 || dz < -1.1) continue;
+    w.userData.hit = true;
+    const inLane = S.lane >= w.userData.from && S.lane <= w.userData.to;
+    if (!inLane) continue;
+    if (w.userData.low && S.y > 0.75) continue;             // cleared the low wall
+    if (w.userData.hole && S.y > 0.70) continue;            // flew over the hole
+    S.hits++; S.hearts = Math.max(0, S.hearts - 1); S.inv = .95;
+    // on the finish line he is not shunted back off it, so if his last heart goes
+    // on the same frame, the ending below still fires: the story wins over a fail
+    const atEnd = S.dist >= CP_TOTAL * CP_EVERY;
+    if (!atEnd) S.dist = Math.max(0, S.dist - 7.5);
+    S.laneX = S.lane; S.laneFrom = S.lane; S.laneT = 9;
+    burst(S.laneX*LANE, FLY_Y + S.y, myZ, 10);
+    blip("crash"); S.tilt = 0; S.camV += 16;
+    /* Out of hearts. Same fall as the ending, because a crash should feel like a
+       crash - but this one is a fail and never reaches finish()'s ending copy, and
+       it says so: "..." belongs to the ending. Speed is cut so the slide stops
+       short of the wall he just bounced off. */
+    if (!S.hearts && !atEnd){
+      S.fail = true; S.crash = 0; S.vy = 1.4; S.speed *= .35;
+      burst(S.laneX*LANE, FLY_Y + S.y, -S.dist, 18);
+      say("OUT OF HEARTS", "", 1.6); return;
+    }
+    break;
+  }
+
+  // a heart is caught at any height - lifting over a hole should not cost it
+  for (const p of pickups){
+    if (p.userData.got || S.lane !== p.userData.lane) continue;
+    const dz = p.position.z - myZ;
+    if (dz > .3 || dz < -1.1) continue;
+    p.userData.got = true;
+    const full = S.hearts >= HEARTS;
+    S.hearts = Math.min(HEARTS, S.hearts + 1);
+    burst(p.position.x, p.position.y, p.position.z, 12); chime();
+    say(full ? "HEARTS FULL" : "+1 HEART", "", 1.2);
+  }
+
+  const cp = Math.floor(S.dist / CP_EVERY);
+  if (cp > S.cp){
+    S.cp = cp;
+    if (cp >= CP_TOTAL){ S.end = 0; S.e0 = { x:S.laneX*LANE, y:FLY_Y + S.y, z:-S.dist };
+      document.getElementById("hud").classList.add("off"); msgEl.classList.remove("on");
+      sweep("triangle", 300, 900, .6, .08, 4000); return; }
+    say("CHECKPOINT " + cp + " / " + CP_TOTAL, "", 1.5);
+  }
+
+  // in 1/60 s steps: past ~1/21 s a single step of this spring blows up, and a
+  // hit's kick then throws the camera off the saucer on a slow phone
+  const target = S.laneX * LANE * .38;
+  for (let n = Math.ceil(dt * 60), h = dt / n, i = 0; i < n; i++){
+    S.camV += (-(19*19)*(S.camX - target) - 2*.9*19*S.camV) * h;
+    S.camX += S.camV * h;
+  }
+
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) msgEl.classList.remove("on"); }
+}
+
+function render(dt){
+  if (S.end >= 0){ renderEnd(dt); return; }
+  const y = S.y;                        // she is on the ground; S.y is the jump
+  ufo.position.set(S.laneX*LANE, y, -S.dist);
+  // lean into the swerve, nose up on a jump, tumble when she goes down
+  const bank = (S.lane - S.laneX) * -0.9;
+  ufo.rotation.z = bank + (S.crash >= 0 ? Math.sin(S.spin*1.7) * S.tilt : 0);
+  ufo.rotation.x = S.crash >= 0 ? S.tilt * .7 : (S.up ? Math.min(.35, S.vy*.05) : 0);
+  ufo.rotation.y = S.spin;
+  hullGrp.userData.body.position.y = S.crash >= 0 || S.up ? 0 : Math.abs(Math.sin(S.t*17))*.02;
+  hullGrp.userData.wheels.forEach(w => w.rotation.z = -S.dist / .42);
+  hullGrp.userData.cone.material.opacity = S.crash >= 0 ? 0 : .09 + Math.sin(S.t*9)*.01;
+  hullGrp.userData.light.intensity = S.crash >= 0 ? 0 : 1.6;
+  updateBeacon();
+
+  for (const s of spark.children){
+    if (!s.visible) continue;
+    s.userData.v.y -= 15*dt;
+    s.position.addScaledVector(s.userData.v, dt);
+    s.rotation.x += dt*7; s.rotation.y += dt*5;
+    if (s.position.y < 0) s.visible = false;
+  }
+  // going down, the camera pulls back past walls he has already passed - drop
+  // those, or the fall plays out behind the back of a slab
+  for (const w of walls) w.visible = Math.abs(w.position.z + S.dist) < 62 &&
+    !(S.crash >= 0 && w.position.z > -S.dist + .6);
+  for (const p of pickups){
+    p.visible = !p.userData.got && Math.abs(p.position.z + S.dist) < 62 && !(S.crash >= 0 && p.position.z > -S.dist + .6);
+    p.userData.heart.rotation.y = S.t * 2.4;
+    p.userData.heart.position.y = Math.sin(S.t * 3) * .12;
+  }
+  for (const b of lamps) b.visible = Math.abs(b.position.z + S.dist) < 90;
+
+  const back = S.crash >= 0 ? 8.5 + S.crash*2.2 : 7.4;
+  cam.position.set(S.camX, 3.9 + y*.30 + (S.crash >= 0 ? S.crash*.7 : 0), -S.dist + back);
+  cam.lookAt(S.camX*.55, .7 + S.y*.5, -S.dist - 12);
+  sky.position.copy(cam.position);
+  ren.render(scene, cam);
+  document.getElementById("m").textContent = Math.floor(S.dist);
+}
+
+/* ================= THE ENDING =================
+   At 1100 m the canyon gives out onto a dune. She takes the crest flat out,
+   lands in the basin below, and there he is: the saucer low in its own beam,
+   ringed by the things from Part 1. The headlight cuts the dust - which is the
+   moment Part 1 shows from his side at 1:12. About eight seconds, worked out
+   from S.end alone like Level 1's ending, so it plays the same at any fps. */
+const END = { crest:1.0, land:2.0, stop:2.8, hold:3.2, line:5.0, dim:6.8, out:7.8 };
+const FIN = { z:-(CP_TOTAL * CP_EVERY), crest:-8, land:-22, stop:-25, jo:-36 };
+const clamp01 = x => Math.max(0, Math.min(1, x));
+const span = (t, a, b) => clamp01((t - a) / (b - a));
+const smooth = u => u*u*(3 - 2*u);
+const V1 = new THREE.Vector3(), V2 = new THREE.Vector3();
+const flashEl = document.getElementById("flash");
+
+function sweep(type, f0, f1, dur, gain, lp){
+  if (!ac) return;
+  const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp; o.type = type;
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + dur*.3);
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + .05);
+}
+const glowMat = glow;
+
+/* the monsters from Part 1: dark, with the magenta glow that means trouble */
+function makeCrawler(){
+  const g = new THREE.Group(), bug = new THREE.MeshStandardMaterial({ color:0x22121a, roughness:.55, emissive:0x3a0618, emissiveIntensity:.5 });
+  const eye = new THREE.MeshBasicMaterial({ color:C.pitLip });
+  const b = new THREE.Mesh(new THREE.SphereGeometry(.55, 12, 8), bug); b.scale.set(1, .55, 1.2); b.position.y = .42; g.add(b);
+  const legs = [];
+  for (let i = 0; i < 6; i++){
+    const side = i < 3 ? -1 : 1, k = i % 3;
+    const l = new THREE.Mesh(new THREE.BoxGeometry(.08, .08, .62), bug);
+    l.position.set(side*.5, .3, (k - 1)*.38); l.rotation.y = Math.PI/2 + side*(k - 1)*.35; g.add(l); legs.push(l);
+  }
+  for (const x of [-.17, .17]){ const e = new THREE.Mesh(new THREE.SphereGeometry(.1, 8, 6), eye); e.position.set(x, .58, -.6); g.add(e); }
+  g.userData.legs = legs;
+  return g;
+}
+function makeWatcher(){
+  const g = new THREE.Group(), bug = new THREE.MeshStandardMaterial({ color:0x22121a, roughness:.55 });
+  const s = new THREE.Mesh(new THREE.CylinderGeometry(.22, .5, 2.4, 9), bug); s.position.y = 1.2; g.add(s);
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(.46, 16, 12), new THREE.MeshBasicMaterial({ color:0xffe0ef })); ball.position.y = 2.75; g.add(ball);
+  const iris = new THREE.Mesh(new THREE.SphereGeometry(.2, 10, 8), new THREE.MeshBasicMaterial({ color:C.pitLip })); iris.position.set(0, 2.75, -.36); g.add(iris);
+  g.userData.legs = [];
+  return g;
+}
+function buildFinale(){
+  const g = new THREE.Group(), z0 = FIN.z;
+  // the crest she jumps from, and the basin floor
+  const crest = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 10, 0, Math.PI*2, 0, Math.PI/2),
+    new THREE.MeshStandardMaterial({ color:C.deep, roughness:1, flatShading:true }));
+  crest.scale.set(9, .9, 4); crest.position.set(0, -.05, z0 + FIN.crest + 2); g.add(crest);
+  // Jo, low in his beam
+  const jo = new THREE.Group(); jo.position.set(0, 2.9, z0 + FIN.jo); jo.scale.setScalar(1.5);
+  const ufoM = buildUFO(); jo.add(ufoM);
+  const bm = buildBeam(); bm.scale.set(1, 1.9, 1); bm.position.y = -.95; bm.material.opacity = .2; jo.add(bm);
+  const pl = new THREE.PointLight(C.beam, 2.2, 14, 2); pl.position.y = -1; jo.add(pl);
+  g.add(jo);
+  // ringed by them
+  const mons = [];
+  for (let i = 0; i < 11; i++){
+    const a = i/11*Math.PI*2 + .2, r = 5 + (i % 3)*1.6;
+    const m = i % 4 === 1 ? makeWatcher() : makeCrawler();
+    m.position.set(Math.cos(a)*r, 0, z0 + FIN.jo + Math.sin(a)*r);
+    m.userData.a0 = Math.atan2(-(0 - m.position.x), -((z0 + FIN.jo) - m.position.z));
+    m.rotation.y = m.userData.a0; m.userData.wob = i*1.3;
+    g.add(m); mons.push(m);
+  }
+  g.userData = { jo, ufoM, mons };
+  g.visible = false;
+  return g;
+}
+function resetFinale(){
+  finale.visible = false;
+  for (const m of finale.userData.mons) m.rotation.y = m.userData.a0;
+}
+// her road towards his light: it starts on the horizon and ends right over him
+function updateBeacon(){
+  const p = clamp01(S.dist / (CP_TOTAL * CP_EVERY));
+  const D = -FIN.jo + 330 * Math.pow(1 - p, 1.4);
+  beacon.position.set(0, 0, -S.dist - D);
+  beacon.userData.halo.quaternion.copy(cam.quaternion);
+  // up close the saucer is the light, so the halo behind it fades away
+  beacon.userData.halo.material.opacity = (.18 + Math.sin(S.t*6)*.05) * clamp01((D + FIN.jo + 0) / 60 + .15);
+  // the basin comes into view over the last stretch
+  finale.visible = S.dist > CP_TOTAL * CP_EVERY - 90;
+  if (finale.visible) animateFinale(S.t, false);
+}
+function animateFinale(t, turned){
+  const F = finale.userData;
+  F.ufoM.rotation.y = t*.45; F.ufoM.userData.lights.rotation.y = -t*1.9;
+  F.ufoM.position.y = Math.sin(t*2.1)*.08;
+  for (const m of F.mons){
+    m.userData.wob += .016*5;
+    m.userData.legs.forEach((l, j) => l.rotation.x = Math.sin(m.userData.wob*2.2 + j*1.7)*.5);
+    if (turned){ // they turn on her
+      const want = Math.atan2(-(ufo.position.x - m.position.x), -(ufo.position.z - m.position.z));
+      let d = want - m.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); m.rotation.y += d*.08;
+    }
+  }
+}
+function renderEnd(dt){
+  const t = S.end, e = S.e0, z0 = FIN.z;
+  updateBeacon();
+  // 1. to the crest, into the middle lane
+  let x, y, z, pitch = 0;
+  if (t < END.crest){
+    const u = t / END.crest;
+    x = e.x*(1 - smooth(u)); z = e.z + (z0 + FIN.crest - e.z)*u; y = 0;
+  } else if (t < END.land){
+    // 2. the jump: a long arc over the lip of the basin
+    const u = (t - END.crest) / (END.land - END.crest);
+    x = 0; z = z0 + FIN.crest + (FIN.land - FIN.crest)*u; y = .4 + 4.2*4*u*(1 - u);
+    pitch = .35 - u*.6;
+  } else {
+    // 3. down, a skid, stopped facing him
+    const u = smooth(span(t, END.land, END.stop));
+    x = Math.sin(u*Math.PI)*.6; z = z0 + FIN.land + (FIN.stop - FIN.land)*u; y = 0;
+    pitch = -.25*(1 - span(t, END.land, END.land + .25));
+  }
+  ufo.position.set(x, y, z);
+  ufo.rotation.set(pitch, t > END.land ? Math.sin(span(t, END.land, END.stop)*Math.PI)*.5 : 0,
+    t > END.land && t < END.stop ? -.25*Math.sin(span(t, END.land, END.stop)*Math.PI) : 0);
+  hullGrp.userData.wheels.forEach(w => w.rotation.z -= dt * (t < END.stop ? 40 : 0));
+  // the headlight opens up on landing: this is the light he sees
+  const lit = span(t, END.land, END.land + .5);
+  hullGrp.userData.cone.material.opacity = .1 + lit*.2;
+  hullGrp.userData.cone.scale.set(1 + lit*.7, 1, 1 + lit*.7);     // wider, never longer: it must start at the lamp
+  hullGrp.userData.light.intensity = 1.6 + lit*2.5;
+  for (const w of walls) w.visible = false;
+  for (const p of pickups) p.visible = false;
+  animateFinale(S.t + t, t > END.land);
+  for (const s of spark.children){
+    if (!s.visible) continue;
+    s.userData.v.y -= 15*dt; s.position.addScaledVector(s.userData.v, dt);
+    if (s.position.y < 0) s.visible = false;
+  }
+  // camera: the chase, then up and out to the side to show the whole basin
+  const c = smooth(span(t, END.crest - .3, END.stop + .2));
+  const tall = cam.aspect < 1 ? (1 - cam.aspect) : 0;
+  const ax = S.camX, ay = 3.9, az = e.z + 6.8 - (e.z - (z0 + FIN.crest))*span(t, 0, END.crest);
+  const bx = 8 + tall*6, by = 5.2 + tall*6, bz = z0 + FIN.stop + 8 + tall*10;
+  cam.position.set(ax + (bx - ax)*c, ay + (by - ay)*c, az + (bz - az)*c);
+  V1.set(0, 1.2, z0 + FIN.crest - 9).lerp(V2.set(-.5, 1.6, z0 + (FIN.stop + FIN.jo)/2), c);
+  cam.lookAt(V1);
+  sky.position.copy(cam.position);
+  const fo = span(t, END.dim, END.out - .1);
+  flashEl.style.background = "#14070c"; flashEl.style.opacity = fo;
+  ren.render(scene, cam);
+}
+
+const pips = document.getElementById("pips");
+for (let i = 0; i < CP_TOTAL; i++) pips.appendChild(document.createElement("i"));
+document.getElementById("hn").textContent = HEARTS + " hearts";
+const hearts = document.getElementById("hearts");
+for (let i = 0; i < HEARTS; i++){
+  const h = document.createElement("i");
+  h.innerHTML = '<svg viewBox="0 0 12 11" aria-hidden="true"><path d="M6 10.6 1.1 5.6A2.9 2.9 0 0 1 6 1.9a2.9 2.9 0 0 1 4.9 3.7Z"/></svg>';
+  hearts.appendChild(h);
+}
+let lastPip = 0, lastHeart = HEARTS, crashed = null;
+function frame(){
+  try {
+    const dt = Math.min(.05, clock ? clock.getDelta() : .016);
+    if (S.started && !S.done) update(dt);
+    render(dt);
+    if (S.cp !== lastPip){ lastPip = S.cp;
+      [...pips.children].forEach((e,i) => e.classList.toggle("on", i < S.cp)); }
+    // lost hearts go out from the right; adding .out is what plays the pop
+    // and a heart picked up off the road comes back in with .gain
+    if (S.hearts !== lastHeart){
+      [...hearts.children].forEach((e,i) => {
+        e.classList.toggle("out", i >= S.hearts);
+        if (i >= lastHeart && i < S.hearts){ e.classList.remove("gain"); void e.offsetWidth; e.classList.add("gain"); }
+      });
+      lastHeart = S.hearts; }
+  } catch (e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+
+function finish(){
+  song.pause();
+  const v = document.getElementById("veil");
+  v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)");
+  const go = document.getElementById("go");
+  go.textContent = "Ride it again";
+  // both cards get the song, the merch, the fans and the way home; only a win
+  // gets Next level, and on a fail "Fly it again" stays the big button
+  go.classList.toggle("alt", !S.fail);
+  document.getElementById("next").classList.toggle("hid", S.fail);
+  for (const id of ["outs", "home"]) document.getElementById(id).classList.remove("hid");
+  document.getElementById("snd").classList.add("hid");
+  if (HUB) toHub({ type:"javeda:result", level:"lvl2b", cleared:!S.fail, score:score(),
+    metres:Math.floor(S.dist), hits:S.hits, hearts:S.hearts });
+  if (S.fail){
+    v.querySelector(".by").textContent = "OUT OF HEARTS";
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Out at <b>" + Math.floor(S.dist) + "</b> metres &middot; " +
+      (S.cp ? "checkpoint&nbsp;<b>" + S.cp + "</b>&nbsp;/&nbsp;" + CP_TOTAL : "before the first checkpoint");
+    ps[1].innerHTML = "He's still out there, holding on. <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = "LEVEL 2 \u00b7 PART 2 COMPLETE";
+  v.querySelector("h1").textContent = "FOUND HIM";
+  ps[0].innerHTML = "Score <b>" + score() + "</b> &middot; " + Math.floor(S.dist) + " metres &middot; " +
+    (S.hits === 0 ? "<b>clean the whole way</b>" : S.hearts ? "<b>"+S.hearts+"</b> heart"+(S.hearts === 1 ? "" : "s")+" left" : "<b>not a heart left</b>") +
+    " &middot; and there he was.";
+  ps[1].innerHTML = "You were never the only one. <b>Zirka's bike is yours now: ride it in Level 1.</b>";
+}
+document.getElementById("go").addEventListener("click", () => {
+  reset();
+  document.getElementById("veil").classList.add("hid");
+  try {
+    if (!ac){ ac = new (window.AudioContext||window.webkitAudioContext)();
+      bus = ac.createGain(); bus.gain.value = .5; bus.connect(ac.destination); }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){}
+  try { song.currentTime = 0; } catch(e){}     // a restart is a restart: the song too
+  const p = song.play(); if (p && p.catch) p.catch(()=>{});
+  S.started = true;
+  say("GO", "follow the blue light", 3);
+});
+
+boot();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

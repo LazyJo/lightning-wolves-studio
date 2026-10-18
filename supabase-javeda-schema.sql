@@ -16,8 +16,9 @@
 -- ── Levels ─────────────────────────────────────────────────────────────────
 -- `requires` is the gate: a level opens once the level it names is cleared.
 -- max_score is a sanity cap on what a client may report, just above each
--- level's real ceiling (Level 1 ~3.5k; Levels 2 and 9 ~90k and ~140k, set by
--- their x8 combo). score_per_point turns a score into points so that a strong
+-- level's real ceiling (Level 1 and Level 2 Part 2 ~3.5k; Level 2 up to 90k; Level 9 ~140k,
+-- set by its x8 combo). A "Part 2" is a bonus level: it needs its Part 1 cleared, and
+-- nothing after it needs it. score_per_point turns a score into points so that a strong
 -- clear earns the 40-point per-run maximum in javeda_submit_run.
 CREATE TABLE IF NOT EXISTS javeda_levels (
   id                 TEXT PRIMARY KEY,
@@ -34,7 +35,8 @@ CREATE TABLE IF NOT EXISTS javeda_levels (
 INSERT INTO javeda_levels (id, num, title, requires, max_score, score_per_point, clear_points, first_clear_points, sort) VALUES
   ('lvl1', 1, 'I''M LOST',   NULL,   4000,   100, 50, 300, 1),
   ('lvl2', 2, 'SOMEBODY',    'lvl1', 95000,  2000, 50, 300, 2),
-  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 150000, 3000, 75, 500, 3)
+  ('lvl2b', 2, 'ZIRKA''S RIDE', 'lvl2', 4000, 100, 50, 300, 3),   -- Level 2 Part 2, scored like Level 1
+  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 150000, 3000, 75, 500, 4)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -150,7 +152,9 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(SUM(CASE WHEN g.cleared THEN 1 ELSE 0 END), 0)::INT AS levels_cleared,
        COALESCE(MAX(CASE WHEN g.level = 'lvl1' THEN g.best_score END), 0)::INT AS lvl1_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl2' THEN g.best_score END), 0)::INT AS lvl2_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl9' THEN g.best_score END), 0)::INT AS lvl9_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl9' THEN g.best_score END), 0)::INT AS lvl9_best,
+       -- new columns go last: CREATE OR REPLACE VIEW can only add at the end
+       COALESCE(MAX(CASE WHEN g.level = 'lvl2b' THEN g.best_score END), 0)::INT AS lvl2b_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

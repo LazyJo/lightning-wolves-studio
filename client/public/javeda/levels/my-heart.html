@@ -148,10 +148,10 @@ const SHARDS = CFG.shards, PETALS = 3;
 const WORLD = 62;                       // how far from the middle the forest goes
 const FLY_Y = 8.5, SPEED = 6.6;         // just over the treetops; the beam reaches down through them
 const FOG = CFG.fog, FOG_STAR = .011;   // fog density, and how far a shooting star thins it
-/* Song times: where the hook starts (it plays when the heart is whole). Read off
-   the song's loudness when the file is in; HOOK is the number to change if the
-   moment is wrong. */
-const HOOK = 45;
+/* Where the hook lands in lvl3.mp3: the first chorus downbeat at 0:24.0, read
+   off the song's loudness (the pickup is at 0:23.25). The ending starts the song
+   END.whole seconds before it, so the hook hits on the frame the heart closes. */
+const HOOK = 24.0;
 
 const LINKS = {
   next:    "https://lightningwolves.studio/javeda/",
@@ -589,7 +589,7 @@ function startEnd(){
   msgEl.classList.remove("on"); stickEl.style.display = "none"; drag = null;
   document.getElementById("beat").style.opacity = 0;
   // the hook
-  try { song.loop = false; song.currentTime = HOOK; const p = song.play(); if (p && p.catch) p.catch(()=>{}); } catch(e){}
+  try { song.loop = false; song.currentTime = Math.max(0, HOOK - END.whole); const p = song.play(); if (p && p.catch) p.catch(()=>{}); } catch(e){}
 }
 function updateEnd(dt){
   const t0 = S.end, t = S.end += dt;

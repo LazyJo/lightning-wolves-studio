@@ -10,7 +10,8 @@ client/public/javeda/
 ├── avatars/<id>.svg    # 12 profile pictures (+ catalog.json); prices live in the database
 └── levels/
     ├── im-lost.html    # Level 1, 3D saucer runner (three.js r128 from cdnjs) + lvl1.mp3
-    └── javeda.html     # the original JAVEDA game (Levels 2 and 9, songs embedded)
+    ├── somebody.html   # Level 2, 3D desert arena with Zirka (three.js r128) + lvl2.mp3
+    └── javeda.html     # the original JAVEDA game (Level 9 here; songs embedded)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
 
@@ -67,6 +68,11 @@ hub, the level posts to `window.parent` (same origin only):
 4. Add a `<id>_best` column to the `javeda_board` view if it should get its own
    scoreboard tab, and a tab in `TABS`.
 
-Level 1's source of truth is the JAVEDA folder on Jo's L: drive (and the
-`claude/amazing-mccarthy-pvr6xv` branch of LazyJo/desktop-tutorial). `levels/im-lost.html`
-is that file wrapped in a `<!doctype html>` page; copy it over when Level 1 changes.
+Levels 1 and 2 come from the JAVEDA folder on Jo's L: drive (and the
+`claude/amazing-mccarthy-pvr6xv` branch of LazyJo/desktop-tutorial, `javeda/im-lost` and
+`javeda/somebody`). `levels/im-lost.html` and `levels/somebody.html` are those files wrapped in a
+`<!doctype html>` page; copy them over when a level changes.
+
+Level 2 used to be the old JAVEDA game's Level 2 (`javeda.html?level=lvl2`). Its scores were on
+the same scale (a strong clear is roughly 40k-75k, capped at 90k in the page and 95k in the
+database), so the `javeda_levels` row did not need to change.

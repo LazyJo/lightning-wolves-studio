@@ -257,6 +257,9 @@ let LEVELS = [
   { id:"lvl2b", num:2, part:2, title:"ZIRKA'S RIDE", requires:"lvl2", src:"levels/zirkas-ride.html?hub=1",
     ds:"Part 2. Be Zirka: ride the purple bike across the Dust Sea to find Jo. Clear it to ride her bike in Level 1.",
     art:"radial-gradient(120% 90% at 80% 0%, #a855f755, transparent 60%), linear-gradient(160deg,#3a1630,#12070a)" },
+  { id:"lvl3", num:3, title:"MY HEART", requires:"lvl2", src:"levels/my-heart.html?hub=1",
+    ds:"A forest at night under a broken heart. Fly the red saucer and find the five pieces. Follow the heartbeat.",
+    art:"radial-gradient(120% 90% at 80% 0%, #e11d2e55, transparent 60%), linear-gradient(160deg,#2a0a10,#05060a)" },
   { id:"lvl9", num:9, title:"OUBLIE-MOI", requires:"lvl2", src:"levels/javeda.html?hub=1&level=lvl9",
     ds:"District 9 with Zirka. Monsters over the city. Remind them who the Wolves are.",
     art:"radial-gradient(120% 90% at 80% 0%, #ff3d8b55, transparent 60%), linear-gradient(160deg,#2a1450,#0b0416)" }
@@ -267,7 +270,7 @@ const lvName = l => "Level " + l.num + (l.part ? " Part " + l.part : "");
 function nextMain(id){
   const lv = levelById(id); if (!lv) return null;
   const base = lv.part ? lv.requires : lv.id;
-  return LEVELS.find(l => !l.part && l.requires === base) || null;
+  return LEVELS.slice(LEVELS.findIndex(l => l.id === base) + 1).find(l => !l.part) || null;
 }
 // rides a player has earned, passed to the levels that offer them
 const rides = () => (creator || (progress.lvl2b && progress.lvl2b.cleared)) ? ["bike"] : [];
@@ -337,7 +340,7 @@ function renderLevels(){
   }).join("") + '<article class="lv soon"><span class="no">Levels 3 - 28</span><p class="ds">One per song on the album. Coming as the songs come.</p></article>';
   $("levels").innerHTML = html;
 }
-const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl9","Level 9"]];
+const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl9","Level 9"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
 }
@@ -345,7 +348,7 @@ async function renderBoard(){
   const el = $("board");
   if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
   const col = boardTab === "points" ? "points" : boardTab + "_best";
-  const { data, error } = await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl9_best")
+  const { data, error } = await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl9_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }

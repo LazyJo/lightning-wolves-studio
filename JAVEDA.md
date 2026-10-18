@@ -12,6 +12,7 @@ client/public/javeda/
     ├── im-lost.html    # Level 1, 3D saucer runner (three.js r128 from cdnjs) + lvl1.mp3
     ├── somebody.html   # Level 2, 3D desert arena with Zirka (three.js r128) + lvl2.mp3
     ├── zirkas-ride.html # Level 2 Part 2, Zirka's bike ride to Jo (Level 1's road engine) + lvl2.mp3
+    ├── my-heart.html   # Level 3, Explore: the red saucer finds the pieces of a broken heart (lvl3.mp3 to come)
     └── javeda.html     # the original JAVEDA game (Level 9 here; songs embedded)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

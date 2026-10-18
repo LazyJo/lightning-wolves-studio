@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>MY HEART</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+html,body{height:100%}
+body{margin:0; background:#05060a; color:#f4eef0; overflow:hidden;
+  font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; transition:opacity .4s}
+#hud.off{opacity:0}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#ffffff}
+/* the heartbeat at the edges of the screen: stronger the closer the next piece is */
+#beat{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0;
+  box-shadow:inset 0 0 90px 30px #e11d2e; transition:opacity .12s}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#ff5a68; line-height:1}
+#ml{font-size:11px; letter-spacing:.18em; color:#b98a92; margin-top:3px}
+#shards{display:flex; gap:5px; margin-top:8px}
+#shards i{display:block; width:14px; height:13px; color:#ffffff26}
+#shards i.on{color:#ff3b4d}
+#shards svg{display:block; width:100%; height:100%; fill:currentColor}
+#petals{font-size:12px; letter-spacing:.14em; color:#b98a92; margin-top:7px}
+#petals b{color:#ff8a96; font-weight:700}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; padding:0 16px;
+  font-family:Bungee,sans-serif; font-size:30px; opacity:0; transition:opacity .25s; text-shadow:0 0 22px #000}
+#msg.on{opacity:1}
+#msg.line{font-family:"Barlow Condensed",sans-serif; font-size:26px; letter-spacing:.06em}
+#msg.red{color:#ff5a68}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:14px;
+  letter-spacing:.1em; color:#d7b9be; margin-top:6px}
+#stick{position:fixed; width:96px; height:96px; margin:-48px 0 0 -48px; border-radius:50%; z-index:3;
+  border:1.5px solid #ffffff40; background:#ffffff0d; pointer-events:none; display:none}
+#stick i{position:absolute; left:50%; top:50%; width:38px; height:38px; margin:-19px 0 0 -19px; border-radius:50%;
+  background:#ff3b4d55; border:1.5px solid #ff3b4daa}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
+  gap:16px; background:radial-gradient(70% 56% at 50% 38%, #3a0a12 0%, #12060a 62%, #05060a 100%); z-index:9;
+  text-align:center; padding:26px; overflow-y:auto}
+/* two springs instead of justify-content:center, so a card taller than a sideways
+   phone scrolls from its top instead of losing its title off the top edge */
+#veil .sp{flex:1 0 0; display:block}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(34px,10vw,66px); line-height:1;
+  background:linear-gradient(172deg,#ffffff 18%,#ff4d5e 112%);
+  -webkit-background-clip:text; background-clip:text; color:transparent}
+#veil .by{font-family:"Barlow Condensed",sans-serif; letter-spacing:.42em; font-size:14px; color:#d7a0a8; margin:0 0 -8px}
+#veil p{margin:0; color:#e2c6ca; font-size:17px; max-width:34ch}
+#veil b{color:#ff6b78}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:#e11d2e; color:#fff4f5; border:0;
+  border-radius:4px; padding:16px 38px; cursor:pointer; margin-top:4px}
+#veil small{color:#9a6c74; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#go.alt{background:none; color:#ff8a96; border:1.5px solid #e11d2e; font-size:15px; padding:12px 30px; margin-top:0}
+#next{font-family:Bungee,sans-serif; font-size:19px; background:#e11d2e; color:#fff4f5; text-decoration:none;
+  border-radius:4px; padding:13px 34px 11px; margin-top:4px; line-height:1.1}
+#next small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px;
+  letter-spacing:.16em; color:#fff4f5; opacity:.8; margin-top:3px}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em;
+  text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em;
+  text-transform:uppercase; text-decoration:none; color:#ff8a96; padding:9px 22px; border-radius:4px;
+  border:1.5px solid #e11d2e99; background:#e11d2e14}
+#home:hover{color:#ffffff; border-color:#e11d2e}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ff8a96; outline-offset:3px}
+@media (prefers-reduced-motion:reduce){ #beat{transition:none} }
+/* a sideways phone: last, so it wins over the rules above */
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px}
+  #veil h1{font-size:44px} #outs{max-width:none} #next{padding:10px 30px 8px} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud"><div id="m">0:00</div><div id="ml">TIME</div><div id="shards"></div><div id="petals">PETALS <b id="pn">0</b> / 3</div></div>
+<div id="beat"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="stick"><i></i></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by">LAZY JO</p>
+  <h1>MY HEART</h1>
+  <p>The pieces of a broken heart are lost in this forest. Find all <b>5</b> and put it back together.</p>
+  <p><b>Drag</b> to fly &middot; your beam lights the fog &middot; follow the <b>heartbeat</b>: it beats faster when you're close &middot; the ghosts send you back</p>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= MY HEART =================
+   Level 3 of JAVEDA. A pine forest at night under a broken red heart, from the
+   cover. You fly the small red saucer over the fog looking for the five
+   pieces of the heart; each one you find goes back up into the sky and the
+   crack closes a little. Find the last and the heart is whole again.
+
+   Level 1 is a road and Level 2 an arena; this is the first Explore level: no
+   shooting and no clock to beat, just reading the dark. Two things guide you -
+   the heartbeat, which quickens as you near a piece, and the shooting stars,
+   which light the whole forest for a moment. Ghosts in the fog don't hurt, they
+   send you back to the last piece you found. */
+
+const SHARDS = 5, PETALS = 3;
+const WORLD = 62;                       // how far from the middle the forest goes
+const FLY_Y = 8.5, SPEED = 6.6;         // just over the treetops; the beam reaches down through them
+const FOG = .03, FOG_STAR = .011;       // fog density, and how far a shooting star thins it
+/* Song times: where the hook starts (it plays when the heart is whole). Read off
+   the song's loudness when the file is in; HOOK is the number to change if the
+   moment is wrong. */
+const HOOK = 45;
+
+const LINKS = {
+  next:    "https://lightningwolves.studio/javeda/",
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+
+/* Inside the JAVEDA hub (?hub=1 in a frame) the hub saves the result and owns
+   "next level" and "home". Opened on its own, nothing here changes. */
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB){
+  document.getElementById("next").addEventListener("click", e => {
+    e.preventDefault(); toHub({ type:"javeda:next", level:"lvl3" });
+  });
+  document.getElementById("home").addEventListener("click", e => {
+    e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" });
+  });
+}
+
+/* ---- palette, off the cover ---- */
+const C = {
+  night:0x05060a, fog:0x07090f, ground:0x0e1118, pine:0x0a0f12, trunk:0x120c0c,
+  heart:0xc8141f, heartDeep:0x5a070d, crack:0xffd2d6,
+  hull:0xc81e2c, hullDark:0x5a0b12, dome:0xffd6da, rim:0xffe1e4, beam:0x7fd6ff,
+  shard:0xff2a3d, ghost:0xcfe8ff
+};
+
+let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spot, sky, skyHeart, stars, streak, spark;
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cab = document.getElementById("cab");
+const trees = [], shards = [], petals = [], ghosts = [];
+const glow = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity,
+  blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function rnd(n){ const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); }
+
+/* ---- the small red saucer, with the blue beam from the cover ---- */
+function buildUFO(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 12),
+    new THREE.MeshStandardMaterial({ color:C.hull, roughness:.4, metalness:.35, emissive:0x3a0408, emissiveIntensity:.6 }));
+  hull.scale.set(1, .22, 1); g.add(hull);
+  const under = new THREE.Mesh(new THREE.SphereGeometry(.82, 24, 10), new THREE.MeshStandardMaterial({ color:C.hullDark, roughness:.6 }));
+  under.scale.set(1, .2, 1); under.position.y = -.1; g.add(under);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.44, 22, 14, 0, Math.PI*2, 0, Math.PI/2),
+    new THREE.MeshStandardMaterial({ color:C.dome, roughness:.12, transparent:true, opacity:.9, emissive:0x8a2a34, emissiveIntensity:.5 }));
+  dome.position.y = .12; g.add(dome);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.86, .055, 8, 40), new THREE.MeshBasicMaterial({ color:0xffb3bb }));
+  ring.rotation.x = Math.PI/2; ring.position.y = -.02; g.add(ring);
+  const lightGrp = new THREE.Group();
+  for (let i = 0; i < 10; i++){
+    const a = i/10*Math.PI*2;
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffffff : 0xffd24a }));
+    b.position.set(Math.cos(a)*.88, -.04, Math.sin(a)*.88); lightGrp.add(b);
+  }
+  g.add(lightGrp); g.userData.lights = lightGrp;
+  return g;
+}
+
+/* ---- the heart: two halves along one zig-zag crack, so they fit back together ---- */
+const ZIG = [[0, .34], [.05, .22], [-.04, .08], [.06, -.06], [-.03, -.2], [.02, -.34], [0, -.5]];
+function halfHeart(side){
+  const s = new THREE.Shape(), k = side;
+  s.moveTo(0, -.5);
+  s.bezierCurveTo(-.15*k, -.32, -.5*k, -.12, -.5*k, .14);
+  s.bezierCurveTo(-.5*k, .4, -.28*k, .52, -.12*k, .5);
+  s.bezierCurveTo(-.04*k, .49, 0, .42, 0, .34);
+  for (let i = 1; i < ZIG.length; i++) s.lineTo(ZIG[i][0], ZIG[i][1]);
+  return s;
+}
+function heartShape(){
+  const sh = new THREE.Shape();
+  sh.moveTo(0, -.5);
+  sh.bezierCurveTo(-.15, -.32, -.5, -.12, -.5, .14);
+  sh.bezierCurveTo(-.5, .4, -.28, .52, -.12, .5);
+  sh.bezierCurveTo(-.04, .49, 0, .42, 0, .34);
+  sh.bezierCurveTo(0, .42, .04, .49, .12, .5);
+  sh.bezierCurveTo(.28, .52, .5, .4, .5, .14);
+  sh.bezierCurveTo(.5, -.12, .15, -.32, 0, -.5);
+  return sh;
+}
+function buildSkyHeart(){
+  const g = new THREE.Group(), halves = [];
+  for (const side of [1, -1]){
+    const geo = new THREE.ShapeGeometry(halfHeart(side), 24);
+    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color:C.heart, fog:false, side:THREE.DoubleSide }));
+    const rim = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color:C.heartDeep, fog:false, side:THREE.DoubleSide }));
+    rim.scale.setScalar(1.035); rim.position.z = -.01;
+    const h = new THREE.Group(); h.add(rim, m); g.add(h); halves.push(h);
+  }
+  // the glow in the crack, which fades as it closes
+  const pts = ZIG.map(([x, y]) => new THREE.Vector3(x, y, .01));
+  const crack = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color:C.crack, fog:false, transparent:true }));
+  g.add(crack);
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(.9, 40), glow(0xff2a3d, .12));
+  halo.material.fog = false; halo.position.z = -.05; g.add(halo);
+  g.userData = { halves, crack, halo };
+  return g;
+}
+
+function buildWorld(){
+  // the night: stars, and a sky group that rides with the camera
+  sky = new THREE.Group(); scene.add(sky);
+  const n = 900, pos = new Float32Array(n*3);
+  for (let i = 0; i < n; i++){
+    const a = Math.random()*Math.PI*2, e = .05 + Math.random()*1.45, r = 300;
+    pos.set([Math.cos(a)*Math.cos(e)*r, Math.sin(e)*r, Math.sin(a)*Math.cos(e)*r], i*3);
+  }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  stars = new THREE.Points(sg, new THREE.PointsMaterial({ color:0xffffff, size:1.4, sizeAttenuation:false, fog:false, transparent:true, opacity:.9 }));
+  sky.add(stars);
+  skyHeart = buildSkyHeart(); skyHeart.scale.setScalar(40); skyHeart.position.set(0, 13, -200); sky.add(skyHeart);
+  // one shooting star, reused
+  streak = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color:0xffffff, fog:false,
+    transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+  sky.add(streak);
+
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400, 1, 1), new THREE.MeshStandardMaterial({ color:C.ground, roughness:1 }));
+  ground.rotation.x = -Math.PI/2; scene.add(ground);
+
+  // the pines: three instanced meshes, so 600 trees are three draw calls
+  const N = 620, trunkG = new THREE.CylinderGeometry(.16, .24, 2.2, 6), coneG = new THREE.ConeGeometry(1, 1, 7);
+  const trunkM = new THREE.InstancedMesh(trunkG, new THREE.MeshStandardMaterial({ color:C.trunk, roughness:1 }), N);
+  const coneM = new THREE.InstancedMesh(coneG, new THREE.MeshStandardMaterial({ color:C.pine, roughness:1, flatShading:true }), N*3);
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), SC = new THREE.Vector3();
+  let k = 0, ci = 0;
+  for (let i = 0; k < N && i < N*6; i++){
+    const a = rnd(i*1.7)*Math.PI*2, d = 7 + Math.sqrt(rnd(i*3.3))*(WORLD + 30);
+    const x = Math.cos(a)*d, z = Math.sin(a)*d;
+    if (CLEARINGS.some(c => Math.hypot(x - c[0], z - c[1]) < c[2])) continue;
+    if (trees.some(t => Math.hypot(t.x - x, t.z - z) < 2.6)) continue;
+    const h = 4 + rnd(i*5.1)*3.5, w = 1.2 + rnd(i*7.7)*.8;
+    trees.push({ x, z, r:w*.55 });
+    M.compose(P.set(x, 1.1, z), Q.identity(), SC.set(1, 1, 1)); trunkM.setMatrixAt(k, M);
+    for (let l = 0; l < 3; l++){
+      const ch = h*(.5 - l*.1), cw = w*(1 - l*.26);
+      M.compose(P.set(x, 1.6 + l*h*.24 + ch/2, z), Q.identity(), SC.set(cw, ch, cw)); coneM.setMatrixAt(ci++, M);
+    }
+    k++;
+  }
+  trunkM.count = k; coneM.count = ci;
+  scene.add(trunkM, coneM);
+}
+
+/* where things are: the start, the five pieces, the three petals - each in a
+   small clearing, the pieces out in every direction */
+const SHARD_AT = [[-14, -24], [26, -34], [44, 6], [-30, 22], [6, 44]];
+const PETAL_AT = [[-48, -10], [36, 40], [-8, -52]];
+const CLEARINGS = [[0, 0, 7]].concat(SHARD_AT.map(([x, z]) => [x, z, 4.5]), PETAL_AT.map(([x, z]) => [x, z, 3]));
+
+function buildShard(i){
+  const g = new THREE.Group();
+  const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(.6, 0), new THREE.MeshStandardMaterial({
+    color:C.shard, emissive:0xb0101c, emissiveIntensity:1.2, roughness:.25, flatShading:true }));
+  crystal.scale.set(.8, 1.3, .5); g.add(crystal);
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(2.2, 28), glow(C.shard, .35)); g.add(halo);
+  const light = new THREE.PointLight(C.shard, 1.6, 11, 2); g.add(light);
+  g.position.set(SHARD_AT[i][0], 1.2, SHARD_AT[i][1]);
+  g.userData = { crystal, halo, light, got:false, fly:-1, i };
+  return g;
+}
+function buildPetal(i){
+  const g = new THREE.Group();
+  const s = new THREE.Shape(); s.moveTo(0, -.3); s.quadraticCurveTo(.3, 0, 0, .35); s.quadraticCurveTo(-.3, 0, 0, -.3);
+  const p = new THREE.Mesh(new THREE.ShapeGeometry(s, 8), new THREE.MeshBasicMaterial({ color:0xff5a6e, side:THREE.DoubleSide }));
+  g.add(p); g.add(new THREE.Mesh(new THREE.CircleGeometry(.6, 20), glow(0xff5a6e, .18)));
+  g.position.set(PETAL_AT[i][0], 1.3, PETAL_AT[i][1]);
+  g.userData = { got:false, p };
+  return g;
+}
+function buildGhost(i){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshBasicMaterial({ color:C.ghost, transparent:true, opacity:.32, depthWrite:false });
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.55, 16, 12), mat); g.add(head);
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(.55, 1.6, 14, 1, true), mat);
+  tail.rotation.x = Math.PI; tail.position.y = -.8; g.add(tail);
+  for (const x of [-.18, .18]){
+    const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color:0x0a0d14 }));
+    e.position.set(x, .1, .5); g.add(e);
+  }
+  const a = rnd(i*9.3)*Math.PI*2, d = 14 + rnd(i*4.1)*40;
+  g.position.set(Math.cos(a)*d, FLY_Y, Math.sin(a)*d);
+  g.userData = { home:g.position.clone(), to:new THREE.Vector3(), wob:i*1.7, from:i < 3 ? 0 : i < 6 ? 2 : 4 };
+  return g;
+}
+
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true });
+  ren.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  ren.setSize(innerWidth, innerHeight);
+  cab.appendChild(ren.domElement);
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(C.fog);    // so the far edge of the ground melts into the sky
+  scene.fog = new THREE.FogExp2(C.fog, FOG);
+  cam = new THREE.PerspectiveCamera(52, innerWidth/innerHeight, .1, 800);
+  scene.add(new THREE.HemisphereLight(0x5a6e9a, 0x0a0608, .55));
+  const moon = new THREE.DirectionalLight(0xb8c8ff, .35); moon.position.set(-10, 20, 10); scene.add(moon);
+
+  buildWorld();
+  ufo = new THREE.Group();
+  hullGrp = buildUFO(); ufo.add(hullGrp);
+  beam = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1, 22, 1, true),
+    new THREE.MeshBasicMaterial({ color:C.beam, transparent:true, opacity:.2, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
+  beam.rotation.x = Math.PI; ufo.add(beam);
+  // the beam is the lamp: it lights the trees and the ground around you
+  beamLight = new THREE.PointLight(C.beam, 3.2, 12, 1.4); beamLight.position.y = -FLY_Y + 2.2; ufo.add(beamLight);
+  const pad = new THREE.Mesh(new THREE.CircleGeometry(2.4, 32), glow(C.beam, .22));
+  pad.rotation.x = -Math.PI/2; pad.position.y = -FLY_Y + .03; ufo.add(pad); ufo.userData.pad = pad;
+  scene.add(ufo);
+  for (let i = 0; i < SHARDS; i++){ const s = buildShard(i); scene.add(s); shards.push(s); }
+  for (let i = 0; i < PETALS; i++){ const p = buildPetal(i); scene.add(p); petals.push(p); }
+  for (let i = 0; i < 9; i++){ const g = buildGhost(i); scene.add(g); ghosts.push(g); }
+  spark = new THREE.Group(); scene.add(spark);
+  for (let i = 0; i < 60; i++){
+    const s = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .1), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xff5a68 : 0xffffff }));
+    s.visible = false; s.userData = { v:new THREE.Vector3() }; spark.add(s);
+  }
+  clock = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---- state ---- */
+let S;
+function reset(){
+  S = { t:0, started:false, done:false, x:0, z:4, vx:0, vz:0, got:0, petals:0, chills:0,
+        cpx:0, cpz:4, chill:-1, grace:0, beatT:0, beatI:1.4, starT:6, star:-1, msgT:0, end:-1, e0:null };
+  shards.forEach(s => { s.userData.got = false; s.userData.fly = -1; s.visible = true; s.position.set(SHARD_AT[s.userData.i][0], 1.2, SHARD_AT[s.userData.i][1]); });
+  petals.forEach(p => { p.userData.got = false; p.visible = true; });
+  ghosts.forEach(g => g.position.copy(g.userData.home));
+  if (spark) spark.children.forEach(s => s.visible = false);
+  if (skyHeart) setMend(0);
+  document.getElementById("hud").classList.remove("off");
+  const fl = document.getElementById("flash"); fl.style.opacity = 0; fl.style.background = "";
+  document.getElementById("msg").className = "";
+}
+
+const song = new Audio("lvl3.mp3"); song.preload = "auto"; song.loop = true;
+let ac = null, bus = null;
+function tone(type, f0, f1, dur, gain, lp, delay){
+  if (!ac) return;
+  const t = ac.currentTime + (delay || 0), o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp; o.type = type;
+  o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(gain, t + Math.min(.02, dur*.2));
+  g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(t); o.stop(t + dur + .05);
+}
+const sfx = {
+  // lub-dub, under the song
+  beat:  v => { tone("sine", 70, 46, .16, .22*v, 300); tone("sine", 62, 40, .14, .16*v, 300, .17); },
+  chime: () => { tone("triangle", 660, 680, .5, .12, 6000); tone("triangle", 990, 1000, .5, .1, 6000, .1); tone("triangle", 1320, 1330, .6, .08, 6000, .2); },
+  petal: () => { tone("triangle", 1180, 1200, .25, .08, 6000); tone("triangle", 1580, 1600, .25, .06, 6000, .08); },
+  chill: () => { tone("sine", 900, 220, .9, .12, 2500); tone("triangle", 440, 110, 1.1, .06, 1200, .05); },
+  star:  () => tone("sine", 2400, 900, .9, .04, 8000)
+};
+
+/* ---- input: drag anywhere and the saucer follows the drag, like a stick that
+   appears under your thumb; arrows or WASD on a keyboard ---- */
+const keys = {}, stickEl = document.getElementById("stick"), knob = stickEl.firstChild;
+let drag = null;
+const veilUp = () => !document.getElementById("veil").classList.contains("hid");
+addEventListener("pointerdown", e => {
+  if (veilUp()) return;
+  e.preventDefault(); drag = { id:e.pointerId, x0:e.clientX, y0:e.clientY, dx:0, dy:0 };
+  stickEl.style.left = e.clientX + "px"; stickEl.style.top = e.clientY + "px"; stickEl.style.display = "block";
+  knob.style.transform = "";
+}, { passive:false });
+addEventListener("pointermove", e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  let dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+  const l = Math.hypot(dx, dy), max = 48;
+  if (l > max){ dx *= max/l; dy *= max/l; }
+  drag.dx = dx/max; drag.dy = dy/max;
+  knob.style.transform = "translate(" + dx + "px," + dy + "px)";
+});
+const endDrag = e => { if (drag && e.pointerId === drag.id){ drag = null; stickEl.style.display = "none"; } };
+addEventListener("pointerup", endDrag); addEventListener("pointercancel", endDrag);
+const KEYMAP = { ArrowLeft:"l", a:"l", A:"l", ArrowRight:"r", d:"r", D:"r", ArrowUp:"u", w:"u", W:"u", ArrowDown:"dn", s:"dn", S:"dn" };
+addEventListener("keydown", e => { if (KEYMAP[e.key]){ e.preventDefault(); keys[KEYMAP[e.key]] = true; } });
+addEventListener("keyup", e => { if (KEYMAP[e.key]) keys[KEYMAP[e.key]] = false; });
+function inputDir(){
+  let x = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), z = (keys.dn ? 1 : 0) - (keys.u ? 1 : 0);
+  if (drag){ x += drag.dx; z += drag.dy; }
+  const l = Math.hypot(x, z);
+  return l > 1 ? [x/l, z/l] : [x, z];
+}
+
+const msgEl = document.getElementById("msg");
+function say(a, b, t, cls){
+  msgEl.innerHTML = a + (b ? "<small>"+b+"</small>" : "");
+  msgEl.className = "on" + (cls ? " " + cls : ""); S.msgT = t;
+}
+function burst(x, y, z, n){
+  let k = 0;
+  for (const s of spark.children){
+    if (s.visible) continue;
+    if (k++ >= n) break;
+    s.visible = true; s.position.set(x, y, z);
+    s.userData.v.set((Math.random()-.5)*6, Math.random()*5 + 1.5, (Math.random()-.5)*6);
+  }
+}
+// how mended the sky heart is, 0 to 1
+function setMend(p){
+  const U = skyHeart.userData, gap = .09*(1 - p);
+  // halves[0] is the left half: broken, it leans out to the left, and the right one to the right
+  U.halves[0].position.set(-gap, -gap*.3, 0); U.halves[0].rotation.z = gap*.9;
+  U.halves[1].position.set(gap, -gap*.3, 0); U.halves[1].rotation.z = -gap*.9;
+  U.crack.material.opacity = .9*(1 - p);
+  U.halo.material.opacity = .08 + p*.22;
+}
+function nextShard(){
+  let best = null, bd = 1e9;
+  for (const s of shards){ if (s.userData.got) continue;
+    const d = Math.hypot(s.position.x - S.x, s.position.z - S.z); if (d < bd){ bd = d; best = s; } }
+  return [best, bd];
+}
+
+const smooth = u => u*u*(3 - 2*u);
+const clamp01 = x => Math.max(0, Math.min(1, x));
+function update(dt){
+  S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) msgEl.classList.remove("on"); }
+  if (S.end >= 0){ updateEnd(dt); return; }
+
+  /* ---- a ghost got you: a white chill, and back to the last piece ---- */
+  if (S.chill >= 0){
+    S.chill += dt;
+    if (S.chill > .45 && !S.moved){ S.moved = true; S.x = S.cpx; S.z = S.cpz; S.vx = S.vz = 0; }
+    if (S.chill > 1){ S.chill = -1; S.grace = 1.6; }
+    return;
+  }
+  if (S.grace > 0) S.grace -= dt;
+
+  // flying: smooth, a little floaty - this level is not in a hurry
+  const [ix, iz] = inputDir();
+  const k = 1 - Math.exp(-dt * 6);
+  S.vx += (ix*SPEED - S.vx) * k; S.vz += (iz*SPEED - S.vz) * k;
+  S.x += S.vx * dt; S.z += S.vz * dt;
+  const r = Math.hypot(S.x, S.z);
+  if (r > WORLD){ S.x *= WORLD/r; S.z *= WORLD/r; if (S.msgT <= 0) say("TOO FAR", "the pieces are back in the trees", 1.4); }
+
+  /* ---- the pieces ---- */
+  for (const s of shards){
+    const u = s.userData;
+    if (u.got) continue;
+    if (Math.hypot(s.position.x - S.x, s.position.z - S.z) < 2.6){       // hover right over it
+      u.got = true; u.fly = 0; S.got++; S.cpx = s.position.x; S.cpz = s.position.z;
+      sfx.chime(); burst(s.position.x, 1.6, s.position.z, 18);
+      if (S.got < SHARDS) say(S.got + " / " + SHARDS, S.got === SHARDS - 1 ? "one more" : "it's going back up", 1.8, "red");
+    }
+  }
+  for (const s of shards) if (s.userData.fly >= 0) s.userData.fly += dt;     // a found piece on its way up
+
+  /* ---- petals ---- */
+  for (const p of petals){
+    if (p.userData.got) continue;
+    if (Math.hypot(p.position.x - S.x, p.position.z - S.z) < 2.0){
+      p.userData.got = true; p.visible = false; S.petals++; sfx.petal(); burst(p.position.x, 1.4, p.position.z, 8);
+      say("PETAL " + S.petals + " / " + PETALS, "", 1.3);
+    }
+  }
+  /* ---- ghosts: drift between the trees; the more pieces you have, the more come out ---- */
+  for (const g of ghosts){
+    const u = g.userData;
+    g.visible = S.got >= u.from;
+    if (!g.visible) continue;
+    u.wob += dt;
+    const dx = S.x - g.position.x, dz = S.z - g.position.z, d = Math.hypot(dx, dz);
+    if (d < 9){ u.to.set(S.x, FLY_Y, S.z); }
+    else if (u.to.lengthSq() === 0 || g.position.distanceTo(u.to) < 1){
+      const a = rnd(u.wob*3.1 + g.id)*Math.PI*2; u.to.set(u.home.x + Math.cos(a)*8, FLY_Y, u.home.z + Math.sin(a)*8);
+    }
+    const sp = d < 9 ? 1.5 + S.got*.12 : 1.1;
+    V.copy(u.to).sub(g.position); V.y = 0; const l = V.length();
+    if (l > .01) g.position.addScaledVector(V, Math.min(1, sp*dt/l));
+    g.position.y = FLY_Y + Math.sin(u.wob*2) * .25;
+    g.rotation.y = Math.atan2(dx, dz);
+    if (d < 1.3 && S.grace <= 0){
+      S.chill = 0; S.moved = false; S.chills++; sfx.chill();
+      say("A CHILL", "back to the last piece", 1.6);
+      return;
+    }
+  }
+
+  /* ---- the heartbeat: it quickens as you near the next piece ---- */
+  const [, bd] = nextShard();
+  const near = clamp01(1 - bd / 34);
+  S.beatI = 1.5 - near*1.15;
+  S.beatT -= dt;
+  if (S.beatT <= 0 && S.got < SHARDS){ S.beatT = S.beatI; S.pulse = 1; sfx.beat(.4 + near*.8); }
+  S.pulse = Math.max(0, (S.pulse || 0) - dt*3);
+  S.near = near;
+
+  /* ---- shooting stars: now and then the whole forest is lit for a moment ---- */
+  S.starT -= dt;
+  if (S.starT <= 0){ S.starT = 9 + rnd(S.t)*7; S.star = 0; sfx.star(); }
+  if (S.star >= 0){ S.star += dt; if (S.star > 3.2) S.star = -1; }
+
+  if (S.got >= SHARDS && shards.every(s => s.userData.fly < 0 || s.userData.fly > 2)) startEnd();
+}
+
+/* ================= THE ENDING =================
+   The last piece goes up, the camera follows it to the sky, the two halves
+   close, there's a flash, and the heart beats whole over the forest while the
+   hook plays. About ten seconds, worked out from S.end alone. */
+const END = { look:.2, close:3.0, whole:4.4, line:5.4, out:10.5 };
+function startEnd(){
+  S.end = 0; S.e0 = { mend: S.got / SHARDS };
+  document.getElementById("hud").classList.add("off");
+  msgEl.classList.remove("on"); stickEl.style.display = "none"; drag = null;
+  document.getElementById("beat").style.opacity = 0;
+  // the hook
+  try { song.loop = false; song.currentTime = HOOK; const p = song.play(); if (p && p.catch) p.catch(()=>{}); } catch(e){}
+}
+function updateEnd(dt){
+  const t0 = S.end, t = S.end += dt;
+  if (t0 < END.whole && t >= END.whole){
+    sfx.chime();
+    const f = document.getElementById("flash"); f.style.background = "#ffffff"; f.style.opacity = REDUCED ? .3 : .9;
+  }
+  if (t0 < END.line && t >= END.line) say("MY HEART", "whole again", 4, "red");
+  if (t >= END.out && !S.done){ S.done = true; finish(); }
+}
+
+/* ---- render ---- */
+const V = new THREE.Vector3(), V2 = new THREE.Vector3(), LOOK = new THREE.Vector3();
+function camRig(x, z){
+  const a = cam.aspect, tall = a < 1 ? (1 - a) : 0;
+  V.set(x, FLY_Y + 8 + tall*9, z + 14 + tall*8);
+  LOOK.set(x, FLY_Y - 2.5, z - 20 + tall*8);
+}
+function render(dt){
+  const t = S.t;
+  // fog: thick, thinned by a shooting star for a moment
+  let thin = 0;
+  if (S.star >= 0) thin = S.star < .3 ? S.star/.3 : Math.max(0, 1 - (S.star - .3)/2.6);
+  scene.fog.density = FOG - (FOG - FOG_STAR)*thin;
+  if (S.star >= 0){
+    const u = clamp01(S.star / .9);
+    streak.material.opacity = (1 - u) * .9;
+    streak.position.set(120 - u*240, 140 - u*50, -200);
+    streak.scale.set(60, 1.2, 1); streak.rotation.z = .2;
+  } else streak.material.opacity = 0;
+
+  // the saucer
+  const chill = S.chill >= 0 ? S.chill : -1;
+  ufo.position.set(S.x, FLY_Y + Math.sin(t*2.1)*.07, S.z);
+  ufo.rotation.z = -S.vx*.05; ufo.rotation.x = S.vz*.05; hullGrp.rotation.y = t*.6;
+  hullGrp.userData.lights.rotation.y = -t*1.9;
+  beam.scale.set(1, FLY_Y, 1); beam.position.y = -FLY_Y/2;
+  beam.material.opacity = .13 + Math.sin(t*5)*.015;
+  hullGrp.visible = !(S.grace > 0 && Math.floor(S.grace*12) % 2 === 0);
+
+  // the pieces: pulse with the heartbeat; a found one flies up to the sky heart
+  for (const s of shards){
+    const u = s.userData;
+    u.crystal.rotation.y = t*1.2;
+    u.halo.quaternion.copy(cam.quaternion);
+    const beat = 1 + (S.pulse || 0)*.25;
+    u.halo.scale.setScalar(beat); u.light.intensity = 1.2 + (S.pulse || 0)*1.4 + (S.star >= 0 ? 1.5 : 0);
+    u.light.visible = !u.got;          // fewer lights for the phone once a piece is home
+    if (u.fly >= 0){
+      const p = clamp01(u.fly / 2);
+      skyHeart.getWorldPosition(V);
+      s.position.set(SHARD_AT[u.i][0] + (V.x - SHARD_AT[u.i][0])*p*p, 1.2 + p*p*60, SHARD_AT[u.i][1] + (V.z - SHARD_AT[u.i][1])*p*p);
+      s.scale.setScalar(1 + p*2);
+      if (p >= 1 && s.visible){ s.visible = false; }
+    }
+  }
+  // the heart in the sky mends as the pieces arrive
+  const arrived = shards.filter(s => s.userData.fly > 2).length;
+  S.mendShown = (S.mendShown || 0) + (arrived / SHARDS - (S.mendShown || 0)) * Math.min(1, dt*3);
+  let mend = S.mendShown * .8;
+  if (S.end >= 0) mend = .8 + .2*smooth(clamp01((S.end - END.close) / (END.whole - END.close)));
+  setMend(mend);
+  const hb = S.end > END.whole ? 1 + Math.max(0, Math.sin((S.end - END.whole)*7))*.04 : 1;
+
+  for (const p of petals){ if (!p.visible) continue; p.userData.p.rotation.y = t*2; p.position.y = 1.3 + Math.sin(t*2 + p.position.x)*.15; p.children[1].quaternion.copy(cam.quaternion); }
+  for (const s of spark.children){
+    if (!s.visible) continue;
+    s.userData.v.y -= 12*dt; s.position.addScaledVector(s.userData.v, dt);
+    if (s.position.y < 0) s.visible = false;
+  }
+
+  // camera: behind and above; in the ending it turns up to the sky
+  camRig(S.x, S.z);
+  // the heart sits just under the top of the frame whatever the screen's shape:
+  // its height comes from the camera's tilt and field of view
+  const pitch = Math.atan2(V.y - LOOK.y, Math.hypot(V.z - LOOK.z, V.x - LOOK.x));
+  const elev = cam.fov/2*Math.PI/180 - pitch - .1 - (cam.aspect < 1 ? (1 - cam.aspect)*.08 : 0), HD = 200;
+  skyHeart.position.set(0, Math.tan(elev)*HD, -HD);
+  skyHeart.scale.setScalar(2*HD*Math.tan(.075) * hb);
+  if (S.end >= 0){
+    const c = smooth(clamp01((S.end - END.look) / 2.4));
+    cam.position.set(V.x, V.y - c*4, V.z + c*2);
+    LOOK.lerp(V2.set(V.x, V.y + Math.tan(elev)*HD, V.z - HD), c);
+  } else cam.position.copy(V);
+  cam.position.x += chill >= 0 && !REDUCED ? Math.sin(t*40)*.15*(1 - chill) : 0;
+  cam.lookAt(LOOK);
+  sky.position.copy(cam.position);
+
+  // the screen: the heartbeat at the edges, white for a chill, the fades
+  const beatEl = document.getElementById("beat");
+  beatEl.style.opacity = S.end >= 0 ? 0 : ((S.pulse || 0) * (.15 + (S.near || 0)*.6)).toFixed(3);
+  const f = document.getElementById("flash");
+  if (chill >= 0){ f.style.background = "#cfe4ff"; f.style.opacity = chill < .45 ? chill/.45*.45 : Math.max(0, .45 - (chill - .45)*.9); }
+  else if (S.end >= 0){
+    const fo = +f.style.opacity || 0;
+    if (S.end > END.out - 1.3){ f.style.background = "#05060a"; f.style.opacity = clamp01((S.end - (END.out - 1.3))/1.2); }
+    else if (fo > 0) f.style.opacity = Math.max(0, fo - dt*1.2);
+  } else if (+f.style.opacity > 0) f.style.opacity = Math.max(0, +f.style.opacity - dt*2);
+
+  ren.render(scene, cam);
+}
+
+/* ---- HUD ---- */
+const shardsEl = document.getElementById("shards");
+const HEART_SVG = '<svg viewBox="0 0 12 11" aria-hidden="true"><path d="M6 10.6 1.1 5.6A2.9 2.9 0 0 1 6 1.9a2.9 2.9 0 0 1 4.9 3.7Z"/></svg>';
+for (let i = 0; i < SHARDS; i++){ const e = document.createElement("i"); e.innerHTML = HEART_SVG; shardsEl.appendChild(e); }
+const fmtT = s => Math.floor(s/60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+// time, plus each petal, plus no ghost touching you at all - a fast clean run is ~11k
+function score(){
+  return Math.max(1000, 9000 - Math.floor(S.t)*20) + S.petals*500 + (S.chills === 0 ? 1000 : 0);
+}
+let lastGot = -1, lastSec = -1, lastPetals = -1, crashed = null;
+function frame(){
+  try {
+    const dt = Math.min(.05, clock ? clock.getDelta() : .016);
+    if (S.started && !S.done) update(dt);
+    render(dt);
+    if (S.got !== lastGot){ lastGot = S.got; [...shardsEl.children].forEach((e, i) => e.classList.toggle("on", i < S.got)); }
+    const sec = Math.floor(S.t); if (sec !== lastSec){ lastSec = sec; document.getElementById("m").textContent = fmtT(sec); }
+    if (S.petals !== lastPetals){ lastPetals = S.petals; document.getElementById("pn").textContent = S.petals; }
+  } catch (e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+
+function finish(){
+  song.pause();
+  const v = document.getElementById("veil");
+  v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)");
+  const go = document.getElementById("go");
+  go.textContent = "Fly it again"; go.classList.add("alt");
+  for (const id of ["next", "outs", "home"]) document.getElementById(id).classList.remove("hid");
+  document.getElementById("snd").classList.add("hid");
+  if (HUB) toHub({ type:"javeda:result", level:"lvl3", cleared:true, score:score(),
+    metres:0, timeSec:Math.round(S.t), petals:S.petals, chills:S.chills });
+  v.querySelector(".by").textContent = "LEVEL 3 COMPLETE";
+  v.querySelector("h1").textContent = "MENDED";
+  ps[0].innerHTML = "Score <b>" + score() + "</b> &middot; " + fmtT(S.t) + " &middot; <b>" + S.petals + "</b> / " + PETALS + " petals" +
+    (S.chills === 0 ? " &middot; <b>no ghost touched you</b>" : "");
+  ps[1].innerHTML = "Five pieces back where they belong. <b>The heart is whole.</b>";
+}
+document.getElementById("go").addEventListener("click", () => {
+  reset();
+  document.getElementById("veil").classList.add("hid");
+  try {
+    if (!ac){ ac = new (window.AudioContext||window.webkitAudioContext)();
+      bus = ac.createGain(); bus.gain.value = .5; bus.connect(ac.destination); }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){}
+  try { song.loop = true; song.currentTime = 0; } catch(e){}
+  const p = song.play(); if (p && p.catch) p.catch(()=>{});
+  S.started = true;
+  say("FIND THE PIECES", "follow the heartbeat", 3, "red");
+});
+
+reset();
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

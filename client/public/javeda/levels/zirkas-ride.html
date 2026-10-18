@@ -426,7 +426,10 @@ function boot(){
     for (const sx of [-1, 1]){
       const h = 7 + rnd(i*3.3 + sx)*16, w = 5 + rnd(i*7.1 + sx)*6;
       const m = new THREE.Mesh(new THREE.CylinderGeometry(w*.55, w, h, 5 + (i % 3), 1), rockMat);
-      m.position.set(sx*(LANE*1.5 + 4.5 + w*.6 + rnd(i*5.9 + sx)*3), h/2 - .5, -i*9 - rnd(i)*4);
+      const z = -i*9 - rnd(i)*4;
+      // past the finish the canyon opens out into the basin he is down in
+      const open = z < -(CP_TOTAL * CP_EVERY) + 4 ? 16 : 0;
+      m.position.set(sx*(LANE*1.5 + 4.5 + w*.6 + rnd(i*5.9 + sx)*3 + open), h/2 - .5, z);
       m.rotation.y = rnd(i*2.7 + sx)*3; scene.add(m); lamps.push(m);
     }
   }
@@ -850,7 +853,7 @@ function renderEnd(dt){
   const c = smooth(span(t, END.crest - .3, END.stop + .2));
   const tall = cam.aspect < 1 ? (1 - cam.aspect) : 0;
   const ax = S.camX, ay = 3.9, az = e.z + 6.8 - (e.z - (z0 + FIN.crest))*span(t, 0, END.crest);
-  const bx = 8 + tall*6, by = 5.2 + tall*6, bz = z0 + FIN.stop + 8 + tall*10;
+  const bx = 5 + tall*2, by = 4.8 + tall*5, bz = z0 + FIN.stop + 9 + tall*8;
   cam.position.set(ax + (bx - ax)*c, ay + (by - ay)*c, az + (bz - az)*c);
   V1.set(0, 1.2, z0 + FIN.crest - 9).lerp(V2.set(-.5, 1.6, z0 + (FIN.stop + FIN.jo)/2), c);
   cam.lookAt(V1);

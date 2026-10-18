@@ -104,26 +104,44 @@ CREATE TABLE IF NOT EXISTS javeda_owned (
   PRIMARY KEY (user_id, avatar)
 );
 
+-- Creators: accounts that can play every level without clearing the one
+-- before (Jo, to test and show levels). Keyed by account, filled by hand in
+-- the SQL Editor - nothing a player can call ever writes here:
+--   INSERT INTO javeda_creators (user_id, note)
+--   SELECT id, 'Lazy Jo' FROM auth.users WHERE email = '<login email>'
+--   ON CONFLICT DO NOTHING;
+CREATE TABLE IF NOT EXISTS javeda_creators (
+  user_id  UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  note     TEXT,
+  added_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- ── Access: read for everyone, write through the functions only ────────────
 ALTER TABLE javeda_levels   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_avatars  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_players  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_owned    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE javeda_creators ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS javeda_levels_read   ON javeda_levels;
 DROP POLICY IF EXISTS javeda_avatars_read  ON javeda_avatars;
 DROP POLICY IF EXISTS javeda_players_read  ON javeda_players;
 DROP POLICY IF EXISTS javeda_progress_read ON javeda_progress;
 DROP POLICY IF EXISTS javeda_owned_read    ON javeda_owned;
+DROP POLICY IF EXISTS javeda_creators_read ON javeda_creators;
 CREATE POLICY javeda_levels_read   ON javeda_levels   FOR SELECT USING (true);
 CREATE POLICY javeda_avatars_read  ON javeda_avatars  FOR SELECT USING (true);
 CREATE POLICY javeda_players_read  ON javeda_players  FOR SELECT USING (true);
 CREATE POLICY javeda_progress_read ON javeda_progress FOR SELECT USING (true);
 CREATE POLICY javeda_owned_read    ON javeda_owned    FOR SELECT USING (auth.uid() = user_id);
+-- you can see whether you are a creator, and nobody else's row
+CREATE POLICY javeda_creators_read ON javeda_creators FOR SELECT USING (auth.uid() = user_id);
 
 GRANT SELECT ON javeda_levels, javeda_avatars, javeda_players, javeda_progress, javeda_owned TO anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE ON javeda_levels, javeda_avatars, javeda_players, javeda_progress, javeda_owned FROM anon, authenticated;
+REVOKE ALL ON javeda_creators FROM anon, authenticated;
+GRANT SELECT ON javeda_creators TO authenticated;
 
 -- The scoreboard: one row per player. security_invoker so it reads through
 -- the same public SELECT policies as everything else.
@@ -235,7 +253,8 @@ BEGIN
   SELECT * INTO me FROM javeda_players WHERE user_id = uid FOR UPDATE;
   IF me IS NULL THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
   IF lv.requires IS NOT NULL AND NOT EXISTS (
-       SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared) THEN
+       SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared)
+     AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
     RAISE EXCEPTION 'level locked' USING ERRCODE = '42501';
   END IF;
   IF me.last_run_at IS NOT NULL AND me.last_run_at > now() - INTERVAL '10 seconds' THEN

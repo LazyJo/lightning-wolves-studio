@@ -37,6 +37,10 @@ scoreboard shows as offline.
   name and picture, then calls `javeda_import_guest` once to bring their levels along.
 - **Gating.** A level opens when the level it `requires` is cleared (Level 1 → 2 → 9).
   The hub shows it, and `javeda_submit_run` refuses runs on locked levels.
+- **Creators.** Accounts listed in `javeda_creators` (Jo) can play every level without clearing
+  the one before; the hub shows "creator, every level open" and `javeda_submit_run` skips the
+  lock for them. Nobody can add themselves: the table is filled by hand in the SQL Editor
+  (the statement is in a comment above the table in `supabase-javeda-schema.sql`).
 - **Points** come from playing only (never from streaming): up to 40 per run for the
   score, +50 per clear, plus a first-clear bonus (300, Level 9 500). Points buy profile
   pictures (`javeda_buy_avatar`). The first four pictures are free.

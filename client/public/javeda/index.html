@@ -284,10 +284,11 @@ let sb = null, session = null;
 let player = null;          // javeda_players row when signed in and joined
 let progress = {};          // level id -> { cleared, best, metres, runs }
 let owned = new Set();      // bought pictures
+let creator = false;        // a creator account (javeda_creators) plays every level, cleared or not
 let boardTab = "points";
 
 const signedIn = () => !!(session && player);
-function isOpen(lv){ return !lv.requires || !!(progress[lv.requires] && progress[lv.requires].cleared); }
+function isOpen(lv){ return creator || !lv.requires || !!(progress[lv.requires] && progress[lv.requires].cleared); }
 
 /* ---- toast ---- */
 let toastT = 0;
@@ -302,7 +303,7 @@ function renderMe(){
   const av = signedIn() ? player.avatar : guest.avatar;
   $("meName").textContent = name;
   $("meImg").src = pic(av);
-  $("mePts").textContent = signedIn() ? fmt(player.points) + " points" : "Guest · not saved";
+  $("mePts").textContent = signedIn() ? fmt(player.points) + " points" + (creator ? " · creator, every level open" : "") : "Guest · not saved";
   $("guestNote").classList.toggle("hid", !!session);
 }
 function renderLevels(){
@@ -441,15 +442,17 @@ $("lgGoogle").onclick = async () => {
 
 /* ---- account ---- */
 async function loadAccount(){
-  player = null; owned = new Set();
+  player = null; owned = new Set(); creator = false;
   if (!session){ progress = { ...guest.progress }; renderAll(); return; }
   const uid = session.user.id;
-  const [p, g, o] = await Promise.all([
+  const [p, g, o, c] = await Promise.all([
     sb.from("javeda_players").select("*").eq("user_id", uid).maybeSingle(),
     sb.from("javeda_progress").select("level, cleared, best_score, best_metres, runs").eq("user_id", uid),
-    sb.from("javeda_owned").select("avatar").eq("user_id", uid)
+    sb.from("javeda_owned").select("avatar").eq("user_id", uid),
+    sb.from("javeda_creators").select("user_id").eq("user_id", uid).maybeSingle()
   ]);
   player = p.data || null;
+  creator = !!c.data;
   progress = {};
   (g.data || []).forEach(r => { progress[r.level] = { cleared:r.cleared, best:r.best_score, metres:r.best_metres, runs:r.runs }; });
   (o.data || []).forEach(r => owned.add(r.avatar));

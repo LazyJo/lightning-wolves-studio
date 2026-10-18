@@ -29,7 +29,9 @@ canvas{display:block; touch-action:none}
 #hearts svg{display:block; width:100%; height:100%; fill:currentColor}
 #hearts i.out{color:#9fe8ff30; animation:pop .5s ease-out}
 @keyframes pop{0%{color:#ffffff; transform:scale(1.7)} 35%{color:#ffffff; transform:scale(1.3)} 100%{color:#9fe8ff30; transform:scale(1)}}
-@media (prefers-reduced-motion:reduce){ #hearts i.out{animation:none} }
+#hearts i.gain{animation:gain .6s ease-out}
+@keyframes gain{0%{color:#ffffff; transform:scale(1.9)} 100%{color:#9fe8ff; transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){ #hearts i.out, #hearts i.gain{animation:none} }
 #msg{position:fixed; left:0; right:0; top:26%; text-align:center; pointer-events:none; z-index:3;
   font-family:Bungee,sans-serif; font-size:30px; opacity:0; transition:opacity .25s; text-shadow:0 0 22px #0a1430}
 #msg.on{opacity:1}
@@ -64,6 +66,10 @@ canvas{display:block; touch-action:none}
 #outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
 #outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
 #outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em;
+  text-transform:uppercase; text-decoration:none; color:#9fe8ff; padding:9px 22px; border-radius:4px;
+  border:1.5px solid #2f8fe099; background:#2f8fe014}
+#home:hover{color:#eaf4ff; border-color:#2f8fe0}
 #veil a:focus-visible, #veil button:focus-visible{outline:2px solid #9fe8ff; outline-offset:3px}
 /* a sideways phone: last, so it wins over the rules above */
 @media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px}
@@ -79,7 +85,7 @@ canvas{display:block; touch-action:none}
   <i class="sp"></i>
   <p class="by">LAZY JO</p>
   <h1>I'M LOST</h1>
-  <p>Fly the saucer. Get through the walls. <b id="hn">6 hearts</b> &middot; every hit costs one.</p>
+  <p>Fly the saucer. Get through the walls. <b id="hn">6 hearts</b> &middot; every hit costs one, and two more wait on the road.</p>
   <p><b>Tap a side</b> to bank &middot; <b>tap the middle</b> to lift over a low wall or a hole</p>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>2 &middot; SOMEBODY</small></a>
   <button id="go" type="button">Start</button>
@@ -89,6 +95,7 @@ canvas{display:block; touch-action:none}
     <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
     <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
   </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
   <small id="snd">sound on</small>
   <i class="sp"></i>
 </div>
@@ -125,7 +132,8 @@ const LINKS = {
   spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
   merch:   "https://www.even.biz/l/lightningwolves",
   even:    "https://www.even.biz/l/lazyjomusic",
-  discord: "https://discord.gg/ngZ4MRjV6"
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
 };
 document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
 
@@ -137,6 +145,10 @@ const HUB = window.parent !== window && new URLSearchParams(location.search).has
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
 if (HUB) document.getElementById("next").addEventListener("click", e => {
   e.preventDefault(); toHub({ type:"javeda:next", level:"lvl1" });
+});
+// inside the hub, Home is the hub's own level list: it closes this frame
+if (HUB) document.getElementById("home").addEventListener("click", e => {
+  e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" });
 });
 
 // metres flown, and on a clear a bonus for getting there, for every heart left
@@ -157,7 +169,7 @@ const C = {
 let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spark;
 let vortex, cine, cineCam, cs;          // the ending: its own scene, see renderEnd()
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
-const walls = [], lamps = [];
+const walls = [], lamps = [], pickups = [];
 const cab = document.getElementById("cab");
 
 /* ---- the saucer, built from primitives: no model file, nothing to download ---- */
@@ -271,6 +283,47 @@ function buildWalls(){
   }
 }
 
+/* Two spare hearts on the road, just past checkpoints 4 and 8, for the back half
+   where the speed tops out. Each floats at saucer height in a lane the next row
+   leaves open, so going for one never steers him into a wall. They are the HUD's
+   heart colour: the one thing on the road that is good to fly into. */
+const HEART_AT = [4, 8];
+function openLanes(z){
+  const row = walls.filter(w => Math.abs(w.position.z - z) < .5);
+  // a low wall spans every lane but only asks for a lift, so it leaves them open
+  return [-1, 0, 1].filter(l => !row.some(w => !w.userData.low && l >= w.userData.from && l <= w.userData.to));
+}
+function buildHearts(){
+  const sh = new THREE.Shape();
+  sh.moveTo(0, -.5);
+  sh.bezierCurveTo(-.15, -.32, -.5, -.12, -.5, .14);
+  sh.bezierCurveTo(-.5, .4, -.28, .52, -.12, .5);
+  sh.bezierCurveTo(-.04, .49, 0, .42, 0, .34);
+  sh.bezierCurveTo(0, .42, .04, .49, .12, .5);
+  sh.bezierCurveTo(.28, .52, .5, .4, .5, .14);
+  sh.bezierCurveTo(.5, -.12, .15, -.32, 0, -.5);
+  const geo = new THREE.ExtrudeGeometry(sh, { depth:.16, bevelEnabled:true, bevelThickness:.06,
+    bevelSize:.05, bevelSegments:3, curveSegments:10 });
+  geo.center();
+  const mat = new THREE.MeshStandardMaterial({ color:0xdff8ff, emissive:C.beam, emissiveIntensity:.75,
+    roughness:.3, metalness:.1 });
+  const rows = [...new Set(walls.map(w => -w.position.z))].sort((a, b) => a - b);
+  for (const cp of HEART_AT){
+    // between the first two rows past the checkpoint line
+    const i = rows.findIndex(d => d > cp * CP_EVERY), a = rows[i], b = rows[i + 1];
+    const next = openLanes(-b), prev = openLanes(-a);
+    const lane = next.find(l => prev.includes(l)) ?? next[0];
+    const g = new THREE.Group();
+    const heart = new THREE.Mesh(geo, mat); heart.scale.setScalar(1.15); g.add(heart);
+    g.add(new THREE.Mesh(new THREE.CircleGeometry(1.05, 32), glowMat(C.beam, .16)));
+    const pad = new THREE.Mesh(new THREE.RingGeometry(.55, .8, 32), glowMat(C.beam, .4));
+    pad.rotation.x = -Math.PI/2; pad.position.y = -FLY_Y + .03; g.add(pad);
+    g.position.set(lane * LANE, FLY_Y, -(a + b) / 2);
+    g.userData = { lane, got:false, heart };
+    scene.add(g); pickups.push(g);
+  }
+}
+
 function boot(){
   ren = new THREE.WebGLRenderer({ antialias:true });
   ren.setPixelRatio(Math.min(2, devicePixelRatio || 1));
@@ -329,6 +382,7 @@ function boot(){
   }
 
   buildWalls();
+  buildHearts();
   vortex = buildVortex(); scene.add(vortex);
   buildEnding();
   clock = new THREE.Clock();
@@ -348,6 +402,7 @@ function reset(){
   // reset() runs once at module scope, before boot() has built anything, so all
   // of these have to tolerate a world that does not exist yet
   walls.forEach(w => { w.userData.hit = false; w.scale.y = 1; });
+  pickups.forEach(p => p.userData.got = false);
   if (spark) spark.children.forEach(s => s.visible = false);
   if (ufo) ufo.scale.setScalar(1);
   if (vortex) vortex.visible = false;
@@ -372,6 +427,17 @@ function blip(kind){
   g.gain.setValueAtTime(kind === "crash" ? .34 : .09, t);
   g.gain.exponentialRampToValueAtTime(.0001, t + (kind === "crash" ? .9 : .2));
   o.connect(f); f.connect(g); g.connect(bus); o.start(t); o.stop(t + 1);
+}
+// a heart: two quick rising notes, brighter than anything the walls make
+function chime(){
+  if (!ac) return;
+  [[880, 0], [1320, .09]].forEach(([hz, d]) => {
+    const t = ac.currentTime + d, o = ac.createOscillator(), g = ac.createGain();
+    o.type = "triangle"; o.frequency.setValueAtTime(hz, t);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.13, t + .02);
+    g.gain.exponentialRampToValueAtTime(.0001, t + .32);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t + .35);
+  });
 }
 
 function act(dir){
@@ -500,6 +566,18 @@ function update(dt){
     break;
   }
 
+  // a heart is caught at any height - lifting over a hole should not cost it
+  for (const p of pickups){
+    if (p.userData.got || S.lane !== p.userData.lane) continue;
+    const dz = p.position.z - myZ;
+    if (dz > .3 || dz < -1.1) continue;
+    p.userData.got = true;
+    const full = S.hearts >= HEARTS;
+    S.hearts = Math.min(HEARTS, S.hearts + 1);
+    burst(p.position.x, p.position.y, p.position.z, 12); chime();
+    say(full ? "HEARTS FULL" : "+1 HEART", "", 1.2);
+  }
+
   const cp = Math.floor(S.dist / CP_EVERY);
   if (cp > S.cp){
     S.cp = cp;
@@ -547,6 +625,11 @@ function render(dt){
   // those, or the fall plays out behind the back of a slab
   for (const w of walls) w.visible = Math.abs(w.position.z + S.dist) < 62 &&
     !(S.crash >= 0 && w.position.z > -S.dist + .6);
+  for (const p of pickups){
+    p.visible = !p.userData.got && Math.abs(p.position.z + S.dist) < 62 && !(S.crash >= 0 && p.position.z > -S.dist + .6);
+    p.userData.heart.rotation.y = S.t * 2.4;
+    p.userData.heart.position.y = Math.sin(S.t * 3) * .12;
+  }
   for (const b of lamps) b.visible = Math.abs(b.position.z + S.dist) < 90;
 
   const back = S.crash >= 0 ? 8.5 + S.crash*2.2 : 7.2;
@@ -891,8 +974,13 @@ function frame(){
     if (S.cp !== lastPip){ lastPip = S.cp;
       [...pips.children].forEach((e,i) => e.classList.toggle("on", i < S.cp)); }
     // lost hearts go out from the right; adding .out is what plays the pop
-    if (S.hearts !== lastHeart){ lastHeart = S.hearts;
-      [...hearts.children].forEach((e,i) => e.classList.toggle("out", i >= S.hearts)); }
+    // and a heart picked up off the road comes back in with .gain
+    if (S.hearts !== lastHeart){
+      [...hearts.children].forEach((e,i) => {
+        e.classList.toggle("out", i >= S.hearts);
+        if (i >= lastHeart && i < S.hearts){ e.classList.remove("gain"); void e.offsetWidth; e.classList.add("gain"); }
+      });
+      lastHeart = S.hearts; }
   } catch (e){ if (!crashed){ crashed = e; console.error(e); } }
   requestAnimationFrame(frame);
 }
@@ -904,10 +992,11 @@ function finish(){
   const ps = v.querySelectorAll("p:not(.by)");
   const go = document.getElementById("go");
   go.textContent = "Fly it again";
-  // a win gets the way on (next level, the song, the merch, the fans); a fail
-  // gets one button, because the only thing worth doing then is going again
+  // both cards get the song, the merch, the fans and the way home; only a win
+  // gets Next level, and on a fail "Fly it again" stays the big button
   go.classList.toggle("alt", !S.fail);
-  for (const id of ["next", "outs"]) document.getElementById(id).classList.toggle("hid", S.fail);
+  document.getElementById("next").classList.toggle("hid", S.fail);
+  for (const id of ["outs", "home"]) document.getElementById(id).classList.remove("hid");
   document.getElementById("snd").classList.add("hid");
   if (HUB) toHub({ type:"javeda:result", level:"lvl1", cleared:!S.fail, score:score(),
     metres:Math.floor(S.dist), hits:S.hits, hearts:S.hearts });

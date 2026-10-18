@@ -28,6 +28,16 @@ canvas{display:block; touch-action:none}
 #shards i{display:block; width:14px; height:13px; color:#ffffff26}
 #shards i.on{color:#ff3b4d}
 #shards svg{display:block; width:100%; height:100%; fill:currentColor}
+#lives{display:flex; gap:4px; margin-top:7px; color:#f4eef0}
+#lives i{display:block; width:12px; height:11px}
+#lives i.out{color:#ffffff26}
+#lives svg{display:block; width:100%; height:100%; fill:currentColor}
+#m.low{color:#ffffff; animation:blink .5s steps(2) infinite}
+@keyframes blink{50%{opacity:.35}}
+#parts{display:flex; gap:8px}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em;
+  text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer; color:#d7a0a8; background:none; border:1.5px solid #e11d2e55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#e11d2e; background:#e11d2e22}
 #petals{font-size:12px; letter-spacing:.14em; color:#b98a92; margin-top:7px}
 #petals b{color:#ff8a96; font-weight:700}
 #msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; padding:0 16px;
@@ -83,17 +93,20 @@ canvas{display:block; touch-action:none}
 </style>
 
 <div id="cab"></div>
-<div id="hud"><div id="m">0:00</div><div id="ml">TIME</div><div id="shards"></div><div id="petals">PETALS <b id="pn">0</b> / 3</div></div>
+<div id="hud"><div id="m">0:00</div><div id="ml">TIME</div><div id="shards"></div><div id="lives" class="hid"></div><div id="petals">PETALS <b id="pn">0</b> / 3</div></div>
 <div id="beat"></div>
 <div id="msg"></div>
 <div id="flash"></div>
 <div id="stick"><i></i></div>
 <div id="veil">
   <i class="sp"></i>
-  <p class="by">LAZY JO</p>
-  <h1>MY HEART</h1>
-  <p>The pieces of a broken heart are lost in this forest. Find all <b>5</b> and put it back together.</p>
-  <p><b>Drag</b> to fly &middot; your beam lights the fog &middot; follow the <b>heartbeat</b>: it beats faster when you're close &middot; the ghosts send you back</p>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">MY HEART</h1>
+  <p id="intro">The pieces of a broken heart are lost in this forest. Find all <b>5</b> and put it back together.</p>
+  <p id="how"><b>Drag</b> to fly &middot; your beam lights the fog &middot; follow the <b>heartbeat</b>: it beats faster when you're close &middot; the ghosts send you back</p>
+  <div id="parts" class="hid" role="group" aria-label="Part">
+    <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
+  </div>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
@@ -121,10 +134,20 @@ canvas{display:block; touch-action:none}
    which light the whole forest for a moment. Ghosts in the fog don't hurt, they
    send you back to the last piece you found. */
 
-const SHARDS = 5, PETALS = 3;
+/* Three parts, each harder: more pieces, more and faster ghosts, thicker fog and
+   fewer shooting stars. From Part 2 a ghost costs one of 3 hearts; Part 3 adds a
+   clock, and its pieces only glow on the heartbeat. The hub opens a part with
+   ?part=2 or ?part=3; on its own the start card lets you pick. */
+const PART = Math.min(3, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
+const CFG = {
+  1: { id:"lvl3",  title:"MY HEART",   shards:5, roam:6,  guards:1, speed:2.1, chase:10, fog:.03,  stars:[9, 16],  lives:0, clock:0,   flicker:false, base:9000 },
+  2: { id:"lvl3b", title:"LIGHTS OUT", shards:7, roam:9,  guards:2, speed:2.7, chase:12, fog:.04,  stars:[15, 24], lives:3, clock:0,   flicker:false, base:12000 },
+  3: { id:"lvl3c", title:"HEARTBREAK", shards:9, roam:12, guards:2, speed:3.3, chase:14, fog:.047, stars:[20, 30], lives:3, clock:180, flicker:true,  base:15000 }
+}[PART];
+const SHARDS = CFG.shards, PETALS = 3;
 const WORLD = 62;                       // how far from the middle the forest goes
 const FLY_Y = 8.5, SPEED = 6.6;         // just over the treetops; the beam reaches down through them
-const FOG = .03, FOG_STAR = .011;       // fog density, and how far a shooting star thins it
+const FOG = CFG.fog, FOG_STAR = .011;   // fog density, and how far a shooting star thins it
 /* Song times: where the hook starts (it plays when the heart is whole). Read off
    the song's loudness when the file is in; HOOK is the number to change if the
    moment is wrong. */
@@ -146,7 +169,7 @@ const HUB = window.parent !== window && new URLSearchParams(location.search).has
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
 if (HUB){
   document.getElementById("next").addEventListener("click", e => {
-    e.preventDefault(); toHub({ type:"javeda:next", level:"lvl3" });
+    e.preventDefault(); toHub({ type:"javeda:next", level:CFG.id });
   });
   document.getElementById("home").addEventListener("click", e => {
     e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" });
@@ -280,7 +303,8 @@ function buildWorld(){
 
 /* where things are: the start, the five pieces, the three petals - each in a
    small clearing, the pieces out in every direction */
-const SHARD_AT = [[-14, -24], [26, -34], [44, 6], [-30, 22], [6, 44]];
+// nine places for pieces; a part uses the first SHARDS of them
+const SHARD_AT = [[-14, -24], [26, -34], [44, 6], [-30, 22], [6, 44], [-46, -36], [52, -26], [-44, 38], [30, 50]];   // all inside WORLD, so all reachable
 const PETAL_AT = [[-48, -10], [36, 40], [-8, -52]];
 const CLEARINGS = [[0, 0, 7]].concat(SHARD_AT.map(([x, z]) => [x, z, 4.5]), PETAL_AT.map(([x, z]) => [x, z, 3]));
 
@@ -314,9 +338,15 @@ function buildGhost(i){
     const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color:0x0a0d14 }));
     e.position.set(x, .1, .5); g.add(e);
   }
+  // the first CFG.roam wander; the rest each guard a piece, circling it
+  const guard = i < CFG.roam ? -1 : Math.floor((i - CFG.roam) / CFG.guards);
   const a = rnd(i*9.3)*Math.PI*2, d = 14 + rnd(i*4.1)*40;
-  g.position.set(Math.cos(a)*d, FLY_Y, Math.sin(a)*d);
-  g.userData = { home:g.position.clone(), to:new THREE.Vector3(), wob:i*1.7, from:i < 3 ? 0 : i < 6 ? 2 : 4 };
+  if (guard < 0) g.position.set(Math.cos(a)*d, FLY_Y, Math.sin(a)*d);
+  else g.position.set(SHARD_AT[guard][0] + Math.cos(a)*4.5, FLY_Y, SHARD_AT[guard][1] + Math.sin(a)*4.5);
+  // half the wanderers are out from the start, the rest come out as pieces are found
+  const half = Math.ceil(CFG.roam / 2);
+  const from = guard >= 0 || i < half ? 0 : Math.ceil((i - half + 1) / (CFG.roam - half) * (SHARDS - 2));
+  g.userData = { home:g.position.clone(), to:new THREE.Vector3(), wob:i*1.7, from, guard, phase:a };
   return g;
 }
 
@@ -345,7 +375,7 @@ function boot(){
   scene.add(ufo);
   for (let i = 0; i < SHARDS; i++){ const s = buildShard(i); scene.add(s); shards.push(s); }
   for (let i = 0; i < PETALS; i++){ const p = buildPetal(i); scene.add(p); petals.push(p); }
-  for (let i = 0; i < 9; i++){ const g = buildGhost(i); scene.add(g); ghosts.push(g); }
+  for (let i = 0; i < CFG.roam + SHARDS*CFG.guards; i++){ const g = buildGhost(i); scene.add(g); ghosts.push(g); }
   spark = new THREE.Group(); scene.add(spark);
   for (let i = 0; i < 60; i++){
     const s = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .1), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xff5a68 : 0xffffff }));
@@ -359,7 +389,8 @@ function boot(){
 let S;
 function reset(){
   S = { t:0, started:false, done:false, x:0, z:4, vx:0, vz:0, got:0, petals:0, chills:0,
-        cpx:0, cpz:4, chill:-1, grace:0, beatT:0, beatI:1.4, starT:6, star:-1, msgT:0, end:-1, e0:null };
+        cpx:0, cpz:4, chill:-1, grace:0, beatT:0, beatI:1.4, starT:6, star:-1, msgT:0, end:-1, e0:null,
+        lives:CFG.lives, fail:false };
   shards.forEach(s => { s.userData.got = false; s.userData.fly = -1; s.visible = true; s.position.set(SHARD_AT[s.userData.i][0], 1.2, SHARD_AT[s.userData.i][1]); });
   petals.forEach(p => { p.userData.got = false; p.visible = true; });
   ghosts.forEach(g => g.position.copy(g.userData.home));
@@ -502,21 +533,33 @@ function update(dt){
     if (!g.visible) continue;
     u.wob += dt;
     const dx = S.x - g.position.x, dz = S.z - g.position.z, d = Math.hypot(dx, dz);
-    if (d < 9){ u.to.set(S.x, FLY_Y, S.z); }
+    const guarding = u.guard >= 0 && !shards[u.guard].userData.got;
+    if (d < CFG.chase){ u.to.set(S.x, FLY_Y, S.z); }
+    else if (guarding){ // circling its piece
+      const a = u.phase + u.wob*.5, sp = shards[u.guard].position;
+      u.to.set(sp.x + Math.cos(a)*4.5, FLY_Y, sp.z + Math.sin(a)*4.5);
+    }
     else if (u.to.lengthSq() === 0 || g.position.distanceTo(u.to) < 1){
       const a = rnd(u.wob*3.1 + g.id)*Math.PI*2; u.to.set(u.home.x + Math.cos(a)*8, FLY_Y, u.home.z + Math.sin(a)*8);
     }
-    const sp = d < 9 ? 1.5 + S.got*.12 : 1.1;
+    const sp = d < CFG.chase ? CFG.speed + S.got*.1 : guarding ? 2.6 : 1.1;
     V.copy(u.to).sub(g.position); V.y = 0; const l = V.length();
     if (l > .01) g.position.addScaledVector(V, Math.min(1, sp*dt/l));
     g.position.y = FLY_Y + Math.sin(u.wob*2) * .25;
     g.rotation.y = Math.atan2(dx, dz);
     if (d < 1.3 && S.grace <= 0){
       S.chill = 0; S.moved = false; S.chills++; sfx.chill();
-      say("A CHILL", "back to the last piece", 1.6);
+      if (CFG.lives){
+        S.lives--;
+        if (S.lives <= 0){ S.fail = true; S.done = true; say("OUT OF HEARTS", "", 2); setTimeout(finish, 900); return; }
+        say("A CHILL", S.lives + (S.lives === 1 ? " heart" : " hearts") + " left - back to the last piece", 1.8);
+      } else say("A CHILL", "back to the last piece", 1.6);
       return;
     }
   }
+
+  /* ---- Part 3: the night runs out ---- */
+  if (CFG.clock && S.t >= CFG.clock){ S.fail = true; S.done = true; S.timeUp = true; say("THE NIGHT IS OVER", "", 2); setTimeout(finish, 900); return; }
 
   /* ---- the heartbeat: it quickens as you near the next piece ---- */
   const [, bd] = nextShard();
@@ -529,7 +572,7 @@ function update(dt){
 
   /* ---- shooting stars: now and then the whole forest is lit for a moment ---- */
   S.starT -= dt;
-  if (S.starT <= 0){ S.starT = 9 + rnd(S.t)*7; S.star = 0; sfx.star(); }
+  if (S.starT <= 0){ S.starT = CFG.stars[0] + rnd(S.t)*(CFG.stars[1] - CFG.stars[0]); S.star = 0; sfx.star(); }
   if (S.star >= 0){ S.star += dt; if (S.star > 3.2) S.star = -1; }
 
   if (S.got >= SHARDS && shards.every(s => s.userData.fly < 0 || s.userData.fly > 2)) startEnd();
@@ -595,6 +638,11 @@ function render(dt){
     const beat = 1 + (S.pulse || 0)*.25;
     u.halo.scale.setScalar(beat); u.light.intensity = 1.2 + (S.pulse || 0)*1.4 + (S.star >= 0 ? 1.5 : 0);
     u.light.visible = !u.got;          // fewer lights for the phone once a piece is home
+    if (CFG.flicker && !u.got){
+      const near = Math.hypot(s.position.x - S.x, s.position.z - S.z) < 6;
+      const on = near || S.star >= 0 ? 1 : clamp01((S.pulse || 0) * 1.6);
+      u.crystal.visible = on > .15; u.halo.material.opacity = .35*on; u.light.intensity *= on;
+    }
     if (u.fly >= 0){
       const p = clamp01(u.fly / 2);
       skyHeart.getWorldPosition(V);
@@ -653,19 +701,29 @@ function render(dt){
 const shardsEl = document.getElementById("shards");
 const HEART_SVG = '<svg viewBox="0 0 12 11" aria-hidden="true"><path d="M6 10.6 1.1 5.6A2.9 2.9 0 0 1 6 1.9a2.9 2.9 0 0 1 4.9 3.7Z"/></svg>';
 for (let i = 0; i < SHARDS; i++){ const e = document.createElement("i"); e.innerHTML = HEART_SVG; shardsEl.appendChild(e); }
+const livesEl = document.getElementById("lives");
+if (CFG.lives){ livesEl.classList.remove("hid");
+  for (let i = 0; i < CFG.lives; i++){ const e = document.createElement("i"); e.innerHTML = HEART_SVG; livesEl.appendChild(e); } }
+if (CFG.clock) document.getElementById("ml").textContent = "NIGHT LEFT";
 const fmtT = s => Math.floor(s/60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
-// time, plus each petal, plus no ghost touching you at all - a fast clean run is ~11k
+// time, plus each petal, each heart kept, and no ghost touching you at all.
+// Part 1 tops out near 11k, Part 2 near 15.5k, Part 3 near 18.5k.
 function score(){
-  return Math.max(1000, 9000 - Math.floor(S.t)*20) + S.petals*500 + (S.chills === 0 ? 1000 : 0);
+  if (S.fail) return S.got * 300;
+  return Math.max(1000, CFG.base - Math.floor(S.t)*20) + S.petals*500 + S.lives*500 + (S.chills === 0 ? 1000 : 0);
 }
-let lastGot = -1, lastSec = -1, lastPetals = -1, crashed = null;
+let lastGot = -1, lastSec = -1, lastPetals = -1, lastLives = -1, crashed = null;
 function frame(){
   try {
     const dt = Math.min(.05, clock ? clock.getDelta() : .016);
     if (S.started && !S.done) update(dt);
     render(dt);
     if (S.got !== lastGot){ lastGot = S.got; [...shardsEl.children].forEach((e, i) => e.classList.toggle("on", i < S.got)); }
-    const sec = Math.floor(S.t); if (sec !== lastSec){ lastSec = sec; document.getElementById("m").textContent = fmtT(sec); }
+    const sec = Math.floor(S.t); if (sec !== lastSec){ lastSec = sec;
+      const m = document.getElementById("m");
+      m.textContent = fmtT(CFG.clock ? Math.max(0, CFG.clock - sec) : sec);
+      m.classList.toggle("low", !!CFG.clock && CFG.clock - sec <= 30); }
+    if (S.lives !== lastLives){ lastLives = S.lives; [...livesEl.children].forEach((e, i) => e.classList.toggle("out", i >= S.lives)); }
     if (S.petals !== lastPetals){ lastPetals = S.petals; document.getElementById("pn").textContent = S.petals; }
   } catch (e){ if (!crashed){ crashed = e; console.error(e); } }
   requestAnimationFrame(frame);
@@ -677,16 +735,27 @@ function finish(){
   v.classList.remove("hid");
   const ps = v.querySelectorAll("p:not(.by)");
   const go = document.getElementById("go");
-  go.textContent = "Fly it again"; go.classList.add("alt");
-  for (const id of ["next", "outs", "home"]) document.getElementById(id).classList.remove("hid");
+  go.textContent = "Fly it again"; go.classList.toggle("alt", !S.fail);
+  document.getElementById("next").classList.toggle("hid", S.fail);
+  for (const id of ["outs", "home"]) document.getElementById(id).classList.remove("hid");
   document.getElementById("snd").classList.add("hid");
-  if (HUB) toHub({ type:"javeda:result", level:"lvl3", cleared:true, score:score(),
+  document.getElementById("hud").classList.add("off");
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(),
     metres:0, timeSec:Math.round(S.t), petals:S.petals, chills:S.chills });
-  v.querySelector(".by").textContent = "LEVEL 3 COMPLETE";
+  const words = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
+  if (S.fail){
+    v.querySelector(".by").textContent = S.timeUp ? "THE NIGHT IS OVER" : "OUT OF HEARTS";
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "<b>" + S.got + "</b> of " + SHARDS + " pieces home &middot; " + fmtT(S.t);
+    ps[1].innerHTML = S.got ? "It's still in pieces. <b>Go again.</b>" : "The ghosts were faster. <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = "LEVEL 3" + (PART > 1 ? " \u00b7 PART " + PART : "") + " COMPLETE";
   v.querySelector("h1").textContent = "MENDED";
   ps[0].innerHTML = "Score <b>" + score() + "</b> &middot; " + fmtT(S.t) + " &middot; <b>" + S.petals + "</b> / " + PETALS + " petals" +
     (S.chills === 0 ? " &middot; <b>no ghost touched you</b>" : "");
-  ps[1].innerHTML = "Five pieces back where they belong. <b>The heart is whole.</b>";
+  ps[1].innerHTML = words[SHARDS].charAt(0).toUpperCase() + words[SHARDS].slice(1) + " pieces back where they belong. <b>The heart is whole.</b>" +
+    (PART < 3 ? "<br>Part " + (PART + 1) + " is harder." : "");
 }
 document.getElementById("go").addEventListener("click", () => {
   reset();
@@ -701,6 +770,22 @@ document.getElementById("go").addEventListener("click", () => {
   S.started = true;
   say("FIND THE PIECES", "follow the heartbeat", 3, "red");
 });
+
+// the start card for this part; on its own (not in the hub) you can switch parts
+document.getElementById("by").textContent = "LAZY JO" + (PART > 1 ? " \u00b7 PART " + PART : "");
+document.getElementById("title").textContent = CFG.title;
+document.getElementById("intro").innerHTML = (PART === 1 ? "The pieces of a broken heart are lost in this forest."
+  : PART === 2 ? "Darker now, and the ghosts guard the pieces in pairs."
+  : "The night is short. The pieces only glow when the heart beats.") +
+  " Find all <b>" + SHARDS + "</b> and put it back together." + (CFG.lives ? " <b>3 hearts</b>: a ghost takes one." : "") +
+  (CFG.clock ? " Before the night is over: <b>" + fmtT(CFG.clock) + "</b>." : "");
+if (!HUB){
+  document.getElementById("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    b.setAttribute("aria-pressed", String(+b.dataset.part === PART));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.set("part", b.dataset.part); location.search = q.toString(); });
+  });
+}
 
 reset();
 boot();

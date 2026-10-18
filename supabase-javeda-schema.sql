@@ -37,7 +37,9 @@ INSERT INTO javeda_levels (id, num, title, requires, max_score, score_per_point,
   ('lvl2', 2, 'SOMEBODY',    'lvl1', 95000,  2000, 50, 300, 2),
   ('lvl2b', 2, 'ZIRKA''S RIDE', 'lvl2', 4000, 100, 50, 300, 3),   -- Level 2 Part 2, scored like Level 1
   ('lvl3', 3, 'MY HEART',    'lvl2', 12000, 250, 50, 300, 4),     -- Explore: time + petals, ~11k at best
-  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 150000, 3000, 75, 500, 5)
+  ('lvl3b', 3, 'LIGHTS OUT', 'lvl3', 16000, 400, 50, 300, 5),     -- Level 3 Part 2, ~15.5k at best
+  ('lvl3c', 3, 'HEARTBREAK', 'lvl3b', 20000, 450, 75, 400, 6),    -- Level 3 Part 3, ~18.5k at best
+  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 150000, 3000, 75, 500, 7)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -156,7 +158,9 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl9' THEN g.best_score END), 0)::INT AS lvl9_best,
        -- new columns go last: CREATE OR REPLACE VIEW can only add at the end
        COALESCE(MAX(CASE WHEN g.level = 'lvl2b' THEN g.best_score END), 0)::INT AS lvl2b_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl3' THEN g.best_score END), 0)::INT AS lvl3_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl3' THEN g.best_score END), 0)::INT AS lvl3_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl3b' THEN g.best_score END), 0)::INT AS lvl3b_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl3c' THEN g.best_score END), 0)::INT AS lvl3c_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

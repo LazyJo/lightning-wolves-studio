@@ -27,7 +27,7 @@ canvas{display:block; touch-action:none}
 #thrill i{display:block; height:100%; width:60%; background:linear-gradient(90deg,#38d9ff,#a5f3ff); transition:width .15s}
 #thrill.low i{background:linear-gradient(90deg,#ff3d6e,#ff8aa5)}
 #tl{font-size:11px; letter-spacing:.18em; color:#8aa6d6; margin-top:3px; text-align:right}
-#judge{position:fixed; left:0; right:0; bottom:22%; text-align:center; pointer-events:none; z-index:3;
+#judge{position:fixed; left:0; right:0; bottom:calc(22% + 40px); text-align:center; pointer-events:none; z-index:3;
   font-family:Bungee,sans-serif; font-size:24px; opacity:0; transition:opacity .2s}
 #judge.on{opacity:1}
 #judge.p{color:#a5f3ff; text-shadow:0 0 16px #38d9ff}
@@ -42,6 +42,12 @@ canvas{display:block; touch-action:none}
 #lanes{position:fixed; left:0; right:0; bottom:0; height:100%; display:flex; pointer-events:none; z-index:1}
 #lanes i{flex:1; opacity:0; background:linear-gradient(0deg,#38d9ff40,transparent 45%); transition:opacity .18s}
 #lanes i.on{opacity:1; transition:none}
+/* the three tap pads: big, at the bottom, where the thumbs are */
+#pads{position:fixed; left:0; right:0; bottom:0; display:flex; gap:8px; padding:0 10px max(12px, env(safe-area-inset-bottom)); z-index:4}
+#pads.hid{display:none}
+#pads button{flex:1; height:72px; border-radius:14px; border:1.5px solid #38d9ff66; background:#0b1a3acc;
+  color:#a5f3ff; font-size:26px; cursor:pointer; touch-action:none; -webkit-tap-highlight-color:transparent}
+#pads button.on{background:#38d9ff55; border-color:#a5f3ff; color:#ffffff}
 #veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
   gap:16px; background:radial-gradient(70% 56% at 50% 38%, #16306a 0%, #0a1430 60%, #050814 100%); z-index:9;
   text-align:center; padding:26px; overflow-y:auto}
@@ -91,6 +97,7 @@ canvas{display:block; touch-action:none}
   <div><div id="thrill"><i></i></div><div id="tl">THRILL</div></div>
 </div>
 <div id="judge"></div>
+<div id="pads" class="hid"><button type="button" data-lane="0" aria-label="Left">&#9664;</button><button type="button" data-lane="1" aria-label="Middle">&#9679;</button><button type="button" data-lane="2" aria-label="Right">&#9654;</button></div>
 <div id="lyric"></div>
 <div id="flash"></div>
 <div id="veil">
@@ -98,7 +105,7 @@ canvas{display:block; touch-action:none}
   <p class="by" id="by">LAZY JO</p>
   <h1 id="title">ROLLERCOASTER</h1>
   <p id="intro">Ride the song. The lights on the track are the beat: hit each one as you pass it.</p>
-  <p><b>Tap left, middle or right</b> (or &larr; &darr; &rarr;) as a light reaches you &middot; miss too many and the ride stops</p>
+  <p>Lights come at you on three lanes. Under your UFO are <b>three rings</b>: when a light reaches its ring, <b>tap that side</b> &mdash; the &#9664; &#9679; &#9654; buttons at the bottom, or &larr; &darr; &rarr;. On the beat = <b>PERFECT</b>. Miss too many and the ride stops.</p>
   <div id="parts" class="hid" role="group" aria-label="Part">
     <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
   </div>
@@ -217,33 +224,51 @@ function heightAt(t){
 }
 function hillAt(t){ return 9 + Math.sin((t - T0) / (BAR*2) * Math.PI*2) * 5; }
 function curveAt(t){
-  // S-bends, quiet on the lifts and in the station
-  const amp = Math.min(1, t / 14) * (LIFTS.some(([a, b]) => t > a - 1 && t < b) ? .25 : 1);
+  // S-bends, quiet on the lifts and in the station - eased in and out over a
+  // couple of seconds, because a bend that switches on at once is a 14 m jump
+  const lift = Math.max(...LIFTS.map(([a, b]) => Math.min(1, Math.max(0, (t - (a - 2)) / 2)) * Math.min(1, Math.max(0, (b + 1.5 - t) / 2))));
+  const amp = Math.min(1, t / 14) * (1 - .75*lift);
   return Math.sin(t / 21 * Math.PI*2) * 26 * amp + Math.sin(t / 7.3 * Math.PI*2) * 5 * amp;
 }
 const TR = { dt:.05, P:[], T:[], R:[], U:[], v:[] };
 function buildTrack(){
   const n = Math.ceil((SONG_END + 2) / TR.dt);
-  let s = 0, top = 0;
+  let s = 0, top = 0, y = 0;
   for (let i = 0; i <= n; i++){
-    const t = i * TR.dt, y = heightAt(t);
+    const t = i * TR.dt, want = heightAt(t);
     const onLift = t < DROPS[0] || LIFTS.some(([a, b]) => t >= a && t < b);
-    if (onLift) top = Math.max(top, y);
     // a coaster: chain-lift speed on the climbs, energy from the last top after
     let v = onLift ? LIFT_V : Math.sqrt(LIFT_V*LIFT_V + 2*G*Math.max(0, top - y)) * .92;
     if (t > END_T) v *= Math.max(.35, 1 - (t - END_T) / 9);
+    // never steeper than 45 degrees down or 37 up: a drop you can ride, and a
+    // track whose sideways never flips over the top
+    const step = v * TR.dt;
+    y += Math.max(-step, Math.min(.75*step, want - y));
+    if (onLift) top = Math.max(top, y);
     TR.v.push(v);
     TR.P.push(new THREE.Vector3(curveAt(t), y, -s));
-    s += v * TR.dt;
+    s += step;
   }
   const up = new THREE.Vector3(0, 1, 0);
+  let carry = null;
   for (let i = 0; i <= n; i++){
     const a = TR.P[Math.max(0, i - 1)], b = TR.P[Math.min(n, i + 1)];
     const T = b.clone().sub(a).normalize();
+    // "right" is carried from one sample to the next and only eased towards level,
+    // so it can't snap round on a steep bit
+    const level = T.clone().cross(up);
+    let R;
+    if (!carry) R = level.normalize();
+    else {
+      R = carry.clone().addScaledVector(T, -carry.dot(T));
+      if (level.lengthSq() > 1e-4) R.lerp(level.normalize(), .08);
+      R.normalize();
+    }
+    carry = R.clone();
     // bank into the bends a little: lean from how hard the track turns
     const c = TR.P[Math.max(0, i - 6)], d = TR.P[Math.min(n, i + 6)];
     const turn = (d.x - 2*TR.P[i].x + c.x) * .06;
-    const R = T.clone().cross(up).normalize().applyAxisAngle(T, Math.max(-.5, Math.min(.5, turn)));
+    R.applyAxisAngle(T, Math.max(-.35, Math.min(.35, turn)));
     const U = R.clone().cross(T).normalize();
     TR.T.push(T); TR.R.push(R); TR.U.push(U);
   }
@@ -259,7 +284,7 @@ function at(t, out, which){
 const C = { sky:0x060a18, fog:0x0c1630, cyan:0x38d9ff, ice:0xa5f3ff, rail:0x9fdcff, tie:0x16305e,
   hull:0x1f4fa8, hullDark:0x0e2a5e, dome:0x16181c, seat:0x1d4f9e };
 
-let scene, cam, ren, clock, ufo, beam, beamLight, portal, station, noteMeshes = [], spark, bolts;
+let scene, cam, ren, clock, ufo, beam, beamLight, portal, station, noteMeshes = [], spark, bolts, targets;
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const cab = document.getElementById("cab");
 const glow = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity,
@@ -437,6 +462,15 @@ function boot(){
     side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
   beam.rotation.x = Math.PI; beam.scale.set(1, .9, 1); beam.position.y = -.75; ufo.add(beam);
   beamLight = new THREE.PointLight(C.cyan, 1.4, 10, 2); beamLight.position.y = -.6; ufo.add(beamLight);
+  // the three rings on the track under the UFO: a light inside its ring = tap now.
+  // The UFO looks down +z, so its local x runs the other way from the track's right.
+  targets = new THREE.Group();
+  for (let l = 0; l < 3; l++){
+    const r = new THREE.Mesh(new THREE.RingGeometry(.62, .8, 32), glow(C.ice, .55));
+    r.rotation.x = -Math.PI/2; r.position.set(-(l - 1)*LANE, -.88, 0); r.userData.flash = 0;
+    targets.add(r);
+  }
+  ufo.add(targets);
   scene.add(ufo);
   spark = new THREE.Group(); scene.add(spark);
   for (let i = 0; i < 80; i++){
@@ -486,8 +520,11 @@ const sfx = {
 /* ---- input: the screen in thirds, or the arrow keys ---- */
 const laneEls = [...document.querySelectorAll("#lanes i")];
 const veilUp = () => !document.getElementById("veil").classList.contains("hid");
+const padEls = [...document.querySelectorAll("#pads button")];
+padEls.forEach(b => b.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); press(+b.dataset.lane); }, { passive:false }));
+// anywhere else on the screen works too, by thirds
 addEventListener("pointerdown", e => {
-  if (veilUp()) return;
+  if (veilUp() || e.target.closest("#pads")) return;
   e.preventDefault();
   const f = e.clientX / innerWidth; press(f < 1/3 ? 0 : f < 2/3 ? 1 : 2);
 }, { passive:false });
@@ -496,7 +533,9 @@ addEventListener("keydown", e => { if (e.key in KEYS){ e.preventDefault(); if (!
 
 function press(lane){
   if (!S.started || S.done || S.end >= 0) return;
-  laneEls[lane].classList.add("on"); setTimeout(() => laneEls[lane].classList.remove("on"), 60);
+  laneEls[lane].classList.add("on"); padEls[lane].classList.add("on");
+  setTimeout(() => { laneEls[lane].classList.remove("on"); padEls[lane].classList.remove("on"); }, 90);
+  if (targets) targets.children[lane].userData.flash = 1;
   // the nearest light in that lane that hasn't been judged
   let best = null, bd = 1e9;
   for (const n of NOTES){
@@ -592,6 +631,9 @@ function render(dt){
   ufo.up.copy(V2); ufo.lookAt(LOOK);
   ufo.children[0].userData.holes.rotation.y = t*1.5;
   beam.material.opacity = .14 + Math.sin(t*6)*.02;
+  targets.visible = true;
+  targets.children.forEach(r => { r.userData.flash = Math.max(0, r.userData.flash - dt*5);
+    r.material.opacity = .45 + r.userData.flash*.5; r.scale.setScalar(1 + r.userData.flash*.25); });
   // camera about 6 m behind and above, looking down the track; before the start
   // it backs up the aisle in a straight line
   const v = TR.v[Math.min(TR.v.length - 1, Math.floor(t / TR.dt))];
@@ -638,7 +680,7 @@ function render(dt){
 // after the portal: the cinema, the cover shot
 function renderCinema(dt){
   const e = S.end, f = document.getElementById("flash");
-  station.visible = true;
+  station.visible = true; targets.visible = false;
   // a second portal stands at the end of the aisle, like the cover
   if (!portal.userData.home){ portal.userData.home = true; portal.position.set(0, 7, -14); portal.rotation.set(0, 0, 0); }
   crackle(portal, e);
@@ -689,6 +731,7 @@ function finish(){
   document.getElementById("snd").classList.add("hid");
   document.getElementById("hud").classList.add("off");
   document.getElementById("parts").classList.add("hid");
+  document.getElementById("pads").classList.add("hid");
   if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(), metres:0,
     perfect:S.perfect, good:S.good, miss:S.miss, combo:S.best });
   const acc = Math.round((S.perfect + S.good*.5) / Math.max(1, S.perfect + S.good + S.miss) * 100);
@@ -710,6 +753,7 @@ document.getElementById("go").addEventListener("click", () => {
   if (portal){ const P = new THREE.Vector3(), T = new THREE.Vector3(); at(PORTAL_T, P); at(PORTAL_T, T, "T");
     portal.position.copy(P).add(new THREE.Vector3(0, 3, 0)); portal.lookAt(P.clone().add(T)); }
   document.getElementById("veil").classList.add("hid");
+  document.getElementById("pads").classList.remove("hid");
   try {
     if (!ac){ ac = new (window.AudioContext||window.webkitAudioContext)();
       bus = ac.createGain(); bus.gain.value = .5; bus.connect(ac.destination); }
@@ -718,7 +762,7 @@ document.getElementById("go").addEventListener("click", () => {
   try { song.currentTime = 0; } catch(e){}
   const p = song.play(); if (p && p.catch) p.catch(()=>{});
   S.started = true; S.t = 0;
-  lyric("TAP ON THE BEAT", "left - middle - right", 3);
+  lyric("TAP WHEN A LIGHT HITS ITS RING", "left - middle - right", 3.5);
 });
 
 // the start card for this part; on its own you can switch parts

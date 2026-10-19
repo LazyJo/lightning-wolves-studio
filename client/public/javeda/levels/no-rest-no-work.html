@@ -1,0 +1,810 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>NO REST/NO WORK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&family=Great+Vibes&display=swap">
+<style>
+html,body{height:100%}
+body{margin:0; background:#140a12; color:#fff3e6; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#ffb35c; line-height:1}
+#ml{font-size:11px; letter-spacing:.18em; color:#d9a98a; margin-top:3px}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#7dff4d; text-shadow:0 0 10px #4dff2a88; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ffffff1f; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:100%}
+#sunbar i{background:linear-gradient(90deg,#ff8a2a,#ffd27a)}
+#gauge i{background:linear-gradient(90deg,#3cff6a,#c8ff9a)}
+#gauge.hot i{background:linear-gradient(90deg,#ff3d3d,#ff9a5c)}
+.bl{font-size:11px; letter-spacing:.18em; color:#d9a98a; margin-top:3px; text-align:right}
+#arch{display:flex; gap:4px; justify-content:flex-end; margin-top:8px}
+#arch i{width:14px; height:12px; border-radius:7px 7px 3px 3px; background:#ffffff1a; border:1px solid #ffffff33}
+#arch i.on{background:#ff5a3a; border-color:#ffb09a; box-shadow:0 0 8px #ff5a3a}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:24px; opacity:0; transition:opacity .25s; text-shadow:0 0 16px #ff8a2a, 0 2px 0 #000; padding:0 16px}
+#msg.on{opacity:1}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#ffe2c4; margin-top:6px}
+#msg.x{color:#ff9a8a}
+#lyric{position:fixed; left:0; right:0; top:14%; text-align:center; pointer-events:none; z-index:3; padding:0 16px;
+  font-family:"Great Vibes",cursive; font-size:clamp(44px,11vw,76px); opacity:0; transition:opacity .8s; color:#fff; text-shadow:0 0 26px #ff8a2a, 0 2px 0 #1a0d10}
+#lyric.on{opacity:1}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#ffd9a8}
+#pads{position:fixed; left:0; right:0; bottom:0; display:flex; gap:8px; padding:0 10px max(12px, env(safe-area-inset-bottom)); z-index:4}
+#pads.hid{display:none}
+#pads button{font-family:Bungee,sans-serif; flex:1; height:68px; border-radius:14px; border:1.5px solid #7dff4d66; background:#0e1a06cc; color:#c8ff9a; font-size:20px; touch-action:none; cursor:pointer}
+#pads button.on{background:#7dff4d44; border-color:#c8ff9a}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto;
+  background:radial-gradient(80% 50% at 50% 72%, #ff8a2a55 0%, transparent 60%), linear-gradient(180deg,#1a0d22 0%,#3a1a2a 45%,#7a3a24 75%,#1a0d10 100%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#ffd2b0; margin:0 0 -10px}
+#veil h1{font-family:"Great Vibes",cursive; font-weight:400; margin:0; font-size:clamp(46px,12vw,80px); line-height:1.05; color:#fff; text-shadow:0 0 24px #ff8a2a}
+#veil p{margin:0; color:#ffe2c4; font-size:17px; max-width:38ch}
+#veil b{color:#7dff4d}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:#7dff4d; color:#0e1a06; border:0; border-radius:4px; padding:15px 36px; cursor:pointer}
+#go.alt{background:none; color:#7dff4d; border:1.5px solid #7dff4d; font-size:15px; padding:12px 30px}
+#next{font-family:Bungee,sans-serif; font-size:19px; background:#7dff4d; color:#0e1a06; text-decoration:none; border-radius:4px; padding:13px 34px 11px; line-height:1.1}
+#next small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.16em; color:#0e1a06; opacity:.75; margin-top:3px}
+#veil small{color:#c9a08a; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#ffd2b0; background:none; border:1.5px solid #ffd2b055}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#7dff4d; background:#7dff4d22}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ffd2b0; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ffd2b099; background:#ffd2b014}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #7dff4d; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:46px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #lyric, #msg{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" style="margin-top:0">SUNSET</div><div class="bar" id="sunbar"><i></i></div>
+    <div id="gwrap" class="hid"><div class="bl" id="gl">BEAM</div><div class="bar" id="gauge"><i></i></div></div>
+    <div id="awrap" class="hid"><div id="arch"></div><div class="bl">CRABS ON THE ARCH</div></div></div>
+</div>
+<div id="msg"></div>
+<div id="lyric"></div>
+<div id="flash"></div>
+<div id="pads" class="hid"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">No Rest/No Work</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Part">
+    <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
+  </div>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= NO REST/NO WORK =================
+   Level 6 of JAVEDA: the beach from the cover at sunset - striped palms, the
+   stone arch, the orange sun on the sea and Jo's lime-green saucer with its
+   green beam. Three parts, three different games, picked by Jo from three
+   prototypes:
+     Part 1 ISLAND HOPPER   side-on: hop rock to palm to rock to the stone arch
+     Part 2 CRAB NIGHT      the saucer holds the arch and beams the crabs back
+                            to the sea; five crabs on the arch and it falls
+     Part 3 SURF THE SUNSET skim the sea to the sun: lanes, waves, rocks
+   All three end on the cover: the beach, the palms, the saucer in the sand.
+
+   The beat: GRID, measured from the song (SONG.md): 128.9 BPM trap, counted
+   half-time - a beat every 0.931 s, the pulse you nod to. Bars start at
+   -0.931 + 3.724 n s. The three hooks (HOOKS, where the hi-hats double) are
+   where everything gets busier. The song is the clock; without the file a
+   small built-in beat plays on the same grid. */
+
+const GRID = { bpm:64.448, t0:-.931, len:159.2 };   // each part lasts the song: the music stops at 2:43
+const HOOKS = [[32.58, 43.76], [73.55, 103.34], [133.13, 162.92]];
+const inHook = t => HOOKS.some(([a, b]) => t >= a && t < b);
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const LEN = GRID.len, END_AT = LEN;        // the part ends here; the cover follows
+
+const PART = Math.min(3, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
+const CFG = {
+  1: { id:"lvl6",  title:"Island Hopper",   by:"LEVEL 6" },
+  2: { id:"lvl6b", title:"Crab Night",      by:"LEVEL 6 PART 2" },
+  3: { id:"lvl6c", title:"Surf the Sunset", by:"LEVEL 6 PART 3" }
+}[PART];
+
+const LINKS = {
+  next:    "https://lightningwolves.studio/javeda/",
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB){
+  document.getElementById("next").addEventListener("click", e => { e.preventDefault(); toHub({ type:"javeda:next", level:CFG.id }); });
+  document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+}
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const song = new Audio("lvl6.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [110, 87.3, 130.8, 98];
+let saidHook = false;
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .005); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+// the stand-in beat, scheduled a little ahead on the audio clock
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), full = bar >= 2;
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 130, 42, at, .32, .5, 900);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .16, .22, 0, 1700); tone("triangle", 220, 160, at, .08, .08); }
+    hiss(at, .04, s8 % 2 ? .05 : .08, 7000);
+    if (s8 === 0 || s8 === 3 || s8 === 6){ const f = PROG[bar % 4]; tone("triangle", f, f, at, BEAT*.9, .16, 600); }
+    if (s8 === 0 && bar % 4 === 0){ const f = PROG[bar % 4]*4; tone("sine", f, f, at, BAR*.9, .025, 3000); tone("sine", f*1.5, f*1.5, at, BAR*.9, .02, 3000); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: () => ac && tone("triangle", 880, 1320, ac.currentTime, .12, .07, 6000),
+  big:  () => ac && [660, 880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.05, .2, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  jump: () => ac && tone("sine", 300, 700, ac.currentTime, .12, .05, 4000),
+  zap:  () => ac && tone("square", 1400, 300, ac.currentTime, .12, .03, 5000),
+  beam: () => ac && tone("sine", 500, 1500, ac.currentTime, .22, .05, 5000),
+  dry:  () => ac && tone("square", 200, 120, ac.currentTime, .1, .03, 1500),
+  splash: () => ac && hiss(ac.currentTime, .5, .25, 0, 900),
+  heart: () => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000))
+};
+
+/* ---------------- the world from the cover ---------------- */
+const C = { sand:0x2a1820, sandLit:0x4a2a26, sea:0x2a1830, rock:0x5a4a4a, leaf:0x3f5a22, ufo:0x5f9a2a, glow:0x7dff4d };
+const SUN_DIR = new THREE.Vector3(.35, 0, -1).normalize();
+let scene, cam, ren, sky, sea, seaGeo, ufo, beam, clockR, flashEl = $("flash");
+const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops){ const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d"), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(cv); }
+function buildSky(){
+  const cv = document.createElement("canvas"); cv.width = 8; cv.height = 256; const x = cv.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
+  g.addColorStop(0, "#120a1e"); g.addColorStop(.3, "#3a1a34"); g.addColorStop(.44, "#8a3a2a"); g.addColorStop(.49, "#ff8a3a"); g.addColorStop(.52, "#6a2a22"); g.addColorStop(1, "#1a0d10");
+  x.fillStyle = g; x.fillRect(0, 0, 8, 256);
+  sky = new THREE.Group(); scene.add(sky);
+  sky.add(new THREE.Mesh(new THREE.SphereGeometry(800, 32, 16), new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(cv), side:THREE.BackSide, fog:false, depthWrite:false })));
+  const n = 700, pos = new Float32Array(n*3);
+  for (let i = 0; i < n; i++){ const a = rnd(i)*Math.PI*2, e = .25 + rnd(i*2.3)*1.2, r = 760; pos.set([Math.cos(a)*Math.cos(e)*r, Math.sin(e)*r, Math.sin(a)*Math.cos(e)*r], i*3); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  sky.add(new THREE.Points(sg, new THREE.PointsMaterial({ color:0xffe8d0, size:1.3, sizeAttenuation:false, fog:false, transparent:true, opacity:.8 })));
+  const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map:radial([[0, "rgba(255,240,200,1)"], [.12, "rgba(255,190,90,1)"], [.3, "rgba(255,120,40,.55)"], [1, "rgba(255,80,20,0)"]]), fog:false, depthWrite:false, transparent:true }));
+  sun.position.copy(SUN_DIR).multiplyScalar(700).setY(8); sun.scale.set(260, 260, 1); sky.add(sun);
+  const cm = new THREE.SpriteMaterial({ map:radial([[0, "rgba(90,30,30,.9)"], [.6, "rgba(70,25,30,.5)"], [1, "rgba(40,15,20,0)"]]), fog:false, depthWrite:false, transparent:true });
+  for (let i = 0; i < 18; i++){ const a = Math.atan2(SUN_DIR.z, SUN_DIR.x) + (rnd(i*3.3) - .5)*1.6, r = 650;
+    const s = new THREE.Sprite(cm); s.position.set(Math.cos(a)*r, 40 + rnd(i*5.1)*80, Math.sin(a)*r); s.scale.set(220 + rnd(i)*200, 26 + rnd(i*2)*24, 1); sky.add(s); }
+}
+function buildSea(w, d, cx, cz){
+  const geo = new THREE.PlaneGeometry(w, d, 60, 60); geo.rotateX(-Math.PI/2);
+  const m = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color:C.sea, emissive:0x24101a, specular:0xffa060, shininess:60, flatShading:true }));
+  m.position.set(cx, 0, cz); scene.add(m);
+  geo.userData.base = geo.attributes.position.array.slice();
+  return m;
+}
+function waveSea(m, t, swell){
+  const geo = m.geometry, p = geo.attributes.position.array, b = geo.userData.base;
+  for (let i = 0; i < p.length; i += 3){ const x = b[i] + m.position.x, z = b[i + 2] + m.position.z;
+    p[i + 1] = Math.sin(x*.35 + t*1.6)*.18 + Math.sin(z*.5 + t*1.2)*.14 + (swell ? swell(x, z) : 0); }
+  geo.attributes.position.needsUpdate = true; geo.computeVertexNormals();
+}
+const trunkTex = (() => { const cv = document.createElement("canvas"); cv.width = 16; cv.height = 64; const x = cv.getContext("2d");
+  for (let i = 0; i < 8; i++){ x.fillStyle = i % 2 ? "#2a1a12" : "#5a3a28"; x.fillRect(0, i*8, 16, 8); } const t = new THREE.CanvasTexture(cv); t.wrapT = THREE.RepeatWrapping; return t; })();
+const leafM = new THREE.MeshLambertMaterial({ color:C.leaf, side:THREE.DoubleSide });
+function buildPalm(h, lean, k){
+  const g = new THREE.Group(), pts = [];
+  for (let i = 0; i <= 6; i++){ const u = i/6; pts.push(new THREE.Vector3(Math.sin(u*1.4)*lean, u*h, Math.sin(u*2.1)*lean*.25)); }
+  const tex = trunkTex.clone(); tex.needsUpdate = true; tex.repeat.set(1, h*1.6);
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, .22, 6), new THREE.MeshLambertMaterial({ map:tex })));
+  const crown = new THREE.Group(); crown.position.copy(pts[6]); g.add(crown);
+  for (let i = 0; i < 8; i++){
+    const shape = new THREE.Shape(); shape.moveTo(0, 0); shape.quadraticCurveTo(.5, 1.4, 0, 3.2); shape.quadraticCurveTo(-.5, 1.4, 0, 0);
+    const leaf = new THREE.Mesh(new THREE.ShapeGeometry(shape, 6), leafM);
+    const piv = new THREE.Group(); piv.rotation.y = i/8*Math.PI*2 + rnd(k + i); leaf.rotation.x = -Math.PI/2 + .55 + rnd(k*3 + i)*.4; piv.add(leaf); crown.add(piv);
+  }
+  g.userData = { crown };
+  return g;
+}
+function buildRock(s, k){
+  const m = new THREE.Mesh(new THREE.DodecahedronGeometry(s, 0), new THREE.MeshLambertMaterial({ color:C.rock, flatShading:true }));
+  m.scale.set(1 + rnd(k)*.4, .7 + rnd(k*2)*.3, 1 + rnd(k*3)*.3); m.rotation.y = rnd(k*5)*3; return m;
+}
+function buildArch(){
+  const g = new THREE.Group(), M = new THREE.MeshLambertMaterial({ color:0x6a5a5a, flatShading:true });
+  for (const x of [-2.4, 2.4]){ const p = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4, 0), M); p.scale.set(.9, 2.2, .9); p.position.set(x, 2.4, 0); g.add(p); }
+  const top = new THREE.Mesh(new THREE.DodecahedronGeometry(1.6, 0), M); top.scale.set(3.4, .8, 1.1); top.position.set(0, 5.1, 0); top.rotation.z = .06; g.add(top);
+  g.userData.top = top;
+  return g;
+}
+function buildBush(k){
+  const g = new THREE.Group(), m = new THREE.MeshLambertMaterial({ color:0x4a6a2a, side:THREE.DoubleSide });
+  for (let i = 0; i < 6; i++){ const l = new THREE.Mesh(new THREE.CircleGeometry(.7, 6), m); l.scale.set(1, .45, 1); l.position.set((rnd(k + i) - .5)*1.6, .3 + rnd(k*2 + i)*.4, (rnd(k*3 + i) - .5)*1.6);
+    l.rotation.set(-1 + rnd(k*4 + i), rnd(k*5 + i)*3, 0); g.add(l); }
+  return g;
+}
+function buildUFO(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 12), new THREE.MeshStandardMaterial({ color:C.ufo, roughness:.4, metalness:.3, emissive:0x2a5010, emissiveIntensity:.8 }));
+  hull.scale.set(1.2, .28, 1.2); g.add(hull);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.55, 20, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0x9aff7a, roughness:.1, emissive:0x3a8a20, emissiveIntensity:.6, transparent:true, opacity:.85 }));
+  dome.position.y = .14; g.add(dome);
+  // the L badge on the dome
+  const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d"); x.fillStyle = "#f4f6fa"; x.beginPath();
+  x.moveTo(8, 6); x.lineTo(56, 6); x.lineTo(56, 44); x.lineTo(32, 60); x.lineTo(8, 44); x.closePath(); x.fill(); x.fillStyle = "#16181c"; x.fillRect(24, 14, 8, 30); x.fillRect(24, 36, 18, 8);
+  const badge = new THREE.Mesh(new THREE.PlaneGeometry(.28, .28), new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(cv), transparent:true })); badge.position.set(0, .4, .42); badge.rotation.x = -.5; g.add(badge);
+  for (let i = 0; i < 10; i++){ const a = i/10*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.08, 6, 5), new THREE.MeshBasicMaterial({ color:0xfff3a0 }));
+    l.position.set(Math.sin(a)*1.08, .02, Math.cos(a)*1.08); g.add(l); }
+  const b = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1, 20, 1, true), glowMat(C.glow, .22)); b.position.y = -.5; g.add(b);
+  const pl = new THREE.PointLight(C.glow, 1.4, 12, 2); pl.position.y = -.6; g.add(pl);
+  g.userData.beam = b;
+  return g;
+}
+
+/* ---- the cover, built once off to the side: every part ends here ---- */
+const COVER = new THREE.Vector3(3000, 0, 0);
+function buildCover(){
+  const g = new THREE.Group(); g.position.copy(COVER); scene.add(g);
+  const sand = new THREE.Mesh(new THREE.CircleGeometry(60, 40), new THREE.MeshLambertMaterial({ color:0x2e1a1e })); sand.rotation.x = -Math.PI/2; sand.position.set(0, .05, 10); g.add(sand);
+  const s = buildSea(300, 200, COVER.x + 40, COVER.z - 110); s.userData.cover = true; g.userData.sea = s;
+  const arch = buildArch(); arch.position.set(-11, 0, -14); arch.rotation.y = .5; arch.scale.setScalar(1.3); g.add(arch);
+  [[-3, -6, 13, .9], [3, -9, 12, -1.1], [8, -4, 14, 1.4], [12, -12, 11, -.6], [-7, -11, 12, .5]].forEach(([x, z, h, l], i) => { const p = buildPalm(h, l, i + 300); p.position.set(x, 0, z); g.add(p); });
+  [[-8, -3], [-2, -2], [4, -1], [9, -2], [-12, -6]].forEach(([x, z], i) => { const b = buildBush(i + 40); b.position.set(x, 0, z); b.scale.setScalar(1.8); g.add(b); });
+  [[-14, -8, 2.2], [-6, -16, 1.6]].forEach(([x, z, sc], i) => { const r = buildRock(sc, i + 70); r.position.set(x, .4, z); g.add(r); });
+  return g;
+}
+
+/* ---------------- state, HUD ---------------- */
+let S = null, crashed = null;
+function say(a, b, t, bad){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (bad ? " x" : ""); S.msgT = t || 1.2; }
+function lyric(a, t){ $("lyric").textContent = a; $("lyric").classList.add("on"); S.lyrT = t; }
+let lastH = "";
+function hud(){
+  $("m").textContent = Math.round(S.score).toLocaleString("en");
+  const h = S.maxHearts ? "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, S.maxHearts - S.hearts)) : "";
+  if (h !== lastH){
+    // shake when one is lost
+    if ((h.match(/\u2665/g) || []).length < (lastH.match(/\u2665/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  $("sunbar").firstChild.style.width = (clamp(1 - S.t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  if (G.hud) G.hud();
+}
+
+/* =============== PART 1 - ISLAND HOPPER: side-on, rock to palm to the arch =============== */
+const HOP = {
+  speed: t => 7 + 1.6*Math.min(1, t/60),
+  setup(){
+    // the course is as long as the part: the arch comes into reach as the sun touches the sea
+    let L = 0; for (let t = 0; t < END_AT - 4; t += .05) L += this.speed(t)*.05;
+    this.plat = []; let x = 0, y = 1.6, k = 0;
+    this.plat.push({ x:0, w:7, y:1.6, kind:"rock" });
+    while (x < L - 20){
+      const far = x / L, gap = 2.2 + rnd(k*1.3)*2.4 + far*1.6, kind = rnd(k*2.7) < .55 ? "palm" : "rock";
+      const w = kind === "palm" ? 2.2 : 2.6 + rnd(k*3.1)*3.2 - far;
+      y = clamp(y + (rnd(k*4.3) - .5)*3.4, 1.4, 6.4); x += this.plat[this.plat.length - 1].w/2 + gap + w/2;
+      this.plat.push({ x, w, y, kind, heart: k > 0 && k % 34 === 18 }); k++;
+    }
+    // a last big rock as a step up, then the arch
+    const lastP = this.plat[this.plat.length - 1], stepX = x + lastP.w/2 + 3 + 2.5;
+    this.plat.push({ x:stepX, w:5, y:clamp(lastP.y + 1.2, 3.6, 4.6), kind:"rock" });
+    this.goal = stepX + 2.5 + 2.8 + 3.5; this.plat.push({ x:this.goal, w:7, y:5.6, kind:"arch" });
+    const padM = new THREE.MeshLambertMaterial({ color:0x4a6a2a }), topM = new THREE.MeshLambertMaterial({ color:0x6a5a56, flatShading:true });
+    this.plat.forEach((p, i) => {
+      if (p.kind === "palm"){ const palm = buildPalm(p.y + 1.5, .3, i); palm.position.set(p.x, -1.5, 0); scene.add(palm);
+        const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.15, .8, .25, 10), padM); pad.position.set(p.x + .3, p.y - .12, 0); scene.add(pad); }
+      else if (p.kind === "rock"){ const r = buildRock(p.w/2, i); r.scale.y = (p.y + 1.5) / (p.w/2) * .55; r.position.set(p.x, -.6, 0); scene.add(r);
+        const top = new THREE.Mesh(new THREE.BoxGeometry(p.w, .3, 2.4), topM); top.position.set(p.x, p.y - .15, 0); scene.add(top);
+        if (rnd(i*7) < .5){ const b = buildBush(i); b.position.set(p.x + (rnd(i) - .5)*p.w*.5, p.y, -.6); scene.add(b); } }
+      else { const a = buildArch(); a.position.set(p.x, .5, 0); scene.add(a); }
+    });
+    // sun-stars over the gaps on the arc a good jump takes; two hearts on the way
+    const starM = new THREE.SpriteMaterial({ map:radial([[0, "#fff8d0"], [.3, "rgba(255,200,90,.9)"], [1, "rgba(255,140,40,0)"]]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+    const heartM = new THREE.SpriteMaterial({ map:(() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d"); x.font = "52px serif"; x.textAlign = "center"; x.fillStyle = "#7dff4d"; x.fillText("♥", 32, 50); return new THREE.CanvasTexture(cv); })(), transparent:true, depthWrite:false });
+    this.stars = [];
+    for (let i = 1; i < this.plat.length; i++){ const a = this.plat[i - 1], b = this.plat[i];
+      const s = new THREE.Sprite(b.heart ? heartM : starM); s.scale.setScalar(b.heart ? 1.4 : 1.3); s.position.set((a.x + a.w/2 + b.x - b.w/2)/2, Math.max(a.y, b.y) + 2.2, 0);
+      s.userData.heart = !!b.heart; scene.add(s); this.stars.push(s); }
+    // the beach behind, in the dusk
+    for (let i = 0; i < 90; i++){ const z = -12 - rnd(i*3.3)*40, px = rnd(i*1.9)*(L + 60) - 20;
+      if (rnd(i*5.7) < .6){ const p = buildPalm(7 + rnd(i)*7, .6 + rnd(i*2)*1.4, i + 100); p.position.set(px, -.5, z); scene.add(p); }
+      else { const r = buildRock(1.2 + rnd(i)*2.5, i + 50); r.position.set(px, 0, z); scene.add(r); } }
+    const sand = new THREE.Mesh(new THREE.PlaneGeometry(L + 200, 60), new THREE.MeshLambertMaterial({ color:C.sand })); sand.rotation.x = -Math.PI/2; sand.position.set(L/2, .15, -45); scene.add(sand);
+    this.sea = buildSea(L + 200, 120, L/2, -20);
+    $("pads").innerHTML = '<button type="button" id="jp">&#9650; TAP = HOP &middot; HOLD = FLY</button>';
+    $("gwrap").classList.remove("hid"); $("gl").textContent = "HOVER";
+  },
+  reset(){
+    Object.assign(S, { hearts:3, maxHearts:3, x:-2.5, y:2.05, vy:0, ground:true, coyote:0, hover:1, hold:false, last:0, inv:0, starsGot:0, falls:0 });
+    this.stars.forEach(s => s.visible = true);
+    $("pads").classList.remove("hid");
+  },
+  intro: ["HOP TO THE ARCH", "tap = short hop · hold = high jump and hover"],
+  // a quick tap is a short hop (letting go on the way up cuts the jump); hold for a
+  // high jump that turns into a hover on the way down
+  press(down){ if (!S.started || S.end >= 0) return; $("pads").firstChild && $("pads").firstChild.classList.toggle("on", down);
+    if (!down && S.hold && S.vy > 0) S.vy *= .45;
+    S.hold = down;
+    if (down && (S.ground || S.coyote > 0)){ S.vy = 11.5; S.ground = false; S.coyote = 0; sfx.jump(); } },
+  seaLevel(t){ const ph = ((t - GRID.t0) % BAR + BAR) % BAR / BAR; return -.1 + Math.max(0, Math.sin(ph*Math.PI*2))*(inHook(t) ? 1.15 : t > barT(2) ? .75 : .3); },
+  update(dt, t){
+    const prevY = S.y; S.x += this.speed(t)*dt;
+    S.vy -= 27*dt;
+    if (S.hold && S.vy < 0 && S.hover > 0){ S.vy = Math.max(S.vy, -2); S.hover = Math.max(0, S.hover - dt*.9); }
+    S.y += S.vy*dt; S.coyote -= dt; if (S.inv > 0) S.inv -= dt;
+    const was = S.ground; S.ground = false;
+    for (let i = Math.max(0, S.last - 2); i < Math.min(this.plat.length, S.last + 4); i++){
+      const p = this.plat[i];
+      if (Math.abs(S.x - p.x) <= p.w/2 + .5 && S.vy <= 0 && prevY - .45 >= p.y - .15 && S.y - .45 <= p.y){
+        S.y = p.y + .45; S.vy = 0; S.ground = true; S.hover = Math.min(1, S.hover + dt*3);
+        if (i > S.last){ S.score += 50*(i - S.last); S.last = i; }
+        if (p.kind === "arch"){ S.score += 3000; win("THE ARCH"); return; }
+      }
+    }
+    if (was && !S.ground) S.coyote = .1;
+    for (const s of this.stars) if (s.visible && Math.abs(s.position.x - S.x) < 1.1 && Math.abs(s.position.y - S.y) < 1.2){
+      s.visible = false;
+      if (s.userData.heart){ S.hearts = Math.min(S.maxHearts, S.hearts + 1); sfx.heart(); say("+1 HEART", "", .8); }
+      else { S.score += 150; S.starsGot++; sfx.good(); } }
+    // into the sea: a splash, a heart, back to the start of the last rock
+    if (S.y - .3 < this.seaLevel(t)){
+      sfx.splash(); S.hearts--; S.falls++; const p = this.plat[S.last]; S.x = p.x - p.w/2 + .6; S.y = p.y + 1.2; S.vy = 0; S.inv = 1;
+      if (S.hearts <= 0){ lose("THE SEA GOT YOU", "Jump right at the edge, and hold to hover over the long gaps."); return; }
+      say("SPLASH!", S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1, true);
+    }
+    if (t >= END_AT){ lose("THE SUN WENT DOWN", "Keep moving - the arch is at the end of the beach."); }
+  },
+  hud(){ $("gauge").firstChild.style.width = (S.hover*100).toFixed(0) + "%"; },
+  render(dt, t){
+    ufo.position.set(S.x, S.y + Math.sin(t*3)*.05, 0); ufo.rotation.set(0, t*.8, clamp(-S.vy*.02, -.3, .3));
+    ufo.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+    beam.visible = S.hold && S.hover > 0 && !S.ground; beam.scale.set(.8, 2.6, .8); beam.position.y = -1.4;
+    const portrait = cam.aspect < .8;
+    cam.position.set(S.x + (portrait ? 1.8 : 6), 4.6 + S.y*.3, portrait ? 26 : 19); cam.lookAt(S.x + (portrait ? 1.8 : 6), 2.8 + S.y*.25, 0);
+    this.sea.position.y = this.seaLevel(t); waveSea(this.sea, t);
+    this.stars.forEach((s, i) => { s.material.rotation = s.userData.heart ? 0 : t; s.scale.setScalar((s.userData.heart ? 1.4 : 1.2) + Math.sin(t*6 + i)*.15); });
+  }
+};
+
+/* =============== PART 2 - CRAB NIGHT: hold the arch, beam the crabs back =============== */
+const ARCH_Z = 9, SLOTS = 5;
+const CRAB = {
+  setup(){
+    this.sea = buildSea(400, 300, 0, -170);
+    const sand = new THREE.Mesh(new THREE.PlaneGeometry(80, 40, 20, 10), new THREE.MeshLambertMaterial({ color:C.sandLit, flatShading:true }));
+    sand.rotation.x = -Math.PI/2; sand.position.set(0, .05, 0); scene.add(sand);
+    const wet = new THREE.Mesh(new THREE.PlaneGeometry(80, 4), new THREE.MeshLambertMaterial({ color:0x3a2430 })); wet.rotation.x = -Math.PI/2; wet.position.set(0, .07, -18); scene.add(wet);
+    this.arch = buildArch(); this.arch.position.set(0, 0, ARCH_Z); this.arch.scale.setScalar(.7); scene.add(this.arch);
+    [[-11, -6, 9], [12, -9, 11], [-15, 4, 8], [16, 3, 10], [-7, -14, 7], [9, -15, 8]].forEach(([x, z, h], i) => { const p = buildPalm(h, .8 + rnd(i)*.8, i); p.position.set(x, 0, z); scene.add(p); });
+    [[-17, 8], [17, 7], [-6, 13], [6, 12.5]].forEach(([x, z], i) => { const b = buildBush(i); b.position.set(x, 0, z); b.scale.setScalar(1.6); scene.add(b); });
+    [[-19, -2, 2.4], [19, -5, 2], [-14, 10, 1.6]].forEach(([x, z, s], i) => { const r = buildRock(s, i); r.position.set(x, 0, z); scene.add(r); });
+    // crabs: small, big (two hits) and fast sand-runners; built once, reused
+    this.pool = [];
+    const shell = c => new THREE.MeshLambertMaterial({ color:c, flatShading:true });
+    const kinds = { small:[shell(0xd8452a), shell(0xff6a3a)], big:[shell(0x8a2a5a), shell(0xc84a8a)], runner:[shell(0xe8b04a), shell(0xffd27a)] };
+    const eyeM = new THREE.MeshBasicMaterial({ color:0x111111 });
+    for (const [kind, [bodyM, clawM]] of Object.entries(kinds)) for (let i = 0; i < 26; i++){
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.SphereGeometry(.55, 10, 6), bodyM); body.scale.set(1.3, .55, 1); body.position.y = .4; g.add(body);
+      for (const s of [-1, 1]){
+        const c = new THREE.Mesh(new THREE.SphereGeometry(.24, 8, 6), clawM); c.scale.set(1.2, .7, 1); c.position.set(s*.75, .45, .45); g.add(c);
+        const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 6, 4), eyeM); e.position.set(s*.18, .72, .35); g.add(e);
+        for (let l = 0; l < 3; l++){ const leg = new THREE.Mesh(new THREE.BoxGeometry(.5, .06, .06), bodyM); leg.position.set(s*.75, .25, -.25 + l*.25); leg.rotation.z = s*.6; g.add(leg); }
+      }
+      g.visible = false; g.userData.kind = kind; scene.add(g); this.pool.push(g);
+    }
+    // the beam shots
+    this.bolts = [];
+    for (let i = 0; i < 10; i++){ const b = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, 1.6, 8), glowMat(C.glow, .95)); b.visible = false; scene.add(b); this.bolts.push({ m:b, on:false }); }
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(.6, .85, 24), glowMat(C.glow, .8)); this.ring.rotation.x = -Math.PI/2; this.ring.visible = false; scene.add(this.ring);
+    $("gwrap").classList.remove("hid"); $("gl").textContent = "BEAM";
+    $("awrap").classList.remove("hid"); $("arch").innerHTML = "<i></i>".repeat(SLOTS);
+    this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -.4);
+  },
+  reset(){
+    Object.assign(S, { hearts:0, maxHearts:0, energy:100, hot:false, onArch:0, beamed:0, combo:0, best:0, nextSpawn:barT(1), k:0, shots:0, onBeat:0, ringT:0, tilt:0 });
+    this.pool.forEach(g => g.visible = false); this.crabs = [];
+    this.bolts.forEach(b => { b.on = false; b.m.visible = false; });
+    this.arch.rotation.set(0, 0, 0); this.arch.position.y = 0;
+  },
+  intro: ["HOLD THE ARCH", "tap a crab to beam it back to the sea"],
+  // tap: a beam shot from the saucer to where you tapped; on the beat it's free
+  tap(cx, cy){
+    if (!S.started || S.end >= 0 || S.done) return;
+    const t = S.t, ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT, onBeat = ph < .13 || ph > .87;
+    const cost = onBeat ? 0 : 16;
+    if (S.hot || S.energy < cost){ sfx.dry(); say("TOO HOT", "wait for the beam to cool - or hit the beat", .7, true); return; }
+    S.energy -= cost; if (S.energy <= 0){ S.energy = 0; S.hot = true; }
+    this.ray.setFromCamera({ x:cx / innerWidth * 2 - 1, y:-(cy / innerHeight) * 2 + 1 }, cam);
+    const P = new THREE.Vector3(); if (!this.ray.ray.intersectPlane(this.plane, P)) return;
+    const b = this.bolts.find(b => !b.on); if (!b) return;
+    const from = new THREE.Vector3(0, 4.6, ARCH_Z - 1.5), dir = P.clone().sub(from), len = dir.length(); dir.normalize();
+    Object.assign(b, { on:true, from, dir, len, d:0, onBeat });
+    b.m.visible = true; b.m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    S.shots++; if (onBeat){ S.onBeat++; }
+    sfx.zap(); this.ring.position.set(P.x, .1, P.z); this.ring.visible = true; S.ringT = .3;
+  },
+  spawn(t, n){
+    for (let i = 0; i < n; i++){
+      const k = S.k++, f = t / END_AT;
+      const kind = f > .5 && rnd(k*9.1) < .22 ? "runner" : f > .25 && rnd(k*7.7) < .22 ? "big" : "small";
+      const g = this.pool.find(p => !p.visible && p.userData.kind === kind); if (!g) return;
+      g.visible = true; g.scale.setScalar(kind === "big" ? 2.6 : kind === "runner" ? 1.5 : 1.8);
+      const v = kind === "runner" ? 3.6 + f*1.5 : kind === "big" ? 1.3 + f : 1.7 + f*1.6 + rnd(k)*.6;
+      const c = { g, kind, x:(rnd(k*3.3) - .5)*24, z:-17 - rnd(k)*2, v, hp:kind === "big" ? 2 : 1, ph:rnd(k*4.4)*6, up:-1, slot:-1 };
+      g.position.set(c.x, 0, c.z); this.crabs.push(c);
+    }
+  },
+  update(dt, t){
+    // crabs come on the beat, more and more; a crowd on every 8th bar
+    while (t >= S.nextSpawn && t < END_AT - 3){
+      const bar = Math.floor((S.nextSpawn - GRID.t0) / BAR), crowd = bar % (inHook(S.nextSpawn) ? 4 : 8) === 3, f = t / END_AT;
+      this.spawn(t, crowd ? 4 + Math.floor(f*4) : 1 + (rnd(bar*3.7 + S.k) < f*1.2 ? 1 : 0));
+      if (crowd) say("HERE THEY COME", "", 1);
+      S.nextSpawn += BEAT*2;
+    }
+    // the beam gun cools down; overheated it has to cool all the way to half
+    S.energy = Math.min(100, S.energy + dt*(S.hot ? 34 : 24));
+    if (S.hot && S.energy >= 50) S.hot = false;
+    // shots fly; the first crab near the line is hit
+    for (const b of this.bolts){
+      if (!b.on) continue;
+      b.d += 48*dt;
+      const p = b.from.clone().addScaledVector(b.dir, Math.min(b.d, b.len));
+      b.m.position.copy(p);
+      let hit = null, hd = 1.5;
+      for (const c of this.crabs){ if (c.up >= 0 || c.slot >= 0) continue; const r = c.kind === "big" ? 1.9 : 1.4, d = Math.hypot(c.x - p.x, c.z - p.z);
+        if (d < r && p.y < 3 && d < hd + r){ hd = d; hit = c; } }
+      if (hit){
+        b.on = false; b.m.visible = false; hit.hp--; sfx.beam();
+        if (hit.hp > 0){ say("BIG ONE", "hit it again", .6); }
+        else { hit.up = 0; S.beamed++; S.combo++; S.best = Math.max(S.best, S.combo);
+          const pts = (hit.kind === "big" ? 250 : hit.kind === "runner" ? 200 : 100) * (b.onBeat ? 2 : 1) * Math.min(4, 1 + Math.floor(S.combo/8));
+          S.score += pts; if (b.onBeat) say("ON THE BEAT", "double points, free shot", .5); }
+      } else if (b.d >= b.len + 1){ b.on = false; b.m.visible = false; S.combo = 0; }
+    }
+    // crabs scuttle to the arch; the ones that make it climb up onto it
+    for (const c of this.crabs){
+      if (c.up >= 0){ c.up += dt; continue; }
+      if (c.slot >= 0) continue;
+      const tx = (c.ph % 1 - .5)*4, dx = tx - c.x, dz = ARCH_Z - 1.5 - c.z, d = Math.hypot(dx, dz);
+      const wig = c.kind === "runner" ? Math.sin(t*5 + c.ph)*4 : Math.sin(t*6 + c.ph)*1.2;
+      c.x += (dx/d*c.v + wig)*dt; c.z += dz/d*c.v*dt;
+      if (d < 1.2){
+        c.slot = S.onArch++; sfx.bad(); S.combo = 0;
+        const left = SLOTS - S.onArch;
+        if (left <= 0){ this.topple(); return; }
+        say("A CRAB ON THE ARCH", left === 1 ? "one more and it falls!" : left + " more and it falls", 1.1, true);
+      }
+    }
+    this.crabs = this.crabs.filter(c => { if (c.up > 1.6){ c.g.visible = false; return false; } return true; });
+    if (S.ringT > 0){ S.ringT -= dt; if (S.ringT <= 0) this.ring.visible = false; }
+    if (t >= END_AT){
+      // the sun's down: whatever's left runs back into the sea
+      for (const c of this.crabs) if (c.up < 0 && c.slot < 0) c.up = 0;
+      S.score += (SLOTS - S.onArch)*800; win("THE ARCH HOLDS");
+    }
+  },
+  topple(){ S.toppleT = 0; sfx.splash(); lose("THE ARCH FELL", "Five crabs on the arch is too many. Shoot on the beat - it's free and it never overheats."); },
+  hud(){
+    $("gauge").firstChild.style.width = S.energy.toFixed(0) + "%"; $("gauge").classList.toggle("hot", S.hot); $("gl").textContent = S.hot ? "TOO HOT" : "BEAM";
+    [...$("arch").children].forEach((e, i) => e.classList.toggle("on", i < S.onArch));
+  },
+  render(dt, t){
+    const archTop = this.arch.position.y + 5.1*.7 + .2;
+    for (const c of this.crabs){
+      if (c.up >= 0){ const u = c.up; c.g.position.set(c.x, .4 + u*u*9, c.z - u*16); c.g.rotation.set(u*8, u*6, 0); }
+      else if (c.slot >= 0){ c.g.position.set((c.slot - (SLOTS - 1)/2)*1.2, archTop + Math.abs(Math.sin(t*9 + c.slot))*.12, ARCH_Z); c.g.rotation.set(0, Math.sin(t*3 + c.slot)*.4, 0); c.g.scale.setScalar(1.2); }
+      else { c.g.position.set(c.x, Math.abs(Math.sin(t*14 + c.ph))*.06, c.z); c.g.rotation.set(0, Math.atan2(-c.x, ARCH_Z - c.z) + Math.sin(t*6 + c.ph)*.3, 0); }
+    }
+    // the arch sways under the weight, and falls
+    if (S.toppleT !== undefined){ S.toppleT += dt; this.arch.rotation.z = Math.min(1.3, S.toppleT*S.toppleT*1.6); this.arch.position.y = -Math.min(2, S.toppleT*1.2); }
+    else this.arch.rotation.z = Math.sin(t*2)*.012*S.onArch;
+    ufo.position.set(0, 4.8 + Math.sin(t*2)*.08, ARCH_Z - 1.5); ufo.rotation.set(0, t*.8, 0); ufo.visible = true;
+    beam.visible = this.bolts.some(b => b.on) || S.ringT > 0; beam.scale.set(.6, 1.2, .6); beam.position.y = -.6;
+    const portrait = cam.aspect < .8;
+    cam.position.set(0, portrait ? 40 : 25, portrait ? 21 : 17); cam.lookAt(0, 0, portrait ? -3 : -4);
+    waveSea(this.sea, t, (x, z) => Math.max(0, Math.sin((((t - GRID.t0) % BAR) / BAR)*Math.PI*2))*.35);
+  }
+};
+
+/* =============== PART 3 - SURF THE SUNSET: a runner on the sea, to the sun =============== */
+const LANE = 2.6;
+const SURF = {
+  speed: t => 16 + Math.min(8, t/10),
+  setup(){
+    this.sea = buildSea(160, 400, 0, -150);
+    this.items = []; this.side = [];
+    for (let i = 0; i < 26; i++){ const s = i % 2 ? 1 : -1, g = new THREE.Group();
+      const isle = new THREE.Mesh(new THREE.SphereGeometry(5, 12, 6, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshLambertMaterial({ color:C.sand, flatShading:true })); isle.scale.set(1.4, .35, 1); g.add(isle);
+      const p = buildPalm(8 + rnd(i)*5, s*-1.2, i); p.position.set(rnd(i*2)*2, 0, 0); g.add(p);
+      if (rnd(i*3) < .5){ const r = buildRock(2, i); r.position.set(-s*3, .5, 2); g.add(r); }
+      g.position.set(s*(16 + rnd(i*4)*10), -.3, -i*28); scene.add(g); this.side.push(g); }
+    const rockG = new THREE.DodecahedronGeometry(1.1, 0), rockM = new THREE.MeshLambertMaterial({ color:C.rock, flatShading:true });
+    const waveM = new THREE.MeshPhongMaterial({ color:0x5a3a6a, emissive:0x2a1430, specular:0xffb070, shininess:40, flatShading:true, transparent:true, opacity:.92 });
+    const foamM = new THREE.MeshBasicMaterial({ color:0xffe8d8 });
+    const lightM = new THREE.SpriteMaterial({ map:radial([[0, "#fffbe0"], [.3, "rgba(160,255,110,.9)"], [1, "rgba(80,255,40,0)"]]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+    const heartM = new THREE.SpriteMaterial({ map:(() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d"); x.font = "52px serif"; x.textAlign = "center"; x.fillStyle = "#7dff4d"; x.fillText("♥", 32, 50); return new THREE.CanvasTexture(cv); })(), transparent:true, depthWrite:false });
+    this.make = {
+      rock: () => { const m = new THREE.Mesh(rockG, rockM); m.scale.set(1.1, .9, 1); return m; },
+      wave: () => { const g = new THREE.Group(); const w = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, LANE*3.4, 16, 1, false, 0, Math.PI), waveM);
+        w.rotation.z = Math.PI/2; w.rotation.y = Math.PI/2; w.scale.set(1, 1, .9); g.add(w);
+        const f = new THREE.Mesh(new THREE.BoxGeometry(LANE*3.4, .18, .5), foamM); f.position.y = 1.4; g.add(f); return g; },
+      light: () => { const s = new THREE.Sprite(lightM); s.scale.setScalar(1.4); return s; },
+      heart: () => { const s = new THREE.Sprite(heartM); s.scale.setScalar(1.5); return s; }
+    };
+    $("pads").innerHTML = '<button type="button" data-a="-1">&#9664;</button><button type="button" data-a="0">&#9650;</button><button type="button" data-a="1">&#9654;</button>';
+  },
+  reset(){
+    Object.assign(S, { hearts:3, maxHearts:3, z:0, lane:0, lx:0, y:0, vy:0, inv:0, nextBeat:barT(1), k:0, lights:0, jumps:0 });
+    this.items.forEach(i => scene.remove(i.m)); this.items = [];
+    $("pads").classList.remove("hid");
+  },
+  intro: ["RIDE TO THE SUN", "◀ ▶ lanes · ▲ jump the waves"],
+  act(a){ if (!S.started || S.end >= 0 || S.done) return;
+    if (a === 0){ if (S.y <= .01){ S.vy = 9; sfx.jump(); } }
+    else S.lane = clamp(S.lane + a, -1, 1); },
+  update(dt, t){
+    const v = this.speed(t); S.z -= v*dt;
+    S.vy -= 24*dt; S.y = Math.max(0, S.y + S.vy*dt); if (S.y === 0) S.vy = 0;
+    S.lx += (S.lane*LANE - S.lx)*Math.min(1, dt*15); if (S.inv > 0) S.inv -= dt;
+    // things arrive on the beat: a wave every other bar, rocks between, lights on the off-beats
+    while (t + 2.2 > S.nextBeat && S.nextBeat < END_AT - 2){
+      const k = S.k++, at = S.nextBeat, z = S.z - v*(at - t), beatInBar = k % 4, f = at / END_AT;
+      if (k >= 4 && beatInBar === 0 && ((k/4) % 2 === 1 || inHook(at))){ const m = this.make.wave(); m.position.set(0, 0, z); scene.add(m); this.items.push({ m, kind:"wave", z, lane:9 }); }
+      else if (k >= 4 && rnd(k*3.1) < .5 + f*.3){
+        const lanes = f > .5 && rnd(k*4.1) < .35 ? 2 : 1, free = Math.floor(rnd(k*5.7)*3) - 1;
+        for (const lane of [-1, 0, 1].filter(l => l !== free).slice(0, lanes)){ const m = this.make.rock(); m.position.set(lane*LANE, .3, z); scene.add(m); this.items.push({ m, kind:"rock", z, lane }); }
+      }
+      const ll = Math.floor(rnd(k*7.3)*3) - 1, isHeart = k % 64 === 40, m = isHeart ? this.make.heart() : this.make.light();
+      m.position.set(ll*LANE, 1.1, z - v*BEAT/2); scene.add(m); this.items.push({ m, kind:isHeart ? "heart" : "light", z:z - v*BEAT/2, lane:ll });
+      S.nextBeat += BEAT;
+    }
+    for (const it of this.items){
+      if (it.done) continue;
+      const dz = it.z - S.z;
+      if (dz > -.6 && dz < .6){
+        const near = Math.abs(it.lane*LANE - S.lx), inLane = near < 1.3, onRock = near < 1.0;   // halfway out of a lane is out of a rock's way
+        if (it.kind === "light" && inLane){ it.done = true; it.m.visible = false; S.score += 50; S.lights++; sfx.good(); }
+        else if (it.kind === "heart" && inLane){ it.done = true; it.m.visible = false; S.hearts = Math.min(3, S.hearts + 1); sfx.heart(); say("+1 HEART", "", .8); }
+        else if (it.kind === "rock" && onRock && S.inv <= 0 && S.y < .9){ it.done = true; this.hit("ROCK!"); }
+        else if (it.kind === "wave" && S.inv <= 0 && S.y < 1.3){ it.done = true; this.hit("WIPEOUT!"); }
+        else if (it.kind === "wave"){ it.done = true; S.score += 200; S.jumps++; say("NICE JUMP", "", .6); sfx.big(); }
+      }
+      if (dz > 8){ it.done = true; scene.remove(it.m); }
+      if (S.done) return;
+    }
+    this.items = this.items.filter(it => !(it.done && it.z - S.z > 8));
+    S.score += v*dt*2;
+    if (t >= END_AT) win("THE SUN");
+  },
+  hit(what){ S.hearts--; S.inv = 1.2; sfx.bad(); if (S.hearts <= 0){ lose("WIPEOUT", "Jump when the foam of the wave reaches you, and keep to the open lane."); return; }
+    say(what, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1, true); },
+  render(dt, t){
+    ufo.position.set(S.lx, 1 + S.y + Math.sin(t*4)*.06, S.z); ufo.rotation.set(-.15, t*.8, clamp((S.lane*LANE - S.lx)*-.15, -.4, .4));
+    ufo.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+    beam.visible = true; beam.scale.set(.7, .9, .7); beam.position.y = -.5;
+    const portrait = cam.aspect < .8;
+    cam.position.set(S.lx*.4, portrait ? 5.5 : 4.2, S.z + (portrait ? 11 : 8.5)); cam.lookAt(S.lx*.4, 1.4, S.z - 12);
+    this.sea.position.z = Math.floor(S.z / 40)*40 - 150; waveSea(this.sea, t);
+    this.side.forEach(g => { if (g.position.z - S.z > 20) g.position.z -= 26*28; });
+    this.items.forEach(it => { if (it.kind === "light") it.m.scale.setScalar(1.3 + Math.sin(t*8)*.15); });
+  }
+};
+
+const G = PART === 1 ? HOP : PART === 2 ? CRAB : SURF;
+
+/* ================= THE ENDING =================
+   Every part ends on the cover: an orange flash, then the beach - the palms,
+   the stone arch, the sun on the sea - and the saucer settling into the sand
+   with its green beam on. "No Rest/No Work". */
+const END = { flash:.5, out:7.5 };
+let coverG;
+function win(what){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.won = what; S.endT = S.t; sfx.big();
+  $("hud").classList.add("off"); $("pads").classList.add("hid");
+}
+function lose(title, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = title; S.tip = tip; sfx.bad();
+  say(title, "", 2, true);
+  setTimeout(finish, 1500);
+}
+function renderCover(dt){
+  const e = S.end;
+  flashEl.style.opacity = e < END.flash ? e/END.flash : e < END.flash + .8 ? 1 - (e - END.flash)/.8 : e > END.out - 1.2 ? Math.min(1, (e - (END.out - 1.2))/1.2) : 0;
+  flashEl.style.background = e > END.out - 1.2 ? "#140a12" : "#ffd9a8";
+  if (e < END.flash){ G.render(dt, S.t); return; }
+  const u = clamp((e - END.flash)/3, 0, 1), s = u*u*(3 - 2*u);
+  ufo.visible = true; ufo.position.set(COVER.x + .5, 4 - s*2.9 + Math.sin(e*2)*.05, COVER.z + 3); ufo.rotation.set(0, e*.6, 0);
+  beam.visible = true; beam.scale.set(.9, 1.1 - s*.3, .9); beam.position.y = -.55 + s*.15;
+  const portrait = cam.aspect < .8;
+  cam.position.set(COVER.x + .5, 2.2 + (1 - s)*1.5, COVER.z + (portrait ? 17 : 13) + (1 - s)*3); cam.lookAt(COVER.x + 1, 3.6, COVER.z - 8);
+  waveSea(coverG.userData.sea, e);
+  if (e > END.flash + 1.4 && !S.saidEnd){ S.saidEnd = true; lyric("No Rest/No Work", 5); }
+}
+
+/* ---------------- boot, the loop ---------------- */
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a0d14); scene.fog = new THREE.Fog(0x3a1a22, 50, 300);
+  cam = new THREE.PerspectiveCamera(PART === 1 ? 42 : PART === 2 ? 52 : 62, innerWidth/innerHeight, .1, 2000);
+  scene.add(new THREE.HemisphereLight(0xffb080, 0x1a0a14, .75));
+  const sunL = new THREE.DirectionalLight(0xffa060, .9); sunL.position.set(-10, 6, -40); scene.add(sunL);
+  buildSky();
+  ufo = buildUFO(); beam = ufo.userData.beam; scene.add(ufo);
+  coverG = buildCover();
+  G.setup();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, lyrT:0, hearts:0, maxHearts:0 }; saidHook = false;
+  G.reset();
+  $("msg").className = ""; $("lyric").classList.remove("on"); flashEl.style.opacity = 0; lastH = "";
+}
+function update(dt){
+  // the song is the clock while it plays; the stand-in beat keeps its own
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = song.currentTime;
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.lyrT > 0){ S.lyrT -= dt; if (S.lyrT <= 0) $("lyric").classList.remove("on"); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  if (!saidHook && S.t >= HOOKS[0][0]){ saidHook = true; lyric("No Rest/No Work", 3.5); }
+  G.update(dt, Math.max(0, S.t));
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR ? clockR.getDelta() : .016);
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done || S.end >= 0) hud(); }
+    if (S.end >= 0) renderCover(dt); else G.render(dt, Math.max(0, S.t));
+    sky.position.copy(cam.position);
+    ren.render(scene, cam);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail);
+  $("next").classList.toggle("hid", S.fail);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("pads").classList.add("hid");
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(), metres:0 });
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "Not yet";
+    ps[0].innerHTML = "Score <b>" + score().toLocaleString("en") + "</b>" + (PART === 2 ? " &middot; " + S.beamed + " crabs beamed back" : "");
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = CFG.title;
+  const stat = PART === 1 ? S.starsGot + " sun-stars" + (S.falls ? " &middot; " + S.falls + (S.falls === 1 ? " splash" : " splashes") : " &middot; no splash")
+    : PART === 2 ? S.beamed + " crabs beamed back &middot; " + S.onBeat + " on the beat &middot; " + S.onArch + " on the arch"
+    : S.lights + " lights &middot; " + S.jumps + " waves jumped";
+  ps[0].innerHTML = "Score <b>" + score().toLocaleString("en") + "</b> &middot; " + stat;
+  ps[1].innerHTML = "No rest, no work. <b>You made it.</b>" + (PART === 1 ? "<br>Part 2: Crab Night - hold the arch." : PART === 2 ? "<br>Part 3: surf the sunset." : "");
+}
+$("go").addEventListener("click", () => {
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  say(G.intro[0], G.intro[1], 2.6);
+});
+
+/* ---------------- input ---------------- */
+const veilUp = () => !$("veil").classList.contains("hid");
+addEventListener("pointerdown", e => {
+  if (veilUp() || !S.started) return;
+  if (PART === 3 && e.target.closest("#pads")) return;
+  e.preventDefault();
+  if (PART === 1) HOP.press(true);
+  else if (PART === 2) CRAB.tap(e.clientX, e.clientY);
+  else { const f = e.clientX / innerWidth; SURF.act(f < 1/3 ? -1 : f > 2/3 ? 1 : 0); }
+}, { passive:false });
+addEventListener("pointerup", () => { if (PART === 1) HOP.press(false); });
+addEventListener("pointercancel", () => { if (PART === 1) HOP.press(false); });
+$("pads").addEventListener("pointerdown", e => { const b = e.target.closest("button"); if (!b || PART !== 3) return; e.stopPropagation(); e.preventDefault();
+  b.classList.add("on"); setTimeout(() => b.classList.remove("on"), 100); SURF.act(+b.dataset.a); });
+addEventListener("keydown", e => {
+  if (veilUp() || e.repeat || !S.started) return;
+  if (PART === 1 && [" ", "ArrowUp", "w", "W"].includes(e.key)){ e.preventDefault(); HOP.press(true); }
+  if (PART === 3){ const a = { ArrowLeft:-1, a:-1, A:-1, ArrowRight:1, d:1, D:1, ArrowUp:0, " ":0, w:0, W:0 }[e.key]; if (a !== undefined){ e.preventDefault(); SURF.act(a); } }
+});
+addEventListener("keyup", e => { if (PART === 1 && [" ", "ArrowUp", "w", "W"].includes(e.key)) HOP.press(false); });
+
+// the start card for this part; on its own you can switch parts
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = PART === 1 ? "No Rest/No Work" : CFG.title;
+$("intro").innerHTML = PART === 1 ? "The beach from the cover, at sunset. Hop the saucer across the sea to the stone arch before the sun goes down."
+  : PART === 2 ? "The sun goes down and the crabs come out of the sea - no rest. The saucer holds the stone arch: <b>beam them back</b>."
+  : "The saucer skims the sea toward the sun. Jump the big waves, keep off the rocks, grab the lights.";
+$("how").innerHTML = PART === 1 ? "<b>Tap</b> for a short hop, <b>hold</b> for a high jump and to hover with the beam (the HOVER bar refills when you land). Fall in the sea and it costs a heart - you have 3, and green hearts float over some gaps."
+  : PART === 2 ? "<b>Tap</b> where you want the beam to go - it shoots from the saucer and knocks the first crab it meets back to the sea. Big purple crabs take two hits. The beam <b>overheats</b> if you fire too fast - but a shot <b>on the beat is free</b> and scores double. Every crab that gets through climbs onto the arch: <b>five and it falls</b>."
+  : "<b>◀ ▶</b> (or the sides of the screen) to change lane, <b>▲</b> (or the middle) to jump. A big wave across all lanes has to be jumped; rocks have to be dodged. 3 hearts.";
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    b.setAttribute("aria-pressed", String(+b.dataset.part === PART));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.set("part", b.dataset.part); location.search = q.toString(); });
+  });
+}
+
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

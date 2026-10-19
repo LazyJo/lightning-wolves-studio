@@ -47,7 +47,10 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl5', 5, 'FEEL LIKE THAT', 'lvl4', 0, 30000, 500, 50, 300, 10),  -- fireflies to the lamps: ~20k for a quick clear
   ('lvl5b', 5, 'MOTH NIGHT',  'lvl5', 0, 30000, 500, 50, 300, 11),     -- Level 5 Part 2
   ('lvl5c', 5, 'STAY LIT',    'lvl5b', 0, 30000, 500, 75, 400, 12),    -- Level 5 Part 3: the lamps burn down
-  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 0, 150000, 3000, 75, 500, 13)
+  ('lvl6', 6, 'NO REST/NO WORK', 'lvl5', 0, 50000, 1000, 50, 300, 13), -- Island Hopper: ~39k for a clean run
+  ('lvl6b', 6, 'CRAB NIGHT',  'lvl6', 0, 90000, 2000, 50, 300, 14),     -- Level 6 Part 2: hold the arch, ~60k
+  ('lvl6c', 6, 'SURF THE SUNSET', 'lvl6b', 0, 30000, 600, 75, 400, 15), -- Level 6 Part 3: ~20k
+  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 0, 150000, 3000, 75, 500, 16)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -174,7 +177,10 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl4c' THEN g.best_score END), 0)::INT AS lvl4c_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl5' THEN g.best_score END), 0)::INT AS lvl5_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl5b' THEN g.best_score END), 0)::INT AS lvl5b_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl5c' THEN g.best_score END), 0)::INT AS lvl5c_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl5c' THEN g.best_score END), 0)::INT AS lvl5c_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl6' THEN g.best_score END), 0)::INT AS lvl6_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl6b' THEN g.best_score END), 0)::INT AS lvl6b_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl6c' THEN g.best_score END), 0)::INT AS lvl6c_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

@@ -21,6 +21,9 @@ canvas{display:block; touch-action:none}
 #hud.off{opacity:0}
 #m{font-family:Bungee,sans-serif; font-size:24px; color:#ffd27a; line-height:1}
 #ml{font-size:11px; letter-spacing:.18em; color:#b9a6d9; margin-top:3px}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#ff5d8f; text-shadow:0 0 10px #ff2d6f88}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
 #carry{font-family:Bungee,sans-serif; font-size:15px; color:#e9ff7a; margin-top:8px; min-height:18px; text-shadow:0 0 10px #c8ff3a88}
 #lampsRow{display:flex; gap:4px; justify-content:flex-end; flex-wrap:wrap; max-width:180px}
 #lampsRow i{width:14px; height:18px; border-radius:4px 4px 2px 2px; background:#2b2440; border:1px solid #4a3f68}
@@ -90,7 +93,7 @@ canvas{display:block; touch-action:none}
 
 <div id="cab"></div>
 <div id="hud">
-  <div><div id="m">0</div><div id="ml">SCORE</div><div id="carry"></div></div>
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts" class="hid"></div><div id="carry"></div></div>
   <div><div id="lampsRow"></div><div id="ll">LAMPS</div><div id="night"><i></i></div><div id="ll2" style="font-size:11px;letter-spacing:.18em;color:#b9a6d9;margin-top:3px;text-align:right">NIGHT</div></div>
 </div>
 <div id="judge"></div>
@@ -141,13 +144,14 @@ const calmAt = t => CALM.some(([a, b]) => t >= a && t < b);
 
 /* Three parts. Part 2: more lamps, more moths, and flying through your own trail
    cuts it. Part 3: lit lamps slowly burn down - feed them to keep them lit, and
-   light them all at the same time. The hub opens a part with ?part=2|3; on its
+   light them all at the same time - and the saucer has 3 hearts: every moth that
+   touches it takes one, and with none left the night is over. The hub opens a part with ?part=2|3; on its
    own the start card lets you pick. */
 const PART = Math.min(3, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
 const CFG = {
   1: { id:"lvl5",  title:"Feel Like That", lamps:6, need:[4, 5, 5, 6, 6, 7],       moths:2, mothV:.55, cut:false, burn:0,  flies:13 },
   2: { id:"lvl5b", title:"Moth Night",     lamps:8, need:[5, 5, 6, 6, 7, 7, 8, 8], moths:4, mothV:.7,  cut:true,  burn:0,  flies:15 },
-  3: { id:"lvl5c", title:"Stay Lit",       lamps:8, need:[4, 4, 5, 5, 6, 6, 7, 7], moths:4, mothV:.75, cut:true,  burn:85, flies:18 }
+  3: { id:"lvl5c", title:"Stay Lit",       lamps:8, need:[4, 4, 5, 5, 6, 6, 7, 7], moths:4, mothV:.75, cut:true,  burn:95, flies:20, hearts:3 }
 }[PART];
 const SPEED = 8.5, HOVER = 3, PARK = { x:38, z:28 };
 
@@ -464,7 +468,7 @@ function boot(){
 let S;
 function reset(){
   S = { t:-1, started:false, done:false, fail:false, score:0, x:START.x, z:START.z, vx:0, vz:0, trail:[], lit:0,
-        delivered:0, scatters:0, cuts:0, safe:0, giveT:0, end:-1, msgT:0, judgeT:0, saidTitle:false, goal:null, keys:{x:0, z:0}, spawnT:0, bestTrail:0 };
+        delivered:0, scatters:0, cuts:0, safe:0, hearts:CFG.hearts || 0, why:"", giveT:0, end:-1, msgT:0, judgeT:0, saidTitle:false, goal:null, keys:{x:0, z:0}, spawnT:0, bestTrail:0 };
   F = []; seedN = 0;
   for (let i = 0; i < CFG.flies; i++) spawnFly();
   PATH.length = 0; PATH.push({ x:S.x, z:S.z });
@@ -615,14 +619,20 @@ function update(dt){
     const mx = (tx - m.x)*Math.min(1, dt*3), mz = (tz - m.z)*Math.min(1, dt*3);
     m.x += mx; m.z += mz; if (mx*mx + mz*mz > 1e-6) m.hd = Math.atan2(mx, mz);
     m.y += ((calm ? 16 : 2.8) - m.y)*Math.min(1, dt*1.2);
-    if (m.y < 4.2 && S.safe <= 0 && S.trail.length && Math.hypot(m.x - S.x, m.z - S.z) < 2.3){
+    if (m.y < 4.2 && S.safe <= 0 && (S.trail.length || CFG.hearts) && Math.hypot(m.x - S.x, m.z - S.z) < 2.3){
       S.scatters++; scatter(0, "SCATTERED!"); S.safe = 1.5;
+      // Part 3: it costs a heart too, and the last one ends the night
+      if (CFG.hearts){
+        S.hearts--; sfx.scatter(); say(S.hearts ? "OUCH! " + S.hearts + (S.hearts === 1 ? " HEART" : " HEARTS") + " LEFT" : "NO HEARTS LEFT", "x", 1.3);
+        const h = document.getElementById("hearts"); h.classList.remove("hit"); void h.offsetWidth; h.classList.add("hit");
+        if (S.hearts <= 0){ S.fail = true; S.done = true; S.why = "moths"; lyric("The moths got you", "", 2.5); setTimeout(finish, 1800); return; }
+      }
     }
   }
 
   // the end: every lamp lit (in Part 3, all at the same time) - or the night runs out
   if (lamps.every(l => l.lit)){ S.end = 0; S.endT = t; S.score += Math.max(0, Math.round((NIGHT_END - t)*100)); finale(); return; }
-  if (t >= NIGHT_END){ S.fail = true; S.done = true; lyric("The night is over", "", 2.5); setTimeout(finish, 1800); }
+  if (t >= NIGHT_END){ S.fail = true; S.done = true; S.why = "night"; lyric("The night is over", "", 2.5); setTimeout(finish, 1800); }
 }
 function nearLamp(){
   let best = null, bd = 3.6;
@@ -751,6 +761,8 @@ function frame(){
     render(dt);
     if (S.score !== lastScore){ lastScore = S.score; mEl.textContent = S.score.toLocaleString("en"); }
     if (S.trail.length !== lastCarry){ lastCarry = S.trail.length; carryEl.textContent = S.trail.length ? "✦ " + S.trail.length + (S.trail.length === 1 ? " firefly" : " fireflies") : ""; }
+    if (CFG.hearts){ const he = document.getElementById("hearts"), txt = "\u2665".repeat(Math.max(0, S.hearts)) + "\u2661".repeat(CFG.hearts - Math.max(0, S.hearts));
+      if (he.textContent !== txt) he.textContent = txt; he.classList.remove("hid"); }
     const ls = lamps.map(l => l.lit ? (CFG.burn && l.burn < .3 ? "f" : "1") : "0").join("");
     if (ls !== lastLamps){ lastLamps = ls; DOTS.forEach((d, i) => { d.className = ls[i] === "1" ? "on" : ls[i] === "f" ? "on fading" : ""; }); }
     const left = clamp((NIGHT_END - Math.max(0, S.t)) / NIGHT_END, 0, 1);
@@ -775,10 +787,10 @@ function finish(){
   if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(), metres:0,
     lamps:S.lit, fireflies:S.delivered, scatters:S.scatters });
   if (S.fail){
-    v.querySelector(".by").textContent = "THE NIGHT IS OVER";
+    v.querySelector(".by").textContent = S.why === "moths" ? "NO HEARTS LEFT" : "THE NIGHT IS OVER";
     v.querySelector("h1").textContent = "Not yet";
     ps[0].innerHTML = "<b>" + S.lit + " of " + lamps.length + "</b> lamps lit &middot; " + S.delivered + " fireflies brought home";
-    ps[1].innerHTML = (S.scatters > 2 ? "Keep away from the moths - they scatter your fireflies." : "Grab a big trail of fireflies, then fly it to a lamp.") + " <b>Go again.</b>";
+    ps[1].innerHTML = (S.why === "moths" ? "Three moths and you're out - give them room, and wait for the quiet bars." : S.scatters > 2 ? "Keep away from the moths - they scatter your fireflies." : "Grab a big trail of fireflies, then fly it to a lamp.") + " <b>Go again.</b>";
     return;
   }
   const secs = Math.round(S.endT);
@@ -808,7 +820,7 @@ document.getElementById("by").textContent = "LAZY JO" + (PART > 1 ? " · LEVEL 5
 document.getElementById("title").textContent = CFG.title;
 document.getElementById("intro").innerHTML = (PART === 1 ? "Night in the park, and every lamp is dark."
   : PART === 2 ? "More lamps, more moths - and fly through your own trail and it breaks."
-  : "The lamps burn down now. Keep feeding them: <b>all " + CFG.lamps + " lit at the same time</b>.") +
+  : "The lamps burn down now. Keep feeding them: <b>all " + CFG.lamps + " lit at the same time</b>. And you have <b>3 hearts</b>: every moth that touches you takes one.") +
   " <b>" + CFG.lamps + "</b> lamps, <b>" + CFG.moths + "</b> moths.";
 document.getElementById("how").innerHTML = "<b>Hold your finger</b> on the park (or use the arrow keys) and the saucer flies there. " +
   "Fly through <b>fireflies</b> and they follow you. Fly to a <b>dark lamp</b> and they go in &mdash; the dots show how many it needs. " +

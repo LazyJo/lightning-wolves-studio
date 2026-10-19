@@ -337,6 +337,17 @@ function renderMe(){
   $("mePts").textContent = signedIn() ? fmt(player.points) + " points" + (creator ? " · creator, every level open" : "") : "Guest · not saved";
   $("guestNote").classList.toggle("hid", !!session);
 }
+// the album songs that have no level yet, as ranges: "Levels 5 - 8, 10 - 28"
+function comingSoon(){
+  const have = new Set(LEVELS.map(l => l.num)), runs = [];
+  for (let n = 1; n <= 28; n++){
+    if (have.has(n)) continue;
+    const last = runs[runs.length - 1];
+    if (last && last[1] === n - 1) last[1] = n; else runs.push([n, n]);
+  }
+  return (runs.length === 1 && runs[0][0] === runs[0][1] ? "Level " : "Levels ") +
+    runs.map(([a, b]) => a === b ? a : a + " - " + b).join(", ");
+}
 function renderLevels(){
   const html = LEVELS.map(lv => {
     const p = progress[lv.id] || {};
@@ -352,7 +363,7 @@ function renderLevels(){
           : '<span class="tag">&#128274; Finish Level ' + need.num + ' first</span>') +
       '</div>' + (done ? '<span class="tag ok" style="position:absolute;top:14px;right:14px">Cleared</span>' : '') +
       '</article>';
-  }).join("") + '<article class="lv soon"><span class="no">Levels 3 - 28</span><p class="ds">One per song on the album. Coming as the songs come.</p></article>';
+  }).join("") + '<article class="lv soon"><span class="no">' + comingSoon() + '</span><p class="ds">One per song on the album. Coming as the songs come.</p></article>';
   $("levels").innerHTML = html;
 }
 const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl9","Level 9"]];

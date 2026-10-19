@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>MYSELF</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+html,body{height:100%}
+body{margin:0; background:#0e0606; color:#fff0ea; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#ff8a7a; line-height:1}
+#ml{font-size:11px; letter-spacing:.18em; color:#d6aaa0; margin-top:3px}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#ff4a5a; text-shadow:0 0 10px #ff2a3a88; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ffffff1f; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#c81e28,#ffb25a)}
+.bl{font-size:11px; letter-spacing:.18em; color:#d6aaa0; text-align:right}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#8affb0; margin-top:8px; text-align:right}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#ffd65a}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#8affb0; text-shadow:0 0 12px #2aff7a88}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#ffd6c8; margin-top:2px}
+#phase.ready{color:#ffd27a; text-shadow:0 0 12px #ffb34788}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:22%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:24px; opacity:0; transition:opacity .25s; text-shadow:0 0 16px #ff3a2a, 0 2px 0 #000; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ffb0b0}
+#msg.g{color:#ffe08a; text-shadow:0 0 16px #ffb000, 0 2px 0 #000}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#ffd6c8; margin-top:6px}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto;
+  background:radial-gradient(70% 30% at 50% 58%, #ff7a2a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 30%, #3a0f0c 0%, #0e0606 70%)}
+body.gold #veil{background:radial-gradient(70% 30% at 50% 58%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 30%, #3a240c 0%, #0e0906 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#d6aaa0; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(36px,11vw,64px); line-height:1; color:#fff; text-shadow:0 0 24px #ff3a2a}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#ffd6c8; font-size:17px; max-width:38ch}
+#veil b{color:#8affb0}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:#ff5a5a; color:#1a0404; border:0; border-radius:4px; padding:15px 36px; cursor:pointer}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+#go.alt{background:none; color:#ff8a7a; border:1.5px solid #ff8a7a; font-size:15px; padding:12px 30px}
+#next{font-family:Bungee,sans-serif; font-size:19px; background:#ff5a5a; color:#1a0404; text-decoration:none; border-radius:4px; padding:13px 34px 11px; line-height:1.1}
+#next small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.16em; color:#1a0404; opacity:.75; margin-top:3px}
+#veil small{color:#b8908a; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#ffd6c8; background:none; border:1.5px solid #ff8a7a55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#ff8a7a; background:#ff8a7a22}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ff8a7a; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ff8a7a99; background:#ff8a7a14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ff8a7a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:40px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">MYSELF</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Part">
+    <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button><button type="button" data-part="4" class="gold">Part 4 &middot; No Stop</button>
+  </div>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= MYSELF =================
+   Level 8 of JAVEDA, in the world of the cover: a rocky canyon at sunset,
+   cracked dry ground, a giant red rose, and Jo's red saucer with its green
+   beam at the foot of the stem. Jo picked all three prototypes, one per part:
+
+     Part 1 PETAL RAIN  the rose is losing its petals: catch them in the beam
+                        before they hit the ground. Thorns fall too.
+     Part 2 THE STEM    climb the giant stem to the bloom, round the thorns.
+     Part 3 MY SHADOW   a dark saucer flies exactly where you flew a few
+                        seconds ago. Gather the petals, stay ahead of yourself.
+     Part 4 NO STOP     the golden one, open once Parts 1-3 are cleared: all
+                        three games in turn, 8 bars each, no end. Every lap is
+                        harder; a lap gives a heart back. Play till the hearts
+                        run out - it's for the scoreboard.
+
+   Each game is an engine with begin(t0, t1, L0, L1): it plays the window
+   [t0, t1] with its difficulty L rising from L0 to L1. Parts 1-3 are one
+   window, the whole song, L 0 -> 1. Part 4 is a run of 8-bar windows.
+
+   The beat: GRID. STAND-IN (90 BPM) until Jo's song (lvl8.mp3) is here - then
+   GRID, END_AT and LOOP come from SONG.md. Part 4 loops LOOP, whole bars of
+   the song, so the beat never slips. */
+
+const GRID = { bpm:90, t0:0 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(56);                      // Parts 1-3 end here
+const LOOP = [barT(4), barT(52)];             // Part 4: the bars of the song it plays round and round
+const STINT = BAR * 8;                        // Part 4: each game's turn
+const HEARTS = 3;
+
+const PART = Math.min(4, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
+const CFG = {
+  1: { id:"lvl8",  title:"Petal Rain", by:"LEVEL 8",        game:"rain" },
+  2: { id:"lvl8b", title:"The Stem",   by:"LEVEL 8 PART 2", game:"stem" },
+  3: { id:"lvl8c", title:"My Shadow",  by:"LEVEL 8 PART 3", game:"shadow" },
+  4: { id:"lvl8d", title:"No Stop",    by:"LEVEL 8 PART 4", game:"mix", endless:true }
+}[PART];
+const ORDER = ["rain", "stem", "shadow"];
+
+const LINKS = {
+  next:    "https://lightningwolves.studio/javeda/",
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB){
+  document.getElementById("next").addEventListener("click", e => { e.preventDefault(); toHub({ type:"javeda:next", level:CFG.id }); });
+  document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+}
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const angDiff = (a, b) => { const d = a - b; return Math.atan2(Math.sin(d), Math.cos(d)); };
+const $ = id => document.getElementById(id);
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const song = new Audio("lvl8.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [110, 87.3, 130.8, 98];
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .005); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), full = bar >= 2;
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .4, .5, 900);
+    if (full && s8 === 4){ hiss(at, .22, .2, 0, 1400); tone("triangle", 190, 140, at, .1, .08); }
+    hiss(at, .04, s8 % 2 ? .035 : .06, 7000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("triangle", f, f, at, BAR*.9, .14, 450);
+      [1, 1.19, 1.5].forEach((m, k) => tone("sine", f*4*m, f*4*m, at + k*BEAT*.5, BEAT*1.5, .02, 3000)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: () => ac && tone("triangle", 880, 1320, ac.currentTime, .12, .07, 6000),
+  big:  () => ac && [660, 880, 1320, 1760].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.05, .25, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  soft: () => ac && tone("sine", 300, 180, ac.currentTime, .25, .06, 900),
+  dew:  n => ac && tone("triangle", 660*Math.pow(2, (n % 6)/6), 660*Math.pow(2, (n % 6)/6), ac.currentTime, .2, .05, 6000),
+  heart: () => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  swap: () => ac && (hiss(ac.currentTime, .5, .14, 0, 2500), tone("sine", 200, 900, ac.currentTime, .4, .05, 4000))
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the canyon, the rose, the saucer ---------------- */
+let scene, cam, ren, sky, clockR, ME, crashed = null;
+const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+function buildCanyon(){
+  // the sunset: dark above, a burning band on the horizon
+  const cv = document.createElement("canvas"); cv.width = 4; cv.height = 256; const x = cv.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
+  [[0, "#140607"], [.3, "#3a0f0c"], [.44, "#a0361a"], [.495, "#ffb85a"], [.53, "#6a2410"], [1, "#140807"]].forEach(([o, c]) => g.addColorStop(o, c));
+  x.fillStyle = g; x.fillRect(0, 0, 4, 256);
+  sky = new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(cv), side:THREE.BackSide, fog:false, depthWrite:false }));
+  scene.add(sky);
+  // cracked dry ground
+  const gc = document.createElement("canvas"); gc.width = gc.height = 512; const gx = gc.getContext("2d");
+  gx.fillStyle = "#2c1a12"; gx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 260; i++){ gx.fillStyle = `rgba(${60 + rnd(i)*40|0},${30 + rnd(i*2)*20|0},20,.25)`; gx.fillRect(rnd(i*3)*512, rnd(i*5)*512, 3 + rnd(i*7)*14, 3 + rnd(i*9)*14); }
+  for (let i = 0; i < 70; i++){ let px = rnd(i*1.3)*512, py = rnd(i*2.7)*512, a = rnd(i*4.1)*6.3;
+    gx.beginPath(); gx.moveTo(px, py);
+    for (let k = 0; k < 7; k++){ a += (rnd(i*31 + k) - .5)*1.6; px += Math.cos(a)*(10 + rnd(i*7 + k)*18); py += Math.sin(a)*(10 + rnd(i*11 + k)*18); gx.lineTo(px, py); }
+    gx.strokeStyle = "#0e0604"; gx.lineWidth = 1.5 + rnd(i)*2; gx.stroke(); }
+  const tex = new THREE.CanvasTexture(gc); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(16, 16);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({ map:tex, roughness:1 }));
+  ground.rotation.x = -Math.PI/2; scene.add(ground);
+  // rock towers and mesas all round
+  const rock = new THREE.MeshStandardMaterial({ color:0x3a2016, roughness:1, flatShading:true });
+  for (let i = 0; i < 46; i++){ const a = rnd(i*3.7)*Math.PI*2, d = 50 + rnd(i*5.3)*90, h = 18 + rnd(i*2.1)*50, r = 4 + rnd(i*8.8)*10;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r*(.45 + rnd(i)*.3), r, h, 6 + (i % 3)), rock);
+    m.position.set(Math.cos(a)*d, h/2, Math.sin(a)*d); m.rotation.y = rnd(i*6)*3; scene.add(m);
+    if (rnd(i*9.9) < .5){ const top = new THREE.Mesh(new THREE.DodecahedronGeometry(r*.5, 0), rock); top.position.set(m.position.x, h + r*.2, m.position.z); scene.add(top); } }
+}
+// the rose: layers of cupped petals round a dark core, the outer ones curling open
+const SHELL = new THREE.SphereGeometry(1, 14, 10, 0, Math.PI, 0, Math.PI);
+const PETAL_RED = new THREE.MeshStandardMaterial({ color:0xd0141e, roughness:.45, emissive:0x3a0206, side:THREE.DoubleSide });
+const PETAL_DARK = new THREE.MeshStandardMaterial({ color:0x8a0812, roughness:.5, emissive:0x200004, side:THREE.DoubleSide });
+const LEAF = new THREE.MeshStandardMaterial({ color:0x3a5a1a, roughness:.6, emissive:0x0a1404 });
+function buildBloom(){
+  const b = new THREE.Group(), petals = [];
+  const core = new THREE.Mesh(new THREE.SphereGeometry(.5, 16, 12), PETAL_DARK); core.scale.set(1, 1.3, 1); b.add(core);
+  for (let L = 0; L < 5; L++){ const n = 4 + L*2;
+    for (let i = 0; i < n; i++){ const pivot = new THREE.Group(); pivot.rotation.y = (i + L*.5)/n*Math.PI*2;
+      const p = new THREE.Mesh(SHELL, L % 2 ? PETAL_RED : PETAL_DARK);
+      p.scale.set(.5 + L*.28, .75 + L*.22, .3 + L*.06); p.position.set(0, -L*.06, .18 + L*.26); p.rotation.x = .05 + L*L*.07;
+      pivot.add(p); b.add(pivot); petals.push(pivot); } }
+  b.userData.petals = petals;              // inner first, outer last
+  return b;
+}
+function buildRose(stemLen){
+  const g = new THREE.Group();
+  const stem = new THREE.Mesh(new THREE.CylinderGeometry(.16, .24, stemLen, 10), LEAF); stem.position.y = stemLen/2; g.add(stem);
+  for (const [s, h] of [[-1, .28], [1, .45]]){ const leaf = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), LEAF);
+    leaf.scale.set(1.5, .07, .6); leaf.position.set(s*1.3, stemLen*h, .3); leaf.rotation.set(.9, 0, s*-.35); g.add(leaf); }
+  const bloom = buildBloom(); bloom.position.y = stemLen + .3; bloom.scale.setScalar(1.5); bloom.rotation.x = .35; g.add(bloom);
+  g.userData.bloom = bloom;
+  return g;
+}
+// Jo's red saucer: white lights round the rim, a red dome, the green beam under it. dark = a shadow
+function buildSaucer(dark){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 12), new THREE.MeshStandardMaterial({ color:dark ? 0x140a1e : 0xc81e28, roughness:.35, metalness:.4,
+    emissive:dark ? 0x30104a : 0x3a0408, transparent:!!dark, opacity:dark ? .85 : 1 }));
+  hull.scale.set(1.2, .26, 1.2); g.add(hull);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.5, 20, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:dark ? 0x4a1a7a : 0xe03040, roughness:.15,
+    emissive:dark ? 0x3a0a6a : 0x5a0a10, emissiveIntensity:.8 }));
+  dome.position.y = .12; g.add(dome);
+  for (let i = 0; i < 10; i++){ const a = i/10*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.08, 6, 5), new THREE.MeshBasicMaterial({ color:dark ? 0xb070ff : 0xffffff }));
+    l.position.set(Math.sin(a)*1.08, .02, Math.cos(a)*1.08); g.add(l); }
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.3, 1.1, 2, 20, 1, true), glowMat(dark ? 0x9a5aff : 0x8affb0, dark ? .18 : .3)); beam.position.y = -1.1; g.add(beam);
+  g.userData.beam = beam;
+  return g;
+}
+
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+function hud(){
+  $("m").textContent = Math.round(S.score).toLocaleString("en");
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "NO STOP · LAP " + (S.lap + 1); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.t0 + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { p.className = ""; p.innerHTML = G.tag + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.3; S.combo = 0; sfx.bad();
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+// a catch on the beat is worth double; a run of catches multiplies (to x4)
+function award(base, every){ const beat = onBeat(S.t); S.combo++; S.best = Math.max(S.best, S.combo); if (beat) S.onBeat++;
+  S.score += (beat ? base*2 : base) * Math.min(4, 1 + Math.floor(S.combo/every)); return beat; }
+
+/* =============== Part 1: PETAL RAIN - catch the rose's petals in the beam =============== */
+const RAIN = {
+  name:"rain", label:"PETAL RAIN", tag:"CATCH THE PETALS", hint:"slide under them - not the thorns", ROSE:10,
+  setup(){
+    this.root = new THREE.Group(); scene.add(this.root);
+    this.rose = buildRose(8); this.rose.position.set(0, 0, -7); this.root.add(this.rose);
+    this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
+    this.drops = [];
+    const pm = new THREE.MeshStandardMaterial({ color:0xe01824, emissive:0x5a040a, roughness:.5, side:THREE.DoubleSide });
+    const tm = new THREE.MeshStandardMaterial({ color:0x1e3a12, emissive:0x0a1406, roughness:.6 });
+    const mark = (c, o) => { const s = new THREE.Mesh(new THREE.CircleGeometry(.7, 20), glowMat(c, o)); s.rotation.x = -Math.PI/2; s.visible = false; this.root.add(s); return s; };
+    for (let i = 0; i < 28; i++){ const m = new THREE.Mesh(SHELL, pm); m.scale.set(.42, .55, .2); m.visible = false; this.root.add(m);
+      this.drops.push({ m, kind:"petal", on:false, mark:mark(0xff6a7a, .25) }); }
+    for (let i = 0; i < 10; i++){ const m = new THREE.Mesh(new THREE.ConeGeometry(.3, 1.3, 6), tm); m.visible = false; m.rotation.x = Math.PI; this.root.add(m);
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xff3030, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); glow.scale.setScalar(1.8); m.add(glow);
+      this.drops.push({ m, kind:"thorn", on:false, mark:mark(0xff2020, .45) }); }
+  },
+  begin(t0, t1, L0, L1){
+    Object.assign(this, { t0, t1, L0, L1 });
+    this.st = { x:this.st ? this.st.x : 0, tx:0, next:t0 + BAR, nextThorn:t0 + BAR*3, rose:this.ROSE, caught:0, k:Math.round(t0*7) };
+    this.st.tx = this.st.x;
+    this.drops.forEach(d => { d.on = false; d.m.visible = d.mark.visible = false; });
+    this.showRose();
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  info(){ return "ROSE " + this.st.rose + " / " + this.ROSE + (S.combo >= 4 ? " · " + S.combo + " IN A ROW" : ""); },
+  xr(){ const d = cam.aspect < .8 ? 26 : 17; return Math.min(8.5, Math.tan(25*Math.PI/180)*d*cam.aspect - 1); },
+  showRose(full){ const p = this.rose.userData.bloom.userData.petals, keep = full ? p.length : Math.round(p.length*(.25 + .75*this.st.rose/this.ROSE)); p.forEach((q, i) => q.visible = i < keep); },
+  point(cx, cy){ this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const P = new THREE.Vector3(); if (this.ray.ray.intersectPlane(this.plane, P)) this.st.tx = P.x; },
+  drop(kind, at, T, x1){ const d = this.drops.find(d => d.kind === kind && !d.on); if (!d) return; const st = this.st, k = st.k++, xr = this.xr();
+    Object.assign(d, { on:true, caught:false, ts:at, T, x0:(rnd(k*2.2) - .5)*3, x1:clamp(x1 !== undefined ? x1 : (rnd(k*3.9)*2 - 1)*xr, -xr, xr), ph:rnd(k)*6 });
+    d.m.visible = d.mark.visible = true; d.mark.position.set(d.x1, .06, 0); return d; },
+  update(dt, t){
+    const st = this.st, xr = this.xr(), L = this.L(t);
+    if (keys.left) st.tx -= dt*14; if (keys.right) st.tx += dt*14;
+    st.tx = clamp(st.tx, -xr, xr); st.x += (st.tx - st.x)*(1 - Math.exp(-dt*14));
+    // petals fall on the beat, more as it goes on; every one lands before the window ends
+    const pT = Math.max(1.7, 2.9 - .7*L), tT = Math.max(1.1, 1.7 - .3*L);
+    while (t >= st.next){ const at = st.next;
+      if (at + pT <= this.t1){ const d = this.drop("petal", at, pT);
+        // a second petal: half a beat behind the first and not far from it, so both can be caught
+        if (d && rnd(st.k*.7) < clamp((L - .45)*.9, 0, .7) && at + pT + BEAT/2 <= this.t1) this.drop("petal", at, pT + BEAT/2, d.x1 + (rnd(st.k*1.9) < .5 ? -1 : 1)*(2 + rnd(st.k)*2.5)); }
+      st.next += BEAT*(L < .3 ? 2 : 1); }
+    // thorns: aimed near you
+    while (t >= st.nextThorn){ const at = st.nextThorn;
+      if (at + tT <= this.t1) this.drop("thorn", at, tT, st.x + (rnd(st.k*1.3) - .5)*3);
+      st.nextThorn += L < .6 ? BAR*2 : L < 1.1 ? BAR : BEAT*2; }
+    for (const d of this.drops){ if (!d.on) continue;
+      const p = (t - d.ts)/d.T;
+      if (d.kind === "petal"){
+        if (d.caught){ d.y += dt*6; d.s = 1 - (t - d.ct)/.35; if (d.s <= 0){ d.on = false; d.m.visible = false; } continue; }
+        const px = Math.min(1, p/.7);
+        d.x = d.x0 + (d.x1 - d.x0)*px + Math.sin(t*3 + d.ph)*.4*(1 - p); d.y = 9.2 - 9*p; d.z = -7*(1 - Math.min(1, p/.65)); d.s = 1;
+        if (d.y < 2.8 && d.y > .3 && Math.abs(d.x - st.x) < 1.3){
+          d.caught = true; d.ct = t; d.mark.visible = false; st.caught++;
+          if (award(100, 8) && S.combo % 4 === 0) say("ON THE BEAT", "x2", .4); sfx.good();
+        } else if (p >= 1){ d.on = false; d.m.visible = d.mark.visible = false; st.rose--; S.combo = 0; sfx.soft(); this.showRose();
+          if (st.rose <= 0){
+            if (!CFG.endless){ lose("THE ROSE LOST ALL ITS PETALS", "Get under each petal before it lands - the pink marks show where."); return; }
+            st.rose = this.ROSE; this.showRose(); if (hurt("THE ROSE IS BARE", "")) return;
+          } else say("A PETAL FELL", st.rose + " left on the rose", .7); }
+      } else {
+        d.x = d.x1; d.y = 12 - 12*p; d.z = 0;
+        if (S.inv <= 0 && d.y < 2.9 && d.y > 1.3 && Math.abs(d.x - st.x) < 1){ d.on = false; d.m.visible = d.mark.visible = false; if (hurt("A THORN!", "When a red mark is under you, slide away.")) return; }
+        if (p >= 1){ d.on = false; d.m.visible = d.mark.visible = false; }
+      }
+    }
+  },
+  render(dt, t){
+    const st = this.st;
+    ME.position.set(st.x, 2.2, 0); ME.scale.setScalar(1); ME.userData.beam.visible = true;
+    ME.userData.beam.material.opacity = .25 + (onBeat(t) ? .15 : 0);
+    for (const d of this.drops){ if (!d.on) continue; d.m.position.set(d.x, d.y, d.z);
+      if (d.kind === "petal"){ d.m.rotation.set(t*2 + d.ph, t*1.3, Math.sin(t*4 + d.ph)); d.m.scale.set(.42*d.s, .55*d.s, .2*d.s); d.mark.material.opacity = .15 + .25*clamp((t - d.ts)/d.T, 0, 1); } }
+    this.rose.userData.bloom.rotation.y = Math.sin(t*.4)*.2;
+    const portrait = cam.aspect < .8;
+    CAMP.set(0, portrait ? 6.5 : 5.5, portrait ? 26 : 17); CAML.set(0, portrait ? 5.5 : 4.8, -2);
+  }
+};
+
+/* =============== Part 2: THE STEM - climb round the stem to the bloom =============== */
+const STEM = {
+  name:"stem", label:"THE STEM", tag:"CLIMB TO THE BLOOM", hint:"drag left/right to go round the stem", R:2.4,
+  setup(){
+    this.root = new THREE.Group(); scene.add(this.root);
+    const cv = document.createElement("canvas"); cv.width = 16; cv.height = 128; const x = cv.getContext("2d");
+    x.fillStyle = "#2e5a1c"; x.fillRect(0, 0, 16, 128); x.fillStyle = "#3a6a22"; x.fillRect(0, 0, 5, 128); x.fillStyle = "#1e3e12"; x.fillRect(0, 60, 16, 8);
+    this.tex = new THREE.CanvasTexture(cv); this.tex.wrapS = this.tex.wrapT = THREE.RepeatWrapping; this.tex.repeat.x = 6;
+    this.stem = new THREE.Mesh(new THREE.CylinderGeometry(.55, .7, 1, 14), new THREE.MeshStandardMaterial({ map:this.tex, roughness:.6, emissive:0x081404 })); this.root.add(this.stem);
+    this.bloom = buildBloom(); this.bloom.scale.setScalar(4); this.root.add(this.bloom);
+    const thornGeo = new THREE.ConeGeometry(.2, 2.8, 6), thornMat = new THREE.MeshStandardMaterial({ color:0x6a1a10, roughness:.5, emissive:0x2a0604 });
+    this.pool = [];
+    for (let i = 0; i < 560; i++){ const pv = new THREE.Group(), c = new THREE.Mesh(thornGeo, thornMat); c.rotation.z = -Math.PI/2; c.position.x = 1.9; pv.add(c); pv.visible = false; this.root.add(pv); this.pool.push(pv); }
+    const dewMat = new THREE.SpriteMaterial({ map:DOT, color:0x9affe0, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+    this.dewPool = [];
+    for (let i = 0; i < 280; i++){ const s = new THREE.Sprite(dewMat); s.scale.setScalar(.9); s.visible = false; this.root.add(s); this.dewPool.push(s); }
+    this.leaves = [];
+    for (let i = 0; i < 24; i++){ const leaf = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), LEAF); leaf.scale.set(3, .1, 1.1); leaf.visible = false; this.root.add(leaf); this.leaves.push(leaf); }
+  },
+  v(L){ return Math.min(7.5, 3 + 2.6*L); },     // climbing speed, m/s
+  begin(t0, t1, L0, L1){
+    Object.assign(this, { t0, t1, L0, L1 });
+    const D = t1 - t0, va = this.v(L0), vb = this.v(L1);
+    this.Y = t => { const u = clamp((t - t0)/D, 0, 1); return D*(va*u + (vb - va)*u*u/2) + 1.2; };
+    const top = this.Y(t1), H = top + 4;
+    this.stem.scale.y = H; this.stem.position.y = H/2; this.tex.repeat.y = H/14;
+    this.bloom.position.y = top + 3.4;
+    // thorns and dew on the beat, the whole way up
+    this.thorns = []; this.dew = []; this.rings = [];
+    const thorn = (a, h, ring) => this.thorns.push({ a, h, ring });
+    for (let j = Math.ceil((t0 + BAR - GRID.t0)/BEAT); ; j++){
+      const tb = GRID.t0 + j*BEAT; if (tb > t1 - BAR) break;
+      const L = L0 + (L1 - L0)*(tb - t0)/D, h = this.Y(tb), rings = L > .2;
+      if (rings && j % 16 === 0){ const gap = rnd(j*4.4)*Math.PI*2, half = L > 1.2 ? .6 : .75;
+        const ring = { h, hit:false, done:false }; this.rings.push(ring);
+        for (let k = 0; k < 10; k++){ const a = k/10*Math.PI*2; if (Math.abs(angDiff(a, gap)) > half) thorn(a, h, ring); } continue; }
+      if (rings && (j % 16 === 15 || j % 16 === 1)) continue;    // room before and after a ring
+      if (j % (L < .35 ? 2 : 1) === 0){ const a = rnd(j*2.9)*Math.PI*2; thorn(a, h); if (rnd(j*6.1) < clamp((L - .6)*.9, 0, .6)) thorn(a + 2.2 + rnd(j)*1.8, h); }
+      else this.dew.push({ a:rnd(j*8.3)*Math.PI*2, h });
+    }
+    this.thorns.sort((p, q) => p.h - q.h);
+    this.pool.forEach((pv, i) => { const th = this.thorns[i]; pv.visible = !!th; if (th){ pv.position.y = th.h; pv.rotation.y = -th.a; th.hit = false; } });
+    this.dewPool.forEach((s, i) => { const d = this.dew[i]; s.visible = !!d; if (d){ s.position.set(Math.cos(d.a)*this.R, d.h, Math.sin(d.a)*this.R); d.s = s; d.got = false; } });
+    this.dew = this.dew.slice(0, this.dewPool.length);
+    this.leaves.forEach((leaf, i) => { const h = 14 + i*37; leaf.visible = h < top - 8; const a = rnd(i*5.5 + t0)*6.3; leaf.position.set(Math.cos(a)*4.5, h, Math.sin(a)*4.5); leaf.rotation.set(0, -a, .3); });
+    this.st = { a:Math.PI/2, y:1.2, dew:0, gaps:0, ti:0, bloomed:false };
+  },
+  info(){ return Math.round(this.st.y) + " M" + (S.combo >= 4 ? " · " + S.combo + " IN A ROW" : ""); },
+  drag(dx){ this.st.a -= dx*.011; },
+  update(dt, t){
+    const st = this.st;
+    if (keys.left) st.a += dt*3.4; if (keys.right) st.a -= dt*3.4;
+    st.y = this.Y(t);
+    while (st.ti < this.thorns.length && this.thorns[st.ti].h < st.y - 1) st.ti++;
+    for (let i = st.ti; i < this.thorns.length && this.thorns[i].h < st.y + 1; i++){ const th = this.thorns[i];
+      if (!th.hit && S.inv <= 0 && Math.abs(th.h - st.y) < .42 && Math.abs(angDiff(th.a, st.a)) < .3){ th.hit = true; if (th.ring) th.ring.hit = true; if (hurt("A THORN!", "Swing round early - and look for the gap in the rings.")) return; } }
+    for (const d of this.dew){ if (d.got || Math.abs(d.h - st.y) > .6) continue;
+      if (Math.abs(angDiff(d.a, st.a)) < .45){ d.got = true; d.s.visible = false; st.dew++; award(100, 6); sfx.dew(st.dew); } }
+    // through the gap of a ring of thorns, clean
+    for (const r of this.rings) if (!r.done && st.y > r.h + .5){ r.done = true; if (!r.hit){ st.gaps++; award(250, 3); say("THROUGH THE GAP", "", .6); sfx.good(); } }
+    S.score += dt*30;
+    if (CFG.endless && !st.bloomed && t >= this.t1 - .1){ st.bloomed = true; S.score += 500; say("THE BLOOM", "+500", .9, "g"); }
+  },
+  render(dt, t){
+    const st = this.st, a = st.a, R = this.R;
+    ME.position.set(Math.cos(a)*R, st.y, Math.sin(a)*R); ME.scale.setScalar(.7); ME.userData.beam.visible = false;
+    for (const d of this.dew) if (!d.got && Math.abs(d.h - st.y) < 30) d.s.scale.setScalar(.8 + (onBeat(t) ? .35 : 0));
+    const portrait = cam.aspect < .8, D = portrait ? 11.5 : 9;
+    CAMP.set(Math.cos(a)*D, st.y - 1.4, Math.sin(a)*D); CAML.set(Math.cos(a)*1.2, st.y + 3.4, Math.sin(a)*1.2);
+  }
+};
+
+/* =============== Part 3: MY SHADOW - it flies where you flew =============== */
+const SHADOW = {
+  name:"shadow", label:"MY SHADOW", tag:"STAY AHEAD OF YOURSELF", hint:"keep moving - don't cross your own trail", AR:10, TRAIL:90,
+  setup(){
+    this.root = new THREE.Group(); scene.add(this.root);
+    this.rose = buildRose(7); this.rose.position.set(0, 0, -12.5); this.rose.scale.setScalar(1.3); this.root.add(this.rose);
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(this.AR + .6, this.AR + .8, 96), glowMat(0xff7a3a, .35)); this.ring.rotation.x = -Math.PI/2; this.ring.position.y = .05; this.root.add(this.ring);
+    this.shadows = [0, 1].map(() => { const sh = buildSaucer(true); sh.scale.setScalar(.8); sh.visible = false; this.root.add(sh);
+      const tg = new THREE.BufferGeometry(); tg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(this.TRAIL*3), 3));
+      const trail = new THREE.Line(tg, new THREE.LineBasicMaterial({ color:0xa060ff, transparent:true, opacity:.55 })); trail.frustumCulled = false; trail.visible = false; this.root.add(trail);
+      return { sh, trail, x:0, z:0, live:false }; });
+    this.petals = [];
+    const pm = new THREE.MeshStandardMaterial({ color:0xff3040, emissive:0xa0101a, roughness:.4, side:THREE.DoubleSide });
+    for (let i = 0; i < 3; i++){ const m = new THREE.Mesh(SHELL, pm); m.scale.set(.5, .65, .25); m.visible = false; this.root.add(m);
+      const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xff6a6a, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); glow.scale.setScalar(5); m.add(glow);
+      this.petals.push({ m, on:false }); }
+    this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  },
+  begin(t0, t1, L0, L1){
+    Object.assign(this, { t0, t1, L0, L1 });
+    this.st = { x:0, z:5, tx:0, tz:5, next:t0 + BAR, got:0, stolen:0, k:Math.round(t0*11), delay:this.delayAt(L0), dBar:-1 };
+    this.hist = [{ t:t0 - 20, x:0, z:5 }];
+    this.petals.forEach(p => { p.on = false; p.m.visible = false; });
+    this.shadows.forEach(s => { s.live = false; s.sh.visible = s.trail.visible = false; });
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  delayAt(L){ return clamp(3 - 1.2*L, 1.4, 3); },
+  info(){ return "SHADOW " + this.st.delay.toFixed(1) + " S BEHIND" + (this.shadows[1].live ? " · TWO" : ""); },
+  point(cx, cy){ this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const P = new THREE.Vector3();
+    if (this.ray.ray.intersectPlane(this.plane, P)){ const r = Math.hypot(P.x, P.z), k = r > this.AR ? this.AR/r : 1; this.st.tx = P.x*k; this.st.tz = P.z*k; } },
+  at(t){ const h = this.hist; if (t <= h[0].t) return h[0]; let i = h.length - 1; while (i > 0 && h[i - 1].t > t) i--;
+    const a = h[Math.max(0, i - 1)], b = h[i], u = b.t > a.t ? clamp((t - a.t)/(b.t - a.t), 0, 1) : 1; return { x:a.x + (b.x - a.x)*u, z:a.z + (b.z - a.z)*u }; },
+  update(dt, t){
+    const st = this.st, L = this.L(t);
+    if (keys.left || keys.right || keys.up || keys.down){ st.tx = st.x + ((keys.right ? 1 : 0) - (keys.left ? 1 : 0))*3; st.tz = st.z + ((keys.down ? 1 : 0) - (keys.up ? 1 : 0))*3;
+      const r = Math.hypot(st.tx, st.tz); if (r > this.AR){ st.tx *= this.AR/r; st.tz *= this.AR/r; } }
+    const dx = st.tx - st.x, dz = st.tz - st.z, d = Math.hypot(dx, dz), step = Math.min(d, 9*dt);
+    if (d > .001){ st.x += dx/d*step; st.z += dz/d*step; }
+    this.hist.push({ t, x:st.x, z:st.z }); while (this.hist.length > 2 && this.hist[1].t < t - 8) this.hist.shift();
+    // your shadow: you, a few seconds ago. Every 8 bars it comes closer; late on, a second one further back
+    const bar8 = Math.floor((t - GRID.t0)/(BAR*8));
+    if (bar8 !== st.dBar){ st.dBar = bar8; const nd = this.delayAt(L); if (nd < st.delay - .05 && t > this.t0 + BAR) say("IT'S CLOSER", nd.toFixed(1) + " s behind you", .9, "x"); st.delay = nd; }
+    const two = L > 1.1;
+    this.shadows.forEach((s, i) => { const dl = st.delay*(i + 1), p = this.at(t - dl); s.x = p.x; s.z = p.z;
+      s.live = (i === 0 || two) && t > this.t0 + dl; s.dl = dl; });
+    for (const s of this.shadows) if (s.live && S.inv <= 0 && Math.hypot(st.x - s.x, st.z - s.z) < 1.3){
+      if (hurt("YOUR SHADOW GOT YOU", "Keep moving, and don't fly back over your own trail.")) return; }
+    // petals on the beat; take them before your shadow does
+    while (t >= st.next){ st.next += BEAT*(L < .7 ? 2 : 1);
+      if (st.next > this.t1 - BAR*.5) continue;
+      const q = this.petals.find(q => !q.on); if (!q) continue; let px, pz, tries = 0;
+      do { const k = st.k++, a = rnd(k*3.1)*Math.PI*2, r = Math.sqrt(rnd(k*5.7))*(this.AR - 1); px = Math.cos(a)*r; pz = Math.sin(a)*r; } while (++tries < 8 && Math.hypot(px - st.x, pz - st.z) < 3.5);
+      Object.assign(q, { on:true, x:px, z:pz, t0:t, life:BAR*(2.5 - .5*Math.min(1, L)) }); q.m.visible = true; }
+    for (const q of this.petals){ if (!q.on) continue;
+      if (Math.hypot(q.x - st.x, q.z - st.z) < 1.4){ q.on = false; q.m.visible = false; st.got++; if (award(100, 5)) say("ON THE BEAT", "x2", .4); sfx.good(); }
+      else if (this.shadows.some(s => s.live && Math.hypot(q.x - s.x, q.z - s.z) < 1.4)){ q.on = false; q.m.visible = false; st.stolen++; S.combo = 0; sfx.soft(); say("YOUR SHADOW TOOK IT", "", .6, "x"); }
+      else if (t - q.t0 > q.life){ q.on = false; q.m.visible = false; S.combo = 0; } }
+  },
+  render(dt, t){
+    const st = this.st;
+    ME.position.set(st.x, 1, st.z); ME.scale.setScalar(.8); ME.userData.beam.visible = true; ME.userData.beam.material.opacity = .3;
+    this.shadows.forEach((s, i) => { const show = s.live || (t > this.t0 + s.dl - .4 && (i === 0 || this.L(t) > 1.1));
+      s.sh.visible = show && !(!s.live && Math.floor(t*10) % 2); s.sh.position.set(s.x, 1, s.z); s.sh.rotation.y = -t*2;
+      s.trail.visible = show;
+      if (show){ const pos = s.trail.geometry.attributes.position, from = t - s.dl, span = i === 0 ? s.dl : st.delay;
+        for (let k = 0; k < this.TRAIL; k++){ const p = this.at(from + span*k/(this.TRAIL - 1)); pos.setXYZ(k, p.x, .12, p.z); } pos.needsUpdate = true; } });
+    for (const q of this.petals) if (q.on){ const life = 1 - (t - q.t0)/q.life; q.m.position.set(q.x, .8 + Math.sin(t*3 + q.x)*.2, q.z); q.m.rotation.set(-.6, t*1.5, 0);
+      q.m.scale.setScalar(.55*(onBeat(t) ? 1.2 : 1)*(.5 + .5*clamp(life*3, 0, 1))); }
+    this.ring.material.opacity = .25 + (onBeat(t) ? .2 : 0);
+    const portrait = cam.aspect < .8;
+    CAMP.set(0, portrait ? 46 : 19, portrait ? 28 : 22); CAML.set(0, portrait ? 0 : 1.5, portrait ? -1 : -2.5);
+  }
+};
+const GAMES = { rain:RAIN, stem:STEM, shadow:SHADOW };
+function switchTo(name){ G = GAMES[name]; for (const g of Object.values(GAMES)) g.root.visible = g === G; camInit = false; }
+
+/* ---------------- the run ---------------- */
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, lap:0, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  if (CFG.endless){ switchTo("rain"); RAIN.begin(0, STINT, .35, .6); }
+  else { switchTo(CFG.game); G.begin(0, END_AT, 0, 1); }
+}
+// Part 4: the next game's turn. Each lap (all three) is harder; finishing a lap gives a heart back
+function startStint(n, t){
+  S.stint = n; const lap = Math.floor(n/3), name = ORDER[n % 3], L0 = .35 + lap*.3;
+  let back = false;
+  if (n > 0 && n % 3 === 0){ S.lap = lap; S.score += 2000;
+    if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  switchTo(name); G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .25);
+  if (n > 0){ sfx.swap(); $("flash").style.background = "#ffe08a"; S.flashT = .5;
+    say(G.label, n % 3 === 0 ? "LAP " + (lap + 1) + " · +2,000" + (back ? " · a heart back" : "") : G.hint, 1.6, "g"); }
+}
+const fmt = n => Math.round(n).toLocaleString("en");
+function songT(){
+  if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   Parts 1-3 end on the cover: the canyon at sunset, the rose with every
+   petal back, and the red saucer settling at the foot of the stem with its
+   green beam on. */
+const END = { out:7 };
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big();
+  $("hud").classList.add("off"); $("phase").className = "off";
+  $("flash").style.background = "#fff"; S.flashT = .5;
+  const x = G === RAIN ? RAIN.st.x : 0;
+  switchTo("rain"); RAIN.begin(S.t, S.t + 1, 0, 0); RAIN.st.x = x; RAIN.showRose(true);
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0);
+  if (S.end >= 0){
+    // the cover: the saucer drifts down to the foot of the stem
+    const u = clamp(S.end/3, 0, 1), s = u*u*(3 - 2*u), x0 = RAIN.st.x;
+    ME.visible = true; ME.position.set(x0*(1 - s), 2.2 - s*.9, -5.6*s); ME.scale.setScalar(1 - s*.25); ME.rotation.y = t*1.2; ME.userData.beam.visible = true; ME.userData.beam.material.opacity = .35;
+    RAIN.rose.userData.bloom.rotation.y = Math.sin(t*.4)*.2;
+    const portrait = cam.aspect < .8;
+    CAMP.set(0, 5, portrait ? 22 : 13); CAML.set(0, 5.6, -7);
+    if (S.end > 1.2 && !S.saidEnd){ S.saidEnd = true; say("MYSELF", "LAZY JO", 4); }
+    $("flash").style.background = S.end > END.out - 1.2 ? "#0e0606" : $("flash").style.background;
+    if (S.end > END.out - 1.2) $("flash").style.opacity = Math.min(1, (S.end - (END.out - 1.2))/1.2);
+  } else {
+    G.render(dt, t);
+    ME.rotation.y = t*1.6; ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  const k = camInit && S.end < 0 ? Math.min(1, dt*6) : camInit ? Math.min(1, dt*1.5) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  sky.position.copy(cam.position);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  $("next").classList.toggle("hid", S.fail || CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:Math.round(Math.max(0, S.t)) });
+  if (CFG.endless){
+    const games = S.stint + 1, laps = Math.floor(S.stint/3);
+    v.querySelector(".by").textContent = "NO STOP · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "Lap <b>" + (laps + 1) + "</b> &middot; " + games + (games === 1 ? " game" : " games") + " &middot; " + Math.floor(Math.max(0, S.t)/60) + ":" + String(Math.floor(Math.max(0, S.t)) % 60).padStart(2, "0") + " without stopping";
+    ps[1].innerHTML = "Your best counts on the <b>Level 8 No Stop</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  const stat = PART === 1 ? RAIN.st.caught + " petals caught" : PART === 2 ? STEM.st.dew + " dew drops · " + STEM.st.gaps + " gaps · " + Math.round(STEM.st.y) + " m" : SHADOW.st.got + " petals · your shadow took " + SHADOW.st.stolen;
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = CFG.title.toUpperCase();
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = (PART === 1 ? "The rose kept its petals." : PART === 2 ? "All the way up to the bloom." : "You stayed ahead of yourself.") +
+    (PART === 1 ? "<br>Part 2: climb the stem." : PART === 2 ? "<br>Part 3: your shadow." : "<br>All three cleared: <b>Part 4 No Stop</b> is open.");
+}
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x140607); scene.fog = new THREE.Fog(0x4a1a10, 40, 170);
+  cam = new THREE.PerspectiveCamera(PART === 2 ? 62 : 50, innerWidth/innerHeight, .1, 1200);
+  scene.add(new THREE.HemisphereLight(0xffa070, 0x201010, .75));
+  const sun = new THREE.DirectionalLight(0xffa060, 1.1); sun.position.set(-10, 20, -40); scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xffd8c0, .45); fill.position.set(10, 15, 30); scene.add(fill);
+  buildCanyon();
+  ME = buildSaucer(); scene.add(ME);
+  RAIN.setup(); STEM.setup(); SHADOW.setup();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input ---------------- */
+const veilUp = () => !$("veil").classList.contains("hid");
+let held = false, lastX = 0;
+const live = () => S.started && !S.done && S.end < 0;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); held = true; lastX = e.clientX; if (G.point) G.point(e.clientX, e.clientY); }, { passive:false });
+addEventListener("pointermove", e => { if (!live()) return;
+  if (G === STEM){ if (held) G.drag(e.clientX - lastX); lastX = e.clientX; return; }
+  if (held || e.pointerType === "mouse") G.point(e.clientX, e.clientY); });
+addEventListener("pointerup", () => { held = false; }); addEventListener("pointercancel", () => { held = false; });
+const KEYMAP = { ArrowLeft:"left", a:"left", ArrowRight:"right", d:"right", ArrowUp:"up", w:"up", ArrowDown:"down", s:"down" };
+addEventListener("keydown", e => { const k = KEYMAP[e.key]; if (k && !veilUp()){ e.preventDefault(); keys[k] = true; } });
+addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+
+$("go").addEventListener("click", () => {
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "NO STOP" : G.tag, CFG.endless ? "all three games, till the hearts run out" : G.hint, 3, CFG.endless ? "g" : "");
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = CFG.title.toUpperCase();
+$("intro").innerHTML = {
+  1: "The rose in the canyon is losing its petals. Catch them in the saucer's green beam before they hit the cracked ground.",
+  2: "Climb the giant stem all the way to the bloom - round the thorns, through the dew.",
+  3: "Your shadow flies exactly where you flew a few seconds ago. Gather the petals and stay ahead of yourself.",
+  4: "All three games, one after the other, with no end. Every lap is harder - and a finished lap gives you a heart back. How far can you go?"
+}[PART];
+$("how").innerHTML = {
+  1: "<b>Drag</b> to slide under the falling petals - the pink marks show where they'll land. A thorn costs a heart. Every petal that lands, the rose gets barer - let it lose them all and it's over.",
+  2: "<b>Drag left/right</b> to swing round the stem. Thorns cost a heart; rings of thorns have one gap. Dew on the beat is double.",
+  3: "<b>Drag</b> to fly. Stand still and your shadow gets you. It comes closer every 8 bars, and it steals the petals it reaches.",
+  4: "<b>Petal Rain, The Stem, My Shadow</b> - 8 bars each, round and round. 3 hearts. A bare rose costs a heart here. Your best goes on the <b>No Stop</b> scoreboard."
+}[PART];
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    b.setAttribute("aria-pressed", String(+b.dataset.part === PART));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.set("part", b.dataset.part); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

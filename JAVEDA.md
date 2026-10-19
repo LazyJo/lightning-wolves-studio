@@ -17,6 +17,7 @@ client/public/javeda/
     ├── feel-like-that.html # Level 5 and its Parts 2-3, fireflies to the park lamps (the cover's twin lamps at the end) + lvl5.mp3
     ├── no-rest-no-work.html # Level 6: Island Hopper, Crab Night, Surf the Sunset - three games on one beach + lvl6.mp3
     ├── journey.html    # Level 7 and its Parts 2-3: shield each planet, launch to the next, Earth to Planet Javeda + lvl7.mp3
+    ├── myself.html     # Level 8: Petal Rain, The Stem, My Shadow + Part 4 No Stop (all three, endless) + lvl8.mp3
     └── javeda.html     # the original JAVEDA game (Level 9 here; songs embedded)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
@@ -53,6 +54,17 @@ scoreboard shows as offline.
 - **Parts.** A song can have a Part 2, a bonus level (`part:2` in `LEVELS`): it opens when its Part 1
   is cleared and nothing waits on it. "Next level" always means the next song (`nextMain`).
   Level 2 Part 2 is ZIRKA'S RIDE (`lvl2b`).
+- **Endless.** Once all of a song's parts are cleared, a golden **endless** tile opens under them
+  (`endless:true` in `LEVELS`, `endless` in `javeda_levels`): the game goes on until the hearts run
+  out, and it has its own scoreboard tab. Level 8 Part 4 NO STOP (`lvl8d`) is the first: all three of
+  Level 8's games in turn. Endless levels follow their own rules:
+  - **Points only for a new best**: the gain over your best, turned into points by `score_per_point`
+    (at most 40 a run). No clear bonuses. So they can't be farmed for profile pictures.
+  - **Held to real time**: the level posts `javeda:start` when the run begins and the hub calls
+    `javeda_start_run`, which notes the time in `javeda_runs`. `javeda_submit_run` uses that up and
+    caps the score at `max_rate` points per second since then (No Stop: 600/s; a perfect run is ~320/s).
+    No start, no score.
+  - Guests keep their endless bests on the phone; `javeda_import_guest` skips them (they can't be checked).
 - **Rides.** Clearing Level 2 Part 2 earns Zirka's bike: the hub opens Level 1 with `?rides=bike` and
   the level shows a Saucer / Zirka's bike picker. Creators always get it.
 - **Points** come from playing only (never from streaming): up to 40 per run for the
@@ -73,6 +85,7 @@ hub, the level posts to `window.parent` (same origin only):
 
 | message | when |
 |---|---|
+| `{type:"javeda:start", level}` | a run began (the hub only acts on it for endless levels) |
 | `{type:"javeda:result", level, cleared, score, ...}` | once per finished run, win or lose |
 | `{type:"javeda:next", level}` | the player tapped "Next level" |
 | `{type:"javeda:menu"}` | the player asked to go back to the level list |

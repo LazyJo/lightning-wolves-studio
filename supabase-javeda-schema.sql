@@ -33,6 +33,12 @@ CREATE TABLE IF NOT EXISTS javeda_levels (
   sort               INT  NOT NULL
 );
 ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS requires_score INT NOT NULL DEFAULT 0;
+-- Endless levels (Level 8 Part 4 No Stop, and an ENDLESS for each song once all its
+-- parts are cleared) have no end and no top score: they are for the scoreboard. A run
+-- has to be started with javeda_start_run, and its score may be at most max_rate per
+-- second of real time since then. Only a new best earns points (see javeda_submit_run).
+ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS endless  BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS max_rate INT NOT NULL DEFAULT 0;
 
 INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, score_per_point, clear_points, first_clear_points, sort) VALUES
   ('lvl1', 1, 'I''M LOST',   NULL,   0, 4000,   100, 50, 300, 1),
@@ -53,12 +59,25 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl7', 7, 'JOURNEY',     'lvl6', 0, 90000, 2000, 50, 300, 16),     -- shield the planets, launch to the next: ~64k
   ('lvl7b', 7, 'METEOR SHOWER', 'lvl7', 0, 100000, 2000, 50, 300, 17), -- Level 7 Part 2: ~69k
   ('lvl7c', 7, 'THE LONG WAY HOME', 'lvl7b', 0, 130000, 3000, 75, 400, 18), -- Level 7 Part 3: ~94k
-  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 0, 150000, 3000, 75, 500, 19)
+  ('lvl8', 8, 'MYSELF',      'lvl7', 0, 100000, 2000, 50, 300, 19),    -- Petal Rain: ~82k
+  ('lvl8b', 8, 'THE STEM',   'lvl8', 0, 35000, 700, 50, 300, 20),      -- Level 8 Part 2: ~25k
+  ('lvl8c', 8, 'MY SHADOW',  'lvl8b', 0, 30000, 600, 75, 400, 21),     -- Level 8 Part 3: ~21k
+  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 0, 150000, 3000, 75, 500, 23)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
   clear_points = EXCLUDED.clear_points, first_clear_points = EXCLUDED.first_clear_points,
   sort = EXCLUDED.sort;
+
+-- the endless ones. No clear bonuses; score_per_point turns a new best's gain into points
+-- (still at most 40 a run). max_rate sits well above a perfect run (No Stop: ~320/s).
+INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, score_per_point, clear_points, first_clear_points, sort, endless, max_rate) VALUES
+  ('lvl8d', 8, 'NO STOP',    'lvl8c', 0, 20000000, 2000, 0, 0, 22, true, 600)   -- Level 8 Part 4: all three games, no end
+ON CONFLICT (id) DO UPDATE SET
+  num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
+  max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
+  clear_points = EXCLUDED.clear_points, first_clear_points = EXCLUDED.first_clear_points,
+  sort = EXCLUDED.sort, endless = EXCLUDED.endless, max_rate = EXCLUDED.max_rate;
 
 -- ── Profile pictures ───────────────────────────────────────────────────────
 -- Cost 0 = free to pick from the start. The pictures themselves are static
@@ -129,6 +148,15 @@ CREATE TABLE IF NOT EXISTS javeda_owned (
 --   INSERT INTO javeda_creators (user_id, note)
 --   SELECT id, 'Lazy Jo' FROM auth.users WHERE email = '<login email>'
 --   ON CONFLICT DO NOTHING;
+-- An endless run in progress: when it started, by the database's clock. One per
+-- player and level; javeda_submit_run uses it up. Nobody reads or writes it directly.
+CREATE TABLE IF NOT EXISTS javeda_runs (
+  user_id    UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  level      TEXT NOT NULL REFERENCES javeda_levels(id),
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, level)
+);
+
 CREATE TABLE IF NOT EXISTS javeda_creators (
   user_id  UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   note     TEXT,
@@ -142,6 +170,7 @@ ALTER TABLE javeda_players  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_owned    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_creators ENABLE ROW LEVEL SECURITY;
+ALTER TABLE javeda_runs     ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS javeda_levels_read   ON javeda_levels;
 DROP POLICY IF EXISTS javeda_avatars_read  ON javeda_avatars;
@@ -160,6 +189,7 @@ CREATE POLICY javeda_creators_read ON javeda_creators FOR SELECT USING (auth.uid
 GRANT SELECT ON javeda_levels, javeda_avatars, javeda_players, javeda_progress, javeda_owned TO anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE ON javeda_levels, javeda_avatars, javeda_players, javeda_progress, javeda_owned FROM anon, authenticated;
 REVOKE ALL ON javeda_creators FROM anon, authenticated;
+REVOKE ALL ON javeda_runs FROM anon, authenticated;
 GRANT SELECT ON javeda_creators TO authenticated;
 
 -- The scoreboard: one row per player. security_invoker so it reads through
@@ -186,7 +216,11 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl6c' THEN g.best_score END), 0)::INT AS lvl6c_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl7' THEN g.best_score END), 0)::INT AS lvl7_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl7b' THEN g.best_score END), 0)::INT AS lvl7b_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl7c' THEN g.best_score END), 0)::INT AS lvl7c_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl7c' THEN g.best_score END), 0)::INT AS lvl7c_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl8' THEN g.best_score END), 0)::INT AS lvl8_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl8b' THEN g.best_score END), 0)::INT AS lvl8b_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl8c' THEN g.best_score END), 0)::INT AS lvl8c_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl8d' THEN g.best_score END), 0)::INT AS lvl8d_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;
@@ -266,10 +300,38 @@ BEGIN
 END;
 $$;
 
+-- Start an endless run: the database notes the time, so the score it gets back
+-- can be held to what that much real play could score.
+CREATE OR REPLACE FUNCTION public.javeda_start_run(p_level TEXT)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+  lv javeda_levels;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  SELECT * INTO lv FROM javeda_levels WHERE id = p_level;
+  IF lv IS NULL OR NOT lv.endless THEN RAISE EXCEPTION 'no such endless level' USING ERRCODE = 'P0002'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
+  IF lv.requires IS NOT NULL AND NOT EXISTS (
+       SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared
+                                       AND best_score >= lv.requires_score)
+     AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
+    RAISE EXCEPTION 'level locked' USING ERRCODE = '42501';
+  END IF;
+  INSERT INTO javeda_runs (user_id, level, started_at) VALUES (uid, p_level, now())
+  ON CONFLICT (user_id, level) DO UPDATE SET started_at = now();
+  RETURN json_build_object('level', p_level, 'started_at', now());
+END;
+$$;
+
 -- Report a finished run. The client says what happened; this decides what it
 -- is worth. Locked levels are refused, scores are clamped to the level's cap,
 -- runs closer than 10 s apart are refused, and a run's score is worth at most
--- 40 points before the clear bonuses.
+-- 40 points before the clear bonuses. An endless run must have been started
+-- (javeda_start_run), its score is held to max_rate a second since then, and it
+-- earns points only for what it beats the player's best by.
 CREATE OR REPLACE FUNCTION public.javeda_submit_run(p_level TEXT, p_score INT, p_metres INT, p_cleared BOOLEAN)
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
@@ -282,6 +344,8 @@ DECLARE
   score INT;
   first_clear BOOLEAN;
   earned INT;
+  started TIMESTAMPTZ;
+  new_best BOOLEAN;
 BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
   SELECT * INTO lv FROM javeda_levels WHERE id = p_level;
@@ -300,10 +364,21 @@ BEGIN
 
   score := GREATEST(0, LEAST(COALESCE(p_score, 0), lv.max_score));
   SELECT * INTO prog FROM javeda_progress WHERE user_id = uid AND level = p_level;
-  first_clear := p_cleared AND (prog IS NULL OR NOT prog.cleared);
-  earned := LEAST(40, score / lv.score_per_point)
-          + CASE WHEN p_cleared THEN lv.clear_points ELSE 0 END
-          + CASE WHEN first_clear THEN lv.first_clear_points ELSE 0 END;
+  new_best := prog IS NULL OR score > prog.best_score;
+  IF lv.endless THEN
+    DELETE FROM javeda_runs WHERE user_id = uid AND level = p_level RETURNING started_at INTO started;
+    IF started IS NULL THEN RAISE EXCEPTION 'no run started' USING ERRCODE = '22023'; END IF;
+    score := LEAST(score, FLOOR(lv.max_rate * EXTRACT(EPOCH FROM now() - started))::INT);
+    new_best := prog IS NULL OR score > prog.best_score;
+    first_clear := false;
+    earned := LEAST(40, GREATEST(0, score - COALESCE(prog.best_score, 0)) / lv.score_per_point);
+    p_cleared := true;
+  ELSE
+    first_clear := p_cleared AND (prog IS NULL OR NOT prog.cleared);
+    earned := LEAST(40, score / lv.score_per_point)
+            + CASE WHEN p_cleared THEN lv.clear_points ELSE 0 END
+            + CASE WHEN first_clear THEN lv.first_clear_points ELSE 0 END;
+  END IF;
 
   INSERT INTO javeda_progress AS g (user_id, level, cleared, best_score, best_metres, runs, clears, first_cleared_at)
   VALUES (uid, p_level, p_cleared, score, GREATEST(0, LEAST(COALESCE(p_metres, 0), 100000)), 1,
@@ -322,7 +397,7 @@ BEGIN
   WHERE user_id = uid RETURNING * INTO me;
 
   RETURN json_build_object('player', row_to_json(me), 'progress', row_to_json(prog),
-                           'earned', earned, 'first_clear', first_clear);
+                           'earned', earned, 'first_clear', first_clear, 'new_best', new_best, 'score', score);
 END;
 $$;
 
@@ -352,6 +427,7 @@ BEGIN
   FOR lv IN SELECT * FROM javeda_levels ORDER BY sort LOOP
     item := p_progress -> lv.id;
     CONTINUE WHEN item IS NULL OR jsonb_typeof(item) <> 'object';
+    CONTINUE WHEN lv.endless;              -- a guest's endless score can't be checked: it stays on the phone
     CONTINUE WHEN EXISTS (SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.id);
     -- a guest clear only counts if the level before it is cleared too
     CONTINUE WHEN lv.requires IS NOT NULL AND NOT EXISTS (
@@ -379,9 +455,11 @@ REVOKE ALL ON FUNCTION public.javeda_join(TEXT, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_set_avatar(TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_buy_avatar(TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_submit_run(TEXT, INT, INT, BOOLEAN) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.javeda_start_run(TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_import_guest(JSONB) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_join(TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_set_avatar(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_buy_avatar(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_submit_run(TEXT, INT, INT, BOOLEAN) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_start_run(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_import_guest(JSONB) TO authenticated;

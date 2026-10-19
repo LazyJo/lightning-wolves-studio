@@ -39,7 +39,10 @@ INSERT INTO javeda_levels (id, num, title, requires, max_score, score_per_point,
   ('lvl3', 3, 'MY HEART',    'lvl2', 12000, 250, 50, 300, 4),     -- Explore: time + petals, ~11k at best
   ('lvl3b', 3, 'LIGHTS OUT', 'lvl3', 16000, 400, 50, 300, 5),     -- Level 3 Part 2, ~15.5k at best
   ('lvl3c', 3, 'HEARTBREAK', 'lvl3b', 20000, 450, 75, 400, 6),    -- Level 3 Part 3, ~18.5k at best
-  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 150000, 3000, 75, 500, 7)
+  ('lvl4', 4, 'ROLLERCOASTER', 'lvl3', 110000, 2500, 50, 300, 7),  -- music game: a perfect run is 100,900
+  ('lvl4b', 4, 'FULL SPEED',  'lvl4', 175000, 4000, 50, 300, 8),     -- 163,300 perfect
+  ('lvl4c', 4, 'NO BRAKES',   'lvl4b', 320000, 7500, 75, 400, 9),    -- 302,500 perfect
+  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 150000, 3000, 75, 500, 10)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -160,7 +163,10 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl2b' THEN g.best_score END), 0)::INT AS lvl2b_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl3' THEN g.best_score END), 0)::INT AS lvl3_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl3b' THEN g.best_score END), 0)::INT AS lvl3b_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl3c' THEN g.best_score END), 0)::INT AS lvl3c_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl3c' THEN g.best_score END), 0)::INT AS lvl3c_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl4' THEN g.best_score END), 0)::INT AS lvl4_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl4b' THEN g.best_score END), 0)::INT AS lvl4b_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl4c' THEN g.best_score END), 0)::INT AS lvl4c_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

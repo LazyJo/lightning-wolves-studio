@@ -95,13 +95,20 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .part .tag{font:700 12px/1.1 var(--cond); letter-spacing:.12em; text-transform:uppercase; padding:5px 8px; border-radius:4px; background:#ffffff12; color:var(--dim)}
 .part.done{border-color:#3ddc9759}
 .part.locked{opacity:.55}
-/* endless: the golden one, the whole width under a song's parts */
-.part.endless{grid-column:1 / -1; flex-direction:row; align-items:center; border-color:#ffd60a8c;
-  background:linear-gradient(100deg,#ffd60a2e,#e0a41a14 45%,#050c1ea8); box-shadow:0 0 18px #ffd60a1f inset}
-.part.endless .pi{flex:1; min-width:0}
+/* the endless list: gold. A tile per part with no end; the remix spans the row */
+.song.gold{border-color:#ffd60a4d}
+.song.gold .tr{-webkit-text-stroke-color:#ffd60a80}
+.part.endless{border-color:#ffd60a8c; background:linear-gradient(160deg,#ffd60a24,#050c1ea8 60%); box-shadow:0 0 18px #ffd60a14 inset}
 .part.endless .pl{color:var(--gold)}
 .part.endless .pt{color:#ffe89a}
-.part.endless .foot{margin:0; flex:none}
+.part.endless.remix{grid-column:1 / -1; flex-direction:row; align-items:center; background:linear-gradient(100deg,#ffd60a2e,#e0a41a14 45%,#050c1ea8)}
+.part.endless.remix .pi{flex:1; min-width:0}
+.part.endless.remix .foot{margin:0; flex:none}
+.sub{margin:-4px 0 12px; color:var(--dim); font-size:14.5px; max-width:70ch}
+.tabs.gold{margin-top:-4px}
+.tabs.gold .lab{font:700 12px/1 var(--cond); letter-spacing:.22em; text-transform:uppercase; color:var(--gold); align-self:center; margin-right:4px}
+.tabs.gold button{border-color:#ffd60a55; color:#ffe89a}
+.tabs.gold button[aria-selected="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .btn.gold{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .btn.gold:hover{background:linear-gradient(180deg,#fff0b8,#f0b42a)}
 .song.soon{display:flex; align-items:center; gap:14px; border-style:dashed; background:transparent; padding:14px 18px}
@@ -198,9 +205,16 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
     <div class="levels" id="levels"></div>
   </section>
 
+  <section aria-labelledby="hEn">
+    <h2 id="hEn">Endless &#8734;</h2>
+    <p class="sub">Clear every part of a song and its endless list opens: each part with no end, and the remix of them all. Play till the hearts run out. Only a new best earns points.</p>
+    <div class="levels" id="endless"></div>
+  </section>
+
   <section aria-labelledby="hBoard">
     <h2 id="hBoard">Scoreboard</h2>
     <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="tabs gold" role="tablist" id="etabs"></div>
     <div class="board" id="board"><p class="empty">Loading…</p></div>
   </section>
 
@@ -347,15 +361,21 @@ let LEVELS = [
   { id:"lvl8c", num:8, part:3, title:"MY SHADOW", requires:"lvl8b", src:"levels/myself.html?hub=1&part=3",
     ds:"Part 3. Your shadow flies exactly where you flew a few seconds ago. Gather the petals and stay ahead of yourself.",
     art:"radial-gradient(120% 90% at 80% 0%, #a060ff55, transparent 60%), linear-gradient(160deg,#2a0e1e,#08040a)" },
-  { id:"lvl8d", num:8, part:4, endless:true, title:"NO STOP", requires:"lvl8c", src:"levels/myself.html?hub=1&part=4",
-    ds:"All three games, one after the other, with no end. Every lap is harder, a finished lap gives a heart back. Only a new best earns points.",
-    art:"" },
   { id:"lvl9", num:9, title:"OUBLIE-MOI", requires:"lvl2", src:"levels/javeda.html?hub=1&level=lvl9",
     ds:"District 9 with Zirka. Monsters over the city. Remind them who the Wolves are.",
     art:"radial-gradient(120% 90% at 80% 0%, #ff3d8b55, transparent 60%), linear-gradient(160deg,#2a1450,#0b0416)" }
 ];
-const levelById = id => LEVELS.find(l => l.id === id);
-const lvName = l => "Level " + l.num + (l.endless ? " " + l.title.toLowerCase().replace(/\b\w/g, c => c.toUpperCase()) : l.part ? " Part " + l.part : "");
+// The endless list: each part of a song with no end (id + "x"), and the song's remix,
+// all its parts in turn (lvlNr). All of a song's endless open once all its parts are cleared.
+const endlessOf = (num, file, last, parts, remix) => parts.map(([id, title], i) =>
+    ({ id:id + "x", num, part:i + 1, endless:true, title, requires:last, src:"levels/" + file + "?hub=1" + (i ? "&part=" + (i + 1) : "") + "&endless=1" }))
+  .concat(remix ? [{ id:"lvl" + num + "r", num, remix:true, endless:true, title:"Remix", requires:last, src:"levels/" + file + "?hub=1&remix=1" }] : []);
+const ENDLESS = [
+  ...endlessOf(8, "myself.html", "lvl8c", [["lvl8", "Petal Rain"], ["lvl8b", "The Stem"], ["lvl8c", "My Shadow"]], true)
+];
+const ALL = [...LEVELS, ...ENDLESS];
+const levelById = id => ALL.find(l => l.id === id);
+const lvName = l => "Level " + l.num + (l.remix ? " Remix" : l.endless ? (LEVELS.filter(m => m.num === l.num).length > 1 ? " Part " + l.part : "") + " ∞" : l.part ? " Part " + l.part : "");
 // "Next level" always means the next song: from a Part 2, the song after its Part 1
 function nextMain(id){
   const lv = levelById(id); if (!lv) return null;
@@ -403,7 +423,7 @@ function needText(lv){
   const need = levelById(lv.requires), p = progress[lv.requires];
   const where = need.num === lv.num ? "Part " + (need.part || 1) : "Level " + need.num;
   if (lv.needScore && p && p.cleared) return "Score " + fmt(lv.needScore) + " in " + where + " to open";
-  if (lv.endless) return "Clear " + (need.part ? "Parts 1 - " + need.part : where) + " to open";
+  if (lv.endless){ const n = LEVELS.filter(l => l.num === lv.num).length; return n > 1 ? "Clear all " + n + " parts to open" : "Clear Level " + lv.num + " to open"; }
   return "Finish " + where + " first";
 }
 
@@ -436,11 +456,11 @@ function comingSoon(){
 }
 // the endless tile: gold, no "cleared" - just your best and the way back in
 function endlessTile(lv){
-  const p = progress[lv.id] || {}, open = isOpen(lv);
-  return '<div class="part endless' + (open ? '' : ' locked') + '">' +
-    '<div class="pi"><span class="pl">' + (lv.part ? 'Part ' + lv.part + ' &middot; ' : '') + 'Endless &#8734;</span>' +
+  const p = progress[lv.id] || {}, open = isOpen(lv), many = LEVELS.filter(l => l.num === lv.num).length > 1;
+  return '<div class="part endless' + (lv.remix ? ' remix' : '') + (open ? '' : ' locked') + '">' +
+    '<div class="pi"><span class="pl">' + (lv.remix ? 'Remix &#8734; &middot; all parts' : (many ? 'Part ' + lv.part + ' ' : 'Endless ') + '&#8734;') + '</span>' +
     '<span class="pt">' + esc(lv.title) + '</span>' +
-    '<p class="pd">' + esc(lv.ds) + '</p></div>' +
+    (lv.remix ? '<p class="pd">Every part, one after the other, round and round. Every lap is harder, and a finished lap gives a heart back.</p>' : '') + '</div>' +
     '<div class="foot">' +
       (open
         ? (p.best ? '<span class="best">Best ' + fmt(p.best) + '</span>' : '<span class="tag">New</span>') +
@@ -450,7 +470,6 @@ function endlessTile(lv){
 }
 // one tile per part: what it is, how you did, and the way in
 function partTile(lv){
-  if (lv.endless) return endlessTile(lv);
   const p = progress[lv.id] || {};
   const open = isOpen(lv), done = !!p.cleared;
   const lock = lv.requires ? needText(lv) : '';
@@ -487,15 +506,34 @@ function renderLevels(){
     '<p class="ds">One per song on the album. Coming as the songs come.</p></div></article>';
   $("levels").innerHTML = html;
 }
-const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl8d","Level 8 No Stop &#8734;"],["lvl9","Level 9"]];
+// the endless list: a gold row per song that has one
+function renderEndless(){
+  const songs = new Map();
+  for (const lv of ENDLESS){ if (!songs.has(lv.num)) songs.set(lv.num, []); songs.get(lv.num).push(lv); }
+  $("endless").innerHTML = [...songs.entries()].map(([num, list]) => {
+    const main = LEVELS.find(l => l.num === num && !l.part) || {}, open = list.some(isOpen);
+    return '<article class="song gold' + (open ? '' : ' locked') + '" style="--art:' + main.art + '">' +
+      '<div class="head"><span class="tr" aria-hidden="true">' + String(num).padStart(2, "0") + '</span>' +
+        '<span class="no">Level ' + num + ' &middot; Endless &#8734;</span>' +
+        '<span class="ti' + ((main.title || "").length > 10 ? ' long' : '') + '">' + esc(main.title) + '</span>' +
+        '<p class="ds">' + (open ? 'No end. Harder and harder, a heart back now and then. How far can you go?' : esc(needText(list[0]))) + '</p></div>' +
+      '<div class="parts">' + list.map(endlessTile).join("") + '</div></article>';
+  }).join("");
+}
+const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
+  $("etabs").innerHTML = '<span class="lab">Endless &#8734;</span>' + ENDLESS.map(l => '<button role="tab" type="button" data-tab="' + l.id + '" aria-selected="' + (l.id === boardTab) + '">' + esc(lvName(l)) + '</button>').join("");
 }
 async function renderBoard(){
   const el = $("board");
   if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
-  const col = boardTab === "points" ? "points" : boardTab + "_best";
-  const { data, error } = await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl8d_best, lvl9_best")
+  // an endless board reads the per-level scores; the rest read the one-row-per-player board
+  const end = ENDLESS.some(l => l.id === boardTab);
+  const col = boardTab === "points" ? "points" : end ? "best_score" : boardTab + "_best";
+  const { data, error } = end
+    ? await sb.from("javeda_scores").select("username, avatar, best_score").eq("level", boardTab).order("best_score", { ascending:false }).limit(25)
+    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }
@@ -506,7 +544,7 @@ async function renderBoard(){
     '<span class="val">' + fmt(r[col]) + (boardTab === "points" ? ' pts' : '') + '</span></li>').join("") + '</ol>' +
     (signedIn() ? '' : '<p class="empty" style="border-top:1px solid #ffffff0d">Log in to get your name on here.</p>');
 }
-function renderAll(){ renderMe(); renderLevels(); renderTabs(); renderBoard(); }
+function renderAll(){ renderMe(); renderLevels(); renderEndless(); renderTabs(); renderBoard(); }
 
 /* ---- profile sheet ---- */
 let pickAv = "saucer";
@@ -659,10 +697,11 @@ function play(id){
 function stopPlay(){
   $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null;
   document.body.style.overflow = "";
-  renderLevels();
+  renderLevels(); renderEndless();
 }
 $("levels").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
-$("tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b){ boardTab = b.dataset.tab; renderTabs(); renderBoard(); } });
+for (const id of ["tabs", "etabs"]) $(id).addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b){ boardTab = b.dataset.tab; renderTabs(); renderBoard(); } });
+$("endless").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
 $("playClose").onclick = stopPlay;
 
 // an endless run starts with the database, which holds its score to the time played
@@ -677,6 +716,7 @@ async function saveRun(r){
   const after = { ...progress, [lv.id]: { ...was, cleared: was.cleared || !!r.cleared, best: Math.max(was.best || 0, r.score | 0) } };
   const opensWith = (l, pr) => { const p = pr[l.requires]; return !!(p && p.cleared && (p.best || 0) >= (l.needScore || 0)); };
   const opened = LEVELS.filter(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after)).map(lvName);
+  if (ENDLESS.some(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after))) opened.push("Level " + lv.num + " Endless &#8734;");
   if (r.cleared && !was.cleared && lv.id === "lvl2b") opened.push("Zirka's bike in Level 1");
   const unlocks = opened.length ? opened.join(" and ") + (opened.length > 1 ? " are" : " is") + " open" : "";
   if (!signedIn()){

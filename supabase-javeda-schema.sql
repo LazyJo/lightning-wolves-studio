@@ -33,8 +33,9 @@ CREATE TABLE IF NOT EXISTS javeda_levels (
   sort               INT  NOT NULL
 );
 ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS requires_score INT NOT NULL DEFAULT 0;
--- Endless levels (Level 8 Part 4 No Stop, and an ENDLESS for each song once all its
--- parts are cleared) have no end and no top score: they are for the scoreboard. A run
+-- Endless levels (the gold Endless list: every part of a song with no end, id + "x", and
+-- the song's remix of all its parts, lvlNr; they open once all the song's parts are
+-- cleared) have no end and no top score: they are for the scoreboard. A run
 -- has to be started with javeda_start_run, and its score may be at most max_rate per
 -- second of real time since then. Only a new best earns points (see javeda_submit_run).
 ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS endless  BOOLEAN NOT NULL DEFAULT false;
@@ -70,14 +71,20 @@ ON CONFLICT (id) DO UPDATE SET
   sort = EXCLUDED.sort;
 
 -- the endless ones. No clear bonuses; score_per_point turns a new best's gain into points
--- (still at most 40 a run). max_rate sits well above a perfect run (No Stop: ~320/s).
+-- (still at most 40 a run). max_rate (points a second) sits about twice above what a
+-- perfect bot scores after 10 minutes. They sort after the levels.
 INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, score_per_point, clear_points, first_clear_points, sort, endless, max_rate) VALUES
-  ('lvl8d', 8, 'NO STOP',    'lvl8c', 0, 20000000, 2000, 0, 0, 22, true, 600)   -- Level 8 Part 4: all three games, no end
+  ('lvl8x',  8, 'PETAL RAIN',  'lvl8c', 0, 50000000, 3000, 0, 0, 108, true, 2500),   -- bot ~950/s at 10 min
+  ('lvl8bx', 8, 'THE STEM',    'lvl8c', 0, 50000000, 1000, 0, 0, 109, true, 800),    -- ~300/s
+  ('lvl8cx', 8, 'MY SHADOW',   'lvl8c', 0, 50000000, 1000, 0, 0, 110, true, 600),    -- ~200/s
+  ('lvl8r',  8, 'REMIX',       'lvl8c', 0, 50000000, 1500, 0, 0, 111, true, 1000)    -- all three in turn, ~370/s
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
   clear_points = EXCLUDED.clear_points, first_clear_points = EXCLUDED.first_clear_points,
   sort = EXCLUDED.sort, endless = EXCLUDED.endless, max_rate = EXCLUDED.max_rate;
+-- a test build had Level 8 "No Stop" as lvl8d: it is the remix now (lvl8r)
+DELETE FROM javeda_levels WHERE id = 'lvl8d' AND NOT EXISTS (SELECT 1 FROM javeda_progress WHERE level = 'lvl8d');
 
 -- ── Profile pictures ───────────────────────────────────────────────────────
 -- Cost 0 = free to pick from the start. The pictures themselves are static
@@ -193,14 +200,15 @@ REVOKE ALL ON javeda_runs FROM anon, authenticated;
 GRANT SELECT ON javeda_creators TO authenticated;
 
 -- The scoreboard: one row per player. security_invoker so it reads through
--- the same public SELECT policies as everything else.
-CREATE OR REPLACE VIEW javeda_board WITH (security_invoker = true) AS
+-- the same public SELECT policies as everything else. Dropped and made again on
+-- every run, so its columns can change.
+DROP VIEW IF EXISTS javeda_board;
+CREATE VIEW javeda_board WITH (security_invoker = true) AS
 SELECT p.username, p.avatar, p.points,
        COALESCE(SUM(CASE WHEN g.cleared THEN 1 ELSE 0 END), 0)::INT AS levels_cleared,
        COALESCE(MAX(CASE WHEN g.level = 'lvl1' THEN g.best_score END), 0)::INT AS lvl1_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl2' THEN g.best_score END), 0)::INT AS lvl2_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl9' THEN g.best_score END), 0)::INT AS lvl9_best,
-       -- new columns go last: CREATE OR REPLACE VIEW can only add at the end
        COALESCE(MAX(CASE WHEN g.level = 'lvl2b' THEN g.best_score END), 0)::INT AS lvl2b_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl3' THEN g.best_score END), 0)::INT AS lvl3_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl3b' THEN g.best_score END), 0)::INT AS lvl3b_best,
@@ -219,12 +227,20 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl7c' THEN g.best_score END), 0)::INT AS lvl7c_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl8' THEN g.best_score END), 0)::INT AS lvl8_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl8b' THEN g.best_score END), 0)::INT AS lvl8b_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl8c' THEN g.best_score END), 0)::INT AS lvl8c_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl8d' THEN g.best_score END), 0)::INT AS lvl8d_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl8c' THEN g.best_score END), 0)::INT AS lvl8c_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;
 GRANT SELECT ON javeda_board TO anon, authenticated;
+
+-- Per-level scores, one row per player and level: the endless scoreboards read this
+-- (filtered by level), so a new endless level needs no new column anywhere.
+DROP VIEW IF EXISTS javeda_scores;
+CREATE VIEW javeda_scores WITH (security_invoker = true) AS
+SELECT g.level, p.username, p.avatar, g.best_score
+FROM javeda_progress g JOIN javeda_players p ON p.user_id = g.user_id
+WHERE g.best_score > 0;
+GRANT SELECT ON javeda_scores TO anon, authenticated;
 
 -- ── Functions ──────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.javeda_owns(p_user UUID, p_avatar TEXT)

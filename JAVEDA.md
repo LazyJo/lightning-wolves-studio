@@ -39,7 +39,10 @@ scoreboard shows as offline.
   (`javeda.guest.v1`). On their first log-in the hub creates their player from the guest
   name and picture, then calls `javeda_import_guest` once to bring their levels along.
 - **Gating.** A level opens when the level it `requires` is cleared (Level 1 → 2 → 9).
-  The hub shows it, and `javeda_submit_run` refuses runs on locked levels.
+  A level can also need a best score there (`requires_score` in `javeda_levels`, `needScore`
+  in `LEVELS` - keep the two equal): Level 4 Part 3 opens at 100,000 in Level 4 Part 2.
+  The hub shows it ("Score 100,000 in Level 4 Part 2 to open"), and `javeda_submit_run`
+  refuses runs on locked levels.
 - **Creators.** Accounts listed in `javeda_creators` (Jo) can play every level without clearing
   the one before; the hub shows "creator, every level open" and `javeda_submit_run` skips the
   lock for them. Nobody can add themselves: the table is filled by hand in the SQL Editor

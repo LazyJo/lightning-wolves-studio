@@ -14,7 +14,8 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- ── Levels ─────────────────────────────────────────────────────────────────
--- `requires` is the gate: a level opens once the level it names is cleared.
+-- `requires` is the gate: a level opens once the level it names is cleared -
+-- and, when requires_score is set, scored at least that much there too.
 -- max_score is a sanity cap on what a client may report, just above each
 -- level's real ceiling (Level 1 and Level 2 Part 2 ~3.5k; Level 2 up to 90k; Level 9 ~140k,
 -- set by its x8 combo). A "Part 2" is a bonus level: it needs its Part 1 cleared, and
@@ -31,20 +32,21 @@ CREATE TABLE IF NOT EXISTS javeda_levels (
   first_clear_points INT  NOT NULL,
   sort               INT  NOT NULL
 );
+ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS requires_score INT NOT NULL DEFAULT 0;
 
-INSERT INTO javeda_levels (id, num, title, requires, max_score, score_per_point, clear_points, first_clear_points, sort) VALUES
-  ('lvl1', 1, 'I''M LOST',   NULL,   4000,   100, 50, 300, 1),
-  ('lvl2', 2, 'SOMEBODY',    'lvl1', 95000,  2000, 50, 300, 2),
-  ('lvl2b', 2, 'ZIRKA''S RIDE', 'lvl2', 4000, 100, 50, 300, 3),   -- Level 2 Part 2, scored like Level 1
-  ('lvl3', 3, 'MY HEART',    'lvl2', 12000, 250, 50, 300, 4),     -- Explore: time + petals, ~11k at best
-  ('lvl3b', 3, 'LIGHTS OUT', 'lvl3', 16000, 400, 50, 300, 5),     -- Level 3 Part 2, ~15.5k at best
-  ('lvl3c', 3, 'HEARTBREAK', 'lvl3b', 20000, 450, 75, 400, 6),    -- Level 3 Part 3, ~18.5k at best
-  ('lvl4', 4, 'ROLLERCOASTER', 'lvl3', 110000, 2500, 50, 300, 7),  -- music game: a perfect run is 100,900
-  ('lvl4b', 4, 'FULL SPEED',  'lvl4', 175000, 4000, 50, 300, 8),     -- 163,300 perfect
-  ('lvl4c', 4, 'NO BRAKES',   'lvl4b', 320000, 7500, 75, 400, 9),    -- 302,500 perfect
-  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 150000, 3000, 75, 500, 10)
+INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, score_per_point, clear_points, first_clear_points, sort) VALUES
+  ('lvl1', 1, 'I''M LOST',   NULL,   0, 4000,   100, 50, 300, 1),
+  ('lvl2', 2, 'SOMEBODY',    'lvl1', 0, 95000,  2000, 50, 300, 2),
+  ('lvl2b', 2, 'ZIRKA''S RIDE', 'lvl2', 0, 4000, 100, 50, 300, 3),   -- Level 2 Part 2, scored like Level 1
+  ('lvl3', 3, 'MY HEART',    'lvl2', 0, 12000, 250, 50, 300, 4),     -- Explore: time + petals, ~11k at best
+  ('lvl3b', 3, 'LIGHTS OUT', 'lvl3', 0, 16000, 400, 50, 300, 5),     -- Level 3 Part 2, ~15.5k at best
+  ('lvl3c', 3, 'HEARTBREAK', 'lvl3b', 0, 20000, 450, 75, 400, 6),    -- Level 3 Part 3, ~18.5k at best
+  ('lvl4', 4, 'ROLLERCOASTER', 'lvl3', 0, 110000, 2500, 50, 300, 7),  -- music game: a perfect run is 100,900
+  ('lvl4b', 4, 'FULL SPEED',  'lvl4', 0, 175000, 4000, 50, 300, 8),     -- 163,300 perfect
+  ('lvl4c', 4, 'NO BRAKES',   'lvl4b', 100000, 145000, 3500, 75, 400, 9), -- free flight, 134,500 perfect; opens at 100,000 in Part 2
+  ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 0, 150000, 3000, 75, 500, 10)
 ON CONFLICT (id) DO UPDATE SET
-  num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires,
+  num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
   clear_points = EXCLUDED.clear_points, first_clear_points = EXCLUDED.first_clear_points,
   sort = EXCLUDED.sort;
@@ -269,7 +271,8 @@ BEGIN
   SELECT * INTO me FROM javeda_players WHERE user_id = uid FOR UPDATE;
   IF me IS NULL THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
   IF lv.requires IS NOT NULL AND NOT EXISTS (
-       SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared)
+       SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared
+                                       AND best_score >= lv.requires_score)
      AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
     RAISE EXCEPTION 'level locked' USING ERRCODE = '42501';
   END IF;
@@ -334,7 +337,8 @@ BEGIN
     CONTINUE WHEN EXISTS (SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.id);
     -- a guest clear only counts if the level before it is cleared too
     CONTINUE WHEN lv.requires IS NOT NULL AND NOT EXISTS (
-      SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared);
+      SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared
+                                      AND best_score >= lv.requires_score);
     INSERT INTO javeda_progress (user_id, level, cleared, best_score, best_metres, runs, clears, first_cleared_at)
     VALUES (uid, lv.id,
             COALESCE((item ->> 'cleared')::BOOLEAN, false),

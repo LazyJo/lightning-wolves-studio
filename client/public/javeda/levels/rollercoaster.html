@@ -105,7 +105,7 @@ canvas{display:block; touch-action:none}
   <p class="by" id="by">LAZY JO</p>
   <h1 id="title">ROLLERCOASTER</h1>
   <p id="intro">Ride the song. The lights on the track are the beat: hit each one as you pass it.</p>
-  <p>Lights come at you on three lanes. Under your UFO are <b>three rings</b>: when a light reaches its ring, <b>tap that side</b> &mdash; the &#9664; &#9679; &#9654; buttons at the bottom, or &larr; &darr; &rarr;. On the beat = <b>PERFECT</b>. Miss too many and the ride stops.</p>
+  <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Part">
     <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
   </div>
@@ -130,7 +130,8 @@ canvas{display:block; touch-action:none}
    the track is the song: the intro is the slow climb, the first drop lands
    exactly when the drums slam in, the bars where the drums cut out are lift
    hills, and every chorus is another drop. Lights sit on three lanes of the
-   track on the beat; tap the lane as you pass each one.
+   track on the beat: move the UFO into a light's lane to catch it (on the beat
+   for PERFECT) and out of the way of the red walls.
 
    Everything is timed off the song's measured grid (javeda/rollercoaster/
    SONG.md): 82.5 BPM, first downbeat 0.327 s, 56 bars; the kick hits beats 1,
@@ -144,15 +145,21 @@ const SONG_END = 164.3, PORTAL_T = barT(53), END_T = barT(52);
 const LANE = 1.9;
 const WIN_PERFECT = .075, WIN_GOOD = .15;
 
-/* Three parts, each with more lights: Part 2 every kick, Part 3 the eighths in
-   the choruses and double lights (two lanes at once) on the downbeats. The hub
-   opens a part with ?part=2|3; on its own the start card lets you pick. */
+/* Three parts. In Parts 1 and 2 the UFO rides one of three lanes: tap a lane to
+   move there, fly through the lights, and stay out of the way of the red walls.
+   Part 2 has a light on every kick and walls that close two lanes at once, and a
+   GATE score in it opens Part 3. Part 3 is a different game: the brakes are gone,
+   the UFO leaves the lanes and flies free - drag to steer through rings of
+   lightning on the beat, round the storm mines. The hub opens a part with
+   ?part=2|3; on its own the start card lets you pick. */
 const PART = Math.min(3, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
 const CFG = {
-  1: { id:"lvl4",  title:"ROLLERCOASTER", hit:3, miss:7,  start:70 },
-  2: { id:"lvl4b", title:"FULL SPEED",    hit:2, miss:8,  start:65 },
-  3: { id:"lvl4c", title:"NO BRAKES",     hit:2, miss:10, start:60 }
+  1: { id:"lvl4",  title:"ROLLERCOASTER", hit:3, miss:7, crash:12, start:70 },
+  2: { id:"lvl4b", title:"FULL SPEED",    hit:2, miss:8, crash:14, start:65 },
+  3: { id:"lvl4c", title:"NO BRAKES",     hit:2, miss:8, crash:14, start:60 }
 }[PART];
+const FLY = PART === 3;
+const GATE = 100000;       // a Part 2 score that opens Part 3 (the hub and the database hold the same number)
 
 const LINKS = {
   next:    "https://lightningwolves.studio/javeda/",
@@ -180,12 +187,17 @@ function section(bar){
 }
 const PATTERN = {          // beats within a bar (0-3, halves allowed) per section and part
   intro:  [[], [0], [0, 2]],
-  chorus: [[0, 1, 2], [0, 1, 2, 2.5], [0, .5, 1, 1.5, 2, 2.5, 3]],
-  verse:  [[0, 2], [0, 1, 2], [0, 1, 2, 2.5, 3]],
-  lift:   [[0], [0, 2], [0, 1, 2]],
+  chorus: [[0, 1, 2], [0, 1, 2, 2.5], [0, 1, 2, 3]],
+  verse:  [[0, 2], [0, 1, 2], [0, 2]],
+  lift:   [[0], [0, 2], [0, 2]],
   tail:   [[], [], []]
 };
 function rnd(n){ const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); }
+// Part 3: the line the rings follow, as an offset from the track (x right, y up, metres)
+function flyPath(t){
+  const a = Math.min(1, Math.max(0, (t - 2) / 8));
+  return [ (Math.sin(t*.83)*2.5 + Math.sin(t*2.1 + 1)*.8) * a, .95 + ((Math.sin(t*.61 + 1)*.9 + Math.sin(t*1.7)*.35) + .8) * a ];
+}
 function buildChart(){
   const notes = [];
   // lane shapes: choruses sweep across, verses step, lifts sit in the middle
@@ -199,14 +211,40 @@ function buildChart(){
       if (sec === "chorus") lane = sweep[(bar*3 + j) % 4];
       else if (sec === "lift") lane = rnd(bar*7.3 + j) < .6 ? 1 : (j % 2 ? 0 : 2);
       else lane = step[(bar*2 + j) % 8];
-      notes.push({ t, lane, k:k++, hit:0 });
-      // Part 3: a second light on each chorus downbeat - two thumbs
-      if (PART === 3 && sec === "chorus" && b === 0) notes.push({ t, lane: lane === 0 ? 2 : 0, k:k++, hit:0 });
+      const [x, y] = flyPath(t);
+      notes.push({ t, lane, x, y, sec, k:k++, hit:0 });
     });
   }
   return notes;
 }
 const NOTES = buildChart();
+
+/* ---- the obstacles ----
+   Parts 1-2: red walls halfway between two lights. A wall stands in the lane of
+   the light you just took, so you move over early; in Part 2 a wall can close
+   two lanes and leave one gap, or block the lane both lights are in (out and
+   back). Part 3: storm mines sitting right on the ring line - swerve round. */
+function buildWalls(){
+  const out = [];
+  for (let i = 0; i + 1 < NOTES.length; i++){
+    const a = NOTES[i], b = NOTES[i + 1], gap = b.t - a.t, t = a.t + gap/2;
+    if (a.sec === "intro" || a.sec === "lift" || b.sec === "lift" || t > END_T) continue;
+    if (FLY){
+      if (gap < BEAT*1.9 || rnd(i*2.7 + 5) > .55) continue;
+      const [x, y] = flyPath(t);
+      out.push({ t, x, y, k:out.length });
+      continue;
+    }
+    if (gap < BEAT*(PART === 1 ? 1.9 : .99) || rnd(i*3.1 + PART) > (PART === 1 ? .5 : .62)) continue;
+    let lanes;
+    if (a.lane !== b.lane) lanes = PART === 2 && rnd(i*5.3) < .5 ? [0, 1, 2].filter(l => l !== b.lane) : [a.lane];
+    else if (PART === 2 && gap >= BEAT*1.9) lanes = [a.lane];
+    else continue;
+    out.push({ t, lanes, k:out.length });
+  }
+  return out;
+}
+const WALLS = buildWalls();
 
 /* ---- the track: height, speed and curves all come from the song ---- */
 const LIFT_V = 5.5, G = 9.8;
@@ -407,7 +445,7 @@ function buildTrackMesh(){
   const railM = new THREE.MeshBasicMaterial({ color:C.rail, side:THREE.DoubleSide });
   ribbon(-LANE*1.5, .16, railM); ribbon(LANE*1.5, .16, railM);
   const laneM = new THREE.MeshBasicMaterial({ color:C.cyan, transparent:true, opacity:.28, side:THREE.DoubleSide });
-  for (const l of [-1, 0, 1]) ribbon(l*LANE, .06, laneM);
+  if (!FLY) for (const l of [-1, 0, 1]) ribbon(l*LANE, .06, laneM);
   const n = Math.floor(TR.P.length / 3);
   const ties = new THREE.InstancedMesh(new THREE.BoxGeometry(LANE*3.2, .1, .3), new THREE.MeshStandardMaterial({ color:C.tie, roughness:.8 }), n);
   const legs = new THREE.InstancedMesh(new THREE.CylinderGeometry(.12, .12, 1, 6), new THREE.MeshStandardMaterial({ color:0x1a2c55, roughness:.9 }), Math.floor(n/8) + 1);
@@ -422,18 +460,70 @@ function buildTrackMesh(){
   ties.count = k; scene.add(ties, legs);
 }
 
+// a point on the track's frame at song time t: x metres right, y metres up
+const FP = new THREE.Vector3(), FR = new THREE.Vector3(), FU = new THREE.Vector3(), FT = new THREE.Vector3();
+function onTrack(t, x, y, out){
+  at(t, FP); at(t, FR, "R"); at(t, FU, "U");
+  return out.copy(FP).addScaledVector(FR, x).addScaledVector(FU, y);
+}
 function buildNotes(){
   const geo = new THREE.OctahedronGeometry(.42, 0), haloG = new THREE.RingGeometry(.55, .75, 24);
   const mat = new THREE.MeshBasicMaterial({ color:C.ice }), haloM = glow(C.cyan, .55);
-  const P = new THREE.Vector3(), R = new THREE.Vector3(), U = new THREE.Vector3();
+  // Part 3: rings of lightning to fly through, square to the track
+  const ringG = new THREE.TorusGeometry(1.5, .13, 8, 40), ringM = new THREE.MeshBasicMaterial({ color:C.ice });
+  const discG = new THREE.CircleGeometry(1.42, 40);
+  const M = new THREE.Matrix4();
   for (const n of NOTES){
     const g = new THREE.Group();
-    g.add(new THREE.Mesh(geo, mat));
-    const h = new THREE.Mesh(haloG, haloM.clone()); g.add(h);
-    at(n.t, P); at(n.t, R, "R"); at(n.t, U, "U");
-    g.position.copy(P).addScaledVector(R, (n.lane - 1)*LANE).addScaledVector(U, .9);
+    let h;
+    if (FLY){
+      g.add(new THREE.Mesh(ringG, ringM));
+      h = new THREE.Mesh(discG, glow(C.cyan, .12)); g.add(h);
+      onTrack(n.t, n.x, n.y, g.position);
+      at(n.t, FT, "T").negate(); M.makeBasis(FR, FU, FT); g.quaternion.setFromRotationMatrix(M);
+    } else {
+      g.add(new THREE.Mesh(geo, mat));
+      h = new THREE.Mesh(haloG, haloM.clone()); g.add(h);
+      onTrack(n.t, (n.lane - 1)*LANE, .9, g.position);
+    }
     g.userData = { n, halo:h }; g.visible = false;
     scene.add(g); noteMeshes.push(g);
+  }
+}
+// the walls: hazard-striped red blocks; the mines: dark cores in a red crackle
+let wallMeshes = [];
+function buildWallMeshes(){
+  const cv = document.createElement("canvas"); cv.width = 128; cv.height = 64;
+  const x = cv.getContext("2d");
+  x.fillStyle = "#2a0710"; x.fillRect(0, 0, 128, 64);
+  x.fillStyle = "#ff2d55";
+  for (let i = -64; i < 128; i += 32){ x.beginPath(); x.moveTo(i, 64); x.lineTo(i + 16, 64); x.lineTo(i + 80, 0); x.lineTo(i + 64, 0); x.closePath(); x.fill(); }
+  x.strokeStyle = "#ffd0da"; x.lineWidth = 6; x.strokeRect(3, 3, 122, 58);
+  const tex = new THREE.CanvasTexture(cv);
+  const boxG = new THREE.BoxGeometry(LANE*.9, 1.6, .32), boxM = new THREE.MeshBasicMaterial({ map:tex });
+  const mineG = new THREE.IcosahedronGeometry(.62, 0), mineM = new THREE.MeshStandardMaterial({ color:0x2a0710, emissive:0xff2d55, emissiveIntensity:.5, roughness:.4, flatShading:true });
+  const spikeG = new THREE.ConeGeometry(.14, .6, 5), haloG = new THREE.RingGeometry(.7, 1.3, 24);
+  const M = new THREE.Matrix4();
+  for (const w of WALLS){
+    const g = new THREE.Group();
+    if (FLY){
+      const core = new THREE.Mesh(mineG, mineM); g.add(core);
+      for (let i = 0; i < 8; i++){
+        const s = new THREE.Mesh(spikeG, mineM), d = new THREE.Vector3(rnd(i + w.k)*2 - 1, rnd(i*3 + w.k)*2 - 1, rnd(i*7 + w.k)*2 - 1).normalize();
+        s.position.copy(d).multiplyScalar(.68); s.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d); core.add(s);
+      }
+      const h = new THREE.Mesh(haloG, glow(0xff2d55, .35)); g.add(h); g.userData.halo = h; g.userData.core = core;
+      onTrack(w.t, w.x, w.y, g.position);
+    } else {
+      at(w.t, FT, "T"); at(w.t, FR, "R"); at(w.t, FU, "U");
+      M.makeBasis(FR, FU, FT.negate()); const q = new THREE.Quaternion().setFromRotationMatrix(M);
+      for (const l of w.lanes){
+        const b = new THREE.Mesh(boxG, boxM); onTrack(w.t, (l - 1)*LANE, .85, b.position);
+        b.position.sub(g.position); b.quaternion.copy(q); g.add(b);
+      }
+    }
+    g.userData.w = w; g.visible = false;
+    scene.add(g); wallMeshes.push(g);
   }
 }
 
@@ -446,11 +536,13 @@ function boot(){
   scene = new THREE.Scene();
   scene.background = new THREE.Color(C.sky);
   scene.fog = new THREE.Fog(C.fog, 60, 340);
-  cam = new THREE.PerspectiveCamera(62, innerWidth/innerHeight, .1, 2000);
+  // a phone held upright gets a wider view, so the side lanes fit
+  const fov = () => innerWidth/innerHeight < .8 ? 72 : 62;
+  cam = new THREE.PerspectiveCamera(fov(), innerWidth/innerHeight, .1, 2000);
   scene.add(new THREE.HemisphereLight(0x8fb4ff, 0x0a0f20, .8));
   const key = new THREE.DirectionalLight(0xbfe6ff, .6); key.position.set(10, 20, 10); scene.add(key);
   sky = new THREE.Group(); scene.add(sky);
-  buildTrack(); buildWorld(); buildTrackMesh(); buildNotes();
+  buildTrack(); buildWorld(); buildTrackMesh(); buildNotes(); buildWallMeshes();
   // the portal stands over the track where the ride ends; the cinema is the station
   portal = buildPortal(); scene.add(portal);
   const P = new THREE.Vector3(), T = new THREE.Vector3();
@@ -462,20 +554,20 @@ function boot(){
     side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
   beam.rotation.x = Math.PI; beam.scale.set(1, .9, 1); beam.position.y = -.75; ufo.add(beam);
   beamLight = new THREE.PointLight(C.cyan, 1.4, 10, 2); beamLight.position.y = -.6; ufo.add(beamLight);
-  // the three rings on the track under the UFO: a light inside its ring = tap now.
-  // The UFO looks down +z, so its local x runs the other way from the track's right.
+  // the three rings on the track, one per lane, riding along under the UFO: the
+  // one you're in glows. They look down +z like the UFO, so local x runs the
+  // other way from the track's right.
   targets = new THREE.Group();
   for (let l = 0; l < 3; l++){
     const r = new THREE.Mesh(new THREE.RingGeometry(.62, .8, 32), glow(C.ice, .55));
     r.rotation.x = -Math.PI/2; r.position.set(-(l - 1)*LANE, -.88, 0); r.userData.flash = 0;
     targets.add(r);
   }
-  ufo.add(targets);
-  scene.add(ufo);
+  scene.add(targets, ufo);
   spark = new THREE.Group(); scene.add(spark);
   for (let i = 0; i < 80; i++){
     const s = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .1), new THREE.MeshBasicMaterial({ color: i % 3 ? C.ice : 0xffffff }));
-    s.visible = false; s.userData = { v:new THREE.Vector3() }; spark.add(s);
+    s.visible = false; s.userData = { v:new THREE.Vector3(), c:s.material.color.getHex() }; spark.add(s);
   }
   // lightning in the sky on the drops
   bolts = [];
@@ -485,16 +577,21 @@ function boot(){
     scene.add(l); bolts.push(l);
   }
   clock = new THREE.Clock();
-  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.fov = fov(); cam.updateProjectionMatrix(); });
 }
 
 /* ---- state ---- */
 let S;
 function reset(){
   S = { t:-1.5, started:false, done:false, fail:false, score:0, combo:0, best:0, perfect:0, good:0, miss:0,
-        thrill:CFG.start, end:-1, msgT:0, judgeT:0, lyric:0, lastAudio:-1, boltT:-1, flash:0 };
-  NOTES.forEach(n => n.hit = 0);
+        thrill:CFG.start, end:-1, msgT:0, judgeT:0, lyric:0, lastAudio:-1, boltT:-1, flash:0,
+        // where the UFO is: the lane it's in (Parts 1-2), and its offset off the
+        // track centre in metres, now (x, y) and where it's heading (tx, ty)
+        lane:1, x:0, y:.95, tx:0, ty:.95, crash:0, dodged:0, shake:0 };
+  NOTES.forEach(n => { n.hit = 0; n.in = undefined; });
+  WALLS.forEach(w => w.done = 0);
   noteMeshes.forEach(m => { m.visible = false; m.scale.setScalar(1); });
+  wallMeshes.forEach(m => { m.visible = false; });
   if (spark) spark.children.forEach(s => s.visible = false);
   document.getElementById("hud").classList.remove("off");
   const fl = document.getElementById("flash"); fl.style.opacity = 0;
@@ -514,29 +611,56 @@ function tone(type, f0, f1, dur, gain, lp, delay){
 const sfx = {
   hit:  p => tone("triangle", p ? 1760 : 1320, p ? 1900 : 1400, .09, p ? .07 : .05, 7000),
   miss: () => tone("sawtooth", 140, 70, .18, .05, 900),
+  crash:() => { tone("sawtooth", 220, 40, .35, .09, 1200); tone("square", 90, 40, .3, .06, 600); },
+  move: () => tone("sine", 520, 780, .06, .025, 4000),
   clack:() => tone("square", 900, 600, .03, .025, 3000)
 };
 
-/* ---- input: the screen in thirds, or the arrow keys ---- */
+/* ---- input ----
+   Parts 1-2: the pads, the screen in thirds, or the arrow keys put the UFO in
+   that lane. Part 3: drag anywhere to steer (the UFO follows your finger's
+   movement), or hold the arrow keys. */
 const laneEls = [...document.querySelectorAll("#lanes i")];
 const veilUp = () => !document.getElementById("veil").classList.contains("hid");
 const padEls = [...document.querySelectorAll("#pads button")];
 padEls.forEach(b => b.addEventListener("pointerdown", e => { e.preventDefault(); e.stopPropagation(); press(+b.dataset.lane); }, { passive:false }));
-// anywhere else on the screen works too, by thirds
+const FLY_X = 4.2, FLY_Y = [.5, 3.4];
+const clampFly = () => { S.tx = Math.max(-FLY_X, Math.min(FLY_X, S.tx)); S.ty = Math.max(FLY_Y[0], Math.min(FLY_Y[1], S.ty)); };
+let drag = null;
 addEventListener("pointerdown", e => {
-  if (veilUp() || e.target.closest("#pads")) return;
+  if (veilUp() || (e.target.closest && e.target.closest("#pads"))) return;
   e.preventDefault();
+  if (FLY){ drag = { id:e.pointerId, x:e.clientX, y:e.clientY, tx:S.tx, ty:S.ty }; return; }
+  // anywhere else on the screen works too, by thirds
   const f = e.clientX / innerWidth; press(f < 1/3 ? 0 : f < 2/3 ? 1 : 2);
 }, { passive:false });
+addEventListener("pointermove", e => {
+  if (!drag || drag.id !== e.pointerId || !S.started || S.done) return;
+  // a full sweep across the short side of the screen is the whole flying room and a bit
+  const k = 11 / Math.min(innerWidth, innerHeight * 1.2);
+  S.tx = drag.tx + (e.clientX - drag.x) * k; S.ty = drag.ty - (e.clientY - drag.y) * k * .8; clampFly();
+});
+const endDrag = e => { if (drag && drag.id === e.pointerId) drag = null; };
+addEventListener("pointerup", endDrag); addEventListener("pointercancel", endDrag);
 const KEYS = { ArrowLeft:0, a:0, A:0, ArrowDown:1, ArrowUp:1, s:1, S:1, w:1, W:1, " ":1, ArrowRight:2, d:2, D:2 };
-addEventListener("keydown", e => { if (e.key in KEYS){ e.preventDefault(); if (!e.repeat && !veilUp()) press(KEYS[e.key]); } });
+const held = {};
+const FLYKEYS = { ArrowLeft:[-1, 0], a:[-1, 0], A:[-1, 0], ArrowRight:[1, 0], d:[1, 0], D:[1, 0],
+                  ArrowUp:[0, 1], w:[0, 1], W:[0, 1], ArrowDown:[0, -1], s:[0, -1], S:[0, -1] };
+addEventListener("keydown", e => {
+  if (FLY){ if (e.key in FLYKEYS){ e.preventDefault(); held[e.key] = 1; } return; }
+  if (e.key in KEYS){ e.preventDefault(); if (!e.repeat && !veilUp()) press(KEYS[e.key]); }
+});
+addEventListener("keyup", e => { delete held[e.key]; });
+addEventListener("blur", () => { for (const k in held) delete held[k]; });
 
 function press(lane){
-  if (!S.started || S.done || S.end >= 0) return;
+  if (FLY || !S.started || S.done || S.end >= 0) return;
   laneEls[lane].classList.add("on"); padEls[lane].classList.add("on");
   setTimeout(() => { laneEls[lane].classList.remove("on"); padEls[lane].classList.remove("on"); }, 90);
   if (targets) targets.children[lane].userData.flash = 1;
-  // the nearest light in that lane that hasn't been judged
+  // move there
+  if (S.lane !== lane){ S.lane = lane; sfx.move(); }
+  // and the nearest light in that lane that hasn't been judged, if it's on the beat
   let best = null, bd = 1e9;
   for (const n of NOTES){
     if (n.hit || n.lane !== lane) continue;
@@ -563,15 +687,33 @@ function judge(n, q){
   }
   judgeEl.textContent = q === 2 ? "PERFECT" : q === 1 ? "GOOD" : "MISS";
   judgeEl.className = "on " + (q === 2 ? "p" : q === 1 ? "g" : "x"); S.judgeT = .45;
+  stopIfEmpty();
+}
+function stopIfEmpty(){
   if (S.thrill <= 0 && !S.fail){ S.fail = true; S.done = true; lyric("THE RIDE STOPPED", "", 2); setTimeout(finish, 1200); }
 }
+// into a wall or a mine: the combo's gone, a big bite out of the thrill, a shake
+function crash(w){
+  S.crash++; S.combo = 0; S.thrill = Math.max(0, S.thrill - CFG.crash); S.shake = .45;
+  sfx.crash();
+  const m = wallMeshes[w.k];
+  if (m){ m.visible = false; burstAt(m, 16); }
+  judgeEl.textContent = "CRASH"; judgeEl.className = "on x"; S.judgeT = .6;
+  stopIfEmpty();
+}
+function burstAt(m, n){
+  const p = new THREE.Vector3();
+  if (FLY) p.copy(m.position); else onTrack(m.userData.w.t, S.x, .9, p);
+  burst(p, n, 0xff2d55);
+}
 const mult = () => Math.min(4, 1 + Math.floor(S.combo / 15));
-function burst(p, n){
+function burst(p, n, color){
   let k = 0;
   for (const s of spark.children){
     if (s.visible) continue;
     if (k++ >= n) break;
     s.visible = true; s.position.copy(p);
+    s.material.color.setHex(color || s.userData.c);
     s.userData.v.set((Math.random()-.5)*6, Math.random()*5 + 1, (Math.random()-.5)*6);
   }
 }
@@ -599,10 +741,38 @@ function update(dt){
   if (S.judgeT > 0){ S.judgeT -= dt; if (S.judgeT <= 0) judgeEl.classList.remove("on"); }
   while (S.lyric < LYRICS.length && S.t >= LYRICS[S.lyric][0]){ const [, a, b, d] = LYRICS[S.lyric++]; lyric(a, b, d); }
   if (S.done) return;
-  // lights that went by untouched
+  // the UFO glides to where it's going: a lane, or wherever you steered it
+  if (FLY){
+    let kx = 0, ky = 0;
+    for (const k in held){ kx += FLYKEYS[k][0]; ky += FLYKEYS[k][1]; }
+    if (kx || ky){ S.tx += Math.sign(kx)*7*dt; S.ty += Math.sign(ky)*5*dt; clampFly(); }
+  } else { S.tx = (S.lane - 1)*LANE; S.ty = .95; }
+  const glide = 1 - Math.exp(-dt*(FLY ? 10 : 22));
+  S.x += (S.tx - S.x)*glide; S.y += (S.ty - S.y)*glide;
+  if (S.shake > 0) S.shake = Math.max(0, S.shake - dt);
+  // the lights as they reach the UFO
   for (const n of NOTES){
     if (n.t > S.t) break;
-    if (!n.hit && S.t - n.t > WIN_GOOD){ judge(n, 0); if (S.done) return; }
+    if (n.hit) continue;
+    if (FLY){
+      // a ring: through the middle is PERFECT, through the ring is GOOD
+      const d = Math.hypot(S.x - n.x, S.y - n.y);
+      judge(n, d < .9 ? 2 : d < 1.65 ? 1 : 0);
+    } else {
+      // in its lane as it passes = caught; tap that lane on the beat for PERFECT
+      if (n.in === undefined) n.in = S.lane === n.lane;
+      if (n.in && S.t - n.t > WIN_PERFECT) judge(n, 1);
+      else if (!n.in && S.t - n.t > WIN_GOOD) judge(n, 0);
+    }
+    if (S.done) return;
+  }
+  // the walls and mines as they reach it
+  for (const w of WALLS){
+    if (w.t > S.t) break;
+    if (w.done) continue;
+    w.done = 1;
+    const hit = FLY ? Math.hypot(S.x - w.x, S.y - w.y) < 1.05 : w.lanes.includes(S.lane);
+    if (hit){ crash(w); if (S.done) return; } else S.dodged++;
   }
   // the clack of the chain on the climbs
   const onLift = S.t > 0 && (S.t < DROPS[0] || LIFTS.some(([a, b]) => S.t >= a && S.t < b));
@@ -620,29 +790,41 @@ function update(dt){
    come out where the ride began - in the cinema aisle between the blue seats,
    the beam on, the portal crackling in front. The cover. */
 const END = { flash:.0, out:8.5 };
-const V = new THREE.Vector3(), V2 = new THREE.Vector3(), V3 = new THREE.Vector3(), LOOK = new THREE.Vector3();
+const V = new THREE.Vector3(), V2 = new THREE.Vector3(), V3 = new THREE.Vector3(), V4 = new THREE.Vector3(), LOOK = new THREE.Vector3();
+const CT = new THREE.Vector3(), CU = new THREE.Vector3(), CR = new THREE.Vector3();
 function render(dt){
   const t = Math.max(0, S.t);
   if (S.end >= 0 && S.end > .35){ renderCinema(dt); return; }
-  // the UFO rides the middle of the track, hovering a little over it
-  at(t, V); at(t, V2, "U"); at(t, V3, "T");
-  ufo.position.copy(V).addScaledVector(V2, .95 + Math.sin(t*4)*.04);
+  // the rings on the track ride along at the middle; the one you're in glows
+  at(t, V); at(t, V2, "U"); at(t, V3, "T"); at(t, V4, "R");
+  targets.visible = !FLY;
+  if (!FLY){
+    targets.position.copy(V).addScaledVector(V2, .95);
+    targets.up.copy(V2); targets.lookAt(LOOK.copy(targets.position).add(V3));
+    targets.children.forEach((r, l) => { r.userData.flash = Math.max(0, r.userData.flash - dt*5);
+      r.material.opacity = (l === S.lane ? .75 : .3) + r.userData.flash*.4; r.scale.setScalar(1 + r.userData.flash*.25); });
+  }
+  // the UFO, hovering where you put it, leaning into the move
+  ufo.position.copy(V).addScaledVector(V4, S.x).addScaledVector(V2, S.y + Math.sin(t*4)*.04);
   LOOK.copy(ufo.position).add(V3);
   ufo.up.copy(V2); ufo.lookAt(LOOK);
+  ufo.rotateZ(Math.max(-.55, Math.min(.55, (S.tx - S.x)*.35)));
+  if (FLY) ufo.rotateX(Math.max(-.35, Math.min(.35, -(S.ty - S.y)*.3)));
   ufo.children[0].userData.holes.rotation.y = t*1.5;
   beam.material.opacity = .14 + Math.sin(t*6)*.02;
-  targets.visible = true;
-  targets.children.forEach(r => { r.userData.flash = Math.max(0, r.userData.flash - dt*5);
-    r.material.opacity = .45 + r.userData.flash*.5; r.scale.setScalar(1 + r.userData.flash*.25); });
-  // camera about 6 m behind and above, looking down the track; before the start
-  // it backs up the aisle in a straight line
-  const v = TR.v[Math.min(TR.v.length - 1, Math.floor(t / TR.dt))];
-  const lag = Math.max(.25, 6 / Math.max(5, v));
-  const ct = t - lag;
-  if (ct >= 0){ at(ct, V); at(ct, V2, "U"); }
-  else { V.copy(TR.P[0]).addScaledVector(TR.T[0], ct * TR.v[0]); V2.copy(TR.U[0]); }
-  cam.position.copy(V).addScaledVector(V2, 3.1);
-  at(t + .7, LOOK); cam.up.copy(V2); cam.lookAt(LOOK.addScaledVector(V2, .7));
+  // a chase camera: 6 m behind the UFO and a bit above, in the track's direction
+  // smoothed over the last half second - so drops and bends swing it gently, and
+  // the UFO stays in the same place on screen however steep it gets. It leans
+  // after the UFO sideways (and up, flying) but not all the way.
+  CT.set(0, 0, 0); CU.set(0, 0, 0);
+  for (let k = 0; k <= 12; k++){ const s = t - .45 + k*.05; CT.add(at(s, V3, "T")); CU.add(at(s, V3, "U")); }
+  CT.normalize(); CR.copy(CT).cross(CU).normalize(); CU.copy(CR).cross(CT).normalize();
+  // (sx, sy: how far the camera stays back from following the UFO's offset)
+  const sx = -S.x * (FLY ? .25 : cam.aspect < .8 ? .3 : .55), sy = -(S.y - .95) * (FLY ? .1 : .5), lift = FLY ? .5 : 0;
+  cam.position.copy(ufo.position).addScaledVector(CT, -6).addScaledVector(CU, 2.15 + lift + sy).addScaledVector(CR, sx);
+  if (S.shake > 0 && !REDUCED){ const k = S.shake*.5; cam.position.x += (Math.random() - .5)*k; cam.position.y += (Math.random() - .5)*k; }
+  LOOK.copy(ufo.position).addScaledVector(CT, 10).addScaledVector(CU, .7 + lift + sy).addScaledVector(CR, sx);
+  cam.up.copy(CU); cam.lookAt(LOOK);
   sky.position.copy(cam.position);
   // lights: only the ones in reach are drawn; they pulse on the beat
   const beatPhase = ((t - T0) / BEAT) % 1, pulse = 1 + Math.max(0, 1 - beatPhase*4)*.25;
@@ -650,9 +832,19 @@ function render(dt){
     const n = m.userData.n;
     m.visible = !n.hit && n.t > t - .2 && n.t < t + 5;
     if (!m.visible) continue;
+    const fade = Math.min(1, (t + 5 - n.t)/1.5);
+    if (FLY){ m.scale.setScalar(.92 + (pulse - 1)*.5); m.userData.halo.material.opacity = .12 * fade; continue; }
     m.children[0].rotation.y = t*3; m.scale.setScalar(pulse);
     m.userData.halo.quaternion.copy(cam.quaternion);
-    m.userData.halo.material.opacity = .55 * Math.min(1, (t + 5 - n.t)/1.5);
+    m.userData.halo.material.opacity = .55 * fade;
+  }
+  for (const m of wallMeshes){
+    const w = m.userData.w;
+    m.visible = !w.done && w.t < t + 5;
+    if (!m.visible || !FLY) continue;
+    m.userData.core.rotation.set(t*1.3, t*2, 0);
+    m.userData.halo.quaternion.copy(cam.quaternion);
+    m.userData.halo.material.opacity = .25 + rnd(Math.floor(t*14) + w.k)*.25;
   }
   for (const s of spark.children){
     if (!s.visible) continue;
@@ -703,7 +895,7 @@ function renderCinema(dt){
 const mEl = document.getElementById("m"), comboEl = document.getElementById("combo"), thrillEl = document.getElementById("thrill");
 function score(){
   if (S.fail) return Math.floor(S.score / 4);
-  return S.score + (S.miss === 0 ? 5000 : 0) + Math.floor(S.thrill) * 20;
+  return S.score + (S.miss === 0 && S.crash === 0 ? 5000 : 0) + Math.floor(S.thrill) * 20;
 }
 let lastScore = -1, lastCombo = -1, lastThrill = -1, crashed = null;
 function frame(){
@@ -733,19 +925,22 @@ function finish(){
   document.getElementById("parts").classList.add("hid");
   document.getElementById("pads").classList.add("hid");
   if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(), metres:0,
-    perfect:S.perfect, good:S.good, miss:S.miss, combo:S.best });
+    perfect:S.perfect, good:S.good, miss:S.miss, crash:S.crash, combo:S.best });
   const acc = Math.round((S.perfect + S.good*.5) / Math.max(1, S.perfect + S.good + S.miss) * 100);
   if (S.fail){
     v.querySelector(".by").textContent = "THE RIDE STOPPED";
     v.querySelector("h1").textContent = "NOT YET";
     ps[0].innerHTML = "Stopped at <b>" + Math.floor(S.t/60) + ":" + String(Math.floor(S.t % 60)).padStart(2, "0") + "</b> &middot; best combo <b>" + S.best + "</b>";
-    ps[1].innerHTML = "Ride the beat, not the lights. <b>Go again.</b>";
+    ps[1].innerHTML = (S.crash > S.miss ? "Watch for the red " + (FLY ? "mines" : "walls") + " - move before you reach them." : "Ride the beat, not the lights.") + " <b>Go again.</b>";
     return;
   }
   v.querySelector(".by").textContent = "LEVEL 4" + (PART > 1 ? " · PART " + PART : "") + " COMPLETE";
   v.querySelector("h1").textContent = CFG.title;
-  ps[0].innerHTML = "Score <b>" + score() + "</b> &middot; <b>" + acc + "%</b> &middot; " + S.perfect + " perfect, " + S.good + " good, " + S.miss + " missed &middot; best combo <b>" + S.best + "</b>";
-  ps[1].innerHTML = "Life's been a rollercoaster. <b>You rode it.</b>" + (PART < 3 ? "<br>Part " + (PART + 1) + " has more lights." : "");
+  ps[0].innerHTML = "Score <b>" + score().toLocaleString("en") + "</b> &middot; <b>" + acc + "%</b> &middot; " + S.perfect + " perfect, " + S.good + " good, " + S.miss + " missed" +
+    (WALLS.length ? ", " + S.crash + (FLY ? " mines hit" : " walls hit") : "") + " &middot; best combo <b>" + S.best + "</b>";
+  ps[1].innerHTML = "Life's been a rollercoaster. <b>You rode it.</b>" + (PART === 1 ? "<br>Part 2 has more lights and double walls."
+    : PART === 2 ? (score() >= GATE ? "<br><b>Part 3 is open:</b> no brakes, no lanes - fly it."
+                                     : "<br>Score <b>" + GATE.toLocaleString("en") + "</b> here to open Part 3. Tap on the beat for PERFECT.") : "");
 }
 document.getElementById("go").addEventListener("click", () => {
   reset();
@@ -753,7 +948,7 @@ document.getElementById("go").addEventListener("click", () => {
   if (portal){ const P = new THREE.Vector3(), T = new THREE.Vector3(); at(PORTAL_T, P); at(PORTAL_T, T, "T");
     portal.position.copy(P).add(new THREE.Vector3(0, 3, 0)); portal.lookAt(P.clone().add(T)); }
   document.getElementById("veil").classList.add("hid");
-  document.getElementById("pads").classList.remove("hid");
+  document.getElementById("pads").classList.toggle("hid", FLY);
   try {
     if (!ac){ ac = new (window.AudioContext||window.webkitAudioContext)();
       bus = ac.createGain(); bus.gain.value = .5; bus.connect(ac.destination); }
@@ -762,16 +957,21 @@ document.getElementById("go").addEventListener("click", () => {
   try { song.currentTime = 0; } catch(e){}
   const p = song.play(); if (p && p.catch) p.catch(()=>{});
   S.started = true; S.t = 0;
-  lyric("TAP WHEN A LIGHT HITS ITS RING", "left - middle - right", 3.5);
+  if (FLY){ drag = null; lyric("DRAG TO FLY", "through the rings - round the red mines", 3.5); }
+  else lyric("TAP A LANE TO MOVE THERE", "catch the lights - dodge the red walls", 3.5);
 });
 
 // the start card for this part; on its own you can switch parts
 document.getElementById("by").textContent = "LAZY JO" + (PART > 1 ? " · LEVEL 4 PART " + PART : "");
 document.getElementById("title").textContent = CFG.title;
-document.getElementById("intro").innerHTML = (PART === 1 ? "Ride the song. The lights on the track are the beat: hit each one as you pass it."
-  : PART === 2 ? "Every kick drum is a light now."
-  : "Every eighth note in the choruses, and <b>double lights</b> on the downbeats: two thumbs.") +
-  " <b>" + NOTES.length + "</b> lights.";
+document.getElementById("intro").innerHTML = (PART === 1 ? "Ride the song. The lights on the track are the beat."
+  : PART === 2 ? "Every kick drum is a light now, and walls can close two lanes."
+  : "No brakes. The UFO leaves the lanes and flies free through the storm.") +
+  " <b>" + NOTES.length + "</b> " + (FLY ? "rings" : "lights") + ", <b>" + WALLS.length + "</b> " + (FLY ? "mines" : "walls") + ".";
+document.getElementById("how").innerHTML = FLY
+  ? "<b>Drag</b> anywhere (or hold the arrow keys) to steer the UFO up, down, left and right. Fly <b>through the rings</b> &mdash; right through the middle = <b>PERFECT</b>. Swerve round the <b>red mines</b>. Miss too many and the ride stops."
+  : "Tap &#9664; &#9679; &#9654; (or &larr; &darr; &rarr;) to <b>move your UFO</b> to that lane. Fly <b>through the lights</b> to catch them and <b>stay out of the red walls</b>. Tap a light's lane right on the beat = <b>PERFECT</b>. Miss too many and the ride stops." +
+    (PART === 2 ? " Score <b>" + GATE.toLocaleString("en") + "</b> to open Part 3." : "");
 if (!HUB){
   document.getElementById("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {

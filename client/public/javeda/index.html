@@ -244,7 +244,7 @@ const LINKS = {
 document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
 
 /* The levels, in play order. `requires` is the gate (the database enforces
-   the same one). `src` is the level's own page. The art is just a gradient
+   the same one), and `needScore` a best score it also needs in that level. `src` is the level's own page. The art is just a gradient
    per world so the cards read apart. */
 let LEVELS = [
   { id:"lvl1", num:1, title:"I'M LOST", requires:null, src:"levels/im-lost.html?hub=1",
@@ -267,13 +267,13 @@ let LEVELS = [
     ds:"Part 3. 9 pieces that only glow on the heartbeat, 3 hearts, and three minutes before the night is over.",
     art:"radial-gradient(120% 90% at 80% 0%, #ff2a3d66, transparent 60%), linear-gradient(160deg,#120306,#020203)" },
   { id:"lvl4", num:4, title:"ROLLERCOASTER", requires:"lvl3", src:"levels/rollercoaster.html?hub=1",
-    ds:"A music game: ride the song on a neon coaster to the lightning portal. Tap the lights on the beat.",
+    ds:"A music game: ride the song on a neon coaster to the lightning portal. Move the UFO lane to lane to catch the lights and dodge the red walls.",
     art:"radial-gradient(120% 90% at 80% 0%, #38d9ff55, transparent 60%), linear-gradient(160deg,#0f2456,#060a18)" },
   { id:"lvl4b", num:4, part:2, title:"FULL SPEED", requires:"lvl4", src:"levels/rollercoaster.html?hub=1&part=2",
-    ds:"Part 2. Every kick drum is a light.",
+    ds:"Part 2. Every kick drum is a light, and walls that close two lanes. Score 100,000 to open Part 3.",
     art:"radial-gradient(120% 90% at 80% 0%, #38d9ff44, transparent 60%), linear-gradient(160deg,#0a1a40,#04070f)" },
-  { id:"lvl4c", num:4, part:3, title:"NO BRAKES", requires:"lvl4b", src:"levels/rollercoaster.html?hub=1&part=3",
-    ds:"Part 3. Every eighth note in the choruses, and double lights: two thumbs.",
+  { id:"lvl4c", num:4, part:3, title:"NO BRAKES", requires:"lvl4b", needScore:100000, src:"levels/rollercoaster.html?hub=1&part=3",
+    ds:"Part 3. No brakes, no lanes: drag to fly the UFO free through rings of lightning, round the storm mines.",
     art:"radial-gradient(120% 90% at 80% 0%, #a5f3ff66, transparent 60%), linear-gradient(160deg,#081430,#020409)" },
   { id:"lvl9", num:9, title:"OUBLIE-MOI", requires:"lvl2", src:"levels/javeda.html?hub=1&level=lvl9",
     ds:"District 9 with Zirka. Monsters over the city. Remind them who the Wolves are.",
@@ -319,7 +319,16 @@ let creator = false;        // a creator account (javeda_creators) plays every l
 let boardTab = "points";
 
 const signedIn = () => !!(session && player);
-function isOpen(lv){ return creator || !lv.requires || !!(progress[lv.requires] && progress[lv.requires].cleared); }
+function isOpen(lv){
+  const p = lv.requires && progress[lv.requires];
+  return creator || !lv.requires || !!(p && p.cleared && (p.best || 0) >= (lv.needScore || 0));
+}
+// what a locked card says it's waiting for
+function needText(lv){
+  const need = levelById(lv.requires), p = progress[lv.requires];
+  if (lv.needScore && p && p.cleared) return "Score " + fmt(lv.needScore) + " in " + lvName(need) + " to open";
+  return "Finish " + (lv.needScore ? lvName(need) : "Level " + need.num) + " first";
+}
 
 /* ---- toast ---- */
 let toastT = 0;
@@ -352,7 +361,6 @@ function renderLevels(){
   const html = LEVELS.map(lv => {
     const p = progress[lv.id] || {};
     const open = isOpen(lv), done = !!p.cleared;
-    const need = lv.requires ? levelById(lv.requires) : null;
     return '<article class="lv' + (open ? '' : ' locked') + '" style="--art:' + lv.art + '">' +
       '<span class="no">' + lvName(lv) + '</span><span class="ti">' + esc(lv.title) + '</span>' +
       '<p class="ds">' + esc(lv.ds) + '</p>' +
@@ -360,7 +368,7 @@ function renderLevels(){
         (open
           ? (done ? '<span class="best">Best ' + fmt(p.best) + '</span>' : '<span class="tag">' + (p.runs ? 'Not cleared yet' : 'New') + '</span>') +
             '<button class="btn ' + (done ? '' : 'primary') + ' small" data-play="' + lv.id + '">' + (done ? 'Replay' : 'Play') + '</button>'
-          : '<span class="tag">&#128274; Finish Level ' + need.num + ' first</span>') +
+          : '<span class="tag">&#128274; ' + needText(lv) + '</span>') +
       '</div>' + (done ? '<span class="tag ok" style="position:absolute;top:14px;right:14px">Cleared</span>' : '') +
       '</article>';
   }).join("") + '<article class="lv soon"><span class="no">' + comingSoon() + '</span><p class="ds">One per song on the album. Coming as the songs come.</p></article>';
@@ -547,8 +555,11 @@ $("playClose").onclick = stopPlay;
 async function saveRun(r){
   const lv = levelById(r.level); if (!lv) return;
   const was = progress[lv.id] || {};
-  // what a first clear opens: the next song, a Part 2, and for Level 2 Part 2 Zirka's bike
-  const opened = r.cleared && !was.cleared ? LEVELS.filter(l => l.requires === lv.id).map(lvName) : [];
+  // what this run opens: the next song, a Part 2, a Part 3 that waits on a score,
+  // and for Level 2 Part 2 Zirka's bike
+  const after = { ...progress, [lv.id]: { ...was, cleared: was.cleared || !!r.cleared, best: Math.max(was.best || 0, r.score | 0) } };
+  const opensWith = (l, pr) => { const p = pr[l.requires]; return !!(p && p.cleared && (p.best || 0) >= (l.needScore || 0)); };
+  const opened = LEVELS.filter(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after)).map(lvName);
   if (r.cleared && !was.cleared && lv.id === "lvl2b") opened.push("Zirka's bike in Level 1");
   const unlocks = opened.length ? opened.join(" and ") + (opened.length > 1 ? " are" : " is") + " open" : "";
   if (!signedIn()){

@@ -14,6 +14,7 @@ client/public/javeda/
     ├── zirkas-ride.html # Level 2 Part 2, Zirka's bike ride to Jo (Level 1's road engine) + lvl2.mp3
     ├── my-heart.html   # Level 3 and its Parts 2-3 (?part=2|3), Explore: the red saucer mends a broken heart + lvl3.mp3
     ├── rollercoaster.html # Level 4 and its Parts 2-3, a music game on the song's measured grid + lvl4.mp3
+    ├── feel-like-that.html # Level 5 and its Parts 2-3, fireflies to the park lamps (the cover's twin lamps at the end) + lvl5.mp3
     └── javeda.html     # the original JAVEDA game (Level 9 here; songs embedded)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

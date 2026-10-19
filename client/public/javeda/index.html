@@ -320,6 +320,15 @@ let LEVELS = [
   { id:"lvl6c", num:6, part:3, title:"SURF THE SUNSET", requires:"lvl6b", src:"levels/no-rest-no-work.html?hub=1&part=3",
     ds:"Part 3. Skim the sea to the sun: jump the waves, dodge the rocks, grab the lights.",
     art:"radial-gradient(120% 90% at 80% 0%, #ffb34766, transparent 60%), linear-gradient(160deg,#5a2a1a,#120808)" },
+  { id:"lvl7", num:7, title:"JOURNEY", requires:"lvl6", src:"levels/journey.html?hub=1",
+    ds:"From the Earth in your hands to Planet Javeda. Shield each planet from its meteor shower, then launch to the next when the song breathes.",
+    art:"radial-gradient(120% 90% at 80% 0%, #ff9a3c55, transparent 60%), linear-gradient(160deg,#141a4a,#04050f)" },
+  { id:"lvl7b", num:7, part:2, title:"METEOR SHOWER", requires:"lvl7", src:"levels/journey.html?hub=1&part=2",
+    ds:"Part 2. Faster meteors, a narrower shield, and asteroids drifting between the planets.",
+    art:"radial-gradient(120% 90% at 80% 0%, #ff5a3a55, transparent 60%), linear-gradient(160deg,#1c1240,#06040e)" },
+  { id:"lvl7c", num:7, part:3, title:"THE LONG WAY HOME", requires:"lvl7b", src:"levels/journey.html?hub=1&part=3",
+    ds:"Part 3. A meteor every beat, and they hunt the ship in flight too. 4 hearts.",
+    art:"radial-gradient(120% 90% at 80% 0%, #ffd16655, transparent 60%), linear-gradient(160deg,#0e1838,#020309)" },
   { id:"lvl9", num:9, title:"OUBLIE-MOI", requires:"lvl2", src:"levels/javeda.html?hub=1&level=lvl9",
     ds:"District 9 with Zirka. Monsters over the city. Remind them who the Wolves are.",
     art:"radial-gradient(120% 90% at 80% 0%, #ff3d8b55, transparent 60%), linear-gradient(160deg,#2a1450,#0b0416)" }
@@ -440,7 +449,7 @@ function renderLevels(){
     '<p class="ds">One per song on the album. Coming as the songs come.</p></div></article>';
   $("levels").innerHTML = html;
 }
-const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl9","Level 9"]];
+const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl9","Level 9"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
 }
@@ -448,7 +457,7 @@ async function renderBoard(){
   const el = $("board");
   if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
   const col = boardTab === "points" ? "points" : boardTab + "_best";
-  const { data, error } = await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl9_best")
+  const { data, error } = await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl9_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }

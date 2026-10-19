@@ -1,0 +1,581 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>JOURNEY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+html,body{height:100%}
+body{margin:0; background:#05060f; color:#eaf2ff; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#7fd6ff; line-height:1}
+#ml{font-size:11px; letter-spacing:.18em; color:#9ab0d6; margin-top:3px}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#ff6a8a; text-shadow:0 0 10px #ff3d6a88; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ffffff1f; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#3d8bff,#c9a0ff)}
+.bl{font-size:11px; letter-spacing:.18em; color:#9ab0d6; text-align:right}
+#trip{display:flex; gap:3px; justify-content:flex-end; margin-top:8px}
+#trip i{width:10px; height:10px; border-radius:50%; background:#ffffff1a; border:1px solid #ffffff44}
+#trip i.on{background:#7fd6ff; border-color:#c8ecff; box-shadow:0 0 6px #7fd6ff}
+#trip i.here{background:#ffd27a; border-color:#fff1c4; box-shadow:0 0 8px #ffd27a}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#cfe2ff; margin-top:2px}
+#phase.defend{color:#8affb0; text-shadow:0 0 12px #2aff7a88}
+#phase.launch{color:#ffd27a; text-shadow:0 0 12px #ffb34788}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:22%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:24px; opacity:0; transition:opacity .25s; text-shadow:0 0 16px #3d8bff, 0 2px 0 #000; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff9aaa}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#cfe2ff; margin-top:6px}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto;
+  background:radial-gradient(60% 40% at 50% 62%, #2a6fd055 0%, transparent 60%), radial-gradient(120% 80% at 50% 30%, #141a3a 0%, #05060f 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#9ab0d6; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(36px,11vw,64px); line-height:1; color:#fff; text-shadow:0 0 24px #3d8bff}
+#veil p{margin:0; color:#cfe2ff; font-size:17px; max-width:38ch}
+#veil b{color:#ffd27a}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:#7fd6ff; color:#06142a; border:0; border-radius:4px; padding:15px 36px; cursor:pointer}
+#go.alt{background:none; color:#7fd6ff; border:1.5px solid #7fd6ff; font-size:15px; padding:12px 30px}
+#next{font-family:Bungee,sans-serif; font-size:19px; background:#7fd6ff; color:#06142a; text-decoration:none; border-radius:4px; padding:13px 34px 11px; line-height:1.1}
+#next small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.16em; color:#06142a; opacity:.75; margin-top:3px}
+#veil small{color:#7f93b8; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#cfe2ff; background:none; border:1.5px solid #7fd6ff55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#7fd6ff; background:#7fd6ff22}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#7fd6ff; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #7fd6ff99; background:#7fd6ff14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #7fd6ff; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:40px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="trip"></div><div class="bl" style="margin-top:3px">THE JOURNEY</div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">JOURNEY</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Part">
+    <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
+  </div>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= JOURNEY =================
+   Level 7 of JAVEDA: from the Earth in Jo's hands to Planet Javeda, in the
+   little orange ship from the cover - the glass bubble with Jo and Zirka in it.
+   One game, two moves, and Jo asked for both in one (prototypes 1 and 3):
+
+     DEFEND  every planet on the way is under a meteor shower. The ship circles
+             it as a shield: touch a side and it swings there to bounce the
+             meteors back into space. A meteor that gets through hits the planet.
+     LAUNCH  when the shower's over, the ship circles on its own; tap to let go
+             and fly straight - get caught by the next planet's pull. Miss and
+             you drift off into space.
+
+   Hearts go when a meteor hits a planet or you're lost in space.
+
+   The song (SONG.md) is 86.5 BPM and breathes: an intro, then six loud 8-bar
+   blocks with a quiet 4-bar break after each. So: the beat drops and a planet's
+   meteor shower comes; the song breathes and you launch to the next planet.
+   Six planets, one per loud block: the Earth, four planets, Planet Javeda,
+   whose shower is the last block. Busier in the second half of each block. */
+
+const GRID = { bpm:86.5, t0:.043 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const BLOCKS = [[barT(4), barT(12)], [barT(16), barT(24)], [barT(28), barT(36)], [barT(40), barT(48)], [barT(52), barT(60)], [barT(64), barT(68)]];
+const END_AT = BLOCKS[5][1];                  // 3:08.7 - then the song fades
+const loud = t => BLOCKS.some(([a, b]) => t >= a && t < b);
+const inHook = t => BLOCKS.some(([a, b]) => t >= (a + b)/2 && t < b);   // the second half of a block is busier
+
+const PART = Math.min(3, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
+const CFG = {
+  1: { id:"lvl7",  title:"JOURNEY",          by:"LEVEL 7",        hearts:5, every:2, hookEvery:1, speed:[3.2, 4.6], arc:.6,  rocks:false, comets:false },
+  2: { id:"lvl7b", title:"METEOR SHOWER",    by:"LEVEL 7 PART 2", hearts:5, every:2, hookEvery:1, speed:[3.8, 5.6], arc:.52, rocks:true,  comets:false },
+  3: { id:"lvl7c", title:"THE LONG WAY HOME", by:"LEVEL 7 PART 3", hearts:4, every:1, hookEvery:1, speed:[4.4, 6.4], arc:.46, rocks:true,  comets:true }
+}[PART];
+const STOPS = 6;                              // the Earth, four planets, Planet Javeda - one per loud block
+
+const LINKS = {
+  next:    "https://lightningwolves.studio/javeda/",
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB){
+  document.getElementById("next").addEventListener("click", e => { e.preventDefault(); toHub({ type:"javeda:next", level:CFG.id }); });
+  document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+}
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const angDiff = (a, b) => { const d = a - b; return Math.atan2(Math.sin(d), Math.cos(d)); };
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const song = new Audio("lvl7.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [98, 130.8, 110, 87.3];
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .005); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), full = bar >= 2;
+    if (full && (s8 === 0 || s8 === 3)) tone("sine", 120, 40, at, .35, .5, 900);
+    if (full && s8 === 4){ hiss(at, .2, .22, 0, 1500); tone("triangle", 200, 150, at, .1, .08); }
+    hiss(at, .04, s8 % 2 ? .04 : .07, 7000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("triangle", f, f, at, BAR*.9, .14, 500);
+      [1, 1.25, 1.5].forEach((m, k) => tone("sine", f*4*m, f*4*m, at + k*BEAT*.5, BEAT*1.5, .02, 3000)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: () => ac && tone("triangle", 880, 1320, ac.currentTime, .12, .07, 6000),
+  big:  () => ac && [660, 880, 1320, 1760].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.05, .25, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  launch: () => ac && tone("sine", 300, 900, ac.currentTime, .18, .06, 4000),
+  catch: () => ac && tone("triangle", 600, 900, ac.currentTime, .15, .05, 5000),
+  bounce: b => ac && tone("square", b ? 800 : 500, b ? 1600 : 1000, ac.currentTime, .08, .04, 4000),
+  go: () => ac && [523, 659, 784].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.07, .2, .05, 6000))
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- space, the planets, the ship ---------------- */
+let scene, cam, ren, sky, clockR, ship, aim, route, shieldG, shieldM, flashEl = $("flash");
+const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+function buildSpace(){
+  sky = new THREE.Group(); scene.add(sky);
+  const n = 1600, pos = new Float32Array(n*3), col = new Float32Array(n*3);
+  for (let i = 0; i < n; i++){ const u = rnd(i)*2 - 1, a = rnd(i*2.3)*Math.PI*2, r = 600, s = Math.sqrt(1 - u*u);
+    pos.set([Math.cos(a)*s*r, u*r, Math.sin(a)*s*r], i*3); const w = .6 + rnd(i*3.1)*.4; col.set([w, w, .85 + rnd(i*5)*.15], i*3); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  sky.add(new THREE.Points(g, new THREE.PointsMaterial({ size:1.6, sizeAttenuation:false, vertexColors:true })));
+  const neb = new THREE.SpriteMaterial({ map:radial([[0, "rgba(90,60,200,.35)"], [.6, "rgba(40,40,140,.12)"], [1, "rgba(20,20,80,0)"]]), depthWrite:false, transparent:true });
+  for (let i = 0; i < 10; i++){ const s = new THREE.Sprite(neb); const a = rnd(i*7)*Math.PI*2, e = -.3 - rnd(i*9)*1.1;
+    s.position.set(Math.cos(a)*Math.cos(e)*500, Math.sin(e)*500, Math.sin(a)*Math.cos(e)*500); s.scale.setScalar(300 + rnd(i)*300); sky.add(s); }
+  // the heart and UFO constellations from the cover, far below
+  const lm = new THREE.LineBasicMaterial({ color:0x9ab0ff, transparent:true, opacity:.35 });
+  const heart = [[0, -2.6], [-1.6, -1.2], [-2.6, .3], [-2.2, 1.8], [-1, 2.4], [0, 1.4], [1, 2.4], [2.2, 1.8], [2.6, .3], [1.6, -1.2], [0, -2.6]];
+  const ufo = [[-3.2, 0], [-1.6, .8], [-.8, 2], [.8, 2], [1.6, .8], [3.2, 0], [1.6, -.8], [-1.6, -.8], [-3.2, 0]];
+  [[heart, -150, -60], [ufo, 150, -200]].forEach(([pts, x, z]) => { const v = pts.map(([a, b]) => new THREE.Vector3(x + a*14, -300, z - b*14));
+    sky.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(v), lm)); v.slice(0, -1).forEach(p => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, transparent:true, depthWrite:false })); s.position.copy(p); s.scale.setScalar(6); sky.add(s); }); });
+}
+function buildEarth(r){
+  const cv = document.createElement("canvas"); cv.width = 512; cv.height = 256; const x = cv.getContext("2d");
+  x.fillStyle = "#2f8fd8"; x.fillRect(0, 0, 512, 256); x.fillStyle = "#5fb84a";
+  for (let i = 0; i < 22; i++){ const cx = rnd(i*3.1)*512, cy = 40 + rnd(i*5.7)*176; x.beginPath();
+    for (let k = 0; k < 9; k++){ const a = k/9*Math.PI*2, rr = (18 + rnd(i*9 + k)*36); x.lineTo(cx + Math.cos(a)*rr*1.4, cy + Math.sin(a)*rr); } x.closePath(); x.fill(); }
+  x.fillStyle = "#ffffff"; x.fillRect(0, 0, 512, 10); x.fillRect(0, 246, 512, 10);
+  return new THREE.Mesh(new THREE.SphereGeometry(r, 40, 24), new THREE.MeshStandardMaterial({ map:new THREE.CanvasTexture(cv), roughness:.7, emissive:0x0a2a4a, emissiveIntensity:.5 }));
+}
+function buildPlanetBall(r, color, k){
+  const cv = document.createElement("canvas"); cv.width = 64; cv.height = 64; const x = cv.getContext("2d"), c = new THREE.Color(color);
+  for (let i = 0; i < 64; i++){ const s = .78 + rnd(k*13 + i*.37)*.38; x.fillStyle = `rgb(${c.r*255*s|0},${c.g*255*s|0},${c.b*255*s|0})`; x.fillRect(0, i, 64, 1); }
+  return new THREE.Mesh(new THREE.SphereGeometry(r, 28, 18), new THREE.MeshStandardMaterial({ map:new THREE.CanvasTexture(cv), roughness:.8, emissive:color, emissiveIntensity:.18 }));
+}
+function buildShip(){
+  const g = new THREE.Group(), orange = new THREE.MeshStandardMaterial({ color:0xd8602a, roughness:.45, metalness:.2, emissive:0x3a1206 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.45, .45, 1.8, 14), orange); body.rotation.x = Math.PI/2; g.add(body);
+  for (const z of [-.9, .9]){ const end = new THREE.Mesh(new THREE.SphereGeometry(.45, 14, 10), orange); end.position.z = z; g.add(end); }
+  for (const s of [-1, 1]){ const fin = new THREE.Mesh(new THREE.BoxGeometry(.9, .08, .7), orange); fin.position.set(s*.65, 0, .7); fin.rotation.z = s*.2; g.add(fin); }
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.5, 18, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0xbfe8ff, transparent:true, opacity:.45, roughness:.05 }));
+  dome.position.set(0, .28, -.2); g.add(dome);
+  const head = new THREE.MeshLambertMaterial({ color:0x6a3a22 });
+  for (const s of [-1, 1]){ const h = new THREE.Mesh(new THREE.SphereGeometry(.16, 10, 8), head); h.position.set(s*.17, .45, -.2); g.add(h); }
+  const flame = new THREE.Mesh(new THREE.ConeGeometry(.3, 1.2, 10, 1, true), glowMat(0xffb040, .8)); flame.rotation.x = -Math.PI/2; flame.position.z = 1.9; g.add(flame);
+  g.userData = { flame };
+  return g;
+}
+
+/* the route: the Earth, seven planets, Planet Javeda - up the screen */
+const PL = [];
+function buildRoute(){
+  const cols = [0xd87a3a, 0x8a5ad8, 0x4ac88a, 0xd8c04a, 0xd84a6a, 0x5ac8d8, 0xc87ad8];
+  let x = 0, z = 0;
+  for (let i = 0; i < STOPS; i++){
+    const first = i === 0, last = i === STOPS - 1, r = first ? 2.6 : last ? 3.2 : 1.5 + rnd(i*3.3)*1.1, orbit = r + 2.6;
+    const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+    const ball = first ? buildEarth(r) : buildPlanetBall(r, last ? 0x8a4ad8 : cols[(i - 1) % cols.length], i); g.add(ball);
+    if (last || (!first && rnd(i*9) < .35)){ const rg = new THREE.Mesh(new THREE.RingGeometry(r*1.35, r*1.9, 48), new THREE.MeshBasicMaterial({ color:0xe0b0ff, transparent:true, opacity:.55, side:THREE.DoubleSide })); rg.rotation.x = -Math.PI/2 + .4; g.add(rg); }
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:radial([[.45, "rgba(120,200,255,0)"], [.5, "rgba(120,200,255,.5)"], [1, "rgba(60,120,255,0)"]]), depthWrite:false, transparent:true, blending:THREE.AdditiveBlending }));
+    halo.scale.setScalar(r*2.9); g.add(halo);
+    if (first){ // Jo's hands round the Earth, like the cover
+      const hand = new THREE.MeshLambertMaterial({ color:0x4a2a1a });
+      for (const s of [-1, 1]){ const h = new THREE.Mesh(new THREE.SphereGeometry(1.1, 14, 10), hand); h.scale.set(1.4, .6, 1); h.position.set(s*2.6, -1.2, 1.4); h.rotation.y = s*.6; g.add(h); }
+    }
+    const ring = new THREE.Mesh(new THREE.RingGeometry(orbit - .05, orbit + .05, 72), glowMat(0x7fd6ff, .22)); ring.rotation.x = -Math.PI/2; ring.position.y = .02; g.add(ring);
+    PL.push({ i, x, z, r, orbit, g, ball, halo, ring, last, spin:(rnd(i*7.7) < .5 ? 1 : -1) * 1.9 / (orbit/3.6) });
+    if (!last){ x = clamp(x + (rnd(i*5.1) - .5)*16, -10, 10); z -= 15 + rnd(i*2.2)*3; }
+  }
+  // the route as a faint dotted line, lit as you go
+  route = new THREE.Line(new THREE.BufferGeometry().setFromPoints(PL.map(p => new THREE.Vector3(p.x, -.2, p.z))), new THREE.LineDashedMaterial({ color:0x7fd6ff, dashSize:.8, gapSize:.8, transparent:true, opacity:.25 }));
+  route.computeLineDistances(); scene.add(route);
+}
+let meteors = [], rocks = [], stars = [];
+function buildPieces(){
+  const mM = new THREE.MeshStandardMaterial({ color:0x8a6a5a, roughness:.9, flatShading:true, emissive:0x3a1006 });
+  for (let i = 0; i < 30; i++){ const m = new THREE.Mesh(new THREE.DodecahedronGeometry(.45, 0), mM); m.visible = false; scene.add(m);
+    const fire = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xff8a3a, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); fire.scale.setScalar(1.6); m.add(fire);
+    meteors.push({ m, fire, on:false }); }
+  // asteroids drifting across the gaps (Parts 2-3)
+  if (CFG.rocks){ const rM = new THREE.MeshStandardMaterial({ color:0x7a6a6a, roughness:.9, flatShading:true });
+    for (let i = 0; i < STOPS - 1; i++){ const a = PL[i], b = PL[i + 1], m = new THREE.Mesh(new THREE.DodecahedronGeometry(.9, 0), rM); scene.add(m);
+      rocks.push({ m, cx:(a.x + b.x)/2, cz:(a.z + b.z)/2, amp:5 + rnd(i*3)*3, w:.6 + rnd(i*4)*.5, ph:rnd(i*5)*6 }); } }
+  // stars to grab on the way between planets
+  const sM = new THREE.SpriteMaterial({ map:DOT, color:0xffd27a, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+  for (let i = 0; i < STOPS - 1; i++){ const a = PL[i], b = PL[i + 1];
+    for (let k = 1; k <= 2; k++){ const s = new THREE.Sprite(sM); s.scale.setScalar(1.6); s.position.set(a.x + (b.x - a.x)*k/3, .5, a.z + (b.z - a.z)*k/3); scene.add(s); stars.push(s); } }
+}
+
+/* ---------------- state, HUD ---------------- */
+let S = null, crashed = null;
+function say(a, b, t, bad){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (bad ? " x" : ""); S.msgT = t || 1.2; }
+function phaseTag(){
+  const p = $("phase");
+  if (S.end >= 0 || !S.started){ p.className = "off"; return; }
+  if (S.phase === "defend" && S.t < BLOCKS[S.at][0] - .1){ p.className = "launch"; p.innerHTML = "GET READY<small>the meteors come with the beat</small>"; }
+  else if (S.phase === "defend"){ p.className = "defend"; p.innerHTML = "DEFEND<small>touch a side to shield the planet</small>"; }
+  else if (S.phase === "launch"){ p.className = "launch"; p.innerHTML = "LAUNCH!<small>tap when the line points at the next planet</small>"; }
+  else { p.className = "launch"; p.innerHTML = "FLYING<small>&nbsp;</small>"; }
+}
+let lastH = "", lastTrip = "";
+function hud(){
+  $("m").textContent = Math.round(S.score).toLocaleString("en");
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, CFG.hearts - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  $("songbar").firstChild.style.width = (clamp(S.t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  const trip = PL.map(p => p.i < S.at ? "on" : p.i === S.at ? "here" : "").join(",");
+  if (trip !== lastTrip){ lastTrip = trip; $("trip").innerHTML = trip.split(",").map(c => '<i class="' + c + '"></i>').join(""); }
+  phaseTag();
+}
+
+/* ---------------- the game ---------------- */
+// a planet's shower is its loud block; the quiet break after it is for launching
+function showerEnd(i){ return i >= STOPS - 1 ? END_AT : BLOCKS[i][1]; }
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, hearts:CFG.hearts, at:0, phase:"defend", arrived:0, a:Math.PI/2, ta:Math.PI/2,
+        x:0, z:0, vx:0, vz:0, flyT:0, nextMet:barT(1), front:Math.PI/2 + Math.PI*.6, frontDir:1, k:0, bounced:0, onBeat:0, combo:0, best:0, hits:0, lost:0, saved:0, hitHere:0, starsGot:0, perfect:0, shield:0 };
+  meteors.forEach(m => { m.on = false; m.m.visible = false; });
+  stars.forEach(s => s.visible = true);
+  lastH = ""; lastTrip = ""; $("msg").className = ""; flashEl.style.opacity = 0;
+}
+function hurt(why){
+  S.hearts--; S.combo = 0; sfx.bad();
+  if (S.hearts <= 0){ lose(why); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, true);
+  return false;
+}
+function spawnMeteor(t){
+  const m = meteors.find(m => !m.on); if (!m) return;
+  // a shower comes from one side, and that side drifts round the planet: one shield can always cover it
+  const p = PL[S.at], k = S.k++, f = t / END_AT;
+  S.front += S.frontDir*(.25 + rnd(k*7.1)*.35);        // the side sweeps round the planet: standing still won't do
+  const a = S.front + (rnd(k*3.3) - .5)*1.3, sp = CFG.speed[0] + (CFG.speed[1] - CFG.speed[0])*f + rnd(k)*.8, d = 17;
+  // aim at the planet, a little off-centre
+  const ta = a + Math.PI + (rnd(k*5) - .5)*.3;
+  Object.assign(m, { on:true, out:false, x:p.x + Math.cos(a)*d, z:p.z + Math.sin(a)*d, vx:Math.cos(ta)*sp, vz:Math.sin(ta)*sp, home:S.at });
+  m.m.visible = true;
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = song.currentTime;
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t), p = PL[S.at];
+  if (S.shield > 0) S.shield -= dt;
+
+  if (S.phase === "defend"){
+    // the ship swings round to the side you touch, the short way
+    const d = angDiff(S.ta, S.a); S.a += clamp(d, -dt*7.5, dt*7.5);
+    S.x = p.x + Math.cos(S.a)*p.orbit; S.z = p.z + Math.sin(S.a)*p.orbit;
+    // meteors on the beat, twice as many in the hooks
+    while (t >= S.nextMet){
+      const [ba, bb] = BLOCKS[S.at];
+      if (S.nextMet > S.arrived + BEAT && S.nextMet >= ba && S.nextMet < bb - BEAT*.5) spawnMeteor(S.nextMet);
+      S.nextMet += BEAT*(inHook(S.nextMet) ? CFG.hookEvery : CFG.every);
+    }
+    // the shower's over: launch time (the last planet holds out to the end of the song)
+    if (t >= showerEnd(S.at) && !meteors.some(m => m.on && !m.out)){
+      if (p.last){ win(); return; }
+      S.phase = "launch"; sfx.go();
+      if (!S.hitHere){ S.score += 500; S.saved++; say("PLANET SAVED", "+500 · now launch!", 1.2); } else say("LAUNCH!", "tap to fly to the next planet", 1.2);
+    }
+  } else if (S.phase === "launch"){
+    S.a += p.spin*dt; S.x = p.x + Math.cos(S.a)*p.orbit; S.z = p.z + Math.sin(S.a)*p.orbit;
+    S.nextMet = Math.max(S.nextMet, t);
+  } else {
+    // flying: straight on, until a planet's pull catches you
+    S.flyT += dt; S.x += S.vx*dt; S.z += S.vz*dt;
+    for (const q of PL){ if (q.i === S.at) continue; const d = Math.hypot(S.x - q.x, S.z - q.z);
+      if (d < q.orbit + .45){
+        if (d < q.r + .7){ if (hurt("CRASHED INTO A PLANET")) return; S.phase = "launch"; break; }
+        const cross = (S.x - q.x)*S.vz - (S.z - q.z)*S.vx; q.spin = Math.abs(q.spin)*(cross > 0 ? 1 : -1);
+        S.at = q.i; S.a = Math.atan2(S.z - q.z, S.x - q.x); S.ta = S.a; S.phase = "defend"; S.arrived = t; S.hitHere = 0; S.front = S.a + Math.PI*.6; S.frontDir = rnd(q.i*3.7) < .5 ? 1 : -1;
+        S.nextMet = GRID.t0 + Math.ceil((t + BEAT - GRID.t0) / BEAT) * BEAT; S.score += 300; sfx.catch();
+        say(q.last ? "PLANET JAVEDA" : "PLANET " + (q.i + 1), q.last ? "hold it till the song ends!" : "defend it!", 1.2);
+        break; } }
+    if (S.phase === "fly"){
+      for (const r of rocks) if (Math.hypot(S.x - r.m.position.x, S.z - r.m.position.z) < 1.6){ if (hurt("HIT AN ASTEROID")) return; S.phase = "launch"; S.lost++; break; }
+      if (S.phase === "fly" && S.flyT > 2.6){ S.lost++; if (hurt("LOST IN SPACE")) return; S.phase = "launch"; }
+    }
+  }
+  for (const s of stars) if (s.visible && Math.hypot(s.position.x - S.x, s.position.z - S.z) < 1.4){ s.visible = false; S.score += 100; S.starsGot++; sfx.good(); }
+
+  // meteors: the shield bounces them back out; one that gets through hits the planet
+  for (const m of meteors){ if (!m.on) continue;
+    const q = PL[m.home], r0 = Math.hypot(m.x - q.x, m.z - q.z);
+    m.x += m.vx*dt; m.z += m.vz*dt;
+    const r = Math.hypot(m.x - q.x, m.z - q.z);
+    if (!m.out && r0 >= q.orbit && r < q.orbit && m.home === S.at && S.phase === "defend"){
+      if (Math.abs(angDiff(Math.atan2(m.z - q.z, m.x - q.x), S.a)) < CFG.arc){
+        const nx = (m.x - q.x)/r, nz = (m.z - q.z)/r, dot = m.vx*nx + m.vz*nz; m.vx = (m.vx - 2*dot*nx)*1.4; m.vz = (m.vz - 2*dot*nz)*1.4; m.out = true;
+        const beat = onBeat(t); S.combo++; S.best = Math.max(S.best, S.combo); S.bounced++; if (beat) S.onBeat++;
+        S.score += (beat ? 200 : 100) * Math.min(4, 1 + Math.floor(S.combo/6)); S.shield = .25; sfx.bounce(beat); if (beat) say("ON THE BEAT", "x2", .4);
+      }
+    }
+    if (!m.out && r < q.r + .2){ m.on = false; m.m.visible = false; S.hits++; S.hitHere++; flashPlanet(q); if (hurt("THE PLANET IS HIT")) return; continue; }
+    // in Part 3 comets also hunt the ship while it flies (any meteor near the ship hurts)
+    if (CFG.comets && S.phase === "fly" && Math.hypot(m.x - S.x, m.z - S.z) < 1.1){ m.on = false; m.m.visible = false; if (hurt("HIT BY A METEOR")) return; S.phase = "launch"; continue; }
+    if (r > 26){ m.on = false; m.m.visible = false; }
+  }
+  for (const r of rocks){ r.m.position.set(r.cx + Math.sin(t*r.w + r.ph)*r.amp, 0, r.cz + Math.cos(t*r.w*.7 + r.ph)*2); r.m.rotation.set(t*.7, t, 0); }
+  if (t >= END_AT + 6 && !S.done) lose("THE SONG ENDED BEFORE PLANET JAVEDA");
+}
+function launch(){
+  if (!S.started || S.done || S.end >= 0 || S.phase !== "launch") return;
+  const p = PL[S.at], d = Math.sign(p.spin), sp = 16;
+  S.phase = "fly"; S.flyT = 0; S.vx = -Math.sin(S.a)*d*sp; S.vz = Math.cos(S.a)*d*sp;
+  if (onBeat(S.t)){ S.score += 150; S.perfect++; say("PERFECT LAUNCH", "on the beat", .6); }
+  sfx.launch();
+}
+function flashPlanet(q){ q.flash = 1; }
+
+/* ================= THE ENDING =================
+   Planet Javeda holds to the end of the song: the camera pulls back over the
+   whole journey, the route lights up from the Earth to Planet Javeda, and the
+   little ship settles into orbit. */
+const END = { pull:4, out:8 };
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big();
+  $("hud").classList.add("off"); phaseTag();
+  meteors.forEach(m => { if (m.on) m.out = true; });
+}
+function lose(why){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why;
+  say(why, "", 2, true); phaseTag();
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), portrait = cam.aspect < .8, p = PL[S.at];
+  // the ship: nose along the way it's going; the shield faces the planet while defending
+  const tang = S.phase === "fly" ? Math.atan2(S.vx, S.vz) : Math.atan2(-Math.sin(S.a)*Math.sign(S.phase === "launch" ? p.spin : 1), Math.cos(S.a)*Math.sign(S.phase === "launch" ? p.spin : 1));
+  ship.position.set(S.x, .4, S.z); ship.rotation.set(0, tang + Math.PI, 0);
+  // the shield: a green arc on the orbit, as wide as what it can catch, centred on the ship
+  shieldG.visible = S.phase === "defend" && S.end < 0 && !S.done;
+  if (shieldG.visible){ shieldG.position.set(p.x, .1, p.z); shieldG.rotation.y = -S.a; shieldG.scale.setScalar(p.orbit / 4); shieldM.material.opacity = .45 + (S.shield > 0 ? .5 : 0); }
+  ship.userData.flame.scale.set(1, S.phase === "fly" ? 1.5 : .6 + Math.sin(t*20)*.1, 1);
+  // the aim line while launching
+  const pos = aim.geometry.attributes.position; aim.visible = S.phase === "launch" && S.end < 0 && !S.done;
+  if (aim.visible){ const d = Math.sign(p.spin); pos.setXYZ(0, S.x, .2, S.z); pos.setXYZ(1, S.x - Math.sin(S.a)*d*16, .2, S.z + Math.cos(S.a)*d*16); pos.needsUpdate = true; aim.computeLineDistances(); }
+  for (const m of meteors) if (m.on){ m.m.position.set(m.x, .3, m.z); m.m.rotation.set(t*2, t*3, 0); m.fire.material.color.setHex(m.out ? 0x8affb0 : 0xff8a3a); }
+  PL.forEach(q => { q.ball.rotation.y = t*.25; q.flash = Math.max(0, (q.flash || 0) - dt*2);
+    q.ball.material.emissiveIntensity = (q.i === 0 ? .5 : .18) + q.flash*1.2; q.ball.material.emissive.setHex(q.flash > 0 ? 0xff3a2a : q.i === 0 ? 0x0a2a4a : q.ball.material.color.getHex());
+    q.ring.material.opacity = q.i === S.at && S.phase === "defend" ? .35 + (onBeat(t) ? .25 : 0) : q.i === S.at + 1 && S.phase !== "defend" ? .4 + Math.sin(t*6)*.15 : .15; });
+  stars.forEach((s, i) => s.scale.setScalar(1.4 + Math.sin(t*6 + i)*.2));
+  // camera: over the planet you're defending; between it and the next while you launch; on the ship in flight
+  const H = portrait ? 46 : 32, back = portrait ? 8 : 15;
+  if (S.end >= 0){
+    const u = clamp(S.end / END.pull, 0, 1), s = u*u*(3 - 2*u), mid = PL[Math.floor(STOPS/2)];
+    CAMP.set(p.x*(1 - s) + mid.x*s, H + s*(portrait ? 120 : 75), p.z*(1 - s) + mid.z*s + back*(1 - s) + s*30); CAML.set(p.x*(1 - s) + mid.x*s, 0, p.z*(1 - s) + mid.z*s - 4*(1 - s));
+    route.material.opacity = .25 + s*.6; route.material.color.setHex(s > .5 ? 0xffd27a : 0x7fd6ff);
+  } else if (S.phase === "defend"){ const n = PL[Math.min(STOPS - 1, S.at + 1)]; CAMP.set(p.x*.85 + n.x*.15, H, p.z*.85 + n.z*.15 + back); CAML.set(p.x*.85 + n.x*.15, 0, p.z*.85 + n.z*.15 - 3); }
+  else if (S.phase === "launch"){ const n = PL[Math.min(STOPS - 1, S.at + 1)]; CAMP.set((p.x + n.x)/2, H + 6, (p.z + n.z)/2 + back); CAML.set((p.x + n.x)/2, 0, (p.z + n.z)/2 - 3); }
+  else { CAMP.set(S.x, H + 4, S.z + back); CAML.set(S.x, 0, S.z - 3); }
+  const k = camInit ? Math.min(1, dt*3) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  sky.position.copy(cam.position);
+  if (S.end >= 0){ flashEl.style.background = "#05060f"; flashEl.style.opacity = S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+    if (S.end > 1 && !S.saidEnd){ S.saidEnd = true; say("JOURNEY", "from the Earth to Planet Javeda", 4); } }
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail);
+  $("next").classList.toggle("hid", S.fail);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(), metres:0 });
+  const stat = (S.at + 1) + " of " + STOPS + " planets &middot; " + S.bounced + " meteors bounced" + (S.onBeat ? " (" + S.onBeat + " on the beat)" : "");
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + score().toLocaleString("en") + "</b> &middot; " + stat;
+    ps[1].innerHTML = (/LOST|ASTEROID|CRASH/.test(S.why) ? "Let go when the dotted line points at the next planet." : "Swing to the side the meteor comes from - early.") + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = CFG.title;
+  ps[0].innerHTML = "Score <b>" + score().toLocaleString("en") + "</b> &middot; " + stat + " &middot; " + S.saved + " planets saved clean";
+  ps[1].innerHTML = "From the Earth to Planet Javeda. <b>What a journey.</b>" + (PART === 1 ? "<br>Part 2: meteor showers and asteroids." : PART === 2 ? "<br>Part 3: the meteors hunt you in flight too." : "");
+}
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x05060f);
+  cam = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, .1, 3000);
+  scene.add(new THREE.HemisphereLight(0x9ab8ff, 0x0a0a20, .7));
+  const sun = new THREE.DirectionalLight(0xfff0d8, 1); sun.position.set(30, 40, 20); scene.add(sun);
+  buildSpace(); buildRoute(); buildPieces();
+  ship = buildShip(); scene.add(ship);
+  shieldG = new THREE.Group(); shieldM = new THREE.Mesh(new THREE.RingGeometry(3.6, 4.4, 24, 1, -CFG.arc, CFG.arc*2), glowMat(0x8affb0, .5));
+  shieldM.rotation.x = -Math.PI/2; shieldG.add(shieldM); scene.add(shieldG);
+  const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(2*3), 3));
+  aim = new THREE.Line(pg, new THREE.LineDashedMaterial({ color:0xffd27a, dashSize:.7, gapSize:.5, transparent:true, opacity:.8 })); scene.add(aim);
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input: touch a side to shield, tap to launch ---------------- */
+const RAY = new THREE.Raycaster(), PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), HIT = new THREE.Vector3();
+const veilUp = () => !$("veil").classList.contains("hid");
+let held = false;
+function point(cx, cy){
+  if (S.phase !== "defend") return;
+  RAY.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam);
+  if (RAY.ray.intersectPlane(PLANE, HIT)){ const p = PL[S.at]; S.ta = Math.atan2(HIT.z - p.z, HIT.x - p.x); }
+}
+addEventListener("pointerdown", e => { if (veilUp() || !S.started) return; e.preventDefault(); held = true;
+  if (S.phase === "launch") launch(); else point(e.clientX, e.clientY); }, { passive:false });
+addEventListener("pointermove", e => { if (held && S.started) point(e.clientX, e.clientY); });
+addEventListener("pointerup", () => { held = false; }); addEventListener("pointercancel", () => { held = false; });
+addEventListener("keydown", e => { if (veilUp() || !S.started || e.repeat) return;
+  if ([" ", "Enter"].includes(e.key)){ e.preventDefault(); launch(); }
+  const k = { ArrowLeft:[-1, 0], a:[-1, 0], ArrowRight:[1, 0], d:[1, 0], ArrowUp:[0, -1], w:[0, -1], ArrowDown:[0, 1], s:[0, 1] }[e.key];
+  if (k && S.phase === "defend"){ e.preventDefault(); S.ta = Math.atan2(k[1], k[0]); }
+  if (k && S.phase === "launch" && e.key === "ArrowUp"){ e.preventDefault(); launch(); } });
+
+$("go").addEventListener("click", () => {
+  reset(); camInit = false;
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0; S.x = PL[0].x; S.z = PL[0].z + PL[0].orbit;
+  say("DEFEND THE EARTH", "touch a side - the ship swings there and bounces the meteors", 3);
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = CFG.title;
+$("intro").innerHTML = PART === 1 ? "From the Earth in your hands to Planet Javeda, in the little orange ship. Every planet on the way is under a meteor shower."
+  : PART === 2 ? "Faster meteors, a narrower shield, and asteroids drifting between the planets."
+  : "The long way home: the meteors hunt you in flight too, and you start with 4 hearts.";
+$("how").innerHTML = "<b>DEFEND:</b> touch a side of the planet - the ship swings there and its shield bounces the meteors back. On the beat = double. " +
+  "<b>LAUNCH!</b> When the shower's over, tap when the dotted line points at the next planet, and get caught by its pull. " +
+  "A meteor on a planet or getting lost in space costs a heart.";
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    b.setAttribute("aria-pressed", String(+b.dataset.part === PART));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.set("part", b.dataset.part); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

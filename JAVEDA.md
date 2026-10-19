@@ -16,6 +16,7 @@ client/public/javeda/
     ├── rollercoaster.html # Level 4 and its Parts 2-3, a music game on the song's measured grid + lvl4.mp3
     ├── feel-like-that.html # Level 5 and its Parts 2-3, fireflies to the park lamps (the cover's twin lamps at the end) + lvl5.mp3
     ├── no-rest-no-work.html # Level 6: Island Hopper, Crab Night, Surf the Sunset - three games on one beach + lvl6.mp3
+    ├── journey.html    # Level 7 and its Parts 2-3: shield each planet, launch to the next, Earth to Planet Javeda + lvl7.mp3
     └── javeda.html     # the original JAVEDA game (Level 9 here; songs embedded)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

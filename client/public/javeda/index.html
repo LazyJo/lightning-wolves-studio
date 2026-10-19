@@ -64,21 +64,48 @@ button:focus-visible, a:focus-visible, input:focus-visible{outline:2px solid var
 
 h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-transform:uppercase; color:var(--mute)}
 
-/* levels */
-.levels{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px}
-.lv{position:relative; overflow:hidden; border-radius:12px; border:1px solid var(--line); background:var(--panel); padding:16px; display:grid; gap:8px; min-height:170px; align-content:start}
-.lv::before{content:""; position:absolute; inset:0; background:var(--art); opacity:.55; pointer-events:none}
-.lv > *{position:relative}
-.lv .no{font:700 12px/1 var(--cond); letter-spacing:.28em; color:var(--dim); text-transform:uppercase}
-.lv .ti{font:400 22px/1.05 var(--display)}
-.lv .ds{font-size:14px; color:var(--dim); margin:0}
-.lv .row{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:auto; padding-top:6px}
-.lv .best{font:700 13px/1.2 var(--cond); letter-spacing:.1em; color:var(--gold)}
-.lv .tag{font:700 12px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase; padding:5px 8px; border-radius:4px; background:#ffffff12; color:var(--dim)}
-.lv .tag.ok{background:#3ddc9722; color:var(--good)}
-.lv.locked{filter:saturate(.35)}
-.lv.locked .ti{color:var(--dim)}
-.lv.soon{border-style:dashed; background:transparent; min-height:auto}
+/* levels: the album as a tracklist. One row per song, songs stacked down the
+   page; a song's parts sit side by side in its row, in three columns that line
+   up from song to song (Part 1 under Part 1). On a phone the parts stack. */
+.levels{display:grid; gap:12px}
+.song{position:relative; overflow:hidden; border-radius:14px; border:1px solid var(--line); background:var(--panel);
+  display:grid; grid-template-columns:minmax(0,17rem) minmax(0,1fr); gap:18px; padding:16px 16px 16px 18px}
+.song::before{content:""; position:absolute; inset:0; background:var(--art); opacity:.6; pointer-events:none}
+.song > *{position:relative; min-width:0}
+.song .head{display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:14px; row-gap:4px; align-content:start}
+.song .tr{grid-row:1 / span 4; font:400 46px/.9 var(--display); color:transparent; -webkit-text-stroke:1.5px #ffffff4d; letter-spacing:-.02em}
+.song.done .tr{-webkit-text-stroke-color:var(--good)}
+.song .no{font:700 12px/1 var(--cond); letter-spacing:.26em; color:var(--dim); text-transform:uppercase}
+.song .ti{font:400 23px/1.05 var(--display); overflow-wrap:anywhere}
+.song .ti.long{font-size:18px}
+.song .ds{font-size:14px; color:var(--dim); margin:0}
+.song .bar{display:flex; gap:4px; margin-top:4px}
+.song .bar i{width:20px; height:4px; border-radius:2px; background:#ffffff1f}
+.song .bar i.on{background:var(--good)}
+.song.locked .ti{color:var(--dim)}
+.parts{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; align-items:stretch}
+.part{border:1px solid #ffffff17; background:#050c1ea8; border-radius:10px; padding:12px; display:flex; flex-direction:column; gap:10px}
+.part .pi{display:grid; gap:5px}
+.part .pl{display:flex; justify-content:space-between; gap:6px; font:700 11px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase; color:var(--mute)}
+.part .pl b{color:var(--good); letter-spacing:.14em}
+.part .pt{font:400 15px/1.1 var(--display); overflow-wrap:anywhere}
+.part .pd{font-size:13px; line-height:1.35; color:var(--dim); margin:0}
+.part .foot{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:auto}
+.part .best{font:700 13px/1.2 var(--cond); letter-spacing:.08em; color:var(--gold)}
+.part .tag{font:700 12px/1.1 var(--cond); letter-spacing:.12em; text-transform:uppercase; padding:5px 8px; border-radius:4px; background:#ffffff12; color:var(--dim)}
+.part.done{border-color:#3ddc9759}
+.part.locked{opacity:.55}
+.song.soon{display:flex; align-items:center; gap:14px; border-style:dashed; background:transparent; padding:14px 18px}
+.song.soon .tr{grid-row:auto; font-size:34px}
+@media (max-width:760px){
+  .song{grid-template-columns:minmax(0,1fr); gap:12px; padding:14px}
+  .song .tr{font-size:40px}
+  .parts{grid-template-columns:minmax(0,1fr); gap:8px}
+  .part{flex-direction:row; align-items:center; padding:10px 12px}
+  .part .pi{flex:1; min-width:0}
+  .part .pd{display:none}
+  .part .foot{flex-direction:column; align-items:flex-end; gap:6px; margin:0; flex:none}
+}
 
 /* scoreboard */
 .tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px}
@@ -348,22 +375,42 @@ function comingSoon(){
   return (runs.length === 1 && runs[0][0] === runs[0][1] ? "Level " : "Levels ") +
     runs.map(([a, b]) => a === b ? a : a + " - " + b).join(", ");
 }
+// one tile per part: what it is, how you did, and the way in
+function partTile(lv){
+  const p = progress[lv.id] || {};
+  const open = isOpen(lv), done = !!p.cleared;
+  const need = lv.requires ? levelById(lv.requires) : null;
+  const lock = need ? (need.num === lv.num ? 'Finish Part ' + (need.part || 1) : 'Finish Level ' + need.num) + ' first' : '';
+  return '<div class="part' + (done ? ' done' : '') + (open ? '' : ' locked') + '">' +
+    '<div class="pi"><span class="pl">Part ' + (lv.part || 1) + (done ? '<b>&#10003; Cleared</b>' : '') + '</span>' +
+    '<span class="pt">' + esc(lv.title) + '</span>' +
+    (lv.part ? '<p class="pd">' + esc(lv.ds.replace(/^Part \d+\.\s*/, "")) + '</p>' : '') + '</div>' +
+    '<div class="foot">' +
+      (open
+        ? (done ? '<span class="best">Best ' + fmt(p.best) + '</span>' : '<span class="tag">' + (p.runs ? 'Not cleared yet' : 'New') + '</span>') +
+          '<button class="btn ' + (done ? '' : 'primary') + ' small" data-play="' + lv.id + '">' + (done ? 'Replay' : 'Play') + '</button>'
+        : '<span class="tag">&#128274; ' + lock + '</span>') +
+    '</div></div>';
+}
+// one row per song: its number, its world, and its parts side by side
 function renderLevels(){
-  const html = LEVELS.map(lv => {
-    const p = progress[lv.id] || {};
-    const open = isOpen(lv), done = !!p.cleared;
-    const need = lv.requires ? levelById(lv.requires) : null;
-    return '<article class="lv' + (open ? '' : ' locked') + '" style="--art:' + lv.art + '">' +
-      '<span class="no">' + lvName(lv) + '</span><span class="ti">' + esc(lv.title) + '</span>' +
-      '<p class="ds">' + esc(lv.ds) + '</p>' +
-      '<div class="row">' +
-        (open
-          ? (done ? '<span class="best">Best ' + fmt(p.best) + '</span>' : '<span class="tag">' + (p.runs ? 'Not cleared yet' : 'New') + '</span>') +
-            '<button class="btn ' + (done ? '' : 'primary') + ' small" data-play="' + lv.id + '">' + (done ? 'Replay' : 'Play') + '</button>'
-          : '<span class="tag">&#128274; Finish Level ' + need.num + ' first</span>') +
-      '</div>' + (done ? '<span class="tag ok" style="position:absolute;top:14px;right:14px">Cleared</span>' : '') +
+  const songs = new Map();
+  for (const lv of LEVELS){ if (!songs.has(lv.num)) songs.set(lv.num, []); songs.get(lv.num).push(lv); }
+  const pad = n => String(n).padStart(2, "0");
+  const html = [...songs.entries()].map(([num, parts]) => {
+    const main = parts[0], cleared = parts.filter(l => progress[l.id] && progress[l.id].cleared).length;
+    return '<article class="song' + (isOpen(main) ? '' : ' locked') + (cleared === parts.length ? ' done' : '') + '" style="--art:' + main.art + '">' +
+      '<div class="head"><span class="tr" aria-hidden="true">' + pad(num) + '</span>' +
+        '<span class="no">Level ' + num + (parts.length > 1 ? ' &middot; ' + parts.length + ' parts' : '') + '</span>' +
+        '<span class="ti' + (main.title.length > 10 ? ' long' : '') + '">' + esc(main.title) + '</span>' +
+        '<p class="ds">' + esc(main.ds) + '</p>' +
+        '<span class="bar" title="' + cleared + ' of ' + parts.length + ' cleared">' + parts.map(l => '<i class="' + (progress[l.id] && progress[l.id].cleared ? 'on' : '') + '"></i>').join("") + '</span>' +
+      '</div>' +
+      '<div class="parts">' + parts.map(partTile).join("") + '</div>' +
       '</article>';
-  }).join("") + '<article class="lv soon"><span class="no">' + comingSoon() + '</span><p class="ds">One per song on the album. Coming as the songs come.</p></article>';
+  }).join("") +
+  '<article class="song soon"><span class="tr" aria-hidden="true">&hellip;</span><div><span class="no">' + comingSoon() + '</span>' +
+    '<p class="ds">One per song on the album. Coming as the songs come.</p></div></article>';
   $("levels").innerHTML = html;
 }
 const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl9","Level 9"]];

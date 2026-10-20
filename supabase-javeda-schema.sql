@@ -107,9 +107,9 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl9bx', 9, 'ROOFTOP RUN',  'lvl9c', 0, 50000000, 6000,  0, 0, 128, true, 1800),  -- ~900/s
   ('lvl9cx', 9, 'THE KING',     'lvl9c', 0, 50000000, 3000,  0, 0, 129, true, 900),   -- ~430/s
   ('lvl9r',  9, 'REMIX',        'lvl9c', 0, 50000000, 5000,  0, 0, 131, true, 1500),  -- all three, ~730/s
-  -- JUMPRIDE, the ultimate one: its own game, open after Level 9 Part 3. Score = metres
-  -- (8 to 24 m/s, 27 on the bike); 50 m past your best = a point
-  ('jumpride', 9, 'JUMPRIDE',   'lvl9c', 0, 50000000, 50,    0, 0, 140, true, 40)
+  -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
+  -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
+  ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 140, true, 40)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -117,9 +117,15 @@ ON CONFLICT (id) DO UPDATE SET
   sort = EXCLUDED.sort, endless = EXCLUDED.endless, max_rate = EXCLUDED.max_rate;
 -- a test build had Level 8 "No Stop" as lvl8d: it is the remix now (lvl8r)
 DELETE FROM javeda_levels WHERE id = 'lvl8d' AND NOT EXISTS (SELECT 1 FROM javeda_progress WHERE level = 'lvl8d');
--- and Level 9 had a Part 4 for a day: it is JUMPRIDE now, a game of its own
+-- and Level 9 had a Part 4 for a day: it is JAVEDA: HYPERDRIVE now, a game of its own
 DELETE FROM javeda_runs WHERE level IN ('lvl9d', 'lvl9dx');
 DELETE FROM javeda_levels WHERE id IN ('lvl9d', 'lvl9dx') AND NOT EXISTS (SELECT 1 FROM javeda_progress WHERE level IN ('lvl9d', 'lvl9dx'));
+-- the first version of HYPERDRIVE was called JUMPRIDE ('jumpride'): its bests move over, then it goes
+UPDATE javeda_progress p SET level = 'hyperdrive' WHERE level = 'jumpride'
+  AND NOT EXISTS (SELECT 1 FROM javeda_progress q WHERE q.user_id = p.user_id AND q.level = 'hyperdrive');
+DELETE FROM javeda_progress WHERE level = 'jumpride';
+DELETE FROM javeda_runs WHERE level = 'jumpride';
+DELETE FROM javeda_levels WHERE id = 'jumpride';
 
 -- ── Profile pictures ───────────────────────────────────────────────────────
 -- Cost 0 = free to pick from the start. The pictures themselves are static

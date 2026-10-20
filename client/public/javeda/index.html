@@ -112,7 +112,7 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .tabs.gold button[aria-selected="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .btn.gold{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .btn.gold:hover{background:linear-gradient(180deg,#fff0b8,#f0b42a)}
-/* JUMPRIDE: the ultimate one, a game of its own */
+/* JAVEDA: HYPERDRIVE: the ultimate one, a game of its own */
 .ult{position:relative; overflow:hidden; border-radius:16px; border:1.5px solid #ff3d8b66; padding:22px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:end;
   background:radial-gradient(90% 120% at 100% 0%,#ff3d8b40,transparent 60%),radial-gradient(70% 100% at 0% 100%,#7b2ff74d,transparent 60%),linear-gradient(160deg,#1a0b2e,#0b0416);
   box-shadow:0 0 30px #7b2ff733}
@@ -122,6 +122,7 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .ult .no{font:700 12px/1 var(--cond); letter-spacing:.26em; color:#c9b3ff; text-transform:uppercase}
 .ult .ut{display:block; font:400 clamp(38px,8vw,64px)/.95 var(--display); color:#fff; margin:8px 0 10px; text-shadow:0 0 18px #ff3d8b, 0 0 40px #7b2ff7}
 .ult .ut i{font-style:normal; color:var(--gold); text-shadow:0 0 18px #ffb000}
+.ult .ut small{display:block; font-size:.32em; letter-spacing:.42em; color:#ff9ad0; margin-bottom:4px}
 .ult .ds{font-size:14.5px; color:var(--dim); margin:0; max-width:62ch}
 .ult .uf{display:flex; flex-direction:column; align-items:flex-end; gap:8px}
 .ult .best{font:700 15px/1.2 var(--cond); letter-spacing:.08em; color:var(--gold)}
@@ -411,9 +412,9 @@ const ENDLESS = [
   ...endlessOf(8, "myself.html", "lvl8c", [["lvl8", "Petal Rain"], ["lvl8b", "The Stem"], ["lvl8c", "My Shadow"]], true),
   ...endlessOf(9, "oublie-moi.html", "lvl9c", [["lvl9", "Night Flight"], ["lvl9b", "Rooftop Run"], ["lvl9c", "The King"]], true)
 ];
-// JUMPRIDE: not a level and not a part - the ultimate one, its own game. Scored like an endless
+// JAVEDA: HYPERDRIVE: not a level and not a part - the ultimate one, its own game. Scored like an endless
 // (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.
-const ULT = { id:"jumpride", num:9, endless:true, ultimate:true, title:"JUMPRIDE", requires:"lvl9c", src:"levels/jumpride.html?hub=1" };
+const ULT = { id:"hyperdrive", num:9, endless:true, ultimate:true, title:"HYPERDRIVE", requires:"lvl9c", src:"levels/hyperdrive.html?hub=1" };
 const ALL = [...LEVELS, ...ENDLESS, ULT];
 const levelById = id => ALL.find(l => l.id === id);
 const lvName = l => l.ultimate ? l.title : "Level " + l.num + (l.remix ? " Remix" : l.endless ? (LEVELS.filter(m => m.num === l.num).length > 1 ? " Part " + l.part : "") + " ∞" : l.part ? " Part " + l.part : "");
@@ -565,11 +566,11 @@ function renderEndless(){
 function renderUltimate(){
   const p = progress[ULT.id] || {}, open = isOpen(ULT);
   $("ultimate").innerHTML = '<article class="ult' + (open ? '' : ' locked') + '">' +
-    '<div><span class="no">Lazy Jo &times; Zirka &middot; no end</span><span class="ut">JUMP<i>RIDE</i></span>' +
-    '<p class="ds">Pick Lazy Jo or Zirka, strap on the jetpack and run the roofs of District 9. Hold to fly; dodge the zappers, the missiles and the lasers; ' +
-    'grab a box and ride the Wolf Bike, the Lightning Mech, the Gravity Boots or the Saucer. Wolf Coins buy 21 skins, three missions at a time, the album on the radio.</p></div>' +
+    '<div><span class="no">Lazy Jo &times; Zirka &middot; no end</span><span class="ut"><small>JAVEDA</small>HYPER<i>DRIVE</i></span>' +
+    '<p class="ds">Lazy Jo in his saucer or Zirka on his flying purple bike, over the roofs of District 9. Hold to rise; dodge the zappers, the missiles and the lasers; ' +
+    'grab power-ups (magnet, shield, double coins, HYPERDRIVE) and ? boxes that transform you. Wolf Coins buy 24 skins, 9 trails and 8 gadgets. The album on the radio.</p></div>' +
     '<div class="uf">' + (open
-      ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play JUMPRIDE</button>'
+      ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play HYPERDRIVE</button>'
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
 const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"]];
@@ -772,7 +773,7 @@ async function saveRun(r){
   const opened = LEVELS.filter(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after)).map(lvName);
   if (ENDLESS.some(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after))) opened.push("Level " + lv.num + " Endless &#8734;");
   if (r.cleared && !was.cleared && lv.id === "lvl2b") opened.push("Zirka's bike in Level 1");
-  if (ULT.requires === lv.id && !opensWith(ULT, progress) && opensWith(ULT, after)) opened.push("JUMPRIDE");
+  if (ULT.requires === lv.id && !opensWith(ULT, progress) && opensWith(ULT, after)) opened.push("JAVEDA: HYPERDRIVE");
   const unlocks = opened.length ? opened.join(" and ") + (opened.length > 1 ? " are" : " is") + " open" : "";
   if (!signedIn()){
     const g = guest.progress[lv.id] || { cleared:false, best:0, metres:0, runs:0 };

@@ -19,7 +19,7 @@ client/public/javeda/
     ├── journey.html    # Level 7 and its Parts 2-3: shield each planet, launch to the next, Earth to Planet Javeda + lvl7.mp3
     ├── myself.html     # Level 8: Petal Rain, The Stem, My Shadow (+ each endless, and the remix) + lvl8.mp3
     ├── oublie-moi.html # Level 9: Night Flight, Rooftop Run, The King (+ each endless, and the remix) + lvl9.mp3
-    └── jumpride.html   # JUMPRIDE, the ultimate one: Lazy Jo or Zirka, a jetpack run with no end (plays lvl1-9.mp3 as its radio)
+    └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
 
@@ -68,13 +68,16 @@ scoreboard shows as offline.
     caps the score at `max_rate` points per second since then (set about twice what a perfect bot
     scores after 10 minutes). No start, no score.
   - Guests keep their endless bests on the phone; `javeda_import_guest` skips them (they can't be checked).
-- **JUMPRIDE** (`jumpride`, `ULT` in the hub). Not a level and not a part: a game of its own in
-  the style of Jetpack Joyride, with its own section ("The ultimate") between the levels and the
-  endless list, opened by clearing Level 9 Part 3. Pick Lazy Jo or Zirka, hold to fly; zappers,
-  missiles, lasers; boxes turn you into a vehicle; Wolf Coins, 21 skins and missions live in the
-  game (`localStorage`, `javeda.jumpride.v1` - on the device for now). To the hub it is an endless
-  level: score = metres, `max_rate` 40 m/s, 50 m past your best = a point, its own gold
-  scoreboard tab. Source: `javeda/jumpride` on the desktop-tutorial branch.
+- **JAVEDA: HYPERDRIVE** (`hyperdrive`, `ULT` in the hub). Not a level and not a part: a game of its
+  own in the style of Jetpack Joyride, with its own section ("The ultimate") between the levels and the
+  endless list, opened by clearing Level 9 Part 3. Lazy Jo flies his saucer (tractor beam pulls coins in)
+  or Zirka rides his flying purple bike (a blaster that shoots down missiles); hold to rise. Zappers,
+  missiles, lasers; power-ups (magnet, shield, double coins, HYPERDRIVE); ? boxes transform you (mech,
+  gravity drive, warp core). Wolf Coins, 24 skins, 9 trails, 8 gadgets and missions live in the game
+  (`localStorage`, `javeda.hyperdrive.v1` - on the device for now). To the hub it is an endless level:
+  score = metres, `max_rate` 40 m/s, 50 m past your best = a point, its own gold scoreboard tab.
+  It was called JUMPRIDE (`jumpride`) for a day; the schema moves those bests over.
+  Source: `javeda/hyperdrive` on the desktop-tutorial branch.
 - **Rides.** Clearing Level 2 Part 2 earns Zirka's bike: the hub opens Level 1 with `?rides=bike` and
   the level shows a Saucer / Zirka's bike picker. Creators always get it.
 - **Points** come from playing only (never from streaming): up to 40 per run for the

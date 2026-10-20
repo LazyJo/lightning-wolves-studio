@@ -139,8 +139,8 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02;
                           Zirka 8 bars on the roof below. Bring him down in time.
 
    Then the gold ENDLESS list (?endless=1 with a part, ?remix=1): each part
-   with no end, and the remix - all three in turn, 8 bars each. JUMPRIDE, the
-   ultimate one (the original side-on idea), is a game of its own: ../jumpride.
+   with no end, and the remix - all three in turn, 8 bars each. JAVEDA: HYPERDRIVE, the
+   ultimate one (the original side-on idea), is a game of its own: ../hyperdrive.
 
    The song (SONG.md) is 90 BPM, a trap beat: a quiet intro, three loud 8-bar
    hooks (bars 8, 28, 48), verses that go no-kick / loud in 4-bar blocks, a
@@ -1042,7 +1042,7 @@ function finish(){
   v.querySelector("h1").textContent = CFG.title.toUpperCase();
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
   ps[1].innerHTML = (PART === 1 ? "The sky over District 9 is yours." : PART === 2 ? "Over every roof in the city." : "The King of Forgetting is down. <b>Nobody forgets the Wolves.</b>") +
-    (PART === 1 ? "<br>Part 2: Zirka's ride over the roofs." : PART === 2 ? "<br>Part 3: the King." : "<br>All three cleared: the gold <b>Endless</b> list is open - and <b>JUMPRIDE</b>, the ultimate one.");
+    (PART === 1 ? "<br>Part 2: Zirka's ride over the roofs." : PART === 2 ? "<br>Part 3: the King." : "<br>All three cleared: the gold <b>Endless</b> list is open - and <b>JAVEDA: HYPERDRIVE</b>, the ultimate one.");
 }
 function boot(){
   ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);

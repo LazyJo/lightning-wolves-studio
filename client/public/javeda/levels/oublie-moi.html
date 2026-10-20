@@ -102,8 +102,8 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02;
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Part">
-    <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button><button type="button" data-part="4">Part 4</button>
-    <button type="button" data-part="1" data-mode="endless" class="gold">Part 1 &#8734;</button><button type="button" data-part="2" data-mode="endless" class="gold">Part 2 &#8734;</button><button type="button" data-part="3" data-mode="endless" class="gold">Part 3 &#8734;</button><button type="button" data-part="4" data-mode="endless" class="gold">Part 4 &#8734;</button><button type="button" data-mode="remix" class="gold">Remix</button>
+    <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
+    <button type="button" data-part="1" data-mode="endless" class="gold">Part 1 &#8734;</button><button type="button" data-part="2" data-mode="endless" class="gold">Part 2 &#8734;</button><button type="button" data-part="3" data-mode="endless" class="gold">Part 3 &#8734;</button><button type="button" data-mode="remix" class="gold">Remix</button>
   </div>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">The album &#9656;<small>back to the levels</small></a>
   <button id="go" type="button">Start</button>
@@ -124,7 +124,7 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02;
    Level 9 of JAVEDA - Lazy Jo x Zirka. District 9 at night: neon towers,
    rain, and the monsters of forgetting over the city. The original JAVEDA
    game was this song as a flat side-scroller; this is it rebuilt in 3D,
-   on the song's own grid, in four parts:
+   on the song's own grid, in three parts:
 
      Part 1 NIGHT FLIGHT  Jo's blue saucer between the towers. Drag to fly; shoot
                           with space or a tap - on the song's sixteenths. Crawlers,
@@ -137,12 +137,10 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02;
                           will land. His core opens in the hooks. Gadgets float up
                           for Jo (triple, rapid fire, a heart); the wolf token gives
                           Zirka 8 bars on the roof below. Bring him down in time.
-     Part 4 JUMP RIDE     the original JAVEDA idea: Zirka's bike over the roofs, side
-                          on. Jump (hold for higher), ride ahead or drop back; Zirka's
-                          gun aims itself. The Wolf Rush crystal doubles its fire.
 
    Then the gold ENDLESS list (?endless=1 with a part, ?remix=1): each part
-   with no end, and the remix - all four in turn, 8 bars each.
+   with no end, and the remix - all three in turn, 8 bars each. JUMPRIDE, the
+   ultimate one (the original side-on idea), is a game of its own: ../jumpride.
 
    The song (SONG.md) is 90 BPM, a trap beat: a quiet intro, three loud 8-bar
    hooks (bars 8, 28, 48), verses that go no-kick / loud in 4-bar blocks, a
@@ -169,18 +167,17 @@ function section(t){
 
 const Q = new URLSearchParams(location.search);
 const REMIX = Q.get("remix") === "1", ENDLESS = REMIX || Q.get("endless") === "1";
-const PART = REMIX ? 0 : Math.min(4, Math.max(1, +Q.get("part") || 1));
+const PART = REMIX ? 0 : Math.min(3, Math.max(1, +Q.get("part") || 1));
 const BASE = {
   1: { id:"lvl9",  title:"Night Flight", by:"LEVEL 9",        game:"sky" },
   2: { id:"lvl9b", title:"Rooftop Run",  by:"LEVEL 9 PART 2", game:"roof" },
-  3: { id:"lvl9c", title:"The King",     by:"LEVEL 9 PART 3", game:"king" },
-  4: { id:"lvl9d", title:"Jump Ride",    by:"LEVEL 9 PART 4", game:"ride" }
+  3: { id:"lvl9c", title:"The King",     by:"LEVEL 9 PART 3", game:"king" }
 }[PART || 1];
-// endless: the part's id + "x"; the remix of all four: lvl9r
+// endless: the part's id + "x"; the remix of all three: lvl9r
 const CFG = REMIX ? { id:"lvl9r", title:"Remix", by:"LEVEL 9 REMIX", game:"mix", endless:true, remix:true, board:"Level 9 Remix" }
   : ENDLESS ? { ...BASE, id:BASE.id + "x", by:BASE.by + " · ENDLESS", endless:true, board:"Level 9" + (PART > 1 ? " Part " + PART : "") + " ∞" }
   : BASE;
-const ORDER = ["sky", "roof", "king", "ride"];
+const ORDER = ["sky", "roof", "king"];
 
 const LINKS = {
   next:    "https://lightningwolves.studio/javeda/",
@@ -894,138 +891,8 @@ const KING = {
     else { CAMP.set(st.x*.35, st.y*.45 + (portrait ? 4.5 : 3.8), pz + (portrait ? 17 : 11)); CAML.set(b.x*.3, 7, b.z + 6); }
   }
 };
-/* =============== Part 4: JUMP RIDE - the original idea: Zirka's bike, side on =============== */
-const RIDE = {
-  name:"ride", label:"JUMP RIDE", tag:"RIDE AND JUMP", hookTag:"THE HOOK - JUMP RIDE", hint:"tap or space to jump - hold for higher - Zirka's gun aims itself", ZMIN:-4, ZMAX:9,
-  setup(){
-    this.root = new THREE.Group(); scene.add(this.root);
-    const roofM = new THREE.MeshLambertMaterial({ color:0x2a1a40, emissive:0x120822 }), edgeM = new THREE.MeshBasicMaterial({ color:0xc77dff });
-    this.roofs = Array.from({ length:12 }, () => { const g = new THREE.Group(), m = new THREE.Mesh(new THREE.BoxGeometry(6, 30, 1), roofM); m.position.y = -15; g.add(m);
-      const e = new THREE.Mesh(new THREE.BoxGeometry(.12, .12, 1), edgeM); e.position.set(3, 0, 0); g.add(e); g.userData = { m, e }; g.visible = false; this.root.add(g); return g; });
-    this.pool = {}; for (const [type, n] of [["crawler", 12], ["swarm", 20], ["watcher", 4], ["brute", 3]])
-      this.pool[type] = Array.from({ length:n }, () => { const g = FOE[type].build(); g.visible = false; this.root.add(g); return { type, g, on:false }; });
-    this.orbs = Array.from({ length:24 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(.4, 12, 8), new THREE.MeshBasicMaterial({ color:0xff3d8b })); halo(m, 0xff3d8b, 2.2); m.visible = false; this.root.add(m); return { m, on:false }; });
-    const sm = new THREE.MeshBasicMaterial({ color:0xc77dff });
-    this.shots = Array.from({ length:24 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(.18, 6, 4), sm); halo(m, 0xc77dff, 1.3); m.visible = false; this.root.add(m); return { m, on:false }; });
-    const coinM = new THREE.MeshBasicMaterial({ color:0xffd60a });
-    this.coinM = Array.from({ length:40 }, () => { const m = new THREE.Mesh(new THREE.OctahedronGeometry(.35, 0), coinM); halo(m, 0xffd60a, 1.6); m.visible = false; this.root.add(m); return m; });
-    this.rush = new THREE.Group(); this.rush.add(new THREE.Mesh(new THREE.OctahedronGeometry(.75, 0), new THREE.MeshBasicMaterial({ color:0xc77dff }))); halo(this.rush, 0xc77dff, 4); this.rush.visible = false; this.root.add(this.rush);
-  },
-  speed(L){ return Math.min(22, 12 + 6*L); },
-  begin(t0, t1, L0, L1, cont){
-    Object.assign(this, { t0, t1, L0, L1, tEnd:CFG.endless && !CFG.remix ? Infinity : t1 });
-    if (cont) return;
-    this.start = t0;
-    this.track = [{ a:S.dist - 40, b:Infinity }]; this.coins = []; this.genT = t0; this.genD = S.dist; this.genJ = Math.ceil((t0 - GRID.t0)/BEAT);
-    this.st = { bz:0, tbz:0, y:0, vy:0, air:false, hold:false, fall:0, fire:0, coins:0, jumps:0, k:Math.round(t0*23), next:t0 + BAR };
-    for (const p of Object.values(this.pool)) p.forEach(f => { f.on = false; f.g.visible = false; });
-    this.orbs.forEach(o => { o.on = false; o.m.visible = false; }); this.shots.forEach(s => { s.on = false; s.m.visible = false; }); this.coinM.forEach(m => m.visible = false); this.rush.visible = false;
-  },
-  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
-  info(){ return (S.rush > 0 ? "WOLF RUSH " + Math.ceil(S.rush) + "s · " : "") + this.st.coins + " BOLTS · " + S.kills + " DOWN"; },
-  bikeD(){ return S.dist + this.st.bz; },
-  // the road ahead, a beat at a time: gaps on the 1 when it's loud, an arc of bolts over each gap
-  grow(t){
-    while (this.genT < t + 4){
-      const tb = GRID.t0 + this.genJ*BEAT, j = this.genJ++; if (tb <= this.genT) continue;
-      const dist = this.genD + this.speed(this.L(this.genT))*(tb - this.genT); this.genT = tb; this.genD = dist;
-      if (tb < this.start + BAR || tb > this.tEnd - BEAT) continue;
-      const sec = section(tb), L = this.L(tb), bib = ((j % 4) + 4) % 4, k = this.st.k++, v = this.speed(L);
-      const lastGap = this.track.length > 1 ? this.track[this.track.length - 2].b : -Infinity;
-      if ((sec === "hook" || sec === "loud" || (sec === "mid" && L > .4)) && bib === 0 && dist - lastGap > v*BEAT*3.5 && rnd(k) < (sec === "hook" ? .85 : .6)){
-        const len = v*BEAT*(.5 + .15*Math.min(1, L)), cur = this.track[this.track.length - 1]; cur.b = dist; this.track.push({ a:dist + len, b:Infinity });
-        for (let i = 0; i < 5; i++){ const u = i/4; this.coins.push({ d:dist - 2 + (len + 4)*u, y:1.6 + Math.sin(u*Math.PI)*3.2 }); }
-        continue; }
-      if (sec !== "hook" && bib === 2 && rnd(k*3) < .7){ const h = 1.2 + rnd(k*5)*2.5; for (let i = 0; i < 4; i++) this.coins.push({ d:dist + i*1.6, y:h + (rnd(k*7) < .5 ? i*.5 : 0) }); }
-    }
-  },
-  roofUnder(d){ return this.track.some(r => d > r.a - .2 && d < r.b + .2); },
-  spawn(type, y, ahead){ const f = this.pool[type].find(f => !f.on); if (!f) return; const st = this.st, k = st.k++;
-    Object.assign(f, { on:true, y, z:-(this.bikeD() + (ahead || 46)), hp:FOE[type].hp + (type === "brute" ? Math.floor(this.Lnow*2) : 0), ph:rnd(k)*6, fire:0, born:S.t }); f.g.visible = true; },
-  wave(at, j){
-    const st = this.st, sec = section(at), L = this.L(at), bib = ((j % 4) + 4) % 4, bar = barOf(at), k = st.k, ry = (a, b) => a + rnd(st.k++*1.7)*(b - a);
-    if (sec === "calm"){ if (bar >= 1 && bib === 0 && rnd(k) < .6) this.spawn("crawler", ry(2.5, 6)); return; }
-    if (sec === "mid"){ if (j % 2 === 0) this.spawn("crawler", ry(2, 7)); if (bib === 0 && bar % 2 === 0) this.spawn("watcher", ry(7, 8.5), 40); return; }
-    this.spawn("crawler", ry(2, 7));
-    if (bib === 0){ const y0 = ry(2, 4); for (let i = 0; i < 5; i++) this.spawn("swarm", y0 + i*1.1, 48 + i*2.2); }
-    if (sec === "hook"){
-      if (bib === 2 && (bar % 2 === 0 || L > .6)) this.spawn("watcher", ry(7, 8.5), 40);
-      if (bib === 0 && (bar % 4 === 0 || (L > 1 && bar % 2 === 0))) this.spawn("brute", 1.1, 50);
-      if (L > .75 && bib === 3) this.spawn("crawler", ry(2, 7));
-    }
-  },
-  press(on){ const st = this.st; st.hold = on; if (on && !st.air && st.fall <= 0){ st.air = true; st.vy = 9.5; st.jumps++; sfx.jump(); } },
-  point(cx, cy){ cam.updateMatrixWorld(); RAY.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); PLX.constant = 0; if (RAY.ray.intersectPlane(PLX, HIT)) this.st.tbz = clamp(-HIT.z - S.dist, this.ZMIN, this.ZMAX); },
-  update(dt, t){
-    const st = this.st, L = this.Lnow = this.L(t), v = this.speed(L);
-    S.dist += v*dt; this.grow(t);
-    if (keys.left) st.tbz -= dt*8; if (keys.right) st.tbz += dt*8; st.tbz = clamp(st.tbz, this.ZMIN, this.ZMAX);
-    st.bz += (st.tbz - st.bz)*(1 - Math.exp(-dt*6));
-    if (S.rush > 0) S.rush -= dt;
-    const bd = this.bikeD(), bzw = -bd, by = st.y + 1;
-    // jumping: hold for higher; falling between roofs costs a heart
-    if (st.fall > 0){ st.fall -= dt; st.y -= 14*dt;
-      if (st.fall <= 0){ const next = this.track.find(r => r.a > bd - 1); if (next) S.dist = next.a + 1 - st.bz; st.y = 0; st.vy = 0; st.air = false; S.inv = Math.max(S.inv, 1.4); } }
-    else if (st.air){ st.vy -= (st.hold && st.vy > 0 ? 14 : 30)*dt; st.y += st.vy*dt;
-      if (st.y <= 0){ if (this.roofUnder(bd)){ st.y = 0; st.air = false; const g = this.track.find(r => r.b < bd && r.b > bd - 14 && !r.cleared); if (g){ g.cleared = true; kill(300); say("JUMP", "", .35, "b"); } }
-        else if (st.y < -1){ st.fall = .7; if (hurt("FELL!", "Tap to jump - the gaps open on the 1 of the bar.")) return; } } }
-    else if (!this.roofUnder(bd)){ st.air = true; st.vy = 0; }
-    // monsters, on the beat; a Wolf Rush crystal at the top of each hook
-    while (t >= st.next){ const at = st.next, j = Math.round((at - GRID.t0)/BEAT); st.next += BEAT; if (at + 3 < this.tEnd) this.wave(at, j);
-      if (section(at) === "hook" && section(at - BAR) !== "hook" && ((j % 4) + 4) % 4 === 0 && !this.rush.visible){ this.rush.visible = true; this.rush.position.set(0, 2.6, bzw - 40); } }
-    if (this.rush.visible){ if (Math.abs(this.rush.position.z - bzw) < 1.2 && Math.abs(this.rush.position.y - by) < 1.6){ this.rush.visible = false; S.rush = 12; sfx.big(); say("WOLF RUSH", "Zirka fires twice as fast · 12 s", 1.2, "b"); }
-      else if (this.rush.position.z > bzw + 4) this.rush.visible = false; }
-    // Zirka's gun finds the nearest monster in front
-    const fs = Object.values(this.pool).flat().filter(f => f.on);
-    st.fire -= dt;
-    // first whatever's coming in at bike height, then the nearest
-    const tgt = fs.filter(f => f.z < bzw + 1 && f.z > bzw - 34).sort((p, q) => (q.z - (Math.abs(q.y - by) < 2 ? 0 : 20)) - (p.z - (Math.abs(p.y - by) < 2 ? 0 : 20)))[0];
-    if (tgt && st.fire <= 0){ st.fire = S.rush > 0 ? BEAT/6 : BEAT/4; const s = this.shots.find(s => !s.on); if (s){ Object.assign(s, { on:true, f:tgt, y:by + .6, z:bzw - 1 }); s.m.visible = true; } sfx.zap(); }
-    for (const s of this.shots){ if (!s.on) continue; const f = s.f; if (!f.on){ s.on = false; s.m.visible = false; continue; }
-      const dy = f.y - s.y, dz = f.z - s.z, d = Math.hypot(dy, dz), step = 55*dt;
-      if (d < step + FOE[f.type].r*.6){ s.on = false; s.m.visible = false; f.hp -= S.rush > 0 ? 2 : 1; burst(0, s.y, s.z, 0xc77dff, 5, 5);
-        if (f.hp <= 0){ f.on = false; f.g.visible = false; kill(FOE[f.type].score); burst(0, f.y, f.z, f.type === "swarm" ? 0xff3d8b : 0xc77dff, f.type === "brute" ? 40 : 16, f.type === "brute" ? 14 : 9); sfx.kill(f.type === "brute"); } continue; }
-      s.y += dy/d*step; s.z += dz/d*step; }
-    for (const f of fs){ if (!f.on) continue; const ft = t - f.born;
-      // crawlers fly in high; in the hooks they come down at you - until the last stretch, when they commit
-      if (f.type === "crawler"){ if (f.z < bzw - 20 && section(t) === "hook") f.y += clamp(by + .4 - f.y, -1, 1)*dt*(.8 + .5*L); f.z += (5 + 3*L)*dt; }
-      else if (f.type === "swarm"){ f.y += Math.sin(ft*2.4)*dt*1.2; f.z += (9 + 4*L)*dt; f.g.userData.wings.forEach((w, i) => w.rotation.x = Math.sin(ft*22 + i*Math.PI)*.8); }
-      else if (f.type === "watcher"){ const hold = bzw - 17; f.y += (2.6 - f.y)*dt*2; if (ft < BAR*2.2){ f.z = f.z < hold ? Math.min(hold, f.z + (v + 16)*dt) : hold; } else { f.z += (v + 8)*dt; f.y += dt*3; }
-        f.g.userData.ring.rotation.z += dt*2;
-        const bt = Math.floor((t - GRID.t0)/BEAT); if (bt !== f.fire && (bt % 2) && Math.abs(f.z - hold) < .5 && t + 1 < this.tEnd){ f.fire = bt; this.shoot(f, by, bzw, 1.55 - .25*Math.min(1, L)); } }
-      else { f.y = .9; f.z += (2 + L)*dt; f.g.rotation.y = Math.sin(ft*3)*.2; }
-      if (Math.abs(f.z - bzw) < FOE[f.type].r*.8 + .5 && Math.abs(f.y - by) < FOE[f.type].r*.8 + .5 && st.fall <= 0){ f.on = false; f.g.visible = false; burst(0, f.y, f.z, 0xff3d8b, 18, 10);
-        if (hurt({ crawler:"A CRAWLER!", swarm:"THE SWARM!", watcher:"A WATCHER!", brute:"A BRUTE!" }[f.type], "Jump them - or let Zirka's gun get them first.")) return; continue; }
-      if (f.z > bzw + 8){ f.on = false; f.g.visible = false; } }
-    for (const o of this.orbs){ if (!o.on) continue; o.y += o.vy*dt; o.z += o.vz*dt;
-      if (Math.abs(o.z - bzw) < .8 && Math.abs(o.y - by) < .9 && st.fall <= 0){ o.on = false; o.m.visible = false; burst(0, o.y, o.z, 0xff3d8b, 14, 8); if (hurt("AN ORB!", "Watchers fire on 2 and 4 - jump, or drop back.")) return; continue; }
-      if (o.z > bzw + 8 || o.y < -2){ o.on = false; o.m.visible = false; } }
-    // bolts
-    for (const c of this.coins){ if (c.got) continue; if (Math.abs(c.d - bd) < .9 && Math.abs(c.y - by) < 1.3 && st.fall <= 0){ c.got = true; st.coins++; S.score += Math.round(100*S.combo); S.combo = Math.min(8, S.combo + .1); S.comboT = 4; sfx.good(); } }
-    this.coins = this.coins.filter(c => !c.got && c.d > bd - 8);
-  },
-  // a watcher's orb comes straight across at the bike's height: jump it
-  shoot(f, y, z, T){ const o = this.orbs.find(o => !o.on); if (!o) return; const hitZ = z - this.speed(this.Lnow)*T;
-    Object.assign(o, { on:true, y:Math.max(1.1, y - .1), z:f.z + 1.4, vy:0, vz:(hitZ - f.z)/T }); o.m.visible = true; },
-  render(dt, t){
-    const st = this.st, bzw = -this.bikeD();
-    ME.visible = false; BIKE.visible = true;
-    BIKE.position.set(0, st.y, bzw); BIKE.rotation.set(clamp(st.vy*.03, -.3, .4)*(st.air ? 1 : 0), 0, 0);
-    const segs = this.track.filter(r => r.b > S.dist - 30 && r.a < S.dist + 110);
-    this.roofs.forEach((g, i) => { const s = segs[i]; g.visible = !!s; if (s){ const a = Math.max(s.a, S.dist - 30), b = Math.min(s.b, S.dist + 140), len = b - a;
-      g.position.set(0, 0, -(a + len/2)); g.userData.m.scale.z = len; g.userData.e.scale.z = len; } });
-    this.coinM.forEach((m, i) => { const c = this.coins[i]; m.visible = !!c && c.d < S.dist + 90; if (c){ m.position.set(0, c.y + Math.sin(t*4 + c.d)*.12, -c.d); m.rotation.y = t*3; } });
-    for (const p of Object.values(this.pool)) for (const f of p){ if (!f.on) continue; f.g.position.set(0, f.y, f.z); f.g.lookAt(0, f.y, bzw + 4); }
-    for (const o of this.orbs) if (o.on) o.m.position.set(0, o.y, o.z);
-    for (const s of this.shots) if (s.on) s.m.position.set(0, s.y, s.z);
-    if (this.rush.visible){ this.rush.rotation.y = t*3; }
-    const portrait = cam.aspect < .8;
-    CAMP.set(portrait ? 30 : 18, 4.6 + Math.max(0, st.y)*.3, bzw - (portrait ? 3 : 5)); CAML.set(0, 3.4, bzw - (portrait ? 3 : 5));
-  }
-};
-const PLX = new THREE.Plane(new THREE.Vector3(1, 0, 0), 0);
-const GAMES = { sky:SKY, roof:ROOF, king:KING, ride:RIDE };
-function switchTo(name){ G = GAMES[name]; for (const g of Object.values(GAMES)) g.root.visible = g === G; camInit = false; ME.visible = name === "sky" || name === "king"; BIKE.visible = name === "roof" || name === "ride"; }
+const GAMES = { sky:SKY, roof:ROOF, king:KING };
+function switchTo(name){ G = GAMES[name]; for (const g of Object.values(GAMES)) g.root.visible = g === G; camInit = false; ME.visible = name === "sky" || name === "king"; BIKE.visible = name === "roof"; }
 
 /* ---------------- the run ---------------- */
 function reset(){
@@ -1038,9 +905,9 @@ function reset(){
   else { switchTo(CFG.game); G.begin(0, END_AT, 0, 1); }
 }
 // endless and remix go in 8-bar windows. Endless: the same game, a little harder every window.
-// Remix: the next game's turn, each lap (all four) harder. Every 24 bars: +2,000 and a heart back
+// Remix: the next game's turn, each lap (all three) harder. Every 24 bars: +2,000 and a heart back
 function startStint(n, t){
-  const per = CFG.remix ? ORDER.length : 3;     // the remix: a lap is all four games; endless: every 24 bars
+  const per = 3;                                // a remix lap is all three games; endless: every 24 bars
   S.stint = n; const lap = Math.floor(n/per);
   let back = false;
   if (n > 0 && n % per === 0){ S.lap = lap; S.score += 2000;
@@ -1123,10 +990,10 @@ function render(dt){
   } else {
     G.render(dt, t);
     const blink = S.inv > 0 && Math.floor(S.inv*12) % 2;
-    if (G === ROOF || G === RIDE) BIKE.visible = !blink; else if (G === KING && KING.zirkaOn()) KING.zbike.visible = !blink; else ME.visible = !blink;
+    if (G === ROOF) BIKE.visible = !blink; else if (G === KING && KING.zirkaOn()) KING.zbike.visible = !blink; else ME.visible = !blink;
     if (G === KING && !KING.zirkaOn()) KING.zbike.visible = true;
   }
-  cityAt(S.dist, G === RIDE && S.end < 0);
+  cityAt(S.dist);
   // rain falls past the camera
   rain.position.set(cam.position.x, cam.position.y - 4, cam.position.z - 20 + ((t*14) % 1));
   const rp = rain.geometry.attributes.position.array; for (let i = 0; i < rp.length; i += 6){ rp[i + 1] -= dt*28; rp[i + 4] -= dt*28; if (rp[i + 1] < -12){ rp[i + 1] += 30; rp[i + 4] += 30; } }
@@ -1163,7 +1030,7 @@ function finish(){
     ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
     return;
   }
-  const stat = PART === 1 ? S.kills + " monsters down" : PART === 2 ? ROOF.st.coins + " bolts · " + ROOF.st.jumps + " jumps · " + S.kills + " down" : PART === 3 ? KING.st.coreHits + " core hits" : RIDE.st.coins + " bolts · " + RIDE.st.jumps + " jumps · " + S.kills + " down";
+  const stat = PART === 1 ? S.kills + " monsters down" : PART === 2 ? ROOF.st.coins + " bolts · " + ROOF.st.jumps + " jumps · " + S.kills + " down" : KING.st.coreHits + " core hits";
   if (S.fail){
     v.querySelector(".by").textContent = S.why;
     v.querySelector("h1").textContent = "NOT YET";
@@ -1174,8 +1041,8 @@ function finish(){
   v.querySelector(".by").textContent = CFG.by + " COMPLETE";
   v.querySelector("h1").textContent = CFG.title.toUpperCase();
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
-  ps[1].innerHTML = (PART === 1 ? "The sky over District 9 is yours." : PART === 2 ? "Over every roof in the city." : PART === 3 ? "The King of Forgetting is down. <b>Nobody forgets the Wolves.</b>" : "Jump Ride - the way JAVEDA started.") +
-    (PART === 1 ? "<br>Part 2: Zirka's ride over the roofs." : PART === 2 ? "<br>Part 3: the King." : PART === 3 ? "<br>Part 4: Jump Ride, the original idea." : "<br>All four cleared: the gold <b>Endless</b> list is open - every part with no end, and the Remix.");
+  ps[1].innerHTML = (PART === 1 ? "The sky over District 9 is yours." : PART === 2 ? "Over every roof in the city." : "The King of Forgetting is down. <b>Nobody forgets the Wolves.</b>") +
+    (PART === 1 ? "<br>Part 2: Zirka's ride over the roofs." : PART === 2 ? "<br>Part 3: the King." : "<br>All three cleared: the gold <b>Endless</b> list is open - and <b>JUMPRIDE</b>, the ultimate one.");
 }
 function boot(){
   ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
@@ -1186,7 +1053,7 @@ function boot(){
   const pinkL = new THREE.DirectionalLight(0xff3d8b, .35); pinkL.position.set(20, 10, -40); scene.add(pinkL);
   buildSky(); buildCity(); buildRain(); buildSparks();
   ME = buildSaucer(); scene.add(ME); BIKE = buildBike(); scene.add(BIKE);
-  SKY.setup(); ROOF.setup(); KING.setup(); RIDE.setup();
+  SKY.setup(); ROOF.setup(); KING.setup();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }
@@ -1194,7 +1061,7 @@ function boot(){
 /* ---------------- input ----------------
    Night Flight: drag to fly; hold space (or the mouse button, or a second finger) to shoot, or tap for a burst.
    Rooftop Run: swipe for a lane, tap to jump. The King: drag to fly; on Zirka's turn drag along the roof,
-   tap to jump. Jump Ride: tap (or space) to jump, hold for higher, drag to ride ahead or drop back. */
+   tap to jump. */
 const veilUp = () => !$("veil").classList.contains("hid");
 let held = false, anchorX = 0, downX = 0, downY = 0, downT = 0, swiped = false, movePtr = null, lastX = 0, lastY = 0;
 const touches = new Set();
@@ -1206,11 +1073,9 @@ addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preven
     if (G === SKY && movePtr !== null && movePtr !== e.pointerId){ S.fireHeld = true; return; } }
   if (e.pointerType === "mouse" && G === SKY){ S.fireHeld = true; }
   movePtr = e.pointerId; held = true; anchorX = downX = lastX = e.clientX; downY = lastY = e.clientY; downT = performance.now(); swiped = false;
-  if (G === RIDE){ RIDE.press(true); RIDE.point(e.clientX, e.clientY); return; }
   if (G.point && G !== SKY || (G === SKY && e.pointerType === "mouse")) G.point(e.clientX, e.clientY, e.pointerType !== "mouse"); }, { passive:false });
 addEventListener("pointermove", e => { if (!live()) return;
   if (G === ROOF){ if (held && e.pointerId === movePtr && Math.abs(e.clientX - anchorX) > 34){ ROOF.lane(Math.sign(e.clientX - anchorX)); anchorX = e.clientX; swiped = true; } return; }
-  if (G === RIDE){ if (held && e.pointerId === movePtr) RIDE.point(e.clientX, e.clientY); return; }
   if (e.pointerType === "mouse" || (held && e.pointerId === movePtr)){
     if (Math.hypot(e.clientX - downX, e.clientY - downY) > 12) swiped = true;
     // Night Flight on a phone: drag anywhere, the saucer follows the finger's moves (so a tap to shoot doesn't move it)
@@ -1225,20 +1090,17 @@ addEventListener("pointerup", e => {
   if (held && live()){
     if (G === ROOF && tap) ROOF.jump();
     if (G === SKY && tap && e.pointerType === "touch") S.fireQ += 4;       // a tap: a burst of four
-    if (zirkaTurn() && tap) KING.jump();
-    if (G === RIDE) RIDE.press(false); }
+    if (zirkaTurn() && tap) KING.jump(); }
   held = false; movePtr = null; });
-addEventListener("pointercancel", e => { touches.delete(e.pointerId); held = false; movePtr = null; S && (S.fireHeld = false); if (G === RIDE) RIDE.press(false); });
+addEventListener("pointercancel", e => { touches.delete(e.pointerId); held = false; movePtr = null; S && (S.fireHeld = false); });
 const KEYMAP = { ArrowLeft:"left", a:"left", ArrowRight:"right", d:"right", ArrowUp:"up", w:"up", ArrowDown:"down", s:"down" };
 addEventListener("keydown", e => { const k = KEYMAP[e.key]; if (veilUp() || !live()) return;
   if (G === ROOF){ if (e.repeat) return; if (k === "left" || k === "right"){ e.preventDefault(); ROOF.lane(k === "left" ? -1 : 1); } if (k === "up" || e.key === " "){ e.preventDefault(); ROOF.jump(); } return; }
-  if (e.key === " "){ e.preventDefault(); if (G === SKY) S.fireHeld = true; else if (G === RIDE){ if (!e.repeat) RIDE.press(true); } else if (zirkaTurn() && !e.repeat) KING.jump(); return; }
-  if (G === RIDE && k === "up"){ e.preventDefault(); if (!e.repeat) RIDE.press(true); return; }
+  if (e.key === " "){ e.preventDefault(); if (G === SKY) S.fireHeld = true; else if (zirkaTurn() && !e.repeat) KING.jump(); return; }
   if (zirkaTurn() && k === "up"){ e.preventDefault(); if (!e.repeat) KING.jump(); return; }
   if (k){ e.preventDefault(); keys[k] = true; } });
 addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k) keys[k] = false;
-  if (e.key === " " && S){ S.fireHeld = false; if (G === RIDE) RIDE.press(false); }
-  if (k === "up" && G === RIDE) RIDE.press(false); });
+  if (e.key === " " && S) S.fireHeld = false; });
 
 $("go").addEventListener("click", () => {
   reset();
@@ -1249,21 +1111,19 @@ $("go").addEventListener("click", () => {
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
   S.started = true; S.t = 0;
   if (HUB) toHub({ type:"javeda:start", level:CFG.id });
-  say(CFG.remix ? "REMIX" : CFG.endless ? "ENDLESS" : G.tag, CFG.remix ? "all four, till the hearts run out" : CFG.endless ? G.tag.toLowerCase() + " - no end" : G.hint, 3, CFG.endless ? "g" : "b");
+  say(CFG.remix ? "REMIX" : CFG.endless ? "ENDLESS" : G.tag, CFG.remix ? "all three, till the hearts run out" : CFG.endless ? G.tag.toLowerCase() + " - no end" : G.hint, 3, CFG.endless ? "g" : "b");
 });
 $("by").textContent = "LAZY JO × ZIRKA · " + CFG.by;
 $("title").textContent = CFG.title.toUpperCase() + (ENDLESS && !REMIX ? " ∞" : "");
-$("intro").innerHTML = REMIX ? "Night Flight, Rooftop Run, The King, Jump Ride - 8 bars each, round and round, no end. Every lap is harder, and a finished lap gives you a heart back." : {
+$("intro").innerHTML = REMIX ? "Night Flight, Rooftop Run, The King - 8 bars each, round and round, no end. Every lap is harder, and a finished lap gives you a heart back." : {
   1: "District 9, the night the monsters of forgetting came. Fly Jo's saucer between the neon towers and light them up.",
   2: "Zirka's bike over the rooftops of District 9 - jump the gaps on the beat, and Zirka's gun takes care of what dives in.",
-  3: "The King of Forgetting hangs over the city. Bring him down before the song ends. Gadgets float up for Jo - and the wolf token hands the fight to Zirka on the roof below.",
-  4: "The original JAVEDA idea: Zirka's bike over the roofs of District 9, side on. Jump the gaps and the monsters - Zirka's gun takes care of the rest."
+  3: "The King of Forgetting hangs over the city. Bring him down before the song ends. Gadgets float up for Jo - and the wolf token hands the fight to Zirka on the roof below."
 }[PART] + (ENDLESS && !REMIX ? " <b>Endless:</b> no end - harder every 8 bars, a heart back every 24." : "");
 $("how").innerHTML = REMIX ? "Every part's rules in turn, one score, 5 hearts. Your best goes on the <b>Level 9 Remix</b> scoreboard." : {
   1: "<b>Drag</b> to fly. <b>Shoot:</b> hold <b>space</b> on a computer - on a phone, <b>tap</b> for a burst, or hold a second finger down. Watchers shoot on 2 and 4, brutes take a beating. Grab the gold crystal for the <b>Lightning Storm</b>. 5 hearts.",
   2: "<b>Swipe</b> left/right for a lane, <b>tap</b> to jump. The gaps open on the 1 of a bar. Pink marks are where monsters dive - Zirka shoots them, or get out of the way. 5 hearts.",
-  3: "<b>Drag</b> to fly - Jo fires on his own. Every orb is marked with a ring where it lands - don't be there. His core opens in the hooks: <b>fire into it</b>. Fly into the gadgets: <b>triple</b> lightning, <b>rapid</b> fire, a <b>heart</b>, and the <b>Zirka</b> token - 8 bars on the roof below: drag to ride, tap to jump the orbs, Zirka's big shots go for the core. 5 hearts" + (ENDLESS ? "; every king that falls, a stronger one rises." : "."),
-  4: "<b>Tap</b> or <b>space</b> to jump, <b>hold</b> for higher. <b>Drag</b> left/right (or the arrows) to ride ahead or drop back. Gaps open on the 1 of a bar; bolts arc over them. The purple crystal is the <b>Wolf Rush</b>. 5 hearts."
+  3: "<b>Drag</b> to fly - Jo fires on his own. Every orb is marked with a ring where it lands - don't be there. His core opens in the hooks: <b>fire into it</b>. Fly into the gadgets: <b>triple</b> lightning, <b>rapid</b> fire, a <b>heart</b>, and the <b>Zirka</b> token - 8 bars on the roof below: drag to ride, tap to jump the orbs, Zirka's big shots go for the core. 5 hearts" + (ENDLESS ? "; every king that falls, a stronger one rises." : ".")
 }[PART];
 if (!HUB){
   $("parts").classList.remove("hid");

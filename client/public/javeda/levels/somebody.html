@@ -829,15 +829,15 @@ function moveOrbs(dt){
   }
 }
 
-/* ---- Zirka: a light on the far dunes, then she rides in and circles the
-   saucer, running down anything on the ground and shooting what she can reach.
+/* ---- Zirka: a light on the far dunes, then he rides in and circles the
+   saucer, running down anything on the ground and shooting what he can reach.
    The flyers are still yours. ---- */
 function updateZirka(dt){
   const Z = S.zirka;
   if (S.t < T.zirka - 3.2) return;
   if (!Z.on){ Z.on = true; bike.visible = true; headGlow.visible = true; sfx.rev(); }
   const arrive = S.t - T.zirka;
-  // the centre she circles drifts after the saucer, so she stays close but not on top
+  // the centre he circles drifts after the saucer, so he stays close but not on top
   Z.cx += (S.x - Z.cx) * Math.min(1, dt * 1.6); Z.cz += (S.z - Z.cz) * Math.min(1, dt * 1.6);
   let tx, tz;
   if (arrive < 0){                      // waiting on the horizon, lamp growing
@@ -853,7 +853,7 @@ function updateZirka(dt){
   if (d > .05 && sp){ const want = Math.atan2(-dz, dx); let dh = want - Z.heading;
     dh = Math.atan2(Math.sin(dh), Math.cos(dh)); Z.heading += dh * Math.min(1, dt*8); Z.lean = -dh * .9; }
   if (arrive < 0) return;
-  // she runs down whatever is on the ground in her way
+  // he runs down whatever is on the ground in his way
   for (const e of enemies){
     if (e.userData.dying >= 0 || e.userData.type === "swarm") continue;
     if (Math.hypot(e.position.x - Z.x, e.position.z - Z.z) < 1.25) kill(e, "zirka");
@@ -913,7 +913,7 @@ function render(dt){
     ux = e.x + (REST_UFO.x - e.x)*u; uz = e.z + (REST_UFO.z - e.z)*u;
     uy = FLY_Y + (REST_UFO.y - FLY_Y)*u + Math.sin(t*2.1)*.04*(1 - u);
     bx = e.bx + (REST_BIKE.x - e.bx)*u; bz = e.bz + (REST_BIKE.z - e.bz)*u;
-    // she pulls round to face him
+    // Zirka pulls round to face Jo
     let dh = 0 - e.bh; dh = Math.atan2(Math.sin(dh), Math.cos(dh)); bh = e.bh + dh*u; lean = 0;
     camRig(e.x, e.z);
     const c = smooth(clamp01((S.end - .6) / 3.4));
@@ -950,7 +950,7 @@ function render(dt){
     const far = S.end < 0 && arrive < 0;
     bike.userData.light.intensity = far ? 0 : 2.2;
     headCone.material.opacity = far ? 0 : (S.end >= 0 ? .16 : .09) + Math.sin(t*9)*.012;
-    // on the horizon she is only a light: a glow that grows until she rides in
+    // on the horizon he is only a light: a glow that grows until he rides in
     headGlow.visible = far;
     if (far){
       const g = clamp01((arrive + 3.2) / 3);
@@ -1074,7 +1074,7 @@ function finish(){
     ps[0].innerHTML = "Down at <b>" + fmtT(S.t) + "</b> of the song &middot; <b>" + S.kills + "</b> taken out &middot; score " + score();
     ps[1].innerHTML = S.t < T.zirka
       ? "Somebody is on the way. <b>Hold on longer.</b>"
-      : "She came for you. <b class=\"z\">Don't leave her out there alone.</b> <b>Go again.</b>";
+      : "He came for you. <b class=\"z\">Don't leave him out there alone.</b> <b>Go again.</b>";
     return;
   }
   v.querySelector(".by").textContent = "LEVEL 2 COMPLETE";

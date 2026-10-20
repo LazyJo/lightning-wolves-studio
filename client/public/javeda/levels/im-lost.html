@@ -281,7 +281,7 @@ function buildBike(){
   helm.position.set(.08, 1.66, 0); body.add(helm);
   const visor = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8, 0, Math.PI), new THREE.MeshBasicMaterial({ color:0xf5d0fe }));
   visor.rotation.y = Math.PI/2; visor.position.set(.17, 1.68, 0); body.add(visor);
-  // from behind (which is how you see her all game) she needs width: shoulders,
+  // from behind (which is how you see him all game) he needs width: shoulders,
   // arms out to the bars, and a wide tail light
   const shoulders = new THREE.Mesh(new THREE.BoxGeometry(.24, .26, .66), new THREE.MeshStandardMaterial({ color:0x6d28d9, roughness:.6 }));
   shoulders.position.set(-.02, 1.5, 0); shoulders.rotation.z = -.35; body.add(shoulders);

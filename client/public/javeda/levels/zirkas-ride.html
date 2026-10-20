@@ -121,8 +121,8 @@ body.gold #endl{color:#d8b4fe; border-color:#8b5cf699; background:#8b5cf614}
    Level 2, Part 2 of JAVEDA: SOMEBODY from the other side. In Part 1 Jo holds
    the Dust Sea alone until a purple headlight cuts the dust at 1:12. This is
    that headlight: Zirka on the purple bike, riding the canyon flat out towards
-   the blue beam on the horizon, and it ends where Part 1's rescue begins - she
-   clears the last dune and he is down there, surrounded.
+   the blue beam on the horizon, and it ends where Part 1's rescue begins - Zirka
+   clears the last dune and Jo is down there, surrounded.
 
    It runs on Level 1's road (the same lanes, the same three obstacles in the
    same colours, the same hearts), so a player who has learned I'M LOST already
@@ -210,7 +210,7 @@ let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spark;
 let beacon, finale, sky;                // Jo's light on the horizon, and the basin he is down in
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const walls = [], lamps = [], pickups = [];
-const strips = [], loops = [];         // endless: road that follows her, ruts and rocks that come round again
+const strips = [], loops = [];         // endless: road that follows him, ruts and rocks that come round again
 const cab = document.getElementById("cab");
 
 /* ---- the saucer, built from primitives: no model file, nothing to download ---- */
@@ -270,7 +270,7 @@ function buildBike(){
   helm.position.set(.08, 1.66, 0); body.add(helm);
   const visor = new THREE.Mesh(new THREE.SphereGeometry(.13, 10, 8, 0, Math.PI), new THREE.MeshBasicMaterial({ color:0xf5d0fe }));
   visor.rotation.y = Math.PI/2; visor.position.set(.17, 1.68, 0); body.add(visor);
-  // from behind (which is how you see her all game) she needs width: shoulders,
+  // from behind (which is how you see him all game) he needs width: shoulders,
   // arms out to the bars, and a wide tail light
   const shoulders = new THREE.Mesh(new THREE.BoxGeometry(.24, .26, .66), new THREE.MeshStandardMaterial({ color:0x6d28d9, roughness:.6 }));
   shoulders.position.set(-.02, 1.5, 0); shoulders.rotation.z = -.35; body.add(shoulders);
@@ -363,7 +363,7 @@ function buildWalls(){
    frame-perfect window, which is not fair. So there is always a way through. */
 function buildRow(i, e){
   rowN = i;
-  const z = -(i * 11 + 24), k = i + 51.3;       // + 51.3: her road, not his
+  const z = -(i * 11 + 24), k = i + 51.3;       // + 51.3: Zirka's road, not Jo's
   const r = rnd(k * 3.7);
   let gap = Math.floor(rnd(k * 9.1) * 3) - 1;
   if (gap === last && i > 1) gap = gap === 1 ? -1 : gap + 1;
@@ -500,7 +500,7 @@ function boot(){
   }
   strips.concat(loops).forEach(m => m.userData.z0 = m.position.z);
 
-  // Jo's light: a blue column on the horizon that she rides at the whole way
+  // Jo's light: a blue column on the horizon that he rides at the whole way
   beacon = new THREE.Group();
   const col = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 2.6, 160, 16, 1, true), glow(C.beam, .32));
   col.material.fog = false; col.position.y = 84; beacon.add(col);
@@ -511,7 +511,7 @@ function boot(){
   beacon.userData = { halo };
   scene.add(beacon);
 
-  // "ufo" is the player, as in Level 1 - here it is her bike
+  // "ufo" is the player, as in Level 1 - here it is his bike
   ufo = new THREE.Group();
   hullGrp = buildBike(); ufo.add(hullGrp);
   scene.add(ufo);
@@ -557,7 +557,7 @@ function reset(){
 }
 reset();
 
-// her ride is the first half of SOMEBODY: Part 1 hears her arrive at 1:12
+// his ride is the first half of SOMEBODY: Part 1 hears him arrive at 1:12
 const song = new Audio("lvl2.mp3"); song.preload = "auto";
 // endless: round and round in whole bars (with song.loop as the fallback)
 if (ENDLESS) song.loop = true;
@@ -759,9 +759,9 @@ function update(dt){
 
 function render(dt){
   if (S.end >= 0){ renderEnd(dt); return; }
-  const y = S.y;                        // she is on the ground; S.y is the jump
+  const y = S.y;                        // he is on the ground; S.y is the jump
   ufo.position.set(S.laneX*LANE, y, -S.dist);
-  // lean into the swerve, nose up on a jump, tumble when she goes down
+  // lean into the swerve, nose up on a jump, tumble when he goes down
   const bank = (S.lane - S.laneX) * -0.9;
   ufo.rotation.z = bank + (S.crash >= 0 ? Math.sin(S.spin*1.7) * S.tilt : 0);
   ufo.rotation.x = S.crash >= 0 ? S.tilt * .7 : (S.up ? Math.min(.35, S.vy*.05) : 0);
@@ -790,8 +790,8 @@ function render(dt){
   }
   for (const b of lamps) b.visible = Math.abs(b.position.z + S.dist) < 90;
   if (ENDLESS){
-    // the road is all one colour, so it can simply ride along with her; the ruts
-    // and canyon rocks she has passed go round to the far end
+    // the road is all one colour, so it can simply ride along with him; the ruts
+    // and canyon rocks he has passed go round to the far end
     for (const m of strips) m.position.z = m.userData.z0 - S.dist;
     for (const m of loops) while (m.position.z > -S.dist + 30) m.position.z -= m.userData.loop;
     document.getElementById("ml").textContent = "ENDLESS \u00b7 " + mmss(S.over >= 0 ? S.over : S.t);
@@ -806,7 +806,7 @@ function render(dt){
 }
 
 /* ================= THE ENDING =================
-   At 1100 m the canyon gives out onto a dune. She takes the crest flat out,
+   At 1100 m the canyon gives out onto a dune. He takes the crest flat out,
    lands in the basin below, and there he is: the saucer low in its own beam,
    ringed by the things from Part 1. The headlight cuts the dust - which is the
    moment Part 1 shows from his side at 1:12. About eight seconds, worked out
@@ -855,7 +855,7 @@ function makeWatcher(){
 }
 function buildFinale(){
   const g = new THREE.Group(), z0 = FIN.z;
-  // the crest she jumps from, and the basin floor
+  // the crest he jumps from, and the basin floor
   const crest = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 10, 0, Math.PI*2, 0, Math.PI/2),
     new THREE.MeshStandardMaterial({ color:C.deep, roughness:1, flatShading:true }));
   crest.scale.set(9, .9, 4); crest.position.set(0, -.05, z0 + FIN.crest + 2); g.add(crest);
@@ -883,9 +883,9 @@ function resetFinale(){
   finale.visible = false;
   for (const m of finale.userData.mons) m.rotation.y = m.userData.a0;
 }
-// her road towards his light: it starts on the horizon and ends right over him
+// Zirka's road towards Jo's light: it starts on the horizon and ends right over Jo
 function updateBeacon(){
-  // endless: his light stays out on the horizon, however far she rides
+  // endless: Jo's light stays out on the horizon, however far Zirka rides
   const p = ENDLESS ? 0 : clamp01(S.dist / (CP_TOTAL * CP_EVERY));
   const D = -FIN.jo + 330 * Math.pow(1 - p, 1.4);
   beacon.position.set(0, 0, -S.dist - D);
@@ -903,7 +903,7 @@ function animateFinale(t, turned){
   for (const m of F.mons){
     m.userData.wob += .016*5;
     m.userData.legs.forEach((l, j) => l.rotation.x = Math.sin(m.userData.wob*2.2 + j*1.7)*.5);
-    if (turned){ // they turn on her
+    if (turned){ // they turn on him
       const want = Math.atan2(-(ufo.position.x - m.position.x), -(ufo.position.z - m.position.z));
       let d = want - m.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); m.rotation.y += d*.08;
     }

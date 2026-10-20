@@ -65,7 +65,8 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl8c', 8, 'MY SHADOW',  'lvl8b', 0, 30000, 600, 75, 400, 21),     -- Level 8 Part 3: ~24k
   ('lvl9', 9, 'OUBLIE-MOI',  'lvl8', 0, 260000, 6000, 75, 500, 22),    -- rebuilt in 3D: Night Flight, ~220k with every heart
   ('lvl9b', 9, 'ROOFTOP RUN', 'lvl9', 0, 120000, 3000, 75, 400, 23),   -- Level 9 Part 2: ~92k
-  ('lvl9c', 9, 'THE KING',   'lvl9b', 0, 80000, 1800, 100, 600, 24)    -- Level 9 Part 3: the King falls, ~57k with the gadgets
+  ('lvl9c', 9, 'THE KING',   'lvl9b', 0, 80000, 1800, 100, 600, 24),   -- Level 9 Part 3: the King falls, ~57k with the gadgets
+  ('lvl10', 10, 'GOING CRAZY', 'lvl9', 0, 160000, 2500, 75, 500, 25)  -- Freefall down the towers: ~92k on the stand-in beat (re-check with the song)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -107,6 +108,7 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl9bx', 9, 'ROOFTOP RUN',  'lvl9c', 0, 50000000, 6000,  0, 0, 128, true, 1800),  -- ~900/s
   ('lvl9cx', 9, 'THE KING',     'lvl9c', 0, 50000000, 3000,  0, 0, 129, true, 900),   -- ~430/s
   ('lvl9r',  9, 'REMIX',        'lvl9c', 0, 50000000, 5000,  0, 0, 131, true, 1500),  -- all three, ~730/s
+  ('lvl10x', 10, 'FREEFALL',    'lvl10', 0, 50000000, 6000,  0, 0, 132, true, 1200),  -- ~600/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
   ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 140, true, 40)
@@ -270,7 +272,8 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl8b' THEN g.best_score END), 0)::INT AS lvl8b_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl8c' THEN g.best_score END), 0)::INT AS lvl8c_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl9b' THEN g.best_score END), 0)::INT AS lvl9b_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl9c' THEN g.best_score END), 0)::INT AS lvl9c_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl9c' THEN g.best_score END), 0)::INT AS lvl9c_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl10' THEN g.best_score END), 0)::INT AS lvl10_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

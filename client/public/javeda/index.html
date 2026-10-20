@@ -112,6 +112,22 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .tabs.gold button[aria-selected="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .btn.gold{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .btn.gold:hover{background:linear-gradient(180deg,#fff0b8,#f0b42a)}
+/* JUMPRIDE: the ultimate one, a game of its own */
+.ult{position:relative; overflow:hidden; border-radius:16px; border:1.5px solid #ff3d8b66; padding:22px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:end;
+  background:radial-gradient(90% 120% at 100% 0%,#ff3d8b40,transparent 60%),radial-gradient(70% 100% at 0% 100%,#7b2ff74d,transparent 60%),linear-gradient(160deg,#1a0b2e,#0b0416);
+  box-shadow:0 0 30px #7b2ff733}
+.ult::after{content:""; position:absolute; inset:0; pointer-events:none; opacity:.35;
+  background:repeating-linear-gradient(90deg,transparent 0 46px,#38d9ff0f 46px 48px),repeating-linear-gradient(0deg,transparent 0 30px,#ffd60a0a 30px 31px)}
+.ult > *{position:relative; z-index:1; min-width:0}
+.ult .no{font:700 12px/1 var(--cond); letter-spacing:.26em; color:#c9b3ff; text-transform:uppercase}
+.ult .ut{display:block; font:400 clamp(38px,8vw,64px)/.95 var(--display); color:#fff; margin:8px 0 10px; text-shadow:0 0 18px #ff3d8b, 0 0 40px #7b2ff7}
+.ult .ut i{font-style:normal; color:var(--gold); text-shadow:0 0 18px #ffb000}
+.ult .ds{font-size:14.5px; color:var(--dim); margin:0; max-width:62ch}
+.ult .uf{display:flex; flex-direction:column; align-items:flex-end; gap:8px}
+.ult .best{font:700 15px/1.2 var(--cond); letter-spacing:.08em; color:var(--gold)}
+.ult .tag{font:700 12px/1.1 var(--cond); letter-spacing:.12em; text-transform:uppercase; padding:6px 9px; border-radius:4px; background:#ffffff12; color:var(--dim)}
+.ult.locked .ut{opacity:.6}
+@media (max-width:640px){ .ult{grid-template-columns:minmax(0,1fr); padding:16px} .ult .uf{flex-direction:row; justify-content:space-between; align-items:center} }
 .song.soon{display:flex; align-items:center; gap:14px; border-style:dashed; background:transparent; padding:14px 18px}
 .song.soon .tr{grid-row:auto; font-size:34px}
 @media (max-width:760px){
@@ -204,6 +220,11 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
   <section aria-labelledby="hLv">
     <h2 id="hLv">Levels</h2>
     <div class="levels" id="levels"></div>
+  </section>
+
+  <section aria-labelledby="hUlt">
+    <h2 id="hUlt">The ultimate</h2>
+    <div id="ultimate"></div>
   </section>
 
   <section aria-labelledby="hEn">
@@ -390,9 +411,12 @@ const ENDLESS = [
   ...endlessOf(8, "myself.html", "lvl8c", [["lvl8", "Petal Rain"], ["lvl8b", "The Stem"], ["lvl8c", "My Shadow"]], true),
   ...endlessOf(9, "oublie-moi.html", "lvl9c", [["lvl9", "Night Flight"], ["lvl9b", "Rooftop Run"], ["lvl9c", "The King"]], true)
 ];
-const ALL = [...LEVELS, ...ENDLESS];
+// JUMPRIDE: not a level and not a part - the ultimate one, its own game. Scored like an endless
+// (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.
+const ULT = { id:"jumpride", num:9, endless:true, ultimate:true, title:"JUMPRIDE", requires:"lvl9c", src:"levels/jumpride.html?hub=1" };
+const ALL = [...LEVELS, ...ENDLESS, ULT];
 const levelById = id => ALL.find(l => l.id === id);
-const lvName = l => "Level " + l.num + (l.remix ? " Remix" : l.endless ? (LEVELS.filter(m => m.num === l.num).length > 1 ? " Part " + l.part : "") + " ∞" : l.part ? " Part " + l.part : "");
+const lvName = l => l.ultimate ? l.title : "Level " + l.num + (l.remix ? " Remix" : l.endless ? (LEVELS.filter(m => m.num === l.num).length > 1 ? " Part " + l.part : "") + " ∞" : l.part ? " Part " + l.part : "");
 // "Next level" always means the next song: from a Part 2, the song after its Part 1
 function nextMain(id){
   const lv = levelById(id); if (!lv) return null;
@@ -437,6 +461,7 @@ function isOpen(lv){
 }
 // what a locked card says it's waiting for
 function needText(lv){
+  if (lv.ultimate) return "Clear Level 9 Part 3 to open";
   const need = levelById(lv.requires), p = progress[lv.requires];
   const where = need.num === lv.num ? "Part " + (need.part || 1) : "Level " + need.num;
   if (lv.needScore && p && p.cleared) return "Score " + fmt(lv.needScore) + " in " + where + " to open";
@@ -537,16 +562,27 @@ function renderEndless(){
       '<div class="parts' + (list.filter(l => !l.remix).length > 3 ? ' four' : '') + '">' + list.map(endlessTile).join("") + '</div></article>';
   }).join("");
 }
+function renderUltimate(){
+  const p = progress[ULT.id] || {}, open = isOpen(ULT);
+  $("ultimate").innerHTML = '<article class="ult' + (open ? '' : ' locked') + '">' +
+    '<div><span class="no">Lazy Jo &times; Zirka &middot; no end</span><span class="ut">JUMP<i>RIDE</i></span>' +
+    '<p class="ds">Pick Lazy Jo or Zirka, strap on the jetpack and run the roofs of District 9. Hold to fly; dodge the zappers, the missiles and the lasers; ' +
+    'grab a box and ride the Wolf Bike, the Lightning Mech, the Gravity Boots or the Saucer. Wolf Coins buy 21 skins, three missions at a time, the album on the radio.</p></div>' +
+    '<div class="uf">' + (open
+      ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play JUMPRIDE</button>'
+      : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
+}
 const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
-  $("etabs").innerHTML = '<span class="lab">Endless &#8734;</span>' + ENDLESS.map(l => '<button role="tab" type="button" data-tab="' + l.id + '" aria-selected="' + (l.id === boardTab) + '">' + esc(lvName(l)) + '</button>').join("");
+  $("etabs").innerHTML = '<span class="lab">Ultimate</span><button role="tab" type="button" data-tab="' + ULT.id + '" aria-selected="' + (ULT.id === boardTab) + '">' + ULT.title + '</button>' +
+    '<span class="lab">Endless &#8734;</span>' + ENDLESS.map(l => '<button role="tab" type="button" data-tab="' + l.id + '" aria-selected="' + (l.id === boardTab) + '">' + esc(lvName(l)) + '</button>').join("");
 }
 async function renderBoard(){
   const el = $("board");
   if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
   // an endless board reads the per-level scores; the rest read the one-row-per-player board
-  const end = ENDLESS.some(l => l.id === boardTab);
+  const end = ENDLESS.some(l => l.id === boardTab) || boardTab === ULT.id;
   const col = boardTab === "points" ? "points" : end ? "best_score" : boardTab + "_best";
   const { data, error } = end
     ? await sb.from("javeda_scores").select("username, avatar, best_score").eq("level", boardTab).order("best_score", { ascending:false }).limit(25)
@@ -558,10 +594,10 @@ async function renderBoard(){
   el.innerHTML = '<ol>' + data.map((r, i) =>
     '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '"><span class="rk">' + (i + 1) + '</span>' +
     '<img src="' + pic(r.avatar) + '" alt=""><span class="un">' + esc(r.username) + '</span>' +
-    '<span class="val">' + fmt(r[col]) + (boardTab === "points" ? ' pts' : '') + '</span></li>').join("") + '</ol>' +
+    '<span class="val">' + fmt(r[col]) + (boardTab === "points" ? ' pts' : boardTab === ULT.id ? ' m' : '') + '</span></li>').join("") + '</ol>' +
     (signedIn() ? '' : '<p class="empty" style="border-top:1px solid #ffffff0d">Log in to get your name on here.</p>');
 }
-function renderAll(){ renderMe(); renderLevels(); renderEndless(); renderTabs(); renderBoard(); }
+function renderAll(){ renderMe(); renderLevels(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); }
 
 /* ---- profile sheet ---- */
 let pickAv = "saucer";
@@ -714,10 +750,11 @@ function play(id){
 function stopPlay(){
   $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null;
   document.body.style.overflow = "";
-  renderLevels(); renderEndless();
+  renderLevels(); renderUltimate(); renderEndless();
 }
 $("levels").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
 for (const id of ["tabs", "etabs"]) $(id).addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b){ boardTab = b.dataset.tab; renderTabs(); renderBoard(); } });
+$("ultimate").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
 $("endless").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
 $("playClose").onclick = stopPlay;
 
@@ -735,6 +772,7 @@ async function saveRun(r){
   const opened = LEVELS.filter(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after)).map(lvName);
   if (ENDLESS.some(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after))) opened.push("Level " + lv.num + " Endless &#8734;");
   if (r.cleared && !was.cleared && lv.id === "lvl2b") opened.push("Zirka's bike in Level 1");
+  if (ULT.requires === lv.id && !opensWith(ULT, progress) && opensWith(ULT, after)) opened.push("JUMPRIDE");
   const unlocks = opened.length ? opened.join(" and ") + (opened.length > 1 ? " are" : " is") + " open" : "";
   if (!signedIn()){
     const g = guest.progress[lv.id] || { cleared:false, best:0, metres:0, runs:0 };
@@ -761,7 +799,7 @@ async function saveEndless(lv, r){
   if (!signedIn()){
     const g = guest.progress[lv.id] || { cleared:true, best:0, metres:0, runs:0 };
     g.best = Math.max(g.best, score); g.runs++; guest.progress[lv.id] = g; saveGuest(); progress = { ...guest.progress };
-    toast((score > was ? "<b>New best!</b> " : "Best " + fmt(was) + ". ") + "<b>Log in</b> to put it on the scoreboard.", 5000);
+    toast((score > was ? "<b>New best!</b> " : "Best " + fmt(was) + (lv.ultimate ? " m" : "") + ". ") + "<b>Log in</b> to put it on the scoreboard.", 5000);
     return;
   }
   const started = runStart ? await runStart : null; runStart = null;
@@ -776,8 +814,8 @@ async function saveEndless(lv, r){
   player = d.player;
   progress[lv.id] = { cleared:true, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
   renderMe(); renderBoard();
-  toast(d.new_best ? "<b>New best! " + fmt(d.score) + "</b>" + (d.earned ? " · +" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") : "")
-                   : "Your best is still <b>" + fmt(d.progress.best_score) + "</b> · beat it for points", 4500);
+  toast(d.new_best ? "<b>New best! " + fmt(d.score) + (lv.ultimate ? " m" : "") + "</b>" + (d.earned ? " · +" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") : "")
+                   : "Your best is still <b>" + fmt(d.progress.best_score) + (lv.ultimate ? " m" : "") + "</b> · beat it for points", 4500);
 }
 addEventListener("message", e => {
   // only the level page we opened, from this site

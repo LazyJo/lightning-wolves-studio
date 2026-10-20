@@ -106,7 +106,10 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl9x',  9, 'NIGHT FLIGHT', 'lvl9c', 0, 50000000, 10000, 0, 0, 127, true, 3200),  -- ~1,500/s
   ('lvl9bx', 9, 'ROOFTOP RUN',  'lvl9c', 0, 50000000, 6000,  0, 0, 128, true, 1800),  -- ~900/s
   ('lvl9cx', 9, 'THE KING',     'lvl9c', 0, 50000000, 3000,  0, 0, 129, true, 900),   -- ~430/s
-  ('lvl9r',  9, 'REMIX',        'lvl9c', 0, 50000000, 5000,  0, 0, 131, true, 1500)   -- all three, ~730/s
+  ('lvl9r',  9, 'REMIX',        'lvl9c', 0, 50000000, 5000,  0, 0, 131, true, 1500),  -- all three, ~730/s
+  -- JUMPRIDE, the ultimate one: its own game, open after Level 9 Part 3. Score = metres
+  -- (8 to 24 m/s, 27 on the bike); 50 m past your best = a point
+  ('jumpride', 9, 'JUMPRIDE',   'lvl9c', 0, 50000000, 50,    0, 0, 140, true, 40)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,

@@ -361,9 +361,15 @@ let LEVELS = [
   { id:"lvl8c", num:8, part:3, title:"MY SHADOW", requires:"lvl8b", src:"levels/myself.html?hub=1&part=3",
     ds:"Part 3. Your shadow flies exactly where you flew a few seconds ago. Gather the petals and stay ahead of yourself.",
     art:"radial-gradient(120% 90% at 80% 0%, #a060ff55, transparent 60%), linear-gradient(160deg,#2a0e1e,#08040a)" },
-  { id:"lvl9", num:9, title:"OUBLIE-MOI", requires:"lvl2", src:"levels/javeda.html?hub=1&level=lvl9",
-    ds:"District 9 with Zirka. Monsters over the city. Remind them who the Wolves are.",
-    art:"radial-gradient(120% 90% at 80% 0%, #ff3d8b55, transparent 60%), linear-gradient(160deg,#2a1450,#0b0416)" }
+  { id:"lvl9", num:9, title:"OUBLIE-MOI", requires:"lvl8", src:"levels/oublie-moi.html?hub=1",
+    ds:"District 9 at night with Zirka. Night Flight: Jo's saucer between the neon towers, lightning on the beat, the monsters of forgetting.",
+    art:"radial-gradient(120% 90% at 80% 0%, #ff3d8b55, transparent 60%), linear-gradient(160deg,#2a1450,#0b0416)" },
+  { id:"lvl9b", num:9, part:2, title:"ROOFTOP RUN", requires:"lvl9", src:"levels/oublie-moi.html?hub=1&part=2",
+    ds:"Part 2. Zirka's bike over the roofs: jump the gaps on the 1, swerve the rest, and her gun takes the monsters that dive at her.",
+    art:"radial-gradient(120% 90% at 80% 0%, #c77dff55, transparent 60%), linear-gradient(160deg,#241040,#08040f)" },
+  { id:"lvl9c", num:9, part:3, title:"THE KING", requires:"lvl9b", src:"levels/oublie-moi.html?hub=1&part=3",
+    ds:"Part 3. The King of Forgetting over District 9. Dodge his orbs, fire into his core when it opens, bring him down before the song ends.",
+    art:"radial-gradient(120% 90% at 80% 0%, #ff3d8b77, transparent 60%), linear-gradient(160deg,#300c30,#06020a)" }
 ];
 // The endless list: each part of a song with no end (id + "x"), and the song's remix,
 // all its parts in turn (lvlNr). All of a song's endless open once all its parts are cleared.
@@ -380,7 +386,8 @@ const ENDLESS = [
   ...endlessOf(5, "feel-like-that.html", "lvl5c", [["lvl5", "Feel Like That"], ["lvl5b", "Moth Night"], ["lvl5c", "Stay Lit"]], true),
   ...endlessOf(6, "no-rest-no-work.html", "lvl6c", [["lvl6", "Island Hopper"], ["lvl6b", "Crab Night"], ["lvl6c", "Surf the Sunset"]], true),
   ...endlessOf(7, "journey.html", "lvl7c", [["lvl7", "Journey"], ["lvl7b", "Meteor Shower"], ["lvl7c", "The Long Way Home"]], true),
-  ...endlessOf(8, "myself.html", "lvl8c", [["lvl8", "Petal Rain"], ["lvl8b", "The Stem"], ["lvl8c", "My Shadow"]], true)
+  ...endlessOf(8, "myself.html", "lvl8c", [["lvl8", "Petal Rain"], ["lvl8b", "The Stem"], ["lvl8c", "My Shadow"]], true),
+  ...endlessOf(9, "oublie-moi.html", "lvl9c", [["lvl9", "Night Flight"], ["lvl9b", "Rooftop Run"], ["lvl9c", "The King"]], true)
 ];
 const ALL = [...LEVELS, ...ENDLESS];
 const levelById = id => ALL.find(l => l.id === id);
@@ -529,7 +536,7 @@ function renderEndless(){
       '<div class="parts">' + list.map(endlessTile).join("") + '</div></article>';
   }).join("");
 }
-const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"]];
+const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
   $("etabs").innerHTML = '<span class="lab">Endless &#8734;</span>' + ENDLESS.map(l => '<button role="tab" type="button" data-tab="' + l.id + '" aria-selected="' + (l.id === boardTab) + '">' + esc(lvName(l)) + '</button>').join("");
@@ -542,7 +549,7 @@ async function renderBoard(){
   const col = boardTab === "points" ? "points" : end ? "best_score" : boardTab + "_best";
   const { data, error } = end
     ? await sb.from("javeda_scores").select("username, avatar, best_score").eq("level", boardTab).order("best_score", { ascending:false }).limit(25)
-    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best")
+    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }

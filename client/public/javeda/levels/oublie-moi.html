@@ -1,0 +1,1028 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>OUBLIE-MOI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+html,body{height:100%}
+body{margin:0; background:#0b0416; color:#f3ecff; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#38d9ff; line-height:1; text-shadow:0 0 12px #38d9ff88}
+#ml{font-size:11px; letter-spacing:.18em; color:#a893c9; margin-top:3px}
+#hearts{font-size:18px; letter-spacing:.1em; margin-top:7px; color:#ff3d8b; text-shadow:0 0 10px #ff3d8b88; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ffffff1f; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#7b2ff7,#ff3d8b)}
+.bl{font-size:11px; letter-spacing:.18em; color:#a893c9; text-align:right}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#ffd60a; margin-top:8px; text-align:right; text-shadow:0 0 10px #ffd60a66}
+#boss{position:fixed; left:50%; top:16px; transform:translateX(-50%); width:min(46vw,340px); pointer-events:none; z-index:3; text-align:center; transition:opacity .3s}
+#boss.off{opacity:0}
+#boss .n{font-family:Bungee,sans-serif; font-size:13px; letter-spacing:.12em; color:#ff9ad0; text-shadow:0 0 10px #ff3d8b}
+#boss .hp{height:9px; border-radius:5px; background:#ffffff1a; border:1px solid #ff3d8b66; overflow:hidden; margin-top:4px}
+#boss .hp i{display:block; height:100%; width:100%; background:linear-gradient(90deg,#ff3d8b,#c77dff); transition:width .15s}
+#boss.open .hp{box-shadow:0 0 14px #ffd60a; border-color:#ffd60a}
+@media (max-width:600px){ #boss{top:86px; width:72vw} }
+body.gold #m{color:#ffd65a; text-shadow:0 0 12px #ffb000aa}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#38d9ff; text-shadow:0 0 12px #38d9ff88}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#e6d8ff; margin-top:2px}
+#phase.ready{color:#ffd60a; text-shadow:0 0 12px #ffd60a88}
+#phase.hook{color:#ff3d8b; text-shadow:0 0 14px #ff3d8bcc}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:22%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:24px; opacity:0; transition:opacity .25s; text-shadow:0 0 16px #7b2ff7, 0 2px 0 #000; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff9ad0}
+#msg.g{color:#ffe08a; text-shadow:0 0 16px #ffb000, 0 2px 0 #000}
+#msg.b{color:#8ae9ff; text-shadow:0 0 16px #38d9ff, 0 2px 0 #000}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#e6d8ff; margin-top:6px}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto;
+  background:radial-gradient(70% 34% at 50% 60%, #7b2ff744 0%, transparent 60%), radial-gradient(120% 80% at 50% 30%, #2a1450 0%, #0b0416 70%)}
+body.gold #veil{background:radial-gradient(70% 30% at 50% 58%, #ffc83a40 0%, transparent 60%), radial-gradient(120% 80% at 50% 30%, #2a1a30 0%, #0b0416 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#a893c9; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(36px,11vw,64px); line-height:1; color:#fff; text-shadow:0 0 24px #ff3d8b, 0 0 48px #7b2ff7}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#e6d8ff; font-size:17px; max-width:38ch}
+#veil b{color:#ffd60a}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:#38d9ff; color:#061428; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 22px #38d9ff66}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02; box-shadow:0 0 22px #ffb00066}
+#go.alt{background:none; color:#38d9ff; border:1.5px solid #38d9ff; font-size:15px; padding:12px 30px; box-shadow:none}
+#next{font-family:Bungee,sans-serif; font-size:19px; background:#38d9ff; color:#061428; text-decoration:none; border-radius:4px; padding:13px 34px 11px; line-height:1.1}
+#next small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.16em; color:#061428; opacity:.75; margin-top:3px}
+#veil small{color:#8a78ab; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:420px}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#e6d8ff; background:none; border:1.5px solid #38d9ff55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#38d9ff; background:#38d9ff22}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#38d9ff; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #38d9ff99; background:#38d9ff14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #38d9ff; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:40px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="boss" class="off"><div class="n" id="bossName">THE KING OF FORGETTING</div><div class="hp"><i id="bossHp"></i></div></div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO &times; ZIRKA</p>
+  <h1 id="title">OUBLIE-MOI</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Part">
+    <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
+    <button type="button" data-part="1" data-mode="endless" class="gold">Part 1 &#8734;</button><button type="button" data-part="2" data-mode="endless" class="gold">Part 2 &#8734;</button><button type="button" data-part="3" data-mode="endless" class="gold">Part 3 &#8734;</button><button type="button" data-mode="remix" class="gold">Remix</button>
+  </div>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">The album &#9656;<small>back to the levels</small></a>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= OUBLIE-MOI =================
+   Level 9 of JAVEDA - Lazy Jo x Zirka. District 9 at night: neon towers,
+   rain, and the monsters of forgetting over the city. The original JAVEDA
+   game was this song as a flat side-scroller; this is it rebuilt in 3D,
+   on the song's own grid, in three parts:
+
+     Part 1 NIGHT FLIGHT  Jo's blue saucer between the towers. Drag to fly;
+                          its lightning fires with the beat. Crawlers,
+                          swarms, watchers that shoot, brutes that take a beating.
+     Part 2 ROOFTOP RUN   Zirka's bike over the roofs. Swipe for a lane, tap to
+                          jump the gaps (they open on the 1 of a bar). Her gun
+                          finds the monsters diving at her.
+     Part 3 THE KING      The King of Forgetting over District 9. His orbs fall
+                          in patterns with the song - every one marked where it
+                          will land. His core opens in the hooks. Zirka fires from
+                          the roof below. Bring him down before the song ends.
+
+   Then the gold ENDLESS list (?endless=1 with a part, ?remix=1): each part
+   with no end, and the remix - all three in turn, 8 bars each.
+
+   The song (SONG.md) is 90 BPM, a trap beat: a quiet intro, three loud 8-bar
+   hooks (bars 8, 28, 48), verses that go no-kick / loud in 4-bar blocks, a
+   quiet break (44-47) and the outro. Every game reads section(t): calm, mid,
+   loud or hook. Parts end at bar 56 and the ending plays over the outro.
+   Endless and the remix loop bars 8-56 - whole bars, so the beat never slips. */
+
+const GRID = { bpm:90, t0:0 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(56);                      // 2:29.3 - Parts 1-3 end here, the outro is the ending
+const LOOP = [barT(8), barT(56)];             // endless: the bars of the song it plays round and round
+const STINT = BAR * 8;                        // endless: one window; remix: each game's turn
+const HEARTS = 5;
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+const barOf = t => Math.floor((songPos(t) - GRID.t0) / BAR);
+function section(t){
+  const b = barOf(t);
+  if (b < 8 || b >= 56 || (b >= 44 && b < 48)) return "calm";
+  if ((b >= 8 && b < 16) || (b >= 28 && b < 36) || (b >= 48 && b < 56)) return "hook";
+  if ((b >= 20 && b < 24) || (b >= 40 && b < 44)) return "loud";
+  return "mid";
+}
+
+const Q = new URLSearchParams(location.search);
+const REMIX = Q.get("remix") === "1", ENDLESS = REMIX || Q.get("endless") === "1";
+const PART = REMIX ? 0 : Math.min(3, Math.max(1, +Q.get("part") || 1));
+const BASE = {
+  1: { id:"lvl9",  title:"Night Flight", by:"LEVEL 9",        game:"sky" },
+  2: { id:"lvl9b", title:"Rooftop Run",  by:"LEVEL 9 PART 2", game:"roof" },
+  3: { id:"lvl9c", title:"The King",     by:"LEVEL 9 PART 3", game:"king" }
+}[PART || 1];
+// endless: the part's id + "x"; the remix of all three: lvl9r
+const CFG = REMIX ? { id:"lvl9r", title:"Remix", by:"LEVEL 9 REMIX", game:"mix", endless:true, remix:true, board:"Level 9 Remix" }
+  : ENDLESS ? { ...BASE, id:BASE.id + "x", by:BASE.by + " · ENDLESS", endless:true, board:"Level 9" + (PART > 1 ? " Part " + PART : "") + " ∞" }
+  : BASE;
+const ORDER = ["sky", "roof", "king"];
+
+const LINKS = {
+  next:    "https://lightningwolves.studio/javeda/",
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && Q.has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB){
+  document.getElementById("next").addEventListener("click", e => { e.preventDefault(); toHub({ type:"javeda:next", level:CFG.id }); });
+  document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+}
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const song = new Audio("lvl9.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [110, 98, 87.3, 82.4];
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .005); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+// the stand-in: a trap beat on the song's grid - kick on 1 and the and of 3, claps on 2 and 4, triplet hats
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s12 = i % 12, bar = Math.floor(i / 12), sec = section(bar*BAR + .01), full = sec !== "calm";
+    if (full && (s12 === 0 || s12 === 7)) tone("sine", 120, 36, at, .45, .55, 900);
+    if (full && (s12 === 3 || s12 === 9)){ hiss(at, .2, .22, 0, 1500); tone("triangle", 210, 150, at, .08, .07); }
+    hiss(at, .03, i % 3 ? .025 : .05, 8000);
+    if (s12 === 0){ const f = PROG[bar % 4]; tone("sawtooth", f, f, at, BAR*.9, .05, 420);
+      [1, 1.2, 1.5].forEach((m, k) => tone("sine", f*4*m, f*4*m, at + k*BEAT*.66, BEAT*1.2, .018, 3000)); }
+    nextStep += BEAT / 3;
+  }
+}
+const sfx = {
+  zap:  () => ac && tone("square", 1500, 500, ac.currentTime, .05, .012, 5000),
+  kill: big => ac && (tone("triangle", big ? 300 : 700, big ? 90 : 220, ac.currentTime, big ? .4 : .18, .07, 3000), hiss(ac.currentTime, big ? .35 : .15, .08, 0, 1800)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  good: () => ac && tone("triangle", 880, 1320, ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [660, 880, 1320, 1760].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.05, .25, .05, 6000)),
+  jump: () => ac && tone("sine", 260, 640, ac.currentTime, .14, .05, 4000),
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  roar: () => ac && (tone("sawtooth", 90, 40, ac.currentTime, .9, .1, 500), hiss(ac.currentTime, .9, .1, 0, 300)),
+  swap: () => ac && (hiss(ac.currentTime, .5, .14, 0, 2500), tone("sine", 200, 900, ac.currentTime, .4, .05, 4000))
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- District 9 at night ---------------- */
+let scene, cam, ren, skyM, clockR, ME, BIKE, rain, crashed = null;
+const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+function buildSky(){
+  const cv = document.createElement("canvas"); cv.width = 4; cv.height = 256; const x = cv.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
+  [[0, "#05020c"], [.32, "#140828"], [.46, "#3a1670"], [.5, "#7b2ff7"], [.54, "#2a1048"], [1, "#07030f"]].forEach(([o, c]) => g.addColorStop(o, c));
+  x.fillStyle = g; x.fillRect(0, 0, 4, 256);
+  skyM = new THREE.Group(); scene.add(skyM);
+  skyM.add(new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(cv), side:THREE.BackSide, fog:false, depthWrite:false })));
+  const n = 900, pos = new Float32Array(n*3);
+  for (let i = 0; i < n; i++){ const a = rnd(i)*Math.PI*2, e = .15 + rnd(i*2.3)*1.3, r = 480; pos.set([Math.cos(a)*Math.cos(e)*r, Math.sin(e)*r, Math.sin(a)*Math.cos(e)*r], i*3); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  skyM.add(new THREE.Points(sg, new THREE.PointsMaterial({ size:1.4, sizeAttenuation:false, color:0xd8c8ff, fog:false })));
+  const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map:radial([[0, "rgba(255,240,255,1)"], [.42, "rgba(240,220,255,1)"], [.46, "rgba(200,140,255,.35)"], [1, "rgba(120,60,220,0)"]]), fog:false, depthWrite:false }));
+  moon.position.set(-120, 150, -380); moon.scale.setScalar(110); skyM.add(moon);
+}
+// building fronts: rows of windows, some lit warm, some cyan, some pink
+function windowTex(k){
+  const cv = document.createElement("canvas"); cv.width = 64; cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#0e0820"; x.fillRect(0, 0, 64, 128);
+  const cols = ["#ffd27a", "#8ae9ff", "#ff7ad8", "#c9b3ff"];
+  for (let r = 0; r < 16; r++) for (let c = 0; c < 6; c++){ const v = rnd(k*91 + r*7 + c*13);
+    x.fillStyle = v < .34 ? cols[Math.floor(rnd(k + r + c*3)*4)] : "#1a1030"; x.fillRect(4 + c*10, 4 + r*7.6, 6, 4.4); }
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1, 3); return t;
+}
+function neonTex(text, color){
+  const cv = document.createElement("canvas"); cv.width = 512; cv.height = 128; const x = cv.getContext("2d");
+  x.font = "bold 72px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.shadowColor = color; x.shadowBlur = 26; x.fillStyle = color; x.fillText(text, 256, 66); x.shadowBlur = 8; x.fillStyle = "#ffffff"; x.fillText(text, 256, 66);
+  return new THREE.CanvasTexture(cv);
+}
+const CITY = { slots:[], SPACING:12 };
+function buildCity(){
+  const mats = [0, 1, 2, 3].map(k => { const t = windowTex(k + 1); return new THREE.MeshLambertMaterial({ map:t, emissiveMap:t, emissive:0xffffff, emissiveIntensity:.85, color:0x6a5a90 }); });
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  const signs = [["OUBLIE-MOI", "#ff3d8b"], ["DISTRICT 9", "#38d9ff"], ["LIGHTNING WOLVES", "#ffd60a"], ["JAVEDA", "#c77dff"], ["LAZY JO", "#38d9ff"], ["ZIRKA", "#c77dff"]].map(([t, c]) => neonTex(t, c));
+  const red = new THREE.MeshBasicMaterial({ color:0xff2a4a });
+  for (let i = 0; i < 26; i++){
+    const slot = { i, side:[] };
+    for (const s of [-1, 1]) for (const row of [0, 1]){
+      const m = new THREE.Mesh(box, mats[(i + row + (s > 0 ? 2 : 0)) % 4]); scene.add(m);
+      const lamp = new THREE.Mesh(new THREE.SphereGeometry(.35, 6, 4), red); scene.add(lamp);
+      slot.side.push({ m, lamp, s, row });
+    }
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(9, 2.25), new THREE.MeshBasicMaterial({ map:signs[i % signs.length], transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+    scene.add(sign); slot.sign = sign;
+    CITY.slots.push(slot);
+  }
+  // the street far below: a glow of traffic in the fog
+  const street = new THREE.Mesh(new THREE.PlaneGeometry(40, 2000), new THREE.MeshBasicMaterial({ color:0x3a1050 }));
+  street.rotation.x = -Math.PI/2; street.position.y = -40; scene.add(street); CITY.street = street;
+}
+// lay a slot of towers at its place along the street (k = which slot along the whole way)
+function placeSlot(slot, k){
+  const z = -k*CITY.SPACING; slot.k = k;
+  for (const b of slot.side){
+    const seed = k*7.3 + (b.s > 0 ? 3.1 : 0) + b.row*11.7, w = 6 + rnd(seed)*6, d = 7 + rnd(seed*1.7)*4, h = b.row ? 40 + rnd(seed*2.3)*60 : 16 + rnd(seed*2.9)*34;
+    const x = b.s*(b.row ? 24 + rnd(seed*3.1)*12 : 9.5 + w/2 + rnd(seed*4.3)*3);
+    b.m.scale.set(w, h + 40, d); b.m.position.set(x, (h - 40)/2, z);
+    b.lamp.position.set(x, h + .4, z); b.lamp.visible = rnd(seed*5.5) < .5;
+    if (!b.row) b.h = h, b.x = x, b.w = w;
+  }
+  const s = rnd(k*3.9) < .5 ? -1 : 1, near = slot.side.find(b => b.s === s && !b.row);
+  slot.sign.visible = rnd(k*6.1) < .45 && near.h > 14;
+  slot.sign.position.set(near.x - s*(near.w/2 + .15), Math.min(near.h - 3, 7 + rnd(k)*6), z); slot.sign.rotation.y = -s*Math.PI/2;   // facing the street
+}
+function cityAt(dist){
+  // the slot behind the camera moves to the front
+  const first = Math.floor(dist/CITY.SPACING) - 3;
+  for (const slot of CITY.slots){ let k = slot.k; if (k === undefined || k < first || k >= first + CITY.slots.length){ k = first + ((slot.i - first) % CITY.slots.length + CITY.slots.length) % CITY.slots.length; placeSlot(slot, k); } }
+  CITY.street.position.z = -dist - 400;
+}
+function buildRain(){
+  const n = 700, pos = new Float32Array(n*6);
+  for (let i = 0; i < n; i++){ const x = (rnd(i)*2 - 1)*30, y = rnd(i*2.1)*30 - 6, z = -rnd(i*3.3)*60 + 8; pos.set([x, y, z, x - .15, y - 1.1, z], i*6); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  rain = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color:0x9a8acd, transparent:true, opacity:.28 })); rain.frustumCulled = false; scene.add(rain);
+}
+// Jo's blue saucer: cyan dome, lightning-yellow lights round the rim
+function buildSaucer(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 12), new THREE.MeshStandardMaterial({ color:0x2a8fd0, roughness:.3, metalness:.5, emissive:0x0a2a48 }));
+  hull.scale.set(1.2, .26, 1.2); g.add(hull);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.5, 20, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0x8ae9ff, roughness:.1, emissive:0x1a8ab8, emissiveIntensity:.8, transparent:true, opacity:.9 }));
+  dome.position.y = .12; g.add(dome);
+  for (let i = 0; i < 10; i++){ const a = i/10*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.08, 6, 5), new THREE.MeshBasicMaterial({ color:0xffd60a })); l.position.set(Math.sin(a)*1.08, .02, Math.cos(a)*1.08); g.add(l); }
+  const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0x38d9ff, transparent:true, opacity:.5, depthWrite:false, blending:THREE.AdditiveBlending })); glow.scale.setScalar(4.5); g.add(glow);
+  return g;
+}
+// Zirka's bike: purple, a headlight that cuts the rain
+function buildBike(){
+  const g = new THREE.Group(), purple = new THREE.MeshStandardMaterial({ color:0x8a3ad8, roughness:.35, metalness:.4, emissive:0x2a0a48 }), dark = new THREE.MeshStandardMaterial({ color:0x140a20, roughness:.6 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(.5, .45, 1.9), purple); body.position.y = .75; g.add(body);
+  const tank = new THREE.Mesh(new THREE.SphereGeometry(.35, 12, 8), purple); tank.scale.set(1, .7, 1.4); tank.position.set(0, 1.0, -.3); g.add(tank);
+  for (const z of [-.85, .85]){ const w = new THREE.Mesh(new THREE.TorusGeometry(.42, .14, 8, 18), dark); w.rotation.y = Math.PI/2; w.position.set(0, .42, z); g.add(w); }
+  const rider = new THREE.Mesh(new THREE.CylinderGeometry(.24, .3, .8, 10), new THREE.MeshStandardMaterial({ color:0x1a1030, roughness:.7 })); rider.position.set(0, 1.45, .2); rider.rotation.x = -.5; g.add(rider);
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(.26, 12, 10), new THREE.MeshStandardMaterial({ color:0xc77dff, roughness:.2, metalness:.5, emissive:0x3a1060 })); helmet.position.set(0, 1.9, -.05); g.add(helmet);
+  const lamp = new THREE.Mesh(new THREE.ConeGeometry(1.4, 7, 16, 1, true), glowMat(0xd8b0ff, .14)); lamp.rotation.x = Math.PI/2; lamp.position.set(0, .9, -4.6); g.add(lamp);
+  const head = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xf0d8ff, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); head.scale.setScalar(1.4); head.position.set(0, .9, -1.05); g.add(head);
+  const tail = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xff3d8b, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); tail.scale.setScalar(.8); tail.position.set(0, .85, 1.0); g.add(tail);
+  return g;
+}
+
+/* the monsters of forgetting: shadow bodies, pink eyes */
+const M_BODY = new THREE.MeshStandardMaterial({ color:0x2a1450, roughness:.5, emissive:0x2a0a50, flatShading:true });
+const M_DARK = new THREE.MeshStandardMaterial({ color:0x140828, roughness:.6, emissive:0x10041e, flatShading:true });
+const M_EYE = new THREE.MeshBasicMaterial({ color:0xff3d8b });
+const eyes = (g, x, y, z, r) => { for (const s of [-1, 1]){ const e = new THREE.Mesh(new THREE.SphereGeometry(r, 8, 6), M_EYE); e.position.set(s*x, y, z); g.add(e); } };
+const halo = (g, color, size) => { const h = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:.55, depthWrite:false, blending:THREE.AdditiveBlending })); h.scale.setScalar(size); g.add(h); return h; };
+const FOE = {
+  crawler: { hp:2, score:100, r:1.1, build(){ const g = new THREE.Group(); g.add(new THREE.Mesh(new THREE.IcosahedronGeometry(.9, 0), M_BODY));
+    for (let i = 0; i < 8; i++){ const c = new THREE.Mesh(new THREE.ConeGeometry(.18, .8, 5), M_DARK), a = i/8*Math.PI*2; c.position.set(Math.cos(a)*.85, Math.sin(a)*.85, 0); c.rotation.z = a - Math.PI/2; g.add(c); }
+    eyes(g, .3, .15, .8, .14); halo(g, 0x7b2ff7, 3.2); return g; } },
+  swarm:   { hp:1, score:50,  r:.8, build(){ const g = new THREE.Group(); g.add(new THREE.Mesh(new THREE.TetrahedronGeometry(.5, 0), M_BODY));
+    const wm = new THREE.MeshBasicMaterial({ color:0x4a1a7a, side:THREE.DoubleSide, transparent:true, opacity:.85 });
+    g.userData.wings = [-1, 1].map(s => { const w = new THREE.Mesh(new THREE.PlaneGeometry(1.1, .5), wm); w.position.x = s*.65; g.add(w); return w; });
+    eyes(g, .16, .1, .42, .08); halo(g, 0xff3d8b, 1.6); return g; } },
+  watcher: { hp:3, score:250, r:1.5, build(){ const g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.SphereGeometry(1.3, 20, 14), new THREE.MeshStandardMaterial({ color:0xe8deff, roughness:.3, emissive:0x3a2a5a })));
+    const iris = new THREE.Mesh(new THREE.CircleGeometry(.62, 24), M_EYE); iris.position.z = 1.29; g.add(iris);
+    const pupil = new THREE.Mesh(new THREE.CircleGeometry(.28, 18), new THREE.MeshBasicMaterial({ color:0x05020a })); pupil.position.z = 1.31; g.add(pupil);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.75, .07, 6, 40), glowMat(0xc77dff, .7)); g.add(ring); g.userData.ring = ring;
+    halo(g, 0xc77dff, 5); return g; } },
+  brute:   { hp:6, score:500, r:2.1, build(){ const g = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2.2, 2), M_BODY); g.add(body);
+    for (const s of [-1, 1]){ const h = new THREE.Mesh(new THREE.ConeGeometry(.35, 1.4, 6), M_DARK); h.position.set(s*.9, 1.6, 0); h.rotation.z = -s*.4; g.add(h);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(.6, 1.8, .6), M_DARK); arm.position.set(s*1.7, -.3, 0); arm.rotation.z = s*.25; g.add(arm); }
+    const core = new THREE.Mesh(new THREE.SphereGeometry(.45, 12, 10), M_EYE); core.position.set(0, -.2, 1.02); g.add(core);
+    eyes(g, .55, .55, 1.02, .16); halo(g, 0xff3d8b, 5.5); return g; } }
+};
+
+/* sparks: one shared cloud of points */
+const SPK = { n:420, i:0 };
+function buildSparks(){
+  SPK.pos = new Float32Array(SPK.n*3); SPK.col = new Float32Array(SPK.n*3); SPK.v = new Float32Array(SPK.n*3); SPK.life = new Float32Array(SPK.n);
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(SPK.pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(SPK.col, 3));
+  SPK.pts = new THREE.Points(g, new THREE.PointsMaterial({ size:.45, map:DOT, vertexColors:true, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+  SPK.pts.frustumCulled = false; scene.add(SPK.pts);
+}
+function burst(x, y, z, color, n, speed){
+  const c = new THREE.Color(color);
+  for (let k = 0; k < n; k++){ const i = SPK.i = (SPK.i + 1) % SPK.n, a = Math.random()*Math.PI*2, e = (Math.random() - .5)*Math.PI, s = (speed || 8)*(.4 + Math.random()*.8);
+    SPK.pos.set([x, y, z], i*3); SPK.v.set([Math.cos(a)*Math.cos(e)*s, Math.sin(e)*s, Math.sin(a)*Math.cos(e)*s], i*3); SPK.col.set([c.r, c.g, c.b], i*3); SPK.life[i] = .5 + Math.random()*.4; }
+}
+function sparks(dt){
+  for (let i = 0; i < SPK.n; i++){ if (SPK.life[i] <= 0) continue; SPK.life[i] -= dt;
+    if (SPK.life[i] <= 0){ SPK.pos[i*3 + 1] = -999; continue; }
+    for (let k = 0; k < 3; k++) SPK.pos[i*3 + k] += SPK.v[i*3 + k]*dt; SPK.v[i*3 + 1] -= 9*dt; const f = Math.min(1, SPK.life[i]*2.5); SPK.col[i*3] *= .97; SPK.col[i*3 + 1] *= .97; SPK.col[i*3 + 2] *= .97; }
+  SPK.pts.geometry.attributes.position.needsUpdate = true; SPK.pts.geometry.attributes.color.needsUpdate = true;
+}
+
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = CFG.remix ? "REMIX · LAP " + (S.lap + 1) : "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = (S.combo > 1.01 ? "x" + S.combo.toFixed(2).replace(/\.?0+$/, "") + " · " : "") + G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; $("boss").classList.add("off"); return; }
+  const sec = section(t);
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else if (sec === "hook"){ p.className = "hook"; p.innerHTML = G.hookTag + "<small>" + G.hint + "</small>"; }
+  else { p.className = ""; p.innerHTML = G.tag + "<small>" + G.hint + "</small>"; }
+  KING.hud();
+}
+function hurt(why, tip){
+  if (S.inv > 0) return false;
+  S.hearts--; S.inv = 1.4; S.combo = 1; sfx.bad(); $("flash").style.background = "#ff3d8b"; S.flashT = .35;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+// a kill: the combo climbs a quarter each time (to x8) and fades after 4 s without one, like the original
+function kill(base){ S.score += Math.round(base*S.combo); S.combo = Math.min(8, S.combo + .25); S.comboT = 4; S.kills++; }
+function stormOn(){ S.storm = 12; sfx.big(); say("LIGHTNING STORM", "triple lightning · 12 s", 1.3, "b"); }
+
+/* =============== Part 1: NIGHT FLIGHT - Jo's saucer between the towers =============== */
+const SKY = {
+  name:"sky", label:"NIGHT FLIGHT", tag:"CLEAR THE SKY", hookTag:"THE HOOK - HOLD THE SKY", hint:"drag to fly - your lightning fires with the beat", XR:6.5, YL:3, YH:11.5,
+  setup(){
+    this.root = new THREE.Group(); scene.add(this.root);
+    this.pool = {}; for (const [type, n] of [["crawler", 16], ["swarm", 30], ["watcher", 6], ["brute", 4]])
+      this.pool[type] = Array.from({ length:n }, () => { const g = FOE[type].build(); g.visible = false; this.root.add(g); return { type, g, on:false }; });
+    const bm = new THREE.MeshBasicMaterial({ color:0xffd60a });
+    this.bolts = Array.from({ length:48 }, () => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.09, .09, 2.2, 6), bm); m.rotation.x = Math.PI/2; m.visible = false; this.root.add(m);
+      const h = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xffd60a, transparent:true, opacity:.7, depthWrite:false, blending:THREE.AdditiveBlending })); h.scale.set(1, 3, 1); m.add(h); return { m, on:false }; });
+    this.orbs = Array.from({ length:30 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(.42, 12, 8), new THREE.MeshBasicMaterial({ color:0xff3d8b })); halo(m, 0xff3d8b, 2.4); m.visible = false; this.root.add(m); return { m, on:false }; });
+    this.power = new THREE.Group(); this.power.add(new THREE.Mesh(new THREE.OctahedronGeometry(.8, 0), new THREE.MeshBasicMaterial({ color:0xffd60a }))); halo(this.power, 0xffd60a, 4); this.power.visible = false; this.root.add(this.power);
+    // low roofs far below the flight path
+    const roofM = new THREE.MeshLambertMaterial({ color:0x1a1030, emissive:0x0a0418 });
+    this.low = Array.from({ length:10 }, () => { const m = new THREE.Mesh(new THREE.BoxGeometry(12, 30, 14), roofM); this.root.add(m); return m; });
+  },
+  speed(L){ return Math.min(24, 14 + 6*L); },
+  begin(t0, t1, L0, L1, cont){
+    Object.assign(this, { t0, t1, L0, L1, tEnd:CFG.endless && !CFG.remix ? Infinity : t1 });
+    if (cont) return;
+    this.start = t0;
+    this.st = { x:0, y:6.5, tx:0, ty:6.5, next:t0 + BAR, fire:Math.ceil(t0/(BEAT/4))*(BEAT/4), k:Math.round(t0*13), powerAt:-1 };
+    for (const p of Object.values(this.pool)) p.forEach(f => { f.on = false; f.g.visible = false; });
+    this.bolts.forEach(b => { b.on = false; b.m.visible = false; }); this.orbs.forEach(o => { o.on = false; o.m.visible = false; });
+    this.power.visible = false;
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  info(){ return S.storm > 0 ? "STORM " + Math.ceil(S.storm) + "s" : S.kills + " DOWN"; },
+  point(cx, cy, touch){ const P = planeHit(cx, cy, -S.dist); if (P){ this.st.tx = clamp(P.x, -this.XR, this.XR); this.st.ty = clamp(P.y + (touch ? 1.4 : 0), this.YL, this.YH); } },
+  foes(){ return Object.values(this.pool).flat().filter(f => f.on); },
+  spawn(type, x, y, z){ const f = this.pool[type].find(f => !f.on); if (!f) return null; const st = this.st, k = st.k++;
+    Object.assign(f, { on:true, x, y, z, hp:FOE[type].hp + (type === "brute" ? Math.floor(this.Lnow*2) : 0), ph:rnd(k)*6, fire:0, born:S.t, hold:0, vx:0, vy:0 });
+    f.g.visible = true; f.g.scale.setScalar(1); return f; },
+  // on the beat: what comes, by the section of the song
+  wave(at, j){
+    const st = this.st, sec = section(at), L = this.L(at), dz = -S.dist - 80 - this.speed(L)*.5, k = st.k;
+    const rx = () => (rnd(st.k++*1.3)*2 - 1)*this.XR*.9, ry = () => this.YL + rnd(st.k++*2.1)*(this.YH - this.YL);
+    const beatInBar = ((j % 4) + 4) % 4, barN = barOf(at);
+    if (sec === "calm"){ if (barOf(at) >= 1 && j % 4 === 0 && rnd(k) < .7) this.spawn("crawler", rx(), ry(), dz); return; }
+    if (sec === "mid"){ if (j % 2 === 0) this.spawn("crawler", rx(), ry(), dz);
+      if (beatInBar === 0 && barN % 2 === 0) this.spawn("watcher", rx()*.8, this.YL + 2 + rnd(k*3)*5, dz); return; }
+    // loud and hook
+    this.spawn("crawler", rx(), ry(), dz);
+    // a swarm comes as a V that keeps its shape - you can see the way through it
+    if (beatInBar === 0){ const cx = rx()*.5, cy = ry(), n = 5 + Math.min(2, Math.floor(L*2));
+      for (let i = 0; i < n; i++){ const s = i - (n - 1)/2; this.spawn("swarm", clamp(cx + s*1.5, -this.XR, this.XR), clamp(cy + Math.abs(s)*.7, this.YL, this.YH), dz - Math.abs(s)*2); } }
+    if (sec === "hook"){
+      if (beatInBar === 2 && (barN % 2 === 0 || L > .6)) this.spawn("watcher", rx()*.8, this.YL + 2 + rnd(k*3)*5, dz);
+      if (beatInBar === 0 && (barN % 4 === 0 || (L > 1 && barN % 2 === 0))) this.spawn("brute", rx()*.5, this.YL + 2.5 + rnd(k*5)*4, dz - 6);
+      if (L > .75 && beatInBar === 3) this.spawn("crawler", rx(), ry(), dz);
+    }
+  },
+  update(dt, t){
+    const st = this.st, L = this.Lnow = this.L(t), v = this.speed(L);
+    S.dist += v*dt;
+    if (keys.left) st.tx -= dt*12; if (keys.right) st.tx += dt*12; if (keys.up) st.ty += dt*10; if (keys.down) st.ty -= dt*10;
+    st.tx = clamp(st.tx, -this.XR, this.XR); st.ty = clamp(st.ty, this.YL, this.YH);
+    const k = 1 - Math.exp(-dt*10); st.x += (st.tx - st.x)*k; st.y += (st.ty - st.y)*k;
+    const pz = -S.dist;
+    // the lightning: on every quarter beat (the song's sixteenths), three at once in the storm
+    while (t >= st.fire){ st.fire += BEAT/4; if (st.fire - BEAT/4 < this.start + BAR*.5) continue;
+      for (const a of S.storm > 0 ? [-.12, 0, .12] : [0]){ const b = this.bolts.find(b => !b.on); if (!b) break;
+        Object.assign(b, { on:true, x:st.x, y:st.y, z:pz - 1.2, vx:Math.sin(a)*70, vy:0, life:1 }); b.m.visible = true; } sfx.zap(); }
+    // monsters, on the beat
+    while (t >= st.next){ const at = st.next, j = Math.round((at - GRID.t0)/BEAT); st.next += BEAT;
+      if (at + 3 < this.tEnd) this.wave(at, j);
+      // a storm crystal at the top of each hook
+      if (section(at) === "hook" && section(at - BAR) !== "hook" && j % 4 === 0 && !this.power.visible){ this.power.visible = true; this.power.position.set((rnd(j)*2 - 1)*4, 6 + rnd(j*2)*3, pz - 70); }
+    }
+    if (this.power.visible){ this.power.position.z += 0; if (Math.hypot(this.power.position.x - st.x, this.power.position.y - st.y, this.power.position.z - pz) < 2) { this.power.visible = false; stormOn(); }
+      if (this.power.position.z > pz + 4) this.power.visible = false; }
+    // a little aim assist: a bolt bends toward the monster right in front of it
+    const ahead = this.foes();
+    for (const b of this.bolts){ if (!b.on) continue; b.z -= (70 + v)*dt; b.x += b.vx*dt; b.y += (b.vy || 0)*dt; b.life -= dt;
+      let tg = null, bd = 2.6; for (const f of ahead){ if (f.z > b.z) continue; const d = Math.hypot(f.x - b.x, f.y - b.y); if (d < bd && b.z - f.z < 40){ bd = d; tg = f; } }
+      if (tg){ const T = Math.max(.08, (b.z - tg.z)/(70 + v)); b.vx += ((tg.x - b.x)/T - b.vx)*Math.min(1, dt*8); b.vy = (b.vy || 0) + ((tg.y - b.y)/T - (b.vy || 0))*Math.min(1, dt*8); }
+      if (b.life <= 0){ b.on = false; b.m.visible = false; } }
+    for (const f of this.foes()){
+      const type = f.type, ft = t - f.born;
+      // how each one moves (relative to the street; the saucer flies on at v)
+      // a crawler homes in - until the last stretch, when it commits to its line and you can get out of the way
+      if (type === "crawler"){ if (f.z < pz - 24){ f.x += clamp(st.x - f.x, -1, 1)*dt*(.8 + .6*L); f.y += clamp(st.y - f.y, -1, 1)*dt*(.6 + .6*L); } f.z += (6 + 4*L)*dt; }
+      else if (type === "swarm"){ f.x += Math.sin(ft*2.2)*dt*1.6; f.z += (9 + 4*L)*dt; f.g.userData.wings.forEach((w, i) => w.rotation.x = Math.sin(ft*22 + i*Math.PI)*.8); }
+      else if (type === "watcher"){ const hold = pz - 26; if (f.z < hold - .1 && ft < BAR*2.2) f.z = Math.min(hold, f.z + (v + 18)*dt); else if (ft < BAR*2.2) f.z = hold; else f.z += (v + 10)*dt;
+        f.x += Math.sin(ft*1.3 + f.ph)*dt*1.4; f.g.userData.ring.rotation.z += dt*2;
+        // it fires on 2 and 4, at where you are
+        const bt = Math.floor((t - GRID.t0)/BEAT); if (bt !== f.fire && (bt % 2) && Math.abs(f.z - hold) < .5 && t + 1 < this.tEnd){ f.fire = bt; this.shoot(f, st.x, st.y, pz, 1.25 - .3*Math.min(1, L)); } }
+      else { if (f.z < pz - 24){ f.x += clamp(st.x - f.x, -1, 1)*dt*.8; f.y += (st.y - f.y)*dt*.3; } f.z += (3 + 2*L)*dt; f.g.rotation.y = Math.sin(ft*2)*.3;
+        const bt = Math.floor((t - GRID.t0)/BEAT); if (bt !== f.fire && bt % 4 === 0 && f.z < pz - 14 && t + 1 < this.tEnd){ f.fire = bt; for (const dx of [-2.2, 0, 2.2]) this.shoot(f, st.x + dx, st.y, pz, 1.5); } }
+      // lightning hits
+      for (const b of this.bolts){ if (!b.on) continue; if (Math.abs(b.z - f.z) < 1.6 && Math.hypot(b.x - f.x, b.y - f.y) < FOE[type].r + .35){
+        b.on = false; b.m.visible = false; f.hp--; burst(b.x, b.y, f.z + .5, 0xffd60a, 4, 5);
+        if (f.hp <= 0){ f.on = false; f.g.visible = false; kill(FOE[type].score); burst(f.x, f.y, f.z, type === "swarm" ? 0xff3d8b : 0xc77dff, type === "brute" ? 40 : 16, type === "brute" ? 14 : 9); sfx.kill(type === "brute");
+          if (type === "brute") say("BRUTE DOWN", "+" + fmt(FOE.brute.score*(S.combo - .25)), .7, "b"); break; } } }
+      if (!f.on) continue;
+      // a monster that reaches the saucer
+      if (Math.abs(f.z - pz) < 1 && Math.hypot(f.x - st.x, f.y - st.y) < FOE[type].r + .45){ f.on = false; f.g.visible = false; burst(f.x, f.y, f.z, 0xff3d8b, 18, 10); if (hurt({ crawler:"A CRAWLER!", swarm:"THE SWARM!", watcher:"A WATCHER!", brute:"A BRUTE!" }[type], "Fly round them - or shoot them first.")) return; continue; }
+      if (f.z > pz + 6){ f.on = false; f.g.visible = false; }
+    }
+    for (const o of this.orbs){ if (!o.on) continue; o.x += o.vx*dt; o.y += o.vy*dt; o.z += o.vz*dt;
+      if (!o.done && o.z >= pz - .6){ o.done = true; if (Math.hypot(o.x - st.x, o.y - st.y) < .95){ o.on = false; o.m.visible = false; burst(o.x, o.y, o.z, 0xff3d8b, 14, 8); if (hurt("AN ORB!", "Watchers fire on 2 and 4 - at where you are. Keep moving.")) return; continue; } }
+      if (o.z > pz + 8){ o.on = false; o.m.visible = false; } }
+  },
+  // an orb from a monster to where the saucer is now, landing after T seconds (the saucer flies on, so aim ahead)
+  shoot(f, x, y, pz, T){ const o = this.orbs.find(o => !o.on); if (!o) return; const v = this.speed(this.Lnow), hitZ = pz - v*T;
+    Object.assign(o, { on:true, done:false, x:f.x, y:f.y, z:f.z, vx:(x - f.x)/T, vy:(y - f.y)/T, vz:(hitZ - f.z)/T }); o.m.visible = true; },
+  render(dt, t){
+    const st = this.st, pz = -S.dist;
+    ME.visible = true; ME.position.set(st.x, st.y, pz); ME.rotation.set(0, t*1.8, clamp((st.tx - st.x)*.12, -.4, .4)); ME.scale.setScalar(1);
+    for (const f of this.foes()){ f.g.position.set(f.x, f.y, f.z); if (f.type !== "brute") f.g.rotation.z = Math.sin(t*3 + f.ph)*.25; f.g.lookAt(st.x, st.y, pz); }
+    for (const b of this.bolts) if (b.on) b.m.position.set(b.x, b.y, b.z);
+    for (const o of this.orbs) if (o.on) o.m.position.set(o.x, o.y, o.z);
+    if (this.power.visible){ this.power.rotation.y = t*3; this.power.position.y += Math.sin(t*4)*.01; }
+    this.low.forEach((m, i) => { const k = Math.floor(S.dist/16) + i - 2; m.position.set((rnd(k*2.7) - .5)*8, -24 - rnd(k)*6, -k*16); });
+    const portrait = cam.aspect < .8;
+    CAMP.set(st.x*.6, st.y + (portrait ? 3 : 2.3), pz + (portrait ? 14 : 9.5)); CAML.set(st.x*.8, st.y + .6, pz - 20);
+  }
+};
+const RAY = new THREE.Raycaster(), PLN = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), HIT = new THREE.Vector3();
+function planeHit(cx, cy, z){ cam.updateMatrixWorld(); RAY.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); PLN.constant = -z; return RAY.ray.intersectPlane(PLN, HIT) ? HIT : null; }
+
+/* =============== Part 2: ROOFTOP RUN - Zirka's bike over the roofs =============== */
+const ROOF = {
+  name:"roof", label:"ROOFTOP RUN", tag:"RIDE THE ROOFS", hookTag:"THE HOOK - JUMP ON THE 1", hint:"swipe for a lane - tap to jump the gaps", LANES:[-2.6, 0, 2.6],
+  setup(){
+    this.root = new THREE.Group(); scene.add(this.root);
+    const roofM = new THREE.MeshLambertMaterial({ color:0x2a1a40, emissive:0x120822 }), edgeM = new THREE.MeshBasicMaterial({ color:0xc77dff });
+    this.roofs = Array.from({ length:14 }, () => { const g = new THREE.Group(), m = new THREE.Mesh(new THREE.BoxGeometry(9, 30, 1), roofM); m.position.y = -15; g.add(m);
+      for (const s of [-1, 1]){ const e = new THREE.Mesh(new THREE.BoxGeometry(.12, .12, 1), edgeM); e.position.set(s*4.5, 0, 0); g.add(e); }
+      g.userData = { m, edges:g.children.slice(1) }; g.visible = false; this.root.add(g); return { g, on:false }; });
+    const boxM = new THREE.MeshLambertMaterial({ color:0x3a2a50, emissive:0x1a0a2a }), tankM = new THREE.MeshLambertMaterial({ color:0x4a3a5a, emissive:0x140a1e });
+    this.obs = Array.from({ length:24 }, (_, i) => { const g = new THREE.Group();
+      if (i % 2){ const m = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.3, 1.6), boxM); m.position.y = .65; g.add(m); const f = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .08, 12), new THREE.MeshBasicMaterial({ color:0x8ae9ff })); f.position.y = 1.32; g.add(f); }
+      else { const m = new THREE.Mesh(new THREE.CylinderGeometry(.8, .8, 1.6, 12), tankM); m.position.y = .8; g.add(m); const l = new THREE.Mesh(new THREE.SphereGeometry(.15, 6, 4), new THREE.MeshBasicMaterial({ color:0xff2a4a })); l.position.y = 1.7; g.add(l); }
+      g.visible = false; this.root.add(g); return { g, on:false }; });
+    const coinM = new THREE.MeshBasicMaterial({ color:0xffd60a });
+    this.coins = Array.from({ length:30 }, () => { const m = new THREE.Mesh(new THREE.OctahedronGeometry(.35, 0), coinM); halo(m, 0xffd60a, 1.6); m.visible = false; this.root.add(m); return { m, on:false }; });
+    this.divers = Array.from({ length:10 }, () => { const g = FOE.crawler.build(); g.visible = false; this.root.add(g); return { g, on:false }; });
+    this.marks = this.divers.map(() => { const m = new THREE.Mesh(new THREE.CircleGeometry(1.1, 20), glowMat(0xff3d8b, .45)); m.rotation.x = -Math.PI/2; m.visible = false; this.root.add(m); return m; });
+    const sm = new THREE.MeshBasicMaterial({ color:0xc77dff });
+    this.shots = Array.from({ length:20 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(.16, 6, 4), sm); halo(m, 0xc77dff, 1.2); m.visible = false; this.root.add(m); return { m, on:false }; });
+  },
+  speed(L){ return Math.min(26, 15 + 6*L); },
+  begin(t0, t1, L0, L1, cont){
+    Object.assign(this, { t0, t1, L0, L1, tEnd:CFG.endless && !CFG.remix ? Infinity : t1 });
+    if (cont) return;
+    this.start = t0;
+    // the course is laid out ahead by time: where the bike will be at each beat
+    this.items = []; this.track = [{ a:S.dist - 30, b:Infinity }];
+    this.genT = t0; this.genD = S.dist; this.genJ = Math.ceil((t0 - GRID.t0)/BEAT);
+    this.st = { lane:1, x:0, y:0, vy:0, air:false, fall:0, fire:0, coins:0, jumps:0, k:Math.round(t0*17) };
+    this.roofs.forEach(r => { r.on = false; r.g.visible = false; }); this.obs.forEach(o => { o.on = false; o.g.visible = false; });
+    this.coins.forEach(c => { c.on = false; c.m.visible = false; }); this.divers.forEach(d => { d.on = false; d.g.visible = false; }); this.marks.forEach(m => m.visible = false);
+    this.shots.forEach(s => { s.on = false; s.m.visible = false; });
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  info(){ return this.st.coins + " BOLTS · " + S.kills + " DOWN"; },
+  // the road ahead, a beat at a time
+  grow(t){
+    while (this.genT < t + 4){
+      const tb = GRID.t0 + this.genJ*BEAT, j = this.genJ++; if (tb <= this.genT){ continue; }
+      const dist = this.genD + this.speed(this.L(this.genT))*(tb - this.genT); this.genT = tb; this.genD = dist;
+      if (tb < this.start + BAR || tb > this.tEnd - BEAT) continue;
+      const sec = section(tb), L = this.L(tb), bib = ((j % 4) + 4) % 4, k = this.st.k++, v = this.speed(L);
+      const lastGap = this.track.length > 1 ? this.track[this.track.length - 2].b : -Infinity;
+      // gaps open on the 1 of a bar when the song is loud: jump them
+      if ((sec === "hook" || sec === "loud" || (sec === "mid" && L > .4)) && bib === 0 && dist - lastGap > v*BEAT*3.5 && rnd(k) < (sec === "hook" ? .85 : .55)){
+        const cur = this.track[this.track.length - 1]; cur.b = dist; this.track.push({ a:dist + v*BEAT*(.55 + .1*Math.min(1, L)), b:Infinity }); continue; }
+      // nothing on the roof just after a landing or just before a jump
+      const roofAt = (d, m0, m1) => this.track.some(r => d > r.a + m0 && d < r.b - m1);
+      const lanes = [0, 1, 2].sort((p, q) => rnd(k*7 + p) - rnd(k*7 + q));
+      // in the hooks the monsters dive at a lane, on the 2 and the 4
+      if (sec === "hook" && bib % 2 === 1 && rnd(k*9) < .55 + .3*Math.min(1, L) && roofAt(dist + v*BEAT*1.5, 1, 1))
+        this.items.push({ kind:"diver", d:dist + v*BEAT*1.5, lane:lanes[Math.floor(rnd(k*11)*3)], t:tb + BEAT*1.5 });
+      if (sec === "calm"){ if (bib === 2 && roofAt(dist, 1, 1)) this.items.push({ kind:"coin", d:dist, lane:Math.floor(rnd(k*3)*3) }); continue; }
+      if (roofAt(dist + v*BEAT/2, 1, 1)) this.items.push({ kind:"coin", d:dist + v*BEAT/2, lane:lanes[2] });
+      if (!roofAt(dist, v*BEAT*1.3, v*BEAT*.8)) continue;
+      // things on the roof in your lane; never all three
+      const block = sec === "mid" ? (bib % 2 ? 0 : 1) : sec === "loud" ? 1 : (L > .6 && rnd(k*5) < .4 ? 2 : 1);
+      for (let i = 0; i < block; i++) this.items.push({ kind:"obs", d:dist, lane:lanes[i] });
+    }
+    // put the meshes on the next things
+    const ahead = this.items.filter(i => !i.mesh && i.d < S.dist + 90);
+    for (const it of ahead){
+      const pool = it.kind === "obs" ? this.obs : it.kind === "coin" ? this.coins : this.divers; const p = pool.find(p => !p.on); if (!p) continue;
+      p.on = true; it.mesh = p; (p.g || p.m).visible = true;
+      if (it.kind === "diver"){ it.mark = this.marks[this.divers.indexOf(p)]; it.mark.visible = true; it.hp = 2; }
+    }
+    // and roofs
+    const segs = this.track.filter(r => r.b > S.dist - 20 && r.a < S.dist + 120);
+    this.roofs.forEach((r, i) => { const s = segs[i]; r.on = !!s; r.g.visible = !!s; if (s){ const b = Math.min(s.b, S.dist + 160), len = b - s.a;
+      r.g.position.set(0, 0, -(s.a + len/2)); r.g.userData.m.scale.z = len; r.g.userData.edges.forEach(e => e.scale.z = len); } });
+  },
+  roofUnder(d){ return this.track.some(r => d > r.a - .2 && d < r.b + .2); },
+  lane(dir){ const st = this.st; if (st.fall > 0) return; st.lane = clamp(st.lane + dir, 0, 2); },
+  jump(){ const st = this.st; if (st.air || st.fall > 0) return; st.air = true; st.vy = 10.5; st.jumps++; sfx.jump(); },
+  update(dt, t){
+    const st = this.st, L = this.L(t), v = this.speed(L);
+    S.dist += v*dt; this.grow(t);
+    st.x += (this.LANES[st.lane] - st.x)*(1 - Math.exp(-dt*14));
+    // jumping, falling
+    if (st.fall > 0){ st.fall -= dt; st.y -= 14*dt;
+      if (st.fall <= 0){ const next = this.track.find(r => r.a > S.dist - 1); if (next) S.dist = next.a + 1; st.y = 0; st.vy = 0; st.air = false; S.inv = Math.max(S.inv, 1.4); } }
+    else if (st.air){ st.vy -= 26*dt; st.y += st.vy*dt; if (st.y <= 0){ if (this.roofUnder(S.dist)){ st.y = 0; st.air = false;
+          // landed over a gap: a clean jump
+          if (this.track.some(r => r.b < S.dist && r.b > S.dist - 16)){ const g = this.track.find(r => r.b < S.dist && r.b > S.dist - 16); if (!g.cleared){ g.cleared = true; kill(300); say("JUMP", "", .4, "b"); } } } else if (st.y < -1){ st.fall = .7; if (hurt("FELL!", "Tap to jump - the gaps open on the 1 of the bar.")) return; } } }
+    else if (!this.roofUnder(S.dist)){ st.air = true; st.vy = 0; }
+    // things on the roof
+    for (const it of this.items){ if (it.done || !it.mesh) continue; const dz = it.d - S.dist, lx = this.LANES[it.lane];
+      if (it.kind === "obs" && Math.abs(dz) < 1 && Math.abs(lx - st.x) < 1.2 && st.y < 1.3 && st.fall <= 0){ it.done = true; burst(lx, .8, -it.d, 0xc77dff, 14, 8); if (hurt("CRASH!", "Swipe to the lane that's clear.")) return; }
+      else if (it.kind === "coin" && Math.abs(dz) < 1.1 && Math.abs(lx - st.x) < 1.2 && st.fall <= 0){ it.done = true; st.coins++; S.score += Math.round(100*S.combo); S.combo = Math.min(8, S.combo + .1); S.comboT = 4; sfx.good(); }
+      else if (it.kind === "diver"){ const left = it.t - t;
+        if (left <= 0 && !it.hit){ it.hit = true; burst(lx, .5, -it.d, 0xff3d8b, 18, 9); if (Math.abs(dz) < 2.5 && Math.abs(lx - st.x) < 1.6 && st.fall <= 0 && hurt("IT GOT YOU!", "A pink mark is where it lands - change lanes.")) return; it.done = true; } }
+      if (dz < -6) it.done = true;
+      if (it.done && it.mesh){ it.mesh.on = false; (it.mesh.g || it.mesh.m).visible = false; if (it.mark) it.mark.visible = false; it.mesh = null; } }
+    this.items = this.items.filter(it => !(it.done && !it.mesh) || it.d > S.dist + 1);
+    // Zirka's gun finds the nearest diver ahead
+    st.fire -= dt;
+    const tgt = this.items.filter(it => it.kind === "diver" && it.mesh && !it.hit && it.t - t < 1.6 && it.t - t > .05).sort((p, q) => p.t - q.t)[0];
+    if (tgt && st.fire <= 0){ st.fire = BEAT/2; const s = this.shots.find(s => !s.on); if (s){ s.on = true; s.m.visible = true; s.it = tgt; s.x = st.x; s.y = st.y + 1.6; s.z = -S.dist - 1; } sfx.zap(); }
+    for (const s of this.shots){ if (!s.on) continue; const it = s.it, p = this.diverPos(it, t);
+      const dx = p.x - s.x, dy = p.y - s.y, dz = p.z - s.z, d = Math.hypot(dx, dy, dz), step = 60*dt;
+      if (!it.mesh || it.hit || it.done){ s.on = false; s.m.visible = false; continue; }
+      if (d < step + .6){ s.on = false; s.m.visible = false; it.hp--; burst(p.x, p.y, p.z, 0xc77dff, 6, 6);
+        if (it.hp <= 0){ it.done = true; it.hit = true; kill(FOE.crawler.score*1.5); burst(p.x, p.y, p.z, 0xff3d8b, 18, 10); sfx.kill(); } continue; }
+      s.x += dx/d*step; s.y += dy/d*step; s.z += dz/d*step; }
+  },
+  // a diver drops from the sky onto its lane, landing at it.t
+  diverPos(it, t){ const left = Math.max(0, it.t - t), lx = this.LANES[it.lane]; return { x:lx + left*2, y:.8 + left*left*5, z:-it.d - left*3 }; },
+  render(dt, t){
+    const st = this.st;
+    ME.visible = false; BIKE.visible = true;
+    BIKE.position.set(st.x, st.y, -S.dist); BIKE.rotation.set(st.air ? -.15 : 0, 0, (this.LANES[st.lane] - st.x)*.12);
+    for (const it of this.items){ if (!it.mesh) continue; const lx = this.LANES[it.lane];
+      if (it.kind === "obs") it.mesh.g.position.set(lx, 0, -it.d);
+      else if (it.kind === "coin"){ it.mesh.m.position.set(lx, 1 + Math.sin(t*4 + it.d)*.15, -it.d); it.mesh.m.rotation.y = t*3; }
+      else { const p = this.diverPos(it, t); it.mesh.g.position.set(p.x, p.y, p.z); it.mesh.g.lookAt(st.x, 1, -S.dist + 5);
+        it.mark.position.set(lx, .05, -it.d); it.mark.material.opacity = .2 + .5*clamp(1 - (it.t - t)/1.5, 0, 1); } }
+    for (const s of this.shots) if (s.on) s.m.position.set(s.x, s.y, s.z);
+    const portrait = cam.aspect < .8;
+    CAMP.set(st.x*.5, Math.max(-6, st.y) + (portrait ? 4.2 : 3.4), -S.dist + (portrait ? 11 : 8.5)); CAML.set(st.x*.3, 1.2, -S.dist - 16);
+  }
+};
+
+/* =============== Part 3: THE KING - the King of Forgetting over District 9 =============== */
+const KING = {
+  name:"king", label:"THE KING", tag:"BRING HIM DOWN", hookTag:"HIS CORE IS OPEN - FIRE!", hint:"drag to fly - every orb is marked where it lands", XR:7, YL:2.5, YH:12, D:34,
+  setup(){
+    this.root = new THREE.Group(); scene.add(this.root);
+    const g = this.boss = new THREE.Group(); this.root.add(g);
+    const skin = new THREE.MeshStandardMaterial({ color:0x24103e, roughness:.45, emissive:0x24083e, flatShading:true });
+    const body = new THREE.Mesh(new THREE.IcosahedronGeometry(5, 1), skin); body.scale.set(1.15, 1, .8); g.add(body);
+    for (let i = 0; i < 7; i++){ const c = new THREE.Mesh(new THREE.ConeGeometry(.55, 3 + (i % 2)*1.4, 6), M_DARK), a = (i/6 - .5)*1.9; c.position.set(Math.sin(a)*4.3, 3.6 + Math.cos(a)*1.4, -.4); c.rotation.z = -a*.8; g.add(c); }
+    this.arms = [-1, 1].map(s => { const a = new THREE.Group(); a.position.set(s*5.6, .5, 0); const up = new THREE.Mesh(new THREE.BoxGeometry(1.4, 5, 1.4), skin); up.position.y = -2; a.add(up);
+      const claw = new THREE.Mesh(new THREE.ConeGeometry(.9, 2.2, 5), M_DARK); claw.position.y = -5.2; claw.rotation.x = Math.PI; a.add(claw); g.add(a); return a; });
+    eyes(g, 1.6, 1.8, 3.8, .45);
+    this.core = new THREE.Mesh(new THREE.SphereGeometry(1.5, 20, 14), M_EYE); this.core.position.set(0, -.6, 3.4); g.add(this.core);
+    this.coreGlow = halo(this.core, 0xff3d8b, 7);
+    // armour plates over the core: they swing open in the hooks
+    this.plates = [0, 1, 2, 3].map(i => { const p = new THREE.Group(); p.position.set(0, -.6, 3.5); p.rotation.z = i*Math.PI/2;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.8, .4), M_DARK); m.position.set(.9, .9, .4); p.add(m); g.add(p); return p; });
+    halo(g, 0x7b2ff7, 26);
+    this.orbs = Array.from({ length:70 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(.45, 12, 8), new THREE.MeshBasicMaterial({ color:0xff3d8b })); halo(m, 0xff3d8b, 2.3); m.visible = false; this.root.add(m);
+      const mk = new THREE.Mesh(new THREE.RingGeometry(.6, .85, 24), glowMat(0xff3d8b, .5)); mk.visible = false; this.root.add(mk); return { m, mk, on:false }; });
+    const bm = new THREE.MeshBasicMaterial({ color:0xffd60a });
+    this.bolts = Array.from({ length:40 }, () => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.1, .1, 2.2, 6), bm); m.rotation.x = Math.PI/2; m.visible = false; this.root.add(m); return { m, on:false }; });
+    this.zshots = Array.from({ length:8 }, () => { const m = new THREE.Mesh(new THREE.SphereGeometry(.2, 6, 4), new THREE.MeshBasicMaterial({ color:0xc77dff })); halo(m, 0xc77dff, 1.6); m.visible = false; this.root.add(m); return { m, on:false }; });
+    // Zirka on the roof below, with her bike
+    this.zroof = new THREE.Mesh(new THREE.BoxGeometry(10, 30, 12), new THREE.MeshLambertMaterial({ color:0x2a1a40, emissive:0x120822 })); this.root.add(this.zroof);
+    this.zbike = buildBike(); this.zbike.rotation.y = Math.PI*.85; this.root.add(this.zbike);
+  },
+  hpFor(n){ return Math.round(760*(1 + .45*n)); },        // the n-th king (0 = the first)
+  begin(t0, t1, L0, L1, cont){
+    Object.assign(this, { t0, t1, L0, L1, tEnd:CFG.endless && !CFG.remix ? Infinity : t1 });
+    if (cont) return;
+    this.start = t0;
+    if (!this.st || !CFG.remix || this.st.down) this.kingN = this.st ? (this.st.down ? this.kingN + 1 : this.kingN) : 0;
+    const keepHp = CFG.remix && this.st && !this.st.down ? this.st.hp : null;
+    this.st = { x:0, y:6, tx:0, ty:6, next:t0 + BAR, fire:Math.ceil(t0/(BEAT/2))*(BEAT/2), hp:keepHp != null ? keepHp : this.hpFor(this.kingN), max:this.hpFor(this.kingN), down:false, k:Math.round(t0*19), open:0, coreHits:0, zfire:0, rise:0 };
+    this.orbs.forEach(o => { o.on = false; o.m.visible = o.mk.visible = false; }); this.bolts.forEach(b => { b.on = false; b.m.visible = false; }); this.zshots.forEach(z => { z.on = false; z.m.visible = false; });
+    $("bossName").textContent = "THE KING OF FORGETTING" + (this.kingN ? " " + ["", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"][Math.min(9, this.kingN)] : "");
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1) + .25*this.kingN; },
+  info(){ return this.st.coreHits ? this.st.coreHits + " CORE HITS" : "THE KING"; },
+  hud(){ const b = $("boss"); if (G !== this || S.done || S.end >= 0){ b.classList.add("off"); return; }
+    b.classList.remove("off"); b.classList.toggle("open", this.st.open > .5); $("bossHp").style.width = (100*this.st.hp/this.st.max).toFixed(1) + "%"; },
+  point(cx, cy, touch){ const P = planeHit(cx, cy, -S.dist); if (P){ this.st.tx = clamp(P.x, -this.XR, this.XR); this.st.ty = clamp(P.y + (touch ? 1.4 : 0), this.YL, this.YH); } },
+  bossPos(t){ const st = this.st, rise = clamp((t - this.start)/(BAR*1.5), 0, 1); return { x:Math.sin(t*.45)*3.2, y:8 + Math.sin(t*.8)*1 + (1 - rise)*20, z:-S.dist - this.D }; },
+  // an orb from the King to a point on your plane, landing in T seconds; the ring shows where
+  orb(x, y, T, t){ const o = this.orbs.find(o => !o.on); if (!o) return; const b = this.bossPos(t);
+    Object.assign(o, { on:true, done:false, x0:b.x, y0:b.y - .6, z0:b.z + 4, x1:clamp(x, -this.XR - 1, this.XR + 1), y1:clamp(y, this.YL - .5, this.YH + .5), t0:t, T }); o.m.visible = o.mk.visible = true; },
+  // the patterns, by the section of the song
+  attack(at, j){
+    const st = this.st, sec = section(at), L = this.L(at), bib = ((j % 4) + 4) % 4, T = Math.max(.95, 1.75 - .45*L), k = st.k++;
+    if (sec === "calm") return;
+    const aimed = n => { for (let i = 0; i < n; i++) this.orb(st.x + (i - (n - 1)/2)*1.6, st.y + (rnd(k*3 + i) - .5)*.8, T, at); };
+    const wall = () => { const row = rnd(k*5) < .5, gap = row ? -this.XR + 1.6 + rnd(k*7)*(2*this.XR - 3.2) : this.YL + 1.4 + rnd(k*7)*(this.YH - this.YL - 2.8);
+      if (row){ const y = clamp(st.y + (rnd(k) - .5)*2, this.YL, this.YH); for (let x = -this.XR; x <= this.XR; x += 1.55) if (Math.abs(x - gap) > 1.6) this.orb(x, y, T + .25, at); }
+      else { const x = clamp(st.x + (rnd(k) - .5)*2, -this.XR, this.XR); for (let y = this.YL; y <= this.YH; y += 1.5) if (Math.abs(y - gap) > 1.5) this.orb(x, y, T + .25, at); } };
+    const rainOf = n => { for (let i = 0; i < n; i++) this.orb((rnd(k*13 + i) - .5)*2*this.XR, this.YL + rnd(k*17 + i)*(this.YH - this.YL), T + .1, at); };
+    if (sec === "mid"){ if (bib % 2) aimed(L > .5 ? 3 : 1); return; }
+    if (sec === "loud"){ if (bib === 0) wall(); else if (bib === 2) aimed(L > .4 ? 3 : 1); return; }
+    // hook: his core opens - and he lets go
+    if (bib === 0) wall(); else if (bib === 2) rainOf(4 + Math.floor(2*Math.min(1.5, L))); else aimed(L > .8 ? 3 : 1);
+  },
+  update(dt, t){
+    const st = this.st, L = this.L(t);
+    if (keys.left) st.tx -= dt*12; if (keys.right) st.tx += dt*12; if (keys.up) st.ty += dt*10; if (keys.down) st.ty -= dt*10;
+    st.tx = clamp(st.tx, -this.XR, this.XR); st.ty = clamp(st.ty, this.YL, this.YH);
+    const k = 1 - Math.exp(-dt*10); st.x += (st.tx - st.x)*k; st.y += (st.ty - st.y)*k;
+    const pz = -S.dist, b = this.bossPos(t), sec = section(t);
+    st.open += ((sec === "hook" ? 1 : 0) - st.open)*(1 - Math.exp(-dt*5));
+    if (st.down) return;
+    // your lightning on every half beat
+    while (t >= st.fire){ st.fire += BEAT/2; if (st.fire - BEAT/2 < this.start + BAR*.5) continue; const bo = this.bolts.find(b => !b.on); if (!bo) continue;
+      Object.assign(bo, { on:true, x:st.x, y:st.y, z:pz - 1.2 }); bo.m.visible = true; sfx.zap(); }
+    for (const bo of this.bolts){ if (!bo.on) continue; bo.z -= 60*dt;
+      if (bo.z <= b.z + 3.6){ bo.on = false; bo.m.visible = false;
+        const cx = b.x, cy = b.y - .6, onCore = Math.hypot(bo.x - cx, bo.y - cy) < 1.9, onBody = Math.hypot((bo.x - b.x)/5.8, (bo.y - b.y)/5) < 1;
+        if (onCore && st.open > .5){ this.hit(4, bo.x, bo.y, b.z + 3.4, true); }
+        else if (onBody || onCore){ this.hit(1, bo.x, bo.y, b.z + 3.6, false); } } }
+    // Zirka fires from the roof on every other beat
+    const zb = Math.floor((t - GRID.t0)/(BEAT*2)); if (zb !== st.zfire && t > this.start + BAR){ st.zfire = zb; const z = this.zshots.find(z => !z.on);
+      if (z){ Object.assign(z, { on:true, x:this.zbike.position.x, y:this.zbike.position.y + 1.8, z:this.zbike.position.z }); z.m.visible = true; } }
+    for (const z of this.zshots){ if (!z.on) continue; const dx = b.x - z.x, dy = b.y - z.y, dz = b.z + 3 - z.z, d = Math.hypot(dx, dy, dz), step = 40*dt;
+      if (d < step + 1){ z.on = false; z.m.visible = false; this.hit(1, z.x, z.y, z.z, false, true); continue; } z.x += dx/d*step; z.y += dy/d*step; z.z += dz/d*step; }
+    if (st.down) return;
+    // his orbs, on the beat
+    while (t >= st.next){ const at = st.next, j = Math.round((at - GRID.t0)/BEAT); st.next += BEAT; if (at + 2 < this.tEnd && at > this.start + BAR) this.attack(at, j); }
+    for (const o of this.orbs){ if (!o.on) continue; const u = (t - o.t0)/o.T;
+      if (u >= 1 && !o.done){ o.done = true; if (Math.hypot(o.x1 - st.x, o.y1 - st.y) < .9){ burst(o.x1, o.y1, pz, 0xff3d8b, 14, 8); o.on = false; o.m.visible = o.mk.visible = false; if (hurt("AN ORB!", "Watch the pink rings - that's where they land.")) return; continue; } }
+      if (u > 1.25){ o.on = false; o.m.visible = o.mk.visible = false; } }
+  },
+  hit(n, x, y, z, core, zirka){
+    const st = this.st; st.hp -= n; burst(x, y, z, core ? 0xffd60a : zirka ? 0xc77dff : 0x8ae9ff, core ? 8 : 3, core ? 8 : 4);
+    S.score += Math.round((core ? 60 : zirka ? 10 : 15)*S.combo); if (core){ st.coreHits++; S.combo = Math.min(8, S.combo + .05); S.comboT = 4; }
+    if (st.hp <= 0 && !st.down){ st.down = true; st.hp = 0; S.kills++; const bonus = 5000 + 2500*this.kingN; S.score += bonus; sfx.roar(); sfx.big();
+      burst(this.bossPos(S.t).x, this.bossPos(S.t).y, this.bossPos(S.t).z + 3, 0xff3d8b, 120, 22); $("flash").style.background = "#ffffff"; S.flashT = .6;
+      this.orbs.forEach(o => { o.on = false; o.m.visible = o.mk.visible = false; });
+      if (!CFG.endless){ say("THE KING FALLS", "+" + fmt(bonus), 2.5, "b"); win(); }
+      else { say("THE KING FALLS", "+" + fmt(bonus) + " · another one rises", 2.2, "g"); this.downAt = S.t; } }
+  },
+  render(dt, t){
+    const st = this.st, pz = -S.dist, b = this.bossPos(t);
+    ME.visible = true; BIKE.visible = false; ME.position.set(st.x, st.y, pz); ME.rotation.set(0, t*1.8, clamp((st.tx - st.x)*.12, -.4, .4)); ME.scale.setScalar(1);
+    // endless: a fallen king sinks; the next one rises on the next 8 bars
+    if (st.down && CFG.endless && !CFG.remix && S.t - this.downAt > BAR*2){ this.begin(S.t, S.t + STINT, this.L0, this.L1); this.st.next = S.t + BAR; }
+    const sink = st.down ? Math.min(40, (t - (this.downAt || t))*12) : 0;
+    this.boss.position.set(b.x, b.y - sink, b.z); this.boss.rotation.set(Math.sin(t*.7)*.06, Math.sin(t*.4)*.12, Math.sin(t*.9)*.05);
+    const beatPh = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT;
+    this.arms.forEach((a, i) => a.rotation.z = (i ? -1 : 1)*(.25 + .2*Math.sin(t*2 + i)) + (beatPh < .2 ? .08 : 0));
+    this.plates.forEach((p, i) => { p.children[0].position.set(.9 + st.open*1.6, .9 + st.open*1.6, .4); p.children[0].rotation.z = st.open*.6; });
+    this.coreGlow.material.opacity = .25 + st.open*.6 + (beatPh < .15 ? .15 : 0); this.core.scale.setScalar(1 + st.open*.15 + (beatPh < .15 ? .06 : 0));
+    for (const o of this.orbs){ if (!o.on) continue; const u = clamp((t - o.t0)/o.T, 0, 1.25), e = u;
+      o.m.position.set(o.x0 + (o.x1 - o.x0)*e, o.y0 + (o.y1 - o.y0)*e, o.z0 + (pz - o.z0)*e);
+      o.mk.position.set(o.x1, o.y1, pz + .2); o.mk.material.opacity = u < 1 ? .18 + .5*u : 0; o.mk.scale.setScalar(1.6 - .6*Math.min(1, u)); }
+    for (const bo of this.bolts) if (bo.on) bo.m.position.set(bo.x, bo.y, bo.z);
+    for (const z of this.zshots) if (z.on) z.m.position.set(z.x, z.y, z.z);
+    this.zroof.position.set(-9, -16.5, pz - 10); this.zbike.position.set(-7.5, -1.5, pz - 9);
+    const portrait = cam.aspect < .8;
+    CAMP.set(st.x*.35, st.y*.45 + (portrait ? 4.5 : 3.8), pz + (portrait ? 17 : 11)); CAML.set(b.x*.3, 7, b.z + 6);
+  }
+};
+const GAMES = { sky:SKY, roof:ROOF, king:KING };
+function switchTo(name){ G = GAMES[name]; for (const g of Object.values(GAMES)) g.root.visible = g === G; camInit = false; ME.visible = name !== "roof"; BIKE.visible = name === "roof"; }
+
+/* ---------------- the run ---------------- */
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, hearts:HEARTS, inv:0, combo:1, comboT:0, kills:0, storm:0, stint:-1, lap:0, loops:0, dist:0, flashT:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  KING.st = null; KING.kingN = 0;
+  if (CFG.remix){ switchTo("sky"); SKY.begin(0, STINT, .35, .6); }
+  else if (CFG.endless){ switchTo(CFG.game); G.begin(0, STINT, .3, .4); }
+  else { switchTo(CFG.game); G.begin(0, END_AT, 0, 1); }
+}
+// endless and remix go in 8-bar windows. Endless: the same game, a little harder every window.
+// Remix: the next game's turn, each lap (all three) harder. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; const lap = Math.floor(n/3);
+  let back = false;
+  if (n > 0 && n % 3 === 0){ S.lap = lap; S.score += 2000;
+    if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const more = "+2,000" + (back ? " · a heart back" : "");
+  if (!CFG.remix){ const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+    if (n > 0 && n % 3 === 0) say("24 BARS", more, 1.2, "g"); return; }
+  const L0 = .35 + lap*.3;
+  switchTo(ORDER[n % 3]); G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .25);
+  if (n > 0){ sfx.swap(); $("flash").style.background = "#ffe08a"; S.flashT = .5;
+    say(G.label, n % 3 === 0 ? "LAP " + (lap + 1) + " · " + more : G.hint, 1.6, "g"); }
+}
+function songT(){
+  if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.55); }
+  sparks(dt);
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (S.comboT > 0){ S.comboT -= dt; if (S.comboT <= 0) S.combo = 1; }
+  if (S.storm > 0) S.storm -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0){
+    if (G === KING && !KING.st.down) lose("THE KING GOT AWAY", "Fire into his core when it opens - in the hooks. Zirka helps from below.");
+    else win();
+  }
+}
+
+/* ================= THE ENDING =================
+   The outro: up on a roof under the OUBLIE-MOI sign, the blue saucer and the
+   purple bike side by side, the rain still falling, District 9 lit up below. */
+const END = { out:8 };
+let FIN = null;
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*800; sfx.big();
+  $("hud").classList.add("off"); $("phase").className = "off"; $("boss").classList.add("off");
+  if (!FIN){ FIN = new THREE.Group(); scene.add(FIN);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(14, 30, 12), new THREE.MeshLambertMaterial({ color:0x2a1a40, emissive:0x120822 })); roof.position.y = -15; FIN.add(roof);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(16, 4), new THREE.MeshBasicMaterial({ map:neonTex("OUBLIE-MOI", "#ff3d8b"), transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+    sign.position.set(0, 6.5, -5); FIN.add(sign); FIN.userData.sign = sign;
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(16.4, .2, .2), new THREE.MeshBasicMaterial({ color:0x3a2050 })); frame.position.set(0, 4.3, -5.05); FIN.add(frame); }
+  FIN.position.set(0, 0, -S.dist - 14); FIN.visible = true;
+  for (const g of Object.values(GAMES)) g.root.visible = false;
+  ME.visible = BIKE.visible = true; camInit = false;
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off"; $("boss").classList.add("off");
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say(CFG.remix ? "REMIX OVER" : "RUN OVER", why, 2, "g"); $("phase").className = "off"; $("boss").classList.add("off");
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0);
+  if (S.end >= 0){
+    const u = clamp(S.end/3, 0, 1), s = u*u*(3 - 2*u), z = -S.dist - 14;
+    ME.position.set(-2.2, 1.4 + Math.sin(t*2)*.15, z + 1); ME.rotation.set(0, t*1.2, 0);
+    BIKE.position.set(2.2, 0, z + 1); BIKE.rotation.set(0, -.5, 0);
+    FIN.userData.sign.material.opacity = Math.min(1, S.end) * (.85 + .15*Math.sin(t*9));
+    CAMP.set(Math.sin(S.end*.15)*6, 3.5 + s*3, z + 14 - s*2); CAML.set(0, 3 + s, z - 3);
+    if (S.end > 1.4 && !S.saidEnd){ S.saidEnd = true; say("OUBLIE-MOI", "LAZY JO × ZIRKA", 4.5, "b"); }
+    if (S.end > END.out - 1.2){ $("flash").style.background = "#0b0416"; $("flash").style.opacity = Math.min(1, (S.end - (END.out - 1.2))/1.2); }
+  } else {
+    G.render(dt, t);
+    const blink = S.inv > 0 && Math.floor(S.inv*12) % 2;
+    if (G === ROOF) BIKE.visible = !blink; else ME.visible = !blink;
+  }
+  cityAt(S.dist);
+  // rain falls past the camera
+  rain.position.set(cam.position.x, cam.position.y - 4, cam.position.z - 20 + ((t*14) % 1));
+  const rp = rain.geometry.attributes.position.array; for (let i = 0; i < rp.length; i += 6){ rp[i + 1] -= dt*28; rp[i + 4] -= dt*28; if (rp[i + 1] < -12){ rp[i + 1] += 30; rp[i + 4] += 30; } }
+  rain.geometry.attributes.position.needsUpdate = true;
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 2 : 6)) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  skyM.position.copy(cam.position);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  $("next").classList.toggle("hid", S.fail || CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off"; $("boss").classList.add("off");
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:Math.round(Math.max(0, S.t)) });
+  const t = Math.max(0, S.t);
+  if (CFG.endless){
+    const games = S.stint + 1, laps = Math.floor(S.stint/3);
+    v.querySelector(".by").textContent = (CFG.remix ? "REMIX · " : "ENDLESS · ") + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = (CFG.remix ? "Lap <b>" + (laps + 1) + "</b> &middot; " + games + (games === 1 ? " game" : " games") + " &middot; " : "") + "<b>" + clock(t) + "</b> without stopping &middot; " + S.kills + " down" + (KING.kingN ? " &middot; " + KING.kingN + (KING.kingN === 1 ? " king" : " kings") + " fallen" : "");
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  const stat = PART === 1 ? S.kills + " monsters down" : PART === 2 ? ROOF.st.coins + " bolts · " + ROOF.st.jumps + " jumps · " + S.kills + " down" : KING.st.coreHits + " core hits";
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = CFG.title.toUpperCase();
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = (PART === 1 ? "The sky over District 9 is yours." : PART === 2 ? "Over every roof in the city." : "The King of Forgetting is down. <b>Nobody forgets the Wolves.</b>") +
+    (PART === 1 ? "<br>Part 2: Zirka's ride over the roofs." : PART === 2 ? "<br>Part 3: the King." : "<br>All three cleared: the gold <b>Endless</b> list is open - every part with no end, and the Remix.");
+}
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x0b0416); scene.fog = new THREE.Fog(0x1a0b2e, 30, 170);
+  cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, .1, 1400);
+  scene.add(new THREE.HemisphereLight(0x8a7aff, 0x1a0820, .8));
+  const moon = new THREE.DirectionalLight(0xc8b8ff, .9); moon.position.set(-30, 50, 20); scene.add(moon);
+  const pinkL = new THREE.DirectionalLight(0xff3d8b, .35); pinkL.position.set(20, 10, -40); scene.add(pinkL);
+  buildSky(); buildCity(); buildRain(); buildSparks();
+  ME = buildSaucer(); scene.add(ME); BIKE = buildBike(); scene.add(BIKE);
+  SKY.setup(); ROOF.setup(); KING.setup();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input: drag to fly; on the bike swipe for a lane, tap to jump ---------------- */
+const veilUp = () => !$("veil").classList.contains("hid");
+let held = false, anchorX = 0, downX = 0, downY = 0, downT = 0, swiped = false;
+const live = () => S.started && !S.done && S.end < 0;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); held = true; anchorX = downX = e.clientX; downY = e.clientY; downT = performance.now(); swiped = false;
+  if (G.point) G.point(e.clientX, e.clientY, e.pointerType !== "mouse"); }, { passive:false });
+addEventListener("pointermove", e => { if (!live()) return;
+  if (G === ROOF){ if (held && Math.abs(e.clientX - anchorX) > 34){ ROOF.lane(Math.sign(e.clientX - anchorX)); anchorX = e.clientX; swiped = true; } return; }
+  if (held || e.pointerType === "mouse") G.point(e.clientX, e.clientY, e.pointerType !== "mouse"); });
+addEventListener("pointerup", e => { if (held && live() && G === ROOF && !swiped && Math.hypot(e.clientX - downX, e.clientY - downY) < 24) ROOF.jump(); held = false; });
+addEventListener("pointercancel", () => { held = false; });
+const KEYMAP = { ArrowLeft:"left", a:"left", ArrowRight:"right", d:"right", ArrowUp:"up", w:"up", ArrowDown:"down", s:"down" };
+addEventListener("keydown", e => { const k = KEYMAP[e.key]; if (veilUp() || !live()) return;
+  if (G === ROOF){ if (e.repeat) return; if (k === "left" || k === "right"){ e.preventDefault(); ROOF.lane(k === "left" ? -1 : 1); } if (k === "up" || e.key === " "){ e.preventDefault(); ROOF.jump(); } return; }
+  if (k){ e.preventDefault(); keys[k] = true; } });
+addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+
+$("go").addEventListener("click", () => {
+  reset();
+  if (FIN) FIN.visible = false;
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.remix ? "REMIX" : CFG.endless ? "ENDLESS" : G.tag, CFG.remix ? "all three, till the hearts run out" : CFG.endless ? G.tag.toLowerCase() + " - no end" : G.hint, 3, CFG.endless ? "g" : "b");
+});
+$("by").textContent = "LAZY JO × ZIRKA · " + CFG.by;
+$("title").textContent = CFG.title.toUpperCase() + (ENDLESS && !REMIX ? " ∞" : "");
+$("intro").innerHTML = REMIX ? "Night Flight, Rooftop Run, The King - 8 bars each, round and round, no end. Every lap is harder, and a finished lap gives you a heart back." : {
+  1: "District 9, the night the monsters of forgetting came. Fly Jo's saucer between the neon towers and light them up.",
+  2: "Zirka's bike over the rooftops of District 9 - jump the gaps on the beat, and her gun takes care of what dives at her.",
+  3: "The King of Forgetting hangs over the city. Bring him down before the song ends. Zirka has your back from the roof below."
+}[PART] + (ENDLESS && !REMIX ? " <b>Endless:</b> no end - harder every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = REMIX ? "Every part's rules in turn, one score, 5 hearts. Your best goes on the <b>Level 9 Remix</b> scoreboard." : {
+  1: "<b>Drag</b> to fly - your lightning fires with the beat, all by itself. Watchers shoot on 2 and 4, brutes take a beating. Grab the gold crystal for the <b>Lightning Storm</b>. 5 hearts.",
+  2: "<b>Swipe</b> left/right for a lane, <b>tap</b> to jump. The gaps open on the 1 of a bar. Pink marks are where monsters dive - Zirka shoots them, or get out of the way. 5 hearts.",
+  3: "<b>Drag</b> to fly and fire. Every orb is marked with a ring where it lands - don't be there. His core opens in the hooks: <b>fire into it</b>. 5 hearts" + (ENDLESS ? "; every king that falls, a stronger one rises." : ".")
+}[PART];
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode || "";
+    b.setAttribute("aria-pressed", String(m === "remix" ? REMIX : !REMIX && +b.dataset.part === PART && (m === "endless") === ENDLESS));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); ["part", "endless", "remix"].forEach(k => q.delete(k));
+      if (m === "remix") q.set("remix", "1"); else { q.set("part", b.dataset.part); if (m === "endless") q.set("endless", "1"); }
+      location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -74,12 +74,22 @@ canvas{display:block; touch-action:none}
 @media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:46px} #outs{max-width:none} }
 @media (prefers-reduced-motion:reduce){ #lyric, #msg{transition:none} }
 .hid{display:none!important}
+/* endless and remix: the golden runs */
+body.gold #m{color:#ffd65a; text-shadow:0 0 12px #e0a41a99}
+body.gold #sunl{color:#ffe08a}
+body.gold #sunbar i{background:linear-gradient(90deg,#e0a41a,#ffe08a)}
+body.gold #veil h1{text-shadow:0 0 24px #e0a41a, 0 0 46px #ffd65a77}
+body.gold #veil b{color:#ffd65a}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+body.gold #veil a:focus-visible, body.gold #veil button:focus-visible{outline-color:#ffd65a}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{color:#fff; border-color:#ffd65a; background:#e0a41a33}
 </style>
 
 <div id="cab"></div>
 <div id="hud" class="off">
   <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
-  <div><div class="bl" style="margin-top:0">SUNSET</div><div class="bar" id="sunbar"><i></i></div>
+  <div><div class="bl" style="margin-top:0" id="sunl">SUNSET</div><div class="bar" id="sunbar"><i></i></div>
     <div id="gwrap" class="hid"><div class="bl" id="gl">BEAM</div><div class="bar" id="gauge"><i></i></div></div>
     <div id="awrap" class="hid"><div id="arch"></div><div class="bl">CRABS ON THE ARCH</div></div></div>
 </div>
@@ -95,6 +105,7 @@ canvas{display:block; touch-action:none}
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Part">
     <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
+    <button type="button" class="gold" data-part="1" data-mode="endless">Part 1 &infin;</button><button type="button" class="gold" data-part="2" data-mode="endless">Part 2 &infin;</button><button type="button" class="gold" data-part="3" data-mode="endless">Part 3 &infin;</button><button type="button" class="gold" data-mode="remix">Remix</button>
   </div>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
   <button id="go" type="button">Start</button>
@@ -126,21 +137,39 @@ canvas{display:block; touch-action:none}
    half-time - a beat every 0.931 s, the pulse you nod to. Bars start at
    -0.931 + 3.724 n s. The three hooks (HOOKS, where the hi-hats double) are
    where everything gets busier. The song is the clock; without the file a
-   small built-in beat plays on the same grid. */
+   small built-in beat plays on the same grid.
+
+   ENDLESS (?part=N&endless=1, ids lvl6x / lvl6bx / lvl6cx) and REMIX (?remix=1,
+   lvl6r) are the golden runs for after the song: no sunset, no win - the song
+   loops (LOOP, whole bars, so the grid stays exact), everything keeps coming and
+   keeps getting harder (ramp) until the hearts run out. The remix plays the
+   three games in turn, 8 bars each, round and round, faster every lap. */
 
 const GRID = { bpm:64.448, t0:-.931, len:159.2 };   // each part lasts the song: the music stops at 2:43
 const HOOKS = [[32.58, 43.76], [73.55, 103.34], [133.13, 162.92]];
-const inHook = t => HOOKS.some(([a, b]) => t >= a && t < b);
+const inHook = t => (t = loopT(t), HOOKS.some(([a, b]) => t >= a && t < b));
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
 const LEN = GRID.len, END_AT = LEN;        // the part ends here; the cover follows
 
-const PART = Math.min(3, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
-const CFG = {
+const Q = new URLSearchParams(location.search), flag = k => Q.has(k) && Q.get(k) !== "0";
+const REMIX = flag("remix"), ENDLESS = !REMIX && flag("endless"), GOLD = REMIX || ENDLESS;
+const PART = REMIX ? 1 : Math.min(3, Math.max(1, +Q.get("part") || 1));
+const CFG = REMIX ? { id:"lvl6r", title:"No Rest/No Work", by:"LEVEL 6 REMIX" } : {
   1: { id:"lvl6",  title:"Island Hopper",   by:"LEVEL 6" },
   2: { id:"lvl6b", title:"Crab Night",      by:"LEVEL 6 PART 2" },
   3: { id:"lvl6c", title:"Surf the Sunset", by:"LEVEL 6 PART 3" }
 }[PART];
+if (ENDLESS){ CFG.id += "x"; CFG.by = "LEVEL 6 PART " + PART + " \u221e"; }
+if (GOLD) document.body.classList.add("gold");
+// endless/remix: at the end of bar 43 (in Hook 3) the song jumps back to bar 20 (Hook 2) -
+// 23 whole bars, so game time = song time + loops * LOOPLEN stays on the grid
+const LOOP = [barT(20), barT(43)], LOOPLEN = LOOP[1] - LOOP[0];
+const loopT = t => GOLD && t >= LOOP[1] ? LOOP[0] + (t - LOOP[0]) % LOOPLEN : t;
+// how far along the difficulty is: 0..1 over the song, then on to 2.1 over five more minutes
+const ramp = t => !GOLD || t <= END_AT ? t / END_AT : 1 + Math.min(1.1, (t - END_AT)/300);
+// things stop coming here: the sunset, the end of a remix section, or never
+const untilT = () => REMIX ? S.segEnd : ENDLESS ? Infinity : END_AT;
 
 const LINKS = {
   next:    "https://lightningwolves.studio/javeda/",
@@ -239,10 +268,10 @@ function buildSky(){
   for (let i = 0; i < 18; i++){ const a = Math.atan2(SUN_DIR.z, SUN_DIR.x) + (rnd(i*3.3) - .5)*1.6, r = 650;
     const s = new THREE.Sprite(cm); s.position.set(Math.cos(a)*r, 40 + rnd(i*5.1)*80, Math.sin(a)*r); s.scale.set(220 + rnd(i)*200, 26 + rnd(i*2)*24, 1); sky.add(s); }
 }
-function buildSea(w, d, cx, cz){
+function buildSea(w, d, cx, cz, parent){
   const geo = new THREE.PlaneGeometry(w, d, 60, 60); geo.rotateX(-Math.PI/2);
   const m = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color:C.sea, emissive:0x24101a, specular:0xffa060, shininess:60, flatShading:true }));
-  m.position.set(cx, 0, cz); scene.add(m);
+  m.position.set(cx, 0, cz); (parent || scene).add(m);
   geo.userData.base = geo.attributes.position.array.slice();
   return m;
 }
@@ -254,7 +283,13 @@ function waveSea(m, t, swell){
 }
 const trunkTex = (() => { const cv = document.createElement("canvas"); cv.width = 16; cv.height = 64; const x = cv.getContext("2d");
   for (let i = 0; i < 8; i++){ x.fillStyle = i % 2 ? "#2a1a12" : "#5a3a28"; x.fillRect(0, i*8, 16, 8); } const t = new THREE.CanvasTexture(cv); t.wrapT = THREE.RepeatWrapping; return t; })();
-const leafM = new THREE.MeshLambertMaterial({ color:C.leaf, side:THREE.DoubleSide });
+const leafM = new THREE.MeshLambertMaterial({ color:C.leaf, side:THREE.DoubleSide }); leafM.userData.keep = true;
+// endless: take a built thing out of the world for good (shared materials and the sprite quad stay)
+function drop(o){
+  if (o.parent) o.parent.remove(o);
+  o.traverse(c => { if (c.isSprite) return; if (c.geometry) c.geometry.dispose();
+    const m = c.material; if (m && !m.userData.keep){ if (m.map) m.map.dispose(); m.dispose(); } });
+}
 function buildPalm(h, lean, k){
   const g = new THREE.Group(), pts = [];
   for (let i = 0; i <= 6; i++){ const u = i/6; pts.push(new THREE.Vector3(Math.sin(u*1.4)*lean, u*h, Math.sin(u*2.1)*lean*.25)); }
@@ -329,14 +364,26 @@ function hud(){
     // shake when one is lost
     if ((h.match(/\u2665/g) || []).length < (lastH.match(/\u2665/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
     lastH = h; $("hearts").textContent = h; }
-  $("sunbar").firstChild.style.width = (clamp(1 - S.t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  if (GOLD){ $("sunl").textContent = (REMIX ? "REMIX · LAP " + (S.lap + 1) : "ENDLESS") + " · " + clock(S.t);
+    if (REMIX) $("sunbar").firstChild.style.width = (clamp((S.t - S.segT)/(S.segEnd - S.segT), 0, 1)*100).toFixed(1) + "%"; }
+  else $("sunbar").firstChild.style.width = (clamp(1 - S.t / END_AT, 0, 1)*100).toFixed(1) + "%";
   if (G.hud) G.hud();
 }
 
 /* =============== PART 1 - ISLAND HOPPER: side-on, rock to palm to the arch =============== */
 const HOP = {
-  speed: t => 7 + 1.6*Math.min(1, t/60),
+  title:"Island Hopper", fov:42,
+  // endless: past the song it keeps speeding up, to 10.8 at ~8 minutes
+  speed: t => 7 + 1.6*Math.min(1, t/60) + (GOLD ? 2.2*clamp((t - END_AT)/320, 0, 1) : 0),
   setup(){
+    this.padM = new THREE.MeshLambertMaterial({ color:0x4a6a2a }); this.topM = new THREE.MeshLambertMaterial({ color:0x6a5a56, flatShading:true });
+    this.starM = new THREE.SpriteMaterial({ map:radial([[0, "#fff8d0"], [.3, "rgba(255,200,90,.9)"], [1, "rgba(255,140,40,0)"]]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+    this.heartM = new THREE.SpriteMaterial({ map:(() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d"); x.font = "52px serif"; x.textAlign = "center"; x.fillStyle = "#7dff4d"; x.fillText("♥", 32, 50); return new THREE.CanvasTexture(cv); })(), transparent:true, depthWrite:false });
+    [this.padM, this.topM, this.starM, this.heartM].forEach(m => m.userData.keep = true);
+    this.pads = '<button type="button" id="jp">&#9650; TAP = HOP &middot; HOLD = FLY</button>';
+    $("pads").innerHTML = this.pads;
+    $("gwrap").classList.remove("hid"); $("gl").textContent = "HOVER";
+    if (GOLD) return this.setupGold();
     // the course is as long as the part: the arch comes into reach as the sun touches the sea
     let L = 0; for (let t = 0; t < END_AT - 4; t += .05) L += this.speed(t)*.05;
     this.plat = []; let x = 0, y = 1.6, k = 0;
@@ -351,34 +398,65 @@ const HOP = {
     const lastP = this.plat[this.plat.length - 1], stepX = x + lastP.w/2 + 3 + 2.5;
     this.plat.push({ x:stepX, w:5, y:clamp(lastP.y + 1.2, 3.6, 4.6), kind:"rock" });
     this.goal = stepX + 2.5 + 2.8 + 3.5; this.plat.push({ x:this.goal, w:7, y:5.6, kind:"arch" });
-    const padM = new THREE.MeshLambertMaterial({ color:0x4a6a2a }), topM = new THREE.MeshLambertMaterial({ color:0x6a5a56, flatShading:true });
-    this.plat.forEach((p, i) => {
-      if (p.kind === "palm"){ const palm = buildPalm(p.y + 1.5, .3, i); palm.position.set(p.x, -1.5, 0); scene.add(palm);
-        const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.15, .8, .25, 10), padM); pad.position.set(p.x + .3, p.y - .12, 0); scene.add(pad); }
-      else if (p.kind === "rock"){ const r = buildRock(p.w/2, i); r.scale.y = (p.y + 1.5) / (p.w/2) * .55; r.position.set(p.x, -.6, 0); scene.add(r);
-        const top = new THREE.Mesh(new THREE.BoxGeometry(p.w, .3, 2.4), topM); top.position.set(p.x, p.y - .15, 0); scene.add(top);
-        if (rnd(i*7) < .5){ const b = buildBush(i); b.position.set(p.x + (rnd(i) - .5)*p.w*.5, p.y, -.6); scene.add(b); } }
-      else { const a = buildArch(); a.position.set(p.x, .5, 0); scene.add(a); }
-    });
+    this.plat.forEach((p, i) => this.platMesh(p, i));
     // sun-stars over the gaps on the arc a good jump takes; two hearts on the way
-    const starM = new THREE.SpriteMaterial({ map:radial([[0, "#fff8d0"], [.3, "rgba(255,200,90,.9)"], [1, "rgba(255,140,40,0)"]]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
-    const heartM = new THREE.SpriteMaterial({ map:(() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d"); x.font = "52px serif"; x.textAlign = "center"; x.fillStyle = "#7dff4d"; x.fillText("♥", 32, 50); return new THREE.CanvasTexture(cv); })(), transparent:true, depthWrite:false });
     this.stars = [];
-    for (let i = 1; i < this.plat.length; i++){ const a = this.plat[i - 1], b = this.plat[i];
-      const s = new THREE.Sprite(b.heart ? heartM : starM); s.scale.setScalar(b.heart ? 1.4 : 1.3); s.position.set((a.x + a.w/2 + b.x - b.w/2)/2, Math.max(a.y, b.y) + 2.2, 0);
-      s.userData.heart = !!b.heart; scene.add(s); this.stars.push(s); }
+    for (let i = 1; i < this.plat.length; i++) this.stars.push(this.star(this.plat[i - 1], this.plat[i]));
     // the beach behind, in the dusk
     for (let i = 0; i < 90; i++){ const z = -12 - rnd(i*3.3)*40, px = rnd(i*1.9)*(L + 60) - 20;
-      if (rnd(i*5.7) < .6){ const p = buildPalm(7 + rnd(i)*7, .6 + rnd(i*2)*1.4, i + 100); p.position.set(px, -.5, z); scene.add(p); }
-      else { const r = buildRock(1.2 + rnd(i)*2.5, i + 50); r.position.set(px, 0, z); scene.add(r); } }
-    const sand = new THREE.Mesh(new THREE.PlaneGeometry(L + 200, 60), new THREE.MeshLambertMaterial({ color:C.sand })); sand.rotation.x = -Math.PI/2; sand.position.set(L/2, .15, -45); scene.add(sand);
-    this.sea = buildSea(L + 200, 120, L/2, -20);
-    $("pads").innerHTML = '<button type="button" id="jp">&#9650; TAP = HOP &middot; HOLD = FLY</button>';
-    $("gwrap").classList.remove("hid"); $("gl").textContent = "HOVER";
+      if (rnd(i*5.7) < .6){ const p = buildPalm(7 + rnd(i)*7, .6 + rnd(i*2)*1.4, i + 100); p.position.set(px, -.5, z); this.root.add(p); }
+      else { const r = buildRock(1.2 + rnd(i)*2.5, i + 50); r.position.set(px, 0, z); this.root.add(r); } }
+    const sand = new THREE.Mesh(new THREE.PlaneGeometry(L + 200, 60), new THREE.MeshLambertMaterial({ color:C.sand })); sand.rotation.x = -Math.PI/2; sand.position.set(L/2, .15, -45); this.root.add(sand);
+    this.sea = buildSea(L + 200, 120, L/2, -20, this.root);
+  },
+  // one rock / palm / the arch; returns what it built (endless takes it away again)
+  platMesh(p, i){
+    const out = [], add = o => { this.root.add(o); out.push(o); };
+    if (p.kind === "palm"){ const palm = buildPalm(p.y + 1.5, .3, i); palm.position.set(p.x, -1.5, 0); add(palm);
+      const pad = new THREE.Mesh(new THREE.CylinderGeometry(1.15, .8, .25, 10), this.padM); pad.position.set(p.x + .3, p.y - .12, 0); add(pad); }
+    else if (p.kind === "rock"){ const r = buildRock(p.w/2, i); r.scale.y = (p.y + 1.5) / (p.w/2) * .55; r.position.set(p.x, -.6, 0); add(r);
+      const top = new THREE.Mesh(new THREE.BoxGeometry(p.w, .3, 2.4), this.topM); top.position.set(p.x, p.y - .15, 0); add(top);
+      if (rnd(i*7) < .5){ const b = buildBush(i); b.position.set(p.x + (rnd(i) - .5)*p.w*.5, p.y, -.6); add(b); } }
+    else { const a = buildArch(); a.position.set(p.x, .5, 0); add(a); }
+    return out;
+  },
+  star(a, b){
+    const s = new THREE.Sprite(b.heart ? this.heartM : this.starM); s.scale.setScalar(b.heart ? 1.4 : 1.3); s.position.set((a.x + a.w/2 + b.x - b.w/2)/2, Math.max(a.y, b.y) + 2.2, 0);
+    s.userData.heart = !!b.heart; this.root.add(s); return s;
+  },
+  // endless/remix: the beach never ends - the course is made as you go and the dusk behind moves along
+  setupGold(){
+    this.plat = []; this.stars = []; this.k = 0; this.bg = [];
+    for (let i = 0; i < 40; i++){ const z = -12 - rnd(i*3.3)*40, ox = rnd(i*1.9)*200; let o;
+      if (rnd(i*5.7) < .6){ o = buildPalm(7 + rnd(i)*7, .6 + rnd(i*2)*1.4, i + 100); o.position.set(ox, -.5, z); }
+      else { o = buildRock(1.2 + rnd(i)*2.5, i + 50); o.position.set(ox, 0, z); }
+      o.userData.ox = ox; this.root.add(o); this.bg.push(o); }
+    this.sand = new THREE.Mesh(new THREE.PlaneGeometry(460, 60), new THREE.MeshLambertMaterial({ color:C.sand })); this.sand.rotation.x = -Math.PI/2; this.sand.position.set(100, .15, -45); this.root.add(this.sand);
+    this.sea = buildSea(400, 120, 100, -20, this.root);
+  },
+  course(){
+    this.plat.forEach(p => p.ms && p.ms.forEach(drop)); this.stars.forEach(s => this.root.remove(s));
+    const p0 = { x:0, w:7, y:1.6, kind:"rock" }; p0.ms = this.platMesh(p0, 0);
+    this.plat = [p0]; this.stars = []; this.gone = 0;
+  },
+  // ~70 m of beach ahead: the same kind of hops as the song's course, then wider gaps, narrower
+  // rocks and more palms; the speed and the jump stay the same so every gap can be made
+  grow(t){
+    const e = clamp(t/END_AT, 0, 1), e2 = clamp((t - END_AT)/320, 0, 1);
+    while (this.plat[this.plat.length - 1].x < S.x + 70){
+      const a = this.plat[this.plat.length - 1], k = this.k++;
+      const gap = 2.2 + rnd(k*1.3)*2.4 + e*1.6 + e2*1.2, kind = rnd(k*2.7) < .55 + e2*.15 ? "palm" : "rock";
+      const w = kind === "palm" ? 2.2 : 2.6 + rnd(k*3.1)*3.2*(1 - e2*.4) - e;
+      const p = { x:a.x + a.w/2 + gap + w/2, w, y:clamp(a.y + (rnd(k*4.3) - .5)*3.4, 1.4, 6.4), kind, heart:k % 60 === 30 };
+      p.ms = this.platMesh(p, k + 1); this.plat.push(p); this.stars.push(this.star(a, p));
+    }
+    while (this.gone < S.last - 2 && this.plat[this.gone].x < S.x - 40){ const p = this.plat[this.gone++]; if (p.ms){ p.ms.forEach(drop); p.ms = null; } }
+    if (this.stars.length && this.stars[0].position.x < S.x - 30) this.stars = this.stars.filter(s => s.position.x >= S.x - 30 || (this.root.remove(s), false));
   },
   reset(){
     Object.assign(S, { hearts:3, maxHearts:3, x:-2.5, y:2.05, vy:0, ground:true, coyote:0, hover:1, hold:false, last:0, inv:0, starsGot:0, falls:0 });
-    this.stars.forEach(s => s.visible = true);
+    if (GOLD){ this.course(); this.grow(0); }
+    else this.stars.forEach(s => s.visible = true);
     $("pads").classList.remove("hid");
   },
   intro: ["HOP TO THE ARCH", "tap = short hop · hold = high jump and hover"],
@@ -390,6 +468,7 @@ const HOP = {
     if (down && (S.ground || S.coyote > 0)){ S.vy = 11.5; S.ground = false; S.coyote = 0; sfx.jump(); } },
   seaLevel(t){ const ph = ((t - GRID.t0) % BAR + BAR) % BAR / BAR; return -.1 + Math.max(0, Math.sin(ph*Math.PI*2))*(inHook(t) ? 1.15 : t > barT(2) ? .75 : .3); },
   update(dt, t){
+    if (GOLD) this.grow(t);
     const prevY = S.y; S.x += this.speed(t)*dt;
     S.vy -= 27*dt;
     if (S.hold && S.vy < 0 && S.hover > 0){ S.vy = Math.max(S.vy, -2); S.hover = Math.max(0, S.hover - dt*.9); }
@@ -414,7 +493,7 @@ const HOP = {
       if (S.hearts <= 0){ lose("THE SEA GOT YOU", "Jump right at the edge, and hold to hover over the long gaps."); return; }
       say("SPLASH!", S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1, true);
     }
-    if (t >= END_AT){ lose("THE SUN WENT DOWN", "Keep moving - the arch is at the end of the beach."); }
+    if (!GOLD && t >= END_AT){ lose("THE SUN WENT DOWN", "Keep moving - the arch is at the end of the beach."); }
   },
   hud(){ $("gauge").firstChild.style.width = (S.hover*100).toFixed(0) + "%"; },
   render(dt, t){
@@ -423,6 +502,8 @@ const HOP = {
     beam.visible = S.hold && S.hover > 0 && !S.ground; beam.scale.set(.8, 2.6, .8); beam.position.y = -1.4;
     const portrait = cam.aspect < .8;
     cam.position.set(S.x + (portrait ? 1.8 : 6), 4.6 + S.y*.3, portrait ? 26 : 19); cam.lookAt(S.x + (portrait ? 1.8 : 6), 2.8 + S.y*.25, 0);
+    if (GOLD){ this.sea.position.x = Math.floor(S.x/20)*20 + 100; this.sand.position.x = S.x + 100;
+      this.bg.forEach(o => { o.position.x = S.x - 60 + ((o.userData.ox - S.x + 60) % 200 + 200) % 200; }); }
     this.sea.position.y = this.seaLevel(t); waveSea(this.sea, t);
     this.stars.forEach((s, i) => { s.material.rotation = s.userData.heart ? 0 : t; s.scale.setScalar((s.userData.heart ? 1.4 : 1.2) + Math.sin(t*6 + i)*.15); });
   }
@@ -431,21 +512,22 @@ const HOP = {
 /* =============== PART 2 - CRAB NIGHT: hold the arch, beam the crabs back =============== */
 const ARCH_Z = 9, SLOTS = 5;
 const CRAB = {
+  title:"Crab Night", fov:52,
   setup(){
-    this.sea = buildSea(400, 300, 0, -170);
+    this.sea = buildSea(400, 300, 0, -170, this.root);
     const sand = new THREE.Mesh(new THREE.PlaneGeometry(80, 40, 20, 10), new THREE.MeshLambertMaterial({ color:C.sandLit, flatShading:true }));
-    sand.rotation.x = -Math.PI/2; sand.position.set(0, .05, 0); scene.add(sand);
-    const wet = new THREE.Mesh(new THREE.PlaneGeometry(80, 4), new THREE.MeshLambertMaterial({ color:0x3a2430 })); wet.rotation.x = -Math.PI/2; wet.position.set(0, .07, -18); scene.add(wet);
-    this.arch = buildArch(); this.arch.position.set(0, 0, ARCH_Z); this.arch.scale.setScalar(.7); scene.add(this.arch);
-    [[-11, -6, 9], [12, -9, 11], [-15, 4, 8], [16, 3, 10], [-7, -14, 7], [9, -15, 8]].forEach(([x, z, h], i) => { const p = buildPalm(h, .8 + rnd(i)*.8, i); p.position.set(x, 0, z); scene.add(p); });
-    [[-17, 8], [17, 7], [-6, 13], [6, 12.5]].forEach(([x, z], i) => { const b = buildBush(i); b.position.set(x, 0, z); b.scale.setScalar(1.6); scene.add(b); });
-    [[-19, -2, 2.4], [19, -5, 2], [-14, 10, 1.6]].forEach(([x, z, s], i) => { const r = buildRock(s, i); r.position.set(x, 0, z); scene.add(r); });
+    sand.rotation.x = -Math.PI/2; sand.position.set(0, .05, 0); this.root.add(sand);
+    const wet = new THREE.Mesh(new THREE.PlaneGeometry(80, 4), new THREE.MeshLambertMaterial({ color:0x3a2430 })); wet.rotation.x = -Math.PI/2; wet.position.set(0, .07, -18); this.root.add(wet);
+    this.arch = buildArch(); this.arch.position.set(0, 0, ARCH_Z); this.arch.scale.setScalar(.7); this.root.add(this.arch);
+    [[-11, -6, 9], [12, -9, 11], [-15, 4, 8], [16, 3, 10], [-7, -14, 7], [9, -15, 8]].forEach(([x, z, h], i) => { const p = buildPalm(h, .8 + rnd(i)*.8, i); p.position.set(x, 0, z); this.root.add(p); });
+    [[-17, 8], [17, 7], [-6, 13], [6, 12.5]].forEach(([x, z], i) => { const b = buildBush(i); b.position.set(x, 0, z); b.scale.setScalar(1.6); this.root.add(b); });
+    [[-19, -2, 2.4], [19, -5, 2], [-14, 10, 1.6]].forEach(([x, z, s], i) => { const r = buildRock(s, i); r.position.set(x, 0, z); this.root.add(r); });
     // crabs: small, big (two hits) and fast sand-runners; built once, reused
     this.pool = [];
     const shell = c => new THREE.MeshLambertMaterial({ color:c, flatShading:true });
     const kinds = { small:[shell(0xd8452a), shell(0xff6a3a)], big:[shell(0x8a2a5a), shell(0xc84a8a)], runner:[shell(0xe8b04a), shell(0xffd27a)] };
     const eyeM = new THREE.MeshBasicMaterial({ color:0x111111 });
-    for (const [kind, [bodyM, clawM]] of Object.entries(kinds)) for (let i = 0; i < 26; i++){
+    for (const [kind, [bodyM, clawM]] of Object.entries(kinds)) for (let i = 0; i < (GOLD ? 36 : 26); i++){
       const g = new THREE.Group();
       const body = new THREE.Mesh(new THREE.SphereGeometry(.55, 10, 6), bodyM); body.scale.set(1.3, .55, 1); body.position.y = .4; g.add(body);
       for (const s of [-1, 1]){
@@ -453,12 +535,12 @@ const CRAB = {
         const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 6, 4), eyeM); e.position.set(s*.18, .72, .35); g.add(e);
         for (let l = 0; l < 3; l++){ const leg = new THREE.Mesh(new THREE.BoxGeometry(.5, .06, .06), bodyM); leg.position.set(s*.75, .25, -.25 + l*.25); leg.rotation.z = s*.6; g.add(leg); }
       }
-      g.visible = false; g.userData.kind = kind; scene.add(g); this.pool.push(g);
+      g.visible = false; g.userData.kind = kind; this.root.add(g); this.pool.push(g);
     }
     // the beam shots
     this.bolts = [];
-    for (let i = 0; i < 10; i++){ const b = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, 1.6, 8), glowMat(C.glow, .95)); b.visible = false; scene.add(b); this.bolts.push({ m:b, on:false }); }
-    this.ring = new THREE.Mesh(new THREE.RingGeometry(.6, .85, 24), glowMat(C.glow, .8)); this.ring.rotation.x = -Math.PI/2; this.ring.visible = false; scene.add(this.ring);
+    for (let i = 0; i < 10; i++){ const b = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, 1.6, 8), glowMat(C.glow, .95)); b.visible = false; this.root.add(b); this.bolts.push({ m:b, on:false }); }
+    this.ring = new THREE.Mesh(new THREE.RingGeometry(.6, .85, 24), glowMat(C.glow, .8)); this.ring.rotation.x = -Math.PI/2; this.ring.visible = false; this.root.add(this.ring);
     $("gwrap").classList.remove("hid"); $("gl").textContent = "BEAM";
     $("awrap").classList.remove("hid"); $("arch").innerHTML = "<i></i>".repeat(SLOTS);
     this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -.4);
@@ -488,7 +570,7 @@ const CRAB = {
   },
   spawn(t, n){
     for (let i = 0; i < n; i++){
-      const k = S.k++, f = t / END_AT;
+      const k = S.k++, f = ramp(t);
       const kind = f > .5 && rnd(k*9.1) < .22 ? "runner" : f > .25 && rnd(k*7.7) < .22 ? "big" : "small";
       const g = this.pool.find(p => !p.visible && p.userData.kind === kind); if (!g) return;
       g.visible = true; g.scale.setScalar(kind === "big" ? 2.6 : kind === "runner" ? 1.5 : 1.8);
@@ -499,8 +581,8 @@ const CRAB = {
   },
   update(dt, t){
     // crabs come on the beat, more and more; a crowd on every 8th bar
-    while (t >= S.nextSpawn && t < END_AT - 3){
-      const bar = Math.floor((S.nextSpawn - GRID.t0) / BAR), crowd = bar % (inHook(S.nextSpawn) ? 4 : 8) === 3, f = t / END_AT;
+    while (t >= S.nextSpawn && t < untilT() - 3){
+      const bar = Math.floor((S.nextSpawn - GRID.t0) / BAR), crowd = bar % (inHook(S.nextSpawn) ? 4 : 8) === 3, f = ramp(t);
       this.spawn(t, crowd ? 4 + Math.floor(f*4) : 1 + (rnd(bar*3.7 + S.k) < f*1.2 ? 1 : 0));
       if (crowd) say("HERE THEY COME", "", 1);
       S.nextSpawn += BEAT*2;
@@ -532,6 +614,12 @@ const CRAB = {
       const tx = (c.ph % 1 - .5)*4, dx = tx - c.x, dz = ARCH_Z - 1.5 - c.z, d = Math.hypot(dx, dz);
       const wig = c.kind === "runner" ? Math.sin(t*5 + c.ph)*4 : Math.sin(t*6 + c.ph)*1.2;
       c.x += (dx/d*c.v + wig)*dt; c.z += dz/d*c.v*dt;
+      if (d < 1.2 && REMIX){
+        // the remix: no crabs pile up - one that gets through bites a heart and is flung off
+        c.up = 0; sfx.bad(); S.combo = 0; S.hearts--;
+        if (S.hearts <= 0){ lose("THE CRABS GOT THROUGH", "Beam the nearest crab first, and shoot on the beat - it's free."); return; }
+        say("A CRAB GOT THROUGH", S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1, true); continue;
+      }
       if (d < 1.2){
         c.slot = S.onArch++; sfx.bad(); S.combo = 0;
         const left = SLOTS - S.onArch;
@@ -541,11 +629,16 @@ const CRAB = {
     }
     this.crabs = this.crabs.filter(c => { if (c.up > 1.6){ c.g.visible = false; return false; } return true; });
     if (S.ringT > 0){ S.ringT -= dt; if (S.ringT <= 0) this.ring.visible = false; }
-    if (t >= END_AT){
+    if (!GOLD && t >= END_AT){
       // the sun's down: whatever's left runs back into the sea
       for (const c of this.crabs) if (c.up < 0 && c.slot < 0) c.up = 0;
       S.score += (SLOTS - S.onArch)*800; win("THE ARCH HOLDS");
     }
+  },
+  // endless: every 24 bars the tide takes the top crab off the arch
+  unload(){
+    const c = this.crabs.find(c => c.slot === S.onArch - 1); if (!c) return;
+    c.slot = -1; c.up = 0; S.onArch--; sfx.heart(); say("THE TIDE TAKES ONE", "one crab off the arch", 1);
   },
   topple(){ S.toppleT = 0; sfx.splash(); lose("THE ARCH FELL", "Five crabs on the arch is too many. Shoot on the beat - it's free and it never overheats."); },
   hud(){
@@ -573,15 +666,17 @@ const CRAB = {
 /* =============== PART 3 - SURF THE SUNSET: a runner on the sea, to the sun =============== */
 const LANE = 2.6;
 const SURF = {
-  speed: t => 16 + Math.min(8, t/10),
+  title:"Surf the Sunset", fov:62,
+  // endless: past the song it speeds up again, to 28 at ~7.5 minutes
+  speed: t => 16 + Math.min(8, t/10) + (GOLD ? Math.min(4, Math.max(0, t - END_AT)/75) : 0),
   setup(){
-    this.sea = buildSea(160, 400, 0, -150);
+    this.sea = buildSea(160, 400, 0, -150, this.root);
     this.items = []; this.side = [];
     for (let i = 0; i < 26; i++){ const s = i % 2 ? 1 : -1, g = new THREE.Group();
       const isle = new THREE.Mesh(new THREE.SphereGeometry(5, 12, 6, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshLambertMaterial({ color:C.sand, flatShading:true })); isle.scale.set(1.4, .35, 1); g.add(isle);
       const p = buildPalm(8 + rnd(i)*5, s*-1.2, i); p.position.set(rnd(i*2)*2, 0, 0); g.add(p);
       if (rnd(i*3) < .5){ const r = buildRock(2, i); r.position.set(-s*3, .5, 2); g.add(r); }
-      g.position.set(s*(16 + rnd(i*4)*10), -.3, -i*28); scene.add(g); this.side.push(g); }
+      g.position.set(s*(16 + rnd(i*4)*10), -.3, -i*28); this.root.add(g); this.side.push(g); }
     const rockG = new THREE.DodecahedronGeometry(1.1, 0), rockM = new THREE.MeshLambertMaterial({ color:C.rock, flatShading:true });
     const waveM = new THREE.MeshPhongMaterial({ color:0x5a3a6a, emissive:0x2a1430, specular:0xffb070, shininess:40, flatShading:true, transparent:true, opacity:.92 });
     const foamM = new THREE.MeshBasicMaterial({ color:0xffe8d8 });
@@ -595,11 +690,12 @@ const SURF = {
       light: () => { const s = new THREE.Sprite(lightM); s.scale.setScalar(1.4); return s; },
       heart: () => { const s = new THREE.Sprite(heartM); s.scale.setScalar(1.5); return s; }
     };
-    $("pads").innerHTML = '<button type="button" data-a="-1">&#9664;</button><button type="button" data-a="0">&#9650;</button><button type="button" data-a="1">&#9654;</button>';
+    this.pads = '<button type="button" data-a="-1">&#9664;</button><button type="button" data-a="0">&#9650;</button><button type="button" data-a="1">&#9654;</button>';
+    $("pads").innerHTML = this.pads;
   },
   reset(){
     Object.assign(S, { hearts:3, maxHearts:3, z:0, lane:0, lx:0, y:0, vy:0, inv:0, nextBeat:barT(1), k:0, lights:0, jumps:0 });
-    this.items.forEach(i => scene.remove(i.m)); this.items = [];
+    this.items.forEach(i => this.root.remove(i.m)); this.items = [];
     $("pads").classList.remove("hid");
   },
   intro: ["RIDE TO THE SUN", "◀ ▶ lanes · ▲ jump the waves"],
@@ -611,15 +707,15 @@ const SURF = {
     S.vy -= 24*dt; S.y = Math.max(0, S.y + S.vy*dt); if (S.y === 0) S.vy = 0;
     S.lx += (S.lane*LANE - S.lx)*Math.min(1, dt*15); if (S.inv > 0) S.inv -= dt;
     // things arrive on the beat: a wave every other bar, rocks between, lights on the off-beats
-    while (t + 2.2 > S.nextBeat && S.nextBeat < END_AT - 2){
-      const k = S.k++, at = S.nextBeat, z = S.z - v*(at - t), beatInBar = k % 4, f = at / END_AT;
-      if (k >= 4 && beatInBar === 0 && ((k/4) % 2 === 1 || inHook(at))){ const m = this.make.wave(); m.position.set(0, 0, z); scene.add(m); this.items.push({ m, kind:"wave", z, lane:9 }); }
+    while (t + 2.2 > S.nextBeat && S.nextBeat < untilT() - 2){
+      const k = S.k++, at = S.nextBeat, z = S.z - v*(at - t), beatInBar = k % 4, f = ramp(at);
+      if (k >= 4 && beatInBar === 0 && ((k/4) % 2 === 1 || inHook(at))){ const m = this.make.wave(); m.position.set(0, 0, z); this.root.add(m); this.items.push({ m, kind:"wave", z, lane:9 }); }
       else if (k >= 4 && rnd(k*3.1) < .5 + f*.3){
-        const lanes = f > .5 && rnd(k*4.1) < .35 ? 2 : 1, free = Math.floor(rnd(k*5.7)*3) - 1;
-        for (const lane of [-1, 0, 1].filter(l => l !== free).slice(0, lanes)){ const m = this.make.rock(); m.position.set(lane*LANE, .3, z); scene.add(m); this.items.push({ m, kind:"rock", z, lane }); }
+        const lanes = f > .5 && rnd(k*4.1) < .35 + clamp((f - 1)*.25, 0, .25) ? 2 : 1, free = Math.floor(rnd(k*5.7)*3) - 1;
+        for (const lane of [-1, 0, 1].filter(l => l !== free).slice(0, lanes)){ const m = this.make.rock(); m.position.set(lane*LANE, .3, z); this.root.add(m); this.items.push({ m, kind:"rock", z, lane }); }
       }
       const ll = Math.floor(rnd(k*7.3)*3) - 1, isHeart = k % 64 === 40, m = isHeart ? this.make.heart() : this.make.light();
-      m.position.set(ll*LANE, 1.1, z - v*BEAT/2); scene.add(m); this.items.push({ m, kind:isHeart ? "heart" : "light", z:z - v*BEAT/2, lane:ll });
+      m.position.set(ll*LANE, 1.1, z - v*BEAT/2); this.root.add(m); this.items.push({ m, kind:isHeart ? "heart" : "light", z:z - v*BEAT/2, lane:ll });
       S.nextBeat += BEAT;
     }
     for (const it of this.items){
@@ -633,12 +729,12 @@ const SURF = {
         else if (it.kind === "wave" && S.inv <= 0 && S.y < 1.3){ it.done = true; this.hit("WIPEOUT!"); }
         else if (it.kind === "wave"){ it.done = true; S.score += 200; S.jumps++; say("NICE JUMP", "", .6); sfx.big(); }
       }
-      if (dz > 8){ it.done = true; scene.remove(it.m); }
+      if (dz > 8){ it.done = true; this.root.remove(it.m); }
       if (S.done) return;
     }
     this.items = this.items.filter(it => !(it.done && it.z - S.z > 8));
     S.score += v*dt*2;
-    if (t >= END_AT) win("THE SUN");
+    if (!GOLD && t >= END_AT) win("THE SUN");
   },
   hit(what){ S.hearts--; S.inv = 1.2; sfx.bad(); if (S.hearts <= 0){ lose("WIPEOUT", "Jump when the foam of the wave reaches you, and keep to the open lane."); return; }
     say(what, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1, true); },
@@ -654,7 +750,43 @@ const SURF = {
   }
 };
 
-const G = PART === 1 ? HOP : PART === 2 ? CRAB : SURF;
+let G = PART === 1 ? HOP : PART === 2 ? CRAB : SURF;   // the remix changes it every 8 bars
+
+/* ================= ENDLESS AND REMIX =================
+   A heart back every 24 bars (Part 2 endless: the tide takes a crab off the
+   arch instead). The remix: 8 bars of each game, 1 -> 2 -> 3 -> 1 ..., one score
+   and 3 shared hearts, +2000 and a heart back every lap; difficulty runs on the
+   game clock, so every lap is harder than the one before. */
+const GAMES = [HOP, CRAB, SURF];
+function show(P){
+  G = P; GAMES.forEach(p => { if (p.root) p.root.visible = p === P; });
+  cam.fov = P.fov; cam.updateProjectionMatrix();
+  $("pads").innerHTML = P.pads || ""; $("pads").classList.toggle("hid", P === CRAB);
+  $("gwrap").classList.toggle("hid", P === SURF); $("gl").textContent = P === HOP ? "HOVER" : "BEAM"; $("gauge").classList.remove("hot");
+  $("awrap").classList.add("hid");
+}
+function switchTo(seg){
+  const first = S.seg < 0, keep = { hearts:S.hearts, z:S.z || 0 };
+  Object.assign(S, { seg, lap:Math.floor(seg/3), segT:barT(seg*8), segEnd:barT(seg*8 + 8) });
+  show(GAMES[seg % 3]); G.reset();
+  S.maxHearts = 3; S.hearts = first ? 3 : keep.hearts; S.z = keep.z;
+  if (G === CRAB){ S.nextSpawn = S.segT + BEAT*2; S.k = S.lap*331; }
+  if (G === SURF){ S.nextBeat = S.segT + BAR; S.k = 8 + S.lap*64; }
+  if (first) return;
+  S.flashT = .7; lyric(G.title, 2.2); const [c0, c1] = G === HOP ? ["KEEP HOPPING", HOP.intro[1]] : G.intro;
+  if (seg % 3 === 0){ S.score += 2000; S.hearts = Math.min(3, S.hearts + 1); sfx.big(); say("LAP " + (S.lap + 1), "+2,000 &middot; a heart back", 1.8); }
+  else say(c0, c1, 1.8);
+}
+const cue = () => REMIX ? ["THE REMIX", "all three games, 8 bars each - till the hearts run out"] : GOLD && G === HOP ? ["KEEP HOPPING", HOP.intro[1]] : G.intro;
+function gold(t, dt){
+  const bar = Math.floor((t - GRID.t0) / BAR);
+  if (REMIX && Math.floor(bar / 8) !== S.seg) switchTo(Math.floor(bar / 8));
+  const r = Math.floor(bar / 24);
+  if (r > S.regen){ S.regen = r;
+    if (G === CRAB && !REMIX){ if (S.onArch > 0) CRAB.unload(); }
+    else if (S.hearts < S.maxHearts){ S.hearts++; sfx.heart(); say("+1 HEART", "24 bars", .9); } }
+  if (S.flashT > 0){ S.flashT -= dt; flashEl.style.opacity = (Math.max(0, S.flashT)/.7*.85).toFixed(2); }
+}
 
 /* ================= THE ENDING =================
    Every part ends on the cover: an orange flash, then the beach - the palms,
@@ -697,25 +829,34 @@ function boot(){
   buildSky();
   ufo = buildUFO(); beam = ufo.userData.beam; scene.add(ufo);
   coverG = buildCover();
-  G.setup();
+  if (GOLD){ coverG.visible = false; coverG.userData.sea.visible = false; flashEl.style.background = "#ffe08a"; if (ENDLESS) $("sunbar").classList.add("hid"); }
+  for (const P of REMIX ? GAMES : [G]){ P.root = new THREE.Group(); scene.add(P.root); P.setup(); }
+  if (REMIX) show(HOP);
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }
 function reset(){
   S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, lyrT:0, hearts:0, maxHearts:0 }; saidHook = false;
+  if (GOLD) Object.assign(S, { loops:0, regen:0, seg:-1, lap:0, segT:0, segEnd:Infinity, flashT:0 });
+  if (REMIX) show(HOP);
   G.reset();
   $("msg").className = ""; $("lyric").classList.remove("on"); flashEl.style.opacity = 0; lastH = "";
 }
 function update(dt){
   // the song is the clock while it plays; the stand-in beat keeps its own
-  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = song.currentTime;
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done){
+    // endless/remix: at the loop end jump back a whole number of bars
+    if (GOLD && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOPLEN; S.loops++; } catch(e){} }
+    S.t = song.currentTime + (GOLD ? S.loops*LOOPLEN : 0);
+  }
   else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
   else S.t += dt;
   if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
   if (S.lyrT > 0){ S.lyrT -= dt; if (S.lyrT <= 0) $("lyric").classList.remove("on"); }
   if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
   if (S.done) return;
-  if (!saidHook && S.t >= HOOKS[0][0]){ saidHook = true; lyric("No Rest/No Work", 3.5); }
+  if (!saidHook && !REMIX && S.t >= HOOKS[0][0]){ saidHook = true; lyric("No Rest/No Work", 3.5); }
+  if (GOLD) gold(Math.max(0, S.t), dt);
   G.update(dt, Math.max(0, S.t));
 }
 function frame(){
@@ -728,17 +869,29 @@ function frame(){
   } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
   requestAnimationFrame(frame);
 }
-function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function score(){ return GOLD ? Math.round(S.score) : S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }   // endless counts in full
+const clock = t => { const s = Math.floor(Math.max(0, t)); return Math.floor(s/60) + ":" + String(s % 60).padStart(2, "0"); };
 
 function finish(){
   song.pause();
   const v = $("veil"); v.classList.remove("hid");
   const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
-  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail);
-  $("next").classList.toggle("hid", S.fail);
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !GOLD);
+  $("next").classList.toggle("hid", S.fail || GOLD);
   for (const id of ["outs", "home"]) $(id).classList.remove("hid");
   $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("pads").classList.add("hid");
-  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(), metres:0 });
+  if (HUB) toHub(GOLD ? { type:"javeda:result", level:CFG.id, cleared:true, score:score(), metres:Math.floor(Math.max(0, S.t)) }
+    : { type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(), metres:0 });
+  if (GOLD){
+    v.querySelector(".by").textContent = (REMIX ? "REMIX · " : "ENDLESS · ") + S.why;
+    v.querySelector("h1").textContent = score().toLocaleString("en");
+    const stat = REMIX ? "lap " + (S.lap + 1) + " &middot; died in " + G.title
+      : PART === 1 ? S.starsGot + " sun-stars &middot; " + S.falls + (S.falls === 1 ? " splash" : " splashes")
+      : PART === 2 ? S.beamed + " crabs beamed back &middot; " + S.onBeat + " on the beat" : S.lights + " lights &middot; " + S.jumps + " waves jumped";
+    ps[0].innerHTML = "Survived <b>" + clock(S.t) + "</b> &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>Level 6 " + (REMIX ? "Remix" : "Part " + PART + " &infin;") + "</b> scoreboard.";
+    return;
+  }
   if (S.fail){
     v.querySelector(".by").textContent = S.why;
     v.querySelector("h1").textContent = "Not yet";
@@ -761,44 +914,57 @@ $("go").addEventListener("click", () => {
   if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
   S.started = true; S.t = 0;
-  say(G.intro[0], G.intro[1], 2.6);
+  if (GOLD && HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(cue()[0], cue()[1], 2.6);
 });
 
 /* ---------------- input ---------------- */
 const veilUp = () => !$("veil").classList.contains("hid");
 addEventListener("pointerdown", e => {
   if (veilUp() || !S.started) return;
-  if (PART === 3 && e.target.closest("#pads")) return;
+  if (G === SURF && e.target.closest("#pads")) return;
   e.preventDefault();
-  if (PART === 1) HOP.press(true);
-  else if (PART === 2) CRAB.tap(e.clientX, e.clientY);
+  if (G === HOP) HOP.press(true);
+  else if (G === CRAB) CRAB.tap(e.clientX, e.clientY);
   else { const f = e.clientX / innerWidth; SURF.act(f < 1/3 ? -1 : f > 2/3 ? 1 : 0); }
 }, { passive:false });
-addEventListener("pointerup", () => { if (PART === 1) HOP.press(false); });
-addEventListener("pointercancel", () => { if (PART === 1) HOP.press(false); });
-$("pads").addEventListener("pointerdown", e => { const b = e.target.closest("button"); if (!b || PART !== 3) return; e.stopPropagation(); e.preventDefault();
+addEventListener("pointerup", () => { if (G === HOP) HOP.press(false); });
+addEventListener("pointercancel", () => { if (G === HOP) HOP.press(false); });
+$("pads").addEventListener("pointerdown", e => { const b = e.target.closest("button"); if (!b || G !== SURF) return; e.stopPropagation(); e.preventDefault();
   b.classList.add("on"); setTimeout(() => b.classList.remove("on"), 100); SURF.act(+b.dataset.a); });
 addEventListener("keydown", e => {
   if (veilUp() || e.repeat || !S.started) return;
-  if (PART === 1 && [" ", "ArrowUp", "w", "W"].includes(e.key)){ e.preventDefault(); HOP.press(true); }
-  if (PART === 3){ const a = { ArrowLeft:-1, a:-1, A:-1, ArrowRight:1, d:1, D:1, ArrowUp:0, " ":0, w:0, W:0 }[e.key]; if (a !== undefined){ e.preventDefault(); SURF.act(a); } }
+  if (G === HOP && [" ", "ArrowUp", "w", "W"].includes(e.key)){ e.preventDefault(); HOP.press(true); }
+  if (G === SURF){ const a = { ArrowLeft:-1, a:-1, A:-1, ArrowRight:1, d:1, D:1, ArrowUp:0, " ":0, w:0, W:0 }[e.key]; if (a !== undefined){ e.preventDefault(); SURF.act(a); } }
 });
-addEventListener("keyup", e => { if (PART === 1 && [" ", "ArrowUp", "w", "W"].includes(e.key)) HOP.press(false); });
+addEventListener("keyup", e => { if (G === HOP && [" ", "ArrowUp", "w", "W"].includes(e.key)) HOP.press(false); });
 
 // the start card for this part; on its own you can switch parts
 $("by").textContent = "LAZY JO · " + CFG.by;
-$("title").textContent = PART === 1 ? "No Rest/No Work" : CFG.title;
+$("title").textContent = PART === 1 && !ENDLESS ? "No Rest/No Work" : CFG.title;
 $("intro").innerHTML = PART === 1 ? "The beach from the cover, at sunset. Hop the saucer across the sea to the stone arch before the sun goes down."
   : PART === 2 ? "The sun goes down and the crabs come out of the sea - no rest. The saucer holds the stone arch: <b>beam them back</b>."
   : "The saucer skims the sea toward the sun. Jump the big waves, keep off the rocks, grab the lights.";
 $("how").innerHTML = PART === 1 ? "<b>Tap</b> for a short hop, <b>hold</b> for a high jump and to hover with the beam (the HOVER bar refills when you land). Fall in the sea and it costs a heart - you have 3, and green hearts float over some gaps."
   : PART === 2 ? "<b>Tap</b> where you want the beam to go - it shoots from the saucer and knocks the first crab it meets back to the sea. Big purple crabs take two hits. The beam <b>overheats</b> if you fire too fast - but a shot <b>on the beat is free</b> and scores double. Every crab that gets through climbs onto the arch: <b>five and it falls</b>."
   : "<b>◀ ▶</b> (or the sides of the screen) to change lane, <b>▲</b> (or the middle) to jump. A big wave across all lanes has to be jumped; rocks have to be dodged. 3 hearts.";
+if (ENDLESS){
+  $("intro").innerHTML = "<b>Endless.</b> " + (PART === 1 ? "The beach never ends: rock to palm to rock, faster and wider the longer you last."
+    : PART === 2 ? "The sun never sets and the crabs never stop - bigger crowds, faster crabs." : "The sea never ends: faster, more rocks, and the waves keep coming.") + " The song loops - play till you're out.";
+  $("how").innerHTML += PART === 2 ? " Every 24 bars the tide takes one crab off the arch. Play till it falls." : " A heart back every 24 bars. Play till you're out.";
+}
+if (REMIX){
+  $("intro").innerHTML = "<b>The remix:</b> all three games, 8 bars each - hop the rocks, hold the arch, surf the sea - and round again, faster every lap.";
+  $("how").innerHTML = "One score, <b>3 hearts</b> for all of it. Island Hopper: tap = hop, hold = fly. Crab Night: tap the crabs - one that gets through costs a heart. Surf: <b>◀ ▶</b> lanes, <b>▲</b> jump. A heart back every 24 bars, and <b>+2,000</b> and a heart every lap.";
+}
 if (!HUB){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
-    b.setAttribute("aria-pressed", String(+b.dataset.part === PART));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.set("part", b.dataset.part); location.search = q.toString(); });
+    const mode = b.dataset.mode || "";
+    b.setAttribute("aria-pressed", String(mode === "remix" ? REMIX : +b.dataset.part === PART && !REMIX && ENDLESS === (mode === "endless")));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("remix");
+      if (mode === "remix"){ q.delete("part"); q.set("remix", "1"); } else { q.set("part", b.dataset.part); if (mode) q.set("endless", "1"); }
+      location.search = q.toString(); });
   });
 }
 

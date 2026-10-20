@@ -89,6 +89,21 @@ canvas{display:block; touch-action:none}
   #veil h1{font-size:46px} #outs{max-width:none} #next{padding:10px 30px 8px} }
 @media (prefers-reduced-motion:reduce){ #lyric, #judge{transition:none} }
 .hid{display:none!important}
+/* ENDLESS and REMIX: the golden runs */
+body.gold #m{color:#ffd65a; text-shadow:0 0 12px #e0a41a99}
+body.gold #ll2{color:#ffd65a!important}
+body.gold #night i{background:linear-gradient(90deg,#e0a41a,#ffe08a)}
+body.gold #veil{background:radial-gradient(70% 56% at 50% 34%, #5a3f1e 0%, #241634 58%, #0a0716 100%)}
+body.gold #veil h1{text-shadow:0 0 28px #ffb000, 0 0 8px #ffd65a}
+body.gold #veil h1.num{font-family:Bungee,sans-serif; font-size:clamp(42px,11vw,70px); color:#ffe08a}
+body.gold #veil .by{color:#ffe08a}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+#parts{flex-wrap:wrap; justify-content:center; max-width:440px}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{color:#2a1a02; background:#ffd65a; border-color:#ffe08a}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:4; opacity:0; transition:opacity .5s;
+  background:radial-gradient(60% 50% at 50% 45%, #ffe08a88 0%, #e0a41a33 60%, transparent 100%)}
+#flash.on{opacity:1; transition:none}
 </style>
 
 <div id="cab"></div>
@@ -99,6 +114,7 @@ canvas{display:block; touch-action:none}
 <div id="judge"></div>
 <div id="lyric"></div>
 <div id="aim"></div>
+<div id="flash"></div>
 <div id="veil">
   <i class="sp"></i>
   <p class="by" id="by">LAZY JO</p>
@@ -107,6 +123,7 @@ canvas{display:block; touch-action:none}
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Part">
     <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
+    <button type="button" class="gold" data-part="1" data-endless="1">Part 1 &infin;</button><button type="button" class="gold" data-part="2" data-endless="1">Part 2 &infin;</button><button type="button" class="gold" data-part="3" data-endless="1">Part 3 &infin;</button><button type="button" class="gold" data-remix="1">Remix</button>
   </div>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
   <button id="go" type="button">Start</button>
@@ -148,11 +165,24 @@ const calmAt = t => CALM.some(([a, b]) => t >= a && t < b);
    touches it takes one, and with none left the night is over. The hub opens a part with ?part=2|3; on its
    own the start card lets you pick. */
 const PART = Math.min(3, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
-const CFG = {
+const CFGS = {
   1: { id:"lvl5",  title:"Feel Like That", lamps:6, need:[4, 5, 5, 6, 6, 7],       moths:2, mothV:.55, cut:false, burn:0,  flies:13 },
   2: { id:"lvl5b", title:"Moth Night",     lamps:8, need:[5, 5, 6, 6, 7, 7, 8, 8], moths:4, mothV:.7,  cut:true,  burn:0,  flies:15 },
   3: { id:"lvl5c", title:"Stay Lit",       lamps:8, need:[4, 4, 5, 5, 6, 6, 7, 7], moths:4, mothV:.75, cut:true,  burn:95, flies:20, hearts:3 }
-}[PART];
+};
+/* Once every part is cleared: ENDLESS (?part=N&endless=1) plays that part with no end - light all
+   the lamps and a new round starts, harder and on a tighter clock; not in time costs a heart - and
+   REMIX (?remix=1) plays all three together: the rules switch every 8 bars, Part 1 -> 2 -> 3 -> 1 ...,
+   on one shared set of 8 lamps, each lap (24 bars) harder. Both go till the hearts run out. */
+const Q = new URLSearchParams(location.search);
+const REMIX = Q.get("remix") === "1", ENDLESS = !REMIX && Q.get("endless") === "1", EMODE = REMIX || ENDLESS;
+const CFG = Object.assign({}, CFGS[REMIX ? 1 : PART]);   // (a copy: the endless runs ramp it, the remix swaps it)
+const ID = REMIX ? "lvl5r" : ENDLESS ? CFG.id + "x" : CFG.id;
+const MAXH = EMODE ? (CFG.hearts || 3) : 0;
+// the song loops from bar 8 (the beat comes in) to bar 53 (the fade): 45 whole bars, so the grid stays exact
+const LOOP_A = barT(8), LOOP_B = barT(53), LOOP_LEN = LOOP_B - LOOP_A;
+const songAt = t => t < LOOP_B ? t : LOOP_A + (t - LOOP_A) % LOOP_LEN;
+const SEG = 8 * BAR, MAXM = 6, NEEDMAX = 10;
 const SPEED = 8.5, HOVER = 3, PARK = { x:38, z:28 };
 
 const LINKS = {
@@ -303,7 +333,7 @@ function lantern(){
   return g;
 }
 function buildLamp(i){
-  const [x, z] = LAMP_AT[i], need = CFG.need[i];
+  const [x, z] = LAMP_AT[i], need = CFG.need[i] || 6 + (i & 1);
   const g = new THREE.Group(), metal = new THREE.MeshLambertMaterial({ color:C.metal });
   const post = new THREE.Mesh(new THREE.CylinderGeometry(.11, .17, 4.3, 8), metal); post.position.y = 2.15; g.add(post);
   const foot = new THREE.Mesh(new THREE.CylinderGeometry(.32, .4, .4, 8), metal); foot.position.y = .2; g.add(foot);
@@ -318,6 +348,17 @@ function buildLamp(i){
   const pool = new THREE.Mesh(new THREE.CircleGeometry(7, 32), glow(C.warm, 0, POOL)); pool.rotation.x = -Math.PI/2; pool.position.y = .06; g.add(pool);
   g.position.set(x, 0, z); scene.add(g);
   return { i, x, z, need, got:0, lit:false, burn:0, g, L, dots, pool, pulse:0 };
+}
+// (endless: a new round can want more fireflies - a new ring of dots)
+const DOTG = new THREE.SphereGeometry(.17, 8, 6);
+function setNeed(L, need){
+  if (need === L.need) return;
+  L.dots.forEach(d => { L.g.remove(d); d.material.dispose(); });
+  L.dots = []; L.need = need;
+  for (let k = 0; k < need; k++){
+    const a = k / need * Math.PI*2, d = new THREE.Mesh(DOTG, new THREE.MeshBasicMaterial({ color:0x4a3f68 }));
+    d.position.set(Math.cos(a)*1.1, 6.1, Math.sin(a)*1.1); L.g.add(d); L.dots.push(d);
+  }
 }
 
 /* ---- the twin lamps from the cover: two posts that lean into each other ---- */
@@ -384,7 +425,7 @@ function buildMoth(k){
   scene.add(g);
   // each moth loops round its own patch of the park
   const cx = (rnd(k*3.1) - .5)*44, cz = (rnd(k*4.7) - .5)*30;
-  return { g, wings, sh, cx, cz, rx:10 + rnd(k*5.3)*9, rz:7 + rnd(k*6.1)*7, w:CFG.mothV*(.8 + rnd(k)*.4)*(k % 2 ? 1 : -1), p:rnd(k*7)*6, y:16, x:cx, z:cz, k };
+  return { g, wings, sh, cx, cz, rx:10 + rnd(k*5.3)*9, rz:7 + rnd(k*6.1)*7, w:CFG.mothV*(.8 + rnd(k)*.4)*(k % 2 ? 1 : -1), w0:(.8 + rnd(k)*.4)*(k % 2 ? 1 : -1), p:rnd(k*7)*6, a:rnd(k*7)*6, y:16, x:cx, z:cz, k };
 }
 
 /* ---- fireflies: one cloud of points, each one free, in the trail, or on its way into a lamp ---- */
@@ -424,7 +465,11 @@ function pathPoint(d){
   const e = PATH[PATH.length - 1] || { x:S.x, z:S.z }; return [e.x, e.z];
 }
 
-let DOTS = [];
+let DOTS = [], ALL = [], ALLM = [];
+function lampRow(){
+  const row = document.getElementById("lampsRow"); row.innerHTML = lamps.map(() => "<i></i>").join("");
+  DOTS = [...row.children]; lastLamps = "";
+}
 function boot(){
   ren = new THREE.WebGLRenderer({ antialias:true });
   ren.setPixelRatio(Math.min(2, devicePixelRatio || 1));
@@ -441,7 +486,8 @@ function boot(){
   POOL = radial([[0, "rgba(255,220,150,.9)"], [.5, "rgba(255,190,100,.35)"], [1, "rgba(255,170,80,0)"]]);
   sky = new THREE.Group(); scene.add(sky);
   buildSky(); buildGround(); buildTrees();
-  for (let i = 0; i < CFG.lamps; i++) lamps.push(buildLamp(i));
+  for (let i = 0; i < (EMODE ? LAMP_AT.length : CFG.lamps); i++) lamps.push(buildLamp(i));
+  ALL = lamps.slice();
   twin = buildTwin();
   // a few more benches along the loop
   [[-16, 16.5, .4], [17, 16, -.4], [-26, -4, 1.6]].forEach(([x, z, r]) => buildBench(x, z, r, 1));
@@ -453,13 +499,13 @@ function boot(){
   scene.add(ufo);
   shadow = new THREE.Mesh(new THREE.CircleGeometry(1.5, 24), new THREE.MeshBasicMaterial({ color:0xf2ffd0, transparent:true, opacity:.22, depthWrite:false, blending:THREE.AdditiveBlending }));
   shadow.rotation.x = -Math.PI/2; shadow.position.y = .08; scene.add(shadow);
-  for (let k = 0; k < CFG.moths; k++) moths.push(buildMoth(k));
+  for (let k = 0; k < (EMODE ? MAXM : CFG.moths); k++) moths.push(buildMoth(k));
+  ALLM = moths.slice();
   buildFlies();
   // the lamp icons in the HUD
-  const row = document.getElementById("lampsRow"); row.innerHTML = lamps.map(() => "<i></i>").join("");
-  DOTS = [...row.children];
+  lampRow();
   // arrows to the lamps off screen
-  for (let i = 0; i < CFG.lamps; i++){ const p = document.createElement("div"); p.className = "ptr"; document.body.appendChild(p); lamps[i].ptr = p; }
+  for (let i = 0; i < ALL.length; i++){ const p = document.createElement("div"); p.className = "ptr"; document.body.appendChild(p); lamps[i].ptr = p; }
   clock = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.fov = fov(); cam.updateProjectionMatrix(); });
 }
@@ -474,6 +520,11 @@ function reset(){
   PATH.length = 0; PATH.push({ x:S.x, z:S.z });
   lamps.forEach(L => { L.got = 0; L.lit = false; L.burn = 0; L.pulse = 0; });
   if (twin) twin.lit = 0;
+  if (EMODE && ALL.length){
+    Object.assign(S, { hearts:MAXH, round:0, lap:0, seg:0, loops:0, heal:0, cleared:0, lampsLit:0, next:0, saidTitle:true });
+    if (REMIX) usePart(1);
+    newRound(0); applyDiff(); lampRow();
+  }
   document.getElementById("hud").classList.remove("off");
   document.getElementById("judge").className = ""; document.getElementById("lyric").classList.remove("on");
 }
@@ -544,8 +595,15 @@ function lightLamp(L){
 }
 
 function update(dt){
-  if (!song.paused && song.currentTime > 0 && !S.done && S.end < 0) S.t = song.currentTime;
-  else S.t += dt;
+  if (!song.paused && song.currentTime > 0 && !S.done && S.end < 0){
+    // endless: at the fade, back 45 bars to where the beat comes in (game time keeps counting)
+    if (EMODE && song.currentTime >= LOOP_B){ try { song.currentTime -= LOOP_LEN; S.loops++; } catch(e){} }
+    S.t = song.currentTime + (EMODE ? S.loops*LOOP_LEN : 0);
+  }
+  else { S.t += dt;
+    // (endless, and the song ran out anyway - a background tab: pick it up again where the game is)
+    if (EMODE && song.ended && !S.done){ const at = songAt(S.t); S.loops = Math.round((S.t - at) / LOOP_LEN);
+      try { song.currentTime = at; const p = song.play(); if (p && p.catch) p.catch(()=>{}); } catch(e){} } }
   const t = S.t;
   if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) lyricEl.classList.remove("on"); }
   if (S.judgeT > 0){ S.judgeT -= dt; if (S.judgeT <= 0) judgeEl.classList.remove("on"); }
@@ -564,7 +622,7 @@ function update(dt){
   const p0 = PATH[0];
   if (Math.hypot(S.x - p0.x, S.z - p0.z) > .3){ PATH.unshift({ x:S.x, z:S.z }); if (PATH.length > 400) PATH.pop(); }
   if (S.safe > 0) S.safe -= dt;
-  const calm = calmAt(t);
+  const calm = calmAt(EMODE ? songAt(t) : t);
 
   // fireflies
   for (const f of F){
@@ -606,7 +664,7 @@ function update(dt){
     S.giveT = .11; sfx.give(L.got);
   }
   // Part 3: lit lamps burn down
-  if (CFG.burn) for (const l of lamps) if (l.lit){
+  if (CFG.burn && !(EMODE && S.next)) for (const l of lamps) if (l.lit){
     l.burn -= dt / CFG.burn;
     if (l.burn <= 0){ l.lit = false; l.got = 0; S.lit = lamps.filter(q => q.lit).length; say("A LAMP WENT OUT", "x", 1.1); }
   }
@@ -614,7 +672,7 @@ function update(dt){
 
   // moths: round their patch while the beat plays, up and away in the quiet bars
   for (const m of moths){
-    const a = t*m.w + m.p;
+    const a = EMODE ? (m.a += dt*m.w0*CFG.mothV*S.mk) : t*m.w + m.p;
     const tx = m.cx + Math.sin(a)*m.rx + Math.sin(a*2.3)*3, tz = m.cz + Math.cos(a*1.3)*m.rz;
     const mx = (tx - m.x)*Math.min(1, dt*3), mz = (tz - m.z)*Math.min(1, dt*3);
     m.x += mx; m.z += mz; if (mx*mx + mz*mz > 1e-6) m.hd = Math.atan2(mx, mz);
@@ -624,12 +682,14 @@ function update(dt){
       // Part 3: it costs a heart too, and the last one ends the night
       if (CFG.hearts){
         S.hearts--; sfx.scatter(); say(S.hearts ? "OUCH! " + S.hearts + (S.hearts === 1 ? " HEART" : " HEARTS") + " LEFT" : "NO HEARTS LEFT", "x", 1.3);
-        const h = document.getElementById("hearts"); h.classList.remove("hit"); void h.offsetWidth; h.classList.add("hit");
+        hurt();
+        if (S.hearts <= 0 && EMODE){ over("moths"); return; }
         if (S.hearts <= 0){ S.fail = true; S.done = true; S.why = "moths"; lyric("The moths got you", "", 2.5); setTimeout(finish, 1800); return; }
       }
     }
   }
 
+  if (EMODE){ endlessTick(t); return; }
   // the end: every lamp lit (in Part 3, all at the same time) - or the night runs out
   if (lamps.every(l => l.lit)){ S.end = 0; S.endT = t; S.score += Math.max(0, Math.round((NIGHT_END - t)*100)); finale(); return; }
   if (t >= NIGHT_END){ S.fail = true; S.done = true; S.why = "night"; lyric("The night is over", "", 2.5); setTimeout(finish, 1800); }
@@ -644,10 +704,84 @@ function nearLamp(){
   return best;
 }
 function landIn(L){
-  L.coming = Math.max(0, (L.coming || 0) - 1); S.delivered++; S.score += 100;
+  L.coming = Math.max(0, (L.coming || 0) - 1);
+  if (EMODE && !lamps.includes(L)) return;      // (endless: not one of this round's lamps)
+  S.delivered++; S.score += 100;
   if (L.lit){ L.burn = Math.min(1, L.burn + .5); L.pulse = .6; return; }
   L.got++; L.pulse = .5;
   if (L.got >= L.need) lightLamp(L);
+}
+
+/* ================= ENDLESS and REMIX =================
+   Rounds: light every lamp (in Part 3 all at once) before the round's clock runs out and they go dark
+   again at the next bar - more lamps (Part 1 grows to 8), more fireflies each, more and faster moths,
+   faster burning, a tighter clock. How hard: the round number, or one more every minute if that's more
+   (so taking it slow doesn't keep it easy). Not in time costs a heart and gives 8 more bars to finish it.
+   A heart back every 24 bars. The remix swaps the part's rules every 8 bars instead, and every lap
+   (24 bars, all three parts) is harder, +2000 and a heart back. */
+function usePart(p){ Object.assign(CFG, { hearts:0 }, CFGS[p]); S.part = p; }
+const level = t => REMIX ? Math.max(S.round, S.lap) : Math.max(S.round, Math.floor(t / 60));
+function newRound(t){
+  const base = CFGS[REMIX ? 3 : PART], r = S.round, D = level(t);
+  const n = REMIX ? LAMP_AT.length : Math.min(LAMP_AT.length, base.lamps + r), extra = Math.min(3, Math.floor(D / 2));
+  const grew = n > lamps.length;
+  if (n !== lamps.length){ lamps = ALL.slice(0, n); lampRow(); }
+  let sum = 0;
+  ALL.forEach((L, i) => { L.g.visible = i < n; L.lit = false; L.got = 0; L.burn = 0; L.pulse = i < n && t > 0 ? .5 : 0;
+    if (i >= n){ L.ptr.style.display = "none"; return; }
+    setNeed(L, Math.min(NEEDMAX, (base.need[i] || 6 + (i & 1)) + extra)); sum += L.need; });
+  S.lit = 0;
+  // the clock: seconds a firefly, fewer each round (more while the lamps burn down: they want feeding too)
+  S.roundLen = Math.round(sum * Math.max(.72, 1.9 * Math.pow(.87, D)) * (REMIX ? 1.1 : base.burn ? 1.6 : 1) + 10); S.roundEnd = t + S.roundLen;
+  if (t > 0){ if (REMIX) say("ROUND " + (r + 1) + " · ALL DARK AGAIN", "g", 1.6);
+    else { lyric("Round " + (r + 1), grew ? "one more lamp - and they all went dark again" : "the lamps went dark again", 2.2); flash(); } }
+}
+// the part's moths, burn and speed for this round (endless) or lap (remix)
+function applyDiff(){
+  const base = CFGS[REMIX ? S.part : PART], D = S.lv = level(S.t);
+  CFG.burn = base.burn ? Math.max(40, base.burn * Math.pow(.9, D)) : 0;
+  S.mk = Math.min(1.5, 1 + .06*D);
+  const n = Math.min(MAXM, base.moths + Math.floor(D / 3));
+  if (n === moths.length) return;
+  ALLM.forEach((m, k) => { const on = k < n; if (on && !moths.includes(m)){ m.y = 16; m.x = m.cx; m.z = m.cz; } m.g.visible = m.sh.visible = on; });
+  moths = ALLM.slice(0, n);
+}
+const flashEl = document.getElementById("flash");
+function flash(){ flashEl.classList.add("on"); setTimeout(() => flashEl.classList.remove("on"), 120); }
+function hurt(){ const h = document.getElementById("hearts"); h.classList.remove("hit"); void h.offsetWidth; h.classList.add("hit"); }
+function endlessTick(t){
+  if (REMIX){
+    const seg = Math.floor((t - T0) / SEG);
+    if (seg !== S.seg){ S.seg = seg;
+      const lap = Math.floor(seg / 3), up = lap !== S.lap;
+      if (up){ S.lap = lap; S.score += 2000; if (S.hearts < MAXH) S.hearts++; }
+      usePart(seg % 3 + 1); applyDiff(); flash();
+      lyric(CFG.title, "REMIX · LAP " + (S.lap + 1) + " · PART " + S.part + (up ? " · +2000" : ""), 2.2);
+    }
+  } else {
+    const h = Math.floor((t - T0) / (24*BAR));
+    if (h !== S.heal){ S.heal = h; if (S.hearts < MAXH){ S.hearts++; say("+1 HEART", "g", 1); } }
+  }
+  if (level(t) !== S.lv) applyDiff();
+  if (S.next){ if (t >= S.next){ S.next = 0; newRound(t); applyDiff(); } return; }
+  if (lamps.every(l => l.lit)){
+    const left = Math.max(0, Math.floor(S.roundEnd - t)), bonus = left*50 + Math.min(5000, 500*(S.round + 1));
+    S.score += bonus; S.round++; S.cleared++;
+    say("ROUND " + S.round + " LIT  +" + bonus.toLocaleString("en"), "g", 1.8);
+    S.next = barT(Math.ceil((t + 1.5 - T0) / BAR));          // dark again on the next bar
+    return;
+  }
+  if (t >= S.roundEnd){
+    S.hearts--; hurt(); sfx.scatter();
+    if (S.hearts <= 0){ over("time"); return; }
+    say("OUT OF TIME · " + S.hearts + (S.hearts === 1 ? " HEART" : " HEARTS") + " LEFT", "x", 1.5);
+    S.roundLen = SEG; S.roundEnd = t + SEG;                  // 8 more bars to finish it
+  }
+}
+function over(why){
+  S.fail = true; S.done = true; S.why = why; S.endT = S.t;
+  lyric(why === "moths" ? "The moths got you" : "Out of time", REMIX ? "the remix is over" : "the endless night is over", 2.5);
+  setTimeout(finish, 1800);
 }
 
 /* ================= THE ENDING =================
@@ -748,8 +882,10 @@ function render(dt){
 }
 
 /* ---- HUD, score ---- */
+const ll2El = document.getElementById("ll2");
 const mEl = document.getElementById("m"), carryEl = document.getElementById("carry"), nightEl = document.getElementById("night");
 function score(){
+  if (EMODE) return S.score;                    // endless: the whole score, it always ends in a loss
   if (S.fail) return Math.floor(S.score / 4);
   return S.score + (S.scatters === 0 && S.cuts === 0 ? 3000 : 0);
 }
@@ -761,11 +897,14 @@ function frame(){
     render(dt);
     if (S.score !== lastScore){ lastScore = S.score; mEl.textContent = S.score.toLocaleString("en"); }
     if (S.trail.length !== lastCarry){ lastCarry = S.trail.length; carryEl.textContent = S.trail.length ? "✦ " + S.trail.length + (S.trail.length === 1 ? " firefly" : " fireflies") : ""; }
-    if (CFG.hearts){ const he = document.getElementById("hearts"), txt = "\u2665".repeat(Math.max(0, S.hearts)) + "\u2661".repeat(CFG.hearts - Math.max(0, S.hearts));
+    const HM = MAXH || CFG.hearts;
+    if (HM){ const he = document.getElementById("hearts"), txt = "\u2665".repeat(Math.max(0, S.hearts)) + "\u2661".repeat(HM - Math.max(0, S.hearts));
       if (he.textContent !== txt) he.textContent = txt; he.classList.remove("hid"); }
     const ls = lamps.map(l => l.lit ? (CFG.burn && l.burn < .3 ? "f" : "1") : "0").join("");
     if (ls !== lastLamps){ lastLamps = ls; DOTS.forEach((d, i) => { d.className = ls[i] === "1" ? "on" : ls[i] === "f" ? "on fading" : ""; }); }
-    const left = clamp((NIGHT_END - Math.max(0, S.t)) / NIGHT_END, 0, 1);
+    if (EMODE){ const s = Math.floor(Math.max(0, S.t)), txt = (REMIX ? "REMIX · LAP " + (S.lap + 1) : "ENDLESS") + " · ROUND " + (S.round + 1) + " · " + Math.floor(s/60) + ":" + String(s % 60).padStart(2, "0");
+      if (ll2El.textContent !== txt) ll2El.textContent = txt; }
+    const left = EMODE ? (S.next ? 1 : clamp((S.roundEnd - S.t) / S.roundLen, 0, 1)) : clamp((NIGHT_END - Math.max(0, S.t)) / NIGHT_END, 0, 1);
     nightEl.firstChild.style.width = (left*100).toFixed(1) + "%"; nightEl.classList.toggle("low", left < .15);
   } catch (e){ if (!crashed){ crashed = e; console.error(e); } }
   requestAnimationFrame(frame);
@@ -778,12 +917,22 @@ function finish(){
   const ps = v.querySelectorAll("p:not(.by)");
   const go = document.getElementById("go");
   go.textContent = "Play again"; go.classList.toggle("alt", !S.fail);
-  document.getElementById("next").classList.toggle("hid", S.fail);
+  document.getElementById("next").classList.toggle("hid", S.fail || EMODE);
   for (const id of ["outs", "home"]) document.getElementById(id).classList.remove("hid");
   document.getElementById("snd").classList.add("hid");
   document.getElementById("hud").classList.add("off");
   document.getElementById("parts").classList.add("hid");
   lamps.forEach(l => l.ptr.style.display = "none");
+  if (EMODE){
+    const secs = Math.floor(Math.max(0, S.endT)), mm = Math.floor(secs/60) + ":" + String(secs % 60).padStart(2, "0");
+    if (HUB) toHub({ type:"javeda:result", level:ID, cleared:true, score:score(), metres:secs });
+    v.querySelector(".by").textContent = (REMIX ? "REMIX" : "ENDLESS") + " · " + (S.why === "moths" ? "THE MOTHS GOT YOU" : "OUT OF TIME");
+    const h1 = v.querySelector("h1"); h1.textContent = score().toLocaleString("en"); h1.classList.add("num");
+    ps[0].innerHTML = "<b>" + mm + "</b> survived &middot; " + (REMIX ? "lap <b>" + (S.lap + 1) + "</b> &middot; " : "") +
+      "<b>" + S.cleared + "</b> " + (S.cleared === 1 ? "round" : "rounds") + " lit &middot; " + S.delivered + " fireflies brought home";
+    ps[1].innerHTML = "Your best counts on the <b>Level 5 " + (REMIX ? "Remix" : "Part " + PART + " &infin;") + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
   if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(), metres:0,
     lamps:S.lit, fireflies:S.delivered, scatters:S.scatters });
   if (S.fail){
@@ -812,24 +961,36 @@ document.getElementById("go").addEventListener("click", () => {
   try { song.currentTime = 0; } catch(e){}
   const p = song.play(); if (p && p.catch) p.catch(()=>{});
   S.started = true; S.t = 0;
+  if (HUB && EMODE) toHub({ type:"javeda:start", level:ID });
   lyric("Hold your finger on the park", "the saucer flies there - gather the fireflies", 4);
 });
 
 // the start card for this part; on its own you can switch parts
-document.getElementById("by").textContent = "LAZY JO" + (PART > 1 ? " · LEVEL 5 PART " + PART : "");
-document.getElementById("title").textContent = CFG.title;
+if (EMODE) document.body.classList.add("gold");
+document.getElementById("by").textContent = "LAZY JO" + (REMIX ? " · LEVEL 5 REMIX" : ENDLESS ? " · LEVEL 5 PART " + PART + " \u221e" : PART > 1 ? " · LEVEL 5 PART " + PART : "");
+document.getElementById("title").textContent = REMIX ? "Remix" : CFG.title + (ENDLESS ? " \u221e" : "");
 document.getElementById("intro").innerHTML = (PART === 1 ? "Night in the park, and every lamp is dark."
   : PART === 2 ? "More lamps, more moths - and fly through your own trail and it breaks."
   : "The lamps burn down now. Keep feeding them: <b>all " + CFG.lamps + " lit at the same time</b>. And you have <b>3 hearts</b>: every moth that touches you takes one.") +
   " <b>" + CFG.lamps + "</b> lamps, <b>" + CFG.moths + "</b> moths.";
+if (ENDLESS) document.getElementById("intro").innerHTML = "<b>Endless.</b> Light every lamp" + (CFG.burn ? " (all at once)" : "") +
+  " before the clock runs out and they go dark again: a new round, " + (PART === 1 ? "more lamps, " : "") + "more moths, a tighter clock. " +
+  "Not in time costs a heart (<b>" + MAXH + "</b>, one back every 24 bars).";
+if (REMIX) document.getElementById("intro").innerHTML = "<b>All three parts, endless.</b> Every 8 bars the rules switch: " +
+  "Feel Like That, then Moth Night (don't cross your trail), then Stay Lit (the lamps burn down, moths take a heart). " +
+  "Light all 8 lamps before the clock runs out. <b>3 hearts</b>, each lap harder.";
 document.getElementById("how").innerHTML = "<b>Hold your finger</b> on the park (or use the arrow keys) and the saucer flies there. " +
   "Fly through <b>fireflies</b> and they follow you. Fly to a <b>dark lamp</b> and they go in &mdash; the dots show how many it needs. " +
-  "Keep away from the <b>moths</b>: they scatter your fireflies. When the beat drops out, the moths fly off. Light every lamp before the song ends.";
+  "Keep away from the <b>moths</b>: they scatter your fireflies. When the beat drops out, the moths fly off. " +
+  (EMODE ? "The song never ends - the hearts do." : "Light every lamp before the song ends.");
 if (!HUB){
   document.getElementById("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
-    b.setAttribute("aria-pressed", String(+b.dataset.part === PART));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.set("part", b.dataset.part); location.search = q.toString(); });
+    const mine = b.dataset.remix ? REMIX : b.dataset.endless ? ENDLESS && +b.dataset.part === PART : !EMODE && +b.dataset.part === PART;
+    b.setAttribute("aria-pressed", String(mine));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("remix");
+      if (b.dataset.remix){ q.delete("part"); q.set("remix", "1"); } else { q.set("part", b.dataset.part); if (b.dataset.endless) q.set("endless", "1"); }
+      location.search = q.toString(); });
   });
 }
 

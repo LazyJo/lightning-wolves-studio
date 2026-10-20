@@ -71,6 +71,20 @@ canvas{display:block; touch-action:none}
   border:1.5px solid #8b5cf699; background:#8b5cf614}
 #home:hover{color:#fff1ea; border-color:#8b5cf6}
 #veil a:focus-visible, #veil button:focus-visible{outline:2px solid #d8b4fe; outline-offset:3px}
+/* endless (?endless=1) is gold: the button, the title's glow, the HUD score */
+body.gold #m{color:#ffd65a}
+body.gold #ml{color:#e0a41a}
+body.gold #veil{background:radial-gradient(64% 54% at 50% 40%, #4a300e 0%, #14070c 78%)}
+body.gold #veil h1{background:linear-gradient(172deg,#fff6d8 18%,#ffd65a 62%,#e0a41a 112%);
+  -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 18px #ffb00080)}
+body.gold #veil .by{color:#e0a41a}
+body.gold #veil b{color:#ffe08a}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+/* on its own (not in the hub) the start card has the way into endless, and back */
+#endl{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em;
+  text-transform:uppercase; text-decoration:none; color:#ffe08a; padding:8px 18px; border-radius:4px;
+  border:1.5px solid #e0a41a99; background:#e0a41a14; margin-top:-4px}
+body.gold #endl{color:#d8b4fe; border-color:#8b5cf699; background:#8b5cf614}
 /* a sideways phone: last, so it wins over the rules above */
 @media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px}
   #veil h1{font-size:44px} #outs{max-width:none} #next{padding:10px 30px 8px} }
@@ -89,6 +103,7 @@ canvas{display:block; touch-action:none}
   <p><b>Tap a side</b> to swerve &middot; <b>tap the middle</b> to jump a low rock or a crack</p>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
   <button id="go" type="button">Start</button>
+  <a id="endl" class="hid">Endless &#8734;</a>
   <div id="outs" class="hid">
     <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
     <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
@@ -152,10 +167,32 @@ if (HUB) document.getElementById("home").addEventListener("click", e => {
   e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" });
 });
 
+/* ---- ENDLESS (?endless=1, the hub opens it once Level 2 is cleared) ----
+   No crest and no basin: the canyon goes on, faster and meaner, with his light
+   always out on the horizon, until the hearts run out. Score is the metres
+   ridden, so it can never come in faster than the top speed (SPEED_X m/s).
+   Hub id "lvl2bx", and it is all gold. */
+const ENDLESS = new URLSearchParams(location.search).get("endless") === "1";
+const LEVEL_ID = ENDLESS ? "lvl2bx" : "lvl2b";
+const SPEED_X = 30;                   // endless top speed, reached ~6.5 min in
+const HARD_KM = 8;                    // endless: the mix is at its meanest this many km past the line
+const SCORE_CAP = 90000;              // the hub's database refuses more than 95000
+// SOMEBODY is 160 BPM (read off lvl2.mp3: bar 0 at 0.107 s). Endless plays it
+// round from the end of the quiet second part (bar 64) back to the first hook
+// (bar 16): 48 whole bars, so the beat never slips. A heart back every 24 bars.
+const BPM = 160, BAR = 240 / BPM, BAR0 = .107;
+const barT = b => BAR0 + b * BAR;
+const LOOP = [barT(16), barT(64)], HEART_BARS = 24;
+// past the line the speed keeps climbing, a metre a second for every 700 m
+const speedEndless = d => Math.min(SPEED_X, speedAt(d) + Math.max(0, d - CP_TOTAL * CP_EVERY) / 700);
+const mmss = t => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
+if (ENDLESS) document.body.classList.add("gold");
+
 // metres flown, and on a clear a bonus for getting there, for every heart left
-// and for not being hit at all - so ~3500 is a perfect run
+// and for not being hit at all - so ~3500 is a perfect run. Endless: the metres.
 function score(){
   const m = Math.floor(S.dist);
+  if (ENDLESS) return Math.min(SCORE_CAP, m);
   return S.fail ? m : m + 1000 + S.hearts*150 + (S.hits === 0 ? 500 : 0);
 }
 
@@ -173,6 +210,7 @@ let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spark;
 let beacon, finale, sky;                // Jo's light on the horizon, and the basin he is down in
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const walls = [], lamps = [], pickups = [];
+const strips = [], loops = [];         // endless: road that follows her, ruts and rocks that come round again
 const cab = document.getElementById("cab");
 
 /* ---- the saucer, built from primitives: no model file, nothing to download ---- */
@@ -311,32 +349,56 @@ function makeHole(from, to){
   return g;
 }
 function rnd(n){ const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); }
+// every wall leaves at least one lane open, and never the same one twice running
+let last = 0, rowN = 0, lifts = 0;     // the last open lane, the last row built, jump rows running (endless)
 function buildWalls(){
-  // every wall leaves at least one lane open, and never the same one twice running
-  let last = 0;
-  for (let i = 1; i * 11 + 24 < CP_TOTAL * CP_EVERY - 4; i++){
-    const z = -(i * 11 + 24), k = i + 51.3;     // + 51.3: her road, not his
-    const r = rnd(k * 3.7);
-    let gap = Math.floor(rnd(k * 9.1) * 3) - 1;
-    if (gap === last && i > 1) gap = gap === 1 ? -1 : gap + 1;
-    last = gap;
-    if (r < .20){                       // a low one, spanning everything: lift over it
-      const w = makeWall(-1, 1, true);
-      w.position.z = z; scene.add(w); walls.push(w);
-    } else if (r < .44){                // a hole: one or two lanes torn out
-      const a = Math.floor(rnd(k*5.3)*3) - 1;
-      const b = rnd(k*7.7) < .45 ? Math.min(1, a + 1) : a;
-      const hl = makeHole(a, b);
-      hl.position.z = z; scene.add(hl); walls.push(hl);
-    } else {
-      const lanes = [-1, 0, 1].filter(l => l !== gap);
-      // one slab per blocked lane, so the open lane is unmistakable
-      for (const l of lanes){
-        const w = makeWall(l, l, false);
-        w.position.set(l * LANE, 0, z); scene.add(w); walls.push(w);
-      }
+  last = 0; lifts = 0;
+  for (let i = 1; i * 11 + 24 < CP_TOTAL * CP_EVERY - 4; i++) buildRow(i, false);
+}
+/* One row, 11 m on from the last. The part's rows (e false) are exactly what they
+   always were. Endless grows rows past the line (e true) that lean harder the
+   further out they are - more low rocks and cracks, wider cracks, and rocks with
+   a crack in the one open lane - but never two rows running that both need a
+   jump: back to back, the jump (0.72 s) and the row gap (0.37-0.58 s) leave a
+   frame-perfect window, which is not fair. So there is always a way through. */
+function buildRow(i, e){
+  rowN = i;
+  const z = -(i * 11 + 24), k = i + 51.3;       // + 51.3: her road, not his
+  const r = rnd(k * 3.7);
+  let gap = Math.floor(rnd(k * 9.1) * 3) - 1;
+  if (gap === last && i > 1) gap = gap === 1 ? -1 : gap + 1;
+  last = gap;
+  const h = e ? clamp01((-z - CP_TOTAL * CP_EVERY) / (HARD_KM * 1000)) : 0, rest = e && lifts >= 1;
+  if (r < .20 + .06*h && !rest){        // a low one, spanning everything: lift over it
+    const w = makeWall(-1, 1, true);
+    w.position.z = z; scene.add(w); walls.push(w); lifts++;
+  } else if (r < .44 + .10*h){          // a hole: one or two lanes torn out
+    const a = Math.floor(rnd(k*5.3)*3) - 1;
+    const b = rnd(k*7.7) < .45 + .25*h ? Math.min(1, a + 1) : a;
+    const hl = makeHole(a, b);
+    hl.position.z = z; scene.add(hl); walls.push(hl); lifts = 0;
+  } else {
+    const lanes = [-1, 0, 1].filter(l => l !== gap);
+    // one slab per blocked lane, so the open lane is unmistakable
+    for (const l of lanes){
+      const w = makeWall(l, l, false);
+      w.position.set(l * LANE, 0, z); scene.add(w); walls.push(w);
     }
+    // endless: now and then the open lane is cracked too - swerve AND jump
+    if (e && !rest && rnd(k*4.9) < .3*h){
+      const hl = makeHole(gap, gap); hl.position.z = z; scene.add(hl); walls.push(hl); lifts++;
+    } else lifts = 0;
   }
+}
+/* Endless keeps ~100 m of road built ahead and throws away what is 30 m behind
+   (walls are pushed in row order, so the oldest are always at the front). */
+function dropWall(w){
+  scene.remove(w);
+  w.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+}
+function growRoad(){
+  while (rowN * 11 + 24 < S.dist + 100) buildRow(rowN + 1, true);
+  while (walls.length && walls[0].position.z > -S.dist + 30) dropWall(walls.shift());
 }
 
 /* Two spare hearts on the road, just past checkpoints 4 and 8, for the back half
@@ -413,11 +475,13 @@ function boot(){
   const land = new THREE.Mesh(new THREE.PlaneGeometry(240, 2600),
     new THREE.MeshStandardMaterial({ color:C.deep, roughness:1 }));
   land.rotation.x = -Math.PI/2; land.position.set(0, -.06, -1200); scene.add(land);
+  strips.push(road, land);
   for (const lx of [-.5, .5]){                                  // tyre ruts between the lanes
     for (let i = 0; i < 300; i++){
       const d = new THREE.Mesh(new THREE.BoxGeometry(.16, .02, 2.6),
         new THREE.MeshBasicMaterial({ color:0x5a3424, transparent:true, opacity:.55 }));
       d.position.set(lx*LANE*2, .02, -i*6.2); scene.add(d);
+      d.userData.loop = 300*6.2; loops.push(d);
     }
   }
   // the canyon walls, close on both sides - they are what sells the speed
@@ -427,12 +491,14 @@ function boot(){
       const h = 7 + rnd(i*3.3 + sx)*16, w = 5 + rnd(i*7.1 + sx)*6;
       const m = new THREE.Mesh(new THREE.CylinderGeometry(w*.55, w, h, 5 + (i % 3), 1), rockMat);
       const z = -i*9 - rnd(i)*4;
-      // past the finish the canyon opens out into the basin he is down in
-      const open = z < -(CP_TOTAL * CP_EVERY) + 4 ? 16 : 0;
+      // past the finish the canyon opens out into the basin he is down in (endless: it never does)
+      const open = z < -(CP_TOTAL * CP_EVERY) + 4 && !ENDLESS ? 16 : 0;
       m.position.set(sx*(LANE*1.5 + 4.5 + w*.6 + rnd(i*5.9 + sx)*3 + open), h/2 - .5, z);
       m.rotation.y = rnd(i*2.7 + sx)*3; scene.add(m); lamps.push(m);
+      m.userData.loop = 140*9; loops.push(m);
     }
   }
+  strips.concat(loops).forEach(m => m.userData.z0 = m.position.z);
 
   // Jo's light: a blue column on the horizon that she rides at the whole way
   beacon = new THREE.Group();
@@ -472,9 +538,13 @@ function reset(){
   S = { t:0, dist:0, lane:0, laneX:0, laneFrom:0, laneT:9, y:0, vy:0, airT:0,
         up:false, lastDown:0, bufAt:-9, started:false, done:false, cp:0, hits:0,
         speed:SPEED0, camX:0, camV:0, crash:-1, msgT:0, spin:0, tilt:0, inv:0,
-        hearts:HEARTS, fail:false, end:-1, e0:null };
+        hearts:HEARTS, fail:false, end:-1, e0:null,
+        loops:0, heartAt:HEART_BARS, over:-1, km:0 };     // endless: song loops, next heart bar, time out, km said
   // reset() runs once at module scope, before boot() has built anything, so all
   // of these have to tolerate a world that does not exist yet
+  // endless: the road it grew last run is thrown away and the part's rows built again
+  if (ENDLESS && scene){ while (walls.length) dropWall(walls.pop()); buildWalls();
+    loops.forEach(m => m.position.z = m.userData.z0); }
   walls.forEach(w => { w.userData.hit = false; w.scale.y = 1; });
   pickups.forEach(p => p.userData.got = false);
   if (spark) spark.children.forEach(s => s.visible = false);
@@ -489,6 +559,11 @@ reset();
 
 // her ride is the first half of SOMEBODY: Part 1 hears her arrive at 1:12
 const song = new Audio("lvl2.mp3"); song.preload = "auto";
+// endless: round and round in whole bars (with song.loop as the fallback)
+if (ENDLESS) song.loop = true;
+function loopSong(){
+  try { if (song.currentTime >= LOOP[1]){ song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } } catch(e){}
+}
 let ac = null, bus = null;
 function blip(kind){
   if (!ac) return;
@@ -562,6 +637,7 @@ function burst(x, y, z, n){
 const easeOut = u => 1 - Math.pow(1-u, 3);
 function update(dt){
   S.t += dt;
+  if (ENDLESS) loopSong();
 
   /* ---- the ending: the crest, the jump, and him. Only the sounds and the
      one-off bursts live here; renderEnd() works everything else out from S.end. ---- */
@@ -589,8 +665,14 @@ function update(dt){
     return;
   }
 
-  S.speed = speedAt(S.dist);
+  S.speed = ENDLESS ? speedEndless(S.dist) : speedAt(S.dist);
   S.dist += S.speed * dt;
+  if (ENDLESS){
+    growRoad();
+    // a heart back every 24 bars of the song, never over the top
+    if (S.t >= S.heartAt * BAR){ S.heartAt += HEART_BARS;
+      if (S.hearts < HEARTS){ S.hearts++; chime(); say("+1 HEART", "24 bars", 1.2); } }
+  }
 
   S.laneT += dt;
   const u = Math.min(1, S.laneT/(LANE_MS/1000));
@@ -608,10 +690,12 @@ function update(dt){
      hit throws him well clear and buys a moment of grace. */
   if (S.inv > 0) S.inv -= dt;
   const myZ = -S.dist;
+  // endless goes fast enough that a slow frame could step clean over a 1.1 m window
+  const reach = ENDLESS ? Math.max(1.1, S.speed * dt + .1) : 1.1;
   for (const w of walls){
     if (w.userData.hit || S.inv > 0) continue;
     const dz = w.position.z - myZ;
-    if (dz > 0 || dz < -1.1) continue;
+    if (dz > 0 || dz < -reach) continue;
     w.userData.hit = true;
     const inLane = S.lane >= w.userData.from && S.lane <= w.userData.to;
     if (!inLane) continue;
@@ -620,7 +704,7 @@ function update(dt){
     S.hits++; S.hearts = Math.max(0, S.hearts - 1); S.inv = .95;
     // on the finish line he is not shunted back off it, so if his last heart goes
     // on the same frame, the ending below still fires: the story wins over a fail
-    const atEnd = S.dist >= CP_TOTAL * CP_EVERY;
+    const atEnd = !ENDLESS && S.dist >= CP_TOTAL * CP_EVERY;
     if (!atEnd) S.dist = Math.max(0, S.dist - 7.5);
     S.laneX = S.lane; S.laneFrom = S.lane; S.laneT = 9;
     burst(S.laneX*LANE, FLY_Y + S.y, myZ, 10);
@@ -630,7 +714,7 @@ function update(dt){
        it says so: "..." belongs to the ending. Speed is cut so the slide stops
        short of the wall he just bounced off. */
     if (!S.hearts && !atEnd){
-      S.fail = true; S.crash = 0; S.vy = 1.4; S.speed *= .35;
+      S.fail = true; S.crash = 0; S.vy = 1.4; S.speed *= .35; S.over = S.t;
       burst(S.laneX*LANE, FLY_Y + S.y, -S.dist, 18);
       say("OUT OF HEARTS", "", 1.6); return;
     }
@@ -650,7 +734,11 @@ function update(dt){
   }
 
   const cp = Math.floor(S.dist / CP_EVERY);
-  if (cp > S.cp){
+  // endless: no line to cross, so no checkpoints called - just every kilometre
+  if (ENDLESS && cp > S.cp){ S.cp = cp;
+    const km = Math.floor(S.dist / 1000);
+    if (km > S.km){ S.km = km; say(km + " KM", "faster", 1.2); } }
+  else if (cp > S.cp){
     S.cp = cp;
     if (cp >= CP_TOTAL){ S.end = 0; S.e0 = { x:S.laneX*LANE, y:FLY_Y + S.y, z:-S.dist };
       document.getElementById("hud").classList.add("off"); msgEl.classList.remove("on");
@@ -701,13 +789,20 @@ function render(dt){
     p.userData.heart.position.y = Math.sin(S.t * 3) * .12;
   }
   for (const b of lamps) b.visible = Math.abs(b.position.z + S.dist) < 90;
+  if (ENDLESS){
+    // the road is all one colour, so it can simply ride along with her; the ruts
+    // and canyon rocks she has passed go round to the far end
+    for (const m of strips) m.position.z = m.userData.z0 - S.dist;
+    for (const m of loops) while (m.position.z > -S.dist + 30) m.position.z -= m.userData.loop;
+    document.getElementById("ml").textContent = "ENDLESS \u00b7 " + mmss(S.over >= 0 ? S.over : S.t);
+  }
 
   const back = S.crash >= 0 ? 8.5 + S.crash*2.2 : 7.4;
   cam.position.set(S.camX, 3.9 + y*.30 + (S.crash >= 0 ? S.crash*.7 : 0), -S.dist + back);
   cam.lookAt(S.camX*.55, .7 + S.y*.5, -S.dist - 12);
   sky.position.copy(cam.position);
   ren.render(scene, cam);
-  document.getElementById("m").textContent = Math.floor(S.dist);
+  document.getElementById("m").textContent = ENDLESS ? score() : Math.floor(S.dist);
 }
 
 /* ================= THE ENDING =================
@@ -790,14 +885,15 @@ function resetFinale(){
 }
 // her road towards his light: it starts on the horizon and ends right over him
 function updateBeacon(){
-  const p = clamp01(S.dist / (CP_TOTAL * CP_EVERY));
+  // endless: his light stays out on the horizon, however far she rides
+  const p = ENDLESS ? 0 : clamp01(S.dist / (CP_TOTAL * CP_EVERY));
   const D = -FIN.jo + 330 * Math.pow(1 - p, 1.4);
   beacon.position.set(0, 0, -S.dist - D);
   beacon.userData.halo.quaternion.copy(cam.quaternion);
   // up close the saucer is the light, so the halo behind it fades away
   beacon.userData.halo.material.opacity = (.18 + Math.sin(S.t*6)*.05) * clamp01((D + FIN.jo + 0) / 60 + .15);
   // the basin comes into view over the last stretch
-  finale.visible = S.dist > CP_TOTAL * CP_EVERY - 90;
+  finale.visible = !ENDLESS && S.dist > CP_TOTAL * CP_EVERY - 90;
   if (finale.visible) animateFinale(S.t, false);
 }
 function animateFinale(t, turned){
@@ -905,6 +1001,22 @@ function finish(){
   document.getElementById("next").classList.toggle("hid", S.fail);
   for (const id of ["outs", "home"]) document.getElementById(id).classList.remove("hid");
   document.getElementById("snd").classList.add("hid");
+  /* Endless always ends out of hearts, and that is its clear: the hub gets the
+     whole score and the seconds ridden (not the metres) for its scoreboard. The
+     big button stays "Ride it again" and there is no Next level. */
+  if (ENDLESS){
+    const secs = Math.floor(S.over >= 0 ? S.over : S.t);
+    go.classList.remove("alt"); document.getElementById("next").classList.add("hid");
+    document.getElementById("endl").classList.add("hid");
+    if (HUB) toHub({ type:"javeda:result", level:LEVEL_ID, cleared:true, score:score(),
+      metres:secs, hits:S.hits, hearts:S.hearts });
+    v.querySelector(".by").textContent = "ENDLESS \u00b7 OUT OF HEARTS";
+    v.querySelector("h1").textContent = score();
+    ps[0].innerHTML = "<b>" + mmss(secs) + "</b> on the road &middot; " + Math.floor(S.dist) + " metres &middot; top speed " +
+      Math.round(speedEndless(S.dist)) + " m/s";
+    ps[1].innerHTML = "Your best counts on the <b>Level 2 Part 2 &#8734;</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
   if (HUB) toHub({ type:"javeda:result", level:"lvl2b", cleared:!S.fail, score:score(),
     metres:Math.floor(S.dist), hits:S.hits, hearts:S.hearts });
   if (S.fail){
@@ -933,8 +1045,30 @@ document.getElementById("go").addEventListener("click", () => {
   try { song.currentTime = 0; } catch(e){}     // a restart is a restart: the song too
   const p = song.play(); if (p && p.catch) p.catch(()=>{});
   S.started = true;
-  say("GO", "follow the blue light", 3);
+  if (HUB && ENDLESS) toHub({ type:"javeda:start", level:LEVEL_ID });
+  document.getElementById("endl").classList.add("hid");
+  if (ENDLESS) say("ENDLESS", "his light, and no end to the canyon", 3);
+  else say("GO", "follow the blue light", 3);
 });
+
+/* Endless start card: gold, no checkpoints on the HUD. On its own (not in the
+   hub) the card links into endless and back out again; in the hub the hub's own
+   level list is the way in, so the link stays hidden. */
+if (ENDLESS){
+  document.querySelector("#veil .by").textContent = "LEVEL 2 \u00b7 PART 2 \u00b7 ENDLESS";
+  document.querySelector("#veil h1").innerHTML = "ZIRKA'S RIDE &#8734;";
+  document.querySelector("#veil p:not(.by)").innerHTML = "No crest, no basin. The canyon goes on, faster and meaner, till the hearts run out. " +
+    "<b id=\"hn\">" + HEARTS + " hearts</b> &middot; one back every 24 bars. Every metre is a point.";
+  document.getElementById("pips").classList.add("hid");
+  document.getElementById("ml").textContent = "ENDLESS \u00b7 0:00";
+}
+if (!HUB){
+  const q = new URLSearchParams(location.search), el = document.getElementById("endl");
+  if (ENDLESS) q.delete("endless"); else q.set("endless", "1");
+  el.href = location.pathname + (String(q) ? "?" + q : "");
+  el.innerHTML = ENDLESS ? "&#9666; The song, with its ending" : "Endless &#8734;";
+  el.classList.remove("hid");
+}
 
 boot();
 requestAnimationFrame(frame);

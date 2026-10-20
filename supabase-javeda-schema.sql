@@ -71,13 +71,36 @@ ON CONFLICT (id) DO UPDATE SET
   sort = EXCLUDED.sort;
 
 -- the endless ones. No clear bonuses; score_per_point turns a new best's gain into points
--- (still at most 40 a run). max_rate (points a second) sits about twice above what a
--- perfect bot scores after 10 minutes. They sort after the levels.
+-- (still at most 40 a run). max_rate (points a second, over the whole run) sits about twice
+-- above the best a perfect bot managed in each mode. They sort after the levels.
 INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, score_per_point, clear_points, first_clear_points, sort, endless, max_rate) VALUES
-  ('lvl8x',  8, 'PETAL RAIN',  'lvl8c', 0, 50000000, 3000, 0, 0, 108, true, 2500),   -- bot ~950/s at 10 min
-  ('lvl8bx', 8, 'THE STEM',    'lvl8c', 0, 50000000, 1000, 0, 0, 109, true, 800),    -- ~300/s
-  ('lvl8cx', 8, 'MY SHADOW',   'lvl8c', 0, 50000000, 1000, 0, 0, 110, true, 600),    -- ~200/s
-  ('lvl8r',  8, 'REMIX',       'lvl8c', 0, 50000000, 1500, 0, 0, 111, true, 1000)    -- all three in turn, ~370/s
+  ('lvl1x',  1, 'I''M LOST',        'lvl1',  0, 50000000, 300,   0, 0, 100, true, 60),     -- score = metres, ~30/s at 30 m/s
+  ('lvl2x',  2, 'SOMEBODY',         'lvl2b', 0, 50000000, 3000,  0, 0, 101, true, 1800),   -- ~860/s at best
+  ('lvl2bx', 2, 'ZIRKA''S RIDE',    'lvl2b', 0, 50000000, 300,   0, 0, 102, true, 60),     -- metres, like Level 1
+  ('lvl3x',  3, 'MY HEART',         'lvl3c', 0, 50000000, 700,   0, 0, 103, true, 300),    -- ~140/s at best
+  ('lvl3bx', 3, 'LIGHTS OUT',       'lvl3c', 0, 50000000, 700,   0, 0, 104, true, 300),
+  ('lvl3cx', 3, 'HEARTBREAK',       'lvl3c', 0, 50000000, 700,   0, 0, 105, true, 300),
+  ('lvl3r',  3, 'REMIX',            'lvl3c', 0, 50000000, 700,   0, 0, 106, true, 300),
+  ('lvl4x',  4, 'ROLLERCOASTER',    'lvl4c', 0, 50000000, 15000, 0, 0, 107, true, 5000),   -- a perfect run ~2,600/s at full speed
+  ('lvl4bx', 4, 'FULL SPEED',       'lvl4c', 0, 50000000, 15000, 0, 0, 108, true, 5000),
+  ('lvl4cx', 4, 'NO BRAKES',        'lvl4c', 0, 50000000, 15000, 0, 0, 109, true, 5000),
+  ('lvl4r',  4, 'REMIX',            'lvl4c', 0, 50000000, 15000, 0, 0, 110, true, 5000),
+  ('lvl5x',  5, 'FEEL LIKE THAT',   'lvl5c', 0, 50000000, 2000,  0, 0, 111, true, 700),    -- ~330/s at best
+  ('lvl5bx', 5, 'MOTH NIGHT',       'lvl5c', 0, 50000000, 2000,  0, 0, 112, true, 700),
+  ('lvl5cx', 5, 'STAY LIT',         'lvl5c', 0, 50000000, 2000,  0, 0, 113, true, 700),
+  ('lvl5r',  5, 'REMIX',            'lvl5c', 0, 50000000, 2000,  0, 0, 114, true, 700),
+  ('lvl6x',  6, 'ISLAND HOPPER',    'lvl6c', 0, 50000000, 2500,  0, 0, 115, true, 600),    -- ~280/s
+  ('lvl6bx', 6, 'CRAB NIGHT',       'lvl6c', 0, 50000000, 6000,  0, 0, 116, true, 3500),   -- climbs to ~1,700/s
+  ('lvl6cx', 6, 'SURF THE SUNSET',  'lvl6c', 0, 50000000, 1500,  0, 0, 117, true, 400),    -- ~160/s
+  ('lvl6r',  6, 'REMIX',            'lvl6c', 0, 50000000, 3000,  0, 0, 118, true, 1800),   -- ~880/s
+  ('lvl7x',  7, 'JOURNEY',          'lvl7c', 0, 50000000, 6000,  0, 0, 119, true, 1300),   -- ~625/s over a run
+  ('lvl7bx', 7, 'METEOR SHOWER',    'lvl7c', 0, 50000000, 6000,  0, 0, 120, true, 1300),
+  ('lvl7cx', 7, 'THE LONG WAY HOME','lvl7c', 0, 50000000, 6000,  0, 0, 121, true, 1300),
+  ('lvl7r',  7, 'REMIX',            'lvl7c', 0, 50000000, 6000,  0, 0, 122, true, 1300),
+  ('lvl8x',  8, 'PETAL RAIN',  'lvl8c', 0, 50000000, 3000, 0, 0, 123, true, 2500),   -- bot ~950/s at 10 min
+  ('lvl8bx', 8, 'THE STEM',    'lvl8c', 0, 50000000, 1000, 0, 0, 124, true, 800),    -- ~300/s
+  ('lvl8cx', 8, 'MY SHADOW',   'lvl8c', 0, 50000000, 1000, 0, 0, 125, true, 600),    -- ~200/s
+  ('lvl8r',  8, 'REMIX',       'lvl8c', 0, 50000000, 1500, 0, 0, 126, true, 1000)    -- all three in turn, ~370/s
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,

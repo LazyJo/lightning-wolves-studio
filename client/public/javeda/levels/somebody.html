@@ -84,11 +84,28 @@ canvas{display:block; touch-action:none}
 /* a sideways phone: last, so it wins over the rules above */
 @media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px}
   #veil h1{font-size:44px} #outs{max-width:none} #next{padding:10px 30px 8px} }
+/* ENDLESS (?endless=1): the same Dust Sea, gold, and no end to the song */
+#el{font-family:Bungee,sans-serif; font-size:12px; letter-spacing:.12em; color:#ffe08a; margin-top:6px;
+  text-shadow:0 0 10px #e0a41a88}
+body.gold #m{color:#ffd65a; text-shadow:0 0 14px #e0a41a88}
+body.gold #m b{color:#ffe08a}
+body.gold #ml{color:#e0a41a}
+body.gold #pips{display:none}
+body.gold #veil{background:radial-gradient(70% 56% at 50% 38%, #6a4a1a 0%, #2a1a0c 62%, #120b04 100%)}
+body.gold #veil h1{background:linear-gradient(172deg,#fff6d6 18%,#e0a41a 112%); -webkit-background-clip:text; background-clip:text;
+  filter:drop-shadow(0 0 18px #e0a41a99)}
+body.gold #veil .by{color:#ffd65a; max-width:none}
+body.gold #veil b{color:#ffe08a}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+body.gold #home{color:#ffe08a; border-color:#e0a41a99; background:#e0a41a14}
+#inf{font-family:Bungee,sans-serif; font-size:13px; background:none; color:#ffd65a; border:1.5px solid #e0a41a;
+  border-radius:4px; padding:8px 18px; cursor:pointer; margin-top:-6px}
+#inf:hover{color:#ffe08a; border-color:#ffd65a; background:#e0a41a1c}
 .hid{display:none!important}
 </style>
 
 <div id="cab"></div>
-<div id="hud"><div id="m">0</div><div id="ml">SCORE</div><div id="pips"></div><div id="hearts"></div></div>
+<div id="hud"><div id="m">0</div><div id="ml">SCORE</div><div id="pips"></div><div id="el" class="hid">ENDLESS</div><div id="hearts"></div></div>
 <div id="msg"></div>
 <div id="flash"></div>
 <div id="stick"><i></i></div>
@@ -100,6 +117,7 @@ canvas{display:block; touch-action:none}
   <p><b>Drag</b> to fly &middot; the beam fires on its own &middot; and you won't be alone for long</p>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
   <button id="go" type="button">Start</button>
+  <button id="inf" class="hid" type="button">Endless &infin;</button>
   <div id="outs" class="hid">
     <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
     <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
@@ -138,6 +156,18 @@ const PTS = { crawler:80, swarm:50, watcher:250 };
 const COMBO_STEP = 12, COMBO_MAX = 4;   // x2 after 12 in a row, up to x4
 const SCORE_CAP = 90000;                // the hub's database refuses more than 95000
 
+/* ENDLESS: ?endless=1 (the hub opens it once the level is cleared). No end to the
+   song, no win: it loops LOOP, the last hook (bars 32-48 of lvl2.mp3, 80 bpm in 4/4,
+   the first downbeat at 0.16 s), and the waves keep coming and keep getting worse
+   until the hearts run out. Its own scoreboard: "lvl2x". Without the flag nothing
+   below changes. */
+const ENDLESS = new URLSearchParams(location.search).get("endless") === "1";
+const BAR = 3, BAR0 = .16;
+const LOOP = [BAR0 + 32*BAR, BAR0 + 48*BAR];
+const HEAL_BARS = 24;                   // endless: a heart back every 24 bars
+const RAMP = 300;                       // endless: seconds past 2:22 to the hardest it gets
+if (ENDLESS) document.body.classList.add("gold");
+
 /* Every outbound link lives here: elements carry data-link="merch" etc and get
    their href on boot. On its own, Next level and Home both go to the JAVEDA hub,
    which is where Level 9 lives. */
@@ -157,6 +187,13 @@ document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset
    here changes. */
 const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+// on its own, the start card offers the endless run: the same page with ?endless=1
+if (!HUB && !ENDLESS){
+  const inf = document.getElementById("inf"); inf.classList.remove("hid");
+  inf.addEventListener("click", () => {
+    const q = new URLSearchParams(location.search); q.set("endless", "1"); location.search = q.toString();
+  });
+}
 if (HUB){
   document.getElementById("next").addEventListener("click", e => {
     e.preventDefault(); toHub({ type:"javeda:next", level:"lvl2" });
@@ -453,7 +490,7 @@ function reset(){
   S = { t:0, started:false, done:false, x:0, z:0, vx:0, vz:0, hearts:HEARTS, hits:0, inv:0,
         score:0, kills:0, assists:0, streak:0, best:0, fireT:0, zFireT:0, line:0, shots:0, y:0, vy:0,
         waveT:WAVES.map(w => w[0]), heartIdx:0, heartT:-1, heartAt:null,
-        crash:-1, fail:false, end:-1, e0:null, shake:0, msgT:0,
+        crash:-1, fail:false, end:-1, e0:null, shake:0, msgT:0, loops:0, healT:BAR0 + HEAL_BARS*BAR, down:0,
         zirka:{ on:false, x:-8, z:-70, a:0, cx:0, cz:0, heading:0 } };
   seed = 20261018;
   for (const e of enemies) scene && scene.remove(e);
@@ -548,7 +585,7 @@ function spawn(type){
   return e;
 }
 function spawnWave(type, pack){
-  if (enemies.length > 46) return;
+  if (enemies.length > 46 + Math.round(ramp()*10)) return;
   if (pack === 1){ spawn(type); return; }
   const lead = spawn(type);
   for (let i = 1; i < pack; i++){
@@ -560,6 +597,8 @@ function spawnWave(type, pack){
   }
 }
 const mult = () => Math.min(COMBO_MAX, 1 + Math.floor(S.streak / COMBO_STEP));
+// endless: 0 through the song, then up to 1 over RAMP seconds, and it stays there
+const ramp = () => ENDLESS ? Math.min(1, Math.max(0, (S.t - T.end) / RAMP)) : 0;
 // who: "jo" scores with the combo, "zirka" scores it plain, null scores nothing
 function kill(e, who){
   const u = e.userData; if (u.dying >= 0) return;
@@ -602,7 +641,7 @@ function hurt(){
     if (d < 4 && d > .01){ e.position.x += dx/d*(4 - d); e.position.z += dz/d*(4 - d); }
   }
   if (!S.hearts){
-    S.fail = true; S.crash = 0; S.vy = 1.2;
+    S.fail = true; S.crash = 0; S.vy = 1.2; S.down = S.t;
     say("OUT OF HEARTS", "", 1.8);
   }
 }
@@ -643,10 +682,17 @@ function update(dt){
   if (S.inv > 0) S.inv -= dt;
 
   /* ---- waves ---- */
+  // endless: the last hook's waves never stop, and come faster and bigger past 2:22
+  const rp = ramp();
   for (let i = 0; i < WAVES.length; i++){
-    const [from, to, type, every, pack] = WAVES[i];
+    let [from, to, type, every, pack] = WAVES[i];
+    if (ENDLESS && to === T.end - 2){ to = Infinity; every *= 1 - rp*.45; if (type === "swarm") pack += Math.round(rp*2); }
     if (S.t < from || S.t > to) continue;
-    if (S.t >= S.waveT[i]){ S.waveT[i] += every; spawnWave(type, pack); }
+    if (S.t >= S.waveT[i]){ S.waveT[i] += every;
+      // past the song, never more than 2 to 4 watchers at once: orbs you can still fly round
+      if (ENDLESS && S.t > T.end - 2 && type === "watcher" &&
+          enemies.filter(e => e.userData.type === "watcher" && e.userData.dying < 0).length >= 2 + Math.floor(rp*2.99)) continue;
+      spawnWave(type, pack); }
   }
 
   /* ---- the beam fires on its own, at whatever is closest ---- */
@@ -682,7 +728,10 @@ function update(dt){
     } else if (S.heartT <= 0) S.heartAt = null;
   }
 
-  if (S.t >= T.end && !S.fail) startEnd();
+  if (ENDLESS){
+    if (S.t >= S.healT){ S.healT += HEAL_BARS*BAR;
+      if (S.hearts < HEARTS){ S.hearts++; sfx.chime(); say("+1 HEART", "every 24 bars", 1.2); } }
+  } else if (S.t >= T.end && !S.fail) startEnd();
 }
 
 function moveEnemies(dt, idle){
@@ -699,11 +748,11 @@ function moveEnemies(dt, idle){
     e.rotation.y = Math.atan2(-dx, -dz);
     let sp = 0;
     if (u.type === "crawler"){
-      sp = S.t > T.hook2 ? 2.9 : 2.4;
+      sp = (S.t > T.hook2 ? 2.9 : 2.4) + ramp()*.8;
       u.legs.forEach((l, j) => { l.rotation.x = Math.sin(u.wob*2.2 + j*1.7) * .5; });
       e.position.y = duneH(e.position.x, e.position.z) + u.y + Math.abs(Math.sin(u.wob*2.2)) * .06;
     } else if (u.type === "swarm"){
-      sp = S.t > T.hook2 ? 5.4 : 5;
+      sp = (S.t > T.hook2 ? 5.4 : 5) + ramp()*1.2;
       // they weave on the way in, so they are not a straight line to shoot down
       const side = Math.sin(u.wob) * 1.6;
       e.position.x += (-dz/d) * side * dt; e.position.z += (dx/d) * side * dt;
@@ -717,11 +766,12 @@ function moveEnemies(dt, idle){
       const tell = clamp01(1 - u.shootT / .6);
       u.iris.scale.setScalar(1 + tell*.9); u.ring.scale.setScalar(1 + tell*.35);
       if (u.shootT <= 0 && !idle && d < 16){
-        u.shootT = 2.6 + rand()*.8;
+        u.shootT = 2.6 - ramp()*.8 + rand()*(.8 - ramp()*.2);
         const o = new THREE.Group();
         o.add(new THREE.Mesh(GEO.orb, MAT.orb)); o.add(new THREE.Mesh(GEO.halo, MAT.orbHalo));
         o.position.set(e.position.x, 2.6, e.position.z);
-        o.userData = { v:new THREE.Vector3(dx/d*5.6, (FLY_Y - 2.6)/ (d/5.6), dz/d*5.6), life:4 };
+        const ov = 5.6 + ramp()*1.2;
+        o.userData = { v:new THREE.Vector3(dx/d*ov, (FLY_Y - 2.6)/ (d/ov), dz/d*ov), life:4 };
         scene.add(o); orbs.push(o); sfx.spit();
       }
     }
@@ -957,21 +1007,39 @@ for (let i = 0; i < HEARTS; i++){
   hearts.appendChild(h);
 }
 function score(){
+  if (ENDLESS) return Math.max(0, S.score);   // the full run, no clear bonus and no cap: the hub caps it
   const bonus = S.fail ? 0 : 8000 + S.hearts*1000 + (S.hits === 0 ? 4000 : 0);
   return Math.max(0, Math.min(SCORE_CAP, S.score + bonus));
 }
-let lastPip = 0, lastHeart = HEARTS, lastScore = -1, crashed = null;
-const mEl = document.getElementById("m");
+let lastPip = 0, lastHeart = HEARTS, lastScore = -1, crashed = null, lastEl = "";
+const mEl = document.getElementById("m"), elEl = document.getElementById("el");
+if (ENDLESS) elEl.classList.remove("hid");
+/* the game clock off the song. Endless: past the loop's end it seeks back a whole
+   number of bars (LOOP is 16 of them), so the beat never moves, and game time is
+   the song's time plus the laps already played. */
+function songT(){
+  if (ENDLESS && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+if (ENDLESS){
+  // in a background tab frames stop but the song plays on: keep looping it from here
+  song.addEventListener("timeupdate", () => { if (S.started && !S.done) songT(); });
+  song.addEventListener("ended", () => { if (!S.started || S.done) return;
+    try { song.currentTime = LOOP[0] + Math.max(0, (song.duration || LOOP[1]) - LOOP[1]); S.loops++; } catch(e){}
+    const p = song.play(); if (p && p.catch) p.catch(()=>{}); });
+}
 function frame(){
   try {
     const dt = Math.min(.05, clock ? clock.getDelta() : .016);
     // the song is the clock: if the music drifts from the game, the game follows it
-    if (S.started && !S.done && S.end < 0 && S.crash < 0 && !song.paused && song.currentTime > 0 &&
-        Math.abs(song.currentTime - S.t) > .25) S.t = song.currentTime;
+    if (S.started && !S.done && S.end < 0 && S.crash < 0 && !song.paused && song.currentTime > 0){
+      const st = songT(); if (Math.abs(st - S.t) > .25) S.t = st; }
     if (S.started && !S.done) update(dt);
     render(dt);
     const pip = Math.min(10, Math.floor(S.t / T.end * 10));
     if (pip !== lastPip){ lastPip = pip; [...pips.children].forEach((e,i) => e.classList.toggle("on", i < pip)); }
+    if (ENDLESS){ const tx = "ENDLESS &middot; " + fmtT(S.fail ? S.down : S.t);
+      if (tx !== lastEl){ lastEl = tx; elEl.innerHTML = tx; } }
     const sc = Math.max(0, S.score), m = mult();
     if (sc * 10 + m !== lastScore){ lastScore = sc * 10 + m; mEl.innerHTML = sc + (m > 1 ? "<b>x" + m + "</b>" : ""); }
     if (S.hearts !== lastHeart){
@@ -996,6 +1064,8 @@ function finish(){
   document.getElementById("next").classList.toggle("hid", S.fail);
   for (const id of ["outs", "home"]) document.getElementById(id).classList.remove("hid");
   document.getElementById("snd").classList.add("hid");
+  document.getElementById("inf").classList.add("hid");
+  if (ENDLESS){ endlessCard(v, ps); return; }
   if (HUB) toHub({ type:"javeda:result", level:"lvl2", cleared:!S.fail, score:score(),
     metres:0, kills:S.kills, assists:S.assists, hits:S.hits, hearts:S.hearts });
   if (S.fail){
@@ -1013,8 +1083,28 @@ function finish(){
     (S.hits === 0 ? "<b>not a scratch</b>" : "<b>" + S.hearts + "</b> heart" + (S.hearts === 1 ? "" : "s") + " left");
   ps[1].innerHTML = "You were never the only one. <b class=\"z\">Zirka rides with you now.</b>";
 }
+// the endless card: how long, how much, and no Next - there is no next in endless
+function endlessCard(v, ps){
+  const secs = Math.floor(S.down || S.t);
+  document.getElementById("go").textContent = "Play again";
+  document.getElementById("next").classList.add("hid");
+  if (HUB) toHub({ type:"javeda:result", level:"lvl2x", cleared:true, score:score(),
+    metres:secs, kills:S.kills, assists:S.assists, hits:S.hits, hearts:0 });
+  v.querySelector(".by").textContent = "ENDLESS \u00b7 OUT OF HEARTS";
+  v.querySelector("h1").textContent = score();
+  ps[0].innerHTML = "Held the Dust Sea for <b>" + fmtT(secs) + "</b> &middot; <b>" + S.kills + "</b> yours, <b class=\"z\">" +
+    S.assists + "</b> Zirka's";
+  ps[1].innerHTML = "Your best counts on the <b>Level 2 &infin;</b> scoreboard.";
+}
+if (ENDLESS){
+  document.querySelector("#veil .by").textContent = "LEVEL 2 \u00b7 ENDLESS";
+  document.querySelector("#veil h1").innerHTML = "SOMEBODY &infin;";
+  document.getElementById("veil").querySelectorAll("p:not(.by)")[0].innerHTML =
+    "The song doesn't end and neither do they. <b>" + HEARTS + " hearts</b> &middot; one back every 24 bars.";
+}
 document.getElementById("go").addEventListener("click", () => {
   reset();
+  if (HUB && ENDLESS) toHub({ type:"javeda:start", level:"lvl2x" });
   document.getElementById("veil").classList.add("hid");
   try {
     if (!ac){ ac = new (window.AudioContext||window.webkitAudioContext)();
@@ -1024,7 +1114,7 @@ document.getElementById("go").addEventListener("click", () => {
   try { song.currentTime = 0; } catch(e){}
   const p = song.play(); if (p && p.catch) p.catch(()=>{});
   S.started = true;
-  say("GO", "drag to fly - the beam fires on its own", 2.2);
+  say(ENDLESS ? "ENDLESS" : "GO", ENDLESS ? "till the hearts run out" : "drag to fly - the beam fires on its own", 2.2);
   S.line = 0;
 });
 

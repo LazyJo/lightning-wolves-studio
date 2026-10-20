@@ -34,10 +34,23 @@ canvas{display:block; touch-action:none}
 #lives svg{display:block; width:100%; height:100%; fill:currentColor}
 #m.low{color:#ffffff; animation:blink .5s steps(2) infinite}
 @keyframes blink{50%{opacity:.35}}
-#parts{display:flex; gap:8px}
+#parts{display:flex; flex-wrap:wrap; justify-content:center; gap:8px}
+#parts .br{flex-basis:100%; height:0}
 #parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em;
   text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer; color:#d7a0a8; background:none; border:1.5px solid #e11d2e55}
 #parts button[aria-pressed="true"]{color:#fff; border-color:#e11d2e; background:#e11d2e22}
+/* Endless and Remix are gold */
+#parts button.gold{color:#ffd65a; border-color:#e0a41a77}
+#parts button.gold[aria-pressed="true"]{color:#fff; border-color:#ffd65a; background:#e0a41a26}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+body.gold #veil h1{background:linear-gradient(172deg,#ffffff 12%,#ffd65a 66%,#e0a41a 112%);
+  -webkit-background-clip:text; background-clip:text; filter:drop-shadow(0 0 16px #e0a41a99)}
+body.gold #veil .by{color:#ffe08a}
+body.gold #veil b{color:#ffd65a}
+body.gold #m{color:#ffd65a; text-shadow:0 0 14px #e0a41a99}
+body.gold #ml{color:#e0c27a}
+#pcl{font-size:12px; letter-spacing:.14em; color:#ffe08a; margin-top:6px}
+#pcl.low{color:#ffffff; animation:blink .5s steps(2) infinite}
 #petals{font-size:12px; letter-spacing:.14em; color:#b98a92; margin-top:7px}
 #petals b{color:#ff8a96; font-weight:700}
 #msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; padding:0 16px;
@@ -45,6 +58,8 @@ canvas{display:block; touch-action:none}
 #msg.on{opacity:1}
 #msg.line{font-family:"Barlow Condensed",sans-serif; font-size:26px; letter-spacing:.06em}
 #msg.red{color:#ff5a68}
+#msg.big{font-size:44px}
+#msg.gold{color:#ffd65a}
 #msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:14px;
   letter-spacing:.1em; color:#d7b9be; margin-top:6px}
 #stick{position:fixed; width:96px; height:96px; margin:-48px 0 0 -48px; border-radius:50%; z-index:3;
@@ -93,7 +108,7 @@ canvas{display:block; touch-action:none}
 </style>
 
 <div id="cab"></div>
-<div id="hud"><div id="m">0:00</div><div id="ml">TIME</div><div id="shards"></div><div id="lives" class="hid"></div><div id="petals">PETALS <b id="pn">0</b> / 3</div></div>
+<div id="hud"><div id="m">0:00</div><div id="ml">TIME</div><div id="pcl" class="hid"></div><div id="shards"></div><div id="lives" class="hid"></div><div id="petals">PETALS <b id="pn">0</b> / 3</div></div>
 <div id="beat"></div>
 <div id="msg"></div>
 <div id="flash"></div>
@@ -106,6 +121,7 @@ canvas{display:block; touch-action:none}
   <p id="how"><b>Drag</b> to fly &middot; your beam lights the fog &middot; follow the <b>heartbeat</b>: it beats faster when you're close &middot; the ghosts send you back</p>
   <div id="parts" class="hid" role="group" aria-label="Part">
     <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
+    <i class="br"></i><button type="button" class="gold" data-part="1" data-mode="endless">Part 1 &infin;</button><button type="button" class="gold" data-part="2" data-mode="endless">Part 2 &infin;</button><button type="button" class="gold" data-part="3" data-mode="endless">Part 3 &infin;</button><button type="button" class="gold" data-mode="remix">Remix</button>
   </div>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
   <button id="go" type="button">Start</button>
@@ -139,15 +155,30 @@ canvas{display:block; touch-action:none}
    clock, and its pieces only glow on the heartbeat. The hub opens a part with
    ?part=2 or ?part=3; on its own the start card lets you pick. */
 const PART = Math.min(3, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
-const CFG = {
+/* Endless (?part=N&endless=1) and Remix (?remix=1), once all three parts are cleared: no
+   ending, play till the hearts run out, for the scoreboard. The heart keeps breaking: each
+   round scatters the part's pieces again and every piece has a clock. Remix turns the forest
+   into Part 1, 2, 3, 1 ... every 8 bars, each lap harder. Without the flags nothing changes. */
+const QS = new URLSearchParams(location.search);
+const REMIX = QS.get("remix") === "1", ENDLESS = !REMIX && QS.get("endless") === "1", EX = REMIX || ENDLESS;
+const PARTS = {
   1: { id:"lvl3",  title:"MY HEART",   shards:5, roam:6,  guards:1, speed:2.1, chase:10, fog:.03,  stars:[9, 16],  lives:0, clock:0,   flicker:false, base:9000 },
   2: { id:"lvl3b", title:"LIGHTS OUT", shards:7, roam:9,  guards:2, speed:2.7, chase:12, fog:.04,  stars:[15, 24], lives:3, clock:0,   flicker:false, base:12000 },
   3: { id:"lvl3c", title:"HEARTBREAK", shards:9, roam:12, guards:2, speed:3.3, chase:14, fog:.047, stars:[20, 30], lives:3, clock:180, flicker:true,  base:15000 }
-}[PART];
+};
+let CFG = PARTS[REMIX ? 1 : PART];      // the remix swaps it every 8 bars
+const LID = REMIX ? "lvl3r" : CFG.id + (ENDLESS ? "x" : "");
 const SHARDS = CFG.shards, PETALS = 3;
+// the remix keeps all nine pieces and Part 3's ghosts, and shows the ones the part in play uses
+const POOL = REMIX ? 9 : SHARDS, GB = REMIX ? PARTS[3] : CFG;
+/* The song is 80 BPM, a bar is 3.0 s from 0:00 (the hook at 0:24.0 is bar 8). From 0:12 it runs
+   in 24-bar cycles and the last chorus ends at 3:00 (bar 60), so Endless jumps from there back
+   24 bars to 1:48 (bar 36, the break before a verse) and the bars stay on the beat. */
+const BAR = 3.0, LOOP = [108, 180], LOOP_LEN = LOOP[1] - LOOP[0];
+const MAXH = 3, EXTRA = EX ? 8 : 0, STINT = 8*BAR;   // hearts, extra wanderers, a remix part
 const WORLD = 62;                       // how far from the middle the forest goes
 const FLY_Y = 8.5, SPEED = 6.6;         // just over the treetops; the beam reaches down through them
-const FOG = CFG.fog, FOG_STAR = .011;   // fog density, and how far a shooting star thins it
+let FOG = CFG.fog; const FOG_STAR = .011;   // fog density, and how far a shooting star thins it
 /* Where the hook lands in lvl3.mp3: the first chorus downbeat at 0:24.0, read
    off the song's loudness (the pickup is at 0:23.25). The ending starts the song
    END.whole seconds before it, so the hook hits on the frame the heart closes. */
@@ -169,7 +200,7 @@ const HUB = window.parent !== window && new URLSearchParams(location.search).has
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
 if (HUB){
   document.getElementById("next").addEventListener("click", e => {
-    e.preventDefault(); toHub({ type:"javeda:next", level:CFG.id });
+    e.preventDefault(); toHub({ type:"javeda:next", level:LID });
   });
   document.getElementById("home").addEventListener("click", e => {
     e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" });
@@ -316,7 +347,7 @@ function buildShard(i){
   const halo = new THREE.Mesh(new THREE.CircleGeometry(2.2, 28), glow(C.shard, .35)); g.add(halo);
   const light = new THREE.PointLight(C.shard, 1.6, 11, 2); g.add(light);
   g.position.set(SHARD_AT[i][0], 1.2, SHARD_AT[i][1]);
-  g.userData = { crystal, halo, light, got:false, fly:-1, i };
+  g.userData = { crystal, halo, light, got:false, fly:-1, i, hx:SHARD_AT[i][0], hz:SHARD_AT[i][1] };
   return g;
 }
 function buildPetal(i){
@@ -338,15 +369,17 @@ function buildGhost(i){
     const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color:0x0a0d14 }));
     e.position.set(x, .1, .5); g.add(e);
   }
-  // the first CFG.roam wander; the rest each guard a piece, circling it
-  const guard = i < CFG.roam ? -1 : Math.floor((i - CFG.roam) / CFG.guards);
+  // the first roam wander; the rest each guard a piece, circling it (Endless adds EXTRA wanderers after those)
+  const B = GB, nb = B.roam + POOL*B.guards, extra = i >= nb ? i - nb : -1;
+  const guard = i < B.roam || extra >= 0 ? -1 : Math.floor((i - B.roam) / B.guards);
   const a = rnd(i*9.3)*Math.PI*2, d = 14 + rnd(i*4.1)*40;
   if (guard < 0) g.position.set(Math.cos(a)*d, FLY_Y, Math.sin(a)*d);
   else g.position.set(SHARD_AT[guard][0] + Math.cos(a)*4.5, FLY_Y, SHARD_AT[guard][1] + Math.sin(a)*4.5);
   // half the wanderers are out from the start, the rest come out as pieces are found
-  const half = Math.ceil(CFG.roam / 2);
-  const from = guard >= 0 || i < half ? 0 : Math.ceil((i - half + 1) / (CFG.roam - half) * (SHARDS - 2));
-  g.userData = { home:g.position.clone(), to:new THREE.Vector3(), wob:i*1.7, from, guard, phase:a };
+  const half = Math.ceil(B.roam / 2);
+  const from = REMIX || extra >= 0 || guard >= 0 || i < half ? 0 : Math.ceil((i - half + 1) / (B.roam - half) * (SHARDS - 2));
+  g.userData = { home:g.position.clone(), to:new THREE.Vector3(), wob:i*1.7, from, guard, phase:a,
+    ri:i, slot: guard >= 0 ? (i - B.roam) % B.guards : -1, extra };
   return g;
 }
 
@@ -373,9 +406,9 @@ function boot(){
   const pad = new THREE.Mesh(new THREE.CircleGeometry(2.4, 32), glow(C.beam, .22));
   pad.rotation.x = -Math.PI/2; pad.position.y = -FLY_Y + .03; ufo.add(pad); ufo.userData.pad = pad;
   scene.add(ufo);
-  for (let i = 0; i < SHARDS; i++){ const s = buildShard(i); scene.add(s); shards.push(s); }
+  for (let i = 0; i < POOL; i++){ const s = buildShard(i); scene.add(s); shards.push(s); }
   for (let i = 0; i < PETALS; i++){ const p = buildPetal(i); scene.add(p); petals.push(p); }
-  for (let i = 0; i < CFG.roam + SHARDS*CFG.guards; i++){ const g = buildGhost(i); scene.add(g); ghosts.push(g); }
+  for (let i = 0; i < GB.roam + POOL*GB.guards + EXTRA; i++){ const g = buildGhost(i); scene.add(g); ghosts.push(g); }
   spark = new THREE.Group(); scene.add(spark);
   for (let i = 0; i < 60; i++){
     const s = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .1), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xff5a68 : 0xffffff }));
@@ -391,7 +424,8 @@ function reset(){
   S = { t:0, started:false, done:false, x:0, z:4, vx:0, vz:0, got:0, petals:0, chills:0,
         cpx:0, cpz:4, chill:-1, grace:0, beatT:0, beatI:1.4, starT:6, star:-1, msgT:0, end:-1, e0:null,
         lives:CFG.lives, fail:false };
-  shards.forEach(s => { s.userData.got = false; s.userData.fly = -1; s.visible = true; s.position.set(SHARD_AT[s.userData.i][0], 1.2, SHARD_AT[s.userData.i][1]); });
+  shards.forEach(s => { s.userData.got = false; s.userData.fly = -1; s.visible = true; s.position.set(SHARD_AT[s.userData.i][0], 1.2, SHARD_AT[s.userData.i][1]);
+    s.userData.hx = SHARD_AT[s.userData.i][0]; s.userData.hz = SHARD_AT[s.userData.i][1]; });
   petals.forEach(p => { p.userData.got = false; p.visible = true; });
   ghosts.forEach(g => g.position.copy(g.userData.home));
   if (spark) spark.children.forEach(s => s.visible = false);
@@ -399,6 +433,7 @@ function reset(){
   document.getElementById("hud").classList.remove("off");
   const fl = document.getElementById("flash"); fl.style.opacity = 0; fl.style.background = "";
   document.getElementById("msg").className = "";
+  if (EX && shards.length) exReset();
 }
 
 const song = new Audio("lvl3.mp3"); song.preload = "auto"; song.loop = true;
@@ -488,12 +523,13 @@ function update(dt){
   S.t += dt;
   if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) msgEl.classList.remove("on"); }
   if (S.end >= 0){ updateEnd(dt); return; }
+  if (EX) exTick(dt);
 
   /* ---- a ghost got you: a white chill, and back to the last piece ---- */
   if (S.chill >= 0){
     S.chill += dt;
     if (S.chill > .45 && !S.moved){ S.moved = true; S.x = S.cpx; S.z = S.cpz; S.vx = S.vz = 0; }
-    if (S.chill > 1){ S.chill = -1; S.grace = 1.6; }
+    if (S.chill > 1){ S.chill = -1; S.grace = 1.6; if (EX) S.pc = Math.max(S.pc, 4 + trip()); }
     return;
   }
   if (S.grace > 0) S.grace -= dt;
@@ -510,10 +546,14 @@ function update(dt){
   for (const s of shards){
     const u = s.userData;
     if (u.got) continue;
+    // Endless: a piece dropped right under you waits till you've flown off it
+    if (u.lock){ if (Math.hypot(s.position.x - S.x, s.position.z - S.z) > 6) u.lock = false; else continue; }
     if (Math.hypot(s.position.x - S.x, s.position.z - S.z) < 2.6){       // hover right over it
       u.got = true; u.fly = 0; S.got++; S.cpx = s.position.x; S.cpz = s.position.z;
       sfx.chime(); burst(s.position.x, 1.6, s.position.z, 18);
-      if (S.got < SHARDS) say(S.got + " / " + SHARDS, S.got === SHARDS - 1 ? "one more" : "it's going back up", 1.8, "red");
+      if (EX){ const pts = 250 + 25*Math.min(S.round, 20); S.score += pts; S.tot++;
+        if (S.got < S.need){ S.pc = allow(); say(S.got + " / " + S.need, "+" + pts, 1.4, "red"); } }
+      else if (S.got < SHARDS) say(S.got + " / " + SHARDS, S.got === SHARDS - 1 ? "one more" : "it's going back up", 1.8, "red");
     }
   }
   for (const s of shards) if (s.userData.fly >= 0) s.userData.fly += dt;     // a found piece on its way up
@@ -523,18 +563,22 @@ function update(dt){
     if (p.userData.got) continue;
     if (Math.hypot(p.position.x - S.x, p.position.z - S.z) < 2.0){
       p.userData.got = true; p.visible = false; S.petals++; sfx.petal(); burst(p.position.x, 1.4, p.position.z, 8);
+      if (EX){ S.score += 250; say("PETAL", "+250", 1.1); } else
       say("PETAL " + S.petals + " / " + PETALS, "", 1.3);
     }
   }
   /* ---- ghosts: drift between the trees; the more pieces you have, the more come out ---- */
+  // Endless: faster ghosts that see further, up to sane caps (the saucer stays faster)
+  const chase = EX ? CFG.chase + 5*S.D : CFG.chase, gsp = EX ? Math.min(5.4, CFG.speed*(1 + .5*S.D) + S.D + S.got*.1) : CFG.speed + S.got*.1;
   for (const g of ghosts){
     const u = g.userData;
+    if (EX) exGhost(g); else
     g.visible = S.got >= u.from;
     if (!g.visible) continue;
     u.wob += dt;
     const dx = S.x - g.position.x, dz = S.z - g.position.z, d = Math.hypot(dx, dz);
     const guarding = u.guard >= 0 && !shards[u.guard].userData.got;
-    if (d < CFG.chase){ u.to.set(S.x, FLY_Y, S.z); }
+    if (d < chase){ u.to.set(S.x, FLY_Y, S.z); }
     else if (guarding){ // circling its piece
       const a = u.phase + u.wob*.5, sp = shards[u.guard].position;
       u.to.set(sp.x + Math.cos(a)*4.5, FLY_Y, sp.z + Math.sin(a)*4.5);
@@ -542,14 +586,14 @@ function update(dt){
     else if (u.to.lengthSq() === 0 || g.position.distanceTo(u.to) < 1){
       const a = rnd(u.wob*3.1 + g.id)*Math.PI*2; u.to.set(u.home.x + Math.cos(a)*8, FLY_Y, u.home.z + Math.sin(a)*8);
     }
-    const sp = d < CFG.chase ? CFG.speed + S.got*.1 : guarding ? 2.6 : 1.1;
+    const sp = d < chase ? gsp : guarding ? 2.6 : 1.1;
     V.copy(u.to).sub(g.position); V.y = 0; const l = V.length();
     if (l > .01) g.position.addScaledVector(V, Math.min(1, sp*dt/l));
     g.position.y = FLY_Y + Math.sin(u.wob*2) * .25;
     g.rotation.y = Math.atan2(dx, dz);
     if (d < 1.3 && S.grace <= 0){
-      S.chill = 0; S.moved = false; S.chills++; sfx.chill();
-      if (CFG.lives){
+      S.chill = 0; S.moved = false; S.chills++; sfx.chill(); S.why = "ghost";
+      if (CFG.lives || EX){
         S.lives--;
         if (S.lives <= 0){ S.fail = true; S.done = true; say("OUT OF HEARTS", "", 2); setTimeout(finish, 900); return; }
         say("A CHILL", S.lives + (S.lives === 1 ? " heart" : " hearts") + " left - back to the last piece", 1.8);
@@ -559,14 +603,14 @@ function update(dt){
   }
 
   /* ---- Part 3: the night runs out ---- */
-  if (CFG.clock && S.t >= CFG.clock){ S.fail = true; S.done = true; S.timeUp = true; say("THE NIGHT IS OVER", "", 2); setTimeout(finish, 900); return; }
+  if (CFG.clock && !EX && S.t >= CFG.clock){ S.fail = true; S.done = true; S.timeUp = true; say("THE NIGHT IS OVER", "", 2); setTimeout(finish, 900); return; }
 
   /* ---- the heartbeat: it quickens as you near the next piece ---- */
   const [, bd] = nextShard();
   const near = clamp01(1 - bd / 34);
   S.beatI = 1.5 - near*1.15;
   S.beatT -= dt;
-  if (S.beatT <= 0 && S.got < SHARDS){ S.beatT = S.beatI; S.pulse = 1; sfx.beat(.4 + near*.8); }
+  if (S.beatT <= 0 && S.got < (EX ? S.need : SHARDS)){ S.beatT = S.beatI; S.pulse = 1; sfx.beat(.4 + near*.8); }
   S.pulse = Math.max(0, (S.pulse || 0) - dt*3);
   S.near = near;
 
@@ -575,7 +619,98 @@ function update(dt){
   if (S.starT <= 0){ S.starT = CFG.stars[0] + rnd(S.t)*(CFG.stars[1] - CFG.stars[0]); S.star = 0; sfx.star(); }
   if (S.star >= 0){ S.star += dt; if (S.star > 3.2) S.star = -1; }
 
-  if (S.got >= SHARDS && shards.every(s => s.userData.fly < 0 || s.userData.fly > 2)) startEnd();
+  /* ---- Endless: every piece has a clock; a late one costs a heart ---- */
+  if (EX && S.got < S.need && (S.pc -= dt) <= 0){
+    S.lives--; S.why = "clock"; sfx.chill();
+    const f = document.getElementById("flash"); f.style.background = "#e11d2e"; f.style.opacity = REDUCED ? .15 : .4;
+    if (S.lives <= 0){ S.fail = true; S.done = true; say("OUT OF HEARTS", "too slow", 2); setTimeout(finish, 900); return; }
+    S.pc = allow(); say("TOO SLOW", S.lives + (S.lives === 1 ? " heart" : " hearts") + " left - the clock starts again", 1.8, "red");
+  }
+
+  if (EX){ if (S.got >= S.need && shards.every(s => s.userData.fly < 0 || s.userData.fly > 2)) roundDone(); }
+  else if (S.got >= SHARDS && shards.every(s => s.userData.fly < 0 || s.userData.fly > 2)) startEnd();
+}
+
+/* ================= ENDLESS AND REMIX =================
+   No ending: when the heart is whole it breaks again and the pieces scatter to new
+   clearings (round 1 uses the part's own). The next piece always has a clock, fair by
+   construction: a base that shrinks with the difficulty plus the straight flight to the
+   nearest piece. Difficulty S.D goes 0 -> 1 over 7 minutes (Remix: by the lap). */
+const trip = () => Math.min(nextShard()[1], 120) * 1.3 / SPEED;
+const allow = () => (20 - 13*S.D) + trip();
+function usePart(k){ CFG = PARTS[k]; FOG = CFG.fog; S.part = k; }
+function exReset(){
+  Object.assign(S, { score:0, round:0, tot:0, need:0, pc:0, gt:0, loops:0, regen:0, stint:0, lap:0, D:0, lives:MAXH, why:"", part:PART });
+  if (REMIX) usePart(1);
+  placeRound(true);
+  ghosts.forEach(g => { g.position.copy(g.userData.home); g.userData.to.set(0, 0, 0); });
+}
+function placeRound(first){
+  const n = CFG.shards, order = SHARD_AT.map((p, i) => i);
+  if (!first){
+    for (let i = order.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+    // the clearing you're over goes last, so a part with fewer pieces skips it
+    const by = i => Math.hypot(SHARD_AT[i][0] - S.x, SHARD_AT[i][1] - S.z) < 6 ? 1 : 0;
+    order.sort((a, b) => by(a) - by(b));
+  }
+  S.need = n; S.got = 0;
+  shards.forEach((s, j) => {
+    const u = s.userData, on = j < n;
+    u.off = !on; u.got = !on; u.fly = -1; u.lock = false; s.visible = on; s.scale.setScalar(1);
+    if (!on) return;
+    const [x, z] = SHARD_AT[order[j]];
+    u.hx = x; u.hz = z; s.position.set(x, 1.2, z);
+    u.lock = !first && Math.hypot(x - S.x, z - S.z) < 6;
+  });
+  // the guards move with their pieces (under the flash, unless that's right where you are)
+  ghosts.forEach(g => { const u = g.userData; if (u.guard < 0) return;
+    const sp = shards[u.guard].position; u.home.set(sp.x + Math.cos(u.phase)*4.5, FLY_Y, sp.z + Math.sin(u.phase)*4.5);
+    if (!first && Math.hypot(u.home.x - S.x, u.home.z - S.z) > 14){ g.position.copy(u.home); u.to.set(0, 0, 0); } });
+  petals.forEach(p => { p.userData.got = false; p.visible = true; });
+  S.mendShown = 0; setPips(n); S.pc = allow();
+}
+function roundDone(){
+  const bonus = 150*S.need;
+  S.score += bonus; S.round++; sfx.chime();
+  const f = document.getElementById("flash"); f.style.background = "#ffffff"; f.style.opacity = REDUCED ? .2 : .6;
+  say("MENDED", "+" + bonus + " &middot; it breaks again: round " + (S.round + 1), 2.4, "red");
+  placeRound(false);
+}
+function ghostOn(u){
+  if (u.extra >= 0) return u.extra < Math.floor(S.D*9);           // one more every 47 s of difficulty
+  if (u.guard >= 0 && shards[u.guard].userData.off) return false;
+  if (REMIX) return u.guard < 0 ? u.ri < CFG.roam : u.slot < CFG.guards;
+  return S.got >= u.from;               // each round, like the part: more come out as you find pieces
+}
+function exGhost(g){
+  const on = ghostOn(g.userData);
+  if (on && !g.visible){     // never out of the fog right on top of you
+    const dx = g.position.x - S.x, dz = g.position.z - S.z, l = Math.hypot(dx, dz) || 1;
+    if (l < 14) g.position.set(S.x + dx/l*20, FLY_Y, S.z + dz/l*20);
+  }
+  g.visible = on;
+}
+function exTick(dt){
+  // the song: from the end of the last chorus back 24 bars; game time follows it while it plays
+  try {
+    if (!song.paused && song.currentTime >= LOOP[1]){ song.currentTime -= LOOP_LEN; S.loops++; }
+    else if (song.ended){ song.currentTime = LOOP[0]; S.loops++; const p = song.play(); if (p && p.catch) p.catch(()=>{}); }
+  } catch(e){}
+  const st = song.currentTime + S.loops*LOOP_LEN, on = !song.paused && !song.ended && song.readyState > 2;
+  S.gt = on && Math.abs(st - S.gt) < 1.5 ? st : S.gt + dt;      // no song: the stand-in clock
+  if (REMIX){
+    const n = Math.floor(S.gt / STINT);
+    if (n > S.stint){
+      S.stint = n; const k = n % 3 + 1;
+      if (k === 1){ S.lap = Math.floor(n / 3); S.score += 2000; if (S.lives < MAXH) S.lives++; }
+      usePart(k); S.grace = Math.max(S.grace, 1.2);
+      const f = document.getElementById("flash"); f.style.background = "#ffd65a"; f.style.opacity = REDUCED ? .2 : .65;
+      say(k === 1 ? "LAP " + (S.lap + 1) : "PART " + k, CFG.title + (k === 1 ? " &middot; +2000 &middot; a heart back" : ""), 2.2, "gold big");
+    }
+    S.D = Math.min(1, S.lap*.17);
+  } else S.D = clamp01(S.gt / 420);
+  const r = Math.floor(S.gt / (24*BAR));
+  if (r > S.regen){ S.regen = r; if (S.lives < MAXH){ S.lives++; if (S.msgT <= 0) say("+1 HEART", "every 24 bars", 1.4, "red"); } }
 }
 
 /* ================= THE ENDING =================
@@ -642,18 +777,18 @@ function render(dt){
       const near = Math.hypot(s.position.x - S.x, s.position.z - S.z) < 6;
       const on = near || S.star >= 0 ? 1 : clamp01((S.pulse || 0) * 1.6);
       u.crystal.visible = on > .15; u.halo.material.opacity = .35*on; u.light.intensity *= on;
-    }
+    } else if (EX){ u.crystal.visible = true; u.halo.material.opacity = .35; }     // a remix just left Part 3
     if (u.fly >= 0){
       const p = clamp01(u.fly / 2);
       skyHeart.getWorldPosition(V);
-      s.position.set(SHARD_AT[u.i][0] + (V.x - SHARD_AT[u.i][0])*p*p, 1.2 + p*p*60, SHARD_AT[u.i][1] + (V.z - SHARD_AT[u.i][1])*p*p);
+      s.position.set(u.hx + (V.x - u.hx)*p*p, 1.2 + p*p*60, u.hz + (V.z - u.hz)*p*p);
       s.scale.setScalar(1 + p*2);
       if (p >= 1 && s.visible){ s.visible = false; }
     }
   }
   // the heart in the sky mends as the pieces arrive
   const arrived = shards.filter(s => s.userData.fly > 2).length;
-  S.mendShown = (S.mendShown || 0) + (arrived / SHARDS - (S.mendShown || 0)) * Math.min(1, dt*3);
+  S.mendShown = (S.mendShown || 0) + (arrived / (EX ? S.need : SHARDS) - (S.mendShown || 0)) * Math.min(1, dt*3);
   let mend = S.mendShown * .8;
   if (S.end >= 0) mend = .8 + .2*smooth(clamp01((S.end - END.close) / (END.whole - END.close)));
   setMend(mend);
@@ -701,14 +836,33 @@ function render(dt){
 const shardsEl = document.getElementById("shards");
 const HEART_SVG = '<svg viewBox="0 0 12 11" aria-hidden="true"><path d="M6 10.6 1.1 5.6A2.9 2.9 0 0 1 6 1.9a2.9 2.9 0 0 1 4.9 3.7Z"/></svg>';
 for (let i = 0; i < SHARDS; i++){ const e = document.createElement("i"); e.innerHTML = HEART_SVG; shardsEl.appendChild(e); }
-const livesEl = document.getElementById("lives");
-if (CFG.lives){ livesEl.classList.remove("hid");
-  for (let i = 0; i < CFG.lives; i++){ const e = document.createElement("i"); e.innerHTML = HEART_SVG; livesEl.appendChild(e); } }
-if (CFG.clock) document.getElementById("ml").textContent = "NIGHT LEFT";
+const livesEl = document.getElementById("lives"), HN = EX ? MAXH : CFG.lives;
+if (HN){ livesEl.classList.remove("hid");
+  for (let i = 0; i < HN; i++){ const e = document.createElement("i"); e.innerHTML = HEART_SVG; livesEl.appendChild(e); } }
+if (CFG.clock && !EX) document.getElementById("ml").textContent = "NIGHT LEFT";
+// Endless: the score where the time was, the mode and time under it, the next piece's clock
+if (EX){ document.getElementById("pcl").classList.remove("hid"); document.getElementById("petals").innerHTML = 'PETALS <b id="pn">0</b>'; }
+function setPips(n){
+  shardsEl.innerHTML = "";
+  for (let i = 0; i < n; i++){ const e = document.createElement("i"); e.innerHTML = HEART_SVG; shardsEl.appendChild(e); }
+  lastGot = -1;
+}
+let exKey = "";
+function exHud(){
+  const sec = Math.floor(S.t), pc = Math.ceil(Math.max(0, S.pc)), wait = S.got < S.need;
+  const key = S.score + "|" + sec + "|" + pc + "|" + S.lap + "|" + wait;
+  if (key === exKey) return; exKey = key;
+  document.getElementById("m").textContent = S.score;
+  document.getElementById("ml").textContent = (REMIX ? "REMIX \u00b7 LAP " + (S.lap + 1) : "ENDLESS") + " \u00b7 " + fmtT(S.t);
+  const pl = document.getElementById("pcl");
+  pl.textContent = wait ? "NEXT PIECE " + fmtT(pc) : "MENDED";
+  pl.classList.toggle("low", wait && pc <= 5);
+}
 const fmtT = s => Math.floor(s/60) + ":" + String(Math.floor(s % 60)).padStart(2, "0");
 // time, plus each petal, each heart kept, and no ghost touching you at all.
 // Part 1 tops out near 11k, Part 2 near 15.5k, Part 3 near 18.5k.
 function score(){
+  if (EX) return S.score;               // Endless: the whole score, a run always ends in a loss
   if (S.fail) return S.got * 300;
   return Math.max(1000, CFG.base - Math.floor(S.t)*20) + S.petals*500 + S.lives*500 + (S.chills === 0 ? 1000 : 0);
 }
@@ -719,10 +873,11 @@ function frame(){
     if (S.started && !S.done) update(dt);
     render(dt);
     if (S.got !== lastGot){ lastGot = S.got; [...shardsEl.children].forEach((e, i) => e.classList.toggle("on", i < S.got)); }
+    if (EX) exHud(); else {
     const sec = Math.floor(S.t); if (sec !== lastSec){ lastSec = sec;
       const m = document.getElementById("m");
       m.textContent = fmtT(CFG.clock ? Math.max(0, CFG.clock - sec) : sec);
-      m.classList.toggle("low", !!CFG.clock && CFG.clock - sec <= 30); }
+      m.classList.toggle("low", !!CFG.clock && CFG.clock - sec <= 30); } }
     if (S.lives !== lastLives){ lastLives = S.lives; [...livesEl.children].forEach((e, i) => e.classList.toggle("out", i >= S.lives)); }
     if (S.petals !== lastPetals){ lastPetals = S.petals; document.getElementById("pn").textContent = S.petals; }
   } catch (e){ if (!crashed){ crashed = e; console.error(e); } }
@@ -735,13 +890,22 @@ function finish(){
   v.classList.remove("hid");
   const ps = v.querySelectorAll("p:not(.by)");
   const go = document.getElementById("go");
-  go.textContent = "Fly it again"; go.classList.toggle("alt", !S.fail);
-  document.getElementById("next").classList.toggle("hid", S.fail);
+  go.textContent = EX ? "Play again" : "Fly it again"; go.classList.toggle("alt", !S.fail && !EX);
+  document.getElementById("next").classList.toggle("hid", S.fail || EX);
   for (const id of ["outs", "home"]) document.getElementById(id).classList.remove("hid");
   document.getElementById("snd").classList.add("hid");
   document.getElementById("hud").classList.add("off");
-  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(),
+  if (HUB && EX) toHub({ type:"javeda:result", level:LID, cleared:true, score:score(), metres:Math.floor(S.t) });
+  else if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(),
     metres:0, timeSec:Math.round(S.t), petals:S.petals, chills:S.chills });
+  if (EX){
+    v.querySelector(".by").textContent = (REMIX ? "REMIX" : "ENDLESS") + " \u00b7 " + (S.why === "clock" ? "TOO SLOW" : "GHOSTED");
+    v.querySelector("h1").textContent = S.score;
+    ps[0].innerHTML = "Survived <b>" + fmtT(S.t) + "</b> &middot; <b>" + S.tot + "</b> pieces &middot; <b>" + S.round + "</b> " +
+      (S.round === 1 ? "heart" : "hearts") + " mended" + (REMIX ? " &middot; lap <b>" + (S.lap + 1) + "</b>" : "");
+    ps[1].innerHTML = "Your best counts on the <b>Level 3 " + (REMIX ? "Remix" : "Part " + PART + " \u221e") + "</b> scoreboard.";
+    return;
+  }
   const words = ["", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"];
   if (S.fail){
     v.querySelector(".by").textContent = S.timeUp ? "THE NIGHT IS OVER" : "OUT OF HEARTS";
@@ -765,10 +929,12 @@ document.getElementById("go").addEventListener("click", () => {
       bus = ac.createGain(); bus.gain.value = .5; bus.connect(ac.destination); }
     if (ac.state === "suspended") ac.resume();
   } catch(e){}
-  try { song.loop = true; song.currentTime = 0; } catch(e){}
+  try { song.loop = !EX; song.currentTime = 0; } catch(e){}
   const p = song.play(); if (p && p.catch) p.catch(()=>{});
   S.started = true;
-  say("FIND THE PIECES", "follow the heartbeat", 3, "red");
+  if (EX){ if (HUB) toHub({ type:"javeda:start", level:LID });
+    say(REMIX ? "REMIX" : "ENDLESS", REMIX ? "every 8 bars the next part" : "the heart keeps breaking - beat the clock", 3, "gold big"); }
+  else say("FIND THE PIECES", "follow the heartbeat", 3, "red");
 });
 
 // the start card for this part; on its own (not in the hub) you can switch parts
@@ -779,11 +945,25 @@ document.getElementById("intro").innerHTML = (PART === 1 ? "The pieces of a brok
   : "The night is short. The pieces only glow when the heart beats.") +
   " Find all <b>" + SHARDS + "</b> and put it back together." + (CFG.lives ? " <b>3 hearts</b>: a ghost takes one." : "") +
   (CFG.clock ? " Before the night is over: <b>" + fmtT(CFG.clock) + "</b>." : "");
+if (EX){
+  document.body.classList.add("gold");
+  document.getElementById("by").textContent = "LAZY JO \u00b7 " + (REMIX ? "MY HEART" : "PART " + PART + " \u00b7 ENDLESS");
+  document.getElementById("title").textContent = REMIX ? "REMIX" : CFG.title + " \u221e";
+  document.getElementById("intro").innerHTML = (REMIX
+    ? "All three parts in one night that never ends: every <b>8 bars</b> the forest turns into the next part, 1, 2, 3 and round again, harder each lap (<b>+2000</b> and a heart back)."
+    : "The heart keeps breaking. Mend it, and its pieces scatter again" + (PART === 2 ? " in the thick fog" : PART === 3 ? ", glowing only on the heartbeat" : "") +
+      ". Every piece has a <b>clock</b>, and each round the ghosts are faster and there are more of them.") +
+    " <b>3 hearts</b>: a ghost or a late piece takes one, one comes back every 24 bars.";
+}
 if (!HUB){
   document.getElementById("parts").classList.remove("hid");
+  const cur = REMIX ? "remix" : ENDLESS ? "endless" : "";
   document.querySelectorAll("#parts button").forEach(b => {
-    b.setAttribute("aria-pressed", String(+b.dataset.part === PART));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.set("part", b.dataset.part); location.search = q.toString(); });
+    const mode = b.dataset.mode || "";
+    b.setAttribute("aria-pressed", String(mode === cur && (mode === "remix" || +b.dataset.part === PART)));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("remix");
+      if (mode === "remix") q.set("remix", "1"); else { q.set("part", b.dataset.part); if (mode) q.set("endless", "1"); }
+      location.search = q.toString(); });
   });
 }
 

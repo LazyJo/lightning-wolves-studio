@@ -29,6 +29,10 @@ canvas{display:block; touch-action:none}
 #trip i{width:10px; height:10px; border-radius:50%; background:#ffffff1a; border:1px solid #ffffff44}
 #trip i.on{background:#7fd6ff; border-color:#c8ecff; box-shadow:0 0 6px #7fd6ff}
 #trip i.here{background:#ffd27a; border-color:#fff1c4; box-shadow:0 0 8px #ffd27a}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#ffe08a; margin-top:6px; text-align:right}
+/* endless and the remix are gold */
+body.gold #m{color:#ffd65a; text-shadow:0 0 12px #e0a41a88}
+body.gold .bl{color:#ffe08a}
 #phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
   font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s}
 #phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#cfe2ff; margin-top:2px}
@@ -39,24 +43,31 @@ canvas{display:block; touch-action:none}
   font-size:24px; opacity:0; transition:opacity .25s; text-shadow:0 0 16px #3d8bff, 0 2px 0 #000; padding:0 16px}
 #msg.on{opacity:1}
 #msg.x{color:#ff9aaa}
+#msg.g{color:#ffe08a; text-shadow:0 0 16px #e0a41a, 0 2px 0 #000}
 #msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#cfe2ff; margin-top:6px}
 #flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
 #veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto;
   background:radial-gradient(60% 40% at 50% 62%, #2a6fd055 0%, transparent 60%), radial-gradient(120% 80% at 50% 30%, #141a3a 0%, #05060f 70%)}
+body.gold #veil{background:radial-gradient(60% 40% at 50% 62%, #e0a41a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 30%, #2a2010 0%, #05060f 70%)}
 #veil .sp{flex:1 0 0; display:block}
 #veil .by{letter-spacing:.42em; font-size:14px; color:#9ab0d6; margin:0 0 -8px}
 #veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(36px,11vw,64px); line-height:1; color:#fff; text-shadow:0 0 24px #3d8bff}
+body.gold #veil h1{color:#ffe08a; text-shadow:0 0 24px #e0a41a, 0 0 6px #ffd65a}
 #veil p{margin:0; color:#cfe2ff; font-size:17px; max-width:38ch}
 #veil b{color:#ffd27a}
 #go{font-family:Bungee,sans-serif; font-size:19px; background:#7fd6ff; color:#06142a; border:0; border-radius:4px; padding:15px 36px; cursor:pointer}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
 #go.alt{background:none; color:#7fd6ff; border:1.5px solid #7fd6ff; font-size:15px; padding:12px 30px}
 #next{font-family:Bungee,sans-serif; font-size:19px; background:#7fd6ff; color:#06142a; text-decoration:none; border-radius:4px; padding:13px 34px 11px; line-height:1.1}
 #next small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.16em; color:#06142a; opacity:.75; margin-top:3px}
 #veil small{color:#7f93b8; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
-#parts{display:flex; gap:8px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; max-width:420px}
 #parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
   color:#cfe2ff; background:none; border:1.5px solid #7fd6ff55}
 #parts button[aria-pressed="true"]{color:#fff; border-color:#7fd6ff; background:#7fd6ff22}
+#parts .br{flex-basis:100%; height:0}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{color:#fff; border-color:#ffe08a; background:#e0a41a33}
 /* after the song: the song, the merch, the fans. Plain links - nothing in the game
    is ever traded for a stream, same rule as the rest of JAVEDA. */
 #outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
@@ -76,7 +87,7 @@ canvas{display:block; touch-action:none}
 <div id="cab"></div>
 <div id="hud" class="off">
   <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
-  <div><div class="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="trip"></div><div class="bl" style="margin-top:3px">THE JOURNEY</div></div>
+  <div><div class="bl" id="bl1">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="trip"></div><div class="bl" id="bl2" style="margin-top:3px">THE JOURNEY</div><div id="info" class="hid"></div></div>
 </div>
 <div id="phase" class="off"></div>
 <div id="msg"></div>
@@ -88,7 +99,8 @@ canvas{display:block; touch-action:none}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Part">
-    <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
+    <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button><i class="br"></i>
+    <button type="button" class="gold" data-part="1" data-mode="endless">Part 1 &infin;</button><button type="button" class="gold" data-part="2" data-mode="endless">Part 2 &infin;</button><button type="button" class="gold" data-part="3" data-mode="endless">Part 3 &infin;</button><button type="button" class="gold" data-mode="remix">Remix</button>
   </div>
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
   <button id="go" type="button">Start</button>
@@ -123,7 +135,15 @@ canvas{display:block; touch-action:none}
    blocks with a quiet 4-bar break after each. So: the beat drops and a planet's
    meteor shower comes; the song breathes and you launch to the next planet.
    Six planets, one per loud block: the Earth, four planets, Planet Javeda,
-   whose shower is the last block. Busier in the second half of each block. */
+   whose shower is the last block. Busier in the second half of each block.
+
+   ENDLESS (?part=N&endless=1, ids lvl7x/lvl7bx/lvl7cx) and REMIX (?remix=1,
+   lvl7r) are the gold modes for after the song: the route is made on the fly
+   (planets behind you are recycled), the song loops bars 16..64 (four whole
+   12-bar cycles, so the beat grid never slips) and the loud/quiet blocks go on
+   every 12 bars. It gets harder past the part's maximum until the hearts run
+   out. The remix: each planet takes the next part's rules (1 -> 2 -> 3, a lap
+   per three planets), every lap harder, +2,000 and a heart back per lap. */
 
 const GRID = { bpm:86.5, t0:.043 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
@@ -131,14 +151,37 @@ const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
 const BLOCKS = [[barT(4), barT(12)], [barT(16), barT(24)], [barT(28), barT(36)], [barT(40), barT(48)], [barT(52), barT(60)], [barT(64), barT(68)]];
 const END_AT = BLOCKS[5][1];                  // 3:08.7 - then the song fades
 const loud = t => BLOCKS.some(([a, b]) => t >= a && t < b);
-const inHook = t => BLOCKS.some(([a, b]) => t >= (a + b)/2 && t < b);   // the second half of a block is busier
+const QS = new URLSearchParams(location.search);
+const REMIX = QS.get("remix") === "1", ENDLESS = REMIX || QS.get("endless") === "1";
+// endless: a loud 8-bar block every 12 bars, for ever (block i = planet i)
+const CYCLE = 12, LOOP = [barT(16), barT(64)];  // the song loops bars 16..64: four whole cycles
+const blockOf = i => ENDLESS ? [barT(4 + CYCLE*i), barT(12 + CYCLE*i)] : BLOCKS[i];
+const inHook = t => {                          // the second half of a block is busier
+  if (ENDLESS){ const [a, b] = blockOf(Math.floor((t - barT(4)) / (BAR*CYCLE))); return t >= (a + b)/2 && t < b; }
+  return BLOCKS.some(([a, b]) => t >= (a + b)/2 && t < b);
+};
 
-const PART = Math.min(3, Math.max(1, +new URLSearchParams(location.search).get("part") || 1));
-const CFG = {
+const PART = Math.min(3, Math.max(1, +QS.get("part") || 1));
+const PARTS = {
   1: { id:"lvl7",  title:"JOURNEY",          by:"LEVEL 7",        hearts:5, every:2, hookEvery:1, speed:[3.2, 4.6], arc:.6,  rocks:false, comets:false },
   2: { id:"lvl7b", title:"METEOR SHOWER",    by:"LEVEL 7 PART 2", hearts:5, every:2, hookEvery:1, speed:[3.8, 5.6], arc:.52, rocks:true,  comets:false },
   3: { id:"lvl7c", title:"THE LONG WAY HOME", by:"LEVEL 7 PART 3", hearts:4, every:1, hookEvery:1, speed:[4.4, 6.4], arc:.46, rocks:true,  comets:true }
-}[PART];
+};
+const CFG = REMIX ? Object.assign({}, PARTS[1], { id:"lvl7r", title:"JOURNEY REMIX", by:"LEVEL 7 REMIX", hearts:5 })
+  : ENDLESS ? Object.assign({}, PARTS[PART], { id:PARTS[PART].id + "x", title:PARTS[PART].title + " \u221e", by:PARTS[PART].by.replace(/^LEVEL 7$/, "LEVEL 7 PART 1") + " \u221e" })
+  : PARTS[PART];
+if (ENDLESS) document.body.classList.add("gold");
+/* the rules in play: the part's own (RU === CFG) - except in endless, where they
+   ramp past the part's maximum, and in the remix, where every planet takes the
+   next part's rules. d (0..1) is how far past the part it is. */
+let RU = CFG, UP = 4, WIDE = .5;               // at the top: +4 speed, the shower half as wide again
+function rulesFor(i, t){
+  const part = REMIX ? i % 3 + 1 : PART, b = PARTS[part], lap = REMIX ? Math.floor(i / 3) : 0;
+  const d = REMIX ? clamp(lap*.2, 0, 1) : clamp((t - END_AT) / 270, 0, 1);   // endless: very hard ~7.6 min in
+  return { part, lap, d, speed:b.speed, sf:REMIX ? Math.min(1, .3 + lap*.35) : null, up:d*UP, wide:1 + d*WIDE, arc:b.arc - d*.1,
+    every:d >= (b.every > 1 ? .3 : .8) ? b.every/2 : b.every, hookEvery:d >= .6 ? b.hookEvery/2 : b.hookEvery,
+    rocks:Math.min(2, (b.rocks ? 1 : 0) + (d >= .35) + (d >= .75)), comets:b.comets };
+}
 const STOPS = 6;                              // the Earth, four planets, Planet Javeda - one per loud block
 
 const LINKS = {
@@ -150,7 +193,7 @@ const LINKS = {
   home:    "https://lightningwolves.studio/javeda/"
 };
 document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
-const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const HUB = window.parent !== window && QS.has("hub");
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
 if (HUB){
   document.getElementById("next").addEventListener("click", e => { e.preventDefault(); toHub({ type:"javeda:next", level:CFG.id }); });
@@ -265,11 +308,11 @@ function buildShip(){
 
 /* the route: the Earth, seven planets, Planet Javeda - up the screen */
 const PL = [];
-function buildRoute(){
-  const cols = [0xd87a3a, 0x8a5ad8, 0x4ac88a, 0xd8c04a, 0xd84a6a, 0x5ac8d8, 0xc87ad8];
-  let x = 0, z = 0;
-  for (let i = 0; i < STOPS; i++){
-    const first = i === 0, last = i === STOPS - 1, r = first ? 2.6 : last ? 3.2 : 1.5 + rnd(i*3.3)*1.1, orbit = r + 2.6;
+const P = i => ENDLESS ? PL.find(q => q.i === i) : PL[i];               // planet i (endless keeps a window of them)
+const nextP = () => ENDLESS ? P(S.at + 1) || P(S.at) : PL[Math.min(STOPS - 1, S.at + 1)];
+const COLS = [0xd87a3a, 0x8a5ad8, 0x4ac88a, 0xd8c04a, 0xd84a6a, 0x5ac8d8, 0xc87ad8];
+function makePlanet(i, x, z, first, last){
+  const cols = COLS, r = first ? 2.6 : last ? 3.2 : 1.5 + rnd(i*3.3)*1.1, orbit = r + 2.6;
     const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
     const ball = first ? buildEarth(r) : buildPlanetBall(r, last ? 0x8a4ad8 : cols[(i - 1) % cols.length], i); g.add(ball);
     if (last || (!first && rnd(i*9) < .35)){ const rg = new THREE.Mesh(new THREE.RingGeometry(r*1.35, r*1.9, 48), new THREE.MeshBasicMaterial({ color:0xe0b0ff, transparent:true, opacity:.55, side:THREE.DoubleSide })); rg.rotation.x = -Math.PI/2 + .4; g.add(rg); }
@@ -280,13 +323,47 @@ function buildRoute(){
       for (const s of [-1, 1]){ const h = new THREE.Mesh(new THREE.SphereGeometry(1.1, 14, 10), hand); h.scale.set(1.4, .6, 1); h.position.set(s*2.6, -1.2, 1.4); h.rotation.y = s*.6; g.add(h); }
     }
     const ring = new THREE.Mesh(new THREE.RingGeometry(orbit - .05, orbit + .05, 72), glowMat(0x7fd6ff, .22)); ring.rotation.x = -Math.PI/2; ring.position.y = .02; g.add(ring);
-    PL.push({ i, x, z, r, orbit, g, ball, halo, ring, last, spin:(rnd(i*7.7) < .5 ? 1 : -1) * 1.9 / (orbit/3.6) });
-    if (!last){ x = clamp(x + (rnd(i*5.1) - .5)*16, -10, 10); z -= 15 + rnd(i*2.2)*3; }
+    return { i, x, z, r, orbit, g, ball, halo, ring, last, spin:(rnd(i*7.7) < .5 ? 1 : -1) * 1.9 / (orbit/3.6) };
+}
+const nextXZ = (i, x, z) => [clamp(x + (rnd(i*5.1) - .5)*16, -10, 10), z - (15 + rnd(i*2.2)*3)];
+function buildRoute(){
+  let x = 0, z = 0;
+  if (!ENDLESS) for (let i = 0; i < STOPS; i++){
+    const first = i === 0, last = i === STOPS - 1;
+    PL.push(makePlanet(i, x, z, first, last));
+    if (!last) [x, z] = nextXZ(i, x, z);
   }
   // the route as a faint dotted line, lit as you go
   route = new THREE.Line(new THREE.BufferGeometry().setFromPoints(PL.map(p => new THREE.Vector3(p.x, -.2, p.z))), new THREE.LineDashedMaterial({ color:0x7fd6ff, dashSize:.8, gapSize:.8, transparent:true, opacity:.25 }));
   route.computeLineDistances(); scene.add(route);
 }
+/* endless: planets are made a few ahead as you go (same rule as the song's
+   route, just never a last one), with their asteroids and stars in the gaps;
+   the ones far behind are taken out of the scene. */
+const GEN = { i:0, x:0, z:0 };
+let rockGeo = null, rockMat = null, starMat = null;
+function dropObj(o){ scene.remove(o); o.traverse(c => { if (c.geometry && c.geometry !== rockGeo) c.geometry.dispose();
+  if (c.material && c.material !== rockMat && c.material !== starMat){ if (c.material.map) c.material.map.dispose(); c.material.dispose(); } }); }
+function addGap(gi){
+  const a = P(gi), b = P(gi + 1), n = rulesFor(gi, blockOf(gi)[0]).rocks;
+  for (let k = 1; k <= 2; k++){ const s = new THREE.Sprite(starMat); s.scale.setScalar(1.6); s.position.set(a.x + (b.x - a.x)*k/3, .5, a.z + (b.z - a.z)*k/3); s.userData.gap = gi; scene.add(s); stars.push(s); }
+  for (let k = 0; k < n; k++){ const u = (k + 1)/(n + 1), m = new THREE.Mesh(rockGeo, rockMat); scene.add(m);
+    rocks.push({ m, gap:gi, cx:a.x + (b.x - a.x)*u, cz:a.z + (b.z - a.z)*u, amp:5 + rnd(gi*3 + k*1.7)*3, w:.6 + rnd(gi*4 + k*2.9)*.5, ph:rnd(gi*5 + k*3.3)*6 }); }
+}
+function extendRoute(at){
+  while (GEN.i <= at + 3){ const i = GEN.i; PL.push(makePlanet(i, GEN.x, GEN.z, i === 0, false)); if (i > 0) addGap(i - 1);
+    [GEN.x, GEN.z] = nextXZ(i, GEN.x, GEN.z); GEN.i++; }
+  for (const q of PL.filter(q => q.i < at - 2)){ dropObj(q.g); PL.splice(PL.indexOf(q), 1); }
+  for (const r of rocks.filter(r => r.gap < at - 2)){ scene.remove(r.m); rocks.splice(rocks.indexOf(r), 1); }
+  for (const s of stars.filter(s => s.userData.gap < at - 2)){ scene.remove(s); stars.splice(stars.indexOf(s), 1); }
+  const pts = PL.slice().sort((a, b) => a.i - b.i).map(p => new THREE.Vector3(p.x, -.2, p.z));
+  route.geometry.dispose(); route.geometry = new THREE.BufferGeometry().setFromPoints(pts); route.computeLineDistances();
+}
+function newRoute(){
+  PL.splice(0).forEach(q => dropObj(q.g)); rocks.splice(0).forEach(r => scene.remove(r.m)); stars.splice(0).forEach(s => scene.remove(s));
+  Object.assign(GEN, { i:0, x:0, z:0 }); extendRoute(0);
+}
+function shieldGeo(){ shieldM.geometry.dispose(); shieldM.geometry = new THREE.RingGeometry(3.6, 4.4, 24, 1, -RU.arc, RU.arc*2); }
 let meteors = [], rocks = [], stars = [];
 function buildPieces(){
   const mM = new THREE.MeshStandardMaterial({ color:0x8a6a5a, roughness:.9, flatShading:true, emissive:0x3a1006 });
@@ -294,6 +371,8 @@ function buildPieces(){
     const fire = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xff8a3a, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); fire.scale.setScalar(1.6); m.add(fire);
     meteors.push({ m, fire, on:false }); }
   // asteroids drifting across the gaps (Parts 2-3)
+  if (ENDLESS){ rockGeo = new THREE.DodecahedronGeometry(.9, 0); rockMat = new THREE.MeshStandardMaterial({ color:0x7a6a6a, roughness:.9, flatShading:true });
+    starMat = new THREE.SpriteMaterial({ map:DOT, color:0xffd27a, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }); return; }
   if (CFG.rocks){ const rM = new THREE.MeshStandardMaterial({ color:0x7a6a6a, roughness:.9, flatShading:true });
     for (let i = 0; i < STOPS - 1; i++){ const a = PL[i], b = PL[i + 1], m = new THREE.Mesh(new THREE.DodecahedronGeometry(.9, 0), rM); scene.add(m);
       rocks.push({ m, cx:(a.x + b.x)/2, cz:(a.z + b.z)/2, amp:5 + rnd(i*3)*3, w:.6 + rnd(i*4)*.5, ph:rnd(i*5)*6 }); } }
@@ -305,11 +384,12 @@ function buildPieces(){
 
 /* ---------------- state, HUD ---------------- */
 let S = null, crashed = null;
-function say(a, b, t, bad){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (bad ? " x" : ""); S.msgT = t || 1.2; }
+function say(a, b, t, bad){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (bad === "g" ? " g" : bad ? " x" : ""); S.msgT = t || 1.2; }
+const clock = t => Math.floor(Math.max(0, t)/60) + ":" + String(Math.floor(Math.max(0, t)) % 60).padStart(2, "0");
 function phaseTag(){
   const p = $("phase");
   if (S.end >= 0 || !S.started){ p.className = "off"; return; }
-  if (S.phase === "defend" && S.t < BLOCKS[S.at][0] - .1){ p.className = "launch"; p.innerHTML = "GET READY<small>the meteors come with the beat</small>"; }
+  if (S.phase === "defend" && S.t < blockOf(S.at)[0] - .1){ p.className = "launch"; p.innerHTML = "GET READY<small>the meteors come with the beat</small>"; }
   else if (S.phase === "defend"){ p.className = "defend"; p.innerHTML = "DEFEND<small>touch a side to shield the planet</small>"; }
   else if (S.phase === "launch"){ p.className = "launch"; p.innerHTML = "LAUNCH!<small>tap when the line points at the next planet</small>"; }
   else { p.className = "launch"; p.innerHTML = "FLYING<small>&nbsp;</small>"; }
@@ -320,6 +400,8 @@ function hud(){
   const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, CFG.hearts - S.hearts));
   if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
     lastH = h; $("hearts").textContent = h; }
+  if (ENDLESS){ $("bl1").textContent = REMIX ? "REMIX \u00b7 LAP " + (S.lap + 1) + " \u00b7 PART " + RU.part : "ENDLESS";
+    $("info").textContent = "PLANET " + (S.far + 1) + " \u00b7 " + clock(S.t); phaseTag(); return; }
   $("songbar").firstChild.style.width = (clamp(S.t / END_AT, 0, 1)*100).toFixed(1) + "%";
   const trip = PL.map(p => p.i < S.at ? "on" : p.i === S.at ? "here" : "").join(",");
   if (trip !== lastTrip){ lastTrip = trip; $("trip").innerHTML = trip.split(",").map(c => '<i class="' + c + '"></i>').join(""); }
@@ -328,13 +410,15 @@ function hud(){
 
 /* ---------------- the game ---------------- */
 // a planet's shower is its loud block; the quiet break after it is for launching
-function showerEnd(i){ return i >= STOPS - 1 ? END_AT : BLOCKS[i][1]; }
+function showerEnd(i){ return ENDLESS ? blockOf(i)[1] : i >= STOPS - 1 ? END_AT : BLOCKS[i][1]; }
 function reset(){
   S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, hearts:CFG.hearts, at:0, phase:"defend", arrived:0, a:Math.PI/2, ta:Math.PI/2,
-        x:0, z:0, vx:0, vz:0, flyT:0, nextMet:barT(1), front:Math.PI/2 + Math.PI*.6, frontDir:1, k:0, bounced:0, onBeat:0, combo:0, best:0, hits:0, lost:0, saved:0, hitHere:0, starsGot:0, perfect:0, shield:0 };
+        x:0, z:0, vx:0, vz:0, flyT:0, nextMet:barT(1), front:Math.PI/2 + Math.PI*.6, frontDir:1, k:0, bounced:0, onBeat:0, combo:0, best:0, hits:0, lost:0, saved:0, hitHere:0, starsGot:0, perfect:0, shield:0,
+        loops:0, far:0, lap:0, flashT:0, stallT:0, nextHeart:barT(24) };
   meteors.forEach(m => { m.on = false; m.m.visible = false; });
   stars.forEach(s => s.visible = true);
   lastH = ""; lastTrip = ""; $("msg").className = ""; flashEl.style.opacity = 0;
+  if (ENDLESS){ newRoute(); RU = rulesFor(0, 0); shieldGeo(); }
 }
 function hurt(why){
   S.hearts--; S.combo = 0; sfx.bad();
@@ -345,23 +429,33 @@ function hurt(why){
 function spawnMeteor(t){
   const m = meteors.find(m => !m.on); if (!m) return;
   // a shower comes from one side, and that side drifts round the planet: one shield can always cover it
-  const p = PL[S.at], k = S.k++, f = t / END_AT;
-  S.front += S.frontDir*(.25 + rnd(k*7.1)*.35);        // the side sweeps round the planet: standing still won't do
-  const a = S.front + (rnd(k*3.3) - .5)*1.3, sp = CFG.speed[0] + (CFG.speed[1] - CFG.speed[0])*f + rnd(k)*.8, d = 17;
+  const p = P(S.at), k = S.k++, f = t / END_AT;
+  const w = ENDLESS ? RU.wide : 1;                     // endless: the shower spreads and sweeps faster as it gets harder
+  S.front += S.frontDir*(.25 + rnd(k*7.1)*.35)*w;      // the side sweeps round the planet: standing still won't do
+  const a = S.front + (rnd(k*3.3) - .5)*1.3*w, sp = ENDLESS ? RU.speed[0] + (RU.speed[1] - RU.speed[0])*(RU.sf !== null ? RU.sf : Math.min(1, f)) + RU.up + rnd(k)*.8
+    : CFG.speed[0] + (CFG.speed[1] - CFG.speed[0])*f + rnd(k)*.8, d = 17;
   // aim at the planet, a little off-centre
   const ta = a + Math.PI + (rnd(k*5) - .5)*.3;
   Object.assign(m, { on:true, out:false, x:p.x + Math.cos(a)*d, z:p.z + Math.sin(a)*d, vx:Math.cos(ta)*sp, vz:Math.sin(ta)*sp, home:S.at });
   m.m.visible = true;
 }
+// endless: the song loops bars 16..64; game time = currentTime + loops * the loop
+function songT(){
+  if (ENDLESS && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
 function update(dt){
-  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = song.currentTime;
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = ENDLESS ? songT() : song.currentTime;
   else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
   else S.t += dt;
   if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; flashEl.style.opacity = Math.max(0, S.flashT/.5*.55); }
   if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
   if (S.done) return;
-  const t = Math.max(0, S.t), p = PL[S.at];
+  const t = Math.max(0, S.t), p = P(S.at);
   if (S.shield > 0) S.shield -= dt;
+  // endless: a heart back every 24 bars (the remix gives one per lap instead)
+  if (ENDLESS && !REMIX && t >= S.nextHeart){ S.nextHeart += BAR*24; if (S.hearts < CFG.hearts){ S.hearts++; sfx.good(); say("A HEART BACK", "one every 24 bars", 1, "g"); } }
 
   if (S.phase === "defend"){
     // the ship swings round to the side you touch, the short way
@@ -369,9 +463,9 @@ function update(dt){
     S.x = p.x + Math.cos(S.a)*p.orbit; S.z = p.z + Math.sin(S.a)*p.orbit;
     // meteors on the beat, twice as many in the hooks
     while (t >= S.nextMet){
-      const [ba, bb] = BLOCKS[S.at];
+      const [ba, bb] = blockOf(S.at);
       if (S.nextMet > S.arrived + BEAT && S.nextMet >= ba && S.nextMet < bb - BEAT*.5) spawnMeteor(S.nextMet);
-      S.nextMet += BEAT*(inHook(S.nextMet) ? CFG.hookEvery : CFG.every);
+      S.nextMet += BEAT*(inHook(S.nextMet) ? RU.hookEvery : RU.every);
     }
     // the shower's over: launch time (the last planet holds out to the end of the song)
     if (t >= showerEnd(S.at) && !meteors.some(m => m.on && !m.out)){
@@ -382,6 +476,9 @@ function update(dt){
   } else if (S.phase === "launch"){
     S.a += p.spin*dt; S.x = p.x + Math.cos(S.a)*p.orbit; S.z = p.z + Math.sin(S.a)*p.orbit;
     S.nextMet = Math.max(S.nextMet, t);
+    // endless: no hanging about in orbit - once the next shower's on, every 2 bars of waiting costs a heart
+    if (ENDLESS){ if (!S.stallT) S.stallT = Math.max(blockOf(S.at + 1)[0] + BAR*2, t + BAR*2);
+      if (t > S.stallT){ S.stallT = t + BAR*2; if (hurt("TOO SLOW - THE NEXT SHOWER STARTED")) return; } }
   } else {
     // flying: straight on, until a planet's pull catches you
     S.flyT += dt; S.x += S.vx*dt; S.z += S.vz*dt;
@@ -391,6 +488,7 @@ function update(dt){
         const cross = (S.x - q.x)*S.vz - (S.z - q.z)*S.vx; q.spin = Math.abs(q.spin)*(cross > 0 ? 1 : -1);
         S.at = q.i; S.a = Math.atan2(S.z - q.z, S.x - q.x); S.ta = S.a; S.phase = "defend"; S.arrived = t; S.hitHere = 0; S.front = S.a + Math.PI*.6; S.frontDir = rnd(q.i*3.7) < .5 ? 1 : -1;
         S.nextMet = GRID.t0 + Math.ceil((t + BEAT - GRID.t0) / BEAT) * BEAT; S.score += 300; sfx.catch();
+        if (ENDLESS){ arriveEndless(q, t); break; }
         say(q.last ? "PLANET JAVEDA" : "PLANET " + (q.i + 1), q.last ? "hold it till the song ends!" : "defend it!", 1.2);
         break; } }
     if (S.phase === "fly"){
@@ -402,11 +500,12 @@ function update(dt){
 
   // meteors: the shield bounces them back out; one that gets through hits the planet
   for (const m of meteors){ if (!m.on) continue;
-    const q = PL[m.home], r0 = Math.hypot(m.x - q.x, m.z - q.z);
+    const q = P(m.home); if (!q){ m.on = false; m.m.visible = false; continue; }
+    const r0 = Math.hypot(m.x - q.x, m.z - q.z);
     m.x += m.vx*dt; m.z += m.vz*dt;
     const r = Math.hypot(m.x - q.x, m.z - q.z);
     if (!m.out && r0 >= q.orbit && r < q.orbit && m.home === S.at && S.phase === "defend"){
-      if (Math.abs(angDiff(Math.atan2(m.z - q.z, m.x - q.x), S.a)) < CFG.arc){
+      if (Math.abs(angDiff(Math.atan2(m.z - q.z, m.x - q.x), S.a)) < RU.arc){
         const nx = (m.x - q.x)/r, nz = (m.z - q.z)/r, dot = m.vx*nx + m.vz*nz; m.vx = (m.vx - 2*dot*nx)*1.4; m.vz = (m.vz - 2*dot*nz)*1.4; m.out = true;
         const beat = onBeat(t); S.combo++; S.best = Math.max(S.best, S.combo); S.bounced++; if (beat) S.onBeat++;
         S.score += (beat ? 200 : 100) * Math.min(4, 1 + Math.floor(S.combo/6)); S.shield = .25; sfx.bounce(beat); if (beat) say("ON THE BEAT", "x2", .4);
@@ -414,16 +513,28 @@ function update(dt){
     }
     if (!m.out && r < q.r + .2){ m.on = false; m.m.visible = false; S.hits++; S.hitHere++; flashPlanet(q); if (hurt("THE PLANET IS HIT")) return; continue; }
     // in Part 3 comets also hunt the ship while it flies (any meteor near the ship hurts)
-    if (CFG.comets && S.phase === "fly" && Math.hypot(m.x - S.x, m.z - S.z) < 1.1){ m.on = false; m.m.visible = false; if (hurt("HIT BY A METEOR")) return; S.phase = "launch"; continue; }
+    if (RU.comets && S.phase === "fly" && Math.hypot(m.x - S.x, m.z - S.z) < 1.1){ m.on = false; m.m.visible = false; if (hurt("HIT BY A METEOR")) return; S.phase = "launch"; continue; }
     if (r > 26){ m.on = false; m.m.visible = false; }
   }
   for (const r of rocks){ r.m.position.set(r.cx + Math.sin(t*r.w + r.ph)*r.amp, 0, r.cz + Math.cos(t*r.w*.7 + r.ph)*2); r.m.rotation.set(t*.7, t, 0); }
-  if (t >= END_AT + 6 && !S.done) lose("THE SONG ENDED BEFORE PLANET JAVEDA");
+  if (!ENDLESS && t >= END_AT + 6 && !S.done) lose("THE SONG ENDED BEFORE PLANET JAVEDA");
+}
+// endless: a new planet - new rules (the remix: the next part's), the route grows ahead
+const HINT = { 1:"a meteor every other beat", 2:"faster, a narrower shield, asteroids", 3:"a meteor every beat - they hunt you in flight" };
+function arriveEndless(q, t){
+  const fresh = q.i > S.far; S.far = Math.max(S.far, q.i);
+  RU = rulesFor(q.i, t); shieldGeo(); extendRoute(q.i);
+  if (REMIX && fresh){
+    flashEl.style.background = "#ffe08a"; S.flashT = .5; sfx.big();
+    if (RU.lap > S.lap){ S.lap = RU.lap; S.score += 2000; const back = S.hearts < CFG.hearts; if (back) S.hearts++;
+      say("LAP " + (S.lap + 1), "+2,000" + (back ? " \u00b7 a heart back" : "") + " \u00b7 PART 1 \u00b7 JOURNEY", 1.8, "g"); }
+    else say("PART " + RU.part + " \u00b7 " + PARTS[RU.part].title, HINT[RU.part], 1.6, "g");
+  } else say("PLANET " + (q.i + 1), "defend it!", 1.2);
 }
 function launch(){
   if (!S.started || S.done || S.end >= 0 || S.phase !== "launch") return;
-  const p = PL[S.at], d = Math.sign(p.spin), sp = 16;
-  S.phase = "fly"; S.flyT = 0; S.vx = -Math.sin(S.a)*d*sp; S.vz = Math.cos(S.a)*d*sp;
+  const p = P(S.at), d = Math.sign(p.spin), sp = 16;
+  S.phase = "fly"; S.flyT = 0; S.stallT = 0; S.vx = -Math.sin(S.a)*d*sp; S.vz = Math.cos(S.a)*d*sp;
   if (onBeat(S.t)){ S.score += 150; S.perfect++; say("PERFECT LAUNCH", "on the beat", .6); }
   sfx.launch();
 }
@@ -451,7 +562,7 @@ function lose(why){
 const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
 let camInit = false;
 function render(dt){
-  const t = Math.max(0, S ? S.t : 0), portrait = cam.aspect < .8, p = PL[S.at];
+  const t = Math.max(0, S ? S.t : 0), portrait = cam.aspect < .8, p = P(S.at);
   // the ship: nose along the way it's going; the shield faces the planet while defending
   const tang = S.phase === "fly" ? Math.atan2(S.vx, S.vz) : Math.atan2(-Math.sin(S.a)*Math.sign(S.phase === "launch" ? p.spin : 1), Math.cos(S.a)*Math.sign(S.phase === "launch" ? p.spin : 1));
   ship.position.set(S.x, .4, S.z); ship.rotation.set(0, tang + Math.PI, 0);
@@ -473,8 +584,8 @@ function render(dt){
     const u = clamp(S.end / END.pull, 0, 1), s = u*u*(3 - 2*u), mid = PL[Math.floor(STOPS/2)];
     CAMP.set(p.x*(1 - s) + mid.x*s, H + s*(portrait ? 120 : 75), p.z*(1 - s) + mid.z*s + back*(1 - s) + s*30); CAML.set(p.x*(1 - s) + mid.x*s, 0, p.z*(1 - s) + mid.z*s - 4*(1 - s));
     route.material.opacity = .25 + s*.6; route.material.color.setHex(s > .5 ? 0xffd27a : 0x7fd6ff);
-  } else if (S.phase === "defend"){ const n = PL[Math.min(STOPS - 1, S.at + 1)]; CAMP.set(p.x*.85 + n.x*.15, H, p.z*.85 + n.z*.15 + back); CAML.set(p.x*.85 + n.x*.15, 0, p.z*.85 + n.z*.15 - 3); }
-  else if (S.phase === "launch"){ const n = PL[Math.min(STOPS - 1, S.at + 1)]; CAMP.set((p.x + n.x)/2, H + 6, (p.z + n.z)/2 + back); CAML.set((p.x + n.x)/2, 0, (p.z + n.z)/2 - 3); }
+  } else if (S.phase === "defend"){ const n = nextP(); CAMP.set(p.x*.85 + n.x*.15, H, p.z*.85 + n.z*.15 + back); CAML.set(p.x*.85 + n.x*.15, 0, p.z*.85 + n.z*.15 - 3); }
+  else if (S.phase === "launch"){ const n = nextP(); CAMP.set((p.x + n.x)/2, H + 6, (p.z + n.z)/2 + back); CAML.set((p.x + n.x)/2, 0, (p.z + n.z)/2 - 3); }
   else { CAMP.set(S.x, H + 4, S.z + back); CAML.set(S.x, 0, S.z - 3); }
   const k = camInit ? Math.min(1, dt*3) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
@@ -491,16 +602,24 @@ function frame(){
   } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
   requestAnimationFrame(frame);
 }
-function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function score(){ return ENDLESS ? Math.round(S.score) : S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
 function finish(){
   song.pause();
   const v = $("veil"); v.classList.remove("hid");
   const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
-  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail);
-  $("next").classList.toggle("hid", S.fail);
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !ENDLESS);
+  $("next").classList.toggle("hid", S.fail || ENDLESS);
   for (const id of ["outs", "home"]) $(id).classList.remove("hid");
   $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
-  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:!S.fail, score:score(), metres:0 });
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:ENDLESS ? true : !S.fail, score:score(), metres:ENDLESS ? Math.floor(Math.max(0, S.t)) : 0 });
+  if (ENDLESS){
+    v.querySelector(".by").textContent = (REMIX ? "REMIX \u00b7 " : "ENDLESS \u00b7 ") + S.why;
+    v.querySelector("h1").textContent = score().toLocaleString("en");
+    ps[0].innerHTML = "<b>" + clock(S.t) + "</b> survived &middot; <b>" + (S.far + 1) + "</b> planets reached" + (REMIX ? " &middot; lap " + (S.lap + 1) : "") +
+      " &middot; " + S.bounced + " meteors bounced" + (S.onBeat ? " (" + S.onBeat + " on the beat)" : "");
+    ps[1].innerHTML = "Your best counts on the <b>Level 7 " + (REMIX ? "Remix" : "Part " + PART + " &infin;") + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
   const stat = (S.at + 1) + " of " + STOPS + " planets &middot; " + S.bounced + " meteors bounced" + (S.onBeat ? " (" + S.onBeat + " on the beat)" : "");
   if (S.fail){
     v.querySelector(".by").textContent = S.why;
@@ -555,22 +674,30 @@ $("go").addEventListener("click", () => {
   audioInit();
   if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
-  S.started = true; S.t = 0; S.x = PL[0].x; S.z = PL[0].z + PL[0].orbit;
-  say("DEFEND THE EARTH", "touch a side - the ship swings there and bounces the meteors", 3);
+  S.started = true; S.t = 0; S.x = P(0).x; S.z = P(0).z + P(0).orbit;
+  if (HUB && ENDLESS) toHub({ type:"javeda:start", level:CFG.id });
+  say(ENDLESS ? (REMIX ? "REMIX \u00b7 DEFEND THE EARTH" : "ENDLESS \u00b7 DEFEND THE EARTH") : "DEFEND THE EARTH", "touch a side - the ship swings there and bounces the meteors", 3, ENDLESS ? "g" : false);
 });
 $("by").textContent = "LAZY JO · " + CFG.by;
 $("title").textContent = CFG.title;
 $("intro").innerHTML = PART === 1 ? "From the Earth in your hands to Planet Javeda, in the little orange ship. Every planet on the way is under a meteor shower."
   : PART === 2 ? "Faster meteors, a narrower shield, and asteroids drifting between the planets."
   : "The long way home: the meteors hunt you in flight too, and you start with 4 hearts.";
+if (ENDLESS) $("intro").innerHTML = REMIX
+  ? "<b>REMIX:</b> all three parts in one endless trip. Each planet takes the next part's rules - Journey, Meteor Shower, The Long Way Home - and every lap is harder. +2,000 and a heart back per lap."
+  : "<b>ENDLESS:</b> the song never ends and neither do the planets. Faster, busier, narrower - till the hearts run out. A heart back every 24 bars.";
+if (ENDLESS){ ["songbar", "trip", "bl2"].forEach(id => $(id).classList.add("hid")); $("info").classList.remove("hid"); $("bl1").textContent = REMIX ? "REMIX" : "ENDLESS"; }
 $("how").innerHTML = "<b>DEFEND:</b> touch a side of the planet - the ship swings there and its shield bounces the meteors back. On the beat = double. " +
   "<b>LAUNCH!</b> When the shower's over, tap when the dotted line points at the next planet, and get caught by its pull. " +
   "A meteor on a planet or getting lost in space costs a heart.";
 if (!HUB){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
-    b.setAttribute("aria-pressed", String(+b.dataset.part === PART));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.set("part", b.dataset.part); location.search = q.toString(); });
+    const mode = b.dataset.mode || "";
+    b.setAttribute("aria-pressed", String(mode === "remix" ? REMIX : mode === "endless" ? ENDLESS && !REMIX && +b.dataset.part === PART : !ENDLESS && +b.dataset.part === PART));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("remix");
+      if (mode === "remix"){ q.delete("part"); q.set("remix", "1"); } else { q.set("part", b.dataset.part); if (mode === "endless") q.set("endless", "1"); }
+      location.search = q.toString(); });
   });
 }
 boot();

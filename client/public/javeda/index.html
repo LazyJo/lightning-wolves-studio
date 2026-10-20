@@ -371,6 +371,15 @@ const endlessOf = (num, file, last, parts, remix) => parts.map(([id, title], i) 
     ({ id:id + "x", num, part:i + 1, endless:true, title, requires:last, src:"levels/" + file + "?hub=1" + (i ? "&part=" + (i + 1) : "") + "&endless=1" }))
   .concat(remix ? [{ id:"lvl" + num + "r", num, remix:true, endless:true, title:"Remix", requires:last, src:"levels/" + file + "?hub=1&remix=1" }] : []);
 const ENDLESS = [
+  ...endlessOf(1, "im-lost.html", "lvl1", [["lvl1", "I'm Lost"]], false),
+  // Level 2's two parts are two pages: no remix
+  { id:"lvl2x", num:2, part:1, endless:true, title:"Somebody", requires:"lvl2b", src:"levels/somebody.html?hub=1&endless=1" },
+  { id:"lvl2bx", num:2, part:2, endless:true, title:"Zirka's Ride", requires:"lvl2b", src:"levels/zirkas-ride.html?hub=1&endless=1" },
+  ...endlessOf(3, "my-heart.html", "lvl3c", [["lvl3", "My Heart"], ["lvl3b", "Lights Out"], ["lvl3c", "Heartbreak"]], true),
+  ...endlessOf(4, "rollercoaster.html", "lvl4c", [["lvl4", "Rollercoaster"], ["lvl4b", "Full Speed"], ["lvl4c", "No Brakes"]], true),
+  ...endlessOf(5, "feel-like-that.html", "lvl5c", [["lvl5", "Feel Like That"], ["lvl5b", "Moth Night"], ["lvl5c", "Stay Lit"]], true),
+  ...endlessOf(6, "no-rest-no-work.html", "lvl6c", [["lvl6", "Island Hopper"], ["lvl6b", "Crab Night"], ["lvl6c", "Surf the Sunset"]], true),
+  ...endlessOf(7, "journey.html", "lvl7c", [["lvl7", "Journey"], ["lvl7b", "Meteor Shower"], ["lvl7c", "The Long Way Home"]], true),
   ...endlessOf(8, "myself.html", "lvl8c", [["lvl8", "Petal Rain"], ["lvl8b", "The Stem"], ["lvl8c", "My Shadow"]], true)
 ];
 const ALL = [...LEVELS, ...ENDLESS];
@@ -689,7 +698,7 @@ function play(id){
   const lv = levelById(id);
   if (!lv || !isOpen(lv)) return;
   current = lv;
-  const r = lv.id === "lvl1" ? rides() : [];
+  const r = lv.id === "lvl1" || lv.id === "lvl1x" ? rides() : [];
   $("frame").src = lv.src + (r.length ? "&rides=" + r.join(",") : "");
   $("play").classList.remove("hid");
   document.body.style.overflow = "hidden";

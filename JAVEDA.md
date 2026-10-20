@@ -18,7 +18,7 @@ client/public/javeda/
     ├── no-rest-no-work.html # Level 6: Island Hopper, Crab Night, Surf the Sunset - three games on one beach + lvl6.mp3
     ├── journey.html    # Level 7 and its Parts 2-3: shield each planet, launch to the next, Earth to Planet Javeda + lvl7.mp3
     ├── myself.html     # Level 8: Petal Rain, The Stem, My Shadow (+ each endless, and the remix) + lvl8.mp3
-    └── oublie-moi.html # Level 9: Night Flight, Rooftop Run, The King (+ each endless, and the remix) + lvl9.mp3
+    └── oublie-moi.html # Level 9: Night Flight, Rooftop Run, The King, Jump Ride (+ each endless, and the remix) + lvl9.mp3
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
 
@@ -107,8 +107,8 @@ Levels 1 and 2 come from the JAVEDA folder on Jo's L: drive (and the
 `<!doctype html>` page; copy them over when a level changes.
 
 Level 9 OUBLIE-MOI used to be the original JAVEDA game (`javeda.html`, a 2D side-scroller with
-the songs embedded; it opened after Level 2). It is rebuilt in 3D as `oublie-moi.html` with three
-parts, opens after Level 8 now, and the old page is gone from the site (it is in git history and
+the songs embedded; it opened after Level 2). It is rebuilt in 3D as `oublie-moi.html` with four
+parts (Part 4 Jump Ride is the original side-on idea), opens after Level 8 now, and the old page is gone from the site (it is in git history and
 on Jo's L: drive). Its `lvl9` scores from the old game stay on the board until beaten.
 
 Level 2 used to be the old JAVEDA game's Level 2 (`javeda.html?level=lvl2`). Its scores were on

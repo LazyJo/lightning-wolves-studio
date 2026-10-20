@@ -65,7 +65,8 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl8c', 8, 'MY SHADOW',  'lvl8b', 0, 30000, 600, 75, 400, 21),     -- Level 8 Part 3: ~24k
   ('lvl9', 9, 'OUBLIE-MOI',  'lvl8', 0, 260000, 6000, 75, 500, 22),    -- rebuilt in 3D: Night Flight, ~220k with every heart
   ('lvl9b', 9, 'ROOFTOP RUN', 'lvl9', 0, 120000, 3000, 75, 400, 23),   -- Level 9 Part 2: ~92k
-  ('lvl9c', 9, 'THE KING',   'lvl9b', 0, 50000, 1200, 100, 600, 24)    -- Level 9 Part 3: the King falls, ~32k
+  ('lvl9c', 9, 'THE KING',   'lvl9b', 0, 80000, 1800, 100, 600, 24),   -- Level 9 Part 3: the King falls, ~57k with the gadgets
+  ('lvl9d', 9, 'JUMP RIDE',  'lvl9c', 0, 340000, 7500, 100, 600, 25)   -- Level 9 Part 4: the original idea, side on, ~290k
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -103,10 +104,11 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl8bx', 8, 'THE STEM',    'lvl8c', 0, 50000000, 1000, 0, 0, 124, true, 800),    -- ~300/s
   ('lvl8cx', 8, 'MY SHADOW',   'lvl8c', 0, 50000000, 1000, 0, 0, 125, true, 600),    -- ~200/s
   ('lvl8r',  8, 'REMIX',       'lvl8c', 0, 50000000, 1500, 0, 0, 126, true, 1000),   -- all three in turn, ~370/s
-  ('lvl9x',  9, 'NIGHT FLIGHT', 'lvl9c', 0, 50000000, 10000, 0, 0, 127, true, 3200),  -- ~1,500/s
-  ('lvl9bx', 9, 'ROOFTOP RUN',  'lvl9c', 0, 50000000, 6000,  0, 0, 128, true, 1800),  -- ~900/s
-  ('lvl9cx', 9, 'THE KING',     'lvl9c', 0, 50000000, 2000,  0, 0, 129, true, 600),   -- ~260/s
-  ('lvl9r',  9, 'REMIX',        'lvl9c', 0, 50000000, 4000,  0, 0, 130, true, 1100)   -- ~500/s
+  ('lvl9x',  9, 'NIGHT FLIGHT', 'lvl9d', 0, 50000000, 10000, 0, 0, 127, true, 3200),  -- ~1,500/s
+  ('lvl9bx', 9, 'ROOFTOP RUN',  'lvl9d', 0, 50000000, 6000,  0, 0, 128, true, 1800),  -- ~900/s
+  ('lvl9cx', 9, 'THE KING',     'lvl9d', 0, 50000000, 3000,  0, 0, 129, true, 900),   -- ~430/s
+  ('lvl9dx', 9, 'JUMP RIDE',    'lvl9d', 0, 50000000, 14000, 0, 0, 130, true, 4300),  -- ~2,100/s
+  ('lvl9r',  9, 'REMIX',        'lvl9d', 0, 50000000, 5000,  0, 0, 131, true, 1500)   -- all four, ~730/s
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -258,7 +260,8 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl8b' THEN g.best_score END), 0)::INT AS lvl8b_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl8c' THEN g.best_score END), 0)::INT AS lvl8c_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl9b' THEN g.best_score END), 0)::INT AS lvl9b_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl9c' THEN g.best_score END), 0)::INT AS lvl9c_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl9c' THEN g.best_score END), 0)::INT AS lvl9c_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl9d' THEN g.best_score END), 0)::INT AS lvl9d_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

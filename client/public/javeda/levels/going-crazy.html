@@ -123,19 +123,21 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
    Everything comes up at you on the song's grid: it's laid out by beat, so it
    reaches you (y = 0) exactly on the beat it belongs to. */
 
-// the song's measured grid (SONG.md). Until the song is in, a stand-in: 96 BPM
-const GRID = { bpm:96, t0:0 };
+// the song's measured grid (SONG.md): 83.5 BPM (167 double-time), bars from -0.723 s
+const GRID = { bpm:83.5, t0:-.723 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
-const END_AT = barT(72);                      // the fall ends here; the outro is the ending
-const LOOP = [barT(8), barT(72)];             // endless: the bars of the song it plays round and round
+const END_AT = barT(36);                      // the fall ends with hook 2; the outro is the ending
+const LOOP = [barT(8), barT(36)];             // endless: hook 1 to the end of hook 2, round and round
 const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
 // how the song feels at time t: calm (intro, breaks), loud (verses), hook, rest (a bar that drops out)
 function section(t){
   const b = Math.floor((songPos(t) - GRID.t0) / BAR);
-  if (b < 8 || b >= 72) return "calm";
-  const k = (b - 8) % 32;
-  return k < 8 ? "hook" : k === 15 || k === 31 ? "rest" : k >= 24 ? "calm" : "loud";
+  if (b < 4 || b >= 36) return "calm";        // intro, outro
+  if (b < 8) return "loud";                     // the hook without drums
+  if (b < 16 || b >= 28) return "hook";         // hook 1, hook 2
+  if (b < 18) return "rest";                    // the drop-out after hook 1
+  return b < 24 ? "loud" : "calm";              // the verse, then its kick-less half
 }
 const STINT = BAR * 8;                        // endless: one window
 const HEARTS = 3;

@@ -60,9 +60,9 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl7', 7, 'JOURNEY',     'lvl6', 0, 90000, 2000, 50, 300, 16),     -- shield the planets, launch to the next: ~64k
   ('lvl7b', 7, 'METEOR SHOWER', 'lvl7', 0, 100000, 2000, 50, 300, 17), -- Level 7 Part 2: ~69k
   ('lvl7c', 7, 'THE LONG WAY HOME', 'lvl7b', 0, 130000, 3000, 75, 400, 18), -- Level 7 Part 3: ~94k
-  ('lvl8', 8, 'MYSELF',      'lvl7', 0, 100000, 2000, 50, 300, 19),    -- Petal Rain: ~82k
-  ('lvl8b', 8, 'THE STEM',   'lvl8', 0, 35000, 700, 50, 300, 20),      -- Level 8 Part 2: ~25k
-  ('lvl8c', 8, 'MY SHADOW',  'lvl8b', 0, 30000, 600, 75, 400, 21),     -- Level 8 Part 3: ~21k
+  ('lvl8', 8, 'MYSELF',      'lvl7', 0, 100000, 2000, 50, 300, 19),    -- Petal Rain: ~85k
+  ('lvl8b', 8, 'THE STEM',   'lvl8', 0, 40000, 800, 50, 300, 20),      -- Level 8 Part 2: ~33k
+  ('lvl8c', 8, 'MY SHADOW',  'lvl8b', 0, 30000, 600, 75, 400, 21),     -- Level 8 Part 3: ~24k
   ('lvl9', 9, 'OUBLIE-MOI',  'lvl2', 0, 150000, 3000, 75, 500, 23)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,

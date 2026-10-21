@@ -65,6 +65,23 @@ lightning-wolves-studio/
 
 **Never force-push main.** Don't promote without explicit Jo confirmation.
 
+### Keep every deployment small (Vercel Hobby: 10 GB for ALL deployments)
+
+Every push builds a preview, and each deployment is a full copy of `client/dist`. In
+October 2026 ~32 pushes at ~150-250 MB each filled the 10 GB, so:
+
+- **Big media lives in the public Supabase Storage bucket `media`**, not in `client/public`:
+  the wolf videos (`media/wolves/*.mp4`), the 3D wolf (`media/3d/optimized-wolf.glb`) and the
+  JAVEDA level songs (`media/javeda/lvlN.mp3`). Point at them with `media("...")` from
+  `client/src/lib/media.ts` (or the full public URL in plain HTML). Uploads need the
+  service-role key: do them from Jo's PC, never ask Jo to paste a key.
+- **Do not add videos, `.glb` or `.mp3` files to `client/public`.** `client/dist` is ~50 MB now,
+  31 MB of it the ffmpeg core (which must stay same-origin, see below).
+- `vercel.json` no longer copies the repo-root media into `client/public` (every root file
+  was a duplicate). The root `public/` and root `*.mp4` are not deployed.
+- `scripts/vercel-ignore.sh` (vercel.json `ignoreCommand`) skips builds that only touch
+  `*.md` / `*.sql`, and skips the old duplicate project `lightning-wolves-studio-jc1w`.
+
 ## Studio architecture (the part that bites)
 
 ### Templates

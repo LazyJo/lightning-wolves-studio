@@ -569,7 +569,8 @@ function reset(){
 }
 reset();
 
-const song = new Audio("lvl1.mp3"); song.preload = "auto"; song.loop = true;
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl1.mp3"); song.preload = "auto"; song.loop = true;
 // endless: round and round in whole bars (song.loop stays as the fallback)
 function loopSong(){
   try { if (song.currentTime >= LOOP[1]){ song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } } catch(e){}

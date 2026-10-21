@@ -529,7 +529,8 @@ function reset(){
   document.getElementById("judge").className = ""; document.getElementById("lyric").classList.remove("on");
 }
 
-const song = new Audio("lvl5.mp3"); song.preload = "auto";
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl5.mp3"); song.preload = "auto";
 let ac = null, bus = null;
 function tone(type, f0, f1, dur, gain, lp, delay){
   if (!ac) return;

@@ -112,6 +112,13 @@ hub, the level posts to `window.parent` (same origin only):
 3. Add a row to `javeda_levels` in `supabase-javeda-schema.sql` (cap, points) and re-run it.
 4. Add a `<id>_best` column to the `javeda_board` view if it should get its own
    scoreboard tab, and a tab in `TABS`.
+5. **The song does not go in `levels/`.** Level songs live in the public Supabase Storage
+   bucket `media` at `javeda/lvlN.mp3` (192 kbps MP3), not in the deploy: on Vercel Hobby
+   every deployment counts against 10 GB, and the songs alone were ~35 MB a deploy. A level
+   plays it with `const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";`
+   and `new Audio(SONGS + "lvlN.mp3")`. Uploading needs the service-role key, so it is done
+   from Jo's PC (Claude there fetches the key from the Supabase CLI login; never paste keys).
+   Never commit an `.mp3` to `client/public`.
 
 Levels 1 and 2 come from the JAVEDA folder on Jo's L: drive (and the
 `claude/amazing-mccarthy-pvr6xv` branch of LazyJo/desktop-tutorial, `javeda/im-lost` and

@@ -740,7 +740,8 @@ function reset(){
   const fl = document.getElementById("flash"); fl.style.opacity = 0;
 }
 
-const song = new Audio("lvl4.mp3"); song.preload = "auto";
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl4.mp3"); song.preload = "auto";
 // endless: at bar 52 the song seeks back 20 bars (also from timeupdate, which
 // keeps firing when a hidden tab stops drawing)
 function loopSong(){ if (song.currentTime >= LOOP_END){ try { song.currentTime -= LOOP_LEN; S.loops++; } catch(e){} } }

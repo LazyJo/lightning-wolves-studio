@@ -18,6 +18,7 @@ import {
   isoAlpha2ToNumeric,
 } from "../data/wolves";
 import type { Territory, Wolf } from "../data/wolves";
+import { media } from "../lib/media";
 
 const GEO_URL = "/countries-110m.json";
 
@@ -141,7 +142,7 @@ function WolfScene({
     let model: THREE.Object3D | null = null;
     const targetRotation = { x: 0, y: 0 };
 
-    loader.load("/Optimized_Wolf.glb", (gltf) => {
+    loader.load(media("3d/optimized-wolf.glb"), (gltf) => {
       model = gltf.scene;
       model.scale.setScalar(1.6);
       model.position.set(0, 0.75, 0);

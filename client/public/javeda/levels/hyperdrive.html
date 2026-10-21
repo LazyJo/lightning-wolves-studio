@@ -400,6 +400,7 @@ const sfx = {
 };
 let thrustT = 0;
 // the radio: the album, Oublie-Moi first, then the rest shuffled; a song that won't load is skipped
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
 const TRACKS = [["lvl9", "OUBLIE-MOI"], ["lvl1", "I'M LOST"], ["lvl2", "SOMEBODY"], ["lvl3", "MY HEART"], ["lvl4", "ROLLERCOASTER"], ["lvl5", "FEEL LIKE THAT"],
                 ["lvl6", "NO REST/NO WORK"], ["lvl7", "JOURNEY"], ["lvl8", "MYSELF"]];
 const radio = { el:new Audio(), order:[], i:-1, fails:0, on:false };
@@ -409,7 +410,7 @@ radio.el.addEventListener("error", () => { if (++radio.fails < TRACKS.length) ra
 radio.el.addEventListener("playing", () => { radio.fails = 0; const t = radio.order[radio.i]; $("radio").innerHTML = "&#9835; <b>" + t[1] + "</b> &middot; LAZY JO"; });
 function radioStart(){ if (radio.on) return; radio.on = true;
   const rest = TRACKS.slice(1).sort(() => Math.random() - .5); radio.order = [TRACKS[0], ...rest]; radio.i = -1; radioNext(); }
-function radioNext(){ radio.i = (radio.i + 1) % radio.order.length; radio.el.src = radio.order[radio.i][0] + ".mp3"; const p = radio.el.play(); if (p && p.catch) p.catch(() => {}); }
+function radioNext(){ radio.i = (radio.i + 1) % radio.order.length; radio.el.src = SONGS + radio.order[radio.i][0] + ".mp3"; const p = radio.el.play(); if (p && p.catch) p.catch(() => {}); }
 
 /* ---------------- the two of them ----------------
    Lazy Jo flies his saucer: floaty, and its tractor beam pulls in the coins below it.

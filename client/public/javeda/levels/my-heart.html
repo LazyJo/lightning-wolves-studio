@@ -436,7 +436,8 @@ function reset(){
   if (EX && shards.length) exReset();
 }
 
-const song = new Audio("lvl3.mp3"); song.preload = "auto"; song.loop = true;
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl3.mp3"); song.preload = "auto"; song.loop = true;
 let ac = null, bus = null;
 function tone(type, f0, f1, dur, gain, lp, delay){
   if (!ac) return;

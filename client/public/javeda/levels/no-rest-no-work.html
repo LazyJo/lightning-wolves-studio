@@ -193,7 +193,8 @@ const $ = id => document.getElementById(id);
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /* ---------------- sound: the song, or the stand-in beat ---------------- */
-const song = new Audio("lvl6.mp3"); song.preload = "auto";
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl6.mp3"); song.preload = "auto";
 let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
 let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
 const PROG = [110, 87.3, 130.8, 98];

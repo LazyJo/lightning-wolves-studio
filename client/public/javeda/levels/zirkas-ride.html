@@ -558,7 +558,8 @@ function reset(){
 reset();
 
 // his ride is the first half of SOMEBODY: Part 1 hears him arrive at 1:12
-const song = new Audio("lvl2.mp3"); song.preload = "auto";
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl2.mp3"); song.preload = "auto";
 // endless: round and round in whole bars (with song.loop as the fallback)
 if (ENDLESS) song.loop = true;
 function loopSong(){

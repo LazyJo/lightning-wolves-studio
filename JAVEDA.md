@@ -20,6 +20,7 @@ client/public/javeda/
     ├── myself.html     # Level 8: Petal Rain, The Stem, My Shadow (+ each endless, and the remix) + lvl8.mp3
     ├── oublie-moi.html # Level 9: Night Flight, Rooftop Run, The King (+ each endless, and the remix) + lvl9.mp3
     ├── going-crazy.html # Level 10: Freefall down a shaft between the towers (+ endless) + lvl10.mp3
+    ├── la-night.html   # Level 11: Light Trails - draw on the river, never cross your own line (+ endless)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

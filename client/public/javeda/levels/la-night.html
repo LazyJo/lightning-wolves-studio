@@ -120,19 +120,20 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
    Once it's cleared, ENDLESS opens (?endless=1): the same river with no end, in
    8-bar windows, faster each window, a heart back every 24 bars. */
 
-// the song's measured grid (SONG.md). Until the song is in, a stand-in: 90 BPM
-const GRID = { bpm:90, t0:0 };
+// the song's measured grid (SONG.md): 79 BPM (158 double-time), bars from 0.37 s
+const GRID = { bpm:79, t0:.37 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
-const END_AT = barT(64);                      // the night ends here; the outro is the ending
-const LOOP = [barT(8), barT(64)];             // endless: the bars of the song it plays round and round
+const END_AT = barT(60);                      // the night ends with hook 3; the outro is the ending
+const LOOP = [barT(4), barT(60)];             // endless: hook 1 to the end of hook 3, round and round
 const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
-// how the song feels at time t: calm (intro, breaks), loud (verses), hook, rest (a bar that drops out)
+// how the song feels at time t: calm (intro, the quiet half of a verse, outro), loud (verses), hook
 function section(t){
   const b = Math.floor((songPos(t) - GRID.t0) / BAR);
-  if (b < 8 || b >= 64) return "calm";
-  const k = (b - 8) % 32;
-  return k < 8 ? "hook" : k === 15 || k === 31 ? "rest" : k >= 24 ? "calm" : "loud";
+  if (b < 4 || b >= 60) return "calm";                          // intro, outro
+  if (b < 12 || (b >= 28 && b < 36) || b >= 52) return "hook";   // hooks 1-3 (the drums come in halfway)
+  const k = (b - 12) % 24;                                       // the verses: 8 bars with the beat, 4 without, 4 quiet
+  return k < 12 ? "loud" : "calm";
 }
 const STINT = BAR * 8;                        // endless: one window
 const HEARTS = 3;
@@ -351,7 +352,7 @@ function award(base, every){ const beat = onBeat(S.t); S.combo++; S.best = Math.
 
 /* =============== LIGHT TRAILS: draw on the river, never cross your line =============== */
 const TRAIL = {
-  name:"trail", tag:"LIGHT TRAILS", hint:"drag to steer - never cross your own line", X:17, Z:11.5, MAXP:300, GHOST:110, TURN:4.1,
+  name:"trail", tag:"LIGHT TRAILS", hint:"drag to steer - never cross your own line", X:17, Z:11.5, MAXP:330, TURN:4.4,
   setup(){
     this.root = new THREE.Group(); scene.add(this.root);
     buildRiver(this.root, this.X, this.Z);
@@ -375,25 +376,26 @@ const TRAIL = {
     this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
   },
   v(L){ return Math.min(14, 8.5 + 4*L); },                  // speed, m/s
-  maxLen(L){ return Math.round(60 + 50*Math.min(1, L)); },  // the longest the bright trail gets: 3 to 5.5 s of it
+  hotLen(L){ return Math.round(50 + 30*Math.min(1, L)); },  // the bright part, the part that can hit you: 2.5 s, up to 4 s as the song goes
+  MAXGLOW: 240,                                              // the glow behind it: longer with every moonlight, up to 12 s
   L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
   begin(t0, t1, L0, L1, cont){
     Object.assign(this, { t0, t1, L0, L1 });
     if (cont) return;
     this.start = t0;
-    this.st = { x:-9, z:3, h:0, tx:0, tz:0, pts:[], len:30, ptT:0, j:Math.ceil((t0 + BAR - GRID.t0)/BEAT), k:0, metres:0, got:0, rings:0, passed:0, heartBar:-1, edge:0 };
+    this.st = { x:-9, z:3, h:0, tx:0, tz:0, pts:[], len:50, glow:40, ptT:0, j:Math.ceil((t0 + BAR - GRID.t0)/BEAT), k:0, metres:0, got:0, rings:0, passed:0, heartBar:-1, edge:0 };
     for (const b of this.boats){ b.on = false; b.g.visible = false; b.tr.forEach(s => s.visible = false); }
     for (const o of this.orbs){ o.on = false; o.s.visible = false; } for (const r of this.rings){ r.on = false; r.r.visible = false; }
     this.heart.on = false; this.heart.g.visible = false;
   },
-  info(){ return "TRAIL " + Math.round(this.st.len*.05*this.v(this.L(S.t))) + " M" + (S.combo >= 5 ? " · " + S.combo + " IN A ROW" : ""); },
+  info(){ return "TRAIL " + Math.round((this.st.len + this.st.glow)*.05*this.v(this.L(S.t))) + " M" + (S.combo >= 5 ? " · " + S.combo + " IN A ROW" : ""); },
   point(cx, cy){ if (S.end >= 0) return; this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const P = new THREE.Vector3();
     if (this.ray.ray.intersectPlane(this.plane, P)){ this.st.tx = P.x; this.st.tz = P.z; } },
   // how far a point is from the trail's points from .. n
   trailDist(x, z, pts, n, from){ let best = 1e9; for (let i = from || 0; i < n - 1; i++){ const a = pts[i], b = pts[i + 1], ux = b.x - a.x, uz = b.z - a.z, L = ux*ux + uz*uz;
     const q = L > 0 ? clamp(((x - a.x)*ux + (z - a.z)*uz)/L, 0, 1) : 0; best = Math.min(best, Math.hypot(x - a.x - ux*q, z - a.z - uz*q)); } return best; },
   // the part of the trail that can hit you: the bright part, but not its newest half second.
-  // Behind the bright part the light fades (GHOST points) - it can't hurt you any more
+  // Behind the bright part the light fades (glow points) - it can't hurt you any more
   hot(t){ const P = this.st.pts; let n = P.length; while (n > 0 && t - P[n - 1].t < .5) n--; return [Math.max(0, P.length - this.st.len), n]; },
   boatX(b, t){ return b.x0 + b.dir*b.sp*(t - b.t0); },
   spot(margin, away){ const st = this.st, A = this.X - margin, C = this.Z - margin;
@@ -403,15 +405,15 @@ const TRAIL = {
   // what the beat brings: moonlight to keep up, boats on the 1, a ring every 4 bars
   layout(j, L, sec, tb){
     const st = this.st, b = j % 4, bar = Math.floor(j/4), f = clamp(L, 0, 1.6);
-    const want = { calm:2, rest:1, loud:3, hook:5 }[sec];
+    const want = { calm:2, rest:1, loud:3, hook:4 }[sec];
     if (this.orbs.filter(o => o.on).length < want){ const o = this.orbs.find(o => !o.on), p = this.spot(2, 5); if (o && p){ Object.assign(o, { on:true, x:p[0], z:p[1], born:tb }); o.s.visible = true; } }
-    if (b === 0 && sec !== "rest" && (sec === "hook" || (sec === "loud" && bar % 2 === 0) || (sec === "calm" && bar % 4 === 0 && f > .1))) this.launch(tb, f);
-    if (b === 2 && sec === "hook" && f > .5 && bar % 2 === 1) this.launch(tb, f);
+    if (b === 0 && ((sec === "hook" && bar % 2 === 0) || (sec === "loud" && bar % 4 === 0))) this.launch(tb, f);
+    if (b === 2 && sec === "hook" && f > .6 && bar % 4 === 1) this.launch(tb, f);
     if (b === 0 && bar % 4 === 1 && (sec === "loud" || sec === "hook")){ const r = this.rings.find(r => !r.on), p = this.spot(3, 6); if (r && p){ Object.assign(r, { on:true, x:p[0], z:p[1], until:tb + BAR*2 }); r.r.visible = true; } }
     if (b === 0 && S.hearts < HEARTS && !this.heart.on && bar % 8 === 6 && st.heartBar !== bar){ st.heartBar = bar; const p = this.spot(3, 6); if (p){ Object.assign(this.heart, { on:true, x:p[0], z:p[1], until:tb + BAR*3 }); this.heart.g.visible = true; } }
   },
   launch(tb, f){ const b = this.boats.find(b => !b.on); if (!b) return; const st = this.st, k = st.k++, dir = rnd(k*1.7) < .5 ? -1 : 1;
-    Object.assign(b, { on:true, dir, x0:-dir*(this.X + 9), z:(rnd(k*4.3) - .5)*2*(this.Z - .9), sp:6 + 4.5*Math.min(1.3, f), t0:tb }); b.g.visible = true; b.g.rotation.y = dir > 0 ? 0 : Math.PI; sfx.horn(); },
+    Object.assign(b, { on:true, dir, x0:-dir*(this.X + 9), z:(rnd(k*4.3) - .5)*2*(this.Z - .9), sp:5 + 3.5*Math.min(1.3, f), t0:tb }); b.g.visible = true; b.g.rotation.y = dir > 0 ? 0 : Math.PI; sfx.horn(); },
   update(dt, t){
     const st = this.st, L = this.L(t), v = this.v(L), X = this.X, Z = this.Z;
     while (GRID.t0 + st.j*BEAT <= t){ const tb = GRID.t0 + st.j*BEAT; this.layout(st.j, this.L(tb), section(tb), tb); st.j++; }
@@ -422,22 +424,23 @@ const TRAIL = {
     else { const dx = st.tx - st.x, dz = st.tz - st.z; if (Math.hypot(dx, dz) > 2.5){ let d = Math.atan2(dz, dx) - st.h; d = Math.atan2(Math.sin(d), Math.cos(d)); turn = clamp(d*3, -1, 1); } }
     st.h += turn*this.TURN*dt;
     st.x += Math.cos(st.h)*v*dt; st.z += Math.sin(st.h)*v*dt; st.metres += v*dt;
-    st.ptT += dt; if (st.ptT >= .05){ st.ptT = 0; st.pts.push({ x:st.x, z:st.z, t }); while (st.pts.length > Math.min(st.len + this.GHOST, this.MAXP)) st.pts.shift(); }
-    S.score += dt*(6 + st.len*.2);
+    st.len = this.hotLen(L);
+    st.ptT += dt; if (st.ptT >= .05){ st.ptT = 0; st.pts.push({ x:st.x, z:st.z, t }); while (st.pts.length > Math.min(st.len + st.glow, this.MAXP)) st.pts.shift(); }
+    S.score += dt*(6 + st.glow*.12);
     // the banks and the bridges: they cost a heart, and turn you round
     st.edge = Math.max(0, 1 - Math.min(X - Math.abs(st.x), Z - Math.abs(st.z))/3);
     if (Math.abs(st.x) > X || Math.abs(st.z) > Z){
       if (Math.abs(st.x) > X){ st.x = clamp(st.x, -X, X); st.h = Math.PI - st.h; } else { st.z = clamp(st.z, -Z, Z); st.h = -st.h; }
       if (S.inv <= 0 && hurt(Math.abs(st.x) >= X ? "THE BRIDGE!" : "THE BANK!", "Stay on the river: the banks and the bridges cost a heart. Keep your finger on the screen to keep turning.")) return; }
     // crossing your own trail: a heart, and the trail breaks
-    if (S.inv <= 0){ const [from, n] = this.hot(t); if (n - from > 1 && this.trailDist(st.x, st.z, st.pts, n, from) < .55){ st.pts.splice(0, Math.floor(st.pts.length*.6)); st.len = Math.max(30, Math.floor(st.len*.7));
+    if (S.inv <= 0){ const [from, n] = this.hot(t); if (n - from > 1 && this.trailDist(st.x, st.z, st.pts, n, from) < .55){ st.pts = st.pts.filter(p => t - p.t < .5); st.glow = Math.max(40, Math.floor(st.glow*.6));   // the trail breaks
       if (hurt("CROSSED!", "Your trail never stops - plan your curves, keep room to turn, and don't box yourself in.")) return; } }
     for (const b of this.boats){ if (!b.on) continue; const bx = this.boatX(b, t);
       if (S.inv <= 0 && Math.abs(st.x - bx) < 3.9 && Math.abs(st.z - b.z) < 1.5){ if (hurt("A BOAT!", "The party boats come out from under the bridges - see which way they're going and let them by.")) return; }
       if (Math.abs(bx) > X + 10 && t - b.t0 > 1){ b.on = false; b.g.visible = false; b.tr.forEach(s => s.visible = false); st.passed++; } }
     // the moonlight: each one makes your trail longer
     for (const o of this.orbs){ if (!o.on) continue;
-      if (Math.hypot(o.x - st.x, o.z - st.z) < 1.5){ o.on = false; o.s.visible = false; st.got++; st.len = Math.min(this.maxLen(L), st.len + 5);
+      if (Math.hypot(o.x - st.x, o.z - st.z) < 1.5){ o.on = false; o.s.visible = false; st.got++; st.glow = Math.min(this.MAXGLOW, st.glow + 10);
         const beat = award(100, 6); sfx.good(S.combo); if (beat && S.combo % 4 === 0) say("ON THE BEAT", "x2", .4, "g"); } }
     for (const r of this.rings){ if (!r.on) continue;
       if (Math.hypot(r.x - st.x, r.z - st.z) < 1.6){ r.on = false; r.r.visible = false; st.rings++; const beat = onBeat(t); S.score += beat ? 1000 : 500; sfx.big(); say(beat ? "ON THE BEAT" : "THROUGH THE RING", beat ? "+1,000" : "+500", .7, "g"); }

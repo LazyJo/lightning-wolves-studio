@@ -1,0 +1,582 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>NEED MORE TIME</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#04101a; color:#e8fbff; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#8af0ff; line-height:1; text-shadow:0 0 12px #22d3ee88}
+#ml{font-size:11px; letter-spacing:.18em; color:#9ab8c8; margin-top:3px}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#ff4a6a; text-shadow:0 0 10px #ff4a6a88; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ffffff1f; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#0ea5e9,#8af0ff)}
+.bl{font-size:11px; letter-spacing:.18em; color:#9ab8c8; text-align:right}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#8af0ff; margin-top:8px; text-align:right}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#ffd65a}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#8af0ff; text-shadow:0 0 12px #22d3ee88}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#d8f4ff; margin-top:2px}
+#phase.ready{color:#ffd27a; text-shadow:0 0 12px #ffb34788}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:22%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:24px; opacity:0; transition:opacity .25s; text-shadow:0 0 16px #22d3ee, 0 2px 0 #000; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ffb0b8}
+#msg.g{color:#ffe08a; text-shadow:0 0 16px #ffb000, 0 2px 0 #000}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#fff; text-shadow:0 0 24px #22d3ee, 0 0 60px #0ea5e9, 0 3px 0 #000}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#d8f4ff; margin-top:6px}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto;
+  background:radial-gradient(40% 30% at 50% 70%, #22d3ee33 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #0e2a3a 0%, #04101a 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #2a2410 0%, #0a0906 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#9ab8c8; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#fff; text-shadow:0 0 24px #22d3ee, 0 0 60px #0ea5e9}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#d8f4ff; font-size:17px; max-width:40ch}
+#veil b{color:#8af0ff}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#b8f6ff,#22d3ee); color:#03141c; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #22d3ee66}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+#go.alt{background:none; color:#8af0ff; border:1.5px solid #8af0ff; font-size:15px; padding:12px 30px; box-shadow:none}
+#veil small{color:#8aa0b0; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#d8f4ff; background:none; border:1.5px solid #8af0ff55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#8af0ff; background:#8af0ff22}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#8af0ff; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #8af0ff99; background:#8af0ff14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">NEED MORE TIME</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="">Pendulum Swing</button><button type="button" data-mode="endless" class="gold">Pendulum Swing &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= NEED MORE TIME =================
+   Level 12 of JAVEDA, in the world of the cover: a dark stage of old planks, blue
+   light rays, and the wireframe alarm clock Jo's saucer (silver, the orange dome
+   with the "L") projects in cyan. Jo picked PENDULUM SWING: seen from the side, the
+   saucer's beam hooks onto the clockwork's pendulums. Hold to hook on (hanging on,
+   every swing goes higher), let go to fly, hook the next one. Let go on the beat
+   for a boost. Falling to the stage costs a heart (3) and hangs you back on the last
+   pendulum; the spinning red gears between them cost one too. The song sets the way:
+   close and low in the calm parts, wider with gears in the verses, widest in the
+   hooks with gold sparks. At the end of the song the saucer comes down on the stage
+   and projects the clock: the cover.
+   Once it's cleared, ENDLESS opens (?endless=1): the same swing with no end, in
+   8-bar windows, wider every window, a heart back every 24 bars. */
+
+// the song's measured grid (SONG.md). Until the song is in, a stand-in: 84 BPM
+const GRID = { bpm:84, t0:0 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(64);                      // the song ends here; the outro is the ending
+const LOOP = [barT(8), barT(64)];             // endless: the bars of the song it plays round and round
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (intro, breaks), loud (verses), hook, rest (a bar that drops out)
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  if (b < 8 || b >= 64) return "calm";
+  const k = (b - 8) % 32;
+  return k < 8 ? "hook" : k === 15 || k === 31 ? "rest" : k >= 24 ? "calm" : "loud";
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+const ENDLESS = Q.get("endless") === "1";
+const CFG = ENDLESS ? { id:"lvl12x", title:"Pendulum Swing", by:"LEVEL 12 · ENDLESS", endless:true, board:"Level 12 ∞" }
+  : { id:"lvl12", title:"Pendulum Swing", by:"LEVEL 12" };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl12.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [98, 82.4, 87.3, 73.4];
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .008); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 3)) tone("sine", 115, 38, at, .5, .5, 800);
+    if (full && s8 === 4){ hiss(at, .22, .2, 0, 1800); tone("triangle", 200, 150, at, .1, .07); }
+    if (s8 % 2 === 0) tone("square", s8 % 4 ? 2600 : 3200, 2400, at, .025, .02, 9000);   // tick, tock
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.52, 3, 4].forEach((m, k) => tone("triangle", f*m, f*m, at + k*BEAT/2, BEAT*.9, sec === "hook" ? .026 : .018, 2400)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 880*Math.pow(2, ((n || 0) % 8)/24), 1320*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .1, .06, 7000),
+  big:  () => ac && [660, 880, 1320, 1760].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.05, .25, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  hook: () => ac && tone("sine", 520, 880, ac.currentTime, .12, .05, 5000),
+  boost:() => ac && (tone("triangle", 660, 1760, ac.currentTime, .25, .06, 7000), hiss(ac.currentTime, .3, .06, 3000)),
+  bell: () => ac && [0, .09, .18, .27].forEach(d => tone("square", 1760, 1700, ac.currentTime + d, .07, .03, 5000)),
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the stage and the hologram from the cover ---------------- */
+let scene, cam, ren, clockR, ME, crashed = null;
+const CYAN = 0x22d3ee, ICE = 0x8af0ff;
+const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+const wireMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, wireframe:true, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+// the stage: old planks, blue-grey, a little worn
+const PLANKS = (() => { const cv = document.createElement("canvas"); cv.width = 256; cv.height = 256; const x = cv.getContext("2d");
+  for (let i = 0; i < 8; i++){ const v = 38 + rnd(i)*16; x.fillStyle = "rgb(" + (v - 8) + "," + (v + 4) + "," + (v + 14) + ")"; x.fillRect(0, i*32, 256, 32);
+    x.fillStyle = "rgba(0,0,0,.55)"; x.fillRect(0, i*32, 256, 2); const cut = rnd(i*7)*256; x.fillRect(cut, i*32, 2, 32);
+    for (let k = 0; k < 18; k++){ x.fillStyle = "rgba(255,255,255," + (.02 + rnd(i*31 + k)*.04) + ")"; x.fillRect(rnd(i*13 + k)*256, i*32 + 4 + rnd(k*3 + i)*24, 20 + rnd(k)*60, 1); } }
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t; })();
+// the projector's glow on the floor: rings of light
+const PROJ = radial([[0, "rgba(220,250,255,1)"], [.12, "rgba(120,230,255,.9)"], [.3, "rgba(34,211,238,.35)"], [.5, "rgba(34,211,238,.0)"], [.62, "rgba(34,211,238,.35)"], [.66, "rgba(34,211,238,0)"], [.86, "rgba(34,211,238,.25)"], [.9, "rgba(34,211,238,0)"], [1, "rgba(0,0,0,0)"]], 256);
+// Jo's saucer from the cover: a silver hull, the orange dome with the "L", white rim lights, the beam
+const BADGE = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#fff4e6"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = "#ff7a1a"; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#1a0a02"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("L", 66, 70); return new THREE.CanvasTexture(cv); })();
+function buildSaucer(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0xd8dce8, roughness:.25, metalness:.7, emissive:0x2a3440, emissiveIntensity:.6 }));
+  hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.25, .07, 8, 44), new THREE.MeshStandardMaterial({ color:0x5a5a6a, metalness:.8, roughness:.3 })); rim.rotation.x = Math.PI/2; g.add(rim);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0xff8a2a, roughness:.25, metalness:.3, emissive:0x8a3a00, emissiveIntensity:.6 }));
+  dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE, transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:0xf0fbff })); l.position.set(Math.sin(a)*1.27, 0, Math.cos(a)*1.27); lights.add(l); }
+  const under = sprite(0xb8f6ff, 3.2, .6); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), glowMat(0xd8f8ff, .2)); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+// a hologram gear: a ring, spokes, teeth
+function gearMesh(r, color, op){
+  const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(r, r*.08, 6, 36), glowMat(color, op || .9)));
+  for (let k = 0; k < 4; k++){ const s = new THREE.Mesh(new THREE.BoxGeometry(r*2, r*.08, r*.08), wireMat(color, .7)); s.rotation.z = k/4*Math.PI; g.add(s); }
+  for (let k = 0; k < 12; k++){ const a = k/12*Math.PI*2, t = new THREE.Mesh(new THREE.BoxGeometry(r*.22, r*.22, r*.12), wireMat(color, .8)); t.position.set(Math.cos(a)*r*1.12, Math.sin(a)*r*1.12, 0); t.rotation.z = a; g.add(t); }
+  return g;
+}
+// the cover's alarm clock as a hologram: the round body, the face's ticks and numbers, two bells, a hammer, two legs
+function alarmClock(color, s){
+  const g = new THREE.Group(), M = wireMat(color, .85);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(1, 20, 14), wireMat(color, .35)));
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(1.02, .05, 6, 48), glowMat(color, .95)));
+  for (let i = 0; i < 12; i++){ const a = i/12*Math.PI*2, m = new THREE.Mesh(new THREE.BoxGeometry(.04, i % 3 ? .1 : .2, .02), glowMat(0xffffff, .9)); m.position.set(Math.sin(a)*.85, Math.cos(a)*.85, .9); m.rotation.z = -a; g.add(m); }
+  const h1 = new THREE.Mesh(new THREE.BoxGeometry(.05, .6, .02), glowMat(0xffffff, .95)); h1.position.set(0, .3, .95); g.add(h1);
+  const h2 = new THREE.Mesh(new THREE.BoxGeometry(.05, .45, .02), glowMat(0xffffff, .95)); h2.position.set(.12, -.16, .95); h2.rotation.z = .6; g.add(h2);
+  for (const k of [-1, 1]){ const bell = new THREE.Mesh(new THREE.SphereGeometry(.38, 12, 6, 0, Math.PI*2, 0, Math.PI/2), M); bell.position.set(k*.6, 1.02, 0); bell.rotation.z = -k*.5; g.add(bell);
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(.06, .1, .45, 6), M); leg.position.set(k*.55, -1.08, 0); leg.rotation.z = k*.5; g.add(leg); }
+  const hammer = new THREE.Mesh(new THREE.BoxGeometry(.06, .35, .06), M); hammer.position.y = 1.25; g.add(hammer);
+  g.scale.setScalar(s || 1); return g;
+}
+
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { p.className = ""; p.innerHTML = G.tag + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+// a catch on the beat is worth double; a run of catches multiplies (to x4)
+function award(base, every){ const beat = onBeat(S.t); S.combo++; S.best = Math.max(S.best, S.combo); if (beat) S.onBeat++;
+  S.score += (beat ? base*2 : base) * Math.min(4, 1 + Math.floor(S.combo/every)); return beat; }
+
+/* =============== PENDULUM SWING: hook on, swing, let go, fly =============== */
+const SWING = {
+  name:"swing", tag:"PENDULUM SWING", hint:"hold to hook on - let go to fly", R:12.5, G:26, PUMP:7, VMAX:24,
+  setup(){
+    this.root = new THREE.Group(); scene.add(this.root);
+    // the stage under you (it moves along with you in whole planks, so it never ends)
+    const t = PLANKS.clone(); t.needsUpdate = true; t.repeat.set(80, 14);
+    this.floor = new THREE.Mesh(new THREE.PlaneGeometry(1200, 200), new THREE.MeshStandardMaterial({ map:t, roughness:.85, metalness:.1, color:0x8aa0b8 })); this.floor.rotation.x = -Math.PI/2; this.root.add(this.floor);
+    // far back: the clockwork - big slow gears and hologram clocks, and the light rays
+    this.far = []; for (let i = 0; i < 10; i++){ const big = i % 3 === 1, g = big ? alarmClock(CYAN, 7) : gearMesh(5 + rnd(i)*6, CYAN, .35); g.position.set(i*45, big ? 16 : 10 + rnd(i*3)*20, -50 - rnd(i*5)*30); this.root.add(g); this.far.push(g); }
+    this.rays = []; for (let i = 0; i < 9; i++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(5 + rnd(i)*8, 140), glowMat(0x4ac8ff, .05 + rnd(i*3)*.05)); m.position.set(i*40, 50, -70); m.rotation.z = (rnd(i*9) - .5)*.5; this.root.add(m); this.rays.push(m); }
+    // the pendulums: a gear to hook on, with its reach shown as a faint ring, and a pendulum hanging from it
+    this.piv = []; for (let i = 0; i < 9; i++){ const g = gearMesh(1, ICE, .95), rng = new THREE.Mesh(new THREE.RingGeometry(this.R - .1, this.R, 72), glowMat(CYAN, .1)); g.add(rng);
+      const rod = new THREE.Group(), bar = new THREE.Mesh(new THREE.BoxGeometry(.12, 6, .12), glowMat(CYAN, .35)); bar.position.y = -3; rod.add(bar);
+      const bob = new THREE.Mesh(new THREE.TorusGeometry(.7, .1, 6, 24), glowMat(CYAN, .45)); bob.position.y = -6.5; rod.add(bob); g.add(rod);
+      g.userData = { rng, rod }; this.root.add(g); this.piv.push(g); }
+    this.rope = new THREE.Mesh(new THREE.CylinderGeometry(.12, .55, 1, 10, 1, true), glowMat(0xd8f8ff, .55)); this.root.add(this.rope);
+    this.sparks = []; for (let i = 0; i < 40; i++){ const s = sprite(ICE, 1.3); s.visible = false; this.root.add(s); this.sparks.push({ s, on:false }); }
+    // the spinning red gears between the pendulums
+    this.saws = []; for (let i = 0; i < 6; i++){ const g = gearMesh(1.4, 0xff4a6a, .95); g.add(sprite(0xff4a6a, 6, .35)); g.visible = false; this.root.add(g); this.saws.push({ g, on:false }); }
+    this.heart = (() => { const g = new THREE.Group(), hm = new THREE.MeshBasicMaterial({ color:0xff3d6a });
+      for (const s of [-1, 1]){ const b = new THREE.Mesh(new THREE.SphereGeometry(.32, 12, 10), hm); b.position.set(s*.25, .15, 0); g.add(b); }
+      const tip = new THREE.Mesh(new THREE.ConeGeometry(.44, .6, 14), hm); tip.rotation.z = Math.PI; tip.position.y = -.2; g.add(tip); g.add(sprite(0xff3d6a, 3, .6)); g.scale.setScalar(1.4); g.visible = false; this.root.add(g); return { g, on:false }; })();
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  begin(t0, t1, L0, L1, cont){
+    Object.assign(this, { t0, t1, L0, L1 });
+    if (cont) return;
+    this.start = t0;
+    this.st = { x:-7, y:10, vx:6, vy:0, att:0, L:Math.hypot(7, 8), grip:t0, pv:[{ x:0, y:18 }], last:0, best:0, k:0, beats:0, got:0, falls:0, heartBar:-1 };
+    for (const s of this.sparks){ s.on = false; s.s.visible = false; } for (const w of this.saws){ w.on = false; w.g.visible = false; }
+    this.heart.on = false; this.heart.g.visible = false;
+    this.gen(8);
+  },
+  info(){ return fmt(Math.max(0, this.st.x)) + " M" + (this.st.beats ? " · " + this.st.beats + " ON THE BEAT" : ""); },
+  point(){},
+  // the next pendulums. The song sets the gap: close in the calm, wider in the verses, widest in the hooks
+  gen(upTo){ const st = this.st;
+    while (st.pv.length <= upTo){ const n = st.pv.length, prev = st.pv[n - 1], tEst = Math.max(0, S.t) + (n - st.last)*1.2, sec = section(tEst), L = clamp(this.L(tEst), 0, 1.6);
+      const [g0, g1] = { calm:[11, 14], rest:[12, 14], loud:[13, 17], hook:[15, 19] }[sec], gap = g0 + rnd(n*3.3)*(g1 - g0) + 1.5*Math.min(1, L);
+      const y = sec === "hook" ? 14 + rnd(n*5.7)*9 : 15 + rnd(n*5.7)*6, p = { x:prev.x + gap, y, sec };
+      st.pv.push(p);
+      // between this one and the last: sparks along the way (gold in the hooks), sometimes a red gear, now and then a heart
+      const hook = sec === "hook", nS = hook ? 5 : 3;
+      for (let i = 0; i < nS; i++){ const s = this.sparks.find(s => !s.on); if (!s) break; const u = (i + 1)/(nS + 1);
+        Object.assign(s, { on:true, x:prev.x + (p.x - prev.x)*u, y:Math.min(prev.y, p.y) - 5 + Math.sin(u*Math.PI)*6, gold:hook }); s.s.visible = true; s.s.material.color.setHex(hook ? 0xffd060 : ICE); }
+      if ((sec === "loud" || sec === "hook") && n > 2 && rnd(n*7.1) < (hook ? .55 : .4) + .2*Math.min(1, L)){ const w = this.saws.find(w => !w.on);
+        if (w){ Object.assign(w, { on:true, x:prev.x + (p.x - prev.x)*(.4 + rnd(n*9.3)*.2), y:Math.max(prev.y, p.y) + 3.5 + rnd(n*2.9)*2, ph:rnd(n)*6, n }); w.g.visible = true; } }   // above the way across: they catch a let-go that flies too high
+      if (S.hearts < HEARTS && !this.heart.on && n % 7 === 4){ Object.assign(this.heart, { on:true, x:(prev.x + p.x)/2, y:Math.max(prev.y, p.y) - 2 }); this.heart.g.visible = true; } } },
+  pivot(n){ this.gen(n); return [this.st.pv[n].x, this.st.pv[n].y]; },
+  sawY(w, t){ return w.y + Math.sin(t*2.2 + w.ph)*2; },
+  // the pendulum a press hooks: the furthest one ahead that's in reach (never pulls you back); [-1, nearest distance] if none
+  target(){ const st = this.st; let best = -1, bd = 1e9, near = 1e9; for (let n = Math.max(0, st.last - 1); n < st.last + 4; n++){ const [px, py] = this.pivot(n); if (px < st.x - 3) continue; const d = Math.hypot(px - st.x, py - st.y); near = Math.min(near, d); if (d <= this.R && n > best){ best = n; bd = d; } } return best >= 0 ? [best, bd] : [-1, near]; },
+  press(){ const st = this.st; if (st.att >= 0) return; const [n, d] = this.target(); if (n >= 0){ st.att = n; st.L = Math.max(4, d); if (n > st.last){ st.last = n; } if (n > st.best){ st.best = n; S.score += 100; } sfx.hook(); } },
+  release(t){ const st = this.st; if (st.att < 0) return; st.att = -1; if (onBeat(t) && st.vx > 0){ st.vx *= 1.18; st.vy *= 1.18; st.beats++; S.onBeat++; S.score += 300; say("ON THE BEAT", "boost", .5, "g"); sfx.boost(); } },
+  update(dt, t){
+    const st = this.st;
+    // you hang on until your first touch (and after a fall); if you never touch, the beam lets go after 2 bars
+    if (actHeld){ st.grip = -1; this.press(); }
+    else if (st.grip < 0 || t > st.grip + BAR*2) this.release(t);
+    const x0 = st.x;
+    for (let k = 0; k < 4; k++){ const h = dt/4;
+      if (st.att >= 0){ const sp = Math.hypot(st.vx, st.vy); if (sp > .5 && sp < this.VMAX){ st.vx += st.vx/sp*this.PUMP*h; st.vy += st.vy/sp*this.PUMP*h; } }   // hanging on, you pump higher
+      st.vy -= this.G*h; st.x += st.vx*h; st.y += st.vy*h;
+      if (st.att >= 0){ const [px, py] = this.pivot(st.att), dx = st.x - px, dy = st.y - py, d = Math.hypot(dx, dy);
+        if (d > st.L){ const nx = dx/d, ny = dy/d; st.x = px + nx*st.L; st.y = py + ny*st.L; const vr = st.vx*nx + st.vy*ny; if (vr > 0){ st.vx -= vr*nx; st.vy -= vr*ny; } } } }
+    st.vx *= 1 - .02*dt;
+    S.score += Math.max(0, st.x - x0)*2;
+    this.gen(st.last + 6);
+    // the stage: a heart, and you're hung back on the last pendulum
+    if (st.y < .8){ st.falls++; if (hurt("YOU FELL", "Let go while you're swinging up and forward, and hold again as the next pendulum comes in reach.")) return;
+      const [px, py] = this.pivot(st.last); Object.assign(st, { x:px - 6, y:py - 9, vx:7, vy:0, att:st.last, L:Math.hypot(6, 9), grip:t }); }
+    for (const w of this.saws){ if (!w.on) continue; if (S.inv <= 0 && Math.hypot(w.x - st.x, this.sawY(w, t) - st.y) < 2.5){ if (hurt("A GEAR!", "The red gears spin above the way across - let go a little earlier so you don't fly so high.")) return; }
+      if (w.x < st.x - 40){ w.on = false; w.g.visible = false; } }
+    for (const s of this.sparks){ if (!s.on) continue; if (Math.hypot(s.x - st.x, s.y - st.y) < 1.7){ s.on = false; s.s.visible = false; st.got++; const beat = award(s.gold ? 120 : 60, 6); sfx.good(S.combo); if (beat && S.combo % 4 === 0) say("ON THE BEAT", "x2", .4, "g"); }
+      else if (s.x < st.x - 40){ s.on = false; s.s.visible = false; } }
+    const hh = this.heart; if (hh.on){ if (Math.hypot(hh.x - st.x, hh.y - st.y) < 1.8){ hh.on = false; hh.g.visible = false; if (S.hearts < HEARTS){ S.hearts++; sfx.heart(); say("A HEART", "", .8, "g"); } } else if (hh.x < st.x - 40){ hh.on = false; hh.g.visible = false; } }
+  },
+  render(dt, t){
+    const st = this.st, beat = onBeat(t);
+    ME.position.set(st.x, st.y, 0); ME.rotation.set(0, t*1.2, clamp(-st.vx*.02, -.5, .5));
+    const n0 = Math.max(0, st.last - 1), [cn, cd] = this.target();
+    this.piv.forEach((g, i) => { const n = n0 + i, [px, py] = this.pivot(n), hook = st.pv[n].sec === "hook"; g.position.set(px, py, 0); g.rotation.z = t*(n % 2 ? 1 : -1)*(hook ? 1.6 : 1);
+      g.scale.setScalar(1 + (hook && beat ? .15 : 0)); g.userData.rod.rotation.z = -g.rotation.z + Math.sin(t*1.6 + n)*.5;   // the hanging pendulum keeps its own slow swing
+      g.userData.rod.visible = n !== st.att; g.userData.rng.material.opacity = st.att < 0 && n === cn && cd <= this.R ? .55 : n === cn ? .14 : .04; });
+    if (st.att >= 0){ const [px, py] = this.pivot(st.att), a = new THREE.Vector3(px, py, 0), b = new THREE.Vector3(st.x, st.y, 0), len = a.distanceTo(b);
+      this.rope.visible = true; this.rope.position.copy(a).add(b).multiplyScalar(.5); this.rope.scale.set(1, len, 1); this.rope.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), b.clone().sub(a).normalize()); this.rope.material.opacity = .45 + (beat ? .3 : 0); }
+    else this.rope.visible = false;
+    for (const s of this.sparks) if (s.on){ s.s.position.set(s.x, s.y, 0); s.s.scale.setScalar((s.gold ? 1.6 : 1.3) + (beat ? .4 : 0)); }
+    for (const w of this.saws) if (w.on){ w.g.position.set(w.x, this.sawY(w, t), 0); w.g.rotation.z = -t*4; }
+    if (this.heart.on){ this.heart.g.position.set(this.heart.x, this.heart.y, 0); this.heart.g.rotation.y = t*2; }
+    // the stage and the back move along in whole steps, so they never end
+    this.floor.position.x = Math.round(st.x/15)*15; this.floor.material.map.offset.x = 0;
+    for (const g of this.far){ let x = g.position.x; while (x < st.x*.6 - 150) x += 450; g.position.x = x; g.rotation.z += dt*.05; }
+    for (const r of this.rays){ let x = r.position.x; while (x < st.x - 160) x += 360; r.position.x = x; }
+    const portrait = cam.aspect < .8;
+    CAMP.set(st.x + 6, 12, portrait ? 62 : 38); CAML.set(st.x + 6, 11, 0);
+  }
+};
+
+/* ---------------- the run ---------------- */
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = SWING; camInit = false; ME.userData.beam.visible = false; ME.scale.setScalar(1.15); END.root.visible = false;
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+}
+// endless goes in 8-bar windows, a little harder every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+function songT(){
+  if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+let actHeld = false;
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The saucer comes down on the stage, its beam on, and projects the clock: the
+   rings of light on the planks, the wireframe alarm clock rising over them, the
+   rays from behind - the cover. */
+const END = { out:8, root:null };
+function buildEnd(){
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
+  const proj = new THREE.Mesh(new THREE.PlaneGeometry(22, 22), new THREE.MeshBasicMaterial({ map:PROJ, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false })); proj.rotation.x = -Math.PI/2; proj.position.set(0, .06, -2); g.add(proj);
+  const clk = alarmClock(CYAN, 6.5); clk.position.set(0, 12, -4); g.add(clk);
+  const column = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 5, 10, 32, 1, true), glowMat(0x9ae8ff, .12)); column.position.set(0, 5, -3); g.add(column);
+  g.userData = { proj, clk, column }; END.root = g;
+}
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh(); sfx.bell();
+  $("hud").classList.add("off"); $("phase").className = "off";
+  const st = SWING.st; S.from = { x:st.x, y:st.y }; END.x = st.x + 24;
+  END.root.position.set(END.x, 0, 0); END.root.visible = true; SWING.rope.visible = false;
+  for (const w of SWING.saws){ w.on = false; w.g.visible = false; }
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  ME.userData.lights.rotation.y = t*2.5; ME.userData.beam.material.opacity = .18 + (beat ? .14 : 0); ME.userData.under.material.opacity = .55 + (beat ? .3 : 0);
+  if (S.end >= 0){
+    // the cover: the saucer glides down in front of the stage, beam on; the clock rises out of the light behind it
+    const u = clamp(S.end/3.5, 0, 1), s = u*u*(3 - 2*u), portrait = cam.aspect < .8, E = END.root.userData;
+    ME.visible = true; ME.userData.beam.visible = true; ME.scale.setScalar(.9 + s*.5);
+    ME.position.set(S.from.x + (END.x - S.from.x)*s, S.from.y + (3.2 - S.from.y)*s, s*7); ME.rotation.set(.1*s, t*1.2, 0);
+    const c = clamp((S.end - 1.2)/2.5, 0, 1); E.clk.scale.setScalar(6.5*(.6 + .4*c)); E.clk.position.y = 4 + 8*c; E.clk.rotation.y = Math.sin(t*.6)*.25;
+    E.clk.traverse(o => { if (o.material) o.material.opacity = (o.userData.op = o.userData.op || o.material.opacity)*c; }); E.column.material.opacity = .12*c; E.proj.material.opacity = Math.min(1, s*1.4);
+    CAMP.set(END.x, portrait ? 9 : 7, portrait ? 52 : 34); CAML.set(END.x, portrait ? 10 : 9, -2);
+    if (S.end > 2 && !S.saidEnd){ S.saidEnd = true; say("NEED MORE TIME", "LAZY JO", 4.5, "t"); }
+    if (S.end > END.out - 1.2){ $("flash").style.background = "#04101a"; $("flash").style.opacity = Math.min(1, (S.end - (END.out - 1.2))/1.2); }
+  } else {
+    G.render(dt, t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.2 : 6)) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  const st = SWING.st;
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:Math.round(Math.max(0, st.x)) });
+  const stat = fmt(Math.max(0, st.x)) + " m · " + st.best + " pendulums · " + st.got + " sparks · " + st.beats + " on the beat";
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> of swinging &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "NEED MORE TIME";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = "All the way across the clockwork." + "<br>Level 12 cleared: <b>Pendulum Swing &#8734;</b> is open in the gold Endless list.";
+}
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x04101a); scene.fog = new THREE.Fog(0x061a28, 60, 220);
+  cam = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, .1, 1500);
+  scene.add(new THREE.HemisphereLight(0x9ad8ff, 0x0a1018, .8));
+  const key = new THREE.DirectionalLight(0xc8eeff, .6); key.position.set(0, 50, 40); scene.add(key);
+  ME = buildSaucer(); scene.add(ME);
+  SWING.setup(); buildEnd();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input: one touch - hold anywhere (or Space) ---------------- */
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); actHeld = true; }, { passive:false });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, () => { actHeld = false; });
+addEventListener("keydown", e => { if ((e.key === " " || e.key === "ArrowUp" || e.key === "w") && !veilUp()){ e.preventDefault(); actHeld = true; } });
+addEventListener("keyup", e => { if (e.key === " " || e.key === "ArrowUp" || e.key === "w") actHeld = false; });
+
+$("go").addEventListener("click", () => {
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0; actHeld = false;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : "PENDULUM SWING", CFG.endless ? "the clockwork with no end" : G.hint, 3, CFG.endless ? "g" : "");
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = "NEED MORE TIME" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = "Across the hologram clockwork on the stage. Jo's saucer hooks its beam onto the pendulums - swing, let go, fly, hook the next one. Make it all the way before the song runs out." +
+  (ENDLESS ? " <b>Endless:</b> the clockwork never ends - wider every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = "<b>Hold</b> anywhere (or Space) to hook onto the next pendulum in reach (its ring lights up) - hanging on, every swing goes higher. <b>Let go</b> to fly, on the beat for a boost. The stage and the red gears cost a heart (3).";
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String((m === "endless") === ENDLESS));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); if (m === "endless") q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

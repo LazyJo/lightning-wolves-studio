@@ -67,7 +67,7 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl9b', 9, 'ROOFTOP RUN', 'lvl9', 0, 120000, 3000, 75, 400, 23),   -- Level 9 Part 2: ~92k
   ('lvl9c', 9, 'THE KING',   'lvl9b', 0, 80000, 1800, 100, 600, 24),   -- Level 9 Part 3: the King falls, ~57k with the gadgets
   ('lvl10', 10, 'GOING CRAZY', 'lvl9', 0, 70000, 1200, 75, 500, 25),  -- Freefall down the towers: ~45k with every heart (1:43 of the song)
-  ('lvl11', 11, 'LA NIGHT',   'lvl10', 0, 60000, 700, 75, 500, 26),  -- Light Trails on the river: ~29k with every heart (3:03 of the song)
+  ('lvl11', 11, 'LA NIGHT',   'lvl10', 0, 110000, 1200, 75, 500, 26),  -- Street Race: ~77k for P1 with every heart (3:03 of the song)
   ('lvl12', 12, 'NEED MORE TIME', 'lvl11', 0, 100000, 1200, 75, 500, 27)  -- Pendulum Swing: ~50k with every heart (3:25 of the song)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
@@ -111,7 +111,7 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl9cx', 9, 'THE KING',     'lvl9c', 0, 50000000, 3000,  0, 0, 129, true, 900),   -- ~430/s
   ('lvl9r',  9, 'REMIX',        'lvl9c', 0, 50000000, 5000,  0, 0, 131, true, 1500),  -- all three, ~730/s
   ('lvl10x', 10, 'FREEFALL',    'lvl10', 0, 50000000, 6000,  0, 0, 132, true, 1200),  -- ~560/s
-  ('lvl11x', 11, 'LIGHT TRAILS', 'lvl11', 0, 50000000, 2000, 0, 0, 133, true, 450),   -- ~190/s
+  ('lvl11x', 11, 'STREET RACE', 'lvl11', 0, 50000000, 6000, 0, 0, 133, true, 1300),   -- ~600/s
   ('lvl12x', 12, 'PENDULUM SWING', 'lvl12', 0, 50000000, 2600, 0, 0, 134, true, 600),  -- ~280/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point

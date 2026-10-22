@@ -92,7 +92,7 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Mode">
-    <button type="button" data-mode="">Light Trails</button><button type="button" data-mode="endless" class="gold">Light Trails &#8734;</button>
+    <button type="button" data-mode="">Street Race</button><button type="button" data-mode="endless" class="gold">Street Race &#8734;</button>
   </div>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
@@ -110,21 +110,26 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
 <script>
 /* ================= LA NIGHT =================
    Level 11 of JAVEDA, in the night of the cover: a purple sky, a big moon, red
-   clouds streaking across, the river through the city with the boats' long light
-   trails - and Jo's saucer (silver, the orange dome with the "L") over the water.
-   Jo picked the LIGHT TRAILS prototype: seen from above, the saucer never stops and
-   draws a trail of light on the river. Grab the moonlight to make it longer; cross
-   your own trail, hit a boat or a bank and it costs a heart (3). Gold rings on the
-   beat; the hooks bring more moonlight and more boats. At the end of the song the
-   camera comes down to the water: the cover, with your trail still on the river.
-   Once it's cleared, ENDLESS opens (?endless=1): the same river with no end, in
-   8-bar windows, faster each window, a heart back every 24 bars. */
+   clouds streaking across, the city with its lit windows - and Jo's saucer (silver,
+   the orange dome with the "L") over it. Jo picked STREET RACE: a night race through
+   the city towards the moon, in Jo's silver car with the "L" on the roof, its tail
+   lights drawing a trail of light behind it like the long exposures on the cover.
+   The car drives itself; hold (anywhere, or Space) to drift round the corner the
+   saucer shines its beam on, let go when you face down the new street - on the beat
+   for nitro. A wall costs a heart (3); bumping another car costs speed. Seven cars
+   start ahead of you: finish first. The song sets the streets: long and easy in the
+   calm parts, more corners in the verses, fast, sharp and gold in the hooks. At the
+   end of the song the street runs out to the river: the cover - the moon over the
+   skyline down the river, the boats' light trails, the saucer with its beam on.
+   Once it's cleared, ENDLESS opens (?endless=1): the race with no end, faster every
+   8 bars, a heart back every 24 bars, as many overtakes as you can. */
 
 // the song's measured grid (SONG.md): 79 BPM (158 double-time), bars from 0.37 s
 const GRID = { bpm:79, t0:.37 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
-const END_AT = barT(60);                      // the night ends with hook 3; the outro is the ending
+const GO_AT = barT(2);                        // the intro: "LA NIGHT" on bar 0, 3-2-1 on bar 1, GO on bar 2
+const END_AT = barT(60);                      // the race ends with hook 3; the outro is the ending
 const LOOP = [barT(4), barT(60)];             // endless: hook 1 to the end of hook 3, round and round
 const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
 // how the song feels at time t: calm (intro, the quiet half of a verse, outro), loud (verses), hook
@@ -140,8 +145,8 @@ const HEARTS = 3;
 
 const Q = new URLSearchParams(location.search);
 const ENDLESS = Q.get("endless") === "1";
-const CFG = ENDLESS ? { id:"lvl11x", title:"Light Trails", by:"LEVEL 11 · ENDLESS", endless:true, board:"Level 11 ∞" }
-  : { id:"lvl11", title:"Light Trails", by:"LEVEL 11" };
+const CFG = ENDLESS ? { id:"lvl11x", title:"Street Race", by:"LEVEL 11 · ENDLESS", endless:true, board:"Level 11 ∞" }
+  : { id:"lvl11", title:"Street Race", by:"LEVEL 11" };
 
 const LINKS = {
   spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
@@ -164,13 +169,16 @@ const $ = id => document.getElementById(id);
 const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
 const song = new Audio(SONGS + "lvl11.mp3"); song.preload = "auto";
 let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
-let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0, engine = null;
 const PROG = [110, 87.3, 98, 82.4];
 function audioInit(){
   try {
     if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
       noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
     if (ac.state === "suspended") ac.resume();
+    // the engine: a low saw that climbs with the speed
+    if (!engine){ const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain(); o.type = "sawtooth"; o.frequency.value = 40; f.type = "lowpass"; f.frequency.value = 420; g.gain.value = 0;
+      o.connect(f); f.connect(g); g.connect(bus); o.start(); engine = { o, g }; }
   } catch(e){ ac = null; }
 }
 function tone(type, f0, f1, at, dur, gain, lp){
@@ -178,7 +186,7 @@ function tone(type, f0, f1, at, dur, gain, lp){
   const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
   f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
   o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
-  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .008); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
   o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
 }
 function hiss(at, dur, gain, hp, bp){
@@ -191,51 +199,61 @@ function hiss(at, dur, gain, hp, bp){
 function synthBeat(){
   if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
   while (nextStep < ac.currentTime + .15){
-    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
-    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
-    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
-    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
-    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
-      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = bar >= 2 && sec !== "calm";
+    if (bar >= 2 && (s8 === 0 || s8 === 5)) tone("sine", 120, 38, at, .45, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .18, .22, 0, 2000); tone("triangle", 210, 160, at, .08, .07); }
+    hiss(at, .04, s8 % 2 ? .04 : .07, 7000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sawtooth", f/2, f/2, at, BAR*.85, .07, 380);
+      if (bar >= 2) [2, 3, 2.52, 4].forEach((m, k) => tone("square", f*m, f*m, at + k*BEAT, BEAT*.4, sec === "hook" ? .02 : .013, 2600)); }
     nextStep += BEAT / 2;
   }
 }
 const sfx = {
-  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
-  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
-  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
-  horn: () => ac && tone("sawtooth", 98, 92, ac.currentTime, .5, .025, 500),
+  good: n => ac && tone("triangle", 880*Math.pow(2, ((n || 0) % 8)/24), 1320*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .1, .06, 7000),
+  big:  () => ac && [660, 880, 1320, 1760].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.05, .25, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 160, 40, ac.currentTime, .45, .1, 900), hiss(ac.currentTime, .5, .2, 0, 500)),
+  beep: () => ac && tone("square", 880, 880, ac.currentTime, .18, .05, 4000),
+  go:   () => ac && tone("square", 1760, 1760, ac.currentTime, .45, .06, 5000),
+  skid: () => ac && hiss(ac.currentTime, .35, .05, 0, 2400),
+  boost:() => ac && (tone("sawtooth", 220, 880, ac.currentTime, .4, .06, 3000), hiss(ac.currentTime, .6, .1, 1500)),
   heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
   whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
 };
 const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
 
-/* ---------------- the night from the cover ---------------- */
-let scene, cam, ren, sky, clockR, ME, crashed = null;
+/* ---------------- the city at night, from the cover ---------------- */
+let scene, cam, ren, clockR, ME, crashed = null;
+const GOLD = 0xffd23a;
 const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
 function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
   stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
 const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
 const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
-// windows: white and warm gold like the cover's skyline, a few red, plenty dark
-function windowTex(k){
-  const cv = document.createElement("canvas"); cv.width = 64; cv.height = 128; const x = cv.getContext("2d");
-  x.fillStyle = "#0c0a1c"; x.fillRect(0, 0, 64, 128);
-  for (let r = 0; r < 16; r++) for (let c = 0; c < 8; c++){ const q = rnd(k*97 + r*13 + c*7);
-    if (q < .4) continue;
-    x.fillStyle = q < .7 ? "#ffe2b0" : q < .9 ? "#f4f0ff" : q < .96 ? "#ffb060" : "#ff4a5a";
-    x.globalAlpha = .45 + rnd(q*31)*.55; x.fillRect(c*8 + 2, r*8 + 2, 4, 5); x.globalAlpha = 1; }
-  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
-}
-const WIN = [];
-const TOWER_ROOF = new THREE.MeshStandardMaterial({ color:0x12101e, roughness:.8 });
-function tower(w, h, d, k){
-  const g = new THREE.BoxGeometry(w, h, d), uv = g.attributes.uv;
-  for (let f = 0; f < 6; f++){ const sx = f < 2 ? d : w, top = f === 2 || f === 3;
-    for (let v = 0; v < 4; v++){ const i = f*4 + v; uv.setXY(i, uv.getX(i)*(top ? 1 : sx/5), uv.getY(i)*(top ? 1 : h/10)); } }
-  const M = WIN[k % 4]; return new THREE.Mesh(g, [M, M, TOWER_ROOF, TOWER_ROOF, M, M]);
-}
-const BLINK = [];
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+// the street: dark asphalt, white edges, the yellow dashes down the middle (one tile = 16 m)
+const ROADT = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#2a2436"; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 500; i++){ x.fillStyle = "rgba(255,255,255," + (rnd(i)*.07).toFixed(3) + ")"; x.fillRect(rnd(i*3)*w, rnd(i*7)*h, 1.5, 1.5); }
+  x.fillStyle = "#e8e0f0"; x.fillRect(5, 0, 3, h); x.fillRect(w - 8, 0, 3, h); x.fillStyle = "#ffd23a"; x.fillRect(w/2 - 2, 0, 4, h/2); }, [1, 1]);
+// the buildings: dark, the windows lit white and warm gold like the cover's skyline, a few red (one tile = 16 x 32 m)
+const BLD = [0, 1, 2, 3, 4].map(k => { const t = canvasTex(64, 128, (x, w, h) => { x.fillStyle = "#0c0a1c"; x.fillRect(0, 0, w, h);
+    for (let r = 0; r < 16; r++) for (let c = 0; c < 4; c++){ const q = rnd(k*97 + r*7 + c*13); x.fillStyle = q < .42 ? "#1a1630" : q < .7 ? "#ffe2b0" : q < .9 ? "#f4f0ff" : q < .96 ? "#ffb060" : "#ff4a5a";
+      x.globalAlpha = q < .42 ? 1 : .5 + rnd(q*31)*.5; x.fillRect(4 + c*15, 3 + r*7.8, 9, 4.4); x.globalAlpha = 1; } }, [1, 1]);
+  return new THREE.MeshStandardMaterial({ map:t, emissiveMap:t, emissive:0xffffff, emissiveIntensity:.9, color:0x26223a, roughness:.7 }); });
+function boxUV(w, h, d){ const g = new THREE.BoxGeometry(w, h, d); g.translate(0, h/2, 0); const uv = g.attributes.uv;
+  for (let f = 0; f < 6; f++) for (let v = 0; v < 4; v++){ const i = f*4 + v, su = f < 2 ? d/16 : f < 4 ? 0 : w/16, sv = f < 2 || f > 3 ? h/32 : 0; uv.setXY(i, uv.getX(i)*su, uv.getY(i)*sv); }
+  return g; }
+const NEON = [0xff6a8a, 0xffd8a0, 0x9ad8ff, 0xff3a5a].map(c => new THREE.MeshBasicMaterial({ color:c }));
+const POLE_G = new THREE.CylinderGeometry(.14, .2, 7, 6), POLE_M = new THREE.MeshStandardMaterial({ color:0x2a2238, metalness:.6, roughness:.4 }), ARM_G = new THREE.BoxGeometry(2.4, .12, .12);
+const LAMP_M = new THREE.SpriteMaterial({ map:DOT, color:0xffd8a0, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+const POOL_G = new THREE.PlaneGeometry(13, 13), POOL_M = new THREE.MeshBasicMaterial({ map:DOT, color:0xffb080, transparent:true, opacity:.2, blending:THREE.AdditiveBlending, depthWrite:false });
+// the boards at the corners: white chevrons pointing the way it turns, a red edge
+const CHEV = canvasTex(256, 64, (x, w, h) => { x.fillStyle = "#1a1030"; x.fillRect(0, 0, w, h); x.fillStyle = "#f4f0ff";
+  for (let i = 0; i < 5; i++){ const x0 = 14 + i*48; x.beginPath(); x.moveTo(x0, 8); x.lineTo(x0 + 22, 8); x.lineTo(x0 + 44, 32); x.lineTo(x0 + 22, 56); x.lineTo(x0, 56); x.lineTo(x0 + 22, 32); x.closePath(); x.fill(); }
+  x.strokeStyle = "#ff3a5a"; x.lineWidth = 6; x.strokeRect(3, 3, w - 6, h - 6); });
+const CHEV_M = new THREE.MeshBasicMaterial({ map:CHEV, side:THREE.DoubleSide }), CHEV_G = new THREE.PlaneGeometry(11, 2.75);
+const CHECK = canvasTex(256, 32, (x, w, h) => { for (let i = 0; i < 16; i++) for (let j = 0; j < 2; j++){ x.fillStyle = (i + j) % 2 ? "#14101e" : "#f0eef6"; x.fillRect(i*16, j*16, 16, 16); } });
 // the moon from the cover: big, lit from the right, craters
 const MOON = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 256; const x = cv.getContext("2d");
   const g = x.createRadialGradient(150, 110, 10, 128, 128, 120); g.addColorStop(0, "#fff4e8"); g.addColorStop(.6, "#e8d4c4"); g.addColorStop(1, "#b89a98");
@@ -245,22 +263,18 @@ const MOON = (() => { const cv = document.createElement("canvas"); cv.width = cv
   const sh = x.createLinearGradient(20, 0, 200, 0); sh.addColorStop(0, "rgba(10,6,30,.92)"); sh.addColorStop(.45, "rgba(10,6,30,.35)"); sh.addColorStop(.7, "rgba(10,6,30,0)");
   x.globalCompositeOperation = "source-atop"; x.fillStyle = sh; x.fillRect(0, 0, 256, 256);
   return new THREE.CanvasTexture(cv); })();
-// the moon hangs down the river (-x), the red clouds streak across to its right
-const MOON_DIR = new THREE.Vector3(-1, .5, .3).normalize();
-function buildSky(){
-  const cv = document.createElement("canvas"); cv.width = 4; cv.height = 256; const x = cv.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
-  [[0, "#04020e"], [.3, "#140a34"], [.44, "#33206a"], [.5, "#5a3a8a"], [.53, "#1a1030"], [1, "#07051a"]].forEach(([o, c]) => g.addColorStop(o, c));
-  x.fillStyle = g; x.fillRect(0, 0, 4, 256);
-  sky = new THREE.Group(); scene.add(sky);
-  sky.add(new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(cv), side:THREE.BackSide, fog:false, depthWrite:false })));
-  const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map:MOON, fog:false, depthWrite:false })); moon.scale.setScalar(110); moon.position.copy(MOON_DIR).multiplyScalar(800); sky.add(moon);
-  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xd8c0ff, transparent:true, opacity:.35, fog:false, depthWrite:false, blending:THREE.AdditiveBlending })); halo.scale.setScalar(380); halo.position.copy(moon.position); sky.add(halo);
-  const cc = document.createElement("canvas"); cc.width = 256; cc.height = 64; const y = cc.getContext("2d");
+// the red clouds streaking across
+const CLOUDS = (() => { const cc = document.createElement("canvas"); cc.width = 256; cc.height = 64; const y = cc.getContext("2d");
   for (let i = 0; i < 14; i++){ const gr = y.createLinearGradient(0, 0, 256, 0); gr.addColorStop(0, "rgba(255,60,80,0)"); gr.addColorStop(.5, "rgba(255," + (60 + i*6) + ",90," + (.25 + rnd(i)*.4) + ")"); gr.addColorStop(1, "rgba(255,60,80,0)");
     y.fillStyle = gr; y.fillRect(rnd(i*2)*40, 6 + rnd(i*3)*48, 180 + rnd(i*5)*70, 2 + rnd(i*7)*6); }
-  const ct = new THREE.CanvasTexture(cc), base = Math.atan2(MOON_DIR.z, MOON_DIR.x);
-  for (let i = 0; i < 4; i++){ const c = new THREE.Sprite(new THREE.SpriteMaterial({ map:ct, transparent:true, opacity:.8, fog:false, depthWrite:false, blending:THREE.AdditiveBlending }));
-    const a = base + .45 + i*.16; c.scale.set(420, 90, 1); c.position.set(Math.cos(a)*780, 120 + i*40 - rnd(i)*30, Math.sin(a)*780); sky.add(c); }
+  return new THREE.CanvasTexture(cc); })();
+function moonAndClouds(g, dir, dist, size){
+  const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map:MOON, fog:false, depthWrite:false })); moon.scale.setScalar(size); moon.position.copy(dir).multiplyScalar(dist); g.add(moon);
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xd8c0ff, transparent:true, opacity:.35, fog:false, depthWrite:false, blending:THREE.AdditiveBlending })); halo.scale.setScalar(size*3.4); halo.position.copy(moon.position); g.add(halo);
+  const base = Math.atan2(dir.z, dir.x);
+  for (let i = 0; i < 4; i++){ const c = new THREE.Sprite(new THREE.SpriteMaterial({ map:CLOUDS, transparent:true, opacity:.8, fog:false, depthWrite:false, blending:THREE.AdditiveBlending }));
+    const a = base + .45 + i*.16; c.scale.set(size*3.8, size*.8, 1); c.position.set(Math.cos(a)*dist, dist*dir.y*.4 + i*size*.36 - rnd(i)*size*.27, Math.sin(a)*dist); g.add(c); }
+  return [moon, halo];
 }
 // Jo's saucer from the cover: a silver hull, the orange dome with the "L", white rim lights, the beam
 const BADGE = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
@@ -268,54 +282,46 @@ const BADGE = (() => { const cv = document.createElement("canvas"); cv.width = c
   x.fillStyle = "#1a0a02"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("L", 66, 70); return new THREE.CanvasTexture(cv); })();
 function buildSaucer(){
   const g = new THREE.Group();
-  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0xd8dce8, roughness:.25, metalness:.7, emissive:0x2a2a3a, emissiveIntensity:.6 }));
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0xd8dce8, roughness:.25, metalness:.7, emissive:0x2a3440, emissiveIntensity:.6 }));
   hull.scale.set(1.3, .28, 1.3); g.add(hull);
   const rim = new THREE.Mesh(new THREE.TorusGeometry(1.25, .07, 8, 44), new THREE.MeshStandardMaterial({ color:0x5a5a6a, metalness:.8, roughness:.3 })); rim.rotation.x = Math.PI/2; g.add(rim);
   const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0xff8a2a, roughness:.25, metalness:.3, emissive:0x8a3a00, emissiveIntensity:.6 }));
   dome.position.y = .14; g.add(dome);
   const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE, transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
   const lights = new THREE.Group(); g.add(lights);
-  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:0xfff4e0 })); l.position.set(Math.sin(a)*1.27, 0, Math.cos(a)*1.27); lights.add(l); }
-  const under = sprite(0xe0e8ff, 3.2, .6); under.position.y = -.2; g.add(under);
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), glowMat(0xf0f4ff, .2)); beam.position.y = -1.8; g.add(beam);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:0xf0fbff })); l.position.set(Math.sin(a)*1.27, 0, Math.cos(a)*1.27); lights.add(l); }
+  const under = sprite(0xffe0f4, 3.2, .6); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), glowMat(0xffd8f0, .2)); beam.position.y = -1.8; g.add(beam);
   g.userData = { lights, beam, under };
   return g;
 }
-
-/* ---------------- the river and the city round it ----------------
-   The river runs along x, down to the moon at -x. You fly the stretch between two
-   bridges (x = -19 .. 19) and its banks (z = -13.5 .. 13.5). The camera looks down
-   from the +z bank, so the buildings there stay low near you; the skyline rises
-   down the river and on the far bank. (X and Z: TRAIL's.) */
-function buildRiver(root, X, Z){
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(700, Z*2 + 4), new THREE.MeshStandardMaterial({ color:0x0e0a2a, roughness:.55, metalness:.4, emissive:0x08051f }));
-  water.rotation.x = -Math.PI/2; water.position.x = -200; root.add(water);
-  // the moon's road on the water, down the river
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(220, 7), new THREE.MeshBasicMaterial({ map:DOT, color:0xc8b0ff, transparent:true, opacity:.3, blending:THREE.AdditiveBlending, depthWrite:false }));
-  road.rotation.x = -Math.PI/2; road.position.set(-110, .03, -2.5); root.add(road);
-  const bankM = new THREE.MeshStandardMaterial({ color:0x0c0a14, roughness:1 }), edgeM = new THREE.MeshBasicMaterial({ color:0xffd8a0 });
-  for (const s of [-1, 1]){ const bank = new THREE.Mesh(new THREE.PlaneGeometry(700, 300), bankM); bank.rotation.x = -Math.PI/2; bank.position.set(-200, .4, s*(Z + 2 + 150)); root.add(bank);
-    const edge = new THREE.Mesh(new THREE.PlaneGeometry(700, .35), edgeM); edge.rotation.x = -Math.PI/2; edge.position.set(-200, .45, s*(Z + 2.1)); root.add(edge);
-    for (let i = 0; i < 70; i++){ const l = sprite(0xffd8a0, 1.1, .85); l.position.set(60 - i*9, 1.3, s*(Z + 2.6)); root.add(l); } }
-  // two bridges: the ends of your stretch of river
-  const stone = new THREE.MeshStandardMaterial({ color:0x2a2440, roughness:.8, emissive:0x0a0818 });
-  for (const s of [-1, 1]){ const g = new THREE.Group(); g.position.x = s*(X + 2);
-    const deck = new THREE.Mesh(new THREE.BoxGeometry(2.6, .9, Z*2 + 9), stone); deck.position.y = 2.2; g.add(deck);
-    for (let k = -2; k <= 2; k++){ const p = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.2, 1.4), stone); p.position.set(0, .9, k*(Z*2 + 4)/5); g.add(p); }
-    for (let k = 0; k <= 12; k++){ for (const e of [-1, 1]){ const l = sprite(k % 4 ? 0xffd8a0 : 0xff6a8a, 1.2); l.position.set(e*1.4, 3, -Z - 4 + k*(Z*2 + 8)/12); g.add(l); } }
-    const glow = new THREE.Mesh(new THREE.PlaneGeometry(3.2, Z*2 + 4), glowMat(0xff6a8a, 0)); glow.rotation.x = -Math.PI/2; glow.position.y = .2; g.add(glow); g.userData.glow = glow;
-    root.add(g); }
-  // the city: rows of towers along both banks, from behind you to far down the river
-  for (const s of [-1, 1]) for (let i = 0; i < 46; i++) for (let r = 0; r < 3; r++){
-    const x = 70 - i*8.5 + (rnd(i*7 + r + s)*2 - 1)*2, near = s > 0 && x > -45, far = Math.max(0, (-x - 40)/200);
-    const w = 4 + rnd(i*3 + r*11 + s)*4, d = 4 + rnd(i*13 + r*3 + s)*4;
-    const h = near ? 2 + rnd(i*5 + r)*6 + r*3 : 4 + Math.pow(rnd(i*5 + r*7 + s*3), 1.6)*22 + far*26 + (s < 0 ? 6 : 0) + r*7;
-    const m = tower(w, h, d, i + r*3 + (s > 0 ? 1 : 0)); m.position.set(x, h/2, s*(Z + 6 + d/2 + r*9 + rnd(i + r*5)*3)); root.add(m);
-    if (h > 50){ const b = sprite(0xff2a3a, 2.2); b.position.set(x, h + .6, m.position.z); root.add(b); BLINK.push(b); } }
-  // one tall tower down the river on the right, like the cover's
-  const big = tower(10, 70, 10, 2); big.position.set(-120, 35, -Z - 16); root.add(big);
-  const top = sprite(0xff2a3a, 3); top.position.set(-120, 71, -Z - 16); root.add(top); BLINK.push(top);
+// a car: a low body, the bonnet, a dark glass cabin, a wing, four wheels, the lights and the neon underneath (it faces -z)
+function buildCar(color, map){
+  const g = new THREE.Group(), body = new THREE.Group(); g.add(body);
+  const paint = new THREE.MeshStandardMaterial({ color, map:map || null, roughness:.3, metalness:.55, emissive:map ? 0x000000 : color, emissiveIntensity:.14 });
+  const dark = new THREE.MeshStandardMaterial({ color:0x15121e, roughness:.5, metalness:.4 });
+  const glass = new THREE.MeshStandardMaterial({ color:0x1a1030, roughness:.1, metalness:.9, emissive:0x3a1a6a, emissiveIntensity:.5 });
+  const box = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); body.add(b); return b; };
+  box(2.1, .55, 4.6, paint, 0, .62, 0);
+  box(2.0, .22, 1.6, paint, 0, .96, -1.4).rotation.x = -.1;
+  box(1.7, .5, 1.9, glass, 0, 1.12, .35);
+  box(1.6, .07, 1.5, paint, 0, 1.4, .4);
+  box(2.1, .07, .5, paint, 0, 1.3, 2.15); box(.1, .36, .1, dark, -.7, 1.1, 2.1); box(.1, .36, .1, dark, .7, 1.1, 2.1);
+  const wg = new THREE.CylinderGeometry(.42, .42, .36, 14); wg.rotateZ(Math.PI/2);
+  const wheels = []; for (const [x, z] of [[-1.05, -1.45], [1.05, -1.45], [-1.05, 1.45], [1.05, 1.45]]){ const w = new THREE.Mesh(wg, dark); w.position.set(x, .42, z); body.add(w); wheels.push(w); }
+  const hl = new THREE.MeshBasicMaterial({ color:0xfff6e0 }); box(.5, .14, .06, hl, -.7, .78, -2.31); box(.5, .14, .06, hl, .7, .78, -2.31);
+  box(1.8, .12, .06, new THREE.MeshBasicMaterial({ color:0xff2a4a }), 0, .86, 2.31);
+  for (const x of [-.7, .7]){ const s = sprite(0xfff0d0, 1.6, .9); s.position.set(x, .8, -2.5); g.add(s); }
+  const tail = sprite(0xff2a4a, 2.4, .7); tail.position.set(0, .9, 2.5); g.add(tail);
+  const under = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 6.5), new THREE.MeshBasicMaterial({ map:DOT, color:0xc040ff, transparent:true, opacity:.6, blending:THREE.AdditiveBlending, depthWrite:false }));
+  under.rotation.x = -Math.PI/2; under.position.y = .05; g.add(under);
+  g.userData = { body, wheels, under };
+  return g;
 }
+// a heart to pick up
+function heartMesh(){ const g = new THREE.Group(), hm = new THREE.MeshBasicMaterial({ color:0xff3d6a });
+  for (const s of [-1, 1]){ const b = new THREE.Mesh(new THREE.SphereGeometry(.32, 12, 10), hm); b.position.set(s*.25, .15, 0); g.add(b); }
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(.44, .6, 14), hm); tip.rotation.z = Math.PI; tip.position.y = -.2; g.add(tip); g.add(sprite(0xff3d6a, 3, .6)); g.scale.setScalar(1.6); return g; }
 
 /* ---------------- state, HUD ---------------- */
 let S = null, G = null;
@@ -350,127 +356,235 @@ function hurt(why, tip){
 function award(base, every){ const beat = onBeat(S.t); S.combo++; S.best = Math.max(S.best, S.combo); if (beat) S.onBeat++;
   S.score += (beat ? base*2 : base) * Math.min(4, 1 + Math.floor(S.combo/every)); return beat; }
 
-/* =============== LIGHT TRAILS: draw on the river, never cross your line =============== */
-const TRAIL = {
-  name:"trail", tag:"LIGHT TRAILS", hint:"drag to steer - never cross your own line", X:17, Z:11.5, MAXP:330, TURN:4.4,
+/* =============== STREET RACE: hold to drift, let go facing down the new street =============== */
+const RIVALS = [[32, 1, .96, 0x8a3ae0], [24, -1, .95, 0xff4fa8], [24, 1, .94, 0xff3a5a], [16, -1, .93, GOLD], [16, 1, .92, 0xff7a1a], [8, -1, .91, 0x2a5ad8], [8, 1, .9, 0xf0eef6]];
+const RACE = {
+  name:"race", tag:"STREET RACE", hint:"hold to drift round the corner - let go facing down the new street", W:14, R0:11, LANE:3.6,
   setup(){
     this.root = new THREE.Group(); scene.add(this.root);
-    buildRiver(this.root, this.X, this.Z);
-    this.bridges = this.root.children.filter(o => o.userData.glow);
-    // the trail: one ribbon, rebuilt every frame from the points it has
-    const N = this.MAXP, geo = new THREE.BufferGeometry(), pos = new Float32Array(N*2*3), col = new Float32Array(N*2*3), idx = [];
-    for (let i = 0; i < N - 1; i++){ const a = i*2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
-    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3)); geo.setIndex(idx);
-    this.ribbon = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide })); this.ribbon.frustumCulled = false; this.root.add(this.ribbon);
-    // party boats: they come out from under a bridge and go down the river with their own trails
-    this.boats = []; for (let i = 0; i < 6; i++){ const g = new THREE.Group(), hull = new THREE.Mesh(new THREE.BoxGeometry(7, 1, 2.4), new THREE.MeshStandardMaterial({ color:0xe8e4f0, emissive:0x1a1a2a })); hull.position.y = .5; g.add(hull);
-      const cab = new THREE.Mesh(new THREE.BoxGeometry(4.4, 1, 1.9), WIN[1]); cab.position.y = 1.4; g.add(cab);
-      for (let k = 0; k < 7; k++){ const l = sprite([0xff6a8a, 0xffd8a0, 0x9ad8ff][k % 3], .7); l.position.set(-3 + k, 2.2, 0); g.add(l); }
-      const tr = []; for (let k = 0; k < 16; k++){ const s = sprite(k % 2 ? 0xff4a5a : 0xfff0e0, 1, .5); s.scale.set(1.6, .5, 1); this.root.add(s); tr.push(s); }
-      g.visible = false; this.root.add(g); this.boats.push({ g, tr, on:false }); }
-    this.orbs = []; for (let i = 0; i < 6; i++){ const s = sprite(0xf4e8ff, 1.8); s.visible = false; this.root.add(s); this.orbs.push({ s, on:false }); }
-    this.rings = []; for (let i = 0; i < 2; i++){ const r = new THREE.Mesh(new THREE.TorusGeometry(1.6, .14, 8, 40), glowMat(0xffd060, .95)); r.rotation.x = Math.PI/2; r.visible = false; this.root.add(r); this.rings.push({ r, on:false }); }
-    this.heart = (() => { const g = new THREE.Group(), hm = new THREE.MeshBasicMaterial({ color:0xff3d6a });
-      for (const s of [-1, 1]){ const b = new THREE.Mesh(new THREE.SphereGeometry(.32, 12, 10), hm); b.position.set(s*.25, .15, 0); g.add(b); }
-      const tip = new THREE.Mesh(new THREE.ConeGeometry(.44, .6, 14), hm); tip.rotation.z = Math.PI; tip.position.y = -.2; g.add(tip); g.add(sprite(0xff3d6a, 3, .6)); g.scale.setScalar(1.4); g.visible = false; this.root.add(g); return { g, on:false }; })();
-    this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    this.ground = new THREE.Mesh(new THREE.PlaneGeometry(3000, 3000), new THREE.MeshStandardMaterial({ color:0x0c0a14, roughness:1 })); this.ground.rotation.x = -Math.PI/2; scene.add(this.ground);
+    // the sky: deep night, purple low down; the moon ahead (the race heads for it), the red clouds to its right
+    const cv = document.createElement("canvas"); cv.width = 4; cv.height = 256; const x = cv.getContext("2d"), gr = x.createLinearGradient(0, 0, 0, 256);
+    [[0, "#04020e"], [.3, "#140a34"], [.44, "#33206a"], [.5, "#5a3a8a"], [.53, "#1a1030"], [1, "#07051a"]].forEach(([o, c]) => gr.addColorStop(o, c));
+    x.fillStyle = gr; x.fillRect(0, 0, 4, 256);
+    this.sky = new THREE.Group(); scene.add(this.sky);
+    this.sky.add(new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 16), new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(cv), side:THREE.BackSide, fog:false, depthWrite:false })));
+    this.moon = moonAndClouds(this.sky, new THREE.Vector3(.25, .4, -1).normalize(), 1100, 150);
+    // Jo's car: silver like the saucer, the "L" on the roof, a light cone on the road, nitro flames
+    this.me = buildCar(0xd8dce8); scene.add(this.me);
+    const badge = new THREE.Mesh(new THREE.CircleGeometry(.5, 24), new THREE.MeshBasicMaterial({ map:BADGE, transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.set(0, 1.44, .4); this.me.userData.body.add(badge);
+    const cone = new THREE.Mesh(new THREE.PlaneGeometry(8, 18), new THREE.MeshBasicMaterial({ map:DOT, color:0xffe8c8, transparent:true, opacity:.24, blending:THREE.AdditiveBlending, depthWrite:false })); cone.rotation.x = -Math.PI/2; cone.position.set(0, .06, -11); this.me.add(cone);
+    this.flames = [-.5, .5].map(x => { const s = sprite(0x6ac8ff, 1.4, .9); s.position.set(x, .7, 2.7); s.visible = false; this.me.add(s); return s; });
+    this.headL = new THREE.PointLight(0xffe0f0, 1.1, 30); this.headL.position.set(0, 3, -6); this.me.add(this.headL);
+    // the other cars: purple, pink, red, gold, orange, blue, white - each with a streak of tail light behind it
+    this.rv = RIVALS.map(([s, lane, f, c]) => { const m = buildCar(c); scene.add(m);
+      const tr = []; for (let k = 0; k < 8; k++){ const q = sprite(0xff3a4a, 1, .5); q.scale.set(1.2, .5, 1); scene.add(q); tr.push(q); } return { m, tr, s0:s, lane0:lane, f0:f }; });
+    // your tail lights draw a trail of light behind you, like the long exposures on the cover
+    const N = 44, geo = new THREE.BufferGeometry(), idx = []; for (let i = 0; i < N - 1; i++){ const a = i*2; idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2); }
+    geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(N*6), 3)); geo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(N*6), 3)); geo.setIndex(idx);
+    this.ribbon = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide })); this.ribbon.frustumCulled = false; scene.add(this.ribbon); this.NT = N;
+    // tyre smoke, the sparks, a heart
+    this.smoke = []; for (let i = 0; i < 70; i++){ const s = sprite(0xe0c8ff, 2, 0); scene.add(s); this.smoke.push({ s, life:0 }); }
+    this.spk = []; for (let i = 0; i < 60; i++){ const s = sprite(0xffe0f4, 1.8); s.visible = false; scene.add(s); this.spk.push({ s, on:false }); }
+    this.heart = { g:heartMesh(), on:false }; this.heart.g.visible = false; scene.add(this.heart.g);
+    this.vis = {};
   },
-  v(L){ return Math.min(14, 8.5 + 4*L); },                  // speed, m/s
-  hotLen(L){ return Math.round(50 + 30*Math.min(1, L)); },  // the bright part, the part that can hit you: 2.5 s, up to 4 s as the song goes
-  MAXGLOW: 240,                                              // the glow behind it: longer with every moonlight, up to 12 s
   L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  // the speed the street asks for: faster as the song goes on, faster in the hooks
+  vBase(t){ const sec = section(t); return Math.min(50, 24 + 10*this.L(t) + (sec === "hook" ? 4 : sec === "calm" ? -3 : 0)); },
   begin(t0, t1, L0, L1, cont){
     Object.assign(this, { t0, t1, L0, L1 });
     if (cont) return;
-    this.start = t0;
-    this.st = { x:-9, z:3, h:0, tx:0, tz:0, pts:[], len:50, glow:40, ptT:0, j:Math.ceil((t0 + BAR - GRID.t0)/BEAT), k:0, metres:0, got:0, rings:0, passed:0, heartBar:-1, edge:0 };
-    for (const b of this.boats){ b.on = false; b.g.visible = false; b.tr.forEach(s => s.visible = false); }
-    for (const o of this.orbs){ o.on = false; o.s.visible = false; } for (const r of this.rings){ r.on = false; r.r.visible = false; }
-    this.heart.on = false; this.heart.g.visible = false;
+    this.start = GO_AT - BAR; this.go = GO_AT;
+    for (const k in this.vis) this.drop(k);
+    this.vis = {}; this.built = 0;
+    this.P = [{ x:0, z:0 }]; this.H = [0]; this.D = [0]; this.T = [GO_AT]; this.fin = -1;
+    this.car = { x:0, z:0, th:0, ph:0, v:0, ci:1, held:false, dir:1, hold:0, nitro:0, rel:false, lock:false, lastPress:-1 };
+    this.st = { drifts:0, nitros:0, got:0, passed:0, crashes:0, pos:8, s:0, cd:-1 };
+    this.camH = 0; this.tp = [];
+    for (const p of this.spk){ p.on = false; p.s.visible = false; } this.heart.on = false; this.heart.g.visible = false;
+    for (const r of this.rv){ r.s = r.s0; r.lane = r.lane0*this.LANE; r.f = r.f0; r.v = 0; r.ahead = true; r.m.visible = true; }
+    this.gen(800);
   },
-  info(){ return "TRAIL " + Math.round((this.st.len + this.st.glow)*.05*this.v(this.L(S.t))) + " M" + (S.combo >= 5 ? " · " + S.combo + " IN A ROW" : ""); },
-  point(cx, cy){ if (S.end >= 0) return; this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const P = new THREE.Vector3();
-    if (this.ray.ray.intersectPlane(this.plane, P)){ this.st.tx = P.x; this.st.tz = P.z; } },
-  // how far a point is from the trail's points from .. n
-  trailDist(x, z, pts, n, from){ let best = 1e9; for (let i = from || 0; i < n - 1; i++){ const a = pts[i], b = pts[i + 1], ux = b.x - a.x, uz = b.z - a.z, L = ux*ux + uz*uz;
-    const q = L > 0 ? clamp(((x - a.x)*ux + (z - a.z)*uz)/L, 0, 1) : 0; best = Math.min(best, Math.hypot(x - a.x - ux*q, z - a.z - uz*q)); } return best; },
-  // the part of the trail that can hit you: the bright part, but not its newest half second.
-  // Behind the bright part the light fades (glow points) - it can't hurt you any more
-  hot(t){ const P = this.st.pts; let n = P.length; while (n > 0 && t - P[n - 1].t < .5) n--; return [Math.max(0, P.length - this.st.len), n]; },
-  boatX(b, t){ return b.x0 + b.dir*b.sp*(t - b.t0); },
-  spot(margin, away){ const st = this.st, A = this.X - margin, C = this.Z - margin;
-    for (let k = 0; k < 24; k++){ const x = (rnd(st.k*3.1 + k*7.7) - .5)*2*A, z = (rnd(st.k*5.3 + k*1.9) - .5)*2*C; st.k++;
-      if (Math.hypot(x - st.x, z - st.z) > away && this.trailDist(x, z, st.pts, st.pts.length, Math.max(0, st.pts.length - st.len)) > 2.2 && !this.orbs.some(o => o.on && Math.hypot(o.x - x, o.z - z) < 3)) return [x, z]; }
-    return null; },
-  // what the beat brings: moonlight to keep up, boats on the 1, a ring every 4 bars
-  layout(j, L, sec, tb){
-    const st = this.st, b = j % 4, bar = Math.floor(j/4), f = clamp(L, 0, 1.6);
-    const want = { calm:2, rest:1, loud:3, hook:4 }[sec];
-    if (this.orbs.filter(o => o.on).length < want){ const o = this.orbs.find(o => !o.on), p = this.spot(2, 5); if (o && p){ Object.assign(o, { on:true, x:p[0], z:p[1], born:tb }); o.s.visible = true; } }
-    if (b === 0 && ((sec === "hook" && bar % 2 === 0) || (sec === "loud" && bar % 4 === 0))) this.launch(tb, f);
-    if (b === 2 && sec === "hook" && f > .6 && bar % 4 === 1) this.launch(tb, f);
-    if (b === 0 && bar % 4 === 1 && (sec === "loud" || sec === "hook")){ const r = this.rings.find(r => !r.on), p = this.spot(3, 6); if (r && p){ Object.assign(r, { on:true, x:p[0], z:p[1], until:tb + BAR*2 }); r.r.visible = true; } }
-    if (b === 0 && S.hearts < HEARTS && !this.heart.on && bar % 8 === 6 && st.heartBar !== bar){ st.heartBar = bar; const p = this.spot(3, 6); if (p){ Object.assign(this.heart, { on:true, x:p[0], z:p[1], until:tb + BAR*3 }); this.heart.g.visible = true; } }
+  info(){ const kmh = Math.round(this.car.v*7.2); return (CFG.endless ? this.st.passed + " OVERTAKES" : "P" + this.st.pos) + " · " + kmh + " KM/H"; },
+  // the streets ahead: P the corners, H each street's heading (0 = straight on, + = right), D the distance to each corner, T roughly when you get there
+  gen(toD){ const P = this.P, H = this.H, D = this.D, T = this.T;
+    while (this.fin < 0 && D[D.length - 1] < toD){
+      const i = P.length - 1, t = T[i], sec = section(t), v = this.vBase(t), L = Math.min(1, this.L(t));
+      let len;
+      if (i === 0) len = 200;
+      else if (!CFG.endless && t > END_AT - 20){ len = 3000; this.fin = i; }        // the last street: the finish is on it
+      else { const [a0, a1] = { calm:[4.5, 6.5], loud:[3, 4.4], hook:[2.3, 3.3] }[sec] || [4.5, 6.5], chic = sec === "hook" && rnd(i*4.7) < .3;
+        len = clamp((chic ? 1.6 : a0 + rnd(i*3.3)*(a1 - a0))*v*(1 - .1*L), 40, 300); }
+      P.push({ x:P[i].x + Math.sin(H[i])*len, z:P[i].z - Math.cos(H[i])*len }); D.push(D[i] + len); T.push(t + len/v);
+      // the corner at the end of it: sharper in the hooks; it never turns back on itself (always on, never back)
+      const s2 = section(T[i + 1]), [b0, b1] = { calm:[.8, 1.3], loud:[.9, 1.8], hook:[1.1, 2.1] }[s2] || [.8, 1.3];
+      let a = b0 + rnd(i*6.1)*(b1 - b0), h = H[i], s = rnd(i*8.3) < .5 ? -1 : 1;
+      if (Math.abs(h + s*a) > 1.45) s = -s;
+      if (Math.abs(h + s*a) > 1.45){ s = h > 0 ? -1 : 1; a = Math.min(a, 1.45 + Math.abs(h)); }
+      H.push(h + s*a);
+      this.extras(i, sec);
+    } },
+  // on street i: sparks round the corner at its start (gold in the hooks), a row down the middle in the hooks, now and then a heart
+  extras(i, sec){ const hook = sec === "hook", len = this.D[i + 1] - this.D[i];
+    const put = (x, z, gold) => { const p = this.spk.find(p => !p.on); if (!p) return; Object.assign(p, { on:true, x, z, gold }); p.s.visible = true; p.s.material.color.setHex(gold ? 0xffd060 : 0xffc0ec); };
+    if (i >= 1){ const a = this.H[i] - this.H[i - 1], sg = Math.sign(a), tl = this.R0*Math.tan(Math.abs(a)/2);
+      for (const f of [.3, .5, .7]){ const [x, z] = this.arc(i, f, this.R0, 0, tl); put(x, z, hook); } }
+    if (hook && len > 60) for (let k = 0; k < 4; k++){ const [x, z] = this.at(this.D[i] + len*.35 + k*7, 0); put(x, z, true); }
+    if (!this.heart.on && i % 7 === 4 && len > 60 && S && S.hearts < HEARTS){ const [x, z] = this.at(this.D[i] + len*.5, 0); Object.assign(this.heart, { on:true, x, z }); this.heart.g.visible = true; } },
+  // round the corner k with radius R, lane o: [x, z, heading] at fraction f
+  arc(k, f, R, o, tl){ const P = this.P, H = this.H, a = H[k] - H[k - 1], sg = Math.sign(a) || 1, h0 = H[k - 1], h = h0 + a*f;
+    const Ax = P[k].x - Math.sin(h0)*tl, Az = P[k].z + Math.cos(h0)*tl, Cx = Ax + Math.cos(h0)*sg*R, Cz = Az + Math.sin(h0)*sg*R, r = R - sg*o;
+    return [Cx - Math.cos(h)*sg*r, Cz - Math.sin(h)*sg*r, h]; },
+  // the other cars' line: down the middle of their lane, round the corners
+  at(s, o){ const D = this.D, H = this.H, P = this.P; let lo = 0, hi = D.length - 1; while (hi - lo > 1){ const m = (lo + hi) >> 1; if (D[m] <= s) lo = m; else hi = m; }
+    const j = lo, RS = 9;
+    for (const k of [j, j + 1]){ if (k < 1 || k >= H.length) continue; const tl = RS*Math.tan(Math.abs(H[k] - H[k - 1])/2), u = s - D[k];
+      if (u > -tl && u < tl) return this.arc(k, (u + tl)/(2*tl), RS, o, tl); }
+    const u = s - D[j]; return [P[j].x + Math.sin(H[j])*u + Math.cos(H[j])*o, P[j].z - Math.cos(H[j])*u + Math.sin(H[j])*o, H[j]]; },
+  along(c, j){ return (c.x - this.P[j].x)*Math.sin(this.H[j]) - (c.z - this.P[j].z)*Math.cos(this.H[j]); },
+  lat(c, j){ return (c.x - this.P[j].x)*Math.cos(this.H[j]) + (c.z - this.P[j].z)*Math.sin(this.H[j]); },
+  // the street you're on: the next one once you're into the corner and facing more its way
+  seg(c){ const j = c.ci; return this.along(c, j) > -this.W/2 && Math.abs(c.th - this.H[j]) < Math.abs(c.th - this.H[j - 1]) ? j : j - 1; },
+  prog(c){ const j = this.seg(c); return this.D[j] + clamp(this.along(c, j), 0, this.D[j + 1] - this.D[j]); },
+  // on the street (with m metres to spare at the sides)? The streets run on past each corner by half a street, so the corners are square
+  onRoad(c, m){ const W = this.W; for (let j = Math.max(0, c.ci - 2); j <= c.ci + 1 && j < this.P.length - 1; j++){ const a = this.along(c, j);
+      if (a >= -W/2 && a <= this.D[j + 1] - this.D[j] + W/2 && Math.abs(this.lat(c, j)) <= W/2 - m) return true; } return false; },
+  // one step of the car. Held: it turns into the corner (radius R0) and slides; let go: it straightens up down the street
+  step(c, dt, held, t){
+    if (t < this.go){ c.v = 0; return; }
+    if (held){
+      if (!c.held){ c.held = true; c.hold = 0; c.dir = this.H[c.ci] - this.H[c.ci - 1] >= 0 ? 1 : -1; c.lastPress = c.ci; }
+      c.hold += dt; c.th += c.dir*c.v/this.R0*dt; c.ph += (c.th - c.ph)*(1 - Math.exp(-4*dt));
+    } else {
+      if (c.held){ c.held = false; c.rel = true; }
+      const j = this.seg(c), tg = this.H[j] + clamp(-this.lat(c, j)*.06, -.35, .35);
+      c.th += clamp(tg - c.th, -1.4*dt, 1.4*dt); c.ph += (c.th - c.ph)*(1 - Math.exp(-10*dt));
+    }
+    const vt = this.vBase(t)*(held ? .9 : 1)*(c.nitro > 0 ? 1.35 : 1);
+    c.v += (vt - c.v)*(1 - Math.exp(-1.6*dt)); if (c.nitro > 0) c.nitro -= dt;
+    c.x += Math.sin(c.ph)*c.v*dt; c.z -= Math.cos(c.ph)*c.v*dt;
+    if (c.ci < this.P.length - 1 && this.along(c, c.ci) > this.W*.5 + 2 && Math.abs(c.th - this.H[c.ci]) < .6) c.ci++;
   },
-  launch(tb, f){ const b = this.boats.find(b => !b.on); if (!b) return; const st = this.st, k = st.k++, dir = rnd(k*1.7) < .5 ? -1 : 1;
-    Object.assign(b, { on:true, dir, x0:-dir*(this.X + 9), z:(rnd(k*4.3) - .5)*2*(this.Z - .9), sp:5 + 3.5*Math.min(1.3, f), t0:tb }); b.g.visible = true; b.g.rotation.y = dir > 0 ? 0 : Math.PI; sfx.horn(); },
+  crashTip(c){ const j = c.ci, a = this.along(c, j - 1), len = this.D[j] - this.D[j - 1];
+    if (c.held && this.along(c, j) < -this.W/2) return "Too early - wait until you reach the corner, then hold.";
+    if (c.held) return "Let go sooner - as soon as you face down the new street.";
+    if (a > len - this.W - 30 && c.lastPress !== j) return "Hold as you reach the corner - the arrows show which way it turns.";
+    const under = (this.H[this.seg(c)] - c.th)*c.dir > 0;
+    return under ? "Hold a little longer - let go when you face down the new street." : "Let go a little sooner - as soon as you face down the new street."; },
+  // after a crash: back on the street where you were, or on into the new street if you were at the corner
+  respawn(c){ const j = c.ci, a = this.along(c, j - 1), len = this.D[j] - this.D[j - 1];
+    if (a < len - this.W - 25){ const u = clamp(a, 0, len), h = this.H[j - 1]; c.x = this.P[j - 1].x + Math.sin(h)*u; c.z = this.P[j - 1].z - Math.cos(h)*u; c.th = c.ph = h; }
+    else { const h = this.H[j], u = this.W*.7; c.x = this.P[j].x + Math.sin(h)*u; c.z = this.P[j].z - Math.cos(h)*u; c.th = c.ph = h; c.ci = j + 1; }
+    c.v = Math.max(12, c.v*.6); c.held = false; c.rel = false; c.nitro = 0; c.hold = 0; c.lock = true; },
   update(dt, t){
-    const st = this.st, L = this.L(t), v = this.v(L), X = this.X, Z = this.Z;
-    while (GRID.t0 + st.j*BEAT <= t){ const tb = GRID.t0 + st.j*BEAT; this.layout(st.j, this.L(tb), section(tb), tb); st.j++; }
-    // steer: towards the finger (or with the arrow keys); near it, straight on. It never stops.
-    let turn = 0;
-    if (st.steer != null) turn = st.steer;
-    else if (keys.left || keys.right) turn = (keys.left ? -1 : 0) + (keys.right ? 1 : 0);
-    else { const dx = st.tx - st.x, dz = st.tz - st.z; if (Math.hypot(dx, dz) > 2.5){ let d = Math.atan2(dz, dx) - st.h; d = Math.atan2(Math.sin(d), Math.cos(d)); turn = clamp(d*3, -1, 1); } }
-    st.h += turn*this.TURN*dt;
-    st.x += Math.cos(st.h)*v*dt; st.z += Math.sin(st.h)*v*dt; st.metres += v*dt;
-    st.len = this.hotLen(L);
-    st.ptT += dt; if (st.ptT >= .05){ st.ptT = 0; st.pts.push({ x:st.x, z:st.z, t }); while (st.pts.length > Math.min(st.len + st.glow, this.MAXP)) st.pts.shift(); }
-    S.score += dt*(6 + st.glow*.12);
-    // the banks and the bridges: they cost a heart, and turn you round
-    st.edge = Math.max(0, 1 - Math.min(X - Math.abs(st.x), Z - Math.abs(st.z))/3);
-    if (Math.abs(st.x) > X || Math.abs(st.z) > Z){
-      if (Math.abs(st.x) > X){ st.x = clamp(st.x, -X, X); st.h = Math.PI - st.h; } else { st.z = clamp(st.z, -Z, Z); st.h = -st.h; }
-      if (S.inv <= 0 && hurt(Math.abs(st.x) >= X ? "THE BRIDGE!" : "THE BANK!", "Stay on the river: the banks and the bridges cost a heart. Keep your finger on the screen to keep turning.")) return; }
-    // crossing your own trail: a heart, and the trail breaks
-    if (S.inv <= 0){ const [from, n] = this.hot(t); if (n - from > 1 && this.trailDist(st.x, st.z, st.pts, n, from) < .55){ st.pts = st.pts.filter(p => t - p.t < .5); st.glow = Math.max(40, Math.floor(st.glow*.6));   // the trail breaks
-      if (hurt("CROSSED!", "Your trail never stops - plan your curves, keep room to turn, and don't box yourself in.")) return; } }
-    for (const b of this.boats){ if (!b.on) continue; const bx = this.boatX(b, t);
-      if (S.inv <= 0 && Math.abs(st.x - bx) < 3.9 && Math.abs(st.z - b.z) < 1.5){ if (hurt("A BOAT!", "The party boats come out from under the bridges - see which way they're going and let them by.")) return; }
-      if (Math.abs(bx) > X + 10 && t - b.t0 > 1){ b.on = false; b.g.visible = false; b.tr.forEach(s => s.visible = false); st.passed++; } }
-    // the moonlight: each one makes your trail longer
-    for (const o of this.orbs){ if (!o.on) continue;
-      if (Math.hypot(o.x - st.x, o.z - st.z) < 1.5){ o.on = false; o.s.visible = false; st.got++; st.glow = Math.min(this.MAXGLOW, st.glow + 10);
-        const beat = award(100, 6); sfx.good(S.combo); if (beat && S.combo % 4 === 0) say("ON THE BEAT", "x2", .4, "g"); } }
-    for (const r of this.rings){ if (!r.on) continue;
-      if (Math.hypot(r.x - st.x, r.z - st.z) < 1.6){ r.on = false; r.r.visible = false; st.rings++; const beat = onBeat(t); S.score += beat ? 1000 : 500; sfx.big(); say(beat ? "ON THE BEAT" : "THROUGH THE RING", beat ? "+1,000" : "+500", .7, "g"); }
-      else if (t > r.until){ r.on = false; r.r.visible = false; } }
-    const h = this.heart; if (h.on){ if (Math.hypot(h.x - st.x, h.z - st.z) < 1.7){ h.on = false; h.g.visible = false; if (S.hearts < HEARTS){ S.hearts++; sfx.heart(); say("A HEART", "", .8, "g"); } } else if (t > h.until){ h.on = false; h.g.visible = false; } }
+    const c = this.car, st = this.st;
+    // "you ready?" - 3, 2, 1 on the beats of the next bar - GO
+    if (t < this.go + 1){ const n = t < barT(1) ? 0 : t < this.go ? 1 + Math.floor((t - barT(1))/BEAT) : 5;
+      if (n !== st.cd){ st.cd = n; if (n === 0) say("LA NIGHT", "the night race", BAR*.85, "t"); else if (n <= 3){ say(String(4 - n), "", BEAT*.8, "t"); sfx.beep(); } else if (n === 5){ say("GO!", "", .9, "g"); sfx.go(); } } }
+    if (c.lock && !actHeld) c.lock = false;
+    const held = actHeld && !c.lock && t >= this.go;
+    if (held && !c.held) sfx.skid();
+    this.step(c, dt, held, t);
+    if (c.rel){ c.rel = false; if (c.hold > .25){ st.drifts++;
+        if (onBeat(t)){ c.nitro = 1.3; st.nitros++; S.onBeat++; S.score += 300; sfx.boost(); say("NITRO", "on the beat", .5, "g"); }
+        else if (Math.abs(c.th - this.H[this.seg(c)]) < .15) S.score += 100; } }
+    S.score += c.v*dt*(c.held ? 1.6 : .5);
+    const s = this.prog(c); st.s = Math.max(st.s, s);
+    this.gen(s + 800);
+    while (this.built <= this.P.length - 3 || this.built === this.fin) this.build(this.built++);
+    for (const k in this.vis) if (+k < c.ci - 3) this.drop(k);
+    // a wall: a heart, and on you go
+    if (S.inv <= 0 && !this.onRoad(c, .9)){ st.crashes++; const tip = this.crashTip(c); if (hurt("CRASH!", tip)) return; this.respawn(c); }
+    // the other cars keep to their lanes; you pass them
+    for (const r of this.rv){ r.v += ((t >= this.go ? this.vBase(t)*r.f : 0) - r.v)*(1 - Math.exp(-1.6*dt)); r.s += r.v*dt;
+      if (CFG.endless && r.s < s - 90){ const k = st.passed*7.3 + r.lane0; r.s = s + 260 + rnd(k)*180; r.lane = (rnd(k*3.1) < .5 ? -1 : 1)*this.LANE; r.f = .9 + rnd(k*5.3)*.06; r.v = this.vBase(t)*r.f; r.ahead = true; continue; }
+      if (r.ahead && r.s < s && t > this.go){ st.passed++; S.score += 250; sfx.good(st.passed); if (!CFG.endless) say("P" + (1 + this.rv.filter(q => q.s > s).length), "overtake", .6, "g"); }
+      r.ahead = r.s > s;
+      // touching another car is a bump, not a crash: it costs you speed
+      if ((c.bump || 0) <= 0 && Math.abs(r.s - s) < 8){ const [rx, rz, rh] = this.at(r.s, r.lane), dx = c.x - rx, dz = c.z - rz;
+        if (Math.abs(dx*Math.cos(rh) + dz*Math.sin(rh)) < 2.1 && Math.abs(dx*Math.sin(rh) - dz*Math.cos(rh)) < 4.4){
+          c.v *= .75; c.nitro = 0; c.bump = 1; r.s += 5; st.bumps = (st.bumps || 0) + 1; sfx.skid(); say("BUMP", "", .5, "x"); } } }
+    if (c.bump > 0) c.bump -= dt;
+    st.pos = 1 + this.rv.filter(r => r.s > s).length;
+    // sparks and hearts
+    for (const p of this.spk){ if (!p.on) continue; const d = Math.hypot(p.x - c.x, p.z - c.z);
+      if (d < 3){ p.on = false; p.s.visible = false; st.got++; const beat = award(p.gold ? 120 : 60, 6); sfx.good(S.combo); if (beat && S.combo % 4 === 0) say("ON THE BEAT", "x2", .4, "g"); }
+      else if (d > 600){ p.on = false; p.s.visible = false; } }
+    const hh = this.heart; if (hh.on){ const d = Math.hypot(hh.x - c.x, hh.z - c.z); if (d < 3){ hh.on = false; hh.g.visible = false; if (S.hearts < HEARTS){ S.hearts++; sfx.heart(); say("A HEART", "", .8, "g"); } } else if (d > 600){ hh.on = false; hh.g.visible = false; } }
   },
+  // the end of the race: the car rolls to a stop under the window
+  coast(dt){ const c = this.car, j = this.seg(c);
+    c.th += clamp(this.H[j] - c.th, -1.4*dt, 1.4*dt); c.ph += (c.th - c.ph)*(1 - Math.exp(-10*dt));
+    c.v *= Math.exp(-this.kEnd*dt); c.x += Math.sin(c.ph)*c.v*dt; c.z -= Math.cos(c.ph)*c.v*dt; },
+  // street i: the asphalt, lamps, the buildings either side (not on another street), the board at its corner
+  build(i){ const P = this.P, H = this.H, W = this.W, len = this.D[i + 1] - this.D[i], h = H[i], g = new THREE.Group(); this.root.add(g); this.vis[i] = g;
+    g.position.set(P[i].x, 0, P[i].z); g.rotation.y = -h;                    // in here: -z down the street, +x to the right
+    const tx = ROADT.clone(); tx.needsUpdate = true; tx.repeat.set(1, (len + W)/16);
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(W, len + W), new THREE.MeshStandardMaterial({ map:tx, roughness:.55, metalness:.25 }));
+    road.rotation.x = -Math.PI/2; road.position.set(0, .01 + (i % 2)*.012, -len/2); road.userData.own = true; g.add(road);
+    const end = Math.min(len, 700), city = m => { m.userData.city = true; g.add(m); return m; };
+    for (let u = 18; u < end - 12; u += 34) for (const sd of [-1, 1]){
+      city(at3(new THREE.Mesh(POLE_G, POLE_M), sd*(W/2 + 1.3), 3.5, -u)); city(at3(new THREE.Mesh(ARM_G, POLE_M), sd*(W/2 + .2), 7, -u));
+      const l = city(at3(new THREE.Sprite(LAMP_M), sd*(W/2 - .9), 6.8, -u)); l.scale.setScalar(3.2);
+      const pool = city(at3(new THREE.Mesh(POOL_G, POOL_M), sd*(W/2 - 2.5), .05, -u)); pool.rotation.x = -Math.PI/2; }
+    for (const sd of [-1, 1]){ let u = W/2 + 3;
+      while (u < end - W/2 - 3){ const k = i*131 + sd*17 + u*.37, bw = 10 + rnd(k)*12, bd = 10 + rnd(k*1.3)*12, bh = 12 + rnd(k*2.1)*(rnd(k*5.5) < .2 ? 70 : 34);
+        if (u + bw > end - W/2 - 3) break;
+        const lx = sd*(W/2 + 4 + bd/2), lz = -(u + bw/2), wx = P[i].x + Math.cos(h)*lx - Math.sin(h)*lz, wz = P[i].z + Math.sin(h)*lx + Math.cos(h)*lz, rad = Math.hypot(bw, bd)/2;
+        let clear = true;
+        for (let j = i - 2; j <= i + 2 && clear; j++){ if (j === i || j < 0 || j >= P.length - 1) continue;
+          const a = (wx - P[j].x)*Math.sin(H[j]) - (wz - P[j].z)*Math.cos(H[j]), l = (wx - P[j].x)*Math.cos(H[j]) + (wz - P[j].z)*Math.sin(H[j]);
+          if (a > -W/2 - rad && a < this.D[j + 1] - this.D[j] + W/2 + rad && Math.abs(l) < W/2 + 2 + rad) clear = false; }
+        if (clear){ const m = city(at3(new THREE.Mesh(boxUV(bw, bh, bd), BLD[Math.floor(rnd(k*3.7)*BLD.length)]), lx, 0, lz)); m.userData.own = true;
+          if (rnd(k*9.1) < .35){ const n = city(at3(new THREE.Mesh(new THREE.BoxGeometry(.3, bh*.45, 1.4), NEON[Math.floor(rnd(k*4.1)*NEON.length)]), sd*(W/2 + 3.8), bh*.35, lz)); n.userData.own = true; } }
+        u += bw + 1 + rnd(k*4.4)*4; } }
+    if (i !== this.fin && i + 1 < H.length){ const b = city(at3(new THREE.Mesh(CHEV_G, CHEV_M), 0, 2.6, -(len + W/2 + 2))); if (H[i + 1] < H[i]) b.scale.x = -1;
+      for (const sd of [-1, 1]) city(at3(new THREE.Mesh(POLE_G, POLE_M), sd*4.6, 1, -(len + W/2 + 2.1))).scale.y = .3; }
+  },
+  drop(k){ const g = this.vis[k]; if (!g) return; this.root.remove(g); g.traverse(o => { if (o.userData.own){ o.geometry.dispose(); if (o.material.map && o.material.map !== ROADT && !BLD.includes(o.material)){ o.material.map.dispose(); o.material.dispose(); } } }); delete this.vis[k]; },
+  // the trail of your tail lights: red-white at the car, fading to purple
+  drawTrail(c){ const P = this.tp, bx = c.x - Math.sin(c.th)*2.3, bz = c.z + Math.cos(c.th)*2.3;
+    const last = P[P.length - 1]; if (last && Math.hypot(last.x - bx, last.z - bz) > 12) P.length = 0;
+    if (!last || Math.hypot(last.x - bx, last.z - bz) > .6){ P.push({ x:bx, z:bz }); if (P.length > this.NT) P.shift(); }
+    const n = P.length, g = this.ribbon.geometry, pos = g.attributes.position.array, col = g.attributes.color.array;
+    for (let i = 0; i < this.NT; i++){ const p = P[Math.min(i, n - 1)] || { x:bx, z:bz }, q = P[Math.min(i + 1, n - 1)] || p, dx = q.x - p.x, dz = q.z - p.z, L = Math.hypot(dx, dz) || 1, w = .5, a = i*6;
+      const u = n > 1 ? i/(n - 1) : 1, on = i < n ? u*u : 0;
+      pos[a] = p.x - dz/L*w; pos[a + 1] = .8; pos[a + 2] = p.z + dx/L*w; pos[a + 3] = p.x + dz/L*w; pos[a + 4] = .8; pos[a + 5] = p.z - dx/L*w;
+      col[a] = col[a + 3] = on; col[a + 1] = col[a + 4] = on*(.15 + .6*u*u*u); col[a + 2] = col[a + 5] = on*(.5 - .1*u); }
+    g.attributes.position.needsUpdate = true; g.attributes.color.needsUpdate = true; },
   render(dt, t){
-    const st = this.st, beat = onBeat(t);
-    ME.position.set(st.x, 1.2, st.z); ME.rotation.set(0, -st.h, 0);
-    this.drawTrail(beat ? 1.25 : 1);
-    for (const b of this.boats) if (b.on){ const bx = this.boatX(b, t); b.g.position.set(bx, 0, b.z);
-      b.tr.forEach((s, i) => { s.visible = true; s.position.set(bx - b.dir*(4 + i*1.1), .1, b.z + (i % 2 ? .5 : -.5)); s.material.opacity = .5*(1 - i/16); }); }
-    for (const o of this.orbs) if (o.on){ o.s.position.set(o.x, .8, o.z); o.s.scale.setScalar(Math.min(1, (t - o.born)*4 + .2)*(1.6 + (beat ? .6 : 0))); }
-    for (const r of this.rings) if (r.on){ r.r.position.set(r.x, .4, r.z); r.r.scale.setScalar(1 + (beat ? .15 : 0)); }
-    if (this.heart.on){ this.heart.g.position.set(this.heart.x, 1.2, this.heart.z); this.heart.g.rotation.y = t*2; }
-    // the bridge you're heading for glows red when you get close
-    for (const g of this.bridges) g.userData.glow.material.opacity = Math.sign(g.position.x) === Math.sign(st.x) ? clamp((Math.abs(st.x) - (this.X - 4))/4, 0, 1)*.5 : 0;
-    // high enough that the whole stretch of river fits across the screen, whatever its shape
-    const portrait = cam.aspect < .8, hgt = clamp((this.X + 2.5)/(Math.tan(cam.fov*Math.PI/360)*cam.aspect), 30, 150);
-    CAMP.set(0, hgt, hgt*(portrait ? .22 : .62)); CAML.set(0, 0, portrait ? .5 : 2);
-  },
-  // the ribbon: white-hot at the saucer, through gold and pink to purple at the tail (gold in endless)
-  drawTrail(k){
-    const P = this.st.pts, n = P.length, g = this.ribbon.geometry, pos = g.attributes.position.array, col = g.attributes.color.array, gold = CFG.endless;
-    for (let i = 0; i < this.MAXP; i++){ const p = P[Math.min(i, n - 1)] || { x:ME.position.x, z:ME.position.z }, q = P[Math.min(i + 1, n - 1)] || p, dx = q.x - p.x, dz = q.z - p.z, L = Math.hypot(dx, dz) || 1, w = .28;
-      const ghost = Math.max(0, n - this.st.len), a = i*6, u = n - ghost > 1 ? clamp((i - ghost)/(n - ghost - 1), 0, 1) : 1, on = i < n ? (i < ghost ? k*.35*(i/ghost) : k) : 0;
-      pos[a] = p.x - dz/L*w; pos[a + 1] = .15; pos[a + 2] = p.z + dx/L*w; pos[a + 3] = p.x + dz/L*w; pos[a + 4] = .15; pos[a + 5] = p.z - dx/L*w;
-      const r = on*(gold ? .7 + .3*u : .5 + .5*u), gg = on*(gold ? .45 + .5*u : .15 + .75*u*u), b = on*(gold ? .1 + .8*u*u*u : .8 - .3*u + .5*u*u*u);
-      col[a] = col[a + 3] = r; col[a + 1] = col[a + 4] = gg; col[a + 2] = col[a + 5] = b; }
-    g.attributes.position.needsUpdate = true; g.attributes.color.needsUpdate = true;
+    const c = this.car, beat = onBeat(t), portrait = cam.aspect < .8, me = this.me;
+    me.position.set(c.x, 0, c.z); me.rotation.y = -c.th; me.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+    const B = me.userData; B.body.rotation.z = c.held ? -c.dir*.05 : 0; B.body.position.y = beat ? .03 : 0; for (const w of B.wheels) w.rotation.x -= c.v*dt/.42;
+    B.under.material.opacity = .45 + (beat ? .35 : 0);
+    for (const f of this.flames){ f.visible = c.nitro > 0; f.scale.setScalar(1.2 + Math.random()*.8); }
+    // smoke from the back wheels while you drift
+    if (c.held && c.v > 5) for (const sd of [-1, 1]){ const p = this.smoke.find(p => p.life <= 0); if (!p) break; p.life = 1;
+      p.s.position.set(c.x - Math.sin(c.th)*1.6 + Math.cos(c.th)*sd, .5, c.z + Math.cos(c.th)*1.6 + Math.sin(c.th)*sd); }
+    for (const p of this.smoke){ if (p.life <= 0){ p.s.material.opacity = 0; continue; } p.life -= dt*1.4; p.s.position.y += dt*1.2; p.s.scale.setScalar(2 + (1 - p.life)*5); p.s.material.opacity = Math.max(0, p.life)*.35; }
+    const s = this.prog(c);
+    for (const r of this.rv){ const [x, z, h] = this.at(r.s, r.lane); r.m.position.set(x, 0, z); r.m.rotation.y = -h; r.m.visible = Math.abs(r.s - s) < 400 && S.end < 0;
+      for (const w of r.m.userData.wheels) w.rotation.x -= r.v*dt/.42; }
+    for (const r of this.rv) r.tr.forEach((q, k) => { const [x, z] = this.at(r.s - 2.8 - k*2.2, r.lane); q.position.set(x, .8, z); q.visible = r.m.visible; q.material.opacity = .55*(1 - k/8); });
+    this.drawTrail(c);
+    for (const p of this.spk) if (p.on){ p.s.position.set(p.x, 1.4, p.z); p.s.scale.setScalar((p.gold ? 2.2 : 1.8) + (beat ? .6 : 0)); }
+    if (this.heart.on){ this.heart.g.position.set(this.heart.x, 1.6, this.heart.z); this.heart.g.rotation.y = t*2; }
+    this.ground.position.set(Math.round(c.x/50)*50, 0, Math.round(c.z/50)*50); this.sky.position.set(c.x, 0, c.z);
+    // the saucer: over the start line for the countdown (its lights go red, red, red, green), then over the next corner, beam on it
+    const L = ME.userData.lights.children, cd = t < barT(1) ? 0xf0fbff : t < this.go ? (Math.floor((t - barT(1))/BEAT) < 3 ? 0xff3a5a : 0xf0fbff) : t < this.go + 1 ? 0x5aff8a : 0xf0fbff;
+    for (let i = 0; i < L.length; i++) L[i].material.color.setHex(t >= barT(1) && t < this.go && i > (Math.floor((t - barT(1))/BEAT) + 1)*4 ? 0x3a2a3a : cd);
+    if (S.end < 0){ let tx, ty, tz, sc;
+      if (t < this.go){ tx = 0; ty = 7.5; tz = -14; sc = 1.8; }
+      else { const k = Math.min(c.ci, this.P.length - 1), h = this.H[k - 1]; tx = this.P[k].x + Math.sin(h)*(this.W/2 + 4); ty = 22; tz = this.P[k].z - Math.cos(h)*(this.W/2 + 4); sc = 3; }
+      const q = camInit ? Math.min(1, dt*2) : 1; ME.position.x += (tx - ME.position.x)*q; ME.position.y += (ty - ME.position.y)*q; ME.position.z += (tz - ME.position.z)*q; ME.scale.setScalar(ME.scale.x + (sc - ME.scale.x)*q);
+      const bl = ME.position.y/ME.scale.x; ME.userData.beam.visible = t >= this.go; ME.userData.beam.scale.set(1.6, bl/3.2, 1.6); ME.userData.beam.position.y = -bl/2; }
+    // the camera: behind the car, swinging round with it (looking down the grid for the countdown)
+    const want = c.th*.6 + c.ph*.4; this.camH += (want - this.camH)*Math.min(1, dt*3.5);
+    const fx = Math.sin(this.camH), fz = -Math.cos(this.camH);
+    if (t < this.go){ CAMP.set(c.x, portrait ? 8 : 6, c.z + (portrait ? 14 : 10)); CAML.set(c.x, 2.5, c.z - 22); }
+    else { const D = portrait ? 15 : 11, Hh = portrait ? 7 : 4.8, k = c.nitro > 0 ? 1.12 : 1; CAMP.set(c.x - fx*D*k, Hh, c.z - fz*D*k); CAML.set(c.x + fx*12, 1.6, c.z + fz*12); }
+    if (engine && ac){ engine.g.gain.setTargetAtTime(live() && t >= this.go ? .035 : 0, ac.currentTime, .1); engine.o.frequency.setTargetAtTime(42 + c.v*2.4 + (c.nitro > 0 ? 25 : 0), ac.currentTime, .08); }
   }
 };
 
@@ -478,10 +592,10 @@ const TRAIL = {
 function reset(){
   S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
   lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
-  G = TRAIL; camInit = false; ME.userData.beam.visible = false; ME.scale.setScalar(.85);
+  G = RACE; camInit = false; ME.scale.setScalar(1.8); ME.position.set(0, 7.5, -14); END.root.visible = false;
   if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
 }
-// endless goes in 8-bar windows, a little harder every window. Every 24 bars: +2,000 and a heart back
+// endless goes in 8-bar windows, a little faster every window. Every 24 bars: +2,000 and a heart back
 function startStint(n, t){
   S.stint = n; let back = false;
   if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
@@ -492,13 +606,14 @@ function songT(){
   if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
   return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
 }
+let actHeld = false;
 function update(dt){
   if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
   else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
   else S.t += dt;
   if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
   if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
-  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.end >= 0){ S.end += dt; RACE.coast(dt); if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
   if (S.done) return;
   const t = Math.max(0, S.t);
   if (S.inv > 0) S.inv -= dt;
@@ -508,18 +623,53 @@ function update(dt){
 }
 
 /* ================= THE ENDING =================
-   The camera comes down from above to the water: the cover. Down the river the
-   skyline and the moon, the red clouds - your light trail still glowing on the
-   river, and the saucer hovering over it with its beam on. */
-const END = { out:8 };
+   Over the line, and the street runs out onto the river: the car rolls to a stop at
+   the water. The cover - down the river the skyline and the big moon, the red clouds,
+   the party boats with their light trails, your own trail behind you, and the saucer
+   over the water with its beam on. (In here -z runs on down the street, the river
+   crosses it at RZ and runs down to the moon at -x.) */
+const END = { out:8, root:null, RZ:-44 };
+function buildEnd(){
+  const g = new THREE.Group(); g.visible = false; scene.add(g); const W = RACE.W, RZ = END.RZ;
+  const line = new THREE.Mesh(new THREE.PlaneGeometry(W, 1.6), new THREE.MeshBasicMaterial({ map:CHECK })); line.rotation.x = -Math.PI/2; line.position.set(0, .05, 0); g.add(line);
+  for (const s of [-1, 1]) g.add(at3(new THREE.Mesh(POLE_G, POLE_M), s*(W/2 + .6), 3.5, 0));
+  g.add(at3(new THREE.Mesh(new THREE.PlaneGeometry(W + 1.2, 1.4), new THREE.MeshBasicMaterial({ map:CHECK, side:THREE.DoubleSide })), 0, 6.6, 0));
+  // the river, its lit edge, the moon's road on the water; the far bank
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(1800, 64), new THREE.MeshStandardMaterial({ color:0x0e0a2a, roughness:.55, metalness:.4, emissive:0x08051f })); water.rotation.x = -Math.PI/2; water.position.set(-600, .3, RZ - 32); g.add(water);
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(500, 9), new THREE.MeshBasicMaterial({ map:DOT, color:0xc8b0ff, transparent:true, opacity:.3, blending:THREE.AdditiveBlending, depthWrite:false })); road.rotation.x = -Math.PI/2; road.position.set(-260, .34, RZ - 30); g.add(road);
+  const edge = new THREE.Mesh(new THREE.PlaneGeometry(1800, .35), new THREE.MeshBasicMaterial({ color:0xffd8a0 })); edge.rotation.x = -Math.PI/2; edge.position.set(-600, .35, RZ); g.add(edge);
+  for (let i = 0; i < 90; i++){ const l = sprite(0xffd8a0, 1.1, .85); l.position.set(80 - i*9, 1.3, RZ + .6); g.add(l); }
+  const far = new THREE.Mesh(new THREE.PlaneGeometry(1800, 600), new THREE.MeshStandardMaterial({ color:0x0c0a14, roughness:1 })); far.rotation.x = -Math.PI/2; far.position.set(-600, .4, RZ - 64 - 300); g.add(far);
+  // the skyline: along the far bank and down the river, rising as it goes; one tall tower like the cover's
+  for (let i = 0; i < 60; i++) for (let r = 0; r < 2; r++){ const x = 60 - i*13 + rnd(i*7 + r)*4, f = Math.max(0, -x/700), w = 8 + rnd(i*3 + r)*8, d = 8 + rnd(i*5 + r)*8;
+    const h = 8 + Math.pow(rnd(i*11 + r*3), 1.5)*36 + f*60 + r*12, m = new THREE.Mesh(boxUV(w, h, d), BLD[(i + r) % BLD.length]); m.position.set(x, 0, RZ - 70 - d/2 - r*18); g.add(m);
+    if (h > 55){ const b = sprite(0xff2a3a, 3); b.position.set(x, h + 1, m.position.z); g.add(b); END.blink.push(b); } }
+  for (let i = 0; i < 40; i++){ const x = -W/2 - 16 - i*14, w = 10 + rnd(i*9)*6, d = 10 + rnd(i*4)*6, h = 6 + rnd(i*2)*14 + i*.8, m = new THREE.Mesh(boxUV(w, h, d), BLD[i % BLD.length]); m.position.set(x, 0, RZ + 12 + d/2); g.add(m); }
+  const big = new THREE.Mesh(boxUV(16, 110, 16), BLD[3]); big.position.set(-260, 0, RZ - 80); g.add(big); const top = sprite(0xff2a3a, 4); top.position.set(-260, 112, RZ - 80); g.add(top); END.blink.push(top);
+  // the party boats going down the river, light trails behind them
+  END.boats = [0, 1].map(k => { const b = new THREE.Group(), hull = new THREE.Mesh(new THREE.BoxGeometry(9, 1.2, 3), new THREE.MeshStandardMaterial({ color:0xe8e4f0, emissive:0x1a1a2a })); hull.position.y = .9; b.add(hull);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(5.6, 1.2, 2.4), BLD[1]); cab.position.y = 2; b.add(cab);
+    for (let i = 0; i < 9; i++){ const l = sprite([0xff6a8a, 0xffd8a0, 0x9ad8ff][i % 3], .8); l.position.set(-4 + i, 2.9, 0); b.add(l); }
+    for (let i = 0; i < 26; i++){ const s = sprite(i % 2 ? 0xff4a5a : 0xfff0e0, 1, .5); s.scale.set(2.2, .6, 1); s.position.set(5 + i*1.6, -.5, i % 2 ? .6 : -.6); s.material.opacity = .55*(1 - i/26); b.add(s); }
+    b.position.set(-24 - k*50, 0, RZ - 12 - k*18); g.add(b); return b; });
+  END.moon = moonAndClouds(g, new THREE.Vector3(-1, .36, -.12).normalize(), 950, 160);
+  END.root = g;
+}
+END.blink = [];
 function win(){
   if (S.end >= 0 || S.done) return;
-  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
-  $("hud").classList.add("off"); $("phase").className = "off";
-  for (const b of TRAIL.boats){ b.on = false; b.g.visible = false; b.tr.forEach(s => s.visible = false); }
-  for (const o of TRAIL.orbs){ o.on = false; o.s.visible = false; } for (const r of TRAIL.rings){ r.on = false; r.r.visible = false; }
-  TRAIL.heart.on = false; TRAIL.heart.g.visible = false;
-  S.from = { x:TRAIL.st.x, z:TRAIL.st.z };
+  const r = RACE, c = r.car, st = r.st;
+  S.end = 0; S.score += S.hearts*500 + ([3000, 2000, 1000][st.pos - 1] || 0); sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off"; say("FINISH", "P" + st.pos, 1.6, "g");
+  // the line just ahead; the car rolls on 42 m, to a stop at the water
+  const j = r.seg(c), h = r.H[j], u = r.along(c, j) + 6;
+  r.kEnd = Math.max(.6, c.v/42);
+  END.root.position.set(r.P[j].x + Math.sin(h)*u, 0, r.P[j].z - Math.cos(h)*u); END.root.rotation.y = -h; END.root.visible = true; END.root.updateMatrixWorld(true);
+  // the city's street lamps and buildings past the water's edge go: the river is there now
+  const inv = new THREE.Matrix4().copy(END.root.matrixWorld).invert();
+  for (const k in r.vis) r.vis[k].traverse(o => { if (o.userData.city){ const p = o.getWorldPosition(new THREE.Vector3()).applyMatrix4(inv); if (p.z < END.RZ + 12 || (p.x < -RACE.W/2 - 10 && p.z < END.RZ + 40)) o.visible = false; } });
+  for (const m of r.moon) m.visible = false;
+  for (const p of r.spk){ p.on = false; p.s.visible = false; } r.heart.on = false; r.heart.g.visible = false;
 }
 function lose(why, tip){
   if (S.done) return;
@@ -537,24 +687,22 @@ function over(why){
 /* ---------------- drawing ---------------- */
 function render(dt){
   const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
-  ME.userData.lights.rotation.y = t*2.5; ME.userData.beam.material.opacity = .18 + (beat ? .14 : 0); ME.userData.under.material.opacity = .55 + (beat ? .3 : 0);
+  ME.userData.lights.rotation.y = t*2.5; ME.userData.beam.material.opacity = .14 + (beat ? .12 : 0); if (S.end < 0 && S.started) for (const m of RACE.moon) m.visible = true; ME.userData.under.material.opacity = .55 + (beat ? .3 : 0);
+  G.render(dt, t);
   if (S.end >= 0){
-    // the cover: down on the water, looking down the river to the moon; the saucer rises over your trail, beam on
-    const u = clamp(S.end/3.5, 0, 1), s = u*u*(3 - 2*u), portrait = cam.aspect < .8;
-    TRAIL.drawTrail(1);
-    ME.visible = true; ME.scale.setScalar(.85 + s*.9); ME.userData.beam.visible = true; ME.userData.beam.scale.set(1, 1 + s*.6, 1);
-    ME.position.set(S.from.x + (-6 - S.from.x)*s, 1.2 + s*4.2, S.from.z + (1 - S.from.z)*s); ME.rotation.set(.08*s, t*1.2, 0);
-    CAMP.set(portrait ? 32 : 26, portrait ? 9 : 7, portrait ? 6 : 5); CAML.set(-60, portrait ? 22 : 17, -6);
-    if (S.end > 1.6 && !S.saidEnd){ S.saidEnd = true; say("LA NIGHT", "LAZY JO", 4.5, "t"); }
+    // the cover: at the water's edge, looking down the river to the moon; the saucer over the water, beam on
+    const portrait = cam.aspect < .8, W = RACE.W, E = END.root, k = Math.min(1, dt*2), RZ = END.RZ;
+    const tgt = E.localToWorld(new THREE.Vector3(-16, 8, RZ - 12)); ME.position.lerp(tgt, k); ME.scale.setScalar(ME.scale.x + (1.8 - ME.scale.x)*k);
+    ME.userData.beam.visible = true; ME.userData.beam.scale.set(1, 2.2, 1); ME.userData.beam.position.y = -3.5;
+    END.boats.forEach((b, i) => { b.position.x = -24 - i*50 - S.end*(4 + i*1.5); });
+    for (const b of END.blink) b.visible = Math.floor(t*1.4 + b.position.y) % 2 === 0;
+    CAMP.copy(E.localToWorld(new THREE.Vector3(portrait ? W/2 + 22 : W/2 + 10, portrait ? 5 : 3.6, RZ + (portrait ? 8 : 6))));
+    CAML.copy(E.localToWorld(new THREE.Vector3(-260, portrait ? 52 : 40, RZ - 44)));
+    if (S.end > 2.2 && !S.saidEnd){ S.saidEnd = true; say("LA NIGHT", "LAZY JO", 4.5, "t"); }
     if (S.end > END.out - 1.2){ $("flash").style.background = "#07051a"; $("flash").style.opacity = Math.min(1, (S.end - (END.out - 1.2))/1.2); }
-  } else {
-    G.render(dt, t);
-    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
   }
-  for (const s of BLINK) s.visible = Math.floor(t*1.4 + s.position.y) % 2 === 0;
-  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.2 : 6)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
-  sky.position.copy(cam.position);
   ren.render(scene, cam);
 }
 function frame(){
@@ -567,18 +715,19 @@ function frame(){
 }
 function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
 function finish(){
-  song.pause();
+  song.pause(); if (engine && ac) engine.g.gain.setTargetAtTime(0, ac.currentTime, .05);
   const v = $("veil"); v.classList.remove("hid");
   const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
   go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
   for (const id of ["outs", "home"]) $(id).classList.remove("hid");
   $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
-  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:Math.round(TRAIL.st.metres) });
-  const st = TRAIL.st, stat = fmt(st.metres) + " m of light · " + st.got + " moonlights · " + st.rings + " rings";
+  const st = RACE.st;
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:Math.round(st.s) });
+  const stat = fmt(st.s) + " m · " + st.drifts + " drifts · " + st.nitros + " nitros · " + st.passed + " overtakes";
   if (CFG.endless){
     v.querySelector(".by").textContent = "ENDLESS · " + S.why;
     v.querySelector("h1").textContent = fmt(score());
-    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> on the river &middot; " + stat;
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> of racing &middot; " + stat;
     ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
     return;
   }
@@ -591,33 +740,28 @@ function finish(){
   }
   v.querySelector(".by").textContent = CFG.by + " COMPLETE";
   v.querySelector("h1").textContent = "LA NIGHT";
-  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
-  ps[1].innerHTML = "You drew the whole night on the river." + "<br>Level 11 cleared: <b>Light Trails &#8734;</b> is open in the gold Endless list.";
+  ps[0].innerHTML = "Finished <b>P" + st.pos + "</b> &middot; score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = (st.pos === 1 ? "First to the river." : "Over the line - " + (st.pos - 1) + (st.pos === 2 ? " car" : " cars") + " ahead of you. Nitro on the beat to catch them.") + "<br>Level 11 cleared: <b>Street Race &#8734;</b> is open in the gold Endless list.";
 }
 function boot(){
   ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
-  scene = new THREE.Scene(); scene.background = new THREE.Color(0x07051a); scene.fog = new THREE.Fog(0x1a1036, 70, 420);
-  cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, .1, 2000);
-  scene.add(new THREE.HemisphereLight(0x9a7aff, 0x1a0a14, .75));
-  const key = new THREE.DirectionalLight(0xf0e0ff, .7); key.position.set(-40, 60, -30); scene.add(key);
-  for (let k = 0; k < 4; k++){ const t = windowTex(k + 21); WIN.push(new THREE.MeshStandardMaterial({ map:t, emissiveMap:t, emissive:0xffffff, emissiveIntensity:.9, color:0x26223a, roughness:.6 })); }
-  buildSky();
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x07051a); scene.fog = new THREE.Fog(0x1a1036, 90, 460);
+  cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, .1, 3000);
+  scene.add(new THREE.HemisphereLight(0x9a7aff, 0x1a0a14, .8));
+  const key = new THREE.DirectionalLight(0xf0e0ff, .6); key.position.set(30, 60, -40); scene.add(key);
   ME = buildSaucer(); scene.add(ME);
-  TRAIL.setup();
+  RACE.setup(); buildEnd();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }
 
-/* ---------------- input ---------------- */
+/* ---------------- input: one touch - hold anywhere (or Space) ---------------- */
 const veilUp = () => !$("veil").classList.contains("hid");
-let held = false;
-const live = () => S.started && !S.done && S.end < 0;
-addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); held = true; G.point(e.clientX, e.clientY); }, { passive:false });
-addEventListener("pointermove", e => { if (!live()) return; if (held || e.pointerType === "mouse") G.point(e.clientX, e.clientY); });
-addEventListener("pointerup", () => { held = false; }); addEventListener("pointercancel", () => { held = false; });
-const KEYMAP = { ArrowLeft:"left", a:"left", ArrowRight:"right", d:"right" };
-addEventListener("keydown", e => { const k = KEYMAP[e.key]; if (k && !veilUp()){ e.preventDefault(); keys[k] = true; } });
-addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+const live = () => S && S.started && !S.done && S.end < 0;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); actHeld = true; }, { passive:false });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, () => { actHeld = false; });
+addEventListener("keydown", e => { if ((e.key === " " || e.key === "ArrowUp" || e.key === "w") && !veilUp()){ e.preventDefault(); actHeld = true; } });
+addEventListener("keyup", e => { if (e.key === " " || e.key === "ArrowUp" || e.key === "w") actHeld = false; });
 
 $("go").addEventListener("click", () => {
   reset();
@@ -625,15 +769,14 @@ $("go").addEventListener("click", () => {
   audioInit();
   if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
-  S.started = true; S.t = 0;
+  S.started = true; S.t = 0; actHeld = false;
   if (HUB) toHub({ type:"javeda:start", level:CFG.id });
-  say(CFG.endless ? "ENDLESS" : "LIGHT TRAILS", CFG.endless ? "the night with no end" : G.hint, 3, CFG.endless ? "g" : "");
 });
 $("by").textContent = "LAZY JO · " + CFG.by;
 $("title").textContent = "LA NIGHT" + (ENDLESS ? " ∞" : "");
-$("intro").innerHTML = "The river through the city, under the moon. Jo's saucer never stops - it draws a trail of light on the water wherever it goes. Make it the longest light on the river." +
-  (ENDLESS ? " <b>Endless:</b> the night never ends - faster every 8 bars, a heart back every 24." : "");
-$("how").innerHTML = "<b>Drag</b> (or the arrow keys) to steer. Grab the moonlight to make your trail longer. Your own trail, the boats, the banks and the bridges cost a heart (3). A gold ring on the beat is double.";
+$("intro").innerHTML = "A night race through the city, towards the moon, in Jo's silver car - its tail lights drawing a trail of light behind it. Seven cars start ahead of you: drift round the corners, hit the nitro on the beat and be first to the river." +
+  (ENDLESS ? " <b>Endless:</b> the race never ends - faster every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = "The car drives itself. <b>Hold</b> anywhere (or Space) to drift round the corner the saucer shines on - the arrows show which way. <b>Let go</b> when you face down the new street, on the beat for nitro. A wall costs a heart (3), bumping a car costs speed.";
 if (!HUB){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {

@@ -122,19 +122,20 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
    Once it's cleared, ENDLESS opens (?endless=1): the same swing with no end, in
    8-bar windows, wider every window, a heart back every 24 bars. */
 
-// the song's measured grid (SONG.md). Until the song is in, a stand-in: 84 BPM
-const GRID = { bpm:84, t0:0 };
+// the song's measured grid (SONG.md): 122 BPM (a half-time trap beat: the snare on 3), bars from 0.035 s
+const GRID = { bpm:122, t0:.035 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
-const END_AT = barT(64);                      // the song ends here; the outro is the ending
-const LOOP = [barT(8), barT(64)];             // endless: the bars of the song it plays round and round
+const END_AT = barT(104);                     // the swing ends with hook 3; the outro is the ending
+const LOOP = [barT(8), barT(104)];            // endless: from where the beat drops to the end of hook 3, round and round
 const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
-// how the song feels at time t: calm (intro, breaks), loud (verses), hook, rest (a bar that drops out)
+// how the song feels at time t: calm (intro, the no-kick bridges, outro), loud (the verses and builds), hook, rest (a drop-out)
+const SECTIONS = [[8, "calm"], [16, "loud"], [24, "hook"], [26, "rest"], [40, "loud"], [48, "calm"], [56, "loud"], [64, "hook"], [66, "rest"],
+  [80, "loud"], [88, "calm"], [96, "loud"], [104, "hook"]];
 function section(t){
   const b = Math.floor((songPos(t) - GRID.t0) / BAR);
-  if (b < 8 || b >= 64) return "calm";
-  const k = (b - 8) % 32;
-  return k < 8 ? "hook" : k === 15 || k === 31 ? "rest" : k >= 24 ? "calm" : "loud";
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
 }
 const STINT = BAR * 8;                        // endless: one window
 const HEARTS = 3;

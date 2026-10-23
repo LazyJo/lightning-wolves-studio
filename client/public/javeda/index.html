@@ -837,6 +837,7 @@ let runStart = null;
 function startRun(lv){ runStart = signedIn() && lv.endless ? sb.rpc("javeda_start_run", { p_level:lv.id }) : null; }
 async function saveRun(r){
   const lv = levelById(r.level); if (!lv) return;
+  if (lv.online) return;   // an online 1v1 is saved by javeda_report_match (javeda:match), not as a level run
   if (lv.endless) return saveEndless(lv, r);
   const was = progress[lv.id] || {};
   // what this run opens: the next song, a Part 2, a Part 3 that waits on a score,

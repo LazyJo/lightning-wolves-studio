@@ -537,3 +537,123 @@ GRANT EXECUTE ON FUNCTION public.javeda_buy_avatar(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_submit_run(TEXT, INT, INT, BOOLEAN) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_start_run(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_import_guest(JSONB) TO authenticated;
+
+-- ── Online 1v1 (Level 16, Hoops: LIVE and H-O-R-S-E) ───────────────────────
+-- Two real players meet by quick match (Supabase Realtime, nothing stored for that).
+-- When a match ends, each of them reports it from their own JAVEDA page: the match id,
+-- the mode, who they played and both scores (H-O-R-S-E: letters left, 5 - letters).
+-- One report alone does nothing. When the second comes in and says exactly the same
+-- (mirrored), the match counts: a win, a loss or a draw on the 1v1 board for both,
+-- +25 points for a win and +5 each for a draw - from at most 6 matches a day per
+-- player, and at most 2 a day against the same player. Two reports that don't agree
+-- count for nobody. Nobody reads or writes these tables directly.
+CREATE TABLE IF NOT EXISTS javeda_matches (
+  match_id    UUID NOT NULL,
+  player      UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  opponent    UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  mode        TEXT NOT NULL CHECK (mode IN ('live', 'horse')),
+  my_score    INT  NOT NULL,
+  their_score INT  NOT NULL,
+  status      TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'settled', 'disputed')),
+  result      TEXT CHECK (result IN ('win', 'loss', 'draw')),
+  earned      INT  NOT NULL DEFAULT 0,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (match_id, player)
+);
+CREATE INDEX IF NOT EXISTS javeda_matches_player_idx ON javeda_matches (player, created_at DESC);
+
+CREATE TABLE IF NOT EXISTS javeda_1v1 (
+  user_id    UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  wins       INT NOT NULL DEFAULT 0,
+  losses     INT NOT NULL DEFAULT 0,
+  draws      INT NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE javeda_matches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE javeda_1v1     ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS javeda_matches_read ON javeda_matches;
+DROP POLICY IF EXISTS javeda_1v1_read     ON javeda_1v1;
+CREATE POLICY javeda_matches_read ON javeda_matches FOR SELECT USING (auth.uid() = player);
+CREATE POLICY javeda_1v1_read     ON javeda_1v1     FOR SELECT USING (true);
+REVOKE ALL ON javeda_matches, javeda_1v1 FROM anon, authenticated;
+GRANT SELECT ON javeda_1v1 TO anon, authenticated;
+GRANT SELECT ON javeda_matches TO authenticated;
+
+-- the 1v1 board: one row per player who has played a counted match
+DROP VIEW IF EXISTS javeda_1v1_board;
+CREATE VIEW javeda_1v1_board WITH (security_invoker = true) AS
+SELECT p.username, p.avatar, v.wins, v.losses, v.draws
+FROM javeda_1v1 v JOIN javeda_players p ON p.user_id = v.user_id;
+GRANT SELECT ON javeda_1v1_board TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_report_match(p_match UUID, p_mode TEXT, p_opponent UUID, p_my INT, p_their INT)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+  cap INT := CASE WHEN p_mode = 'horse' THEN 5 ELSE 300000 END;
+  mine javeda_matches;
+  theirs javeda_matches;
+  me javeda_players;
+  r_me TEXT;
+  r_them TEXT;
+  pts_me INT;
+  pts_them INT;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  IF p_mode IS NULL OR p_mode NOT IN ('live', 'horse') THEN RAISE EXCEPTION 'no such mode' USING ERRCODE = '22023'; END IF;
+  IF p_match IS NULL OR p_opponent IS NULL OR p_opponent = uid THEN RAISE EXCEPTION 'no opponent' USING ERRCODE = '22023'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = p_opponent) THEN RAISE EXCEPTION 'no such player' USING ERRCODE = 'P0002'; END IF;
+  -- the two reports of one match take turns here, so the second always sees the first
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_match::TEXT, 16));
+
+  SELECT * INTO mine FROM javeda_matches WHERE match_id = p_match AND player = uid;
+  IF mine.match_id IS NULL THEN
+    -- a match is the two of them: nobody else reports into it
+    IF EXISTS (SELECT 1 FROM javeda_matches WHERE match_id = p_match AND (player <> p_opponent OR opponent <> uid)) THEN
+      RAISE EXCEPTION 'not your match' USING ERRCODE = '42501';
+    END IF;
+    INSERT INTO javeda_matches (match_id, player, opponent, mode, my_score, their_score)
+    VALUES (p_match, uid, p_opponent, p_mode, GREATEST(0, LEAST(COALESCE(p_my, 0), cap)), GREATEST(0, LEAST(COALESCE(p_their, 0), cap)))
+    RETURNING * INTO mine;
+  END IF;
+
+  SELECT * INTO theirs FROM javeda_matches WHERE match_id = p_match AND player = mine.opponent;
+  IF mine.status = 'waiting' AND theirs.match_id IS NOT NULL THEN
+    IF theirs.opponent = uid AND theirs.mode = mine.mode AND theirs.my_score = mine.their_score AND theirs.their_score = mine.my_score THEN
+      r_me   := CASE WHEN mine.my_score > mine.their_score THEN 'win' WHEN mine.my_score < mine.their_score THEN 'loss' ELSE 'draw' END;
+      r_them := CASE r_me WHEN 'win' THEN 'loss' WHEN 'loss' THEN 'win' ELSE 'draw' END;
+      pts_me   := CASE r_me   WHEN 'win' THEN 25 WHEN 'draw' THEN 5 ELSE 0 END;
+      pts_them := CASE r_them WHEN 'win' THEN 25 WHEN 'draw' THEN 5 ELSE 0 END;
+      IF (SELECT count(*) FROM javeda_matches WHERE player = uid AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 6
+         OR (SELECT count(*) FROM javeda_matches WHERE player = uid AND opponent = theirs.player AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 2 THEN
+        pts_me := 0;
+      END IF;
+      IF (SELECT count(*) FROM javeda_matches WHERE player = theirs.player AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 6
+         OR (SELECT count(*) FROM javeda_matches WHERE player = theirs.player AND opponent = uid AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 2 THEN
+        pts_them := 0;
+      END IF;
+      UPDATE javeda_matches SET status = 'settled', result = r_me, earned = pts_me WHERE match_id = p_match AND player = uid RETURNING * INTO mine;
+      UPDATE javeda_matches SET status = 'settled', result = r_them, earned = pts_them WHERE match_id = p_match AND player = theirs.player;
+      INSERT INTO javeda_1v1 AS v (user_id, wins, losses, draws)
+      VALUES (uid,           (r_me = 'win')::INT,   (r_me = 'loss')::INT,   (r_me = 'draw')::INT),
+             (theirs.player, (r_them = 'win')::INT, (r_them = 'loss')::INT, (r_them = 'draw')::INT)
+      ON CONFLICT (user_id) DO UPDATE SET wins = v.wins + EXCLUDED.wins, losses = v.losses + EXCLUDED.losses,
+                                          draws = v.draws + EXCLUDED.draws, updated_at = now();
+      UPDATE javeda_players SET points = points + pts_me, updated_at = now() WHERE user_id = uid;
+      UPDATE javeda_players SET points = points + pts_them, updated_at = now() WHERE user_id = theirs.player;
+    ELSE
+      UPDATE javeda_matches SET status = 'disputed' WHERE match_id = p_match;
+      SELECT * INTO mine FROM javeda_matches WHERE match_id = p_match AND player = uid;
+    END IF;
+  END IF;
+
+  SELECT * INTO me FROM javeda_players WHERE user_id = uid;
+  RETURN json_build_object('status', mine.status, 'result', mine.result, 'earned', mine.earned, 'player', row_to_json(me),
+                           'record', (SELECT row_to_json(v) FROM (SELECT wins, losses, draws FROM javeda_1v1 WHERE user_id = uid) v));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_report_match(UUID, TEXT, UUID, INT, INT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_report_match(UUID, TEXT, UUID, INT, INT) TO authenticated;

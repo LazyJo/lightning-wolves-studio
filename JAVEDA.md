@@ -24,6 +24,7 @@ client/public/javeda/
     ├── need-more-time.html # Level 12: Pendulum Swing - hook on, swing higher, let go on the beat (+ endless)
     ├── you-ready.html      # Level 13: Light Trails - draw on the rug in the room from the cover (+ endless)
     ├── la-vibe.html        # Level 14: Ice Breaker - breakout in the neon cup, power shots on the beat (+ endless)
+    ├── peace-inside.html   # Level 16: Hoops - and the Online 1v1 (Live, H-O-R-S-E) over Supabase Realtime
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
@@ -83,6 +84,18 @@ scoreboard shows as offline.
   score = metres, `max_rate` 40 m/s, 50 m past your best = a point, its own gold scoreboard tab.
   It was called JUMPRIDE (`jumpride`) for a day; the schema moves those bests over.
   Source: `javeda/hyperdrive` on the desktop-tutorial branch.
+- **Online 1v1** (Level 16's Hoops, `VERSUS` in the hub, its own "Online 1v1" card): quick match against
+  a real player, open to everyone logged in (so there's someone to play) - guests are asked to log in. Two
+  modes: **Live** (`lvl16live`, `?online=live`: same song, same seeded shots, side by side, highest score
+  wins) and **H-O-R-S-E** (`lvl16horse`, `?online=horse`: take turns, five letters and you're out). The level
+  page talks to the other player itself over **Supabase Realtime** (broadcast + presence; it makes its own
+  client from `/api/config` and the saved log-in): a lobby channel per mode, a room channel per match. No
+  bots and no made-up players, ever. When a match ends, each side's level posts `javeda:match` and that
+  side's hub calls `javeda_report_match`; the match counts only when both reports say the same (mirrored):
+  then a win/loss/draw for both in `javeda_1v1` (the **Hoops 1v1** board tab, from the `javeda_1v1_board`
+  view), +25 points for a win and +5 each for a draw - from at most 6 matches a day per player and 2 a day
+  against the same player. A mismatch is `disputed` and counts for nobody; a match someone leaves has no
+  result. Realtime needs nothing switched on: public broadcast/presence channels work with the anon key.
 - **Rides.** Clearing Level 2 Part 2 earns Zirka's bike: the hub opens Level 1 with `?rides=bike` and
   the level shows a Saucer / Zirka's bike picker. Creators always get it.
 - **Points** come from playing only (never from streaming): up to 40 per run for the
@@ -107,6 +120,7 @@ hub, the level posts to `window.parent` (same origin only):
 | `{type:"javeda:result", level, cleared, score, ...}` | once per finished run, win or lose |
 | `{type:"javeda:next", level}` | the player tapped "Next level" |
 | `{type:"javeda:menu"}` | the player asked to go back to the level list |
+| `{type:"javeda:match", level, match, mode, opponent, my, their}` | an online 1v1 ended (both scores; H-O-R-S-E: letters left) |
 
 ## Adding a level
 

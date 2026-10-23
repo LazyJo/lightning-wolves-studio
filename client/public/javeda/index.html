@@ -112,6 +112,14 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .tabs.gold button[aria-selected="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .btn.gold{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .btn.gold:hover{background:linear-gradient(180deg,#fff0b8,#f0b42a)}
+/* online 1v1: Level 16's Hoops against a real player - purple and gold, the checks of the lanyard */
+.ult.vs{border-color:#fdb92777; background:radial-gradient(90% 120% at 100% 0%,#fdb92733,transparent 60%),radial-gradient(70% 100% at 0% 100%,#55258399,transparent 60%),linear-gradient(160deg,#2a1450,#0e0620);
+  box-shadow:0 0 30px #55258355}
+.ult.vs::after{opacity:.18; background:repeating-conic-gradient(#ffffff14 0 25%, transparent 0 50%) 0 0/28px 28px}
+.ult.vs .ut{text-shadow:0 0 18px #9a6ad8, 0 0 40px #552583}
+.ult.vs .ut small{color:#fdb927}
+.ult.vs .modes{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
+.ult.vs .rec{font:700 14px/1.2 var(--cond); letter-spacing:.1em; color:#fdb927; text-transform:uppercase}
 /* JAVEDA: HYPERDRIVE: the ultimate one, a game of its own */
 .ult{position:relative; overflow:hidden; border-radius:16px; border:1.5px solid #ff3d8b66; padding:22px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:end;
   background:radial-gradient(90% 120% at 100% 0%,#ff3d8b40,transparent 60%),radial-gradient(70% 100% at 0% 100%,#7b2ff74d,transparent 60%),linear-gradient(160deg,#1a0b2e,#0b0416);
@@ -221,6 +229,11 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
   <section aria-labelledby="hLv">
     <h2 id="hLv">Levels</h2>
     <div class="levels" id="levels"></div>
+  </section>
+
+  <section aria-labelledby="hVs">
+    <h2 id="hVs">Online 1v1</h2>
+    <div id="versus"></div>
   </section>
 
   <section aria-labelledby="hUlt">
@@ -435,9 +448,15 @@ const ENDLESS = [
 // JAVEDA: HYPERDRIVE: not a level and not a part - the ultimate one, its own game. Scored like an endless
 // (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.
 const ULT = { id:"hyperdrive", num:9, endless:true, ultimate:true, title:"HYPERDRIVE", requires:"lvl9c", src:"levels/hyperdrive.html?hub=1" };
-const ALL = [...LEVELS, ...ENDLESS, ULT];
+// Online 1v1: Level 16's Hoops against a real player found by quick match. Open to everyone who's
+// logged in (so there's someone to play); the result goes through javeda_report_match.
+const VERSUS = [
+  { id:"lvl16live", num:16, online:"live", title:"Live 1v1", src:"levels/peace-inside.html?hub=1&online=live" },
+  { id:"lvl16horse", num:16, online:"horse", title:"H-O-R-S-E", src:"levels/peace-inside.html?hub=1&online=horse" }
+];
+const ALL = [...LEVELS, ...ENDLESS, ULT, ...VERSUS];
 const levelById = id => ALL.find(l => l.id === id);
-const lvName = l => l.ultimate ? l.title : "Level " + l.num + (l.remix ? " Remix" : l.endless ? (LEVELS.filter(m => m.num === l.num).length > 1 ? " Part " + l.part : "") + " ∞" : l.part ? " Part " + l.part : "");
+const lvName = l => l.ultimate || l.online ? l.title : "Level " + l.num + (l.remix ? " Remix" : l.endless ? (LEVELS.filter(m => m.num === l.num).length > 1 ? " Part " + l.part : "") + " ∞" : l.part ? " Part " + l.part : "");
 // "Next level" always means the next song: from a Part 2, the song after its Part 1
 function nextMain(id){
   const lv = levelById(id); if (!lv) return null;
@@ -473,6 +492,7 @@ let player = null;          // javeda_players row when signed in and joined
 let progress = {};          // level id -> { cleared, best, metres, runs }
 let owned = new Set();      // bought pictures
 let creator = false;        // a creator account (javeda_creators) plays every level, cleared or not
+let record = null;          // your online 1v1 wins, losses, draws
 let boardTab = "points";
 
 const signedIn = () => !!(session && player);
@@ -583,6 +603,17 @@ function renderEndless(){
       '<div class="parts' + (list.filter(l => !l.remix).length > 3 ? ' four' : '') + '">' + list.map(endlessTile).join("") + '</div></article>';
   }).join("");
 }
+function renderVersus(){
+  const r = record || { wins:0, losses:0, draws:0 };
+  $("versus").innerHTML = '<article class="ult vs">' +
+    '<div><span class="no">Level 16 &middot; Peace Inside &middot; Lazy Jo feat. Zirka</span><span class="ut"><small>The first online one</small>HOOPS <i>1v1</i></span>' +
+    '<p class="ds">Quick match against a real player. <b>Live:</b> the same song and the same shots at the same time, side by side - the highest score wins. ' +
+    '<b>H-O-R-S-E:</b> take turns - make a shot and they have to make it too, or it\'s a letter. Spell HORSE and you\'re out. A win is +25 points.</p></div>' +
+    '<div class="uf">' + (signedIn()
+      ? '<span class="rec">' + (r.wins + r.losses + r.draws ? r.wins + ' W &middot; ' + r.losses + ' L' + (r.draws ? ' &middot; ' + r.draws + ' D' : '') : 'No matches yet') + '</span>' +
+        '<span class="modes"><button class="btn gold" data-play="lvl16live">Live 1v1</button><button class="btn gold" data-play="lvl16horse">H-O-R-S-E</button></span>'
+      : '<span class="tag">Log in to play online</span><button class="btn primary" data-login="1">Log in</button>') + '</div></article>';
+}
 function renderUltimate(){
   const p = progress[ULT.id] || {}, open = isOpen(ULT);
   $("ultimate").innerHTML = '<article class="ult' + (open ? '' : ' locked') + '">' +
@@ -593,7 +624,7 @@ function renderUltimate(){
       ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play HYPERDRIVE</button>'
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
-const TABS = [["points","Points"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"]];
+const TABS = [["points","Points"],["1v1","Hoops 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
   $("etabs").innerHTML = '<span class="lab">Ultimate</span><button role="tab" type="button" data-tab="' + ULT.id + '" aria-selected="' + (ULT.id === boardTab) + '">' + ULT.title + '</button>' +
@@ -601,6 +632,7 @@ function renderTabs(){
 }
 async function renderBoard(){
   const el = $("board");
+  if (sb && boardTab === "1v1") return renderVsBoard(el);
   if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
   // an endless board reads the per-level scores; the rest read the one-row-per-player board
   const end = ENDLESS.some(l => l.id === boardTab) || boardTab === ULT.id;
@@ -618,7 +650,19 @@ async function renderBoard(){
     '<span class="val">' + fmt(r[col]) + (boardTab === "points" ? ' pts' : boardTab === ULT.id ? ' m' : '') + '</span></li>').join("") + '</ol>' +
     (signedIn() ? '' : '<p class="empty" style="border-top:1px solid #ffffff0d">Log in to get your name on here.</p>');
 }
-function renderAll(){ renderMe(); renderLevels(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); }
+// the 1v1 board: most wins first
+async function renderVsBoard(el){
+  const { data, error } = await sb.from("javeda_1v1_board").select("username, avatar, wins, losses, draws").gt("wins", 0).order("wins", { ascending:false }).limit(25);
+  if (boardTab !== "1v1") return;
+  if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
+  if (!data.length){ el.innerHTML = '<p class="empty">No 1v1 wins yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }
+  const mine = signedIn() ? player.username.toLowerCase() : null;
+  el.innerHTML = '<ol>' + data.map((r, i) =>
+    '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '"><span class="rk">' + (i + 1) + '</span>' +
+    '<img src="' + pic(r.avatar) + '" alt=""><span class="un">' + esc(r.username) + '</span>' +
+    '<span class="val">' + fmt(r.wins) + ' W &middot; ' + fmt(r.losses) + ' L</span></li>').join("") + '</ol>';
+}
+function renderAll(){ renderMe(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); }
 
 /* ---- profile sheet ---- */
 let pickAv = "saucer";
@@ -717,15 +761,17 @@ $("lgGoogle").onclick = async () => {
 
 /* ---- account ---- */
 async function loadAccount(){
-  player = null; owned = new Set(); creator = false;
+  player = null; owned = new Set(); creator = false; record = null;
   if (!session){ progress = { ...guest.progress }; renderAll(); return; }
   const uid = session.user.id;
-  const [p, g, o, c] = await Promise.all([
+  const [p, g, o, c, v] = await Promise.all([
     sb.from("javeda_players").select("*").eq("user_id", uid).maybeSingle(),
     sb.from("javeda_progress").select("level, cleared, best_score, best_metres, runs").eq("user_id", uid),
     sb.from("javeda_owned").select("avatar").eq("user_id", uid),
-    sb.from("javeda_creators").select("user_id").eq("user_id", uid).maybeSingle()
+    sb.from("javeda_creators").select("user_id").eq("user_id", uid).maybeSingle(),
+    sb.from("javeda_1v1").select("wins, losses, draws").eq("user_id", uid).maybeSingle()
   ]);
+  record = v.data || null;
   player = p.data || null;
   creator = !!c.data;
   progress = {};
@@ -762,6 +808,7 @@ let current = null;
 function play(id){
   const lv = levelById(id);
   if (!lv || !isOpen(lv)) return;
+  if (lv.online && !signedIn()){ toast("Log in to play online - the result goes on your account."); openLogin(); return; }
   current = lv;
   const r = lv.id === "lvl1" || lv.id === "lvl1x" ? rides() : [];
   $("frame").src = lv.src + (r.length ? "&rides=" + r.join(",") : "");
@@ -771,11 +818,12 @@ function play(id){
 function stopPlay(){
   $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null;
   document.body.style.overflow = "";
-  renderLevels(); renderUltimate(); renderEndless();
+  renderLevels(); renderVersus(); renderUltimate(); renderEndless();
 }
 $("levels").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
 for (const id of ["tabs", "etabs"]) $(id).addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b){ boardTab = b.dataset.tab; renderTabs(); renderBoard(); } });
 $("ultimate").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
+$("versus").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); else if (e.target.closest("[data-login]")) openLogin(); });
 $("endless").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
 $("playClose").onclick = stopPlay;
 
@@ -838,12 +886,33 @@ async function saveEndless(lv, r){
   toast(d.new_best ? "<b>New best! " + fmt(d.score) + (lv.ultimate ? " m" : "") + "</b>" + (d.earned ? " · +" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") : "")
                    : "Your best is still <b>" + fmt(d.progress.best_score) + (lv.ultimate ? " m" : "") + "</b> · beat it for points", 4500);
 }
+// an online 1v1 is over: report it. It counts once the other player's report says the same,
+// so if theirs isn't in yet, ask again a few times
+async function reportMatch(m){
+  if (!signedIn()) return;
+  const args = { p_match:String(m.match), p_mode:m.mode, p_opponent:String(m.opponent), p_my:m.my | 0, p_their:m.their | 0 };
+  let res;
+  for (let i = 0; i < 8; i++){
+    res = await sb.rpc("javeda_report_match", args);
+    if (res.error || res.data.status !== "waiting") break;
+    await new Promise(ok => setTimeout(ok, 2500));
+  }
+  if (res.error){ toast("That match didn't save: " + esc(res.error.message)); return; }
+  const d = res.data;
+  if (d.player) player = d.player;
+  if (d.record) record = d.record;
+  renderMe(); renderVersus(); if (boardTab === "1v1" || boardTab === "points") renderBoard();
+  if (d.status === "waiting") toast("Match saved - it counts once the other player's result is in.", 5000);
+  else if (d.status === "disputed") toast("The two results didn't match, so this one doesn't count.", 5000);
+  else toast({ win:"<b>1v1 win!</b>", loss:"1v1 loss.", draw:"<b>A 1v1 draw.</b>" }[d.result] + (d.earned ? " <b>+" + fmt(d.earned) + " points</b>" : d.result === "loss" ? " On the board - get them next time." : " On the board.") , 5000);
+}
 addEventListener("message", e => {
   // only the level page we opened, from this site
   if (e.origin !== location.origin || e.source !== $("frame").contentWindow) return;
   const m = e.data || {};
   if (m.type === "javeda:start" && current && m.level === current.id) startRun(current);
   else if (m.type === "javeda:result" && current && m.level === current.id) saveRun(m);
+  else if (m.type === "javeda:match" && current && current.online && m.level === current.id) reportMatch(m);
   else if (m.type === "javeda:menu") stopPlay();
   else if (m.type === "javeda:next"){
     const nextLv = nextMain(m.level || (current && current.id));

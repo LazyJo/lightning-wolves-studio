@@ -150,15 +150,15 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    be matched with a swish); miss it and it's a letter. Miss your own and the other one sets.
    Spell HORSE and you're out. Nobody is ever made up: if no one's there, nobody is. */
 
-// the song's grid - a stand-in (92 BPM) until the song is here and measured
-const GRID = { bpm:92, t0:0 };
+// the song's grid, measured from lvl16.mp3: 91.33 BPM, the first beat at 0.24 s (see SONG.md)
+const GRID = { bpm:91.33, t0:.24 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
-const END_AT = barT(48);
-const LOOP = [barT(4), barT(48)];             // endless and H-O-R-S-E: round and round
+const END_AT = barT(64);                      // 2:48, the last hit
+const LOOP = [barT(11), barT(64)];            // endless and H-O-R-S-E: round and round, from the first hook
 const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
-// how the song feels at time t: calm (intro, breaks), loud (verses), hook
-const SECTIONS = [[4, "calm"], [12, "loud"], [20, "hook"], [24, "calm"], [32, "loud"], [40, "hook"], [44, "calm"], [48, "hook"]];
+// how the song feels at time t: calm (the intro, the break, the bridge), loud (the verses), hook
+const SECTIONS = [[11, "calm"], [21, "hook"], [27, "loud"], [29, "calm"], [48, "loud"], [53, "calm"], [64, "hook"]];
 function section(t){
   const b = Math.floor((songPos(t) - GRID.t0) / BAR);
   for (const [end, sec] of SECTIONS) if (b < end) return sec;

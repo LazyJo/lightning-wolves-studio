@@ -23,6 +23,7 @@ client/public/javeda/
     ├── la-night.html   # Level 11: Street Race - a night race, drift round the corners, nitro on the beat (+ endless)
     ├── need-more-time.html # Level 12: Pendulum Swing - hook on, swing higher, let go on the beat (+ endless)
     ├── you-ready.html      # Level 13: Light Trails - draw on the rug in the room from the cover (+ endless)
+    ├── la-vibe.html        # Level 14: Ice Breaker - breakout in the neon cup, power shots on the beat (+ endless)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

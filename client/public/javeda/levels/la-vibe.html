@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>LA VIBE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#05030c; color:#f4f0ff; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#9af0ff; line-height:1; text-shadow:0 0 12px #ff4fd888}
+#ml{font-size:11px; letter-spacing:.18em; color:#d0c0f0; margin-top:3px}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#ff4a6a; text-shadow:0 0 10px #ff4a6a88; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ffffff1f; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#b04aff,#9af0ff)}
+.bl{font-size:11px; letter-spacing:.18em; color:#d0c0f0; text-align:right}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#9af0ff; margin-top:8px; text-align:right}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#ffd65a}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#9af0ff; text-shadow:0 0 12px #ff4fd888}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#e8e0ff; margin-top:2px}
+#phase.ready{color:#ffd27a; text-shadow:0 0 12px #ffb34788}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:22%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:24px; opacity:0; transition:opacity .25s; text-shadow:0 0 16px #ff4fd8, 0 2px 0 #000; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ffb0b8}
+#msg.g{color:#ffe08a; text-shadow:0 0 16px #ffb000, 0 2px 0 #000}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#fff; text-shadow:0 0 24px #ff4fd8, 0 0 60px #b04aff, 0 3px 0 #000}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#e8e0ff; margin-top:6px}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto;
+  background:radial-gradient(40% 30% at 50% 70%, #ff4fd833 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #1a0a3a 0%, #05030c 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #2a2410 0%, #0a0906 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#d0c0f0; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#fff; text-shadow:0 0 24px #ff4fd8, 0 0 60px #b04aff}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#e8e0ff; font-size:17px; max-width:40ch}
+#veil b{color:#9af0ff}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#9af0ff,#ff4fd8); color:#12062a; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ff4fd866}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+#go.alt{background:none; color:#9af0ff; border:1.5px solid #9af0ff; font-size:15px; padding:12px 30px; box-shadow:none}
+#veil small{color:#b8a8d8; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#e8e0ff; background:none; border:1.5px solid #9af0ff55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#9af0ff; background:#9af0ff22}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#9af0ff; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #9af0ff99; background:#9af0ff14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">LA VIBE</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="">Ice Breaker</button><button type="button" data-mode="endless" class="gold">Ice Breaker &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= LA VIBE =================
+   Level 14 of JAVEDA, in the world of the cover: a neon sign on black - "LA VIBE" in
+   cyan, the cup in blue and purple neon, the pink splash and the ice cubes over it - and
+   Jo's saucer (silver, the orange dome with the "L") with its pink beam. Everything is
+   drawn in neon tubes. Jo picked ICE BREAKER: breakout, looking down into the cup. The
+   saucer is the paddle (drag), a purple drop is the ball; smash the ice cubes and the
+   pink splash. Hit the drop on the beat for a power shot that cuts through three. The
+   ice comes down a row every 8 bars (every 4 in the hooks) and a new row pours in at
+   the top; a drop you miss or ice reaching you costs a heart (3). At the end of the song the camera comes up out of the
+   cup to the sign: the cover.
+   Once it's cleared, ENDLESS opens (?endless=1): the ice never stops pouring in, the
+   drop faster every 8 bars, a heart back every 24. */
+
+// the song's measured grid (SONG.md): 115 BPM, bars from 0.0 s
+const GRID = { bpm:115, t0:0 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(72);                      // the ice ends with hook 2; the outro is the ending
+const LOOP = [barT(8), barT(72)];             // endless: hook 1 to the end of hook 2, round and round
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (the intro, the break with no bass, the outro), loud (the verses, the half-time build), hook
+const SECTIONS = [[8, "calm"], [24, "hook"], [40, "loud"], [48, "calm"], [64, "loud"], [72, "hook"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+const ENDLESS = Q.get("endless") === "1";
+const CFG = ENDLESS ? { id:"lvl14x", title:"Ice Breaker", by:"LEVEL 14 · ENDLESS", endless:true, board:"Level 14 ∞" }
+  : { id:"lvl14", title:"Ice Breaker", by:"LEVEL 14" };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl14.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [110, 87.3, 98, 82.4];
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  clink:() => ac && tone("triangle", 2400, 1800, ac.currentTime, .12, .05, 9000),   // the drop on ice, on the saucer
+  power:() => ac && (tone("sawtooth", 330, 1320, ac.currentTime, .3, .05, 5000), hiss(ac.currentTime, .4, .08, 2500)),
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- neon from the cover ---------------- */
+let scene, cam, ren, clockR, ME, crashed = null;
+const NC = { pink:0xff4fd8, purple:0xb04aff, blue:0x4a7aff, cyan:0x3ae0ff, gold:0xffd23a, red:0xff3a5a };
+const coreCol = c => new THREE.Color(c).lerp(new THREE.Color(0xffffff), .55);
+const glowM = (c, op) => new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:op, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+// a neon tube: a white-hot core and a soft glow of its colour round it
+function neon(curve, c, r, segs, closed){ const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, segs, r, 6, !!closed), new THREE.MeshBasicMaterial({ color:coreCol(c) })));
+  g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, segs, r*3, 8, !!closed), glowM(c, .22))); return g; }
+const neonPath = (pts, c, r, closed) => neon(new THREE.CatmullRomCurve3(pts, !!closed), c, r || .08, Math.max(12, pts.length*8), closed);
+const neonLine = (a, b, c, r) => neon(new THREE.LineCurve3(a, b), c, r || .08, 1);
+function neonRing(R, c, r, arc){ const g = new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(R, r, 6, 64, arc || Math.PI*2), new THREE.MeshBasicMaterial({ color:coreCol(c) })));
+  g.add(new THREE.Mesh(new THREE.TorusGeometry(R, r*3, 8, 64, arc || Math.PI*2), glowM(c, .22))); return g; }
+// an ice cube: its twelve edges in neon, a faint glass inside
+function neonCube(s, c){ const g = new THREE.Group(), h = s/2, V = [];
+  for (const x of [-h, h]) for (const y of [-h, h]) for (const z of [-h, h]) V.push(new THREE.Vector3(x, y, z));
+  for (let i = 0; i < 8; i++) for (let j = i + 1; j < 8; j++) if (Math.abs(V[i].distanceTo(V[j]) - s) < 1e-6) g.add(neonLine(V[i], V[j], c, s*.035));
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(s*.95, s*.95, s*.95), glowM(c, .1))); return g; }
+// the cup from the cover: a tapered double cup in blue and purple neon, the pink splash, three ice cubes over the rim
+function neonCup(){ const g = new THREE.Group(), H = 6, r0 = 1.9, r1 = 2.7;
+  const rim = (y, r, c) => { const m = neonRing(r, c, .07); m.rotation.x = Math.PI/2; m.position.y = y; g.add(m); };
+  rim(0, r0, NC.blue); rim(H, r1, NC.blue); rim(H*.62, r0 + (r1 - r0)*.62, NC.purple); rim(H*.22, r0 + (r1 - r0)*.22, NC.purple);
+  for (let k = 0; k < 6; k++){ const a = k/6*Math.PI*2; g.add(neonLine(new THREE.Vector3(Math.cos(a)*r0, 0, Math.sin(a)*r0), new THREE.Vector3(Math.cos(a)*r1, H, Math.sin(a)*r1), k % 2 ? NC.blue : NC.purple, .06)); }
+  for (let k = 0; k < 7; k++){ const a = k/7*Math.PI*2 + .3, pts = [];
+    for (let i = 0; i <= 8; i++){ const u = i/8, rr = r1*(.9 - u*.2) + Math.sin(u*9 + k)*.4, y = H + Math.sin(u*Math.PI)*(2.5 + rnd(k)*2) + u*1.5; pts.push(new THREE.Vector3(Math.cos(a + u*.8)*rr, y, Math.sin(a + u*.8)*rr)); }
+    g.add(neonPath(pts, NC.pink, .07)); }
+  for (let k = 0; k < 3; k++){ const c = neonCube(1.2, 0xc8b8ff); c.position.set((k - 1)*1.4, H + 1.2 + (k % 2)*.8, (k - 1)*.4); c.rotation.set(.4*k, .7*k, .3); g.add(c); }
+  return g; }
+// a sign on the wall: text in neon
+function signTex(text, color, w, h, px){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const x = cv.getContext("2d");
+  x.font = px + "px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.shadowColor = color; x.shadowBlur = 24; x.lineWidth = 6; x.strokeStyle = color;
+  x.strokeText(text, w/2, h/2 + 4); x.shadowBlur = 10; x.lineWidth = 2; x.strokeStyle = "#ffffff"; x.strokeText(text, w/2, h/2 + 4); return new THREE.CanvasTexture(cv); }
+function vibeSign(s){ const m = new THREE.Mesh(new THREE.PlaneGeometry(4*s, s), new THREE.MeshBasicMaterial({ map:signTex("LA VIBE", "#3ae0ff", 1024, 256, 170), transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })); return m; }
+function stars(n, spread, y0, z0){ for (let i = 0; i < n; i++){ const s = sprite(i % 7 ? 0xd8d0ff : NC.pink, .5 + rnd(i)*.8, .5 + rnd(i*2)*.4); s.position.set((rnd(i*3) - .5)*spread, y0 + rnd(i*5)*spread*.4, z0 - rnd(i*7)*spread*.5); scene.add(s); } }
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .16 + (beat ? .16 : 0); g.userData.under.material.opacity = .5 + (beat ? .3 : 0); }
+// Jo's saucer from the cover: a silver hull, the orange dome with the "L", white rim lights, the pink beam
+const BADGE = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#fff4e6"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = "#ff7a1a"; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#1a0a02"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("L", 66, 70); return new THREE.CanvasTexture(cv); })();
+function buildSaucer(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0xd8dce8, roughness:.25, metalness:.7, emissive:0x3a2a4a, emissiveIntensity:.7 }));
+  hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.25, .07, 8, 44), new THREE.MeshStandardMaterial({ color:0x5a5a6a, metalness:.8, roughness:.3 })); rim.rotation.x = Math.PI/2; g.add(rim);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0xff8a2a, roughness:.25, metalness:.3, emissive:0x8a3a00, emissiveIntensity:.6 }));
+  dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE, transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:i % 2 ? 0xff9ae8 : 0xf0fbff })); l.position.set(Math.sin(a)*1.27, 0, Math.cos(a)*1.27); lights.add(l); }
+  const under = sprite(0xff7ae0, 3.2, .6); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), glowM(0xff6ad8, .22)); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { p.className = ""; p.innerHTML = G.tag + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+// a catch on the beat is worth double; a run of catches multiplies (to x4)
+function award(base, every){ const beat = onBeat(S.t); S.combo++; S.best = Math.max(S.best, S.combo); if (beat) S.onBeat++;
+  S.score += (beat ? base*2 : base) * Math.min(4, 1 + Math.floor(S.combo/every)); return beat; }
+
+/* =============== ICE BREAKER: breakout in the cup =============== */
+// Looking down into the cup: the ice cubes (cyan, one hit) and the pink splash (two hits) at the
+// top, the saucer as the paddle at the bottom, a purple drop as the ball. Where the drop hits the
+// saucer sets the angle; on the beat it's a power shot (gold) that cuts through three. The ice
+// comes down a row every 8 bars (every 4 in the hooks) and a new row pours in at the top; clear it
+// all and three more rows pour in (+1,500).
+const ICE = {
+  name:"ice", tag:"ICE BREAKER", hint:"drag to move the saucer - hit the drop on the beat", X:10, ZT:-14, ZP:7, PW:2.1, BR:.45,
+  setup(){
+    const root = this.root = new THREE.Group(); scene.add(root);
+    const fl = new THREE.Mesh(new THREE.PlaneGeometry(26, 30), new THREE.MeshBasicMaterial({ color:0x0a0618 })); fl.rotation.x = -Math.PI/2; fl.position.set(0, -.5, -3); root.add(fl);
+    for (let z = -14; z <= 8; z += 2) root.add(neonLine(new THREE.Vector3(-10, -.45, z), new THREE.Vector3(10, -.45, z), 0x3a2a7a, .02));
+    // the inside of the cup: blue sides, a purple top edge, the purple sleeve outside
+    root.add(neonLine(new THREE.Vector3(-10.5, 0, 9), new THREE.Vector3(-10.5, 0, -14.5), NC.blue, .09)); root.add(neonLine(new THREE.Vector3(10.5, 0, 9), new THREE.Vector3(10.5, 0, -14.5), NC.blue, .09));
+    root.add(neonLine(new THREE.Vector3(-10.5, 0, -14.5), new THREE.Vector3(10.5, 0, -14.5), NC.purple, .09));
+    for (const s of [-1, 1]) root.add(neonLine(new THREE.Vector3(s*11.4, 0, 9), new THREE.Vector3(s*12.4, 0, -15.4), NC.purple, .05));
+    this.sign = vibeSign(7); this.sign.position.set(0, 3.5, -17); root.add(this.sign);
+    this.ball = new THREE.Group(); this.ball.add(new THREE.Mesh(new THREE.SphereGeometry(this.BR, 16, 10), new THREE.MeshBasicMaterial({ color:0xe0b0ff }))); this.ballGlow = sprite(NC.purple, 2.6); this.ball.add(this.ballGlow); root.add(this.ball);
+    this.trail = []; for (let i = 0; i < 10; i++){ const s = sprite(NC.purple, 1, .3); root.add(s); this.trail.push(s); }
+    this.bits = []; for (let i = 0; i < 50; i++){ const s = sprite(0x9af0ff, .7, 0); root.add(s); this.bits.push({ s, life:0 }); }
+    this.bricks = [];
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  // the drop's speed: faster as the song goes, faster in the hooks, slower in the calm
+  speed(t){ const sec = section(t); return Math.min(27, 14 + 7*Math.min(1.6, this.L(t)) + (sec === "hook" ? 2.5 : sec === "calm" ? -1.5 : 0)); },
+  begin(t0, t1, L0, L1, cont){
+    Object.assign(this, { t0, t1, L0, L1 });
+    if (cont) return;
+    this.start = t0;
+    for (const b of this.bricks) this.root.remove(b.m);
+    this.bricks = [];
+    this.st = { px:0, tx:0, wave:0, broke:0, powers:0, waves:0, lastCreep:-1, bx:0, bz:this.ZP - .8, vx:0, vz:0, held:BAR, power:0 };
+    this.wave(4, false);
+  },
+  info(){ return this.st.broke + " BROKEN · " + this.bricks.length + " LEFT" + (S.combo >= 6 ? " · " + S.combo + " IN A ROW" : ""); },
+  point(cx){ this.st.tx = clamp((cx/innerWidth - .5)*2*this.X*1.15, -this.X + 1.5, this.X - 1.5); },
+  // ice pouring in at the top: rows of cubes, the pink splash in among them (two hits), gold in the hooks, a heart if you're missing one
+  wave(rows, hook){ const st = this.st, n = st.wave++;
+    let heartAt = S.hearts < HEARTS ? Math.floor(rnd(n*9.1)*7) + 7*Math.floor(rows/2) : -1;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < 7; c++){ const k = n*100 + r*7 + c, i = r*7 + c;
+      const kind = i === heartAt ? "heart" : hook && rnd(k*3.3) < .12 ? "gold" : r > 0 && (r + c + n) % 3 === 0 ? "pink" : "ice";
+      const m = new THREE.Group(), col = { ice:0x9ae8ff, pink:NC.pink, gold:NC.gold, heart:NC.red }[kind];
+      m.add(neonCube(1.5, col)); if (kind !== "ice") m.add(sprite(col, 2.2, .4));
+      m.children[0].rotation.set(.3, .5 + c + n, .2); const b = { x:(c - 3)*2.8, z:this.ZT + 1.4 + (rows - 1 - r)*1.9, hp:kind === "pink" ? 2 : 1, kind, m }; m.position.set(b.x, .4, b.z - 6); this.root.add(m); this.bricks.push(b); } },
+  burst(x, z, c){ for (let i = 0; i < 8; i++){ const p = this.bits.find(p => p.life <= 0); if (!p) return; p.life = 1; p.x = x; p.z = z; p.vx = (Math.random() - .5)*12; p.vz = (Math.random() - .5)*12; p.s.material.color.setHex(c); } },
+  serve(){ this.st.held = BEAT*2; this.st.power = 0; },
+  update(dt, t){
+    const st = this.st, sp = this.speed(t), bar = Math.floor((t - GRID.t0)/BAR), hook = section(t) === "hook";
+    if (keys.left) st.tx -= dt*16; if (keys.right) st.tx += dt*16; st.tx = clamp(st.tx, -this.X + 1.5, this.X - 1.5);
+    st.px += (st.tx - st.px)*(1 - Math.exp(-dt*18));
+    // the drop waits on the saucer, then goes on the next beat
+    if (st.held > 0){ st.held -= dt; st.bx = st.px; st.bz = this.ZP - .8;
+      if (st.held <= 0){ const a = (rnd(t*7.7) < .5 ? -1 : 1)*(.3 + rnd(t*3.1)*.45); st.vx = Math.sin(a)*sp; st.vz = -Math.cos(a)*sp; } }
+    else for (let k = 0; k < 4; k++){ const h = dt/4;
+      const s0 = Math.hypot(st.vx, st.vz); st.vx *= sp/s0; st.vz *= sp/s0;
+      st.bx += st.vx*h; st.bz += st.vz*h;
+      if (st.bx < -this.X + this.BR){ st.bx = -this.X + this.BR; st.vx = Math.abs(st.vx); } if (st.bx > this.X - this.BR){ st.bx = this.X - this.BR; st.vx = -Math.abs(st.vx); }
+      if (st.bz < this.ZT + this.BR){ st.bz = this.ZT + this.BR; st.vz = Math.abs(st.vz); }
+      // the saucer: where it hits sets the angle; on the beat, a power shot
+      if (st.vz > 0 && st.bz > this.ZP - .6 && st.bz < this.ZP + .4 && Math.abs(st.bx - st.px) < this.PW + this.BR){ const off = clamp((st.bx - st.px)/this.PW, -1, 1), a = off*1.05;
+        st.vx = Math.sin(a)*sp; st.vz = -Math.cos(a)*sp; st.bz = this.ZP - .6; sfx.clink();
+        if (onBeat(t)){ st.power = 3; st.powers++; S.onBeat++; S.score += 100; say("POWER SHOT", "on the beat", .5, "g"); sfx.power(); } }
+      for (const b of this.bricks){ const dx = st.bx - b.x, dz = st.bz - b.z, px = 1.15 + this.BR - Math.abs(dx), pz = .85 + this.BR - Math.abs(dz);
+        if (px > 0 && pz > 0){ if (st.power > 0){ st.power--; b.hp = 0; } else { b.hp--; if (px < pz) st.vx = Math.sign(dx)*Math.abs(st.vx); else st.vz = Math.sign(dz)*Math.abs(st.vz); }
+          if (b.hp <= 0){ b.dead = true; this.root.remove(b.m); st.broke++; const col = { ice:0x9af0ff, pink:NC.pink, gold:NC.gold, heart:NC.red }[b.kind];
+            const beat = award({ ice:50, pink:80, gold:300, heart:50 }[b.kind], 8); sfx.good(S.combo); this.burst(b.x, b.z, col);
+            if (b.kind === "heart" && S.hearts < HEARTS){ S.hearts++; sfx.heart(); say("A HEART", "", .8, "g"); }
+            else if (b.kind === "gold") say("GOLD", "+" + (beat ? 600 : 300), .5, "g"); }
+          else { b.m.children[1].material.opacity = .12; sfx.clink(); }
+          break; } }
+      this.bricks = this.bricks.filter(b => !b.dead);
+      if (st.bz > this.ZP + 2.5){ this.serve(); if (hurt("MISSED IT", "Get the saucer under the drop - where it hits on the saucer sets the angle.")) return; break; } }
+    // the ice comes down a row every 8 bars (every 4 in the hooks) and a new row pours in at the top; reaching you costs a heart
+    if (bar >= 4 && bar !== st.lastCreep && (bar % 8 === 4 || (hook && bar % 4 === 0))){ st.lastCreep = bar; for (const b of this.bricks) b.z += 1.9; this.wave(1, hook); say("THE ICE COMES DOWN", "", .8, "x"); }
+    const low = this.bricks.filter(b => b.z > this.ZP - 3);
+    if (low.length){ for (const b of low){ this.root.remove(b.m); b.dead = true; } this.bricks = this.bricks.filter(b => !b.dead); if (S.inv <= 0 && hurt("THE ICE GOT YOU", "Break the ice before it comes down to you - every 8 bars it moves a row, every 4 in the hooks.")) return; }
+    if (!this.bricks.length){ st.waves++; S.score += 1500; sfx.big(); say("ALL CLEAR", "+1,500", 1, "g"); this.wave(Math.min(6, 3 + st.waves), hook); }
+    for (const p of this.bits) if (p.life > 0){ p.life -= dt*1.6; p.x += p.vx*dt; p.z += p.vz*dt; }
+  },
+  render(dt, t){
+    const st = this.st, beat = onBeat(t), portrait = cam.aspect < .8;
+    ME.position.set(st.px, .2, this.ZP + .4); ME.rotation.set(0, t*1.5, 0); ME.scale.setScalar(1.25); ME.userData.beam.visible = false;
+    this.ball.position.set(st.bx, .4, st.bz); this.ballGlow.material.color.setHex(st.power > 0 ? NC.gold : NC.purple); this.ballGlow.scale.setScalar(beat ? 3.2 : 2.6);
+    this.trail.forEach((s, i) => { s.position.set(st.bx - st.vx*.012*(i + 1), .4, st.bz - st.vz*.012*(i + 1)); s.material.opacity = st.held > 0 ? 0 : .3*(1 - i/10); s.material.color.setHex(st.power > 0 ? NC.gold : NC.purple); });
+    for (const b of this.bricks){ b.m.position.z += (b.z - b.m.position.z)*Math.min(1, dt*8); b.m.scale.setScalar(beat ? 1.06 : 1); }
+    for (const p of this.bits){ p.s.material.opacity = Math.max(0, p.life); if (p.life > 0) p.s.position.set(p.x, .5, p.z); }
+    this.sign.material.opacity = beat ? 1 : .85;
+    CAMP.set(0, portrait ? 50 : 28, portrait ? 20 : 17); CAML.set(0, 0, -3.5);
+  }
+};
+
+/* ---------------- the run ---------------- */
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = ICE; camInit = false; ME.userData.beam.visible = false; ME.scale.setScalar(1.25); ICE.root.visible = true; END.root.visible = false;
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+}
+// endless goes in 8-bar windows, a little harder every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+function songT(){
+  if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   Up out of the cup to the sign: the cover. The big neon cup with the pink splash and
+   the ice cubes over it, "LAZY JO" and "LA VIBE" in cyan above, the saucer below with
+   its pink beam. */
+const END = { out:8, root:null };
+function buildEnd(){
+  const g = new THREE.Group(); g.visible = false; scene.add(g);
+  const cup = neonCup(); cup.scale.setScalar(2.1); cup.position.set(0, -6, -6); g.add(cup);
+  const sg = vibeSign(13); sg.position.set(0, 18.5, -8); g.add(sg);
+  // "LAZY JO" over it, small, white, spaced out - like the cover
+  const by = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.1), new THREE.MeshBasicMaterial({ map:(() => { const cv = document.createElement("canvas"); cv.width = 512; cv.height = 64; const x = cv.getContext("2d");
+    x.font = "bold 40px 'Barlow Condensed', Arial, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.shadowColor = "#ffffff"; x.shadowBlur = 10; x.fillStyle = "#ffffff"; x.fillText("L  A  Z  Y     J  O", 256, 34); return new THREE.CanvasTexture(cv); })(), transparent:true, depthWrite:false, fog:false }));
+  by.position.set(0, 22.3, -8); g.add(by);
+  for (let i = 0; i < 60; i++){ const s = sprite(i % 5 ? 0xd8d0ff : NC.pink, .4 + rnd(i)*.6, .5); s.position.set((rnd(i*3) - .5)*120, (rnd(i*5) - .3)*70, -40 - rnd(i*7)*30); g.add(s); }
+  g.userData = { cup, sg }; END.root = g;
+}
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+  S.from = { x:ICE.st.px };
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  ME.userData.lights.rotation.y = t*2.5; ME.userData.beam.material.opacity = .18 + (beat ? .14 : 0); ME.userData.under.material.opacity = .55 + (beat ? .3 : 0);
+  if (S.end >= 0){
+    // the cover: the camera comes up out of the cup and round to the front of the sign; the saucer below, beam on
+    const u = clamp(S.end/3, 0, 1), s = u*u*(3 - 2*u), portrait = cam.aspect < .8;
+    if (S.end > .7){ ICE.root.visible = false; END.root.visible = true; }
+    ME.visible = true; ME.userData.beam.visible = S.end > .7; ME.userData.beam.scale.set(1.3, 1.6, 1.3); ME.userData.beam.position.y = -2.6;
+    ME.scale.setScalar(1.25 + s*.6); ME.position.set(S.from.x*(1 - s), .2 + s*(-9.5 - .2), 7.4 + s*(2 - 7.4)); ME.rotation.set(0, t*1.2, 0);
+    END.root.userData.cup.scale.setScalar(2.1*(beat ? 1.02 : 1)); END.root.userData.sg.material.opacity = beat ? 1 : .85;
+    if (S.end > .7){ CAMP.set(0, portrait ? 6 : 4, portrait ? 100 : 44); CAML.set(0, portrait ? 6 : 4.5, -6); }
+    if (S.end > END.out - 1.2){ $("flash").style.background = "#05030c"; $("flash").style.opacity = Math.min(1, (S.end - (END.out - 1.2))/1.2); }
+  } else {
+    G.render(dt, t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:ICE.st.broke });
+  const st = ICE.st, stat = fmt(st.broke) + " ice cubes · " + st.powers + " power shots" + (st.waves ? " · " + st.waves + " all clear" : "");
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the cup &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "LA VIBE";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = "The ice is gone - all vibe." + "<br>Level 14 cleared: <b>Ice Breaker &#8734;</b> is open in the gold Endless list.";
+}
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x05030c); scene.fog = new THREE.Fog(0x0a0620, 60, 220);
+  cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, .1, 2000);
+  scene.add(new THREE.HemisphereLight(0xd8c8ff, 0x1a0a2a, .9));
+  const key = new THREE.DirectionalLight(0xffd0f0, .6); key.position.set(10, 50, 30); scene.add(key);
+  ME = buildSaucer(); scene.add(ME);
+  ICE.setup(); buildEnd();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input ---------------- */
+const veilUp = () => !$("veil").classList.contains("hid");
+let held = false;
+const live = () => S.started && !S.done && S.end < 0;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); held = true; G.point(e.clientX, e.clientY); }, { passive:false });
+addEventListener("pointermove", e => { if (!live()) return; if (held || e.pointerType === "mouse") G.point(e.clientX, e.clientY); });
+addEventListener("pointerup", () => { held = false; }); addEventListener("pointercancel", () => { held = false; });
+const KEYMAP = { ArrowLeft:"left", a:"left", ArrowRight:"right", d:"right" };
+addEventListener("keydown", e => { const k = KEYMAP[e.key]; if (k && !veilUp()){ e.preventDefault(); keys[k] = true; } });
+addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+
+$("go").addEventListener("click", () => {
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : "ICE BREAKER", CFG.endless ? "the ice never stops" : G.hint, 3, CFG.endless ? "g" : "");
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = "LA VIBE" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = "Inside the neon cup from the cover. The saucer is the paddle, a purple drop is the ball - smash the ice cubes and the pink splash before the ice comes down to you." +
+  (ENDLESS ? " <b>Endless:</b> the ice never stops pouring in - faster every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = "<b>Drag</b> (or the arrow keys) to move the saucer. Where the drop hits it sets the angle; <b>on the beat</b> it's a power shot that cuts through three. Pink ice takes two hits, gold is a bonus, a red cube gives a heart back. A drop you miss, or ice reaching you, costs a heart (3).";
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String((m === "endless") === ENDLESS));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); if (m === "endless") q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

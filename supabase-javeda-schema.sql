@@ -79,7 +79,10 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl19', 19, 'STAY UP',      'lvl18b', 0, 120000, 1200, 75, 500, 35),  -- Pad Memory: ~54k for a bot that plays every pattern back on the beat (2:31)
   ('lvl20', 20, 'STAY UP 2',    'lvl19', 0, 100000, 1000, 75, 500, 36),  -- Pass It On: ~45k for a bot that plays every pattern back on the beat (2:43)
   ('lvl21', 21, 'BLIND LOVE',   'lvl20', 0, 130000, 1300, 75, 500, 37),  -- Love Cards: ~59k for a bot that remembers every card (2:57)
-  ('lvl21b', 21, 'SNAP',        'lvl21', 0, 120000, 1200, 75, 300, 38)  -- Part 2: ~58k for a bot that snaps every pair
+  ('lvl21b', 21, 'SNAP',        'lvl21', 0, 120000, 1200, 75, 300, 38),  -- Part 2: ~58k for a bot that snaps every pair
+  ('lvl22', 22, 'SPACE KID',    'lvl21b', 0, 240000, 2400, 75, 500, 39),  -- Planet Match: ~112k for a bot that takes the first swap it sees (stand-in grid)
+  ('lvl22b', 22, 'RAINBOW SORT', 'lvl22', 0, 100000, 1000, 75, 300, 40),  -- Part 2: ~48k for a bot that knows the shortest way
+  ('lvl22c', 22, 'STAR PEAKS',   'lvl22b', 0, 80000, 800, 75, 300, 41)  -- Part 3: ~37k for a bot that plays the first card that fits
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -135,9 +138,12 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl20x', 20, 'PASS IT ON', 'lvl20', 0, 50000000, 4000, 0, 0, 143, true, 650),  -- ~340/s
   ('lvl21x', 21, 'LOVE CARDS', 'lvl21b', 0, 50000000, 4500, 0, 0, 144, true, 700),  -- ~360/s
   ('lvl21bx', 21, 'SNAP', 'lvl21b', 0, 50000000, 4400, 0, 0, 145, true, 700),  -- ~350/s
+  ('lvl22x', 22, 'PLANET MATCH', 'lvl22c', 0, 50000000, 8600, 0, 0, 146, true, 1400),  -- ~690/s
+  ('lvl22bx', 22, 'RAINBOW SORT', 'lvl22c', 0, 50000000, 3500, 0, 0, 147, true, 560),  -- ~280/s
+  ('lvl22cx', 22, 'STAR PEAKS', 'lvl22c', 0, 50000000, 3100, 0, 0, 148, true, 500),  -- ~250/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
-  ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 150, true, 40)
+  ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 200, true, 40)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -312,7 +318,10 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl19' THEN g.best_score END), 0)::INT AS lvl19_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl20' THEN g.best_score END), 0)::INT AS lvl20_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl21' THEN g.best_score END), 0)::INT AS lvl21_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl21b' THEN g.best_score END), 0)::INT AS lvl21b_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl21b' THEN g.best_score END), 0)::INT AS lvl21b_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl22' THEN g.best_score END), 0)::INT AS lvl22_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl22b' THEN g.best_score END), 0)::INT AS lvl22b_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl22c' THEN g.best_score END), 0)::INT AS lvl22c_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

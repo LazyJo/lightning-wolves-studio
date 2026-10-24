@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>SPACE KID</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#140838; color:#fff0e8; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#fff6f0; line-height:1; text-shadow:0 0 14px #ffc83a}
+#ml{font-size:11px; letter-spacing:.18em; color:#ffe8c8; margin-top:3px; text-shadow:0 0 6px #000}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#e0306a; text-shadow:0 0 8px #000; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ff5a4a22; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#ff5a4a,#ff5a4a)}
+.bl{font-size:11px; letter-spacing:.18em; color:#ffe8c8; text-align:right; text-shadow:0 0 6px #000}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#ff5a4a; margin-top:8px; text-align:right; text-shadow:0 0 8px #000}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#ffc83a}
+/* the other player, top middle: both of you and your pairs */
+#vs{position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:3; pointer-events:none; text-align:center; font-family:Bungee,sans-serif; color:#fff6f0;
+  background:#2a0a5acc; border:1.5px solid #ffc83a55; border-radius:8px; padding:6px 12px; min-width:150px}
+#vs .nm{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#ffe8c8; max-width:40vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#vs .row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+#vs .row + .row{margin-top:3px}
+#vs .lt{font-size:16px; letter-spacing:.12em; color:#ffc83a44}
+#vs .lt b{color:#ff6a8a; font-weight:400}
+#vs .row.up .nm{color:#ffe08a}
+#vs .row.up .nm::before{content:"\25B6  "}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#ff5a4a; text-shadow:0 0 3px #1a0a2a, 0 0 10px #1a0a2a, 0 2px 0 #1a0a2a}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#fff6f0; margin-top:2px; text-shadow:0 0 3px #1a0a2a, 0 0 8px #1a0a2a}
+#phase.ready{color:#ffe08a}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:26px; opacity:0; transition:opacity .25s; color:#ff5a4a; text-shadow:0 0 3px #1a0a2a, 0 0 12px #1a0a2a, 0 2px 0 #1a0a2a; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff6a7a}
+#msg.g{color:#ffc83a}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#f4f8ff; font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:.18em; text-shadow:0 0 24px #ffc83a, 0 0 60px #ff4a3a, 0 2px 5px #140838}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#fff6f0; margin-top:6px; text-shadow:0 0 3px #1a0a2a, 0 0 8px #1a0a2a}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto; color:#f4f0ff;
+  background:radial-gradient(50% 30% at 50% 20%, #ffc83a33 0%, transparent 70%), radial-gradient(120% 80% at 50% 25%, #4a1a8a 0%, #140838 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #3a2a10 0%, #120c04 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#ffe8c8; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#fff6f0; text-shadow:0 0 22px #ffc83a, 0 0 50px #ff4a3a}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#fff0e8; font-size:17px; max-width:42ch}
+#veil b{color:#ff5a4a}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffe08a,#ff4a3a); color:#2a0a14; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ff5a4a66}
+#go:disabled{opacity:.45; cursor:default; box-shadow:none}
+#go.alt{background:none; color:#ff5a4a; border:1.5px solid #ff5a4a; font-size:15px; padding:12px 30px; box-shadow:none}
+.alt2{font-family:"Barlow Condensed",sans-serif; font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:14px; background:none; color:#fff0e8;
+  border:1.5px solid #fff0e866; border-radius:4px; padding:9px 18px; cursor:pointer}
+#net{font-size:16px; color:#fff0e8; max-width:42ch; min-height:20px}
+#net b{color:#ffe08a}
+#net .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:#3ad07a; margin-right:6px; vertical-align:1px}
+#net.wait .dot{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+#veil small{color:#ffe8c8; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#fff0e8; background:none; border:1.5px solid #ff5a4a55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#ff5a4a; background:#ff5a4a22}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ff5a4a; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ff5a4a99; background:#ff5a4a14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (max-width:520px){ #vs{top:auto; bottom:calc(58px + env(safe-area-inset-bottom))} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} #net.wait .dot{animation:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">SPACE KID</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="1">Planet Match</button><button type="button" data-mode="2">Rainbow Sort</button><button type="button" data-mode="3">Star Peaks</button><button type="button" data-mode="1x" class="gold">Planet Match &#8734;</button><button type="button" data-mode="2x" class="gold">Rainbow Sort &#8734;</button><button type="button" data-mode="3x" class="gold">Star Peaks &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= SPACE KID =================
+   Level 22 of JAVEDA, in the world of the cover: deep space in purple and blue full of stars, the
+   rainbow across it, the big gold moon, the dark planets with their rings - the two kids in the long
+   red flying car (her with the curls, waving; him in the dark hood and the chain) - and Jo's saucer
+   (the red dome with the "L", the white beam). Jo picked three, so the song has three parts:
+   PART 1 · PLANET MATCH: swap two planets side by side to line up three of a colour; they burst, new
+   ones fall in, chains multiply. Reach each stage's score before the time's up.
+   PART 2 · RAINBOW SORT (?part=2): lift the top planet of a glass tube, drop it on the same colour or
+   into an empty tube - one colour to a tube. Each mix is solved before you get it.
+   PART 3 · STAR PEAKS (?part=3): the solitaire - play a free card one higher or one lower than the
+   pile's top card; streaks count more and more. Clear the three peaks for a big bonus.
+   Out of time costs a heart (3). On the beat it counts double, in the hooks double again. At the end
+   of the song: the cover. ENDLESS for each (?endless=1) once all three are cleared. */
+
+// the song's grid - a stand-in (92 BPM) until the song is here and measured
+const GRID = { bpm:92, t0:0 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(64);
+const LOOP = [barT(8), barT(64)];             // endless: round and round
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (intro, breaks), loud (verses), hook
+const SECTIONS = [[8, "calm"], [16, "hook"], [24, "loud"], [28, "calm"], [36, "hook"], [44, "loud"], [48, "calm"], [56, "hook"], [64, "loud"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+
+const PART = { "2":2, "3":3 }[Q.get("part")] || 1;
+const ENDLESS = Q.get("endless") === "1";
+const NAMES = ["", "Planet Match", "Rainbow Sort", "Star Peaks"], IDS = ["", "lvl22", "lvl22b", "lvl22c"];
+const CFG = ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 22" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 22" + (PART > 1 ? " Part " + PART : "") + " ∞" }
+  : { id:IDS[PART], title:NAMES[PART], by:"LEVEL 22" + (PART > 1 ? " PART " + PART : "") };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+const shuffle = (a, seed) => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd(seed + i*3.7)*(i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl22.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [110, 87.3, 130.8, 98];           // a bright loop
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  slide:() => ac && (hiss(ac.currentTime, .1, .05, 0, 900), tone("sine", 300, 200, ac.currentTime, .1, .05, 1200)),       // a planet moves
+  clink:() => ac && tone("triangle", 2400, 1800, ac.currentTime, .12, .05, 9000),                       // a card turns
+  clap: () => ac && (hiss(ac.currentTime, .12, .25, 0, 1500), hiss(ac.currentTime + .012, .1, .18, 0, 2200)),
+  tick: () => ac && tone("triangle", 1200, 1200, ac.currentTime, .06, .05, 9000),                      // the count-in
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the cover: deep space in purple and blue, the rainbow, the big gold moon, the red flying car; Jo's saucer ---------------- */
+let scene, cam, ren, clockR, crashed = null;
+const SC = { red:0xe8282a, gold:0xffc83a, white:0xfff6f0, ink:0x1a0a2a, violet:0x5a2ab8 };
+const RAINBOW = [0xff3a3a, 0xff9a2a, 0xffe03a, 0x4ad84a, 0x3a9aff, 0x8a4aff];
+const RB_CSS = ["#ff3a3a", "#ff9a2a", "#ffe03a", "#4ad84a", "#3a9aff", "#8a4aff"];
+const glowM = (c, op) => new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:op, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+const toon = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.5, metalness:.15, emissive:c, emissiveIntensity:e == null ? .12 : e });
+// the sky: purple at the top to deep blue, full of little stars and a few big sparkles
+const SKY = canvasTex(512, 512, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#2a0a5a"); g.addColorStop(.5, "#3a1a8a"); g.addColorStop(1, "#140838"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 500; i++){ x.fillStyle = "rgba(255,255,255," + (.3 + rnd(i*3)*.7) + ")"; const s = rnd(i*7) < .9 ? 1 : 2; x.fillRect(rnd(i)*w, rnd(i*5)*h, s, s); } });
+function space(){ const g = new THREE.Group(); scene.add(g);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), new THREE.MeshBasicMaterial({ map:SKY, side:THREE.BackSide, fog:false })));
+  // the rainbow: six bands in a big arc across the back
+  RAINBOW.forEach((c, i) => { const r = new THREE.Mesh(new THREE.TorusGeometry(70 - i*3, 1.5, 8, 64, Math.PI), new THREE.MeshBasicMaterial({ color:c, fog:false, transparent:true, opacity:.85 })); r.position.set(30, -20, -160); r.rotation.z = -.15; g.add(r); });
+  // the big gold moon, low on the right
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(26, 32, 16), new THREE.MeshBasicMaterial({ color:0xffb83a, fog:false })); moon.position.set(90, 10, -190); g.add(moon);
+  const mg = sprite(0xffc86a, 120, .5); mg.position.copy(moon.position); g.add(mg);
+  // the dark planets, like the shadows on the cover
+  for (const [x, y, z, r] of [[-70, 30, -150, 16], [-40, -30, -120, 10], [60, -40, -110, 12], [-90, -10, -200, 22]]){ const p = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 12), new THREE.MeshBasicMaterial({ color:0x2a1a4a, fog:false })); p.position.set(x, y, z); g.add(p);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r*1.6, r*.08, 4, 48), new THREE.MeshBasicMaterial({ color:0x3a2a6a, fog:false })); ring.position.copy(p.position); ring.rotation.set(1.2, .3, 0); g.add(ring); }
+  for (let i = 0; i < 18; i++){ const s = sprite(0xffffff, 2 + rnd(i*3)*3, .9); s.position.set((rnd(i) - .5)*260, (rnd(i*5) - .3)*120, -100 - rnd(i*7)*120); g.add(s); }
+  return g; }
+// the red flying car: long and low, the glass bubble, the two of them inside (her waving), the jets glowing at the back
+function redCar(){ const g = new THREE.Group(), red = toon(SC.red, .2), dark = toon(0x6a0a14, .1);
+  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), red); body.scale.set(1.1, .42, 2.6); g.add(body);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(.9, 2, 16), red); nose.rotation.x = -Math.PI/2; nose.scale.set(1.1, .5, 1); nose.position.z = -2.6; g.add(nose);
+  for (const sx of [-1, 1]){ const fin = new THREE.Mesh(new THREE.BoxGeometry(.12, .5, 1.2), red); fin.position.set(sx*.9, .3, 2); fin.rotation.x = -.4; g.add(fin);
+    const jet = new THREE.Mesh(new THREE.CylinderGeometry(.28, .34, .5, 14), dark); jet.rotation.x = Math.PI/2; jet.position.set(sx*.6, -.05, 2.6); g.add(jet);
+    const fire = sprite(0xffb05a, 1.6, .9); fire.position.set(sx*.6, -.05, 3.1); g.add(fire); (g.userData.fire = g.userData.fire || []).push(fire); }
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.25, .06, .25), new THREE.MeshBasicMaterial({ color:0xfff0f0 })); stripe.position.set(0, -.08, 1.6); g.add(stripe);
+  for (let i = 0; i < 3; i++){ const vent = new THREE.Mesh(new THREE.BoxGeometry(.5, .04, .08), new THREE.MeshBasicMaterial({ color:0x1a0a10 })); vent.position.set(-.4 + i*.18, .38, -1.4 - i*.2); vent.rotation.y = .6; g.add(vent); }
+  const glass = new THREE.Mesh(new THREE.SphereGeometry(.85, 20, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0xb8c8ff, transparent:true, opacity:.35, roughness:.1, metalness:.3 })); glass.scale.set(1, .8, 1.5); glass.position.set(0, .3, .3); g.add(glass);
+  // the two of them: her (the curls, waving) and him (the dark hood, the chain)
+  const skin = toon(0x7a4a2a, .15);
+  const her = new THREE.Group(); her.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.24, 12, 8), skin), 0, .2, 0));
+  for (let i = 0; i < 7; i++) her.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), toon(0x2a140a, .1)), Math.cos(i)*.2, .32 + rnd(i)*.12, Math.sin(i*1.7)*.18));
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(.05, .05, .55, 6), skin); arm.position.set(-.3, .45, 0); arm.rotation.z = .5; her.add(arm); her.userData.arm = arm;
+  her.position.set(-.32, .35, .2); g.add(her);
+  const him = new THREE.Group(); him.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.24, 12, 8), skin), 0, .2, 0));
+  him.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.28, 12, 8, 0, Math.PI*2, 0, Math.PI*.55), toon(0x14141a, .05)), 0, .22, .02));
+  const chain = new THREE.Mesh(new THREE.TorusGeometry(.18, .035, 6, 16), toon(0xe8e8f0, .4)); chain.rotation.x = 1.3; chain.position.set(0, .02, -.05); him.add(chain);
+  him.position.set(.32, .35, .25); g.add(him);
+  const under = sprite(0xff5a3a, 3, .4); under.position.y = -.5; g.add(under);
+  g.userData.her = her; return g; }
+function animCar(g, t){ for (const f of g.userData.fire) f.scale.setScalar(1.3 + Math.sin(t*30 + f.position.x)*.25); g.userData.her.userData.arm.rotation.z = .5 + Math.sin(t*6)*.35; }
+
+/* ---- Jo's saucer as it is on this cover: the dark hull, the red dome with the "L", red rim lights, the white beam ---- */
+const BADGE = (letter, bg) => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#e8f4ff"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = bg; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#06102a"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(letter, 66, 70); return new THREE.CanvasTexture(cv); };
+function buildSaucer(dc, gc, letter, rim){
+  dc = dc || 0xe83a3a; gc = gc || 0xa81a1a; rim = rim || 0xff6a5a;
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0x2a2a3a, roughness:.3, metalness:.7, emissive:0x12121a, emissiveIntensity:.5 })); hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.28, .14, 32, 1, true), new THREE.MeshStandardMaterial({ color:0x1a1a24, metalness:.8, roughness:.3 })));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:dc, roughness:.2, metalness:.3, emissive:gc, emissiveIntensity:.8 })); dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE(letter || "L", "#" + new THREE.Color(rim).getHexString()), transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:i % 2 ? rim : 0xfff0e8 })); l.position.set(Math.sin(a)*1.3, 0, Math.cos(a)*1.3); lights.add(l); }
+  const under = sprite(rim, 3, .5); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color:0xfff4f0, transparent:true, opacity:.25, depthWrite:false, side:THREE.DoubleSide })); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .18 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
+// a planet piece: a shiny ball in one of the rainbow colours, each with its own look (a ring, bands, spots...)
+const PLANET_TEX = RB_CSS.map((c, k) => canvasTex(128, 64, (x, w, h) => { x.fillStyle = c; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(255,255,255,.35)";
+  if (k % 3 === 0) for (let i = 0; i < 4; i++) x.fillRect(0, 8 + i*14, w, 5); else if (k % 3 === 1) for (let i = 0; i < 9; i++){ x.beginPath(); x.arc(rnd(k*9 + i)*w, rnd(k*7 + i)*h, 4 + rnd(i)*6, 0, 7); x.fill(); }
+  else { x.fillRect(0, 26, w, 12); } }));
+function planetPiece(k){ const g = new THREE.Group();
+  const m = new THREE.Mesh(new THREE.SphereGeometry(.42, 20, 12), new THREE.MeshStandardMaterial({ map:PLANET_TEX[k], roughness:.35, metalness:.1, emissive:RAINBOW[k], emissiveIntensity:.25 })); g.add(m);
+  if (k === 2 || k === 5){ const r = new THREE.Mesh(new THREE.TorusGeometry(.6, .05, 6, 28), new THREE.MeshBasicMaterial({ color:0xfff6f0 })); r.rotation.x = 1.2; g.add(r); }
+  if (k === 4){ const moon = new THREE.Mesh(new THREE.SphereGeometry(.1, 8, 6), new THREE.MeshBasicMaterial({ color:0xfff6f0 })); moon.position.set(.45, .3, .1); g.add(moon); }
+  g.userData.k = k; return g; }
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { const sec = section(t); p.className = sec === "hook" ? "ready" : ""; p.innerHTML = (sec === "hook" ? "HOOK &middot; DOUBLE POINTS" : G.tag) + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+
+
+/* ================= the three parts ================= */
+const pickRay = new THREE.Raycaster();
+const rayAt = (cx, cy, objs) => { pickRay.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); return pickRay.intersectObjects(objs, true)[0]; };
+const owner = (o, list) => { while (o && !list.includes(o)) o = o.parent; return o; };
+const hookNow = t => section(t) === "hook";
+function flyCar(car, t, x, y, z){ car.position.set(x + Math.sin(t*.7)*.6, y + Math.sin(t*1.3)*.25, z); car.rotation.set(.12, -.5 + Math.sin(t*.5)*.08, Math.sin(t*1.1)*.08); animCar(car, t); }
+const fmt0 = n => Math.max(0, Math.round(n)).toLocaleString("en");
+
+/* ---------------- PART 1 · PLANET MATCH ---------------- */
+// Swap two planets side by side to line up three or more of a colour; they burst, the ones above drop,
+// new ones fall in, chains multiply. Reach each stage's score before the time's up.
+const PM = {
+  name:"PLANET MATCH", start:0, N:7,
+  get tag(){ return "PLANET MATCH"; }, get hint(){ return "swap two - three in a line burst"; },
+  setup(){ const g = new THREE.Group(); scene.add(g); this.root = g;
+    this.car = redCar(); this.car.scale.setScalar(1.3); g.add(this.car);
+    this.board = new THREE.Group(); g.add(this.board);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 7.6), new THREE.MeshBasicMaterial({ color:0x1a0a3a, transparent:true, opacity:.55 })); back.position.z = -.6; this.board.add(back);
+    const frame = new THREE.Mesh(new THREE.TorusGeometry(5.4, .06, 4, 4), new THREE.MeshBasicMaterial({ color:0xffc83a })); frame.rotation.z = Math.PI/4; frame.position.z = -.55; this.board.add(frame);
+    this.pool = []; this.burst = []; for (let i = 0; i < 24; i++){ const s = sprite(0xffffff, 1.4, 0); this.board.add(s); this.burst.push(s); } },
+  begin(t0, t1, L0, L1, cont){ this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1; if (cont) return; this.start = t0;
+    this.st = { stage:CFG.endless ? 1 : 0, target:0, deadline:0, phase:"idle", phaseT:0, sel:null, chain:0, popped:0, stages:0, kinds:5, last:null, k:CFG.endless ? 500 : 1, base0:0, nextAt:0, got:0 };
+    this.fill(t0 + BAR); },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  info(){ const s = this.st; return fmt0(S.score - s.base0) + " / " + fmt0(s.target) + " · STAGE " + (s.stage + 1); },
+  pos(c, r){ return new THREE.Vector3((c - 3)*1.02, (r - 3)*1.02, 0); },
+  piece(k, c, r, fromY){ const o = planetPiece(k); o.userData.c = c; o.userData.r = r; o.position.copy(this.pos(c, fromY == null ? r : fromY)); this.board.add(o); this.pool.push(o); return o; },
+  fill(t){ const s = this.st, N = this.N; s.kinds = s.stage < 1 ? 5 : 6;
+    for (const p of this.pool) this.board.remove(p); this.pool = [];
+    this.grid = [...Array(N)].map(() => Array(N).fill(null));
+    for (let c = 0; c < N; c++) for (let r = 0; r < N; r++){ let k, n = 0;
+      do k = Math.floor(rnd(s.k++*3.3)*s.kinds); while (n++ < 20 && ((c >= 2 && this.grid[c - 1][r].userData.k === k && this.grid[c - 2][r].userData.k === k) || (r >= 2 && this.grid[c][r - 1].userData.k === k && this.grid[c][r - 2].userData.k === k)));
+      this.grid[c][r] = this.piece(k, c, r, r + 8); }
+    if (!this.anyMove()) return this.fill(t);
+    s.base0 = S.score; s.target = Math.min(5000, 1800 + s.stage*450); s.allow = BAR*6*(1.1 - .15*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; s.phase = "fall"; s.phaseT = .5; s.chain = 0; s.sel = null; },
+  press(cx, cy){ const hit = rayAt(cx, cy, this.pool); this.drag = { o:hit ? owner(hit.object, this.pool) : null, cx, cy, used:false }; },
+  move(cx, cy){ const d = this.drag; if (!d || d.used || !d.o) return; const dx = cx - d.cx, dy = cy - d.cy;
+    if (Math.hypot(dx, dy) > 24){ d.used = true; const c = d.o.userData.c + (Math.abs(dx) > Math.abs(dy) ? Math.sign(dx) : 0), r = d.o.userData.r + (Math.abs(dx) > Math.abs(dy) ? 0 : -Math.sign(dy));
+      if (c >= 0 && r >= 0 && c < this.N && r < this.N){ this.st.sel = null; this.swap(d.o, this.grid[c][r]); } } },
+  lift(){ const d = this.drag, s = this.st; this.drag = null; if (!d || d.used || !d.o) return;
+    if (s.sel && s.sel !== d.o && Math.abs(s.sel.userData.c - d.o.userData.c) + Math.abs(s.sel.userData.r - d.o.userData.r) === 1){ const a = s.sel; s.sel = null; this.swap(a, d.o); }
+    else s.sel = s.sel === d.o ? null : d.o; },
+  swap(a, b){ const s = this.st; if (s.phase !== "idle" || s.nextAt || !a || !b) return;
+    const [ac, ar, bc, br] = [a.userData.c, a.userData.r, b.userData.c, b.userData.r];
+    this.grid[ac][ar] = b; this.grid[bc][br] = a; a.userData.c = bc; a.userData.r = br; b.userData.c = ac; b.userData.r = ar;
+    s.beatSwap = onBeat(S.t); s.chain = 0; s.pair = [a, b];
+    if (this.matches().size){ s.phase = "swap"; s.phaseT = .16; sfx.slide(); } else { s.phase = "back"; s.phaseT = .16; } },
+  matches(){ const N = this.N, out = new Set(), g = this.grid;
+    for (let r = 0; r < N; r++){ let run = 1; for (let c = 1; c <= N; c++){ if (c < N && g[c][r] && g[c - 1][r] && g[c][r].userData.k === g[c - 1][r].userData.k) run++; else { if (run >= 3) for (let i = c - run; i < c; i++) out.add(g[i][r]); run = 1; } } }
+    for (let c = 0; c < N; c++){ let run = 1; for (let r = 1; r <= N; r++){ if (r < N && g[c][r] && g[c][r - 1] && g[c][r].userData.k === g[c][r - 1].userData.k) run++; else { if (run >= 3) for (let i = r - run; i < r; i++) out.add(g[c][i]); run = 1; } } }
+    return out; },
+  anyMove(){ const N = this.N, g = this.grid;
+    for (let c = 0; c < N; c++) for (let r = 0; r < N; r++) for (const [dc, dr] of [[1, 0], [0, 1]]){ const c2 = c + dc, r2 = r + dr; if (c2 >= N || r2 >= N) continue;
+      const a = g[c][r], b = g[c2][r2]; g[c][r] = b; g[c2][r2] = a; const ok = this.matches().size > 0; g[c][r] = a; g[c2][r2] = b; if (ok) return [a, b]; }
+    return null; },
+  pop(t){ const s = this.st, m = this.matches();
+    if (!m.size){ s.phase = "idle"; if (!s.nextAt && !this.anyMove()){ say("NO MOVES", "new planets", .8); const left = s.deadline - t, base = s.base0; this.fill(t); s.base0 = base; s.deadline = t + Math.max(BAR*2, left); } return; }
+    s.chain++; const mult = (s.beatSwap ? 2 : 1)*(hookNow(t) ? 2 : 1)*s.chain, n = m.size*30*mult; S.score += n; s.popped += m.size; s.got++; sfx.good(s.chain);
+    let i = 0; for (const o of m){ const b = this.burst[i++ % this.burst.length]; b.position.copy(o.position); b.material.color.setHex(RAINBOW[o.userData.k]); b.material.opacity = 1; b.scale.setScalar(1.6);
+      this.grid[o.userData.c][o.userData.r] = null; this.board.remove(o); this.pool.splice(this.pool.indexOf(o), 1); s.last = o.position.clone(); }
+    if (s.chain > 1) say(s.chain + "x CHAIN", "+" + n, .6);
+    for (let c = 0; c < this.N; c++){ const col = []; for (let r = 0; r < this.N; r++) if (this.grid[c][r]) col.push(this.grid[c][r]);
+      let add = 0; while (col.length < this.N){ const r = col.length; col.push(this.piece(Math.floor(rnd(s.k++*3.3)*s.kinds), c, r, this.N + add++)); }
+      col.forEach((o, r) => { this.grid[c][r] = o; o.userData.c = c; o.userData.r = r; }); }
+    s.phase = "fall"; s.phaseT = .3;
+    if (!s.nextAt && S.score - s.base0 >= s.target){ s.stages++; s.stage++; sfx.big(); const bonus = 500 + Math.round(Math.max(0, s.deadline - t)*40); S.score += bonus; say("STAGE CLEAR", "+" + fmt(bonus) + " · the next one", 1.2, "g"); s.nextAt = t + BEAT*2; } },
+  update(dt, t){ const s = this.st;
+    if (s.nextAt && t > s.nextAt){ s.nextAt = 0; this.fill(t); }
+    if (s.phaseT > 0){ s.phaseT -= dt; if (s.phaseT <= 0){
+      if (s.phase === "swap" || s.phase === "fall") this.pop(t);
+      else if (s.phase === "back"){ const [a, b] = s.pair, [ac, ar] = [a.userData.c, a.userData.r]; this.grid[ac][ar] = b; this.grid[b.userData.c][b.userData.r] = a; a.userData.c = b.userData.c; a.userData.r = b.userData.r; b.userData.c = ac; b.userData.r = ar; s.phase = "idle"; sfx.bad(); } } }
+    if (!s.nextAt && t > s.deadline){ if (hurt("OUT OF TIME", "Swap two planets side by side so three or more of a colour line up - and reach the stage's score before the time's up.")) return; this.fill(t); }
+  },
+  render(dt, t){ const s = this.st, beat = onBeat(t), portrait = cam.aspect < .8;
+    for (const o of this.pool){ o.position.lerp(this.pos(o.userData.c, o.userData.r), Math.min(1, dt*14)); o.rotation.y += dt*.8; o.scale.setScalar(s.sel === o ? 1.18 + (beat ? .06 : 0) : 1); }
+    for (const b of this.burst){ if (b.material.opacity > 0){ b.material.opacity = Math.max(0, b.material.opacity - dt*2.5); b.scale.multiplyScalar(1 + dt*2); } }
+    flyCar(this.car, t, portrait ? 0 : -7.5, portrait ? -6.2 : -2.5, -6);
+    this.board.scale.setScalar(portrait ? .82 : 1);
+    const lp = s.last ? this.board.localToWorld(s.last.clone()) : new THREE.Vector3(0, 4.5, 0); ME.scale.setScalar(.5); ME.position.lerp(new THREE.Vector3(lp.x, lp.y + 1.2, lp.z + 1), Math.min(1, dt*6)); ME.rotation.set(.9, t*1.6, 0); ME.userData.beam.visible = false;
+    if (portrait){ CAMP.set(0, -.6, 17); CAML.set(0, -.6, 0); } else { CAMP.set(0, 0, 11.5); CAML.set(0, 0, 0); }
+  }
+};
+
+/* ---------------- PART 2 · RAINBOW SORT ---------------- */
+// Glass tubes with the planets mixed up in them, two empty. Lift the top planet of a tube, drop it on the
+// same colour or into an empty tube, four to a tube - until every tube is one colour. Every mix is solved
+// (breadth first, the shortest way) before you get it; each one has another colour (3 up to 5).
+const RS = {
+  name:"RAINBOW SORT", start:0, CAP:4,
+  get tag(){ return "RAINBOW SORT"; }, get hint(){ return "one colour to a tube"; },
+  setup(){ const g = new THREE.Group(); scene.add(g); this.root = g; this.car = redCar(); this.car.scale.setScalar(1.2); g.add(this.car); this.tubes = []; this.balls = []; },
+  begin(t0, t1, L0, L1, cont){ this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1; if (cont) return; this.start = t0;
+    this.st = { level:CFG.endless ? 1 : 0, solved:0, moves:0, beatMoves:0, held:-1, deadline:0, nextAt:0, k:CFG.endless ? 300 : 1, got:0 }; this.make(t0 + BAR); },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  info(){ return "MOVES " + this.st.moves + " · MIX " + (this.st.solved + 1); },
+  solve(start){ const C = this.CAP, key = ts => ts.map(t => t.join("")).join("|");
+    const done = ts => ts.every(t => !t.length || (t.length === C && t.every(v => v === t[0])));
+    const seen = new Map([[key(start), null]]); let q = [start.map(t => t.slice())], n = 0;
+    while (q.length){ const nq = [];
+      for (const ts of q){ if (done(ts)){ const path = []; let k = key(ts); while (seen.get(k)){ path.unshift(seen.get(k).m); k = seen.get(k).p; } return path; }
+        for (let a = 0; a < ts.length; a++){ if (!ts[a].length) continue; const top = ts[a][ts[a].length - 1];
+          if (ts[a].length === C && ts[a].every(v => v === top)) continue;
+          for (let b = 0; b < ts.length; b++){ if (a === b || ts[b].length >= C) continue; if (ts[b].length && ts[b][ts[b].length - 1] !== top) continue;
+            if (!ts[b].length && ts[a].every(v => v === top)) continue;
+            const nt = ts.map(t => t.slice()); nt[b].push(nt[a].pop()); const k = key(nt); if (seen.has(k)) continue;
+            seen.set(k, { p:key(ts), m:[a, b] }); nq.push(nt); if (++n > 150000) return null; } } }
+      q = nq; }
+    return null; },
+  deal(n, seed){ for (let tries = 0; tries < 40; tries++){ const all = []; for (let k = 0; k < n; k++) for (let i = 0; i < this.CAP; i++) all.push(k);
+      shuffle(all, seed + tries*101); const tubes = []; for (let i = 0; i < n; i++) tubes.push(all.slice(i*this.CAP, (i + 1)*this.CAP)); tubes.push([], []);
+      if (tubes.slice(0, n).some(t => t.every(v => v === t[0]))) continue;
+      const sol = this.solve(tubes); if (sol) return { tubes, sol }; }
+    return n > 3 ? this.deal(n - 1, seed + 7) : null; },
+  make(t){ const s = this.st;
+    for (const o of this.tubes) this.root.remove(o.g); for (const b of this.balls) this.root.remove(b); this.tubes = []; this.balls = [];
+    const n = Math.min(5, 3 + s.level), d = this.deal(n, s.k++*977 + 13); this.sol = d.sol; s.held = -1;
+    const T = d.tubes.length, portrait = cam.aspect < .8, cols = portrait ? Math.ceil(T/2) : T;
+    d.tubes.forEach((list, i) => { const g = new THREE.Group(), row = portrait ? Math.floor(i/cols) : 0, col = portrait ? i % cols : i;
+      g.position.set((col - (cols - 1)/2)*1.25, portrait ? 1.6 - row*3.6 : -.4, 0);
+      const glass = new THREE.Mesh(new THREE.CylinderGeometry(.48, .48, 2.5, 20, 1, true), new THREE.MeshStandardMaterial({ color:0xc8d8ff, transparent:true, opacity:.22, roughness:.1, side:THREE.DoubleSide, depthWrite:false })); glass.position.y = 1.15; g.add(glass);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(.48, .05, 6, 24), new THREE.MeshBasicMaterial({ color:0xfff0f0 })); rim.rotation.x = Math.PI/2; rim.position.y = 2.4; g.add(rim);
+      const foot = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .1, 20), new THREE.MeshBasicMaterial({ color:0xffc83a })); foot.position.y = -.12; g.add(foot);
+      const hit = new THREE.Mesh(new THREE.BoxGeometry(1.1, 3.4, 1.1), new THREE.MeshBasicMaterial({ visible:false })); hit.position.y = 1.2; g.add(hit);
+      this.root.add(g); const tube = { g, hit, list:[] }; this.tubes.push(tube);
+      for (const k of list){ const b = planetPiece(k); b.scale.setScalar(1.05); this.root.add(b); this.balls.push(b); tube.list.push(b); b.position.copy(this.slot(tube, tube.list.length - 1)); } });
+    s.nextAt = 0; s.allow = BAR*(2 + n*1.8)*(1.15 - .25*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; },
+  slot(tube, i){ return tube.g.position.clone().add(new THREE.Vector3(0, .1 + i*.56, 0)); },
+  press(cx, cy){ if (this.st.nextAt) return; const hit = rayAt(cx, cy, this.tubes.map(t => t.hit)); if (hit) this.pick(this.tubes.findIndex(t => t.hit === hit.object)); },
+  pick(i){ const s = this.st, tube = this.tubes[i];
+    if (s.held < 0){ if (!tube.list.length) return; s.held = i; sfx.clink(); return; }
+    if (s.held === i){ s.held = -1; return; }
+    const from = this.tubes[s.held], b = from.list[from.list.length - 1], top = tube.list[tube.list.length - 1];
+    if (tube.list.length >= this.CAP || (top && top.userData.k !== b.userData.k)){ sfx.bad(); S.combo = 0; say("NOT THERE", "the same colour, or an empty tube", .6, "x"); s.held = -1; return; }
+    from.list.pop(); tube.list.push(b); s.held = -1; s.moves++; const beat = onBeat(S.t); if (beat) s.beatMoves++; S.score += (beat ? 40 : 20)*(hookNow(S.t) ? 2 : 1); sfx.slide();
+    if (tube.list.length === this.CAP && tube.list.every(x => x.userData.k === b.userData.k)){ S.score += 200; s.got++; sfx.good(s.got); say("A FULL TUBE", "+200", .6); }
+    if (this.tubes.every(t => !t.list.length || (t.list.length === this.CAP && t.list.every(x => x.userData.k === t.list[0].userData.k)))){
+      const bonus = 600 + Math.round(Math.max(0, s.deadline - S.t)*50)*(hookNow(S.t) ? 2 : 1); S.score += bonus; s.solved++; s.level++; sfx.big(); say("THE RAINBOW", "+" + fmt(bonus) + (s.level < 2 ? " · one more colour" : " · the next mix"), 1.3, "g"); s.nextAt = S.t + BEAT*3; } },
+  update(dt, t){ const s = this.st;
+    if (s.nextAt && t > s.nextAt) this.make(t);
+    if (!s.nextAt && t > s.deadline){ if (hurt("OUT OF TIME", "Lift the top planet of a tube and drop it on the same colour or into an empty tube - one colour to a tube.")) return; this.make(t); }
+  },
+  render(dt, t){ const s = this.st, beat = onBeat(t), portrait = cam.aspect < .8;
+    this.tubes.forEach((tube, i) => tube.list.forEach((b, j) => { const p = this.slot(tube, j); if (s.held === i && j === tube.list.length - 1) p.y = tube.g.position.y + 3.1 + (beat ? .08 : 0); b.position.lerp(p, Math.min(1, dt*14)); b.rotation.y += dt; }));
+    flyCar(this.car, t, portrait ? 2 : 7, portrait ? 7.5 : 4.2, -8);
+    const h = s.held >= 0 ? this.tubes[s.held].g.position : new THREE.Vector3(0, 3.6, 0); ME.scale.setScalar(.5); ME.position.lerp(new THREE.Vector3(h.x, h.y + (s.held >= 0 ? 4.4 : 1.2), h.z), Math.min(1, dt*8)); ME.rotation.set(0, t*1.6, 0);
+    ME.userData.beam.visible = true; ME.userData.beam.scale.set(.3, .5, .3); ME.userData.beam.position.y = -1;
+    if (portrait){ CAMP.set(0, 1.8, 17); CAML.set(0, .4, 0); } else { CAMP.set(0, 2.2, 11.5); CAML.set(0, 1, 0); }
+  }
+};
+
+/* ---------------- PART 3 · STAR PEAKS ---------------- */
+// Three peaks of cards (the bottom row face up), the deck and the pile. Play a free card one higher or
+// one lower than the pile's top card (an ace goes on a king and on a two); the cards it uncovers turn
+// over. Stuck? Tap the deck. Streaks count more and more. Clear the three peaks for a big bonus.
+const SUITS = [["star", "#ffd84a"], ["moon", "#ffe08a"], ["heart", "#ff5a7a"], ["planet", "#6ab8ff"]];
+const RANKS = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+const FACES = {};
+function faceTex(rank, suit){ const k = rank + "-" + suit; if (FACES[k]) return FACES[k];
+  return FACES[k] = canvasTex(128, 176, (x, w, h) => { x.fillStyle = "#fff6f0"; x.beginPath(); x.roundRect(4, 4, w - 8, h - 8, 12); x.fill(); x.lineWidth = 5; x.strokeStyle = "#1a0a2a"; x.stroke();
+    const [name, col] = SUITS[suit]; x.fillStyle = suit === 2 ? "#e8282a" : "#3a1a8a"; x.font = "bold 44px Bungee, Impact, sans-serif"; x.textAlign = "left"; x.textBaseline = "top"; x.fillText(RANKS[rank], 12, 10);
+    x.save(); x.translate(w/2, h/2 + 18); x.fillStyle = col; x.strokeStyle = "#1a0a2a"; x.lineWidth = 4; x.beginPath();
+    if (name === "star"){ for (let i = 0; i < 10; i++){ const r = i % 2 ? 14 : 34, a = i/10*Math.PI*2 - Math.PI/2; x.lineTo(Math.cos(a)*r, Math.sin(a)*r); } x.closePath(); }
+    else if (name === "moon"){ x.arc(0, 0, 32, .6, Math.PI*2 - .6); x.arc(14, -6, 26, Math.PI*2 - .9, .9, true); x.closePath(); }
+    else if (name === "heart"){ x.moveTo(0, 26); x.bezierCurveTo(-46, -4, -26, -40, 0, -16); x.bezierCurveTo(26, -40, 46, -4, 0, 26); }
+    else { x.arc(0, 0, 24, 0, 7); }
+    x.fill(); x.stroke(); if (name === "planet"){ x.beginPath(); x.ellipse(0, 0, 40, 10, -.3, 0, 7); x.stroke(); } x.restore(); }); }
+const CARD_BACK = canvasTex(128, 176, (x, w, h) => { x.fillStyle = "#e8282a"; x.beginPath(); x.roundRect(4, 4, w - 8, h - 8, 12); x.fill(); x.lineWidth = 5; x.strokeStyle = "#1a0a2a"; x.stroke();
+  x.strokeStyle = "#fff6f0"; x.lineWidth = 3; x.beginPath(); x.roundRect(14, 14, w - 28, h - 28, 8); x.stroke(); x.fillStyle = "#ffc83a"; for (let i = 0; i < 3; i++){ x.beginPath(); x.arc(w/2, 50 + i*38, 9, 0, 7); x.fill(); } });
+const SP = {
+  name:"STAR PEAKS", start:0,
+  get tag(){ return "STAR PEAKS"; }, get hint(){ return "one higher or one lower"; },
+  setup(){ const g = new THREE.Group(); scene.add(g); this.root = g; this.car = redCar(); g.add(this.car);
+    this.table = new THREE.Group(); g.add(this.table); this.cards = [];
+    for (let i = 0; i < 52; i++){ const face = new THREE.MeshBasicMaterial({ map:CARD_BACK }); const m = new THREE.Mesh(new THREE.PlaneGeometry(.92, 1.26), face); m.visible = false; this.table.add(m); this.cards.push({ m, face }); }
+    this.stockHit = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshBasicMaterial({ visible:false })); this.table.add(this.stockHit); },
+  begin(t0, t1, L0, L1, cont){ this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1; if (cont) return; this.start = t0;
+    this.st = { deals:0, cleared:0, played:0, streak:0, best:0, beatPlays:0, deadline:0, nextAt:0, k:CFG.endless ? 700 : 1, got:0, last:null }; this.deal(t0 + BAR); },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  info(){ return "STREAK " + this.st.streak + " · DECK " + this.stock.length; },
+  layout(){ const L = [], sy = .62;
+    for (let p = 0; p < 3; p++) L[p] = { x:3*p - 3, y:3*sy + .6, row:0, cov:[3 + 2*p, 4 + 2*p] };
+    for (let p = 0; p < 3; p++) for (let q = 0; q < 2; q++) L[3 + 2*p + q] = { x:3*p + q - 3.5, y:2*sy + .6, row:1, cov:[9 + 3*p + q, 10 + 3*p + q] };
+    for (let j = 0; j < 9; j++) L[9 + j] = { x:j - 4, y:sy + .6, row:2, cov:[18 + j, 19 + j] };
+    for (let i = 0; i < 10; i++) L[18 + i] = { x:i - 4.5, y:.6, row:3, cov:[] };
+    return L; },
+  deal(t){ const s = this.st, deck = shuffle([...Array(52).keys()], s.k++*313 + 7), L = this.layout();
+    this.tab = L.map((l, i) => Object.assign({ c:this.cards[i], rank:deck[i] % 13 + 1, suit:Math.floor(deck[i]/13), gone:false }, l));
+    this.stock = deck.slice(28).map((v, j) => ({ c:this.cards[28 + j], rank:v % 13 + 1, suit:Math.floor(v/13) }));
+    this.cards.forEach(c => { c.m.visible = true; c.m.scale.setScalar(1); });
+    this.stockPos = new THREE.Vector3(-1.2, -1.3, 0); this.wastePos = new THREE.Vector3(.4, -1.3, 0); this.stockHit.position.copy(this.stockPos).setZ(.3);
+    this.tab.forEach(c => { c.c.target = new THREE.Vector3(c.x, c.y, .02*c.row); c.c.m.position.copy(c.c.target).add(new THREE.Vector3(0, 6, 0)); });
+    this.stock.forEach((x, j) => { x.c.target = this.stockPos.clone().add(new THREE.Vector3(-j*.01, 0, j*.002)); x.c.m.position.copy(x.c.target); x.c.face.map = CARD_BACK; x.c.face.needsUpdate = true; });
+    this.waste = []; this.draw(true); s.streak = 0; this.flipFree();
+    s.nextAt = 0; s.allow = BAR*7*(1.15 - .25*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; },
+  free(c){ return !c.gone && c.cov.every(i => this.tab[i].gone); },
+  flipFree(){ for (const c of this.tab){ if (c.gone) continue; c.c.face.map = this.free(c) ? faceTex(c.rank, c.suit) : CARD_BACK; c.c.face.needsUpdate = true; } },
+  top(){ return this.waste[this.waste.length - 1]; },
+  draw(silent){ const x = this.stock.pop(); if (!x) return false; this.toWaste(x); x.c.face.map = faceTex(x.rank, x.suit); x.c.face.needsUpdate = true; if (!silent){ this.st.streak = 0; S.combo = 0; sfx.clink(); } return true; },
+  toWaste(c){ this.waste.push(c); c.c.target = this.wastePos.clone().add(new THREE.Vector3(0, 0, .01*this.waste.length)); },
+  fits(c){ const t = this.top(); if (!t) return true; const d = Math.abs(c.rank - t.rank); return d === 1 || d === 12; },
+  press(cx, cy){ if (this.st.nextAt) return; const hit = rayAt(cx, cy, this.tab.filter(c => this.free(c)).map(c => c.c.m).concat([this.stockHit]));
+    if (!hit) return; if (hit.object === this.stockHit){ this.draw(); this.stuck(); return; } this.play(this.tab.find(c => c.c.m === hit.object)); },
+  play(c){ const s = this.st; if (!c || !this.free(c) || s.nextAt) return;
+    if (!this.fits(c)){ sfx.bad(); S.combo = 0; say("ONE UP OR ONE DOWN", "from the " + RANKS[this.top().rank], .6, "x"); return; }
+    c.gone = true; this.toWaste(c); s.streak++; s.best = Math.max(s.best, s.streak); s.played++; s.got++; const beat = onBeat(S.t); if (beat) s.beatPlays++;
+    const n = 30*s.streak*(beat ? 2 : 1)*(hookNow(S.t) ? 2 : 1); S.score += n; sfx.good(s.streak); if (s.streak > 2 && s.streak % 3 === 0) say(s.streak + " IN A ROW", "+" + n, .6);
+    this.flipFree(); s.last = c;
+    if (this.tab.every(c => c.gone)){ const bonus = 1500 + Math.round(Math.max(0, s.deadline - S.t)*40) + this.stock.length*50; S.score += bonus; s.cleared++; s.deals++; sfx.big(); say("ALL THREE PEAKS", "+" + fmt(bonus), 1.3, "g"); s.nextAt = S.t + BEAT*3; return; }
+    this.stuck(); },
+  stuck(){ const s = this.st; if (this.stock.length || this.tab.some(c => this.free(c) && this.fits(c))) return; s.deals++; say("NO MORE CARDS", "a new deal", 1); s.nextAt = S.t + BEAT*3; },
+  update(dt, t){ const s = this.st;
+    if (s.nextAt && t > s.nextAt) this.deal(t);
+    if (!s.nextAt && t > s.deadline){ if (hurt("OUT OF TIME", "Tap a free card one higher or one lower than the pile's top card. Stuck? Tap the deck.")) return; this.deal(t); }
+  },
+  render(dt, t){ const s = this.st, beat = onBeat(t), portrait = cam.aspect < .8;
+    for (const c of this.cards) if (c.target) c.m.position.lerp(c.target, Math.min(1, dt*12));
+    for (const c of this.tab) c.c.m.scale.setScalar(!c.gone && this.free(c) && this.fits(c) && beat ? 1.05 : 1);
+    flyCar(this.car, t, portrait ? 0 : 6.8, portrait ? 6.6 : 3.2, -8);
+    this.table.scale.setScalar(portrait ? .64 : 1);
+    const lp = this.table.localToWorld(this.wastePos.clone()); ME.scale.setScalar(.45); ME.position.lerp(new THREE.Vector3(lp.x + 1.6*this.table.scale.x, lp.y - .1, lp.z + .8), Math.min(1, dt*6)); ME.rotation.set(.9, t*1.6, 0); ME.userData.beam.visible = false;
+    if (portrait){ CAMP.set(0, .5, 14); CAML.set(0, .4, 0); } else { CAMP.set(0, 1.2, 9.5); CAML.set(0, 1.1, 0); }
+  }
+};
+
+/* ---------------- the run ---------------- */
+let ME = null;
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = [null, PM, RS, SP][PART]; camInit = false; G.root.visible = true; END.root.visible = false; END.on = false; ME.visible = true;
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+}
+// endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+const LOOPS = CFG.endless;
+function songT(){
+  if (LOOPS && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The cover: the red flying car coming at you out of the stars, the two of them in the glass bubble (her
+   waving), the jets blazing, the rainbow behind and the big gold moon - and Jo's saucer down in front
+   with its white beam, small, like on the cover. */
+const END = { out:8.5, root:null, X:0 };          // the game's own things are hidden by then: the cover is right here in the same space
+function buildEnd(){
+  const g = new THREE.Group(); g.visible = false; g.position.x = END.X; scene.add(g);
+  const car = redCar(); car.scale.setScalar(1.15); g.add(car); END.car = car;
+  const streak = []; for (let i = 0; i < 14; i++){ const s = sprite(i % 2 ? 0xffb05a : 0xff5a3a, 2 + rnd(i)*2, .6); g.add(s); streak.push(s); } END.streak = streak;
+  END.root = g;
+}
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  animSaucer(ME, t, beat);
+  if (S.end >= 0){
+    const portrait = cam.aspect < .8;
+    if (S.end < 1){ $("flash").style.background = "#ffe0f4"; $("flash").style.opacity = Math.min(1, S.end/.8); G.render(dt, t); }
+    else {
+      if (!END.on){ END.on = true; G.root.visible = false; END.root.visible = true; camInit = false; }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      // the car swoops in from the stars, nose first, a little to the left like on the cover; the saucer below
+      const u = clamp((S.end - 1.2)/3, 0, 1), e = 1 - Math.pow(1 - u, 3);
+      END.car.position.set((portrait ? .3 : -1.2) + (1 - e)*10, -.2 + (1 - e)*7 + Math.sin(t*1.6)*.12, -5 - (1 - e)*40); END.car.rotation.set(.25, 2.5, .2); animCar(END.car, t);
+      END.streak.forEach((s, i) => { const k = i/END.streak.length; s.position.set(END.car.position.x + 1.6 + k*5, END.car.position.y + .3 + k*1.4, END.car.position.z - 2 - k*6); s.material.opacity = .5*(1 - k)*e; });
+      ME.visible = true; ME.scale.setScalar(.5); ME.rotation.set(.15, Math.sin(t*1.5)*.25, 0); ME.userData.beam.visible = true; ME.userData.beam.scale.set(.5, .6, .5); ME.userData.beam.position.y = -1.1;
+      ME.position.set(END.X, (portrait ? -2.6 : -2.2) + (1 - e)*-3 + Math.sin(t*2)*.05, 1.5);
+      CAMP.set(END.X, portrait ? .6 : .4, portrait ? 15 : 9.5); CAML.set(END.X - .3, portrait ? .4 : .5, -3);
+      if (S.end > 2.4 && !S.saidEnd){ S.saidEnd = true; say("SPACE KID", "LAZY JO", 4.5, "t"); }
+    }
+  } else {
+    G.render(dt, t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by):not(#net)"), go = $("go");
+  go.textContent = "Play again"; go.disabled = false; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  const st = G.st, got = PART === 1 ? st.popped : PART === 2 ? st.solved : st.played;
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:got });
+  const stat = PART === 1 ? st.stages + " stages · " + st.popped + " planets burst" : PART === 2 ? st.solved + " rainbows sorted in " + st.moves + " moves" : st.played + " cards played · " + st.cleared + " peaks cleared · the longest streak " + st.best;
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in space &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "SPACE KID";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = (PART === 3 ? "Out of this world." + "<br>Level 22 cleared: <b>Planet Match &#8734;</b>, <b>Rainbow Sort &#8734;</b> and <b>Star Peaks &#8734;</b> are open in the gold Endless list." : PART === 2 ? "Every colour in its place." + "<br>Part 3, <b>Star Peaks</b>, is open." : "Planets everywhere." + "<br>Part 2, <b>Rainbow Sort</b>, is open.");
+}
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a0a3a); scene.fog = new THREE.Fog(0x2a1060, 60, 400);
+  cam = new THREE.PerspectiveCamera(46, innerWidth/innerHeight, .1, 1500);
+  scene.add(new THREE.HemisphereLight(0xfff0ff, 0x3a2a8a, .9));
+  const key = new THREE.DirectionalLight(0xfff0e0, .9); key.position.set(10, 20, 14); scene.add(key);
+  ME = buildSaucer(); scene.add(ME);
+  space(); G = [null, PM, RS, SP][PART]; G.setup(); buildEnd();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input ---------------- */
+// Planet Match: drag a planet onto the next, or tap one then the other. Rainbow Sort and Star Peaks: tap.
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+let held = false;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); held = true; G.press(e.clientX, e.clientY); }, { passive:false });
+addEventListener("pointermove", e => { if (held && G.move && live()) G.move(e.clientX, e.clientY); });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, () => { if (!held) return; held = false; if (G.lift) G.lift(); });
+
+function startGame(){
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? (PART === 2 ? "the cards never stop" : "the beds never stop") : G.hint, 3, CFG.endless ? "g" : "");
+}
+$("go").addEventListener("click", () => {
+  startGame();
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = "SPACE KID" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = "Deep space from the cover - the rainbow across it, the big gold moon, the two kids in the red flying car - and Jo's saucer." +
+  [" <b>Part 1 · Planet Match:</b> little planets in the rainbow's colours.", " <b>Part 2 · Rainbow Sort:</b> glass tubes, the planets mixed up in them.", " <b>Part 3 · Star Peaks:</b> three peaks of cards in front of the rainbow."][PART - 1] +
+  (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = [
+  "<b>Drag</b> a planet onto the one next to it (or tap one, then the other) to swap them - three or more of a colour in a line burst, new ones fall in, chains multiply. Reach the stage's score before the time's up. Swapped <b>on the beat</b> it counts double; double again in the hooks. Out of time costs a heart (3).",
+  "<b>Tap</b> a tube to lift its top planet, <b>tap</b> another to drop it - on the same colour or into an empty tube, four to a tube. One colour in every tube and the rainbow lights up; the next mix has another colour. Moves <b>on the beat</b> count double. Out of time costs a heart (3).",
+  "<b>Tap</b> a free card one higher or one lower than the pile's top card (an ace goes on a king and a two) - the cards it uncovers turn over. Stuck? <b>Tap the deck.</b> Streaks count more and more; <b>on the beat</b> double. Clear the three peaks for a big bonus. Out of time costs a heart (3)."][PART - 1];
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
+      if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

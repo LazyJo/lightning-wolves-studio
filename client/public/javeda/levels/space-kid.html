@@ -140,15 +140,15 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    Out of time costs a heart (3). On the beat it counts double, in the hooks double again. At the end
    of the song: the cover. ENDLESS for each (?endless=1) once all three are cleared. */
 
-// the song's grid - a stand-in (92 BPM) until the song is here and measured
-const GRID = { bpm:92, t0:0 };
+// the song's grid, measured from the mp3 (SONG.md): 62 BPM (a 124 beat in half time), bar 0 at 0.016 s
+const GRID = { bpm:62, t0:.016 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
-const END_AT = barT(64);
-const LOOP = [barT(8), barT(64)];             // endless: round and round
+const END_AT = barT(44);                      // the song fades out
+const LOOP = [barT(2), barT(44)];             // endless: round and round
 const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
 // how the song feels at time t: calm (intro, breaks), loud (verses), hook
-const SECTIONS = [[8, "calm"], [16, "hook"], [24, "loud"], [28, "calm"], [36, "hook"], [44, "loud"], [48, "calm"], [56, "hook"], [64, "loud"]];
+const SECTIONS = [[2, "calm"], [4, "loud"], [10, "hook"], [28, "loud"], [30, "calm"], [32, "loud"], [38, "hook"], [44, "loud"]];
 function section(t){
   const b = Math.floor((songPos(t) - GRID.t0) / BAR);
   for (const [end, sec] of SECTIONS) if (b < end) return sec;
@@ -382,7 +382,7 @@ const PM = {
       do k = Math.floor(rnd(s.k++*3.3)*s.kinds); while (n++ < 20 && ((c >= 2 && this.grid[c - 1][r].userData.k === k && this.grid[c - 2][r].userData.k === k) || (r >= 2 && this.grid[c][r - 1].userData.k === k && this.grid[c][r - 2].userData.k === k)));
       this.grid[c][r] = this.piece(k, c, r, r + 8); }
     if (!this.anyMove()) return this.fill(t);
-    s.base0 = S.score; s.target = Math.min(5000, 1800 + s.stage*450); s.allow = BAR*6*(1.1 - .15*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; s.phase = "fall"; s.phaseT = .5; s.chain = 0; s.sel = null; },
+    s.base0 = S.score; s.target = Math.min(5000, 1800 + s.stage*450); s.allow = 15.5*(1.1 - .15*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; s.phase = "fall"; s.phaseT = .5; s.chain = 0; s.sel = null; },
   press(cx, cy){ const hit = rayAt(cx, cy, this.pool); this.drag = { o:hit ? owner(hit.object, this.pool) : null, cx, cy, used:false }; },
   move(cx, cy){ const d = this.drag; if (!d || d.used || !d.o) return; const dx = cx - d.cx, dy = cy - d.cy;
     if (Math.hypot(dx, dy) > 24){ d.used = true; const c = d.o.userData.c + (Math.abs(dx) > Math.abs(dy) ? Math.sign(dx) : 0), r = d.o.userData.r + (Math.abs(dx) > Math.abs(dy) ? 0 : -Math.sign(dy));
@@ -473,7 +473,7 @@ const RS = {
       const hit = new THREE.Mesh(new THREE.BoxGeometry(1.1, 3.4, 1.1), new THREE.MeshBasicMaterial({ visible:false })); hit.position.y = 1.2; g.add(hit);
       this.root.add(g); const tube = { g, hit, list:[] }; this.tubes.push(tube);
       for (const k of list){ const b = planetPiece(k); b.scale.setScalar(1.05); this.root.add(b); this.balls.push(b); tube.list.push(b); b.position.copy(this.slot(tube, tube.list.length - 1)); } });
-    s.nextAt = 0; s.allow = BAR*(2 + n*1.8)*(1.15 - .25*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; },
+    s.nextAt = 0; s.allow = (5.2 + n*4.7)*(1.15 - .25*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; },
   slot(tube, i){ return tube.g.position.clone().add(new THREE.Vector3(0, .1 + i*.56, 0)); },
   press(cx, cy){ if (this.st.nextAt) return; const hit = rayAt(cx, cy, this.tubes.map(t => t.hit)); if (hit) this.pick(this.tubes.findIndex(t => t.hit === hit.object)); },
   pick(i){ const s = this.st, tube = this.tubes[i];
@@ -541,7 +541,7 @@ const SP = {
     this.tab.forEach(c => { c.c.target = new THREE.Vector3(c.x, c.y, .02*c.row); c.c.m.position.copy(c.c.target).add(new THREE.Vector3(0, 6, 0)); });
     this.stock.forEach((x, j) => { x.c.target = this.stockPos.clone().add(new THREE.Vector3(-j*.01, 0, j*.002)); x.c.m.position.copy(x.c.target); x.c.face.map = CARD_BACK; x.c.face.needsUpdate = true; });
     this.waste = []; this.draw(true); s.streak = 0; this.flipFree();
-    s.nextAt = 0; s.allow = BAR*7*(1.15 - .25*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; },
+    s.nextAt = 0; s.allow = 18.3*(1.15 - .25*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; },
   free(c){ return !c.gone && c.cov.every(i => this.tab[i].gone); },
   flipFree(){ for (const c of this.tab){ if (c.gone) continue; c.c.face.map = this.free(c) ? faceTex(c.rank, c.suit) : CARD_BACK; c.c.face.needsUpdate = true; } },
   top(){ return this.waste[this.waste.length - 1]; },

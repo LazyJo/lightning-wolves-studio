@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>STAY UP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#020a0c; color:#e8f0ff; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#e8fbff; line-height:1; text-shadow:0 0 14px #3ae8ff}
+#ml{font-size:11px; letter-spacing:.18em; color:#b8f4ff; margin-top:3px; text-shadow:0 0 6px #000}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#e0306a; text-shadow:0 0 8px #000; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ff6ae822; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#ff6ae8,#ff6ae8)}
+.bl{font-size:11px; letter-spacing:.18em; color:#b8f4ff; text-align:right; text-shadow:0 0 6px #000}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#ff6ae8; margin-top:8px; text-align:right; text-shadow:0 0 8px #000}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#3ae8ff}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#ff6ae8; text-shadow:0 0 12px #3ae8ff, 0 2px 0 #000}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#b8f4ff; margin-top:2px}
+#phase.ready{color:#3ae8ff}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:26px; opacity:0; transition:opacity .25s; color:#ff6ae8; text-shadow:0 0 14px #3ae8ff, 0 2px 0 #000; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff6a7a}
+#msg.g{color:#3ae8ff}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#f4f8ff; font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:.18em; text-shadow:0 0 24px #3ae8ff, 0 0 60px #9a3aff}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#b8f4ff; margin-top:6px}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto; color:#f4f0ff;
+  background:radial-gradient(50% 30% at 50% 20%, #3ae8ff33 0%, transparent 70%), radial-gradient(120% 80% at 50% 25%, #06303a 0%, #020a0c 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #3a2a10 0%, #120c04 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#bfe6ff; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#e8fbff; text-shadow:0 0 22px #3ae8ff, 0 0 50px #9a3aff}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#e8f6ff; font-size:17px; max-width:42ch}
+#veil b{color:#ff6ae8}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffd76a,#ff6ae8); color:#b8f4ff; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ff6ae866}
+#go:disabled{opacity:.45; cursor:default; box-shadow:none}
+#go.alt{background:none; color:#ff6ae8; border:1.5px solid #ff6ae8; font-size:15px; padding:12px 30px; box-shadow:none}
+#veil small{color:#bfe6ff; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#e8f6ff; background:none; border:1.5px solid #ff6ae855}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#ff6ae8; background:#ff6ae822}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ff6ae8; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ff6ae899; background:#ff6ae814}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">STAY UP</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="">Pad Memory</button><button type="button" data-mode="endless" class="gold">Pad Memory &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= STAY UP =================
+   Level 19 of JAVEDA, in the world of the cover: Lazy Jo's studio at night - teal and cyan light,
+   purple LED strips, the big monitor speakers, the mixing desk, the screen with a crowd on it, the
+   skull, Jo from behind in the black hoodie with the big logo - and Jo's saucer as it is on this
+   cover (the purple dome with the "L", the white beam).
+   Jo picked PAD MEMORY: the 16 pads of the drum machine, lit from under, each its own note. They
+   play a pattern on the beat - one pad a beat, two in the hooks (and double points there) - then
+   you play it back in the same order. Get it right and the next one is a pad longer. A wrong pad,
+   or too slow, costs a heart (3) and you hear it again. At the end of the song: the cover.
+   Once it's cleared, ENDLESS opens (?endless=1): the patterns never stop, quicker every 8 bars, a
+   heart back every 24. */
+
+// the song's grid, measured from the mp3 (SONG.md): 82.5 BPM, bar 0 starts at 0:00
+const GRID = { bpm:82.5, t0:0 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(52);                      // the second hook ends, the song fades out
+const LOOP = [barT(4), barT(52)];             // endless: round and round
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (intro, breaks), loud (verses), hook
+const SECTIONS = [[4, "calm"], [12, "loud"], [20, "hook"], [28, "calm"], [44, "loud"], [52, "hook"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+const ENDLESS = Q.get("endless") === "1";
+const CFG = ENDLESS ? { id:"lvl19x", title:"Pad Memory", by:"LEVEL 19 · ENDLESS", endless:true, board:"Level 19 ∞" }
+  : { id:"lvl19", title:"Pad Memory", by:"LEVEL 19" };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl19.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [110, 87.3, 98, 82.4];
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  slide:() => ac && (hiss(ac.currentTime, .12, .05, 0, 700), tone("sine", 200, 150, ac.currentTime, .1, .05, 900)),   // a car slides
+  click:() => ac && tone("triangle", 1800, 2400, ac.currentTime, .05, .04, 9000),                     // a mirror turns
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the cover: the studio at night, teal and cyan, purple light; Jo's saucer ---------------- */
+let scene, cam, ren, clockR, crashed = null;
+const SC = { room:0x041418, teal:0x0a6a78, cyan:0x3ae8ff, pink:0xff4ad8, purple:0x9a3aff, gold:0xffc84a, white:0xe8faff };
+const glowM = (c, op) => new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:op, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const PUFF = radial([[0, "rgba(255,255,255,.5)"], [.5, "rgba(255,255,255,.2)"], [1, "rgba(255,255,255,0)"]], 128);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+const mat = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.4, metalness:.3, emissive:c, emissiveIntensity:e == null ? .15 : e });
+// the room: dark teal walls, the floor, LED strips (cyan along the desk, purple up the wall)
+function studio(){ const g = new THREE.Group(); scene.add(g);
+  const wall = new THREE.MeshStandardMaterial({ color:0x062a30, roughness:.9, emissive:0x031a1e, emissiveIntensity:.6 });
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(40, 16), wall); back.position.set(0, 6, -9); g.add(back);
+  for (const sx of [-1, 1]){ const side = new THREE.Mesh(new THREE.PlaneGeometry(30, 16), wall); side.rotation.y = -sx*Math.PI/2; side.position.set(sx*16, 6, 4); g.add(side); }
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(40, 30), new THREE.MeshStandardMaterial({ color:0x05181c, roughness:.4, metalness:.4 })); floor.rotation.x = -Math.PI/2; floor.position.set(0, -2, 4); g.add(floor);
+  const strip = (c, x, y, z, w, h) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ color:c })); m.position.set(x, y, z); g.add(m); const s = sprite(c, Math.max(w, h)*1.2, .25); s.position.set(x, y, z + .2); g.add(s); };
+  strip(SC.purple, -12, 6, -8.9, .25, 12); strip(SC.cyan, 0, 12.5, -8.9, 30, .12); strip(SC.purple, 12, 6, -8.9, .25, 12);
+  return g; }
+// a monitor speaker: a black box, two cones (they pump on the beat)
+function speaker(s){ const g = new THREE.Group(), box = mat(0x0a0e12, .05), cone = new THREE.MeshStandardMaterial({ color:0x1a1e24, roughness:.6, metalness:.4 });
+  g.add(new THREE.Mesh(new THREE.BoxGeometry(2, 3.2, 1.8), box));
+  const cones = []; for (const [y, r] of [[.6, .7], [-.7, .45]]){ const c = new THREE.Mesh(new THREE.CylinderGeometry(r, r*.4, .3, 24), cone); c.rotation.x = Math.PI/2; c.position.set(0, y, .92); g.add(c); cones.push(c);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r, .05, 6, 24), new THREE.MeshBasicMaterial({ color:SC.cyan })); ring.position.set(0, y, .93); g.add(ring); }
+  g.scale.setScalar(s || 1); g.userData.cones = cones; return g; }
+// the screen with the crowd on it (a show), glowing cyan
+const CROWD = canvasTex(256, 144, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#0a2a6a"); g.addColorStop(.5, "#1ac8e8"); g.addColorStop(1, "#06283a"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 14; i++){ x.fillStyle = "rgba(255,255,255," + (.2 + rnd(i)*.4) + ")"; x.beginPath(); x.moveTo(w*.5, 10); x.lineTo(rnd(i*3)*w, h*.7); x.lineTo(rnd(i*3)*w + 10, h*.7); x.fill(); }
+  x.fillStyle = "#020a12"; for (let i = 0; i < 60; i++){ const cx = rnd(i*7)*w, cy = h*.72 + rnd(i*5)*h*.3; x.beginPath(); x.arc(cx, cy, 5 + rnd(i)*4, 0, Math.PI*2); x.fill(); if (i % 4 === 0){ x.fillRect(cx - 1, cy - 22, 3, 18); } } });
+function screenMesh(w, h){ const g = new THREE.Group(); g.add(new THREE.Mesh(new THREE.BoxGeometry(w + .2, h + .2, .15), mat(0x0a0e12, .05)));
+  const s = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map:CROWD })); s.position.z = .08; g.add(s); const glow = sprite(SC.cyan, w*1.6, .25); glow.position.z = .3; g.add(glow); return g; }
+// the skull on the desk
+function skull(){ const g = new THREE.Group(), bone = mat(0xd8e4e8, .25); g.add(new THREE.Mesh(new THREE.SphereGeometry(.45, 14, 10), bone)); g.add(at3(new THREE.Mesh(new THREE.BoxGeometry(.5, .3, .4), bone), 0, -.35, .12));
+  for (const sx of [-1, 1]) g.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.12, 8, 6), new THREE.MeshBasicMaterial({ color:0x020406 })), sx*.17, -.02, .38)); return g; }
+// Jo from behind, at the desk: the black hoodie with the big logo on the back, the hood up
+const LOGO = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#0a0c10"; x.fillRect(0, 0, w, h); x.strokeStyle = "#5ad8ff"; x.lineWidth = 10; x.beginPath(); x.moveTo(14, 20); x.lineTo(40, 104); x.lineTo(64, 50); x.lineTo(88, 104); x.lineTo(114, 20); x.stroke(); });
+function joBack(){ const g = new THREE.Group(), hood = mat(0x0c0e12, .05);
+  g.add(at3(new THREE.Mesh(new THREE.BoxGeometry(2, 2, 1.1), [hood, hood, hood, hood, hood, new THREE.MeshStandardMaterial({ map:LOGO, roughness:.8 })]), 0, 0, 0));
+  g.children[0].rotation.y = Math.PI;
+  g.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.62, 14, 10), hood), 0, 1.3, -.1)); return g; }
+// Jo's saucer as it is on this cover: a dark hull, the purple-pink dome with the "L", purple rim lights, the white beam
+const BADGE = (letter, bg) => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#e8f4ff"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = bg; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#06102a"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(letter, 66, 70); return new THREE.CanvasTexture(cv); };
+function buildSaucer(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0x3a4868, roughness:.3, metalness:.8, emissive:0x101a3a, emissiveIntensity:.5 })); hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.28, .14, 32, 1, true), new THREE.MeshStandardMaterial({ color:0x1a2440, metalness:.8, roughness:.3 })));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0xc03aff, roughness:.2, metalness:.3, emissive:0x9a1aff, emissiveIntensity:.8 })); dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE("L", "#e06aff"), transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:i % 2 ? 0xd86aff : 0xe8f4ff })); l.position.set(Math.sin(a)*1.3, 0, Math.cos(a)*1.3); lights.add(l); }
+  const under = sprite(0xd86aff, 3, .5); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color:0xe8f0ff, transparent:true, opacity:.25, depthWrite:false, side:THREE.DoubleSide })); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .18 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { const sec = section(t); p.className = sec === "hook" ? "ready" : ""; p.innerHTML = (sec === "hook" ? "HOOK &middot; DOUBLE POINTS" : G.tag) + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+
+
+/* ================= PAD MEMORY =================
+   The drum machine on the desk: 16 pads lit from under, each its own note. The pads play a pattern
+   on the beat (on the 8ths in the hooks, and double points there); you play it back in the same
+   order. Right: the same pattern plus one more pad. At the top it starts a fresh one (+1,000). A
+   wrong pad or too slow costs a heart and you hear it again. */
+const PM = {
+  name:"PAD MEMORY", start:0,
+  // the F minor pentatonic (the song is in F minor), low at the back to high at the front
+  NOTES:[174.6, 207.7, 233.1, 261.6, 311.1, 349.2, 415.3, 466.2, 523.3, 622.3, 698.5, 830.6, 932.3, 1046.5, 1244.5, 1396.9],
+  get tag(){ const p = this.st && this.st.phase; return p === "you" ? "YOUR TURN" : "WATCH"; },
+  get hint(){ const p = this.st && this.st.phase; return p === "you" ? "play the pads back in order" : "watch the pads light up"; },
+  setup(){
+    const g = new THREE.Group(); scene.add(g); this.root = g;
+    g.add(studio());
+    const sp = [speaker(1.1), speaker(1.1)]; sp[0].position.set(-5.6, 2, -4); sp[1].position.set(5.6, 2, -4); sp.forEach(s => g.add(s)); this.sp = sp;
+    const scr = screenMesh(5, 2.8); scr.position.set(0, 4.6, -6); g.add(scr);
+    const sk = skull(); sk.position.set(3.9, .6, -1.8); g.add(sk);
+    // the desk under it, a cyan LED along the front edge
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(14, .4, 7), new THREE.MeshStandardMaterial({ color:0x0a161a, roughness:.5, metalness:.5, emissive:0x031418, emissiveIntensity:.5 })); desk.position.set(0, -1.55, -1); g.add(desk);
+    const led = new THREE.Mesh(new THREE.BoxGeometry(14, .06, .06), new THREE.MeshBasicMaterial({ color:SC.cyan })); led.position.set(0, -1.35, 2.52); g.add(led);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(5.6, .5, 5.6), new THREE.MeshStandardMaterial({ color:0x10161c, roughness:.4, metalness:.6, emissive:0x041418, emissiveIntensity:.4 }));
+    body.position.set(0, .3, 0); body.rotation.x = .5; g.add(body); this.body = body;
+    // four knobs and a little screen along the top of the machine
+    const lcd = new THREE.Mesh(new THREE.PlaneGeometry(1.8, .5), new THREE.MeshBasicMaterial({ color:0x1ac8e8 })); lcd.rotation.x = -Math.PI/2; lcd.position.set(-1.4, .26, -2.45); body.add(lcd);
+    for (let i = 0; i < 4; i++){ const k = new THREE.Mesh(new THREE.CylinderGeometry(.16, .18, .2, 14), mat(0x1a2228, .1)); k.position.set(.6 + i*.55, .35, -2.45); body.add(k); }
+    this.pads = []; const pal = [SC.cyan, SC.pink, SC.purple, 0x3aff9a];
+    for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++){
+      const color = pal[(r + c) % 4], m = new THREE.Mesh(new THREE.BoxGeometry(1.1, .2, 1.1), new THREE.MeshStandardMaterial({ color:0x1a2228, roughness:.6, emissive:color, emissiveIntensity:.08 }));
+      m.position.set((c - 1.5)*1.25, .35, (r - 1.2)*1.2); body.add(m);
+      const glow = sprite(color, 2, 0); glow.position.set((c - 1.5)*1.25, .7, (r - 1.2)*1.2); body.add(glow);
+      this.pads.push({ m, glow, color, lit:0, ring:0 }); }
+    this.ray = new THREE.Raycaster();
+  },
+  begin(t0, t1, L0, L1, cont){
+    this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1;
+    if (cont) return;
+    this.start = t0;
+    this.st = { len:CFG.endless ? 4 : 3, seq:[], k:CFG.endless ? 101 : 1, phase:"wait", at:t0 + BAR, step:0, input:[], rounds:0, pads:0, beatHits:0, best:0, fresh:0, last:-1, deadline:0, hook:false, again:false, combo:0 };
+    for (const p of this.pads){ p.lit = 0; p.ring = 0; }
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  top(t){ return Math.min(12, 8 + Math.floor(this.L(t)*5)); },             // how long a pattern gets before a fresh one
+  info(){ const s = this.st; return s.phase === "you" ? "YOUR TURN · " + s.input.length + " / " + s.seq.length : "PATTERN " + s.seq.length + " · " + s.rounds + " DONE"; },
+  pick(){ const s = this.st, prev = s.seq.length ? s.seq[s.seq.length - 1] : -1; let i, n = 0;
+    do i = Math.floor(rnd(s.k++*7.7 + 3)*16); while ((i === prev) && ++n < 20); return i; },
+  // the next pattern: the same one plus a pad, or a fresh one when it's long enough
+  next(t){ const s = this.st;
+    if (!s.seq.length || s.seq.length >= this.top(t)){ s.seq = []; const n = (CFG.endless ? 4 : 3) + Math.floor(this.L(t)*2); for (let i = 0; i < n; i++) s.seq.push(this.pick()); }
+    else s.seq.push(this.pick()); },
+  light(i, beep){ const p = this.pads[i]; p.lit = 1; this.st.last = i; if (beep && ac) tone("triangle", this.NOTES[i], this.NOTES[i], ac.currentTime, .22, .07, 6000); },
+  down(cx, cy){ this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam);
+    const hit = this.ray.intersectObjects(this.pads.map(p => p.m))[0]; if (hit) this.press(this.pads.findIndex(p => p.m === hit.object)); },
+  KEYS:"1234qwerasdfzxcv",
+  key(k){ const i = this.KEYS.indexOf(k.toLowerCase()); if (i >= 0) this.press(i); },
+  press(i){ const s = this.st, t = Math.max(0, S.t);
+    if (s.phase !== "you"){ this.pads[i].lit = .35; return; }                // not your turn: it only blinks
+    this.light(i, true); this.pads[i].ring = 1;
+    if (i !== s.seq[s.input.length]){
+      s.combo = 0; this.pads[s.seq[s.input.length]].ring = -1;              // shows the one it was
+      if (hurt("WRONG PAD", "Watch the order the pads light up in, then play it back the same way - say the colours to yourself.")) return;
+      s.phase = "wait"; s.at = t + BEAT*2; s.again = true; return; }
+    const beat = onBeat(t), x = (s.hook ? 2 : 1)*(1 + Math.min(4, s.combo)*.25);
+    s.input.push(i); s.pads++; if (beat) s.beatHits++; S.score += (beat ? 60 : 30)*x;
+    if (s.input.length === s.seq.length){
+      s.rounds++; s.combo++; S.combo = s.combo; s.best = Math.max(s.best, s.seq.length);
+      const pts = Math.round(s.seq.length*150*x); S.score += pts; sfx.big();
+      const full = s.seq.length >= this.top(t); if (full){ S.score += 1000; s.fresh++; }
+      say(full ? "FULL PATTERN" : s.combo > 2 ? s.combo + " IN A ROW" : "NICE", "+" + fmt(pts + (full ? 1000 : 0)) + (full ? " · a fresh one" : " · one more pad"), .9, full ? "g" : "");
+      s.phase = "wait"; s.at = t + BEAT*2; s.again = false; } },
+  update(dt, t){ const s = this.st;
+    for (const p of this.pads){ p.lit = Math.max(0, p.lit - dt*3.5); p.ring = p.ring > 0 ? Math.max(0, p.ring - dt*3) : Math.min(0, p.ring + dt*1.2); }
+    if (s.phase === "wait" && t > s.at){
+      if (!s.again) this.next(t);
+      s.hook = section(t) === "hook"; const g = s.hook ? BEAT/2 : BEAT;
+      s.phase = "show"; s.step = 0; s.at = GRID.t0 + Math.ceil((t - GRID.t0)/g + .001)*g;
+      say(s.again ? "AGAIN" : s.hook ? "WATCH · QUICK" : "WATCH", s.hook ? "double points" : "", .6); }
+    if (s.phase === "show" && t >= s.at){ const g = s.hook ? BEAT/2 : BEAT;
+      if (s.step < s.seq.length){ this.light(s.seq[s.step], true); s.step++; s.at += g; }
+      else { s.phase = "you"; s.input = []; s.deadline = t + BEAT*(s.seq.length*1.3 + 3)*(1.2 - .3*clamp(this.L(t), 0, 1.6)); say("YOUR TURN", "", .6); } }
+    if (s.phase === "you" && t > s.deadline){ s.combo = 0;
+      if (hurt("TOO SLOW", "Play the pattern back before the time runs out - one pad a beat is plenty.")) return;
+      s.phase = "wait"; s.at = t + BEAT; s.again = true; }
+  },
+  render(dt, t){ const s = this.st, beat = onBeat(t), portrait = cam.aspect < .8, you = s.phase === "you";
+    const left = you ? clamp((s.deadline - t)/(BEAT*4), 0, 1) : 1;
+    this.pads.forEach(p => { const r = Math.abs(p.ring), red = p.ring < 0;
+      p.m.material.emissive.setHex(red ? 0xff3a5a : p.color);
+      p.m.material.emissiveIntensity = .08 + p.lit*1.3 + r*.6 + (you ? (beat ? .12 : .05) : 0) + (you && left < 1 && beat ? .1 : 0);
+      p.glow.material.color.setHex(red ? 0xff3a5a : p.color); p.glow.material.opacity = Math.max(p.lit*.9, r*.6); p.m.position.y = .35 - p.lit*.08; });
+    this.sp.forEach(sp => sp.userData.cones.forEach(c => c.scale.set(1, beat ? 1.6 : 1, 1)));
+    // the saucer hovers over the pad that lit last, a short beam down to it
+    const p = this.pads[Math.max(0, s.last)], w = p.m.getWorldPosition(new THREE.Vector3());
+    if (s.last < 0) w.set(0, .4, 0);
+    ME.scale.setScalar(.45); ME.position.lerp(new THREE.Vector3(w.x, w.y + 1.6 + Math.sin(t*2)*.08, w.z), Math.min(1, dt*12)); ME.rotation.set(0, t*2, 0);
+    ME.userData.beam.visible = true; ME.userData.beam.scale.set(.35, .4, .35); ME.userData.beam.position.y = -.7;
+    if (portrait){ CAMP.set(0, 10.4, 11.8); CAML.set(0, .3, -.4); } else { CAMP.set(0, 5.6, 8); CAML.set(0, .6, -.6); }
+  }
+};
+/* ---------------- the run ---------------- */
+let ME = null;
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = PM; camInit = false; PM.root.visible = true; END.root.visible = false; END.on = false; ME.visible = true;
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+}
+// endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+function songT(){
+  if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The cover: the studio at night from behind Jo - the black hoodie with the big logo, the desk lit cyan,
+   the screen with the crowd on it between the big speakers, the skull - and Jo's saucer coming down in
+   front with its white beam, small, like on the cover. */
+const END = { out:8.5, root:null, X:300 };
+function buildEnd(){
+  const g = new THREE.Group(); g.visible = false; g.position.x = END.X; scene.add(g);
+  g.add(studio());
+  const desk = new THREE.Mesh(new THREE.BoxGeometry(12, .5, 4), new THREE.MeshStandardMaterial({ color:0x0c1a20, roughness:.5, metalness:.5, emissive:0x062a30, emissiveIntensity:.6 })); desk.position.set(0, .2, -3.4); g.add(desk);
+  const led = new THREE.Mesh(new THREE.BoxGeometry(12, .06, .06), new THREE.MeshBasicMaterial({ color:SC.cyan })); led.position.set(0, .45, -1.38); g.add(led);
+  const ledG = sprite(SC.cyan, 3, .3); ledG.scale.set(14, 1, 1); ledG.position.set(0, .45, -1.3); g.add(ledG);
+  // the mixer and the gear on the desk: rows of little lit knobs and faders
+  for (const [x, w] of [[-3.6, 2.6], [0, 3.2], [3.6, 2.6]]){ const m = new THREE.Mesh(new THREE.BoxGeometry(w, .3, 1.4), mat(0x161e24, .1)); m.position.set(x, .6, -2.4); m.rotation.x = .25; g.add(m);
+    for (let i = 0; i < 10; i++){ const k = new THREE.Mesh(new THREE.BoxGeometry(.08, .06, .08), new THREE.MeshBasicMaterial({ color:i % 3 ? SC.cyan : 0xe8faff })); k.position.set(x - w/2 + .2 + i*(w - .4)/9, .8, -2.4 + (i % 2)*.3); g.add(k); } }
+  const scr = screenMesh(4.4, 2.6); scr.position.set(0, 2.5, -4.9); g.add(scr);
+  const sp = [speaker(1), speaker(1), speaker(.7), speaker(.7)]; sp[0].position.set(-4.6, 3, -5); sp[1].position.set(4.6, 3, -5); sp[2].position.set(-4.6, 1.2, -4.6); sp[3].position.set(4.6, 1.2, -4.6);
+  sp.forEach(s => g.add(s)); END.sp = sp;
+  const sk = skull(); sk.position.set(-3.2, 1.1, -3.6); sk.scale.setScalar(.8); g.add(sk);
+  const jo = joBack(); jo.position.set(0, -.4, -.3); g.add(jo); END.jo = jo;
+  // the chair back to the right, like on the cover
+  const chair = new THREE.Mesh(new THREE.BoxGeometry(1.4, 2.6, .3), mat(0x0e1820, .1)); chair.position.set(2.5, -.6, .8); chair.rotation.set(0, -.5, -.15); g.add(chair);
+  END.root = g;
+}
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  animSaucer(ME, t, beat);
+  if (S.end >= 0){
+    const portrait = cam.aspect < .8;
+    if (S.end < 1){ $("flash").style.background = "#bff6ff"; $("flash").style.opacity = Math.min(1, S.end/.8); PM.render(dt, t); }
+    else {
+      if (!END.on){ END.on = true; PM.root.visible = false; END.root.visible = true; camInit = false; }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      // the saucer comes down in front of Jo, small, the beam on
+      const u = clamp((S.end - 1.2)/2.6, 0, 1), e = 1 - Math.pow(1 - u, 3);
+      ME.visible = true; ME.scale.setScalar(.42); ME.rotation.set(.12, Math.sin(t*1.5)*.25, 0); ME.userData.beam.visible = true; ME.userData.beam.scale.set(.6, .7, .6); ME.userData.beam.position.y = -1.2;
+      ME.position.set(END.X, (portrait ? -.6 : -.35) + (1 - e)*5 + Math.sin(t*2)*.05, 1.6);
+      END.sp.forEach(s => s.userData.cones.forEach(c => c.scale.set(1, beat ? 1.5 : 1, 1)));
+      END.jo.rotation.z = beat ? .02 : 0;
+      CAMP.set(END.X, portrait ? 3.6 : 2.6, portrait ? 15.5 : 7.5); CAML.set(END.X, 1.2, -3);
+      if (S.end > 2.4 && !S.saidEnd){ S.saidEnd = true; say("STAY UP", "LAZY JO", 4.5, "t"); }
+    }
+  } else {
+    G.render(dt, t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  const st = PM.st;
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:st.rounds });
+  const stat = st.rounds + " pattern" + (st.rounds === 1 ? "" : "s") + (st.best ? ", up to " + st.best + " pads" : "") + (st.beatHits ? " · " + st.beatHits + " pads on the beat" : "");
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the studio &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "STAY UP";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = "Up all night and it's all still there." + "<br>Level 19 cleared: <b>Pad Memory &#8734;</b> is open in the gold Endless list.";
+}
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x020a0c); scene.fog = new THREE.Fog(0x041a1e, 30, 120);
+  cam = new THREE.PerspectiveCamera(48, innerWidth/innerHeight, .1, 1500);
+  scene.add(new THREE.HemisphereLight(0x6ae8ff, 0x1a0a2a, 1.2));
+  const key = new THREE.DirectionalLight(0xb8f0ff, .9); key.position.set(-10, 30, 20); scene.add(key);
+  ME = buildSaucer(); scene.add(ME);
+  PM.setup(); buildEnd();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input ---------------- */
+// tap a pad (or the keys: 1 2 3 4 / Q W E R / A S D F / Z X C V, row by row from the back)
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); PM.down(e.clientX, e.clientY); }, { passive:false });
+addEventListener("keydown", e => { if (veilUp() || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return; if (PM.KEYS.includes(e.key.toLowerCase())){ e.preventDefault(); if (live()) PM.key(e.key); } });
+
+$("go").addEventListener("click", () => {
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : "PAD MEMORY", CFG.endless ? "the patterns never stop" : "watch the pads - then play them back", 3, CFG.endless ? "g" : "");
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = "STAY UP" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = "Jo's studio at night from the cover - the big speakers, the screen with the crowd, the skull on the desk. On the desk the drum machine: 16 pads lit from under, each its own note, and Jo's saucer hovering over them." +
+  (ENDLESS ? " <b>Endless:</b> the patterns never stop - less time every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = "The pads play a pattern on the beat - <b>watch</b>, then <b>tap</b> them back in the same order (or the keys <b>1-4, Q-R, A-F, Z-V</b>, row by row). Right: the same pattern plus one pad; at the top a fresh one, +1,000. In the hooks it plays twice as fast, for <b>double points</b>. A wrong pad or too slow costs a heart (3) and you see it again.";
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String((m === "endless") === ENDLESS));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); if (m === "endless") q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

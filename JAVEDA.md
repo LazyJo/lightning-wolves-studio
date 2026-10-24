@@ -28,6 +28,7 @@ client/public/javeda/
     ├── peace-inside.html   # Level 16: Hoops in the white sky (+ endless) - and the Online 1v1 (Live, H-O-R-S-E) over Supabase Realtime
     ├── true-fighter.html   # Level 17: Island Blocks - the falling pieces in a frame in the sea, the saucer carries them (+ endless)
     ├── issues.html         # Level 18: Unblock (the parking puzzle) and Part 2 Light Link (?part=2, the beam puzzle) (+ endless each)
+    ├── stay-up.html        # Level 19: Pad Memory - the drum machine in Jo's studio plays a pattern, play it back (+ endless)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

@@ -141,15 +141,15 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    match take turns - play the pattern so far and add one, pass it on. Get it wrong and you get a Z;
    three Z's and you fell asleep. Nobody is ever made up: if no one's there, nobody is. */
 
-// the song's grid - a stand-in (75 BPM, chill) until the song is here and measured
-const GRID = { bpm:75, t0:0 };
+// the song's grid, measured from the mp3 (SONG.md): 82.5 BPM like Stay Up, bar 0 starts at 0:00
+const GRID = { bpm:82.5, t0:0 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
-const END_AT = barT(52);
-const LOOP = [barT(4), barT(52)];             // endless and online: round and round
+const END_AT = barT(56);                      // the last hook ends, the song fades out
+const LOOP = [barT(8), barT(56)];             // endless and online: round and round
 const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
 // how the song feels at time t: calm (intro, breaks), loud (verses), hook
-const SECTIONS = [[4, "calm"], [12, "loud"], [20, "hook"], [28, "calm"], [44, "loud"], [52, "hook"]];
+const SECTIONS = [[8, "calm"], [16, "loud"], [24, "hook"], [32, "calm"], [48, "loud"], [56, "hook"]];
 function section(t){
   const b = Math.floor((songPos(t) - GRID.t0) / BAR);
   for (const [end, sec] of SECTIONS) if (b < end) return sec;
@@ -188,7 +188,7 @@ const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public
 const song = new Audio(SONGS + "lvl20.mp3"); song.preload = "auto";
 let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
 let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
-const PROG = [87.3, 69.3, 103.8, 77.8];         // F minor, chill
+const PROG = [103.8, 82.4, 123.5, 92.5];        // G# minor, chill
 function audioInit(){
   try {
     if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
@@ -359,8 +359,8 @@ function hurt(why, tip){
    Online it's the same pattern passed between two players (PASS, below). */
 const PO = {
   name:"PASS IT ON", start:0,
-  // the F minor pentatonic, low at the bottom of the rig to high at the top
-  NOTES:[523.3, 622.3, 698.5, 349.2, 415.3, 466.2, 233.1, 261.6, 311.1],
+  // the G# minor pentatonic (the song is in G# minor), low at the bottom of the rig to high at the top
+  NOTES:[493.9, 554.4, 622.3, 311.1, 370.0, 415.3, 207.7, 246.9, 277.2],
   KEYS:"123456789", ALT:"qweasdzxc",
   get tag(){ const s = this.st; return s && s.phase === "you" ? (s.input.length < s.seq.length ? "YOUR TURN" : "NOW ADD ONE") : "WATCH"; },
   get hint(){ const s = this.st; return s && s.phase === "you" ? (s.input.length < s.seq.length ? "play it back - then add one" : "any light you like") : "watch the lights - one gets added"; },

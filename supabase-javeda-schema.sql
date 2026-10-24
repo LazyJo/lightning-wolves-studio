@@ -77,7 +77,7 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl18', 18, 'ISSUES',       'lvl17', 0, 450000, 4000, 75, 500, 33),  -- Unblock: ~209k for a bot that solves every car park in a few seconds (3:00)
   ('lvl18b', 18, 'LIGHT LINK',  'lvl18', 0, 1100000, 7000, 75, 300, 34),  -- Part 2: ~520k for a bot that knows every mirror; a person is far slower
   ('lvl19', 19, 'STAY UP',      'lvl18b', 0, 120000, 1200, 75, 500, 35),  -- Pad Memory: ~54k for a bot that plays every pattern back on the beat (2:31)
-  ('lvl20', 20, 'STAY UP 2',    'lvl19', 0, 100000, 1000, 75, 500, 36)  -- Pass It On: ~46k for a bot that plays every pattern back on the beat (stand-in grid)
+  ('lvl20', 20, 'STAY UP 2',    'lvl19', 0, 100000, 1000, 75, 500, 36)  -- Pass It On: ~45k for a bot that plays every pattern back on the beat (2:43)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -130,7 +130,7 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl18x', 18, 'UNBLOCK', 'lvl18b', 0, 50000000, 12000, 0, 0, 140, true, 1800),  -- ~890/s
   ('lvl18bx', 18, 'LIGHT LINK', 'lvl18b', 0, 50000000, 25000, 0, 0, 141, true, 4300),  -- ~2,100/s
   ('lvl19x', 19, 'PAD MEMORY', 'lvl19', 0, 50000000, 5500, 0, 0, 142, true, 900),  -- ~420/s
-  ('lvl20x', 20, 'PASS IT ON', 'lvl20', 0, 50000000, 4000, 0, 0, 143, true, 650),  -- ~310/s
+  ('lvl20x', 20, 'PASS IT ON', 'lvl20', 0, 50000000, 4000, 0, 0, 143, true, 650),  -- ~340/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
   ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 150, true, 40)

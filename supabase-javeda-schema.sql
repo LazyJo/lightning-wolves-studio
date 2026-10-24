@@ -71,7 +71,9 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl12', 12, 'NEED MORE TIME', 'lvl11', 0, 100000, 1200, 75, 500, 27),  -- Pendulum Swing: ~50k with every heart (3:25 of the song)
   ('lvl13', 13, 'YOU READY?', 'lvl12', 0, 40000, 450, 75, 500, 28),  -- Light Trails on the rug: ~16-25k (2:06 of the song)
   ('lvl14', 14, 'LA VIBE',    'lvl13', 0, 90000, 1000, 75, 500, 29),  -- Ice Breaker in the cup: ~43k with every heart (2:30 of the song)
-  ('lvl16', 16, 'PEACE INSIDE', 'lvl14', 0, 350000, 4000, 75, 500, 30)  -- Hoops in the white sky: ~169k for a bot that makes nearly everything (2:48). Opens after 14 until 15 is out
+  ('lvl15', 15, 'GHOST',        'lvl14', 0, 270000, 3000, 75, 500, 30),  -- Haunted Windows: ~128k for a bot that taps every ghost (3:22)
+  ('lvl16', 16, 'PEACE INSIDE', 'lvl15', 0, 350000, 4000, 75, 500, 31),  -- Hoops in the white sky: ~169k for a bot that makes nearly everything (2:48)
+  ('lvl17', 17, 'TRUE FIGHTER', 'lvl16', 0, 95000, 1000, 75, 500, 32)  -- Island Blocks: ~44k for a bot that stacks well and drops on the beat (3:04)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -118,7 +120,9 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl12x', 12, 'PENDULUM SWING', 'lvl12', 0, 50000000, 2600, 0, 0, 134, true, 600),  -- ~280/s
   ('lvl13x', 13, 'LIGHT TRAILS', 'lvl13', 0, 50000000, 2000, 0, 0, 135, true, 450),   -- ~170/s
   ('lvl14x', 14, 'ICE BREAKER', 'lvl14', 0, 50000000, 6000, 0, 0, 136, true, 1100),  -- ~500/s
-  ('lvl16x', 16, 'HOOPS', 'lvl16', 0, 50000000, 13000, 0, 0, 137, true, 2400),  -- ~1,130/s
+  ('lvl15x', 15, 'HAUNTED WINDOWS', 'lvl15', 0, 50000000, 9000, 0, 0, 137, true, 1500),  -- ~730/s
+  ('lvl16x', 16, 'HOOPS', 'lvl16', 0, 50000000, 13000, 0, 0, 138, true, 2400),  -- ~1,130/s
+  ('lvl17x', 17, 'ISLAND BLOCKS', 'lvl17', 0, 50000000, 3500, 0, 0, 139, true, 600),  -- ~280/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
   ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 140, true, 40)
@@ -288,7 +292,9 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl12' THEN g.best_score END), 0)::INT AS lvl12_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl13' THEN g.best_score END), 0)::INT AS lvl13_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl14' THEN g.best_score END), 0)::INT AS lvl14_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl16' THEN g.best_score END), 0)::INT AS lvl16_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl15' THEN g.best_score END), 0)::INT AS lvl15_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl16' THEN g.best_score END), 0)::INT AS lvl16_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl17' THEN g.best_score END), 0)::INT AS lvl17_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>TRUE FIGHTER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:light}
+html,body{height:100%}
+body{margin:0; background:#38c8f0; color:#0e1a3a; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#ffd21a; line-height:1; text-shadow:0 2px 0 #c0300a, 0 0 8px #0e1a3a}
+#ml{font-size:11px; letter-spacing:.18em; color:#0e1a3a; margin-top:3px; text-shadow:0 0 6px #fff}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#e0306a; text-shadow:0 0 8px #fff; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#0e3a7a22; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#0e3a7a,#ffd21a)}
+.bl{font-size:11px; letter-spacing:.18em; color:#0e1a3a; text-align:right; text-shadow:0 0 6px #fff}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#0e3a7a; margin-top:8px; text-align:right; text-shadow:0 0 8px #fff}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#c0300a}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#0e3a7a; text-shadow:0 0 12px #fff, 0 0 3px #fff}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#0e1a3a; margin-top:2px}
+#phase.ready{color:#c0300a}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:26px; opacity:0; transition:opacity .25s; color:#0e3a7a; text-shadow:0 0 14px #fff, 0 0 4px #fff; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#e8401a}
+#msg.g{color:#c0300a}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#ffd21a; text-shadow:0 4px 0 #e8401a, 0 0 18px #ff7a1a, 0 0 4px #0e1a3a}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#0e1a3a; margin-top:6px}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto; color:#f4f0ff;
+  background:radial-gradient(50% 30% at 50% 15%, #ffd21a44 0%, transparent 70%), radial-gradient(120% 80% at 50% 25%, #0a7ab8 0%, #062a4a 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #3a2a10 0%, #120c04 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#bfe6ff; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#ffd21a; text-shadow:0 3px 0 #e8401a, 0 0 22px #ff7a1a}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#e8f6ff; font-size:17px; max-width:42ch}
+#veil b{color:#ffd21a}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffd76a,#ffd21a); color:#0e1a3a; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ffd21a66}
+#go:disabled{opacity:.45; cursor:default; box-shadow:none}
+#go.alt{background:none; color:#ffd21a; border:1.5px solid #ffd21a; font-size:15px; padding:12px 30px; box-shadow:none}
+#veil small{color:#bfe6ff; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#e8f6ff; background:none; border:1.5px solid #ffd21a55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#ffd21a; background:#ffd21a22}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ffd21a; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ffd21a99; background:#ffd21a14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">TRUE FIGHTER</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="">Island Blocks</button><button type="button" data-mode="endless" class="gold">Island Blocks &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= TRUE FIGHTER =================
+   Level 17 of JAVEDA, in the world of the cover: a bright blue comic sky with big white clouds,
+   the turquoise sea, islands with red cliffs and palms, the gold cloud trail - and Jo's saucer.
+   Jo picked ISLAND BLOCKS: a tall gold frame standing in the sea. The saucer carries each piece
+   down in its beam - island chunks (green and red), gold, sky blue, cloud white, orange, purple.
+   The song sets how fast they drop: a row a beat in the calm, every half beat in the verses, every
+   third (and gold pieces) in the hooks. Drag to move, tap to turn, swipe down (or Space) to drop.
+   A full row bursts gold; dropped right on the beat it's double. Stacked to the top costs a heart
+   (3) and the top of the stack washes away. At the end of the song: the cover.
+   Once it's cleared, ENDLESS opens (?endless=1): the pieces never stop, quicker every 8 bars, a
+   heart back every 24. */
+
+// the song's grid, measured from lvl17.mp3: 78.5 BPM, the first beat at 0.756 s (see SONG.md)
+const GRID = { bpm:78.5, t0:.756 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(60);                      // 3:04, the last full bar before the fade
+const LOOP = [barT(8), barT(60)];             // endless: round and round, from the first hook
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (intro, breaks), loud (verses), hook
+const SECTIONS = [[8, "calm"], [16, "hook"], [24, "loud"], [28, "calm"], [36, "hook"], [40, "calm"], [48, "loud"], [52, "calm"], [60, "hook"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+const ENDLESS = Q.get("endless") === "1";
+const CFG = ENDLESS ? { id:"lvl17x", title:"Island Blocks", by:"LEVEL 17 · ENDLESS", endless:true, board:"Level 17 ∞" }
+  : { id:"lvl17", title:"Island Blocks", by:"LEVEL 17" };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl17.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [110, 98, 87.3, 98];
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  turn: () => ac && tone("triangle", 1500, 1900, ac.currentTime, .06, .04, 8000),                     // a piece turns
+  move: () => ac && tone("triangle", 900, 900, ac.currentTime, .03, .025, 6000),
+  thud: () => ac && (tone("sine", 160, 60, ac.currentTime, .18, .12, 900), hiss(ac.currentTime, .08, .05, 0, 900)),   // it lands
+  row:  n => ac && [660, 880, 1100, 1320, 1760].slice(0, n + 1).forEach((f, i) => tone("triangle", f, f*1.5, ac.currentTime + i*.05, .25, .06, 7000)),
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the cover: blue sky, the sea, the islands, the gold trail - and Jo's saucer ---------------- */
+let scene, cam, ren, clockR, crashed = null;
+const TC = { sky:0x38c8f0, sea:0x18b4c8, deep:0x0a7ea8, gold:0xffc22a, orange:0xff7a1a, red:0xe8401a, green:0x3aa84a, cliff:0xc0583a, navy:0x1a2a5a, skin:0x6a4030 };
+const glowM = (c, op) => new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:op, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const PUFF = radial([[0, "rgba(255,255,255,1)"], [.6, "rgba(255,255,255,.85)"], [1, "rgba(255,255,255,0)"]], 128);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+// flat comic colours, a little outline-y: low roughness, strong emissive so the shadows stay bright like the drawing
+const mat = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.6, metalness:0, emissive:c, emissiveIntensity:e == null ? .25 : e, flatShading:true });
+// the sky of the cover: deep blue up top, pale near the sea
+function skyDome(){ const t = canvasTex(4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h);
+    [[0, "#0a9ad8"], [.35, "#38c8f0"], [.5, "#a8ecfa"], [.52, "#7ad8e8"], [1, "#0a7ea8"]].forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+  const m = new THREE.Mesh(new THREE.SphereGeometry(700, 32, 16), new THREE.MeshBasicMaterial({ map:t, side:THREE.BackSide, fog:false, depthWrite:false })); scene.add(m); return m; }
+// the big white comic clouds
+function puffs(n, area, y0, z0){ const P = []; for (let i = 0; i < n; i++){ const g = new THREE.Group();
+    for (let k = 0; k < 4; k++){ const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:PUFF, color:0xffffff, transparent:true, depthWrite:false, fog:false })); s.scale.setScalar(8 + rnd(i*9 + k)*8); s.position.set((k - 1.5)*5, rnd(i*3 + k)*3, 0); g.add(s); }
+    g.position.set((rnd(i*7) - .5)*area[0], y0 + rnd(i*5)*area[1], z0 - rnd(i*11)*area[2]); scene.add(g); P.push(g); } return P; }
+// the sea: turquoise, sparkling
+const SEAT = canvasTex(256, 256, (x, w, h) => { x.fillStyle = "#18b4c8"; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 260; i++){ x.fillStyle = i % 3 ? "rgba(255,255,255,.18)" : "rgba(10,110,160,.25)"; x.fillRect(rnd(i)*w, rnd(i*3)*h, 6 + rnd(i*5)*16, 2); } }, [40, 40]);
+function sea(y){ const m = new THREE.Mesh(new THREE.PlaneGeometry(1400, 1400), new THREE.MeshStandardMaterial({ map:SEAT, roughness:.3, metalness:.1, emissive:0x0a6a88, emissiveIntensity:.35 }));
+  m.rotation.x = -Math.PI/2; m.position.y = y; scene.add(m); return m; }
+// a palm tree: a bent trunk, a crown of leaves
+function palm(s){ const g = new THREE.Group(), tm = mat(0x8a5a2a, .15), lm = mat(0x2a9a3a, .25);
+  for (let i = 0; i < 5; i++){ const seg = new THREE.Mesh(new THREE.CylinderGeometry(.16, .2, 1.1, 6), tm); seg.position.set(i*i*.04, .55 + i*1.0, 0); seg.rotation.z = -i*.06; g.add(seg); }
+  for (let i = 0; i < 6; i++){ const a = i/6*Math.PI*2, l = new THREE.Mesh(new THREE.ConeGeometry(.35, 2.4, 4), lm); l.position.set(.64 + Math.cos(a)*1, 5.1, Math.sin(a)*1); l.rotation.set(Math.sin(a)*1.6, 0, -Math.cos(a)*1.6 + .2); l.scale.z = .3; g.add(l); }
+  g.scale.setScalar(s || 1); return g; }
+// an island from the cover: red-brown cliffs, a green top, a palm or two
+function island(r, h, k){ const g = new THREE.Group();
+  const cl = new THREE.Mesh(new THREE.CylinderGeometry(r*.92, r*1.08, h, 9, 1), mat(TC.cliff, .2)); cl.position.y = h/2; g.add(cl);
+  const top = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 6, 0, Math.PI*2, 0, Math.PI/2), mat(TC.green, .25)); top.scale.y = .35; top.position.y = h; g.add(top);
+  for (let i = 0; i < (k % 3) + 1; i++){ const p = palm(.5 + rnd(k*3 + i)*.3); p.position.set((rnd(k*7 + i) - .5)*r, h + .2, (rnd(k*9 + i) - .5)*r); p.rotation.y = rnd(k + i)*6; g.add(p); }
+  return g; }
+function trail(n, color){ const P = []; for (let i = 0; i < n; i++){ const s = sprite(color || 0xffc84a, 1.2, .8); s.material.blending = THREE.NormalBlending; scene.add(s); P.push(s); } return { P, hist:[] }; }
+function trailUpdate(T, pos, size){ T.hist.unshift(pos.clone()); if (T.hist.length > T.P.length*2) T.hist.pop();
+  T.P.forEach((s, i) => { const h = T.hist[i*2]; s.visible = !!h; if (h){ s.position.copy(h); s.scale.setScalar((size || 1.3)*(1 - i/T.P.length*.6)); s.material.opacity = .85*(1 - i/T.P.length); } }); }
+// Jo's saucer from the covers: a silver hull, the orange dome with the "L", white rim lights, the beam
+const BADGE = (letter, bg) => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#fff4e6"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = bg; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#1a0a02"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(letter, 66, 70); return new THREE.CanvasTexture(cv); };
+function buildSaucer(){ const zirka = false;
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:zirka ? 0xf6f4fa : 0xd8dce8, roughness:.25, metalness:zirka ? .2 : .7, emissive:0x2a2a3a, emissiveIntensity:.3 }));
+  hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  const rim = new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.28, .14, 32, 1, true), zirka ? new THREE.MeshStandardMaterial({ map:CHECK([8, .5]), roughness:.5 }) : new THREE.MeshStandardMaterial({ color:0x5a5a6a, metalness:.8, roughness:.3 })); g.add(rim);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:zirka ? PC.purple : 0xff8a2a, roughness:.25, metalness:.3, emissive:zirka ? 0x2a0a4a : 0x8a3a00, emissiveIntensity:.6 }));
+  dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE(zirka ? "Z" : "L", zirka ? "#fdb927" : "#ff7a1a"), transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:zirka ? (i % 2 ? 0xfdb927 : 0x9a7ad8) : 0xfff4e0 })); l.position.set(Math.sin(a)*1.3, 0, Math.cos(a)*1.3); lights.add(l); }
+  const under = sprite(zirka ? 0xc8a8ff : 0xffd080, 3, .5); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color:zirka ? 0xc8a8ff : 0xffd080, transparent:true, opacity:.25, depthWrite:false, side:THREE.DoubleSide })); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .18 + (beat ? .12 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { const sec = section(t); p.className = sec === "hook" ? "ready" : ""; p.innerHTML = (sec === "hook" ? "GOLD PIECES &middot; QUICKER" : G.tag) + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+
+/* =============== ISLAND BLOCKS: the falling pieces, in the sea =============== */
+// A tall gold frame standing in the sea, the blue sky behind it. Jo's saucer carries each piece down
+// in its beam; the next one floats beside the frame. The song sets the drop: a row a beat in the calm,
+// every half beat in the verses, every third in the hooks - and in the hooks some pieces are gold
+// (a row with gold in it is worth more). A 7-bag: every seven pieces, each shape once.
+const BL = {
+  name:"blocks", tag:"ISLAND BLOCKS", hint:"drag = move · tap = turn · swipe down = drop",
+  W:10, H:18,
+  SHAPES:[ [[0,0],[1,0],[2,0],[3,0]], [[0,0],[1,0],[0,1],[1,1]], [[0,0],[1,0],[2,0],[1,1]], [[0,0],[1,0],[2,0],[2,1]], [[0,0],[1,0],[2,0],[0,1]], [[0,0],[1,0],[1,1],[2,1]], [[1,0],[2,0],[0,1],[1,1]] ],
+  COLS:[0x3aa84a, 0xffc22a, 0x38c8f0, 0xe8501a, 0xffffff, 0xc0583a, 0x9a6ad8],
+  setup(){
+    const root = this.root = new THREE.Group(); scene.add(root);
+    const fr = mat(TC.gold, .5), W = this.W, H = this.H;
+    for (const x of [-.5, W - .5]){ const p = new THREE.Mesh(new THREE.BoxGeometry(.3, H + .6, .5), fr); p.position.set(this.X(x), this.Y(H/2 - .5), 0); root.add(p); }
+    const base = new THREE.Mesh(new THREE.BoxGeometry(W + .9, .4, 1.6), mat(TC.cliff, .2)); base.position.set(0, this.Y(-.75), 0); root.add(base);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ color:0x0a5a8a, transparent:true, opacity:.25, depthWrite:false })); back.position.set(0, this.Y(H/2 - .5), -.55); root.add(back);
+    // a faint line where the stack gets dangerous
+    this.danger = new THREE.Mesh(new THREE.PlaneGeometry(W, .08), new THREE.MeshBasicMaterial({ color:0xff4a2a, transparent:true, opacity:0 })); this.danger.position.set(0, this.Y(H - 4.5), -.5); root.add(this.danger);
+    this.mats = this.COLS.map(c => mat(c, .3)); this.goldM = new THREE.MeshStandardMaterial({ color:0xffd23a, roughness:.3, metalness:.4, emissive:0xff9a1a, emissiveIntensity:.6, flatShading:true });
+    const geo = new THREE.BoxGeometry(.94, .94, .94);
+    this.cells = []; for (let i = 0; i < W*H; i++){ const m = new THREE.Mesh(geo, this.mats[0]); m.visible = false; root.add(m); this.cells.push(m); }
+    this.pieceM = []; for (let i = 0; i < 4; i++){ const m = new THREE.Mesh(geo, this.mats[0]); root.add(m); this.pieceM.push(m); }
+    this.ghost = []; for (let i = 0; i < 4; i++){ const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:.18, depthWrite:false })); root.add(m); this.ghost.push(m); }
+    this.nextG = new THREE.Group(); this.nextM = []; for (let i = 0; i < 4; i++){ const m = new THREE.Mesh(geo, this.mats[0]); this.nextG.add(m); this.nextM.push(m); }
+    const lab = new THREE.Sprite(new THREE.SpriteMaterial({ map:canvasTex(128, 40, (x, w, h) => { x.font = "bold 28px Bungee, Impact, sans-serif"; x.fillStyle = "#0e1a3a"; x.textAlign = "center"; x.fillText("NEXT", w/2, 30); }), transparent:true, depthWrite:false }));
+    lab.scale.set(2.4, .75, 1); lab.position.set(0, 2.4, 0); this.nextG.add(lab); root.add(this.nextG);
+    this.pops = []; for (let i = 0; i < 40; i++){ const s = sprite(0xffd23a, 1.4, 0); root.add(s); this.pops.push({ s, life:0, vx:0, vy:0 }); }
+    this.flashRows = [];
+  },
+  X(c){ return (c - (this.W - 1)/2); }, Y(r){ return r + 1; },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  begin(t0, t1, L0, L1, cont){
+    Object.assign(this, { t0, t1, L0, L1 });
+    if (cont) return;
+    this.start = t0;
+    this.st = { grid:new Array(this.W*this.H).fill(-1), gold:new Array(this.W*this.H).fill(false), lines:0, golds:0, drops:0, beatDrops:0, pc:null, nx:null, next:t0 + BEAT*2, bag:[], k:0, washes:0, tetra:0 };
+    this.st.nx = this.make(t0); this.spawn(t0 + BEAT*2);
+  },
+  info(){ const st = this.st; return st.lines + " ROWS" + (st.golds ? " · " + st.golds + " GOLD" : ""); },
+  // the next shape from the bag (each of the seven once, in a shuffled order)
+  make(t){ const st = this.st; if (!st.bag.length){ const b = [0, 1, 2, 3, 4, 5, 6]; for (let i = 6; i > 0; i--){ const j = Math.floor(rnd(st.k*9.7 + i*3.1)*(i + 1)); [b[i], b[j]] = [b[j], b[i]]; } st.bag = b; }
+    st.k++; return { k:st.bag.shift(), gold:false }; },
+  height(){ const st = this.st; for (let r = this.H - 1; r >= 0; r--) for (let c = 0; c < this.W; c++) if (st.grid[r*this.W + c] >= 0) return r + 1; return 0; },
+  cellsOf(p, rot, x, y){ return this.SHAPES[p.k].map(([a, b]) => { let cx = a, cy = b; for (let i = 0; i < (rot % 4 + 4) % 4; i++){ const t = cx; cx = cy; cy = -t; } return [x + cx, y - cy]; }); },
+  fits(p, rot, x, y){ const g = this.st.grid; return this.cellsOf(p, rot, x, y).every(([c, r]) => c >= 0 && c < this.W && r >= 0 && (r >= this.H || g[r*this.W + c] < 0)); },
+  spawn(t){ const st = this.st, n = st.nx; st.nx = this.make(t);
+    // in the hooks some pieces are gold
+    n.gold = section(t) === "hook" && rnd(st.k*3.1) < .45;
+    st.pc = { k:n.k, gold:n.gold, rot:0, x:4, y:this.H };
+    if (!this.fits(st.pc, 0, 4, this.H - 1)){ for (let i = this.W*(this.H - 7); i < st.grid.length; i++){ st.grid[i] = -1; st.gold[i] = false; } st.washes++;
+      if (S.inv <= 0 && hurt("STACKED TO THE TOP", "Fill whole rows so they burst - turn the pieces (tap) to fit the gaps.")) return; S.inv = 1; } },
+  // how long a row takes: the song decides, and it gets quicker as it goes
+  every(t){ const sec = section(t), L = this.L(t), base = sec === "hook" ? BEAT/3 : sec === "loud" ? BEAT/2 : BEAT; return base/(1 + .6*clamp(L, 0, 2)); },
+  move(d){ const p = this.st.pc; if (p && this.fits(p, p.rot, p.x + d, p.y)){ p.x += d; sfx.move(); } },
+  turn(){ const p = this.st.pc; if (!p) return; for (const kick of [0, -1, 1, -2, 2]) if (this.fits(p, p.rot + 1, p.x + kick, p.y)){ p.rot++; p.x += kick; sfx.turn(); return; } },
+  soft(){ const p = this.st.pc; if (p && this.fits(p, p.rot, p.x, p.y - 1)){ p.y--; S.score += 2; } },
+  drop(){ const p = this.st.pc; if (!p) return; const beat = onBeat(S.t); let n = 0; while (this.fits(p, p.rot, p.x, p.y - 1)){ p.y--; n++; } S.score += n*3; this.st.drops++; if (beat){ this.st.beatDrops++; S.onBeat++; } this.lock(beat); },
+  lock(beat){ const st = this.st, p = st.pc, W = this.W;
+    for (const [c, r] of this.cellsOf(p, p.rot, p.x, p.y)){ if (r >= this.H) continue; st.grid[r*W + c] = p.k; st.gold[r*W + c] = p.gold; }
+    sfx.thud(); let n = 0, golds = 0; const rows = [];
+    for (let r = 0; r < this.H; r++){ let full = true; for (let c = 0; c < W; c++) if (st.grid[r*W + c] < 0) full = false;
+      if (full){ for (let c = 0; c < W; c++){ if (st.gold[r*W + c]) golds++; this.pop(this.X(c), this.Y(r + n), st.gold[r*W + c]); } rows.push(r + n);
+        st.grid.splice(r*W, W); st.gold.splice(r*W, W); st.grid.push(...new Array(W).fill(-1)); st.gold.push(...new Array(W).fill(false)); r--; n++; } }
+    if (n){ st.lines += n; st.golds += golds; if (n === 4) st.tetra++; S.combo++; S.best = Math.max(S.best, S.combo);
+      const pts = ([0, 100, 300, 500, 800][n] + golds*50)*(beat ? 2 : 1)*Math.min(4, 1 + Math.floor((S.combo - 1)/4)); S.score += pts; sfx.row(n);
+      say(n === 4 ? "FOUR ROWS!" : n > 1 ? n + " ROWS" : "A ROW", "+" + fmt(pts) + (beat ? " · on the beat" : "") + (golds ? " · gold" : ""), .8, n > 1 || beat || golds ? "g" : ""); }
+    else S.combo = 0;
+    st.pc = null; this.spawn(S.t); },
+  update(dt, t){
+    const st = this.st;
+    if (keys.left && !this.kl) this.move(-1); if (keys.right && !this.kr) this.move(1); if (keys.up && !this.ku) this.turn(); if (keys.down && !this.kd) this.soft();
+    this.kl = keys.left; this.kr = keys.right; this.ku = keys.up; this.kd = keys.down;
+    while (st.next <= t){ const p = st.pc; if (p){ if (this.fits(p, p.rot, p.x, p.y - 1)) p.y--; else this.lock(false); } if (S.done) return; st.next += this.every(st.next); }
+    for (const p of this.pops) if (p.life > 0){ p.life -= dt*1.6; p.vy -= 12*dt; p.s.position.x += p.vx*dt; p.s.position.y += p.vy*dt; p.s.material.opacity = Math.max(0, p.life); }
+  },
+  pop(x, y, gold){ for (let k = 0; k < 2; k++){ const p = this.pops.find(p => p.life <= 0); if (!p) return; p.life = 1; p.s.position.set(x, y, .7); p.vx = (Math.random() - .5)*6; p.vy = 3 + Math.random()*5; p.s.material.color.setHex(gold ? 0xffd23a : 0xffffff); } },
+  render(dt, t){ const st = this.st, beat = onBeat(t), portrait = cam.aspect < .8, W = this.W;
+    for (let i = 0; i < st.grid.length; i++){ const m = this.cells[i], k = st.grid[i]; m.visible = k >= 0; if (k >= 0){ m.material = st.gold[i] ? this.goldM : this.mats[k]; m.position.set(this.X(i % W), this.Y(Math.floor(i/W)), 0); } }
+    const p = st.pc; this.pieceM.forEach(m => m.visible = false); this.ghost.forEach(m => m.visible = false);
+    if (p){ const cs = this.cellsOf(p, p.rot, p.x, p.y); cs.forEach(([c, r], i) => { const m = this.pieceM[i]; m.visible = r < this.H + 2; m.material = p.gold ? this.goldM : this.mats[p.k]; m.position.set(this.X(c), this.Y(r), 0); });
+      let gy = p.y; while (this.fits(p, p.rot, p.x, gy - 1)) gy--; this.cellsOf(p, p.rot, p.x, gy).forEach(([c, r], i) => { const m = this.ghost[i]; m.visible = r < this.H; m.position.set(this.X(c), this.Y(r), 0); });
+      const top = Math.max(...cs.map(([, r]) => r)), mx = cs.reduce((a, [c]) => a + this.X(c), 0)/4;
+      ME.position.set(mx, this.Y(top) + 2, .3); ME.userData.beam.visible = true; ME.userData.beam.scale.set(.6, .6, .6); ME.userData.beam.position.y = -1.2; }
+    ME.rotation.set(0, t*2, 0); ME.scale.setScalar(.7);
+    // the next piece, beside the frame (above it on a phone)
+    const n = st.nx; if (n){ this.cellsOf(n, 0, 0, 0).forEach(([c, r], i) => { const m = this.nextM[i]; m.material = this.mats[n.k]; m.position.set(c - 1.5, r, 0); }); }
+    this.nextG.position.set(portrait ? 3.4 : this.X(W) + 3, portrait ? this.Y(this.H) + 1.6 : this.Y(this.H - 3), 0); this.nextG.scale.setScalar(portrait ? .45 : .8);
+    this.danger.material.opacity = this.height() > this.H - 5 ? .5 + (beat ? .3 : 0) : 0;
+    CAMP.set(0, this.Y(this.H/2) + 2.5, portrait ? 13/cam.aspect : 27); CAML.set(0, this.Y(this.H/2) + 1.6, 0);
+  }
+};
+
+/* ---------------- the run ---------------- */
+let ME = null;
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = BL; camInit = false; BL.root.visible = true; END.root.visible = false; END.on = false; ME.visible = true;
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+}
+// endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+function songT(){
+  if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The frame sinks into the sea and there's the cover: low over the turquoise water between the
+   islands with their red cliffs and palms, big white clouds - and the gold cloud trail curving in
+   from the far island, the saucer at the end of it, flying right at you. */
+const END = { out:8.5, root:null, X:400 };
+function buildEnd(){
+  const g = new THREE.Group(); g.visible = false; g.position.x = END.X; scene.add(g);
+  for (const [r, h, k, x, z] of [[9, 7, 1, -15, -34], [13, 9, 2, 18, -48], [6, 5, 3, -11, -9], [8, 4, 4, -34, -70], [10, 6, 5, 34, -80], [5, 3, 6, 9, -16]]){ const isl = island(r, h, k); isl.position.set(x, -1, z); g.add(isl); }
+  for (let i = 0; i < 12; i++){ const c = new THREE.Group(); for (let k = 0; k < 4; k++){ const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:PUFF, color:0xffffff, transparent:true, depthWrite:false, fog:false })); s.scale.setScalar(7 + rnd(i*9 + k)*7); s.position.set((k - 1.5)*4.5, rnd(i*3 + k)*2.5, 0); c.add(s); }
+    c.position.set((rnd(i*7) - .5)*120, 14 + rnd(i*5)*16, -60 - rnd(i*11)*60); g.add(c); }
+  // the gold cloud trail, from the far island round to the front
+  END.curve = new THREE.CatmullRomCurve3([[-18, 10, -40], [-9, 9, -34], [2, 7.5, -28], [7, 5.5, -20], [4, 4, -13], [1.5, 3.4, -10]].map(p => new THREE.Vector3(...p)));
+  END.puffs = []; for (let i = 0; i < 46; i++){ const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:PUFF, color:i % 3 ? 0xffc84a : 0xffe08a, transparent:true, depthWrite:false })); s.visible = false; g.add(s); END.puffs.push(s); }
+  END.root = g;
+}
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  animSaucer(ME, t, beat);
+  if (S.end >= 0){
+    const portrait = cam.aspect < .8;
+    if (S.end < 1){ $("flash").style.background = "#ffffff"; $("flash").style.opacity = Math.min(1, S.end/.8); BL.render(dt, t); }
+    else {
+      if (!END.on){ END.on = true; BL.root.visible = false; END.root.visible = true; camInit = false; }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      // the saucer comes along the curve; the trail fills in behind it
+      const u = clamp((S.end - 1.2)/3.6, 0, 1), e = 1 - Math.pow(1 - u, 2), P = END.curve.getPoint(e);
+      ME.visible = true; ME.scale.setScalar(.7 + e*.3); ME.position.set(END.X + P.x, P.y + Math.sin(t*2)*.1, P.z); ME.rotation.set(.1, t*2, 0); ME.userData.beam.visible = false;
+      END.puffs.forEach((s, i) => { const k = i/(END.puffs.length - 1)*e; s.visible = e > 0; const q = END.curve.getPoint(k); s.position.set(q.x + Math.sin(i*1.7)*.3, q.y - .3 + Math.cos(i*2.3)*.2, q.z); s.scale.setScalar((1 + k*1.6)*(beat ? 1.06 : 1)); });
+      CAMP.set(END.X + (portrait ? 0 : 1), portrait ? 1.8 : 1.4, portrait ? 7 : 4.5); CAML.set(END.X - 1, portrait ? 5 : 4.4, -30);
+      if (S.end > 2.4 && !S.saidEnd){ S.saidEnd = true; say("TRUE FIGHTER", "LAZY JO", 4.5, "t"); }
+    }
+  } else {
+    G.render(dt, t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  for (const c of HP_CL) c.position.x += dt*.4;
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  const st = BL.st;
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:st.lines });
+  const stat = st.lines + " rows" + (st.tetra ? " · " + st.tetra + " four-row" + (st.tetra > 1 ? "s" : "") : "") + (st.beatDrops ? " · " + st.beatDrops + " drops on the beat" : "");
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the sea &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "TRUE FIGHTER";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = "A true fighter." + "<br>Level 17 cleared: <b>Island Blocks &#8734;</b> is open in the gold Endless list.";
+}
+let HP_CL = [];
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x7ad8f0); scene.fog = new THREE.Fog(0xa8e4f4, 80, 320);
+  cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, .1, 2000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x2a8aa8, 1.0));
+  const key = new THREE.DirectionalLight(0xfff4e0, .8); key.position.set(-20, 40, 30); scene.add(key);
+  skyDome(); sea(-1); HP_CL = puffs(18, [220, 40, 120], 10, -40);
+  for (let i = 0; i < 8; i++){ const isl = island(7 + rnd(i)*9, 3 + rnd(i*3)*5, i); isl.position.set((i % 2 ? 1 : -1)*(16 + rnd(i*7)*50), -1, -20 - rnd(i*5)*90); scene.add(isl); }
+  ME = buildSaucer(); scene.add(ME);
+  BL.setup(); buildEnd();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input ---------------- */
+// drag: a column for every so far your finger goes; a tap turns; a swipe down drops. Keys: the arrows
+// (up turns, down drops a row) and Space drops.
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+let sw = null;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); sw = { x:e.clientX, y:e.clientY, c:e.clientX, ey:e.clientY, moved:false }; }, { passive:false });
+addEventListener("pointermove", e => { if (!sw || !live()) return; const step = Math.min(44, innerWidth/14);
+  while (Math.abs(e.clientX - sw.c) >= step){ const s = Math.sign(e.clientX - sw.c); BL.move(s); sw.c += s*step; sw.moved = true; } sw.ey = e.clientY; });
+addEventListener("pointerup", () => { const w = sw; sw = null; if (!w || !live()) return; if (w.ey - w.y > 60) BL.drop(); else if (!w.moved && Math.abs(w.ey - w.y) < 24) BL.turn(); });
+addEventListener("pointercancel", () => { sw = null; });
+const KEYMAP = { ArrowLeft:"left", a:"left", ArrowRight:"right", d:"right", ArrowUp:"up", w:"up", ArrowDown:"down", s:"down" };
+addEventListener("keydown", e => { if (veilUp()) return; if (e.key === " "){ e.preventDefault(); if (!e.repeat && live()) BL.drop(); return; } const k = KEYMAP[e.key]; if (k){ e.preventDefault(); keys[k] = true; } });
+addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+
+$("go").addEventListener("click", () => {
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : "ISLAND BLOCKS", CFG.endless ? "the pieces never stop" : G.hint, 3, CFG.endless ? "g" : "");
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = "TRUE FIGHTER" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = "The blue sky and the islands from the cover. A gold frame stands in the sea; Jo's saucer carries the pieces down in its beam - island chunks, gold, sky, cloud. Fill a row and it bursts gold." +
+  (ENDLESS ? " <b>Endless:</b> the pieces never stop - quicker every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = "<b>Drag</b> to move, <b>tap</b> to turn, <b>swipe down</b> to drop (or the arrow keys and Space). They drop quicker in the loud parts, quickest in the hooks - where some are <b>gold</b>. Dropped right <b>on the beat</b> a row counts double. Stacked to the top costs a heart (3).";
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String((m === "endless") === ENDLESS));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); if (m === "endless") q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

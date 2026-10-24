@@ -1,0 +1,598 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>GHOST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#0e0b14; color:#f4f0ff; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#ffd8a8; line-height:1; text-shadow:0 0 12px #ffa04088}
+#ml{font-size:11px; letter-spacing:.18em; color:#d0c0f0; margin-top:3px}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#ff4a6a; text-shadow:0 0 10px #ff4a6a88; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ffffff1f; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#ff8a9a,#ffd8a8)}
+.bl{font-size:11px; letter-spacing:.18em; color:#d0c0f0; text-align:right}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#ffd8a8; margin-top:8px; text-align:right}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#ffd65a}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#ffd8a8; text-shadow:0 0 12px #ffa04088}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#e8e0ff; margin-top:2px}
+#phase.ready{color:#ffd27a; text-shadow:0 0 12px #ffb34788}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:22%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:24px; opacity:0; transition:opacity .25s; text-shadow:0 0 16px #ffa040, 0 2px 0 #000; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ffb0b8}
+#msg.g{color:#ffe08a; text-shadow:0 0 16px #ffb000, 0 2px 0 #000}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#fff; text-shadow:0 0 24px #ffa040, 0 0 60px #ff8a9a, 0 3px 0 #000}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#e8e0ff; margin-top:6px}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto;
+  background:radial-gradient(40% 30% at 50% 70%, #ffa04033 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #2a1a30 0%, #0e0b14 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #2a2410 0%, #0a0906 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#d0c0f0; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#fff; text-shadow:0 0 24px #ffa040, 0 0 60px #ff8a9a}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#e8e0ff; font-size:17px; max-width:40ch}
+#veil b{color:#ffd8a8}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffd8a8,#ffa040); color:#1a0e10; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ffa04066}
+body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+#go.alt{background:none; color:#ffd8a8; border:1.5px solid #ffd8a8; font-size:15px; padding:12px 30px; box-shadow:none}
+#veil small{color:#b8a8d8; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#e8e0ff; background:none; border:1.5px solid #ffd8a855}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#ffd8a8; background:#ffd8a822}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ffd8a8; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ffd8a899; background:#ffd8a814}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">GHOST</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="">Haunted Windows</button><button type="button" data-mode="endless" class="gold">Haunted Windows &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= GHOST =================
+   Level 15 of JAVEDA, in the street from the cover: old dark brick houses at dusk, a few
+   windows lit warm orange, the pink sky low down, an orange street lamp, bare trees, fog
+   rolling over the street - and Jo's saucer (silver, the orange dome with the "L") with
+   its warm orange beam. Jo picked HAUNTED WINDOWS: the two old houses from the street. On
+   the beat a ghost comes up in a window - tap it and the beam takes it (on the beat x2).
+   The neighbours at the lit windows cost a heart (3); a ghost that ducks away haunts the
+   houses more - eight and it's over, ten caught in a row calm them down. The song sets how
+   many: a few in the calm, one a beat in the verses, two at once and gold ones in the hooks.
+   At the end of the song: the street as it is on the cover.
+   Once it's cleared, ENDLESS opens (?endless=1): the ghosts never stop, quicker every 8
+   bars, a heart back every 24. */
+
+// the song's grid, measured from lvl15.mp3: 76.5 BPM, the first beat at 0.776 s (see SONG.md)
+const GRID = { bpm:76.5, t0:.776 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(64);                      // 3:22, the last hit
+const LOOP = [barT(8), barT(64)];             // endless: round and round, from the first hook
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (intro, breaks), loud (verses), hook
+const SECTIONS = [[8, "calm"], [16, "hook"], [24, "loud"], [28, "calm"], [36, "hook"], [44, "loud"], [48, "calm"], [56, "hook"], [64, "loud"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+const ENDLESS = Q.get("endless") === "1";
+const CFG = ENDLESS ? { id:"lvl15x", title:"Haunted Windows", by:"LEVEL 15 · ENDLESS", endless:true, board:"Level 15 ∞" }
+  : { id:"lvl15", title:"Haunted Windows", by:"LEVEL 15" };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl15.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [110, 87.3, 98, 82.4];
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  zap:  () => ac && (tone("sine", 900, 300, ac.currentTime, .25, .05, 4000), hiss(ac.currentTime, .25, .05, 0, 2500)),   // the beam takes a ghost
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the street from the cover ---------------- */
+let scene, cam, ren, clockR, ME, crashed = null;
+const GC = { lamp:0xffa040, warm:0xffc070, pink:0xff8a9a, ghost:0xdce6ff, red:0xff4a5a, soul:0x9ad8ff };
+const glowM = (c, op) => new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:op, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const PUFF = radial([[0, "rgba(255,255,255,.55)"], [.5, "rgba(255,255,255,.22)"], [1, "rgba(255,255,255,0)"]], 128);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+// the dusk sky: dark blue up top, purple, the pink glow low down behind the houses
+function skyDome(){ const t = canvasTex(4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h);
+    [[0, "#10101e"], [.3, "#2a2348"], [.42, "#5a4070"], [.48, "#b07890"], [.5, "#ffa890"], [.52, "#3a3040"], [1, "#16131c"]].forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+  const m = new THREE.Mesh(new THREE.SphereGeometry(500, 32, 16), new THREE.MeshBasicMaterial({ map:t, side:THREE.BackSide, fog:false, depthWrite:false })); scene.add(m); return m; }
+// the houses: old dark brick, three windows across, a few lit warm orange (one tile = 9 x 12 m)
+const HOUSE = [0, 1, 2, 3].map(k => { const t = canvasTex(96, 128, (x, w, h) => {
+    x.fillStyle = ["#3a2622", "#33241f", "#2e2226", "#3c2a24"][k]; x.fillRect(0, 0, w, h);
+    for (let r = 0; r < 32; r++){ x.fillStyle = "rgba(0,0,0,.35)"; x.fillRect(0, r*4, w, 1); for (let c = 0; c < 12; c++) x.fillRect(((c*8 + (r % 2)*4) % w), r*4, 1, 4); }
+    for (let i = 0; i < 300; i++){ x.fillStyle = "rgba(" + (rnd(i + k)*80 | 0) + ",40,30," + (rnd(i*3)*.25).toFixed(2) + ")"; x.fillRect(rnd(i*5 + k)*w, rnd(i*7)*h, 3, 2); }
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++){ const q = rnd(k*31 + r*7 + c*3), lit = q < .14, X = 10 + c*30, Y = 12 + r*40;
+      x.fillStyle = "#18141a"; x.fillRect(X - 2, Y - 2, 20, 30); x.fillStyle = lit ? "#ffa850" : q < .3 ? "#2a2028" : "#0e0c12"; x.fillRect(X, Y, 16, 26);
+      if (lit){ x.fillStyle = "#ffd090"; x.fillRect(X + 3, Y + 3, 10, 20); } x.fillStyle = "#18141a"; x.fillRect(X + 7, Y, 2, 26); x.fillRect(X, Y + 12, 16, 2); } }, [1, 1]);
+  return new THREE.MeshStandardMaterial({ map:t, emissiveMap:t, emissive:0xffffff, emissiveIntensity:.32, roughness:.95, color:0x9a8a88 }); });
+const ROOF = new THREE.MeshStandardMaterial({ color:0x16121a, roughness:1 });
+function boxUV(w, h, d){ const g = new THREE.BoxGeometry(w, h, d); g.translate(0, h/2, 0); const uv = g.attributes.uv;
+  for (let f = 0; f < 6; f++) for (let v = 0; v < 4; v++){ const i = f*4 + v, su = f < 2 ? d/9 : f < 4 ? 0 : w/9, sv = f < 2 || f > 3 ? h/12 : 0; uv.setXY(i, uv.getX(i)*su, uv.getY(i)*sv); }
+  return g; }
+function house(w, h, d, k){ const g = new THREE.Group(); g.add(new THREE.Mesh(boxUV(w, h, d), HOUSE[k % 4]));
+  const r = new THREE.Mesh(new THREE.BoxGeometry(w + .4, d*.6, d*.6), ROOF); r.rotation.x = Math.PI/4; r.position.y = h; g.add(r);   // the ridge runs along the street
+  if (k % 3 === 0){ const ch = new THREE.Mesh(new THREE.BoxGeometry(.9, 2.4, .9), ROOF); ch.position.set(w*.25, h + d*.2, -d*.15); g.add(ch); }
+  return g; }
+// a street lamp from the cover: a dark pole, a warm orange light, a pool of it on the ground
+const POLE_M = new THREE.MeshStandardMaterial({ color:0x1a161c, roughness:.6, metalness:.5 });
+function lamp(lit){ const g = new THREE.Group();
+  g.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.1, .16, 6, 6), POLE_M), 0, 3, 0)); g.add(at3(new THREE.Mesh(new THREE.BoxGeometry(1.2, .1, .1), POLE_M), -.5, 6, 0));
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.28, 10, 8), new THREE.MeshBasicMaterial({ color:0xffd8a0 })); head.position.set(-1, 5.8, 0); g.add(head);
+  const glow = sprite(GC.lamp, 5, .9); glow.position.copy(head.position); g.add(glow);
+  const pool = new THREE.Mesh(new THREE.CircleGeometry(4.2, 32), new THREE.MeshBasicMaterial({ map:DOT, color:GC.lamp, transparent:true, opacity:.35, blending:THREE.AdditiveBlending, depthWrite:false })); pool.rotation.x = -Math.PI/2; pool.position.set(-1, .03, 0); g.add(pool);
+  g.userData = { head, glow, pool }; return g; }
+function setLamp(l, on, flick){ const u = l.userData, k = on ? (flick ? .3 + Math.random()*.7 : 1) : 0; u.glow.material.opacity = .9*k; u.pool.material.opacity = .35*k; u.head.material.color.setHex(on ? 0xffd8a0 : 0x2a2420); }
+// a bare tree: a dark trunk and branches, like the ones down the end of the street
+const BARK = new THREE.MeshStandardMaterial({ color:0x1a1418, roughness:1 });
+function tree(s, k){ const g = new THREE.Group();
+  const branch = (p, dir, len, r, depth) => { const e = p.clone().addScaledVector(dir, len), m = new THREE.Mesh(new THREE.CylinderGeometry(r*.6, r, len, 5), BARK);
+    m.position.copy(p).lerp(e, .5); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir); g.add(m);
+    if (depth > 0) for (let i = 0; i < 3; i++){ const d = dir.clone().add(new THREE.Vector3((rnd(k + depth*7 + i)*2 - 1)*.9, .35 + rnd(k*3 + i)*.4, (rnd(k*5 + depth + i)*2 - 1)*.9)).normalize(); branch(e, d, len*.7, r*.6, depth - 1); } };
+  branch(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 1, 0), 3*s, .3*s, 3); return g; }
+// fog rolling low over the street
+function fogPuffs(n, area, y0){ const P = []; for (let i = 0; i < n; i++){ const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:PUFF, color:0x8a8098, transparent:true, opacity:.16 + rnd(i)*.12, depthWrite:false }));
+    s.scale.set(10 + rnd(i*3)*12, 3 + rnd(i*5)*3, 1); s.position.set((rnd(i*7) - .5)*area[0], (y0 || .8) + rnd(i*9)*1.4, (rnd(i*11) - .5)*area[1]); scene.add(s); P.push({ s, v:.3 + rnd(i*13)*.6, x0:s.position.x }); } return P; }
+function driftFog(P, t, span){ for (const p of P){ p.s.position.x = p.x0 + Math.sin(t*.1*p.v + p.x0)*span; } }
+// a ghost: a sheet with a round head, two dark eyes and a soft glow
+function ghostMesh(c){ const g = new THREE.Group(), pts = [];
+  for (let i = 0; i <= 8; i++){ const a = i/8*Math.PI/2; pts.push(new THREE.Vector2(Math.sin(a)*.62, 1.15 + Math.cos(a)*.62)); }
+  pts.push(new THREE.Vector2(.68, .7), new THREE.Vector2(.78, .25), new THREE.Vector2(.86, 0));
+  const geo = new THREE.LatheGeometry(pts.reverse(), 20), pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++){ if (pos.getY(i) < .05){ const a = Math.atan2(pos.getZ(i), pos.getX(i)); pos.setY(i, Math.sin(a*6)*.12); } }
+  geo.computeVertexNormals();
+  const mat = new THREE.MeshStandardMaterial({ color:c || GC.ghost, emissive:c || GC.ghost, emissiveIntensity:.55, transparent:true, opacity:.9, side:THREE.DoubleSide, roughness:.6, depthWrite:false });
+  const body = new THREE.Mesh(geo, mat); g.add(body);
+  const eyeM = new THREE.MeshBasicMaterial({ color:0x0a0810, transparent:true });
+  for (const s of [-1, 1]){ const e = new THREE.Mesh(new THREE.SphereGeometry(.11, 8, 6), eyeM); e.scale.set(1, 1.5, .5); e.position.set(s*.2, 1.3, .58); g.add(e); }
+  const mo = new THREE.Mesh(new THREE.SphereGeometry(.1, 8, 6), eyeM); mo.scale.set(1.2, .8, .5); mo.position.set(0, 1.0, .64); g.add(mo);
+  const glow = sprite(c || 0xc8d8ff, 3.4, .35); glow.position.y = .9; g.add(glow);
+  g.userData = { mat, eyeM, glow }; return g; }
+function ghostOpacity(g, o){ g.userData.mat.opacity = .9*o; g.userData.eyeM.opacity = o; g.userData.glow.material.opacity = .35*o; }
+// a street to play on: the road, the pavements, houses both sides, lamps, trees down the end
+const ROADT = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#24222a"; x.fillRect(0, 0, w, h); for (let i = 0; i < 600; i++){ x.fillStyle = "rgba(255,255,255," + (rnd(i)*.05).toFixed(3) + ")"; x.fillRect(rnd(i*3)*w, rnd(i*7)*h, 2, 2); } }, [4, 8]);
+function streetSet(z0, z1, opts){ const o = opts || {}, W = o.W || 9, g = new THREE.Group(); scene.add(g);
+  const len = z1 - z0, road = new THREE.Mesh(new THREE.PlaneGeometry(W*2 + 14, len), new THREE.MeshStandardMaterial({ map:ROADT, roughness:.95 })); road.rotation.x = -Math.PI/2; road.position.set(0, 0, (z0 + z1)/2); g.add(road);
+  for (const s of [-1, 1]){ const pv = new THREE.Mesh(new THREE.BoxGeometry(3, .2, len), new THREE.MeshStandardMaterial({ color:0x3a3640, roughness:1 })); pv.position.set(s*(W + 1.5), .1, (z0 + z1)/2); g.add(pv);
+    let z = z0; for (let i = 0; z < z1; i++){ const w = 7 + rnd(i*3 + s)*4, h = 7 + rnd(i*5 + s)*7, d = 7 + rnd(i*7)*3, hs = house(w, h, d, i + (s > 0 ? 1 : 0)); hs.rotation.y = s > 0 ? -Math.PI/2 : Math.PI/2; hs.position.set(s*(W + 3 + d/2), 0, z + w/2); g.add(hs); z += w + .3; }
+    if (!o.noLamps) for (let z = z0 + 4; z < z1; z += o.lampEvery || 14){ const l = lamp(); l.position.set(s*(W + .6), 0, z); l.rotation.y = s > 0 ? 0 : Math.PI; g.add(l); } }
+  return g; }
+// Jo's saucer from the cover: a silver hull, the orange dome with the "L", white rim lights, the warm orange beam
+const BADGE = (() => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#fff4e6"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = "#ff7a1a"; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#1a0a02"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("L", 66, 70); return new THREE.CanvasTexture(cv); })();
+function buildSaucer(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0xd8dce8, roughness:.25, metalness:.7, emissive:0x3a3030, emissiveIntensity:.7 }));
+  hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.25, .07, 8, 44), new THREE.MeshStandardMaterial({ color:0x5a5a6a, metalness:.8, roughness:.3 })); rim.rotation.x = Math.PI/2; g.add(rim);
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0xff8a2a, roughness:.25, metalness:.3, emissive:0x8a3a00, emissiveIntensity:.6 }));
+  dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE, transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:0xfff0d8 })); l.position.set(Math.sin(a)*1.27, 0, Math.cos(a)*1.27); lights.add(l); }
+  const under = sprite(0xffb060, 3.2, .6); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), glowM(0xffa040, .22)); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .16 + (beat ? .16 : 0); g.userData.under.material.opacity = .5 + (beat ? .3 : 0); }
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { p.className = ""; p.innerHTML = G.tag + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+// a catch on the beat is worth double; a run of catches multiplies (to x4)
+function award(base, every){ const beat = onBeat(S.t); S.combo++; S.best = Math.max(S.best, S.combo); if (beat) S.onBeat++;
+  S.score += (beat ? base*2 : base) * Math.min(4, 1 + Math.floor(S.combo/every)); return beat; }
+
+/* =============== HAUNTED WINDOWS: tap the ghosts =============== */
+// The two old houses from the cover, from the street, the lamp glowing beside them. On the beat a
+// ghost comes up in a window for a moment - tap it and the saucer's beam takes it (on the beat x2).
+// The neighbours at the lit windows cost a heart. A ghost that ducks away haunts the houses a bit
+// more - eight and it's over; ten caught in a row calm them down again. Gold ghosts in the hooks,
+// and now and then a pink one carrying a heart when you're missing one.
+const HW = {
+  name:"windows", tag:"HAUNTED WINDOWS", hint:"tap the ghosts in the windows - not the neighbours",
+  setup(){
+    const root = this.root = new THREE.Group(); scene.add(root);
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(70, 34), new THREE.MeshStandardMaterial({ map:ROADT, roughness:.95 })); road.rotation.x = -Math.PI/2; road.position.z = 12; root.add(road);
+    for (let i = 0; i < 3; i++){ const tr = tree(1.4, i*5); tr.position.set(-22 + i*22, 0, -10); root.add(tr); }
+    const l = lamp(); l.position.set(16, 0, 6); root.add(l);
+    this.fog = fogPuffs(14, [44, 12], .5); for (const p of this.fog) root.add(p.s);
+    this.wins = [];
+    for (const hx of [-7.5, 7.5]){ const h = new THREE.Mesh(new THREE.BoxGeometry(14, 16, 6), new THREE.MeshStandardMaterial({ color:0x3a2622, roughness:1, emissive:0x1a0e0a })); h.position.set(hx, 8, -3); root.add(h);
+      const r = new THREE.Mesh(new THREE.BoxGeometry(14.6, 6, 6), ROOF); r.rotation.x = Math.PI/4; r.position.set(hx, 16, -3); root.add(r);
+      const ch = new THREE.Mesh(new THREE.BoxGeometry(1.2, 4, 1.2), ROOF); ch.position.set(hx + 4, 19, -3); root.add(ch);
+      for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++){ const x = hx + (col - 1)*4.2, y = 3.4 + row*4.4;
+        root.add(at3(new THREE.Mesh(new THREE.BoxGeometry(2.8, 3.4, .3), new THREE.MeshStandardMaterial({ color:0x18141a })), x, y, .05));
+        const glass = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.9), new THREE.MeshBasicMaterial({ color:0x0e0c12 })); glass.position.set(x, y, .22); root.add(glass);
+        root.add(at3(new THREE.Mesh(new THREE.BoxGeometry(.12, 2.9, .05), new THREE.MeshBasicMaterial({ color:0x18141a })), x, y, .3));
+        const person = new THREE.Group(), pm = new THREE.MeshBasicMaterial({ color:0x1a0e08 }); person.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.38, 12, 8), pm), 0, .35, 0)); person.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.35, .6, 1.4, 10), pm), 0, -.65, 0)); person.position.set(x, y - .3, .26); person.visible = false; root.add(person);
+        const gh = ghostMesh(); gh.scale.setScalar(1.1); gh.visible = false; root.add(gh);
+        const hs = sprite(0xff4a6a, 1.4); hs.visible = false; root.add(hs);
+        this.wins.push({ x, y, glass, person, gh, hs, state:"empty", kind:"", t0:0, t1:0 }); } }
+    this.zap = new THREE.Mesh(new THREE.CylinderGeometry(.15, .6, 1, 12, 1, true), glowM(GC.lamp, 0)); root.add(this.zap); this.zapT = 0;
+    this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -.25);
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  begin(t0, t1, L0, L1, cont){
+    Object.assign(this, { t0, t1, L0, L1 });
+    if (cont) return;
+    this.start = t0;
+    this.st = { caught:0, golds:0, haunt:0, run:0, people:0, j:Math.ceil((t0 - GRID.t0)/BEAT), k:0 };
+    for (const w of this.wins){ w.state = "empty"; }
+  },
+  info(){ return this.st.caught + " CAUGHT · HAUNTED " + this.st.haunt + "/8"; },
+  free(){ const c = this.wins.filter(w => w.state === "empty"); return c.length ? c[Math.floor(rnd(this.st.k++*3.3)*c.length)] : null; },
+  // the beat: in the calm a ghost every 2 beats, in the verses every beat, in the hooks two at once on the 1 and the 3 (and gold ones);
+  // up for about a beat and a half (less as it goes); a neighbour every 4 beats
+  spawn(j, tb){ const st = this.st, sec = section(tb), L = Math.min(1.4, this.L(tb)), hook = sec === "hook", b = j % 4, bar = Math.floor(j/4);
+    if (j < 4) return;
+    if (b === 2 || (hook && L > .5 && b === 0)){ const w = this.free(); if (w){ w.state = "person"; w.t0 = tb; w.t1 = tb + 3*BEAT; } }
+    if (sec === "calm" && j % 2) return;
+    const up = Math.max(.6, BEAT*(1.7 - .6*L));
+    for (let i = 0; i < (hook && b % 2 === 0 ? 2 : 1); i++){ const w = this.free(); if (!w) return;
+      const kind = S.hearts < HEARTS && bar % 8 === 5 && b === 0 && i === 0 ? "heart" : hook && rnd(j*7.1 + i) < .2 ? "gold" : "ghost";
+      w.state = "ghost"; w.kind = kind; w.t0 = tb; w.t1 = tb + up*(kind === "gold" ? .8 : 1);
+      const c = { ghost:GC.ghost, gold:0xffd070, heart:0xff9ab0 }[kind]; w.gh.userData.mat.color.setHex(c); w.gh.userData.mat.emissive.setHex(c); } },
+  tap(cx, cy){ this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const P = new THREE.Vector3(); if (!this.ray.ray.intersectPlane(this.plane, P)) return;
+    this.hit(this.wins.findIndex(w => Math.abs(P.x - w.x) < 1.5 && Math.abs(P.y - w.y) < 1.8)); },
+  hit(i){ const w = this.wins[i], st = this.st; if (!w){ S.combo = 0; return; }
+    this.zapT = .25; this.zapTo = new THREE.Vector3(w.x, w.y, .3); sfx.zap();
+    if (w.state === "ghost"){ w.state = "empty"; st.caught++; st.run++;
+      const beat = award(w.kind === "gold" ? 300 : 100, 8); sfx.good(S.combo);
+      if (w.kind === "gold"){ st.golds++; say("GOLD", "+" + (beat ? 600 : 300), .5, "g"); }
+      else if (w.kind === "heart" && S.hearts < HEARTS){ S.hearts++; sfx.heart(); say("A HEART", "", .8, "g"); }
+      else if (beat && S.combo % 4 === 0) say("ON THE BEAT", "x2", .4, "g");
+      if (st.run % 10 === 0 && st.haunt > 0){ st.haunt--; say("THE HOUSES CALM DOWN", "haunted " + st.haunt + "/8", .9, "g"); } }
+    else if (w.state === "person"){ w.state = "empty"; st.run = 0; st.people++; if (S.inv <= 0) hurt("A NEIGHBOUR!", "Only the ghosts - the people at the lit windows live there."); }
+    else { S.combo = 0; } },
+  update(dt, t){
+    const st = this.st;
+    while (GRID.t0 + st.j*BEAT <= t){ const tb = GRID.t0 + st.j*BEAT; this.spawn(st.j, tb); st.j++; }
+    for (const w of this.wins){ if (w.state === "empty" || t < w.t1) continue;
+      if (w.state === "ghost"){ st.haunt++; st.run = 0; S.combo = 0; sfx.bad(); say("IT DUCKED AWAY", "haunted " + st.haunt + "/8", .8, "x");
+        if (st.haunt >= 8){ w.state = "empty"; (CFG.endless ? over : lose)("HAUNTED", "Eight got away. Tap each ghost while it's up in the window - ten in a row calm the houses down."); return; } }
+      w.state = "empty"; }
+    if (this.zapT > 0) this.zapT -= dt;
+  },
+  render(dt, t){
+    const beat = onBeat(t), portrait = cam.aspect < .8;
+    ME.position.set(0, 1.7 + Math.sin(t*2)*.15, 10); ME.rotation.set(.15, t*1.4, 0); ME.scale.setScalar(1.1); ME.userData.beam.visible = false;
+    for (const w of this.wins){ const up = w.state === "ghost" ? clamp((t - w.t0)/.15, 0, 1)*clamp((w.t1 - t)/.15, 0, 1) : 0;
+      w.gh.visible = up > 0; w.hs.visible = up > 0 && w.kind === "heart";
+      if (up > 0){ w.gh.position.set(w.x, w.y - 1.6 + up*.5, .1); ghostOpacity(w.gh, up); w.hs.position.set(w.x, w.y + .6, .5); w.hs.scale.setScalar(beat ? 1.7 : 1.4); }
+      w.person.visible = w.state === "person"; w.glass.material.color.setHex(w.state === "person" ? 0xffa850 : w.state === "ghost" ? 0x2a3040 : 0x0e0c12); }
+    if (this.zapT > 0 && this.zapTo){ const a = ME.position.clone(), b = this.zapTo, len = a.distanceTo(b); this.zap.position.copy(a).add(b).multiplyScalar(.5); this.zap.scale.set(1, len, 1); this.zap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); this.zap.material.opacity = this.zapT*2; } else this.zap.material.opacity = 0;
+    driftFog(this.fog, t, 5);
+    CAMP.set(0, portrait ? 9 : 7.5, portrait ? 44 : 26); CAML.set(0, 8, 0);
+  }
+};
+
+/* ---------------- the run ---------------- */
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = HW; camInit = false; ME.userData.beam.visible = false; ME.scale.setScalar(1.1); HW.root.visible = true; END.root.visible = false; scene.fog.near = 40; scene.fog.far = 160; END.on = false;
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+}
+// endless goes in 8-bar windows, a little harder every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+function songT(){
+  if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The houses fade, and there's the street as it is on the cover: down between the dark
+   brick houses to the bare trees and the pink sky, the street lamp glowing orange, the fog,
+   and the saucer low over the road with its warm beam on. */
+const END = { out:8, root:null, X:300 };
+function buildEnd(){
+  const g = streetSet(-90, 16, { W:6, lampEvery:200 }); g.visible = false; g.position.x = END.X;
+  const l = lamp(); l.position.set(6.6, 0, -24); l.rotation.y = 0; g.add(l); l.scale.setScalar(1.15);
+  for (let i = 0; i < 5; i++){ const tr = tree(1.5 + rnd(i)*.6, i*9); tr.position.set(-8 + i*4, 0, -86 - (i % 2)*4); g.add(tr); }
+  const fog = fogPuffs(24, [16, 80], .4); for (const p of fog){ p.s.position.z -= 30; g.add(p.s); }
+  END.root = g; END.fog = fog;
+}
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  ME.userData.lights.rotation.y = t*2.5; ME.userData.beam.material.opacity = .18 + (beat ? .14 : 0); ME.userData.under.material.opacity = .55 + (beat ? .3 : 0);
+  if (S.end >= 0){
+    // the cover: a fade to dark, then the street - the saucer low over the road in the fog, beam on
+    const portrait = cam.aspect < .8;
+    if (S.end < 1){ $("flash").style.background = "#0e0b14"; $("flash").style.opacity = Math.min(1, S.end/.8); HW.render(dt, t); }
+    else {
+      if (!END.on){ END.on = true; HW.root.visible = false; END.root.visible = true; camInit = false; scene.fog.near = 6; scene.fog.far = 95; }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      ME.visible = true; ME.scale.setScalar(1.5); ME.position.set(END.X, 2.4 + Math.sin(t*1.5)*.15, -14); ME.rotation.set(.05, t*1.2, 0);
+      ME.userData.beam.visible = true; ME.userData.beam.scale.set(1.2, .75, 1.2); ME.userData.beam.position.y = -1.2;
+      driftFog(END.fog, t, 3);
+      CAMP.set(END.X, portrait ? 2.6 : 2.4, portrait ? 12 : 8); CAML.set(END.X, portrait ? 6 : 5, -60);
+      if (S.end > 2.2 && !S.saidEnd){ S.saidEnd = true; say("GHOST", "LAZY JO", 4.5, "t"); }
+    }
+  } else {
+    G.render(dt, t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:HW.st.caught });
+  const st = HW.st, stat = fmt(st.caught) + " ghosts caught" + (st.golds ? " · " + st.golds + " gold" : "") + " · " + st.haunt + " haunting";
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> on the street &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "GHOST";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = "The houses are quiet again." + "<br>Level 15 cleared: <b>Haunted Windows &#8734;</b> is open in the gold Endless list.";
+}
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x16131c); scene.fog = new THREE.Fog(0x4a4256, 40, 160);
+  cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, .1, 2000);
+  scene.add(new THREE.HemisphereLight(0x9a8ab8, 0x1a1418, .75));
+  const key = new THREE.DirectionalLight(0xffb0a0, .45); key.position.set(-10, 20, -60); scene.add(key);
+  skyDome();
+  ME = buildSaucer(); scene.add(ME);
+  HW.setup(); buildEnd();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input ---------------- */
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+// tap (or click) a window
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); G.tap(e.clientX, e.clientY); }, { passive:false });
+
+$("go").addEventListener("click", () => {
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : "HAUNTED WINDOWS", CFG.endless ? "the ghosts never stop" : G.hint, 3, CFG.endless ? "g" : "");
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = "GHOST" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = "The old houses on the street from the cover, at dusk, in the fog. Ghosts come up in the windows on the beat - catch them with the saucer's beam before they duck away." +
+  (ENDLESS ? " <b>Endless:</b> the ghosts never stop - quicker every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = "<b>Tap</b> a ghost while it's up in its window - <b>on the beat</b> it's double. Gold ghosts are a bonus, a pink one with a heart gives one back. Tapping a neighbour at a lit window costs a heart (3); eight ghosts that duck away and the houses are haunted - ten caught in a row calm them down.";
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String((m === "endless") === ENDLESS));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); if (m === "endless") q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -24,7 +24,9 @@ client/public/javeda/
     ├── need-more-time.html # Level 12: Pendulum Swing - hook on, swing higher, let go on the beat (+ endless)
     ├── you-ready.html      # Level 13: Light Trails - draw on the rug in the room from the cover (+ endless)
     ├── la-vibe.html        # Level 14: Ice Breaker - breakout in the neon cup, power shots on the beat (+ endless)
+    ├── ghost.html          # Level 15: Haunted Windows - tap the ghosts in the windows of the old street (+ endless)
     ├── peace-inside.html   # Level 16: Hoops in the white sky (+ endless) - and the Online 1v1 (Live, H-O-R-S-E) over Supabase Realtime
+    ├── true-fighter.html   # Level 17: Island Blocks - the falling pieces in a frame in the sea, the saucer carries them (+ endless)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

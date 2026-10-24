@@ -77,7 +77,9 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl18', 18, 'ISSUES',       'lvl17', 0, 450000, 4000, 75, 500, 33),  -- Unblock: ~209k for a bot that solves every car park in a few seconds (3:00)
   ('lvl18b', 18, 'LIGHT LINK',  'lvl18', 0, 1100000, 7000, 75, 300, 34),  -- Part 2: ~520k for a bot that knows every mirror; a person is far slower
   ('lvl19', 19, 'STAY UP',      'lvl18b', 0, 120000, 1200, 75, 500, 35),  -- Pad Memory: ~54k for a bot that plays every pattern back on the beat (2:31)
-  ('lvl20', 20, 'STAY UP 2',    'lvl19', 0, 100000, 1000, 75, 500, 36)  -- Pass It On: ~45k for a bot that plays every pattern back on the beat (2:43)
+  ('lvl20', 20, 'STAY UP 2',    'lvl19', 0, 100000, 1000, 75, 500, 36),  -- Pass It On: ~45k for a bot that plays every pattern back on the beat (2:43)
+  ('lvl21', 21, 'BLIND LOVE',   'lvl20', 0, 130000, 1300, 75, 500, 37),  -- Love Cards: ~64k for a bot that remembers every card (stand-in grid)
+  ('lvl21b', 21, 'SNAP',        'lvl21', 0, 90000, 900, 75, 300, 38)  -- Part 2: ~41k for a bot that snaps every pair
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -131,6 +133,8 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl18bx', 18, 'LIGHT LINK', 'lvl18b', 0, 50000000, 25000, 0, 0, 141, true, 4300),  -- ~2,100/s
   ('lvl19x', 19, 'PAD MEMORY', 'lvl19', 0, 50000000, 5500, 0, 0, 142, true, 900),  -- ~420/s
   ('lvl20x', 20, 'PASS IT ON', 'lvl20', 0, 50000000, 4000, 0, 0, 143, true, 650),  -- ~340/s
+  ('lvl21x', 21, 'LOVE CARDS', 'lvl21b', 0, 50000000, 5500, 0, 0, 144, true, 900),  -- ~440/s
+  ('lvl21bx', 21, 'SNAP', 'lvl21b', 0, 50000000, 4000, 0, 0, 145, true, 650),  -- ~310/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
   ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 150, true, 40)
@@ -306,7 +310,9 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl18' THEN g.best_score END), 0)::INT AS lvl18_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl18b' THEN g.best_score END), 0)::INT AS lvl18b_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl19' THEN g.best_score END), 0)::INT AS lvl19_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl20' THEN g.best_score END), 0)::INT AS lvl20_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl20' THEN g.best_score END), 0)::INT AS lvl20_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl21' THEN g.best_score END), 0)::INT AS lvl21_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl21b' THEN g.best_score END), 0)::INT AS lvl21b_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;
@@ -572,7 +578,7 @@ CREATE TABLE IF NOT EXISTS javeda_matches (
   match_id    UUID NOT NULL,
   player      UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
   opponent    UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
-  mode        TEXT NOT NULL CHECK (mode IN ('live', 'horse', 'pass')),
+  mode        TEXT NOT NULL CHECK (mode IN ('live', 'horse', 'pass', 'cards', 'snap')),
   my_score    INT  NOT NULL,
   their_score INT  NOT NULL,
   status      TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'settled', 'disputed')),
@@ -582,9 +588,9 @@ CREATE TABLE IF NOT EXISTS javeda_matches (
   PRIMARY KEY (match_id, player)
 );
 CREATE INDEX IF NOT EXISTS javeda_matches_player_idx ON javeda_matches (player, created_at DESC);
--- Level 20's Pass It On ('pass') joined Hoops' two modes: let an older table take it too
+-- Level 20's Pass It On ('pass') and Level 21's Love Cards and Snap ('cards', 'snap') joined Hoops' two modes: let an older table take them too
 ALTER TABLE javeda_matches DROP CONSTRAINT IF EXISTS javeda_matches_mode_check;
-ALTER TABLE javeda_matches ADD CONSTRAINT javeda_matches_mode_check CHECK (mode IN ('live', 'horse', 'pass'));
+ALTER TABLE javeda_matches ADD CONSTRAINT javeda_matches_mode_check CHECK (mode IN ('live', 'horse', 'pass', 'cards', 'snap'));
 
 CREATE TABLE IF NOT EXISTS javeda_1v1 (
   user_id    UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
@@ -616,7 +622,7 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE
   uid UUID := auth.uid();
-  cap INT := CASE WHEN p_mode IN ('horse', 'pass') THEN 5 ELSE 350000 END;   -- H-O-R-S-E and Pass It On report letters left
+  cap INT := CASE WHEN p_mode IN ('horse', 'pass') THEN 5 WHEN p_mode = 'cards' THEN 10 WHEN p_mode = 'snap' THEN 100 ELSE 350000 END;   -- letters left; pairs; points
   mine javeda_matches;
   theirs javeda_matches;
   me javeda_players;
@@ -626,7 +632,7 @@ DECLARE
   pts_them INT;
 BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
-  IF p_mode IS NULL OR p_mode NOT IN ('live', 'horse', 'pass') THEN RAISE EXCEPTION 'no such mode' USING ERRCODE = '22023'; END IF;
+  IF p_mode IS NULL OR p_mode NOT IN ('live', 'horse', 'pass', 'cards', 'snap') THEN RAISE EXCEPTION 'no such mode' USING ERRCODE = '22023'; END IF;
   IF p_match IS NULL OR p_opponent IS NULL OR p_opponent = uid THEN RAISE EXCEPTION 'no opponent' USING ERRCODE = '22023'; END IF;
   IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
   IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = p_opponent) THEN RAISE EXCEPTION 'no such player' USING ERRCODE = 'P0002'; END IF;

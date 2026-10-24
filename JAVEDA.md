@@ -30,6 +30,7 @@ client/public/javeda/
     ├── issues.html         # Level 18: Unblock (the parking puzzle) and Part 2 Light Link (?part=2, the beam puzzle) (+ endless each)
     ├── stay-up.html        # Level 19: Pad Memory - the drum machine in Jo's studio plays a pattern, play it back (+ endless)
     ├── stay-up-2.html      # Level 20: Pass It On - nine lights over the crowd, play it back and add one (+ endless) - and Pass It On 1v1 online (?online=pass)
+    ├── blind-love.html     # Level 21: Love Cards (memory cards on her bed) and Part 2 Snap (?part=2) (+ endless each) - and Love Cards 1v1 / Snap 1v1 online (?online=cards|snap)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
@@ -94,7 +95,10 @@ scoreboard shows as offline.
   modes: **Live** (`lvl16live`, `?online=live`: same song, same seeded shots, side by side, highest score
   wins) and **H-O-R-S-E** (`lvl16horse`, `?online=horse`: take turns, five letters and you're out); and
   **Pass It On** (`lvl20pass`, `?online=pass` on Level 20: one pattern of lights, play it back and add one, a
-  wrong light is a Z, three Z's and you fell asleep; mode `pass`, reports Z's left). The level
+  wrong light is a Z, three Z's and you fell asleep; mode `pass`, reports Z's left); and Level 21's **Love Cards**
+  (`lvl21cards`, `?online=cards`: one shared bed, take turns, a pair and you go again; mode `cards`, reports pairs) and
+  **Snap** (`lvl21snap`, `?online=snap`: the same 48 cards for both, the quicker snap takes the pair - each says how
+  quick, both wait for both; mode `snap`, reports points). The level
   page talks to the other player itself over **Supabase Realtime** (broadcast + presence; it makes its own
   client from `/api/config` and the saved log-in): a lobby channel per mode, a room channel per match. No
   bots and no made-up players, ever. When a match ends, each side's level posts `javeda:match` and that

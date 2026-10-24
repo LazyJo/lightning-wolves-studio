@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>BLIND LOVE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#1a0c34; color:#f8eeff; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#fff4fc; line-height:1; text-shadow:0 0 14px #c8a0ff}
+#ml{font-size:11px; letter-spacing:.18em; color:#f8e0ff; margin-top:3px; text-shadow:0 0 6px #000}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#e0306a; text-shadow:0 0 8px #000; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ff7ad022; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#ff7ad0,#ff7ad0)}
+.bl{font-size:11px; letter-spacing:.18em; color:#f8e0ff; text-align:right; text-shadow:0 0 6px #000}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#ff7ad0; margin-top:8px; text-align:right; text-shadow:0 0 8px #000}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#c8a0ff}
+/* the other player, top middle: both of you and your pairs */
+#vs{position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:3; pointer-events:none; text-align:center; font-family:Bungee,sans-serif; color:#fff4fc;
+  background:#2a1050cc; border:1.5px solid #c8a0ff55; border-radius:8px; padding:6px 12px; min-width:150px}
+#vs .nm{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#f8e0ff; max-width:40vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#vs .row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+#vs .row + .row{margin-top:3px}
+#vs .lt{font-size:16px; letter-spacing:.12em; color:#c8a0ff44}
+#vs .lt b{color:#ff6a8a; font-weight:400}
+#vs .row.up .nm{color:#ffe08a}
+#vs .row.up .nm::before{content:"\25B6  "}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#ff7ad0; text-shadow:0 0 3px #241640, 0 0 10px #241640, 0 2px 0 #241640}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#fff4fc; margin-top:2px; text-shadow:0 0 3px #241640, 0 0 8px #241640}
+#phase.ready{color:#ffe08a}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:26px; opacity:0; transition:opacity .25s; color:#ff7ad0; text-shadow:0 0 3px #241640, 0 0 12px #241640, 0 2px 0 #241640; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff6a7a}
+#msg.g{color:#c8a0ff}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#f4f8ff; font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:.18em; text-shadow:0 0 24px #c8a0ff, 0 0 60px #9a3aff, 0 2px 5px #1a0c34}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#fff4fc; margin-top:6px; text-shadow:0 0 3px #241640, 0 0 8px #241640}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto; color:#f4f0ff;
+  background:radial-gradient(50% 30% at 50% 20%, #c8a0ff33 0%, transparent 70%), radial-gradient(120% 80% at 50% 25%, #6a2a9a 0%, #1a0c34 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #3a2a10 0%, #120c04 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#f8e0ff; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#fff4fc; text-shadow:0 0 22px #c8a0ff, 0 0 50px #9a3aff}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#f8eeff; font-size:17px; max-width:42ch}
+#veil b{color:#ff7ad0}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffe0f4,#ff7ad0); color:#241640; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ff7ad066}
+#go:disabled{opacity:.45; cursor:default; box-shadow:none}
+#go.alt{background:none; color:#ff7ad0; border:1.5px solid #ff7ad0; font-size:15px; padding:12px 30px; box-shadow:none}
+.alt2{font-family:"Barlow Condensed",sans-serif; font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:14px; background:none; color:#f8eeff;
+  border:1.5px solid #f8eeff66; border-radius:4px; padding:9px 18px; cursor:pointer}
+#net{font-size:16px; color:#f8eeff; max-width:42ch; min-height:20px}
+#net b{color:#ffe08a}
+#net .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:#3ad07a; margin-right:6px; vertical-align:1px}
+#net.wait .dot{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+#veil small{color:#f8e0ff; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#f8eeff; background:none; border:1.5px solid #ff7ad055}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#ff7ad0; background:#ff7ad022}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ff7ad0; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ff7ad099; background:#ff7ad014}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (max-width:520px){ #vs{top:auto; bottom:calc(58px + env(safe-area-inset-bottom))} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} #net.wait .dot{animation:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="vs" class="hid"></div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">BLIND LOVE</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="1">Love Cards</button><button type="button" data-mode="2">Snap</button><button type="button" data-mode="1x" class="gold">Love Cards &#8734;</button><button type="button" data-mode="2x" class="gold">Snap &#8734;</button>
+  </div>
+  <p id="net" class="hid" role="status" aria-live="polite"></p>
+  <button id="go" type="button">Start</button>
+  <button id="practice" class="alt2 hid" type="button">Warm up on your own</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= BLIND LOVE =================
+   Level 21 of JAVEDA, in the world of the cover: two rooms split on the diagonal by a white line - hers
+   pink, his purple. She reads on her bed with her long red hair; he's on his phone in the headphones,
+   the moon in his window, the smiley on his wall - and Jo's saucer (the purple dome with the "L").
+   Jo picked two, so the song has two parts:
+   PART 1 · LOVE CARDS: the cards face down on her bed. Turn two: the same picture and they're a pair -
+   the saucer beams them up. Clear the bed and a bigger one is dealt. In the hooks the cards peek on
+   every bar's 1 (and count double). Out of time costs a heart (3).
+   PART 2 · SNAP (?part=2): her pile and his on the floor between their rooms. On every beat both turn
+   a card - the same picture on both: SNAP. A heart and a broken heart aren't the same. A snap on no pair
+   or a pair let go by costs a heart. On the 8ths in the hooks.
+   At the end of the song: the cover. ENDLESS for each (?endless=1) once it's cleared.
+   And ONLINE (?online=cards|snap, from the JAVEDA page, logged in): Love Cards 1v1 - take turns, a
+   pair and you go again, the most pairs wins; Snap 1v1 - the same cards for both at the same time,
+   the quicker snap takes the pair. Nobody is ever made up: if no one's there, nobody is. */
+
+// the song's grid - a stand-in (90 BPM) until the song is here and measured
+const GRID = { bpm:90, t0:0 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(56);
+const LOOP = [barT(8), barT(56)];             // endless and online: round and round
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (intro, breaks), loud (verses), hook
+const SECTIONS = [[8, "calm"], [16, "loud"], [24, "hook"], [32, "calm"], [48, "loud"], [56, "hook"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+const ONLINE = { cards:"cards", snap:"snap" }[Q.get("online")] || null;
+const PRACTICE = !ONLINE && { cards:"cards", snap:"snap" }[Q.get("practice")] || null;
+const PART = ONLINE ? (ONLINE === "snap" ? 2 : 1) : PRACTICE ? (PRACTICE === "snap" ? 2 : 1) : Q.get("part") === "2" ? 2 : 1;
+const ENDLESS = !ONLINE && !PRACTICE && Q.get("endless") === "1";
+const NAMES = ["", "Love Cards", "Snap"];
+const CFG = ONLINE ? { id:"lvl21" + ONLINE, title:NAMES[PART] + " 1v1", by:"LEVEL 21 · ONLINE 1v1", online:ONLINE }
+  : ENDLESS ? { id:PART === 2 ? "lvl21bx" : "lvl21x", title:NAMES[PART], by:"LEVEL 21" + (PART === 2 ? " PART 2" : "") + " · ENDLESS", endless:true, board:"Level 21" + (PART === 2 ? " Part 2" : "") + " ∞" }
+  : { id:PART === 2 ? "lvl21b" : "lvl21", title:NAMES[PART], by:"LEVEL 21" + (PART === 2 ? " PART 2" : "") };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+const shuffle = (a, seed) => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd(seed + i*3.7)*(i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl21.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [130.8, 98, 110, 87.3];          // a soft, sweet loop
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  clink:() => ac && tone("triangle", 2400, 1800, ac.currentTime, .12, .05, 9000),                       // a card turns
+  clap: () => ac && (hiss(ac.currentTime, .12, .25, 0, 1500), hiss(ac.currentTime + .012, .1, .18, 0, 2200)),
+  tick: () => ac && tone("triangle", 1200, 1200, ac.currentTime, .06, .05, 9000),                      // the count-in
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the cover: two rooms, one wall between them - hers pink, his purple; Jo's saucer ---------------- */
+let scene, cam, ren, clockR, crashed = null;
+const SC = { lav:0xc8b0f4, purple:0x7a5ae8, deep:0x3a2a8a, pink:0xf4a8dc, hot:0xff5ac0, white:0xfaf6ff, ink:0x241640, red:0xe8402a, gold:0xffc84a };
+const glowM = (c, op) => new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:op, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+// flat colours like the drawing on the cover: a little light, no shine
+const flat = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.85, metalness:0, emissive:c, emissiveIntensity:e == null ? .1 : e*.45 });
+const box = (w, h, d, c, e) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flat(c, e));
+
+/* ---- the icons on the cards, the phone and the pictures: drawn, not copied ---- */
+const ICONS = ["heart", "smile", "phone", "book", "phones", "flower", "moon", "tape", "star", "letter", "lamp", "sun", "broken", "note"];
+function drawIcon(x, name, cx, cy, s, col, bg){
+  x.save(); x.translate(cx, cy); x.scale(s/100, s/100); x.lineWidth = 7; x.lineJoin = x.lineCap = "round"; x.strokeStyle = "#241640"; x.fillStyle = col || "#ff5ac0";
+  const heart = () => { x.beginPath(); x.moveTo(0, 34); x.bezierCurveTo(-60, -6, -36, -52, 0, -22); x.bezierCurveTo(36, -52, 60, -6, 0, 34); x.closePath(); };
+  if (name === "heart"){ heart(); x.fill(); x.stroke(); }
+  else if (name === "broken"){ heart(); x.fill(); x.stroke(); x.beginPath(); x.moveTo(0, -22); x.lineTo(-8, -4); x.lineTo(6, 8); x.lineTo(-4, 30); x.strokeStyle = "#faf6ff"; x.lineWidth = 9; x.stroke(); }
+  else if (name === "smile"){ x.fillStyle = "#ffd84a"; x.beginPath(); x.arc(0, 0, 40, 0, 7); x.fill(); x.stroke(); x.fillStyle = "#241640"; x.beginPath(); x.ellipse(-14, -10, 5, 9, 0, 0, 7); x.ellipse(14, -10, 5, 9, 0, 0, 7); x.fill();
+    x.beginPath(); x.arc(0, 4, 22, .3, Math.PI - .3); x.stroke(); }
+  else if (name === "phone"){ x.fillStyle = "#3a2a8a"; x.beginPath(); x.roundRect(-22, -40, 44, 80, 9); x.fill(); x.stroke(); x.fillStyle = "#7ae8ff"; x.fillRect(-15, -30, 30, 52); }
+  else if (name === "book"){ x.fillStyle = "#e8402a"; x.beginPath(); x.roundRect(-30, -38, 60, 76, 6); x.fill(); x.stroke(); x.fillStyle = "#ffd84a"; x.fillRect(-18, -22, 36, 8); x.fillRect(-18, -8, 26, 6); }
+  else if (name === "phones"){ x.lineWidth = 11; x.beginPath(); x.arc(0, 4, 34, Math.PI, 0); x.stroke(); x.lineWidth = 7; x.fillStyle = "#7a5ae8"; x.beginPath(); x.roundRect(-44, 0, 20, 34, 6); x.roundRect(24, 0, 20, 34, 6); x.fill(); x.stroke(); }
+  else if (name === "flower"){ x.fillStyle = "#ff5ac0"; for (let i = 0; i < 6; i++){ const a = i/6*Math.PI*2; x.beginPath(); x.arc(Math.cos(a)*20, Math.sin(a)*20 - 6, 14, 0, 7); x.fill(); x.stroke(); }
+    x.fillStyle = "#ffd84a"; x.beginPath(); x.arc(0, -6, 11, 0, 7); x.fill(); x.stroke(); x.beginPath(); x.moveTo(0, 22); x.lineTo(0, 44); x.stroke(); }
+  else if (name === "moon"){ x.fillStyle = "#ffd84a"; x.beginPath(); x.arc(0, 0, 38, 0, 7); x.fill(); x.stroke(); x.fillStyle = bg || "#faf6ff"; x.beginPath(); x.arc(24, -10, 29, 0, 7); x.fill(); }
+  else if (name === "sun"){ x.fillStyle = "#ffb03a"; for (let i = 0; i < 8; i++){ const a = i/8*Math.PI*2; x.beginPath(); x.moveTo(Math.cos(a)*30, Math.sin(a)*30); x.lineTo(Math.cos(a)*46, Math.sin(a)*46); x.stroke(); }
+    x.beginPath(); x.arc(0, 0, 24, 0, 7); x.fill(); x.stroke(); }
+  else if (name === "tape"){ x.fillStyle = "#c8b0f4"; x.beginPath(); x.roundRect(-44, -28, 88, 56, 7); x.fill(); x.stroke(); x.fillStyle = "#faf6ff"; x.beginPath(); x.arc(-18, -2, 10, 0, 7); x.arc(18, -2, 10, 0, 7); x.fill(); x.stroke(); }
+  else if (name === "star"){ x.fillStyle = "#ffd84a"; x.beginPath(); for (let i = 0; i < 10; i++){ const r = i % 2 ? 18 : 42, a = i/10*Math.PI*2 - Math.PI/2; x.lineTo(Math.cos(a)*r, Math.sin(a)*r); } x.closePath(); x.fill(); x.stroke(); }
+  else if (name === "letter"){ x.fillStyle = "#faf6ff"; x.beginPath(); x.roundRect(-42, -28, 84, 56, 5); x.fill(); x.stroke(); x.beginPath(); x.moveTo(-42, -28); x.lineTo(0, 6); x.lineTo(42, -28); x.stroke();
+    x.fillStyle = "#ff5ac0"; x.beginPath(); x.arc(0, 8, 9, 0, 7); x.fill(); }
+  else if (name === "lamp"){ x.fillStyle = "#7a8aff"; x.beginPath(); x.moveTo(-30, -6); x.lineTo(-14, -40); x.lineTo(14, -40); x.lineTo(30, -6); x.closePath(); x.fill(); x.stroke(); x.beginPath(); x.moveTo(0, -6); x.lineTo(0, 30); x.moveTo(-20, 34); x.lineTo(20, 34); x.stroke(); }
+  else if (name === "note"){ x.fillStyle = "#7a5ae8"; x.beginPath(); x.arc(-14, 26, 13, 0, 7); x.fill(); x.stroke(); x.beginPath(); x.moveTo(-2, 26); x.lineTo(-2, -36); x.lineTo(28, -26); x.stroke(); }
+  x.restore(); }
+const ICON_TEX = {};
+function iconTex(name, bg){ const k = name + (bg || ""); if (ICON_TEX[k]) return ICON_TEX[k];
+  return ICON_TEX[k] = canvasTex(128, 176, (x, w, h) => { x.fillStyle = bg || "#faf6ff"; x.beginPath(); x.roundRect(4, 4, w - 8, h - 8, 14); x.fill(); x.lineWidth = 5; x.strokeStyle = "#241640"; x.stroke();
+    drawIcon(x, name, w/2, h/2, 92); }); }
+// the back of a card: hers pink with little hearts, his purple with stars
+const BACKS = {};
+function backTex(kind){ if (BACKS[kind]) return BACKS[kind]; const pink = kind !== "his";
+  return BACKS[kind] = canvasTex(128, 176, (x, w, h) => { x.fillStyle = pink ? "#ff8ad0" : "#7a5ae8"; x.beginPath(); x.roundRect(4, 4, w - 8, h - 8, 14); x.fill(); x.lineWidth = 5; x.strokeStyle = "#241640"; x.stroke();
+    x.strokeStyle = "#faf6ff"; x.lineWidth = 3; x.beginPath(); x.roundRect(14, 14, w - 28, h - 28, 9); x.stroke();
+    for (let i = 0; i < 6; i++) drawIcon(x, pink ? "heart" : "star", 34 + (i % 2)*60, 40 + Math.floor(i/2)*48, 26, pink ? "#faf6ff" : "#ffd84a"); }); }
+
+/* ---- the rooms ---- */
+// her window: a green hill under a pink and violet sky; his: the moon over the city at night
+const HER_WIN = canvasTex(128, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#8a5ae8"); g.addColorStop(.6, "#ff9ad8"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.fillStyle = "#5ac85a"; x.beginPath(); x.ellipse(40, 128, 90, 44, 0, 0, 7); x.fill(); x.fillStyle = "#3aa04a"; x.beginPath(); x.ellipse(110, 132, 70, 34, 0, 0, 7); x.fill(); });
+const HIS_WIN = canvasTex(192, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#3a2a8a"); g.addColorStop(1, "#c86ae8"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.fillStyle = "#ffe08a"; x.beginPath(); x.arc(40, 34, 14, 0, 7); x.fill(); x.fillStyle = g; x.beginPath(); x.arc(47, 29, 12, 0, 7); x.fill();
+  x.fillStyle = "#4a3aa8"; for (let i = 0; i < 9; i++){ const bh = 20 + rnd(i*3)*50; x.fillRect(i*22, h - bh, 20, bh); }
+  x.fillStyle = "#ffe08a"; for (let i = 0; i < 18; i++) x.fillRect(rnd(i*7)*w, h - rnd(i*5)*40 - 6, 3, 4); });
+const SMILEY = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#faf6ff"; x.fillRect(0, 0, w, h); x.fillStyle = "#ffd84a"; x.beginPath(); x.arc(64, 58, 34, 0, 7); x.fill();
+  for (const [dx, l] of [[-18, 26], [-4, 40], [12, 22], [24, 32]]){ x.beginPath(); x.roundRect(64 + dx - 5, 70, 10, l + 16, 5); x.fill(); }
+  x.fillStyle = "#241640"; x.beginPath(); x.ellipse(52, 50, 4, 8, 0, 0, 7); x.ellipse(76, 50, 4, 8, 0, 0, 7); x.fill(); x.lineWidth = 4; x.strokeStyle = "#241640"; x.beginPath(); x.arc(64, 60, 18, .4, Math.PI - .4); x.stroke(); });
+function windowMesh(tex, w, h, curtain){ const g = new THREE.Group();
+  g.add(box(w + .24, h + .24, .1, SC.white, .35)); const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map:tex })); p.position.z = .06; g.add(p);
+  const bar = box(w, .06, .05, SC.white, .35); bar.position.z = .08; g.add(bar);
+  if (curtain) for (const sx of [-1, 1]){ const c = box(w*.3, h + .5, .06, curtain, .3); c.position.set(sx*(w/2 - w*.08), -.1, .14); g.add(c); }
+  return g; }
+function bookshelf(n){ const g = new THREE.Group(); g.add(box(1.8, .08, .5, SC.white, .3)); const cols = [0xff5ac0, 0x5ac85a, 0x7a8aff, 0xffd84a, 0xe8402a, 0x7a5ae8, 0xfaf6ff];
+  for (let i = 0; i < n; i++){ const b = box(.18, .5 + rnd(i*3)*.25, .4, cols[i % cols.length], .3); b.position.set(-.75 + i*.21, .32, 0); g.add(b); } return g; }
+function boombox(){ const g = new THREE.Group(); g.add(box(1.1, .6, .35, 0xd8a0f0, .3)); for (const sx of [-1, 1]){ const s = new THREE.Mesh(new THREE.CylinderGeometry(.17, .17, .06, 16), flat(SC.ink, .1)); s.rotation.x = Math.PI/2; s.position.set(sx*.32, -.04, .18); g.add(s); }
+  const h = box(.8, .06, .06, SC.ink, .1); h.position.y = .36; g.add(h); const scr = box(.3, .12, .02, 0x5ae8a0, .8); scr.position.set(0, .12, .18); g.add(scr); return g; }
+function deskLamp(){ const g = new THREE.Group(); g.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.22, .26, .08, 16), flat(0x2a3a6a, .2)), 0, 0, 0));
+  const arm = box(.05, .7, .05, 0xe8f0ff, .3); arm.position.set(0, .35, 0); arm.rotation.z = .25; g.add(arm);
+  const shade = new THREE.Mesh(new THREE.ConeGeometry(.22, .3, 16, 1, true), new THREE.MeshStandardMaterial({ color:0xe8f0ff, side:THREE.DoubleSide, emissive:0xe8f0ff, emissiveIntensity:.4 })); shade.position.set(-.12, .72, 0); shade.rotation.z = .9; g.add(shade);
+  const glow = sprite(0xfff0c8, 1.6, .7); glow.position.set(-.25, .62, 0); g.add(glow); g.userData.glow = glow; return g; }
+// the two of them, simple and soft: her with the long red hair, reading; him in the headphones, on his phone
+function girl(){ const g = new THREE.Group(), skin = flat(0xf4c8a8, .25);
+  g.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.34, .42, 1, 12), flat(SC.white, .3)), 0, .5, 0));
+  const legs = box(.7, .3, 1.3, 0xc8b0f4, .3); legs.position.set(0, .12, .6); g.add(legs);
+  g.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.3, 14, 10), skin), 0, 1.25, 0));
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(.36, 14, 10, 0, Math.PI*2, 0, Math.PI*.6), flat(SC.red, .3)); hair.position.set(0, 1.3, -.04); g.add(hair);
+  const back = box(.62, .8, .2, SC.red, .3); back.position.set(0, .92, -.22); g.add(back);
+  const bk = box(.42, .55, .08, SC.red, .35); bk.position.set(0, .85, .45); bk.rotation.x = -.5; g.add(bk); return g; }
+function guy(){ const g = new THREE.Group(), skin = flat(0x6a4030, .2);
+  g.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.38, .44, 1.05, 12), flat(0x1a1a24, .15)), 0, .52, 0));
+  const legs = box(.75, .32, 1.2, 0x1a1a24, .15); legs.position.set(0, .14, .55); g.add(legs);
+  g.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.3, 14, 10), skin), 0, 1.3, 0));
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(.32, 12, 8, 0, Math.PI*2, 0, Math.PI*.5), flat(0x140c08, .1)); hair.position.y = 1.36; g.add(hair);
+  const band = new THREE.Mesh(new THREE.TorusGeometry(.33, .05, 6, 18, Math.PI), flat(0x4a5ae8, .3)); band.position.y = 1.32; g.add(band);
+  for (const sx of [-1, 1]){ const cup = new THREE.Mesh(new THREE.CylinderGeometry(.12, .12, .1, 12), flat(0x4a5ae8, .3)); cup.rotation.z = Math.PI/2; cup.position.set(sx*.32, 1.3, 0); g.add(cup); }
+  const chain = new THREE.Mesh(new THREE.TorusGeometry(.2, .03, 6, 16), flat(SC.gold, .5)); chain.position.set(0, 1.02, .2); chain.rotation.x = 1.2; g.add(chain);
+  const ph = box(.16, .28, .03, 0x1a1a24, .1); ph.position.set(.1, .95, .5); ph.rotation.x = -.6; g.add(ph);
+  const glow = sprite(0x7ae8ff, .9, .7); glow.position.set(.1, 1, .55); g.add(glow); return g; }
+// the whole cover as a set: her side on the left (pink), his on the right (purple), split on the diagonal
+function rooms(parent){ const g = new THREE.Group(); (parent || scene).add(g);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 20), flat(0x9a7ae0, .25)); floor.rotation.x = -Math.PI/2; floor.position.set(0, -2, 0); g.add(floor);
+  const herW = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), flat(0xf0a0d8, .3)); herW.position.set(-6, 4, -6); g.add(herW);
+  const hisW = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), flat(0x8a6ae8, .3)); hisW.position.set(6, 4, -6); g.add(hisW);
+  const split = box(.18, 17, .05, SC.white, .6); split.position.set(.2, 4, -5.9); split.rotation.z = .55; g.add(split);
+  const hw = windowMesh(HER_WIN, 1.8, 1.6, 0xff8ad0); hw.position.set(-4.2, 3.6, -5.85); g.add(hw);
+  const sw = windowMesh(HIS_WIN, 3, 2, 0x8ab8ff); sw.position.set(3.2, 6, -5.85); g.add(sw);
+  const pos = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.4), new THREE.MeshBasicMaterial({ map:SMILEY })); pos.position.set(.8, 3.4, -5.85); pos.rotation.z = .06; g.add(pos);
+  const shelf = bookshelf(7); shelf.position.set(-5.8, 5.4, -5.6); g.add(shelf);
+  const bb = boombox(); bb.position.set(-3.6, 5.8, -5.6); g.add(bb);
+  const books = bookshelf(8); books.position.set(1.6, .4, -5.6); g.add(books);
+  return g; }
+
+/* ---- Jo's saucer as it is on this cover: the dark hull, the purple dome with the "L", the purple rim lights, the white beam ---- */
+const BADGE = (letter, bg) => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#e8f4ff"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = bg; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#06102a"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(letter, 66, 70); return new THREE.CanvasTexture(cv); };
+function buildSaucer(dc, gc, letter, rim){
+  dc = dc || 0x5a4ac8; gc = gc || 0x3a2aa8; rim = rim || 0xd86aff;
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0x2a2a4a, roughness:.3, metalness:.7, emissive:0x12122a, emissiveIntensity:.5 })); hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.28, .14, 32, 1, true), new THREE.MeshStandardMaterial({ color:0x1a1a30, metalness:.8, roughness:.3 })));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:dc, roughness:.2, metalness:.3, emissive:gc, emissiveIntensity:.8 })); dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE(letter || "L", letter ? "#" + new THREE.Color(rim).getHexString() : "#b8a8ff"), transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:i % 2 ? rim : 0xf4e8ff })); l.position.set(Math.sin(a)*1.3, 0, Math.cos(a)*1.3); lights.add(l); }
+  const under = sprite(rim, 3, .5); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color:0xf4f0ff, transparent:true, opacity:.25, depthWrite:false, side:THREE.DoubleSide })); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .18 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = ONLINE ? G.mine() : fmt(S.score);
+  const h = ONLINE ? "" : "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (ONLINE){ $("bl").textContent = G.clockName; $("songbar").firstChild.style.width = (clamp(G.clock(t), 0, 1)*100).toFixed(1) + "%"; }
+  else if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (ONLINE) vsHud();
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (ONLINE){ const l = G.line(); p.className = l[1] ? "ready" : ""; p.innerHTML = l[0]; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { const sec = section(t); p.className = sec === "hook" ? "ready" : ""; p.innerHTML = (sec === "hook" ? "HOOK &middot; DOUBLE POINTS" : G.tag) + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+
+
+/* ================= PART 1 · LOVE CARDS ================= */
+const pickRay = new THREE.Raycaster();
+const rayAt = (cx, cy, objs) => { pickRay.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); return pickRay.intersectObjects(objs, true)[0]; };
+const LC = {
+  name:"LOVE CARDS", start:0, clockName:"TURN CLOCK",
+  get tag(){ return "LOVE CARDS"; }, get hint(){ return "turn two - find the pairs"; },
+  setup(){
+    const g = new THREE.Group(); scene.add(g); this.root = g; rooms(g);
+    g.add(at3(box(10, .7, 7.6, SC.white, .3), 0, -1.6, -.2));
+    const quilt = new THREE.Mesh(new THREE.PlaneGeometry(9.6, 7.2), new THREE.MeshStandardMaterial({ roughness:.9, map:canvasTex(64, 64, (x, w, h) => { x.fillStyle = "#e8b8f0"; x.fillRect(0, 0, w, h);
+      drawIcon(x, "heart", 16, 16, 14, "#f8d8f8"); drawIcon(x, "heart", 48, 48, 14, "#f8d8f8"); }, [6, 4.5]) }));
+    quilt.rotation.x = -Math.PI/2; quilt.position.set(0, -1.24, -.2); g.add(quilt);
+    g.add(at3(box(3, .4, 1.2, SC.white, .35), -2.4, -1, -3.4));
+    const her = girl(); her.position.set(-4.6, -1.2, -3.4); her.rotation.y = .5; her.scale.setScalar(.95); g.add(her);
+    this.cards = [];
+    const side = flat(0xfaf6ff, .3);
+    for (let i = 0; i < 20; i++){ const face = new THREE.MeshBasicMaterial();
+      const m = new THREE.Mesh(new THREE.BoxGeometry(1.1, .05, 1.5), [side, side, new THREE.MeshBasicMaterial({ map:backTex("her") }), face, side, side]);
+      m.visible = false; g.add(m); this.cards.push({ m, face, icon:"", state:"off", rot:0, fly:0, i }); }
+  },
+  begin(t0, t1, L0, L1, cont){
+    this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1;
+    if (cont) return;
+    this.start = t0;
+    this.st = { board:CFG.endless ? 1 : 0, k:CFG.endless ? 50 : 1, open:[], pairs:0, need:0, deadline:0, wait:0, boards:0, beatPairs:0, got:0, nextDeal:0, last:null, combo:0, peek:0, peekBar:-1 };
+    if (ONLINE){ V1.reset(); this.deal(t0, V1.deck()); } else this.deal(t0 + BAR);
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  info(){ const s = this.st; return ONLINE ? "PAIRS LEFT " + (s.need - V1.pairs[0] - V1.pairs[1]) : "PAIRS " + s.pairs + "/" + s.need + " · BED " + (s.boards + 1); },
+  // a bed of cards: from the bed number on your own, or the deck both players share online
+  deal(t, deck){ const s = this.st;
+    const [cols, rows] = deck ? [5, 4] : [[4, 3], [4, 4], [5, 4]][Math.min(2, s.board)], n = cols*rows, pairs = n/2;
+    if (!deck){ const icons = shuffle(ICONS.filter(i => i !== "broken").slice(), s.k++*17 + 3).slice(0, pairs); deck = shuffle(icons.concat(icons), s.k++*11 + 7); }
+    const portrait = cam.aspect < .8, sx = portrait ? 1.25 : 1.35, sz = 1.75;
+    this.cards.forEach((c, i) => {
+      if (i >= n){ c.m.visible = false; c.state = "off"; return; }
+      const col = i % cols, row = Math.floor(i/cols);
+      c.icon = deck[i]; c.face.map = iconTex(c.icon); c.face.needsUpdate = true; c.state = "down"; c.rot = 0; c.fly = 0; c.beat = false;
+      c.home = new THREE.Vector3((col - (cols - 1)/2)*sx, -1.18, (row - (rows - 1)/2)*sz - .1); c.m.position.copy(c.home); c.m.visible = true; c.m.scale.setScalar(1); });
+    s.need = pairs; s.pairs = 0; s.open = []; s.wait = 0; s.nextDeal = 0;
+    s.allow = BAR*(2 + pairs*.75)*(1.25 - .3*clamp(this.L(t), 0, 1.5)); s.deadline = t + s.allow;
+  },
+  down(cx, cy){ const hit = rayAt(cx, cy, this.cards.filter(c => c.state === "down").map(c => c.m)); if (!hit) return; const c = this.cards.find(c => c.m === hit.object);
+    if (ONLINE) V1.mine(c.i, Math.max(0, S.t)); else this.flip(c); },
+  flip(c){ const s = this.st; if (!c || c.state !== "down" || s.open.length >= 2 || s.wait > 0 || s.nextDeal) return;
+    c.state = "up"; c.beat = onBeat(S.t); s.open.push(c); s.last = c; sfx.clink();
+    if (s.open.length === 2) s.wait = .6; },
+  update(dt, t){ const s = this.st;
+    // in the hooks the cards peek on every bar's 1
+    const bar = Math.floor((t - GRID.t0)/BAR); if (!ONLINE && section(t) === "hook" && bar !== s.peekBar){ s.peekBar = bar; s.peek = .45; }
+    if (s.peek > 0) s.peek -= dt;
+    if (ONLINE){ V1.update(dt, t); return; }
+    if (s.wait > 0){ s.wait -= dt;
+      if (s.wait <= 0){ const [a, b] = s.open; s.open = [];
+        if (a.icon === b.icon){
+          a.state = b.state = "gone"; s.pairs++; s.got++; s.combo++; S.combo = s.combo; const beat = a.beat && b.beat; if (beat) s.beatPairs++;
+          const n = Math.round(100*(beat ? 2 : 1)*(section(t) === "hook" ? 2 : 1)*Math.min(2, 1 + s.combo*.15)); S.score += n; sfx.good(s.combo);
+          say(beat ? "A PAIR ON THE BEAT" : "A PAIR", "+" + n, .7);
+          if (s.pairs === s.need){ const left = Math.max(0, s.deadline - t), bonus = 500 + Math.round(left*60); S.score += bonus; s.boards++; s.board++; sfx.big();
+            say("BED CLEARED", "+" + fmt(bonus) + " · a bigger one", 1.2, "g"); s.nextDeal = t + BEAT*3; } }
+        else { a.state = b.state = "down"; s.combo = 0; } } }
+    if (s.nextDeal && t > s.nextDeal) this.deal(t);
+    if (!s.nextDeal && t > s.deadline){ s.combo = 0;
+      if (hurt("OUT OF TIME", "Turn two cards: the same picture is a pair. Remember where the others were - and clear the bed before the time's up.")) return;
+      this.deal(t); }
+  },
+  render(dt, t){ const s = this.st, beat = onBeat(t), portrait = cam.aspect < .8;
+    for (const c of this.cards){ if (!c.m.visible) continue;
+      if (c.state === "gone"){ c.fly = Math.min(1, c.fly + dt*1.6); c.m.position.lerp(ME.position, Math.min(1, dt*4*c.fly)); c.m.scale.setScalar(Math.max(.01, 1 - c.fly)); if (c.fly >= 1) c.m.visible = false; c.m.rotation.z = Math.PI; continue; }
+      const want = c.state === "up" || (s.peek > 0 && c.state === "down") ? Math.PI : 0; c.rot += (want - c.rot)*Math.min(1, dt*12); c.m.rotation.z = c.rot; c.m.position.y = c.home.y + Math.sin(c.rot)*.6; }
+    const mine = !ONLINE || V1.up === NET.seat;
+    const p = s.last ? s.last.home : new THREE.Vector3(0, -1.2, -2); ME.scale.setScalar(.5); ME.position.lerp(new THREE.Vector3(p.x, p.y + 2.2, p.z), Math.min(1, dt*8)); ME.rotation.set(0, t*2, 0);
+    ME.userData.beam.visible = true; ME.userData.beam.scale.set(.35, .5, .35); ME.userData.beam.position.y = -.9;
+    if (ONLINE && OPP){ OPP.visible = NET.inMatch(); OPP.scale.setScalar(.45); const q = V1.lastThem ? V1.lastThem.home : new THREE.Vector3(4.6, -1.2, -3.2);
+      OPP.position.lerp(new THREE.Vector3(q.x + .3, q.y + 2.6, q.z), Math.min(1, dt*8)); OPP.rotation.set(0, -t*2, 0); animSaucer(OPP, t, beat);
+      ME.userData.beam.visible = mine; OPP.userData.beam.visible = !mine; OPP.userData.beam.scale.set(.35, .5, .35); OPP.userData.beam.position.y = -.9; }
+    if (portrait){ CAMP.set(0, 22, 9); CAML.set(0, -1.3, -.2); } else { CAMP.set(0, 9.5, 6.4); CAML.set(0, -1.3, -.6); }
+  },
+  // online
+  mine(){ return V1.pairs[NET.seat]; },
+  clock(t){ const s = this.st; return V1.up === NET.seat && !V1.hold ? (V1.deadline - t)/V1.allow : 0; },
+  line(){ const them = esc(NET.oppName());
+    if (V1.hold) return ["LOVE CARDS 1v1<small>&nbsp;</small>", false];
+    return V1.up === NET.seat ? ["YOUR TURN<small>turn two - a pair and you go again</small>", true] : [them + "'S TURN<small>watch where everything is</small>", false]; }
+};
+
+/* =============== ONLINE: LOVE CARDS 1v1 - take turns =============== */
+// The same bed for both (dealt from the match's seed). Both run exactly this, card by card, in the
+// same order; only the one whose turn it is sends anything - each card they turn, or that their clock
+// ran out. A pair and you go again; not a pair and it's their turn. All the pairs found: the most wins.
+const V1 = {
+  reset(){ Object.assign(this, { up:0, k:0, pairs:[0, 0], open:[], queue:[], turnAt:Date.now(), allow:10, deadline:0, over:false, hold:BEAT*2, lastThem:null }); },
+  deck(){ const icons = shuffle(ICONS.filter(i => i !== "broken").slice(), (NET.seed || 1)*3 + 1).slice(0, 10); return shuffle(icons.concat(icons), (NET.seed || 1)*7 + 2); },
+  startTurn(t){ this.turnAt = Date.now(); this.deadline = t + this.allow; },
+  mine(i, t){ if (this.hold || this.up !== NET.seat || this.over) return; const c = LC.cards[i]; if (!c || c.state !== "down") return;
+    NET.send("ev", { k:this.k, card:i }); this.apply({ card:i }, t); },
+  apply(ev, t){ const s = LC.st, who = this.up, me = who === NET.seat, them = esc(NET.oppName()); this.k++;
+    if (ev.timeout){ for (const c of this.open) c.state = "down"; this.open = []; this.up = 1 - who; this.hold = 1;
+      say(me ? "TOO SLOW" : them + " WAS TOO SLOW", me ? "their turn" : "your turn", 1, me ? "x" : "g"); return; }
+    const c = LC.cards[ev.card]; if (!c || c.state !== "down") return;
+    c.state = "up"; this.open.push(c); sfx.clink(); if (me) s.last = c; else this.lastThem = c;
+    if (this.open.length < 2){ this.deadline = t + this.allow; this.turnAt = Date.now(); return; }
+    const [a, b] = this.open; this.open = [];
+    if (a.icon === b.icon){ this.pairs[who]++; this.hold = .8; this.after = () => { a.state = b.state = "gone"; };
+      if (me) sfx.good(this.pairs[who]); say(me ? "A PAIR - GO AGAIN" : them + " FOUND A PAIR", me ? this.pairs[who] + " for you" : "they go again", 1, me ? "g" : "");
+      if (this.pairs[0] + this.pairs[1] === LC.st.need) this.over = true; }
+    else { this.hold = 1.1; this.up = 1 - who; this.after = () => { a.state = b.state = "down"; };
+      say(me ? "NOT A PAIR" : "NOT A PAIR", me ? them + "'s turn" : "your turn - remember them", 1, me ? "" : "g"); } },
+  update(dt, t){
+    if (this.hold > 0){ this.hold -= dt; if (this.hold <= 0){ this.hold = 0; if (this.after){ this.after(); this.after = null; }
+      if (this.over){ NET.over(); return; } this.startTurn(t); } return; }
+    if (this.up !== NET.seat){ const e = this.queue.find(e => e.k === this.k); if (e){ this.queue = this.queue.filter(q => q !== e && q.k >= this.k); this.apply(e, t); } return; }
+    if (t > this.deadline){ NET.send("ev", { k:this.k, timeout:true }); this.apply({ timeout:true }, t); } },
+  hear(p){ const k = p.k | 0; if (k >= this.k && !this.queue.some(q => q.k === k)) this.queue.push({ k, card:clamp(p.card | 0, 0, 19), timeout:!!p.timeout }); },
+  watching(){ return this.up !== NET.seat && !this.hold; },
+  result(){ return [this.pairs[NET.seat], this.pairs[1 - NET.seat]]; },
+  rows(){ return [[NET.seat, "You", this.pairs[NET.seat]], [1 - NET.seat, esc(NET.oppName()), this.pairs[1 - NET.seat]]].map(([seat, nm, v]) => [nm, v, this.up === seat]); }
+};
+
+/* ================= PART 2 · SNAP ================= */
+// Her pile and his on the floor between their rooms. On every beat (the 8ths in the hooks) both turn a
+// card; the same picture on both: SNAP. The flips go by the song's grid, card k at a time worked out
+// from card k-1, so two players online get exactly the same cards at the same moments.
+const DECOY = { heart:"broken", broken:"heart", moon:"sun", sun:"moon", star:"flower", flower:"star", phone:"letter", letter:"phone" };
+const SN = {
+  name:"SNAP", start:0, clockName:"THE CARDS",
+  get tag(){ return "SNAP"; }, get hint(){ return "the same on both piles? tap!"; },
+  setup(){
+    const g = new THREE.Group(); scene.add(g); this.root = g; rooms(g);
+    const rug = new THREE.Mesh(new THREE.PlaneGeometry(9, 5.2), new THREE.MeshStandardMaterial({ roughness:.9, map:canvasTex(256, 148, (x, w, h) => { x.fillStyle = "#f4a8dc"; x.fillRect(0, 0, w, h);
+      x.fillStyle = "#7a5ae8"; x.beginPath(); x.moveTo(w*.62, 0); x.lineTo(w, 0); x.lineTo(w, h); x.lineTo(w*.38, h); x.closePath(); x.fill(); x.strokeStyle = "#faf6ff"; x.lineWidth = 6; x.beginPath(); x.moveTo(w*.62, 0); x.lineTo(w*.38, h); x.stroke(); }) }));
+    rug.rotation.x = -Math.PI/2; rug.position.set(0, -1.98, .4); g.add(rug);
+    const her = girl(); her.position.set(-4.6, -2, -2.4); her.rotation.y = .7; g.add(her);
+    const him = guy(); him.position.set(4.6, -2, -2.4); him.rotation.y = -.7; g.add(him);
+    this.pool = []; const side = flat(0xfaf6ff, .3);
+    for (let i = 0; i < 40; i++){ const face = new THREE.MeshBasicMaterial();
+      const m = new THREE.Mesh(new THREE.BoxGeometry(1.4, .04, 1.9), [side, side, face, new THREE.MeshBasicMaterial({ map:backTex(i % 2 ? "his" : "her") }), side, side]);
+      m.visible = false; g.add(m); this.pool.push({ m, face, on:false }); }
+    for (const sx of [-1, 1]) g.add(at3(box(1.4, .5, 1.9, sx < 0 ? 0xff8ad0 : 0x7a5ae8, .3), sx*3.6, -1.72, -1.3));
+  },
+  begin(t0, t1, L0, L1, cont){
+    this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1;
+    if (cont) return;
+    this.start = t0;
+    for (const p of this.pool){ p.on = false; p.m.visible = false; p.m.scale.setScalar(1); }
+    this.st = { n:0, next:t0 + BAR, cur:null, piles:[[], []], since:0, snaps:0, fly:[], combo:0, flips:[], seed:ONLINE ? (NET.seed || 1) : CFG.endless ? 900 : 1 };
+    if (ONLINE) W2.reset();
+  },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  info(){ const s = this.st; return ONLINE ? "CARD " + Math.min(W2.LAST, s.n) + " / " + W2.LAST : s.snaps + " SNAPS · " + s.n + " TURNED"; },
+  gap(t){ return section(t + .001) === "hook" ? BEAT/2 : BEAT; },
+  // card k for both piles: a pair about 3 times in 10 (always within 5), decoys more often as it goes
+  deal(k, since, L){ const sd = this.st.seed*1.37 + k*3.1;
+    const match = since >= 5 || rnd(sd + 1) < .28, a = ICONS[Math.floor(rnd(sd*1.7 + 2)*ICONS.length)];
+    let b = match ? a : DECOY[a] && rnd(sd*2.3) < .3 + .3*clamp(L, 0, 1) ? DECOY[a] : ICONS[Math.floor(rnd(sd*5.9 + 4)*ICONS.length)];
+    if (!match && b === a) b = ICONS[(ICONS.indexOf(a) + 3) % ICONS.length];
+    return { a, b, match }; },
+  card(side, icon, t){ const s = this.st, p = this.pool.find(p => !p.on && (this.pool.indexOf(p) % 2 === side)) || this.pool.find(p => !p.on); p.on = true; p.m.visible = true; p.m.scale.setScalar(1);
+    p.face.map = iconTex(icon); p.face.needsUpdate = true; p.from = new THREE.Vector3((side ? 1 : -1)*3.6, -1.4, -1.3);
+    p.to = new THREE.Vector3((side ? 1 : -1)*1.5 + (rnd(s.n*3 + side)*.3 - .15), -1.9 + s.piles[side].length*.045, .6 + (rnd(s.n*5 + side)*.3 - .15)); p.spin = (rnd(s.n*7 + side) - .5)*.5; p.t0 = t; p.m.position.copy(p.from); s.piles[side].push(p);
+    if (s.piles[side].length > 10){ const old = s.piles[side].shift(); old.on = false; old.m.visible = false; }
+    return p; },
+  flip(t, at){ const s = this.st, cur = s.cur;
+    if (ONLINE) W2.closed(s.n - 1, t);
+    else if (cur && cur.match && !cur.snapped){ cur.snapped = true; s.combo = 0; if (hurt("MISSED A PAIR", "When both piles show the same picture, tap - SNAP. A heart and a broken heart aren't the same.")) return; }
+    const k = s.n++, d = this.deal(k, s.since, this.L(t)); s.since = d.match ? 0 : s.since + 1;
+    this.card(0, d.a, t); this.card(1, d.b, t); sfx.clink();
+    s.cur = Object.assign(d, { k, at, snapped:false }); s.flips[k] = s.cur; },
+  press(){ const s = this.st, c = s.cur; if (!c || c.snapped || S.done || S.end >= 0) return;
+    if (ONLINE){ W2.mine(c, Math.max(0, S.t)); return; }
+    c.snapped = true;
+    if (!c.match){ s.combo = 0; hurt("NOT A PAIR", "Only snap when both piles show the same picture. A heart and a broken heart aren't the same, nor the sun and the moon."); return; }
+    s.snaps++; s.combo++; S.combo = s.combo; const beat = onBeat(S.t), n = Math.round(100*(beat ? 2 : 1)*(section(S.t) === "hook" ? 2 : 1)*Math.min(2.5, 1 + s.combo*.2)) + (s.piles[0].length + s.piles[1].length)*10;
+    S.score += n; sfx.good(s.combo); sfx.clap(); say(beat ? "SNAP! ON THE BEAT" : "SNAP!", "+" + n + " · both piles", .8);
+    this.collect(); },
+  collect(){ const s = this.st; for (const side of [0, 1]){ for (const p of s.piles[side]){ p.flyT = S.t; s.fly.push(p); } s.piles[side] = []; } },
+  update(dt, t){ const s = this.st;
+    s.fly = s.fly.filter(p => { if (t - p.flyT < .7) return true; p.m.visible = false; p.on = false; p.m.scale.setScalar(1); return false; });
+    if (ONLINE && s.n >= W2.LAST){ if (t >= s.next) W2.closed(s.n - 1, t); W2.update(t); return; }
+    while (t >= s.next){ const at = s.next; s.next = at + this.gap(at); this.flip(t, at); if (S.done) return; if (ONLINE && s.n >= W2.LAST) break; }
+    if (ONLINE) W2.update(t);
+  },
+  render(dt, t){ const s = this.st, beat = onBeat(t), portrait = cam.aspect < .8;
+    for (const side of [0, 1]) for (const p of s.piles[side]){ const u = clamp((t - p.t0)/.22, 0, 1), e = 1 - Math.pow(1 - u, 2);
+      p.m.position.lerpVectors(p.from, p.to, e); p.m.position.y += Math.sin(e*Math.PI)*.8; p.m.rotation.set(0, p.spin, Math.PI*(1 - e)); }
+    const who = s.fly.length && s.flyTo === "them" && OPP ? OPP : ME;
+    for (const p of s.fly){ p.m.position.lerp(who.position, Math.min(1, dt*5)); p.m.scale.setScalar(Math.max(.05, 1 - (t - p.flyT)/.7)); }
+    ME.scale.setScalar(.6); ME.position.lerp(new THREE.Vector3(ONLINE ? -1.6 : 0, .7 + Math.sin(t*1.5)*.08, .6), Math.min(1, dt*6)); ME.rotation.set(0, t*2, 0);
+    ME.userData.beam.visible = true; ME.userData.beam.scale.set(.5, .6, .5); ME.userData.beam.position.y = -1.1; ME.userData.beam.material.opacity = s.fly.length && who === ME ? .6 : .18;
+    if (ONLINE && OPP){ OPP.visible = NET.inMatch(); OPP.scale.setScalar(.6); OPP.position.set(1.6, .7 + Math.sin(t*1.5 + 1)*.08, .6); OPP.rotation.set(0, -t*2, 0); animSaucer(OPP, t, beat);
+      OPP.userData.beam.visible = true; OPP.userData.beam.scale.set(.5, .6, .5); OPP.userData.beam.position.y = -1.1; OPP.userData.beam.material.opacity = s.fly.length && who === OPP ? .6 : .18; }
+    if (portrait){ CAMP.set(0, 13.5, 11); CAML.set(0, -1.6, -.2); } else { CAMP.set(0, 7.6, 7.6); CAML.set(0, -1.2, -.6); }
+  },
+  // online
+  mine(){ return W2.pts[NET.seat]; },
+  clock(t){ return 1 - Math.min(W2.LAST, this.st.n)/W2.LAST; },
+  line(){ return W2.lineNow; }
+};
+
+/* =============== ONLINE: SNAP 1v1 - the same cards at the same time =============== */
+// Both turn the same cards on the song's beat. On a pair each player says how long after the card
+// landed (on their own screen) they snapped - or that they didn't - and the quicker one takes the
+// pair (a tie goes to whoever found the match first). Both wait for both answers, so both always
+// agree. A snap on no pair gives the other player a point. 48 cards; the most points wins.
+const W2 = {
+  LAST:48,
+  reset(){ Object.assign(this, { pts:[0, 0], rt:{}, sent:{}, wrong:{}, done:{}, lineNow:["SNAP 1v1<small>the quicker snap takes the pair</small>", false], finished:false }); },
+  key(k, seat){ return k + ":" + seat; },
+  mine(c, t){ const k = c.k, me = NET.seat;
+    if (this.sent[k]) return; this.sent[k] = true; c.snapped = true;
+    if (!c.match){ NET.send("ev", { k, wrong:true }); this.applyWrong(k, me); return; }
+    const rt = Math.max(0, t - c.at); NET.send("ev", { k, rt:+rt.toFixed(3) }); this.rt[this.key(k, me)] = rt; sfx.clap(); say("SNAP!", "...", .5); this.resolve(k); },
+  // the card's time is up on my screen: if it was a pair and I didn't snap, say so
+  closed(k, t){ const s = SN.st; if (k < 0 || this.sent[k]) return; const c = s.flips[k]; if (!c) return;
+    this.sent[k] = true; if (c.match){ NET.send("ev", { k, rt:-1 }); this.rt[this.key(k, NET.seat)] = -1; this.resolve(k); } },
+  hear(p){ const k = p.k | 0, them = 1 - NET.seat; if (k < 0 || k >= this.LAST) return;
+    if (p.wrong){ if (!this.wrong[this.key(k, them)]) this.applyWrong(k, them); return; }
+    if (this.rt[this.key(k, them)] == null){ this.rt[this.key(k, them)] = typeof p.rt === "number" ? p.rt : -1; this.resolve(k); } },
+  applyWrong(k, who){ this.wrong[this.key(k, who)] = true; this.pts[1 - who]++; const me = who === NET.seat;
+    if (me){ sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4; } say(me ? "NOT A PAIR" : esc(NET.oppName()) + " SNAPPED ON NO PAIR", me ? "a point to " + esc(NET.oppName()) : "a point to you", .9, me ? "x" : "g"); },
+  resolve(k){ const a = this.rt[this.key(k, 0)], b = this.rt[this.key(k, 1)]; if (a == null || b == null || this.done[k]) return;
+    this.done[k] = true; let w = -1;
+    if (a >= 0 && (b < 0 || a <= b)) w = 0; else if (b >= 0) w = 1;
+    if (w < 0) return;
+    this.pts[w]++; const me = w === NET.seat, s = SN.st;
+    if (s.cur && s.cur.k === k){ s.flyTo = me ? "me" : "them"; SN.collect(); }
+    if (me) sfx.good(this.pts[w]); say(me ? "YOURS!" : esc(NET.oppName()) + " WAS QUICKER", me ? "+1" + (a >= 0 && b >= 0 ? " · by " + Math.round(Math.abs(a - b)*1000) + " ms" : "") : (a >= 0 && b >= 0 ? "by " + Math.round(Math.abs(a - b)*1000) + " ms" : "you let it go"), .9, me ? "g" : ""); },
+  update(t){ const s = SN.st;
+    this.lineNow = s.n >= this.LAST ? ["LAST CARD<small>waiting for the last answers</small>", false] : ["SNAP 1v1<small>the same on both piles? tap first!</small>", true];
+    if (this.finished || s.n < this.LAST) return;
+    // over once every pair has both answers
+    for (let k = 0; k < this.LAST; k++){ const c = s.flips[k]; if (c && c.match && !this.done[k]) return; }
+    this.finished = true; NET.over(); },
+  watching(){ return false; },
+  result(){ return [this.pts[NET.seat], this.pts[1 - NET.seat]]; },
+  rows(){ return [["You", this.pts[NET.seat], false], [esc(NET.oppName()), this.pts[1 - NET.seat], false]]; }
+};
+/* =============== ONLINE: quick match over Supabase Realtime =============== */
+// Same log-in as the JAVEDA page (same site, same saved session). Everyone looking for a game of a
+// mode sits in that mode's lobby (presence, keyed by account); oldest first, they pair off two by
+// two. The pair meet in their own room; the one who came first (seat 0) sends "go" with the match id
+// and the seed for the cards, the other says "ack", and after a count of three both play.
+// Then each sends what they do (Love Cards: the cards they turn; Snap: how quick their snap was). Both report the result to the JAVEDA page,
+// which only pays out when both reports say the same.
+// Nobody is ever invented here: no bots, no fake names. Nobody there means nobody there.
+const PROTO = 1, SB_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
+const NET = {
+  sb:null, me:null, name:"", seat:0, opp:null, match:null, state:"off", lobby:null, room:null, since:0, heard:0,
+  endAt:0, result:null, early:[], seed:1,
+  inMatch(){ return this.state === "play" || this.state === "done"; },
+  oppName(){ return this.opp ? this.opp.name : "them"; },
+  status(html, wait){ const n = $("net"); n.classList.remove("hid"); n.classList.toggle("wait", !!wait); n.innerHTML = '<span class="dot"></span>' + html; },
+  async init(){
+    $("go").disabled = true; this.status("Connecting&hellip;", true);
+    try {
+      if (!window.supabase) await new Promise((ok, bad) => { const s = document.createElement("script"); s.src = SB_JS; s.onload = ok; s.onerror = bad; document.head.appendChild(s); });
+      const r = await fetch("/api/config"), cfg = r.ok ? await r.json() : {};
+      if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) throw new Error("no config");
+      this.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:true, autoRefreshToken:true } });
+    } catch(e){ this.status("Online play only works on the JAVEDA page, and it can't be reached right now."); return; }
+    const { data } = await this.sb.auth.getSession();
+    if (!data || !data.session){ this.status("<b>Log in</b> on the JAVEDA page to play online - the result goes on your account."); return; }
+    this.me = data.session.user.id;
+    const p = await this.sb.from("javeda_players").select("username").eq("user_id", this.me).maybeSingle();
+    if (!p.data){ this.status("Make your player on the JAVEDA page first (a name and a picture)."); return; }
+    this.name = p.data.username; this.state = "ready";
+    this.status("Playing as <b>" + esc(this.name) + "</b>. Quick match finds you a real player.");
+    $("go").disabled = false;
+    addEventListener("pagehide", () => { if (this.inMatch()) this.send("bye", {}); });
+    setInterval(() => this.tick(), 1000);
+  },
+  send(event, payload){ if (this.room) try { this.room.send({ type:"broadcast", event, payload }); } catch(e){} },
+  chan(name){ return this.sb.channel(name, { config:{ presence:{ key:this.me }, broadcast:{ self:false } } }); },
+  // the lobby: everyone looking for this mode right now
+  seek(){
+    this.state = "seek"; if (!this.since) this.since = Date.now();
+    $("go").disabled = true; $("go").textContent = "Looking…";
+    this.status("Looking for a player&hellip;", true);
+    if (this.lobby){ this.lobby.track({ id:this.me, name:this.name, since:this.since }); this.pair(); return; }
+    const ch = this.lobby = this.chan("javeda21-" + ONLINE + "-v" + PROTO);
+    ch.on("presence", { event:"sync" }, () => this.pair());
+    ch.subscribe(s => { if (s === "SUBSCRIBED" && this.state === "seek") ch.track({ id:this.me, name:this.name, since:this.since }); });
+  },
+  waiting(){ const st = this.lobby.presenceState(), out = [];
+    for (const k in st){ const p = st[k] && st[k][0]; if (p && p.id) out.push(p); }
+    return out.sort((a, b) => a.since - b.since || (a.id < b.id ? -1 : 1)); },
+  pair(){
+    if (this.state !== "seek") return;
+    const L = this.waiting(), i = L.findIndex(p => p.id === this.me);
+    this.status(L.length > 1 ? "Looking for a player&hellip; <b>" + L.length + "</b> here now." :
+      "Looking for a player&hellip; nobody else is looking right now. Stay here - the next one in plays you.", true);
+    if (i < 0) return;
+    const o = L[i % 2 ? i - 1 : i + 1];
+    if (!o || o.id === this.me) return;
+    // the one who came first is seat 0 (Jo's saucer) and names the room
+    const host = i % 2 === 0, a = host ? L[i] : o;
+    this.join("javeda21-" + ONLINE + "-v" + PROTO + "-" + a.id.slice(0, 8) + "-" + a.since + "-" + (host ? o : L[i]).id.slice(0, 8), host ? 0 : 1, o);
+  },
+  join(name, seat, o){
+    this.state = "room"; this.seat = seat; this.opp = { id:o.id, name:String(o.name || "player").slice(0, 24) }; this.match = null;
+    this.status("Found <b>" + esc(this.opp.name) + "</b> - dealing the cards&hellip;", true);
+    this.lobby.untrack();
+    const ch = this.room = this.chan(name);
+    ch.on("presence", { event:"sync" }, () => this.roomSync());
+    for (const ev of ["go", "ack", "ev", "hb", "bye"]) ch.on("broadcast", { event:ev }, m => this.hear(ev, (m && m.payload) || {}));
+    ch.subscribe(s => { if (s === "SUBSCRIBED") ch.track({ id:this.me, name:this.name }); });
+    clearTimeout(this.roomT); this.roomT = setTimeout(() => { if (this.state === "room") this.back(); }, 8000);
+  },
+  // they never turned up (both saw a different pair for a moment): back in the lobby, same place in line
+  back(){ clearInterval(this.goT); const r = this.room; this.room = null; this.opp = null; if (r) try { this.sb.removeChannel(r); } catch(e){} this.seek(); },
+  roomSync(){
+    const st = this.room.presenceState(), here = !!(this.opp && st[this.opp.id] && st[this.opp.id].length);
+    if (this.state === "room" && here && this.seat === 0 && !this.match){
+      this.match = (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ Math.random()*16 >> c/4).toString(16)));
+      this.seed = 1 + Math.floor(Math.random()*9999);
+      const go = () => this.send("go", { match:this.match, seed:this.seed, v:PROTO }); go(); this.goT = setInterval(go, 700); }
+    if (this.state === "play" && !here && this.seen) this.left("left the match");
+    if (here) this.seen = true;
+  },
+  hear(ev, p){
+    this.heard = Date.now();
+    if (ev === "go" && this.seat === 1){ if (this.state === "room" && p.v === PROTO){ this.match = p.match; this.seed = p.seed | 0; this.play(); } if (this.match === p.match) this.send("ack", { match:p.match }); }
+    else if (ev === "ack" && this.seat === 0 && this.state === "room" && p.match === this.match){ clearInterval(this.goT); this.play(); }
+    else if (ev === "ev"){ if (S && S.started) OV.hear(p); else this.early.push(p); }
+    else if (ev === "bye") this.left("left the match");
+  },
+  // matched: a count of three, then both play
+  play(){
+    clearTimeout(this.roomT); this.state = "play"; this.heard = Date.now();
+    let n = 3; const count = () => { if (this.state !== "play") return;
+      if (n === 0){ startGame(); return; }
+      this.status("Playing <b>" + esc(this.opp.name) + "</b> - starting in <b>" + n + "</b>", true); sfx.tick(); n--; setTimeout(count, 1000); };
+    audioInit(); count();
+  },
+  tick(){
+    if (this.state === "room" || !this.inMatch() || !this.room) return;
+    this.send("hb", {});
+    if (this.state !== "play") return;
+    if (Date.now() - this.heard > 15000) this.left("lost the connection");
+    else if (S.started && OV.watching() && Date.now() - V1.turnAt > V1.allow*1000 + 20000) this.left("stopped playing");
+  },
+  over(){ if (this.state !== "play") return; S.done = true; this.endAt = Date.now(); this.done(); },
+  done(){
+    if (this.state !== "play") return;
+    this.state = "done";
+    const [my, their] = OV.result();
+    this.result = { my, their, res:my > their ? "win" : my < their ? "loss" : "draw" };
+    if (HUB) toHub({ type:"javeda:match", level:CFG.id, match:this.match, mode:ONLINE, opponent:this.opp.id, my, their });
+    if (this.result.res === "win") sfx.big(); else if (this.result.res === "loss") sfx.bad();
+    setTimeout(finish, 1200);
+  },
+  left(why){
+    if (this.state !== "play") return;
+    this.state = "left"; this.why = why; S.done = true; song.pause(); setTimeout(finish, 300);
+  }
+};
+// both of you up top: your pairs (Love Cards: whose turn it is) or your points (Snap)
+let lastVs = "";
+function vsHud(){
+  const h = OV.rows().map(([nm, v, up]) => '<div class="row' + (up ? ' up' : '') + '"><span class="nm">' + nm + '</span><span class="lt"><b>' + v + '</b></span></div>').join("");
+  if (h !== lastVs){ lastVs = h; $("vs").innerHTML = h; }
+}
+
+/* ---------------- the run ---------------- */
+let ME = null, OPP = null;
+const OV = ONLINE === "snap" ? W2 : V1;       // the online rules for this part
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = PART === 2 ? SN : LC; camInit = false; G.root.visible = true; END.root.visible = false; END.on = false; ME.visible = true;
+  if (ONLINE) G.begin(0, END_AT, .4, .4);
+  else if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+}
+// endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+const LOOPS = CFG.endless || ONLINE;
+function songT(){
+  if (LOOPS && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!ONLINE && !CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The cover: the two rooms on the diagonal - her on her bed with the book and the long red hair, the pink
+   curtain and the hill; him on his, on his phone in the headphones, the moon in his window, the smiley on
+   the wall, the lamp lit - and Jo's saucer coming down in front, small, its white beam on. */
+const END = { out:8.5, root:null, X:300 };
+function buildEnd(){
+  const g = new THREE.Group(); g.visible = false; g.position.x = END.X; scene.add(g);
+  rooms(g);
+  const herBed = box(4.4, .8, 2.6, SC.white, .3); herBed.position.set(-3.4, -1.6, -2.6); g.add(herBed);
+  g.add(at3(box(4.2, .2, 2.4, 0xc8b0f4, .3), -3.4, -1.1, -2.6));
+  const her = girl(); her.position.set(-3.4, -1, -2.8); her.rotation.y = .5; her.scale.setScalar(1.2); g.add(her);
+  const hisBed = box(4, .8, 2.4, 0x4a3aa8, .3); hisBed.position.set(3.4, -.4, -3.4); g.add(hisBed);
+  const him = guy(); him.position.set(3.2, 0, -3.4); him.rotation.y = -.5; him.scale.setScalar(1.2); g.add(him);
+  const lamp = deskLamp(); lamp.position.set(5.4, .05, -2.4); lamp.scale.setScalar(1.3); g.add(lamp);
+  const desk = box(3, .2, 1.6, 0x9a8af0, .3); desk.position.set(4.6, -.1, -1.6); g.add(desk);
+  g.add(at3(box(.7, .12, .5, SC.red, .4), 4, .06, -1.4));
+  END.root = g;
+}
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  animSaucer(ME, t, beat);
+  if (S.end >= 0){
+    const portrait = cam.aspect < .8;
+    if (S.end < 1){ $("flash").style.background = "#ffe0f4"; $("flash").style.opacity = Math.min(1, S.end/.8); G.render(dt, t); }
+    else {
+      if (!END.on){ END.on = true; G.root.visible = false; END.root.visible = true; camInit = false; }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      // the saucer comes down in front, small, the beam on, like on the cover
+      const u = clamp((S.end - 1.2)/2.8, 0, 1), e = 1 - Math.pow(1 - u, 3);
+      ME.visible = true; ME.scale.setScalar(.55); ME.rotation.set(.15, Math.sin(t*1.5)*.25, 0); ME.userData.beam.visible = true; ME.userData.beam.scale.set(.5, .6, .5); ME.userData.beam.position.y = -1.1;
+      ME.position.set(END.X, (portrait ? -.4 : -.8) + (1 - e)*6 + Math.sin(t*2)*.05, 1.4);
+      CAMP.set(END.X, portrait ? 2.6 : 2, portrait ? 17 : 10.5); CAML.set(END.X, portrait ? 2 : 1.6, -4);
+      if (S.end > 2.4 && !S.saidEnd){ S.saidEnd = true; say("BLIND LOVE", "LAZY JO", 4.5, "t"); }
+    }
+  } else {
+    G.render(dt, t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by):not(#net)"), go = $("go");
+  go.textContent = "Play again"; go.disabled = false; go.classList.toggle("alt", !S.fail && !CFG.endless && !ONLINE);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off"; $("vs").classList.add("hid"); $("net").classList.add("hid");
+  const st = G.st, got = PART === 2 ? st.snaps : st.got;
+  if (ONLINE){
+    go.textContent = "Find another match"; $("practice").classList.remove("hid");
+    const them = esc(NET.oppName()), mode = ONLINE === "snap" ? "SNAP 1v1" : "LOVE CARDS 1v1";
+    if (NET.state === "left"){
+      v.querySelector(".by").textContent = mode + " · NO RESULT";
+      v.querySelector("h1").textContent = "THEY LEFT";
+      ps[0].innerHTML = "<b>" + them + "</b> " + esc(NET.why || "left the match") + ".";
+      ps[1].innerHTML = "No result and no points either way.";
+      return;
+    }
+    const r = NET.result, unit = ONLINE === "snap" ? " points" : " pairs";
+    v.querySelector(".by").textContent = mode + " · VS " + NET.oppName().toUpperCase();
+    v.querySelector("h1").textContent = { win:"YOU WIN", loss:"YOU LOSE", draw:"A DRAW" }[r.res];
+    ps[0].innerHTML = "You <b>" + r.my + "</b>" + unit + " &middot; " + them + " <b>" + r.their + "</b>" + unit;
+    ps[1].innerHTML = HUB ? (r.res === "win" ? "A win is <b>+25 points</b> once both of your results are in. " : r.res === "draw" ? "A draw is <b>+5 points</b> each. " : "") + "It counts on the <b>Online 1v1</b> board."
+      : "Play from the JAVEDA page to put it on your account.";
+    return;
+  }
+  if (HUB && !PRACTICE) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:got });
+  if (PRACTICE){ $("practice").textContent = "Back to the 1v1"; $("practice").classList.remove("hid"); }
+  const stat = PART === 2 ? st.snaps + " snaps of " + st.n + " cards" : st.got + " pairs · " + st.boards + " beds cleared" + (st.beatPairs ? " · " + st.beatPairs + " on the beat" : "");
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in their rooms &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = (PRACTICE ? "WARM-UP" : CFG.by) + " COMPLETE";
+  v.querySelector("h1").textContent = "BLIND LOVE";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = PRACTICE ? "Warmed up. Now go and find someone." : (PART === 2 ? "Snap. Blind love." + "<br>Level 21 cleared: <b>Love Cards &#8734;</b> and <b>Snap &#8734;</b> are open in the gold Endless list." : "Every pair found." + "<br>Part 2, <b>Snap</b>, is open.");
+}
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x2a1a6a); scene.fog = new THREE.Fog(0x4a2a8a, 30, 90);
+  cam = new THREE.PerspectiveCamera(46, innerWidth/innerHeight, .1, 1500);
+  scene.add(new THREE.HemisphereLight(0xfff0ff, 0x6a4ab8, .75));
+  const key = new THREE.DirectionalLight(0xfff4f8, .55); key.position.set(-6, 20, 14); scene.add(key);
+  ME = buildSaucer(); scene.add(ME);
+  G = PART === 2 ? SN : LC; G.setup(); buildEnd();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input ---------------- */
+// Love Cards: tap a card. Snap: tap anywhere, or Space / Enter
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); if (PART === 2) SN.press(); else LC.down(e.clientX, e.clientY); }, { passive:false });
+addEventListener("keydown", e => { if (veilUp() || e.repeat || PART !== 2) return; if (e.key === " " || e.key === "Enter"){ e.preventDefault(); if (live()) SN.press(); } });
+
+function startGame(){
+  if (ONLINE && !OPP){ OPP = buildSaucer(0xff5ac0, 0xc83a9a, (NET.oppName()[0] || "?").toUpperCase(), 0xff8ad0); scene.add(OPP); }
+  reset();
+  if (ONLINE){ for (const p of NET.early) OV.hear(p); NET.early = []; }
+  $("veil").classList.add("hid"); $("hud").classList.remove("off"); if (ONLINE){ $("vs").classList.remove("hid"); lastVs = ""; $("ml").textContent = ONLINE === "snap" ? "POINTS" : "PAIRS"; }
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB && !PRACTICE) toHub({ type:"javeda:start", level:CFG.id });
+  if (ONLINE === "cards") say("LOVE CARDS 1v1", NET.seat === 0 ? "you start" : esc(NET.oppName()) + " starts", 2.5, "g");
+  else if (ONLINE) say("SNAP 1v1", "the quicker snap takes the pair", 2.5, "g");
+  else say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? (PART === 2 ? "the cards never stop" : "the beds never stop") : G.hint, 3, CFG.endless ? "g" : "");
+}
+$("go").addEventListener("click", () => {
+  if (ONLINE){ if (NET.state === "ready") NET.seek(); else if (NET.state === "done" || NET.state === "left") location.reload(); return; }
+  startGame();
+});
+// online: warm up on your own (nothing is saved), and back
+$("practice").addEventListener("click", () => {
+  const q = new URLSearchParams(location.search);
+  if (ONLINE){ q.delete("online"); q.set("practice", ONLINE); } else { q.delete("practice"); q.set("online", PRACTICE); }
+  location.search = q.toString();
+});
+$("by").textContent = ONLINE ? CFG.by : "LAZY JO · " + (PRACTICE ? "WARM-UP" : CFG.by);
+$("title").textContent = ONLINE ? (ONLINE === "snap" ? "SNAP 1v1" : "LOVE CARDS 1v1") : "BLIND LOVE" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = ONLINE === "cards" ? "<b>LOVE CARDS 1v1:</b> you and a real player, found by quick match, one bed of cards between you. Take turns turning two: a pair is yours and you go again; not a pair and it's their turn - watch where everything is. All ten pairs found: the most wins."
+  : ONLINE === "snap" ? "<b>SNAP 1v1:</b> you and a real player, found by quick match - the same cards on both piles at the same time, on the beat. The same picture on both: snap. The quicker snap takes the pair; a snap on no pair gives them a point. 48 cards, the most points wins."
+  : "The two rooms from the cover, split on the diagonal - hers pink, his purple; her reading with the long red hair, him on his phone in the headphones - and Jo's saucer." +
+    (PART === 2 ? " <b>Part 2 · Snap:</b> her pile and his on the floor between them." : " <b>Part 1 · Love Cards:</b> the cards face down on her bed.") +
+    (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = ONLINE === "cards" ? "<b>Tap</b> a card to turn it. Ten seconds a card on the clock."
+  : ONLINE === "snap" ? "<b>Tap anywhere</b> (or Space) when both piles show the same picture. A heart and a broken heart aren't the same, nor the sun and the moon."
+  : PART === 2 ? "On every beat both piles turn a card. The same picture on both: <b>tap anywhere</b> (or Space) - SNAP, and the saucer beams both piles up. A heart and a broken heart aren't the same, nor the sun and the moon. A snap on no pair, or a pair let by, costs a heart (3). On the 8ths in the hooks, for <b>double points</b>."
+  : "<b>Tap</b> two cards to turn them: the same picture is a pair and the saucer beams them up; not the same, they turn back. Clear the bed and a bigger one is dealt. A pair turned <b>on the beat</b> counts double; in the hooks the cards <b>peek</b> on every bar's 1, for <b>double points</b>. Out of time costs a heart (3).";
+if (ONLINE){ $("go").textContent = "Find a match"; $("practice").classList.remove("hid"); $("snd").classList.add("hid"); NET.init(); }
+else if (PRACTICE){ $("practice").textContent = "Back to the 1v1"; $("practice").classList.remove("hid"); }
+else if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
+      if (m[0] === "2") q.set("part", "2"); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>ISSUES</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#040818; color:#e8f0ff; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#e8f2ff; line-height:1; text-shadow:0 0 14px #4a8aff}
+#ml{font-size:11px; letter-spacing:.18em; color:#bcd4ff; margin-top:3px; text-shadow:0 0 6px #000}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#e0306a; text-shadow:0 0 8px #000; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#9ad8ff22; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#9ad8ff,#9ad8ff)}
+.bl{font-size:11px; letter-spacing:.18em; color:#bcd4ff; text-align:right; text-shadow:0 0 6px #000}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#9ad8ff; margin-top:8px; text-align:right; text-shadow:0 0 8px #000}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#6ab8ff}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#9ad8ff; text-shadow:0 0 12px #4a8aff, 0 2px 0 #000}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#bcd4ff; margin-top:2px}
+#phase.ready{color:#6ab8ff}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:26px; opacity:0; transition:opacity .25s; color:#9ad8ff; text-shadow:0 0 14px #4a8aff, 0 2px 0 #000; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff6a7a}
+#msg.g{color:#6ab8ff}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#f4f8ff; font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:.18em; text-shadow:0 0 24px #4a8aff, 0 0 60px #1a3aaa}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#bcd4ff; margin-top:6px}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto; color:#f4f0ff;
+  background:radial-gradient(50% 30% at 50% 20%, #4a8aff33 0%, transparent 70%), radial-gradient(120% 80% at 50% 25%, #12204e 0%, #040818 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #3a2a10 0%, #120c04 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#bfe6ff; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#e8f2ff; text-shadow:0 0 22px #4a8aff, 0 0 50px #1a3aaa}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#e8f6ff; font-size:17px; max-width:42ch}
+#veil b{color:#9ad8ff}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffd76a,#9ad8ff); color:#bcd4ff; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #9ad8ff66}
+#go:disabled{opacity:.45; cursor:default; box-shadow:none}
+#go.alt{background:none; color:#9ad8ff; border:1.5px solid #9ad8ff; font-size:15px; padding:12px 30px; box-shadow:none}
+#veil small{color:#bfe6ff; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#e8f6ff; background:none; border:1.5px solid #9ad8ff55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#9ad8ff; background:#9ad8ff22}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#9ad8ff; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #9ad8ff99; background:#9ad8ff14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO FT ZIRKA</p>
+  <h1 id="title">ISSUES</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="1">Part 1 &middot; Unblock</button><button type="button" data-mode="2">Part 2 &middot; Light Link</button><button type="button" data-mode="1x" class="gold">Unblock &#8734;</button><button type="button" data-mode="2x" class="gold">Light Link &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= ISSUES =================
+   Level 18 of JAVEDA (Lazy Jo ft Zirka), in the world of the cover: a rainy night in deep blue,
+   the wet street with the blurred city lights all over it, the sleek silver-blue car under the big
+   black umbrellas - and Jo's saucer as it is on this cover (the blue dome with the "L", the white
+   beam). Jo picked two of the ideas, so the song has two parts:
+   PART 1 · UNBLOCK - the parking puzzle: the blue car is boxed in; slide the other cars out of the
+   way (only the way they point) until it can drive out. Car park after car park through the song.
+   PART 2 · LIGHT LINK (?part=2) - the beam puzzle: turn the mirrors on the wet street so the
+   saucer's beam reaches the car's headlights, round the umbrellas. Street after street.
+   The song sets the clock on each one; out of time costs a heart (3). At the end of the song: the
+   cover. Each part has an ENDLESS (?endless=1): it never stops, the clock gets shorter every 8 bars,
+   a heart back every 24. */
+
+// the song's grid, measured from lvl18.mp3: 100 BPM, the first beat at 0.392 s (see SONG.md)
+const GRID = { bpm:100, t0:.392 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(75);                      // 3:00, before the outro
+const LOOP = [barT(11), barT(75)];            // endless: round and round, from the first hook
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (intro, breaks), loud (verses), hook
+const SECTIONS = [[11, "calm"], [19, "hook"], [32, "loud"], [37, "calm"], [45, "hook"], [58, "loud"], [64, "calm"], [72, "hook"], [75, "loud"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+const ENDLESS = Q.get("endless") === "1";
+const PART = Q.get("part") === "2" ? 2 : 1;
+const CFG = PART === 2
+  ? (ENDLESS ? { id:"lvl18bx", title:"Light Link", by:"LEVEL 18 · PART 2 · ENDLESS", endless:true, board:"Level 18 Part 2 ∞" } : { id:"lvl18b", title:"Light Link", by:"LEVEL 18 · PART 2" })
+  : (ENDLESS ? { id:"lvl18x", title:"Unblock", by:"LEVEL 18 · ENDLESS", endless:true, board:"Level 18 ∞" } : { id:"lvl18", title:"Unblock", by:"LEVEL 18" });
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl18.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [87.3, 98, 73.4, 82.4];
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  slide:() => ac && (hiss(ac.currentTime, .12, .05, 0, 700), tone("sine", 200, 150, ac.currentTime, .1, .05, 900)),   // a car slides
+  click:() => ac && tone("triangle", 1800, 2400, ac.currentTime, .05, .04, 9000),                     // a mirror turns
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the cover: a rainy night, deep blue; the car under the umbrellas; Jo's saucer ---------------- */
+let scene, cam, ren, clockR, crashed = null;
+const IC = { night:0x060c24, blue:0x1a3a8a, ice:0x9ad8ff, steel:0xb8c8e0, glow:0x4a8aff, gold:0xffc84a, red:0xff3a4a };
+const glowM = (c, op) => new THREE.MeshBasicMaterial({ color:c, transparent:true, opacity:op, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const PUFF = radial([[0, "rgba(255,255,255,.5)"], [.5, "rgba(255,255,255,.2)"], [1, "rgba(255,255,255,0)"]], 128);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+const mat = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.4, metalness:.3, emissive:c, emissiveIntensity:e == null ? .15 : e });
+// the night sky: almost black at the top, a blue haze low down
+function skyDome(){ const t = canvasTex(4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h);
+    [[0, "#02040e"], [.35, "#081236"], [.5, "#1a2e6a"], [.56, "#0e1a44"], [1, "#02040e"]].forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+  const m = new THREE.Mesh(new THREE.SphereGeometry(600, 32, 16), new THREE.MeshBasicMaterial({ map:t, side:THREE.BackSide, fog:false, depthWrite:false })); scene.add(m); return m; }
+// the wet street: dark blue asphalt that shines, and the blurred city lights on it (the bokeh of the cover)
+const WETT = canvasTex(256, 256, (x, w, h) => { x.fillStyle = "#0a1230"; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 900; i++){ x.fillStyle = "rgba(120,160,255," + (rnd(i)*.08).toFixed(3) + ")"; x.fillRect(rnd(i*3)*w, rnd(i*7)*h, 2, 2); } }, [30, 30]);
+function street(y){ const m = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.MeshStandardMaterial({ map:WETT, roughness:.15, metalness:.6, emissive:0x060c24, emissiveIntensity:.5 }));
+  m.rotation.x = -Math.PI/2; m.position.y = y; scene.add(m); return m; }
+function bokeh(n, area, y, z0){ const P = []; for (let i = 0; i < n; i++){ const c = [0xffc860, 0x9ad8ff, 0xffffff, 0x4a8aff, 0xff8a60][i % 5], s = sprite(c, .6 + rnd(i*3)*1.6, .25 + rnd(i*5)*.4);
+    s.position.set((rnd(i*7) - .5)*area[0], y + rnd(i*11)*area[1], z0 - rnd(i*13)*area[2]); scene.add(s); P.push(s); } return P; }
+// the rain: a lot of thin streaks falling, round the camera
+function rain(n, area){ const pos = new Float32Array(n*6), g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  const L = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color:0x9ab8ff, transparent:true, opacity:.35, depthWrite:false })); scene.add(L);
+  const D = []; for (let i = 0; i < n; i++) D.push([(rnd(i*3) - .5)*area[0], rnd(i*5)*area[1], (rnd(i*7) - .5)*area[2], 18 + rnd(i)*8]);
+  return { L, D, area, pos }; }
+function rainUpdate(R, dt, cx, cy, cz){ const p = R.pos; R.D.forEach((d, i) => { d[1] -= d[3]*dt; if (d[1] < -2) d[1] += R.area[1];
+    const x = cx + d[0], y = cy + d[1], z = cz + d[2]; p.set([x, y, z, x + .05, y + .7, z], i*6); }); R.L.geometry.attributes.position.needsUpdate = true; }
+// the car from the cover: a low, sleek sports car, silver-blue, the long hood, the glowing headlights
+function carMesh(color){ const g = new THREE.Group(), paint = new THREE.MeshStandardMaterial({ color:color || 0x8aa8d8, roughness:.25, metalness:.5, emissive:color || 0x3a5aa0, emissiveIntensity:.3 }), dark = mat(0x0a0e1a, .05), glass = new THREE.MeshStandardMaterial({ color:0x3a5a9a, roughness:.1, metalness:.4, emissive:0x2a4a9a, emissiveIntensity:.5 });
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2, .55, 4.4), paint); body.position.y = .5; g.add(body);
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(1.9, .3, 1.6), paint); hood.position.set(0, .82, -1.3); hood.rotation.x = .1; g.add(hood);
+  const cab = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10, 0, Math.PI*2, 0, Math.PI/2), glass); cab.scale.set(.78, .45, 1.1); cab.position.set(0, .78, .5); g.add(cab);
+  for (const sx of [-1, 1]) for (const sz of [-1.4, 1.4]){ const w = new THREE.Mesh(new THREE.CylinderGeometry(.38, .38, .3, 14), dark); w.rotation.z = Math.PI/2; w.position.set(sx*.95, .38, sz); g.add(w); }
+  const lights = []; for (const sx of [-.65, .65]){ const l = new THREE.Mesh(new THREE.BoxGeometry(.42, .08, .05), new THREE.MeshBasicMaterial({ color:0xd8ecff })); l.position.set(sx, .7, -2.21); g.add(l); const s = sprite(0x9ad8ff, 1.4, .7); s.position.set(sx, .7, -2.3); g.add(s); lights.push(s); }
+  for (const sx of [-.7, .7]){ const t = new THREE.Mesh(new THREE.BoxGeometry(.4, .07, .05), new THREE.MeshBasicMaterial({ color:0xff2a3a })); t.position.set(sx, .68, 2.21); g.add(t); }
+  g.userData = { lights, paint }; return g; }
+// a big black umbrella like the ones over the car
+function umbrella(r){ const g = new THREE.Group(), cloth = new THREE.MeshStandardMaterial({ color:0x0c1228, roughness:.5, metalness:.2, emissive:0x0a1430, emissiveIntensity:.4, side:THREE.DoubleSide });
+  const can = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 6, 0, Math.PI*2, 0, Math.PI/2.6), cloth); can.scale.y = .55; g.add(can);
+  for (let i = 0; i < 8; i++){ const a = i/8*Math.PI*2, rib = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, r*1.02, 4), mat(0x8a9ab8, .2)); rib.position.set(Math.cos(a)*r*.48, r*.22, Math.sin(a)*r*.48); rib.rotation.set(Math.sin(a)*1.15, 0, -Math.cos(a)*1.15); g.add(rib); }
+  g.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.04, .04, r*1.1, 6), mat(0x8a9ab8, .2)), 0, -r*.3, 0));
+  return g; }
+// Jo's saucer as it is on this cover: a dark hull, the blue dome with the "L", blue rim lights, the white beam
+const BADGE = (letter, bg) => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#e8f4ff"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = bg; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#06102a"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(letter, 66, 70); return new THREE.CanvasTexture(cv); };
+function buildSaucer(){
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0x3a4868, roughness:.3, metalness:.8, emissive:0x101a3a, emissiveIntensity:.5 })); hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.28, .14, 32, 1, true), new THREE.MeshStandardMaterial({ color:0x1a2440, metalness:.8, roughness:.3 })));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0x2a6aff, roughness:.2, metalness:.3, emissive:0x1a4aff, emissiveIntensity:.8 })); dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE("L", "#4a9aff"), transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:i % 2 ? 0x6ab8ff : 0xe8f4ff })); l.position.set(Math.sin(a)*1.3, 0, Math.cos(a)*1.3); lights.add(l); }
+  const under = sprite(0x6ab8ff, 3, .5); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color:0xe8f0ff, transparent:true, opacity:.25, depthWrite:false, side:THREE.DoubleSide })); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .18 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { const sec = section(t); p.className = sec === "hook" ? "ready" : ""; p.innerHTML = (sec === "hook" ? "HOOK &middot; DOUBLE POINTS" : G.tag) + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+
+/* =============== PART 1 · UNBLOCK: get the blue car out =============== */
+// A 6x6 car park on the wet street at night, from above. The blue car from the cover is boxed in; the
+// way out is on the right. Cars slide only the way they point - drag one (the saucer's beam picks it
+// up). Clear the way and the blue car drives out, and the next car park comes. Sixty of them, from 3
+// moves to 15 (each one checked by a solver). The clock on each: more bars the more moves it takes,
+// fewer as the song goes on. Out of time costs a heart (3). A move on the beat is worth more; in the hooks a car out is
+// worth double.
+const LOTS = [[[2,0,2,"h"],[3,1,2,"v"],[1,3,2,"h"],[1,1,2,"h"],[3,4,2,"v"],[0,2,2,"h"],[5,4,2,"h"],[5,1,2,"h"],[2,3,2,"v"],[1,5,2,"v"]],[[2,1,2,"h"],[3,1,2,"h"],[1,3,2,"h"],[3,4,2,"v"],[2,3,2,"v"],[0,2,3,"h"],[5,0,2,"h"],[3,0,2,"v"],[4,2,2,"h"]],[[2,1,2,"h"],[1,0,3,"h"],[1,4,2,"h"],[3,3,3,"v"],[4,0,2,"h"],[4,5,2,"v"],[3,0,2,"h"],[4,2,2,"v"],[2,5,2,"v"]],[[2,1,2,"h"],[5,2,2,"h"],[4,5,2,"v"],[3,0,3,"h"],[3,4,2,"h"],[0,0,2,"h"],[1,5,2,"v"],[2,3,2,"v"],[4,0,2,"v"],[0,2,2,"v"],[4,1,2,"h"],[4,4,2,"v"]],[[2,0,2,"h"],[3,2,2,"h"],[1,5,2,"v"],[5,2,3,"h"],[4,5,2,"v"],[3,0,2,"h"],[4,0,2,"v"],[1,2,2,"v"],[1,0,2,"h"]],[[2,2,2,"h"],[4,2,2,"v"],[0,4,2,"h"],[3,3,3,"v"],[1,2,3,"h"],[1,0,2,"v"],[3,5,2,"v"],[3,0,3,"h"],[3,4,3,"v"],[0,1,2,"v"],[4,1,2,"v"],[1,5,2,"v"],[4,0,2,"v"]],[[2,2,2,"h"],[3,4,2,"h"],[0,0,2,"h"],[1,1,3,"v"],[5,4,2,"h"],[0,3,2,"h"],[1,4,2,"v"],[4,1,2,"v"]],[[2,0,2,"h"],[3,3,2,"v"],[1,5,2,"v"],[0,0,2,"v"],[5,2,2,"h"],[5,4,2,"h"],[0,2,2,"v"],[3,4,2,"v"],[3,2,2,"v"],[4,0,2,"v"],[0,3,2,"v"],[0,1,2,"v"],[1,4,2,"v"]],[[2,1,2,"h"],[2,3,2,"v"],[5,1,3,"h"],[1,0,3,"h"],[4,0,2,"h"],[2,5,2,"v"],[0,3,2,"v"],[3,0,2,"h"]],[[2,0,2,"h"],[1,5,2,"v"],[4,2,2,"h"],[1,3,2,"v"],[1,2,2,"v"],[4,4,2,"v"],[3,5,3,"v"],[4,1,2,"v"],[0,1,2,"v"],[0,0,2,"v"]],[[2,0,2,"h"],[4,0,2,"v"],[3,5,3,"v"],[1,4,2,"v"],[4,3,2,"h"],[0,5,2,"v"],[0,3,3,"v"],[4,2,2,"v"],[3,1,2,"h"]],[[2,1,2,"h"],[3,1,3,"v"],[0,2,2,"h"],[4,0,2,"v"],[5,2,2,"h"],[4,4,2,"h"],[1,4,2,"v"],[0,5,3,"v"],[3,3,2,"v"],[1,0,2,"v"],[1,1,2,"h"]],[[2,0,2,"h"],[4,3,2,"h"],[1,2,2,"v"],[5,3,2,"h"],[4,1,2,"h"],[0,1,2,"v"],[2,4,2,"v"],[1,4,2,"h"],[0,4,2,"h"],[2,3,2,"v"]],[[2,1,2,"h"],[3,4,2,"v"],[2,3,2,"v"],[4,3,2,"v"],[5,1,2,"h"],[0,5,3,"v"],[2,0,3,"v"],[0,0,2,"v"],[5,4,2,"h"],[1,4,2,"v"],[0,2,2,"v"],[3,1,2,"v"]],[[2,0,2,"h"],[4,1,2,"v"],[2,3,2,"v"],[0,5,3,"v"],[3,0,2,"h"],[1,2,2,"h"],[0,2,2,"h"],[0,0,2,"v"],[4,4,2,"h"],[5,3,2,"h"]],[[2,0,2,"h"],[4,1,2,"v"],[1,5,2,"v"],[1,2,3,"v"],[5,3,3,"h"],[0,1,2,"v"],[0,3,2,"h"],[1,4,2,"v"],[1,3,2,"v"],[3,4,2,"h"]],[[2,1,2,"h"],[2,3,2,"v"],[5,0,2,"h"],[0,3,2,"v"],[0,4,2,"h"],[2,0,3,"v"],[1,5,2,"v"],[3,5,3,"v"],[4,1,2,"h"],[3,4,2,"v"],[1,0,3,"h"]],[[2,0,2,"h"],[4,4,2,"h"],[3,0,2,"h"],[0,2,2,"h"],[3,2,2,"h"],[1,3,2,"v"],[1,4,2,"v"],[5,3,2,"h"],[0,1,2,"v"],[4,0,2,"h"],[1,5,2,"v"],[1,2,2,"v"]],[[2,0,2,"h"],[0,4,3,"v"],[3,2,3,"v"],[0,2,2,"v"],[5,3,2,"h"],[0,5,3,"v"],[1,0,2,"h"],[3,3,2,"v"],[0,3,2,"v"]],[[2,0,2,"h"],[5,3,2,"h"],[1,4,2,"v"],[3,0,2,"h"],[1,3,3,"v"],[4,0,2,"h"],[0,0,2,"h"],[0,3,2,"h"],[3,4,2,"v"],[1,0,2,"h"],[2,5,3,"v"]],[[2,2,2,"h"],[1,3,3,"h"],[4,1,2,"v"],[4,2,2,"h"],[3,1,2,"h"],[2,5,2,"v"],[2,4,2,"v"],[1,1,2,"v"],[4,4,2,"v"],[0,0,2,"v"],[3,0,3,"v"]],[[2,0,2,"h"],[5,4,2,"h"],[4,0,2,"h"],[4,3,2,"h"],[2,2,2,"v"],[0,5,2,"v"],[0,2,3,"h"],[1,0,2,"h"],[1,3,2,"v"],[2,4,2,"v"],[5,1,2,"h"],[2,5,2,"v"]],[[2,2,2,"h"],[1,5,2,"v"],[3,2,2,"v"],[1,2,3,"h"],[4,4,2,"h"],[4,0,2,"v"],[2,4,2,"v"],[5,3,3,"h"],[4,1,2,"v"],[1,1,2,"v"],[3,0,2,"h"]],[[2,2,2,"h"],[4,3,2,"h"],[1,4,3,"v"],[2,5,3,"v"],[1,1,2,"v"],[5,3,2,"h"],[4,1,2,"h"],[1,0,3,"v"],[0,1,2,"h"],[5,1,2,"h"],[0,3,2,"v"]],[[2,1,2,"h"],[5,1,2,"h"],[2,3,3,"v"],[0,2,3,"h"],[3,0,2,"h"],[0,1,2,"v"],[1,0,2,"v"],[4,0,2,"h"],[3,4,2,"v"],[1,4,2,"v"],[0,5,3,"v"]],[[2,0,2,"h"],[4,0,2,"v"],[3,1,2,"v"],[2,5,2,"v"],[0,2,2,"v"],[1,3,2,"v"],[5,3,3,"h"],[1,4,2,"v"],[0,4,2,"h"],[1,0,2,"h"],[2,2,2,"v"],[4,3,2,"h"]],[[2,2,2,"h"],[1,1,2,"v"],[4,2,2,"v"],[1,5,3,"v"],[5,0,2,"h"],[3,0,2,"h"],[0,4,3,"v"],[5,4,2,"h"],[3,3,2,"h"]],[[2,0,2,"h"],[3,0,3,"v"],[3,5,2,"v"],[0,1,3,"h"],[0,4,2,"h"],[4,1,2,"h"],[5,2,2,"h"],[1,4,2,"v"],[3,3,2,"h"],[4,3,2,"h"],[3,1,2,"h"],[1,1,2,"h"]],[[2,1,2,"h"],[0,0,2,"h"],[1,4,3,"v"],[4,2,3,"h"],[5,2,2,"h"],[1,0,3,"h"],[3,2,2,"h"],[4,1,2,"v"],[2,5,2,"v"],[5,4,2,"h"],[3,0,3,"v"]],[[2,2,2,"h"],[2,5,2,"v"],[1,4,2,"h"],[4,3,2,"v"],[4,4,2,"v"],[4,0,2,"v"],[1,1,3,"v"],[3,2,2,"v"],[2,4,2,"v"],[0,2,2,"v"]],[[2,0,2,"h"],[0,5,3,"v"],[3,3,3,"h"],[0,1,2,"h"],[4,3,3,"h"],[3,2,2,"v"],[0,3,3,"v"],[5,3,3,"h"],[1,4,2,"v"],[0,0,2,"v"]],[[2,0,2,"h"],[5,1,2,"h"],[1,2,3,"h"],[2,5,3,"v"],[2,2,2,"v"],[2,4,2,"v"],[4,1,3,"h"],[0,1,3,"h"],[4,0,2,"v"],[2,3,2,"v"]],[[2,0,2,"h"],[3,0,2,"v"],[3,4,3,"v"],[0,2,3,"h"],[3,1,2,"v"],[0,0,2,"v"],[1,1,3,"h"],[2,3,2,"v"],[2,2,2,"v"],[4,3,2,"v"],[1,5,3,"v"],[5,0,2,"h"]],[[2,2,2,"h"],[4,0,2,"h"],[3,2,2,"v"],[1,1,2,"v"],[2,5,2,"v"],[1,4,3,"v"],[4,4,2,"h"],[5,3,2,"h"],[5,1,2,"h"],[0,2,3,"h"]],[[2,2,2,"h"],[4,2,2,"v"],[2,4,3,"v"],[3,1,3,"h"],[0,0,2,"h"],[4,1,2,"v"],[5,3,2,"h"],[0,3,2,"v"],[2,5,3,"v"],[4,0,2,"v"]],[[2,0,2,"h"],[5,2,2,"h"],[3,1,2,"h"],[2,3,3,"v"],[3,0,3,"v"],[0,1,2,"v"],[1,2,2,"v"],[0,4,2,"h"],[2,4,2,"v"],[4,4,2,"v"],[2,5,2,"v"]],[[2,1,2,"h"],[0,2,2,"h"],[1,5,3,"v"],[0,1,2,"v"],[1,3,2,"v"],[3,2,2,"v"],[5,4,2,"h"],[1,4,2,"v"],[0,0,2,"v"],[3,4,2,"v"],[0,4,2,"h"],[5,1,2,"h"],[3,1,2,"v"]],[[2,1,2,"h"],[0,2,2,"v"],[3,3,2,"v"],[0,0,2,"h"],[4,4,2,"v"],[3,5,2,"v"],[4,2,2,"v"],[2,0,3,"v"],[3,1,3,"v"],[1,4,2,"h"],[0,3,2,"v"],[2,4,2,"v"]],[[2,0,2,"h"],[0,3,2,"h"],[2,3,2,"v"],[1,4,2,"h"],[5,3,2,"h"],[3,5,2,"v"],[4,0,2,"v"],[4,2,3,"h"],[3,1,3,"v"],[1,2,3,"v"],[0,1,2,"h"]],[[2,1,2,"h"],[0,4,3,"v"],[0,5,3,"v"],[5,3,3,"h"],[4,3,2,"h"],[1,0,2,"h"],[0,2,2,"h"],[3,4,2,"h"],[4,2,2,"v"],[2,3,2,"v"]],[[2,1,2,"h"],[4,3,3,"h"],[5,2,2,"h"],[3,0,2,"v"],[3,2,2,"v"],[1,4,2,"v"],[1,0,2,"v"],[5,0,2,"h"],[2,3,2,"v"],[0,1,2,"v"],[1,2,2,"h"],[1,5,3,"v"],[0,3,2,"h"]],[[2,0,2,"h"],[3,1,2,"v"],[2,2,2,"v"],[1,2,2,"h"],[0,5,2,"v"],[0,2,3,"h"],[2,5,2,"v"],[3,4,3,"v"],[4,2,2,"v"],[2,3,2,"v"]],[[2,2,2,"h"],[1,4,2,"v"],[1,5,3,"v"],[0,3,2,"h"],[1,1,2,"v"],[2,0,2,"v"],[3,3,2,"v"],[4,2,2,"v"],[5,3,3,"h"],[4,4,2,"h"],[1,2,2,"h"]],[[2,0,2,"h"],[0,1,3,"h"],[3,3,2,"h"],[0,5,3,"v"],[1,2,2,"v"],[4,2,3,"h"],[3,1,2,"h"],[4,1,2,"v"],[1,3,2,"v"],[5,4,2,"h"]],[[2,0,2,"h"],[3,4,2,"h"],[1,3,2,"v"],[0,5,2,"v"],[3,3,2,"v"],[4,4,2,"v"],[0,2,2,"h"],[2,2,3,"v"],[5,0,3,"h"],[0,0,2,"v"]],[[2,1,2,"h"],[1,4,3,"v"],[0,2,2,"v"],[1,3,2,"v"],[3,2,2,"v"],[4,4,2,"h"],[3,3,2,"v"],[5,1,2,"h"],[0,1,2,"v"],[1,0,2,"v"],[1,5,2,"v"]],[[2,0,2,"h"],[2,2,2,"v"],[0,4,3,"v"],[0,0,3,"h"],[3,4,2,"h"],[5,2,3,"h"],[1,2,2,"h"],[3,1,3,"v"]],[[2,1,2,"h"],[0,2,2,"h"],[3,2,2,"v"],[0,4,3,"v"],[2,5,3,"v"],[5,1,2,"h"],[5,3,2,"h"],[0,0,2,"v"],[4,0,2,"v"],[4,3,2,"h"]],[[2,0,2,"h"],[0,3,2,"v"],[1,5,2,"v"],[3,0,3,"v"],[0,1,2,"v"],[5,2,2,"h"],[2,2,3,"v"],[3,4,2,"v"],[2,3,2,"v"],[3,5,3,"v"],[0,4,2,"h"]],[[2,2,2,"h"],[4,2,2,"v"],[0,4,3,"v"],[4,4,2,"h"],[2,1,2,"v"],[1,0,2,"h"],[3,3,2,"v"],[4,1,2,"v"],[5,4,2,"h"],[3,0,2,"v"]],[[2,0,2,"h"],[3,4,2,"h"],[5,1,3,"h"],[0,3,2,"v"],[0,0,2,"v"],[1,4,2,"v"],[3,0,3,"v"],[2,3,2,"v"],[1,2,3,"v"],[0,5,3,"v"]],[[2,0,2,"h"],[2,4,3,"v"],[4,0,2,"h"],[1,1,2,"h"],[3,5,3,"v"],[5,3,2,"h"],[2,3,2,"v"],[4,2,2,"v"],[0,1,3,"h"],[1,5,2,"v"],[2,2,2,"v"],[1,3,2,"h"]],[[2,2,2,"h"],[0,0,3,"v"],[0,2,2,"v"],[2,1,2,"v"],[5,4,2,"h"],[5,1,2,"h"],[4,3,2,"v"],[0,3,2,"h"],[1,4,2,"v"],[0,1,2,"v"],[3,3,2,"h"],[1,5,3,"v"],[3,0,2,"v"]],[[2,0,2,"h"],[3,5,2,"v"],[4,0,2,"v"],[0,1,2,"v"],[3,0,2,"h"],[1,4,2,"v"],[3,2,2,"h"],[3,4,2,"v"],[0,3,2,"v"],[4,3,2,"v"],[0,4,2,"h"],[1,5,2,"v"],[5,1,2,"h"]],[[2,0,2,"h"],[5,0,2,"h"],[2,5,2,"v"],[3,2,2,"v"],[5,4,2,"h"],[1,4,2,"h"],[0,3,2,"h"],[4,4,2,"h"],[3,3,2,"v"],[0,0,3,"h"],[2,4,2,"v"],[1,2,2,"h"],[3,0,2,"v"]],[[2,2,2,"h"],[0,0,2,"v"],[4,3,3,"h"],[1,1,2,"h"],[5,3,2,"h"],[0,3,2,"h"],[4,2,2,"v"],[1,5,3,"v"],[2,0,2,"v"],[0,1,2,"h"],[3,1,3,"h"],[2,4,2,"v"]],[[2,0,2,"h"],[4,1,2,"h"],[3,0,3,"h"],[2,4,2,"v"],[2,5,2,"v"],[1,4,2,"h"],[5,2,2,"h"],[0,0,2,"h"],[4,5,2,"v"],[4,3,2,"h"],[1,2,2,"v"],[0,2,3,"h"],[4,0,2,"v"]],[[2,0,2,"h"],[5,2,2,"h"],[1,2,3,"v"],[1,5,3,"v"],[4,1,2,"h"],[0,3,2,"v"],[4,0,2,"v"],[4,4,2,"v"],[1,4,2,"v"]],[[2,1,2,"h"],[1,4,3,"v"],[3,2,3,"v"],[3,1,2,"v"],[0,0,2,"h"],[5,4,2,"h"],[4,3,2,"h"],[0,3,3,"v"]],[[2,1,2,"h"],[2,0,3,"v"],[4,2,2,"v"],[0,4,3,"v"],[0,5,3,"v"],[3,3,3,"h"],[5,4,2,"h"],[4,3,2,"v"],[1,2,2,"h"],[4,1,2,"v"],[0,1,2,"h"]]];
+const MOVES = [3,3,3,3,3,3,3,3,3,4,6,6,6,6,6,6,6,6,6,6,6,6,7,7,7,8,8,8,9,9,10,10,10,10,10,10,10,10,10,10,11,11,11,11,11,11,11,11,11,12,12,12,12,13,13,14,14,14,14,15];   // the fewest moves each one takes
+const UB = {
+  name:"unblock", tag:"UNBLOCK", hint:"drag the cars out of the way - the blue one goes out on the right",
+  setup(){
+    const root = this.root = new THREE.Group(); scene.add(root);
+    const grid = new THREE.Mesh(new THREE.PlaneGeometry(6.4, 6.4), new THREE.MeshStandardMaterial({ map:canvasTex(256, 256, (x, w, h) => { x.fillStyle = "#0c1638"; x.fillRect(0, 0, w, h); x.strokeStyle = "rgba(220,230,255,.5)"; x.lineWidth = 3;
+      for (let i = 0; i <= 6; i++){ const p = 8 + i*240/6; x.beginPath(); x.moveTo(p, 8); x.lineTo(p, 248); x.stroke(); x.beginPath(); x.moveTo(8, p); x.lineTo(248, p); x.stroke(); } }), roughness:.2, metalness:.5 }));
+    grid.rotation.x = -Math.PI/2; grid.position.y = .01; root.add(grid);
+    this.exit = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1), new THREE.MeshBasicMaterial({ color:0x4a8aff, transparent:true, opacity:.6 })); this.exit.rotation.x = -Math.PI/2; this.exit.position.set(3.7, .02, this.Z(2)); root.add(this.exit);
+    const walls = mat(0x2a3458, .2); for (const [x, z, w, d] of [[0, -3.3, 6.8, .2], [0, 3.3, 6.8, .2], [-3.3, 0, .2, 6.8], [3.3, -1.85, .2, 3.1], [3.3, 2.35, .2, 2.1]]){ const m = new THREE.Mesh(new THREE.BoxGeometry(w, .5, d), walls); m.position.set(x, .25, z); root.add(m); }
+    this.pool = []; const cols = [0x8a8aa0, 0xb04a5a, 0x4a9a6a, 0x9a9ab0, 0xc0a050, 0x6a6a90, 0x9a5ab0];
+    for (let i = 0; i < 14; i++){ const c = carMesh(i === 0 ? 0x2a7aff : cols[i % cols.length]); c.visible = false; root.add(c); this.pool.push(c); }
+    this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  },
+  X(c){ return c - 2.5; }, Z(r){ return r - 2.5; },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  begin(t0, t1, L0, L1, cont){
+    Object.assign(this, { t0, t1, L0, L1 });
+    if (cont) return;
+    this.start = t0;
+    this.st = { lot:-1, n:0, cars:[], moves:0, beatMoves:0, solved:0, missed:0, deadline:0, sel:-1, out:-1, k:0 };
+    this.next(t0 + BEAT*2);
+  },
+  info(){ const st = this.st; return "CAR PARK " + st.n + " · " + st.solved + " OUT · " + Math.max(0, Math.ceil((st.deadline - S.t)/BAR)) + " BARS"; },
+  // the next car park: in order through the song; endless goes on with the hard ones, in a shuffled order
+  next(t){ const st = this.st; st.n++;
+    st.lot = CFG.endless ? (st.n <= 10 ? 9 + st.n : 20 + Math.floor(rnd(st.n*7.3)*40)) : Math.min(LOTS.length - 1, st.n - 1);
+    st.cars = LOTS[st.lot].map(([r, c, len, d]) => ({ r, c, len, d })); st.out = -1; st.sel = -1; st.moves = 0;
+    // the clock: more bars for a car park that takes more moves, fewer as the song (or the endless run) goes on
+    st.deadline = t + BAR*Math.max(2.5, clamp(2 + MOVES[st.lot]*.5, 3, 9)*(1.15 - .35*clamp(this.L(t), 0, 1.25)));
+    this.pool.forEach((m, k) => { m.visible = k < st.cars.length; m.userData.placed = false; if (k < st.cars.length) m.scale.set(.42, .42, st.cars[k].len === 3 ? .66 : .42); }); },
+  occ(skip){ const g = new Array(36).fill(-1); this.st.cars.forEach((v, i) => { if (i === skip) return; for (let k = 0; k < v.len; k++){ const r = v.d === "v" ? v.r + k : v.r, c = v.d === "h" ? v.c + k : v.c; if (r >= 0 && r < 6 && c >= 0 && c < 6) g[r*6 + c] = i; } }); return g; },
+  range(i){ const v = this.st.cars[i], g = this.occ(i); let lo = 0, hi = 0;
+    const free = p => { for (let k = 0; k < v.len; k++){ const r = v.d === "v" ? v.r + p + k : v.r, c = v.d === "h" ? v.c + p + k : v.c; if (r < 0 || r > 5 || c < 0 || c > 5 || g[r*6 + c] >= 0) return false; } return true; };
+    while (free(lo - 1)) lo--; while (free(hi + 1)) hi++; return [lo, hi]; },
+  slide(i, n){ const st = this.st, v = st.cars[i], [lo, hi] = this.range(i), m = clamp(n, lo, hi); if (!m || st.out >= 0) return 0;
+    if (v.d === "h") v.c += m; else v.r += m; st.moves++; const beat = onBeat(S.t); if (beat){ st.beatMoves++; S.onBeat++; } S.score += beat ? 40 : 20; sfx.slide();
+    if (i === 0 && v.c === 4){ st.out = S.t; st.solved++; S.combo++; S.best = Math.max(S.best, S.combo);
+      const hook = section(S.t) === "hook", pts = Math.round((1000 + Math.max(0, st.deadline - S.t)*120)*(hook ? 2 : 1)*Math.min(3, 1 + Math.floor((S.combo - 1)/4)*.5));
+      S.score += pts; sfx.big(); say("IT'S OUT", "+" + fmt(pts) + " · " + st.moves + " moves" + (hook ? " · hook x2" : ""), 1.1, "g"); }
+    return m; },
+  cell(cx, cy){ this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const P = new THREE.Vector3(); if (!this.ray.ray.intersectPlane(this.plane, P)) return null; return { x:P.x + 2.5, z:P.z + 2.5 }; },
+  // drag a car: grab it where your finger is, it follows along its own line as far as it can go
+  down(cx, cy){ const p = this.cell(cx, cy); if (!p) return; const r = Math.round(p.z), c = Math.round(p.x), g = this.occ(-1), i = r >= 0 && r < 6 && c >= 0 && c < 6 ? g[r*6 + c] : -1;
+    if (i < 0) return; this.drag = { i, p }; this.st.sel = i; },
+  move(cx, cy){ if (!this.drag) return; const p = this.cell(cx, cy); if (!p) return; const v = this.st.cars[this.drag.i], d = v.d === "h" ? p.x - this.drag.p.x : p.z - this.drag.p.z;
+    if (Math.abs(d) >= .6){ const n = this.slide(this.drag.i, Math.round(d)); if (v.d === "h") this.drag.p.x += n; else this.drag.p.z += n; } },
+  up(){ this.drag = null; },
+  // keys: Space picks the next car, the arrows slide it
+  key(k){ const st = this.st; if (k === "pick"){ st.sel = (st.sel + 1) % st.cars.length; return; } if (st.sel < 0) return; const v = st.cars[st.sel];
+    if (v.d === "h" && (k === "left" || k === "right")) this.slide(st.sel, k === "left" ? -1 : 1); if (v.d === "v" && (k === "up" || k === "down")) this.slide(st.sel, k === "up" ? -1 : 1); },
+  update(dt, t){ const st = this.st;
+    if (st.out >= 0 && t > st.out + 1.1){ this.next(t); say("CAR PARK " + st.n, "", .7); }
+    if (st.out < 0 && t > st.deadline){ st.missed++; S.combo = 0; this.drag = null; if (S.inv <= 0 && hurt("STILL STUCK", "Move the cars that block the blue one's row - sometimes another car has to go first.")) return; this.next(t); }
+  },
+  render(dt, t){ const st = this.st, beat = onBeat(t), portrait = cam.aspect < .8;
+    st.cars.forEach((v, i) => { const m = this.pool[i], L = v.len, cx = v.d === "h" ? v.c + (L - 1)/2 : v.c, cz = v.d === "v" ? v.r + (L - 1)/2 : v.r;
+      let x = this.X(cx), z = this.Z(cz); if (i === 0 && st.out >= 0) x += (t - st.out)*(t - st.out)*8;
+      const k = m.userData.placed ? 1 - Math.exp(-dt*18) : 1; m.position.lerp(new THREE.Vector3(x, 0, z), k); m.userData.placed = true; m.rotation.y = v.d === "h" ? -Math.PI/2 : 0;
+      m.userData.lights.forEach(l => l.material.opacity = i === 0 ? .9 : .25); if (i === 0) m.userData.paint.emissiveIntensity = .45 + (beat ? .2 : 0); });
+    const sv = st.sel >= 0 ? this.pool[st.sel].position : new THREE.Vector3(0, 0, 0);
+    ME.position.set(sv.x, 2.2 + Math.sin(t*2)*.1, sv.z); ME.rotation.set(0, t*2, 0); ME.scale.setScalar(.45); ME.userData.beam.visible = st.sel >= 0; ME.userData.beam.scale.set(.5, .5, .5); ME.userData.beam.position.y = -.9;
+    this.exit.material.opacity = .4 + (beat ? .3 : 0) + (st.out < 0 && t > st.deadline - BAR ? .3*Math.abs(Math.sin(t*8)) : 0);
+    CAMP.set(0, portrait ? 8.2/cam.aspect : 10.5, portrait ? 3/cam.aspect : 5.4); CAML.set(0, 0, .3);
+  }
+};
+
+/* =============== PART 2 · LIGHT LINK: bend the beam to the car =============== */
+// The saucer's beam goes flat across the wet street and has to reach the car's headlights. Mirrors stand
+// on the street - tap one to turn it (/ or \); umbrellas block the light. When the beam gets there the
+// car's lights come on and the next street comes. Each street is made by walking the beam from the
+// saucer to an edge (a mirror at every turn), adding spare mirrors and umbrellas, then turning most of
+// the mirrors wrong. The clock is set by the song: 4 bars at first, 3 later. Out of time costs a heart.
+const LK = {
+  name:"link", tag:"LIGHT LINK", hint:"tap the mirrors to turn them - get the beam to the car", N:7,
+  setup(){
+    const root = this.root = new THREE.Group(); scene.add(root); const N = this.N;
+    const grid = new THREE.Mesh(new THREE.PlaneGeometry(N, N), new THREE.MeshStandardMaterial({ map:canvasTex(256, 256, (x, w, h) => { x.fillStyle = "#0a1434"; x.fillRect(0, 0, w, h); x.strokeStyle = "rgba(120,160,255,.25)"; x.lineWidth = 2; for (let i = 0; i <= N; i++){ const p = i*256/N; x.beginPath(); x.moveTo(p, 0); x.lineTo(p, 256); x.stroke(); x.beginPath(); x.moveTo(0, p); x.lineTo(256, p); x.stroke(); } }), roughness:.2, metalness:.5 }));
+    grid.rotation.x = -Math.PI/2; grid.position.y = .01; root.add(grid);
+    const mm = new THREE.MeshStandardMaterial({ color:0xe8f2ff, roughness:.1, metalness:.3, emissive:0x8ab8ff, emissiveIntensity:.8, side:THREE.DoubleSide });
+    this.mirrors = []; for (let i = 0; i < 32; i++){ const g = new THREE.Group(); g.add(at3(new THREE.Mesh(new THREE.PlaneGeometry(1.05, .8), mm), 0, .45, 0)); g.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.08, .1, .1, 8), mat(0x6a7aa0, .2)), 0, .05, 0)); g.visible = false; root.add(g); this.mirrors.push(g); }
+    this.umbs = []; for (let i = 0; i < 8; i++){ const u = umbrella(.55); u.position.y = .9; u.visible = false; root.add(u); this.umbs.push(u); }
+    this.segs = []; for (let i = 0; i < 40; i++){ const m = new THREE.Mesh(new THREE.CylinderGeometry(.07, .07, 1, 8), glowM(0xe8f2ff, .9)); m.visible = false; root.add(m); this.segs.push(m); }
+    this.car = carMesh(); this.car.scale.setScalar(.38); root.add(this.car);
+    this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  },
+  X(c){ return c - (this.N - 1)/2; }, Z(r){ return r - (this.N - 1)/2; },
+  L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+  begin(t0, t1, L0, L1, cont){
+    Object.assign(this, { t0, t1, L0, L1 });
+    if (cont) return;
+    this.start = t0;
+    this.st = { k:0, solved:0, missed:0, turns:0, beatTurns:0, lit:-1, deadline:0, P:null };
+    this.make(t0 + BEAT*2);
+  },
+  info(){ const st = this.st; return "STREET " + st.k + " · " + st.solved + " LIT · " + Math.max(0, Math.ceil((st.deadline - S.t)/BAR)) + " BARS"; },
+  make(t){ const st = this.st, N = this.N, f = clamp(this.L(t), 0, 1.4); let P = null, tries = 0;
+    while (!P && tries++ < 600){ const seed = st.k*31.7 + tries*7.1 + (CFG.endless ? 999 : 0), row = Math.floor(rnd(seed)*N), cells = {}, path = [];
+      let r = row, c = 0, d = [1, 0], turns = 0;
+      while (r >= 0 && r < N && c >= 0 && c < N){ const key = r*N + c; if (cells[key] != null || path.includes(key)) break; path.push(key);
+        if (c > 0 && rnd(seed + path.length*3.3) < .36 + .1*f){ const nd = rnd(seed + path.length*5.7) < .5 ? [d[1], d[0]] : [-d[1], -d[0]]; cells[key] = nd[0] === d[1] && nd[1] === d[0] ? 0 : 1; d = nd; turns++; }
+        c += d[0]; r += d[1]; }
+      if (r >= 0 && r < N && c >= 0 && c < N) continue;
+      if (turns < 2 + Math.floor(f*2.2) || path.length < 6) continue;
+      const mir = Object.entries(cells).map(([k, v]) => ({ i:+k, sol:v, o:v })), free = []; for (let i = 0; i < N*N; i++) if (!path.includes(i)) free.push(i);
+      const nDecoy = 1 + Math.floor(f*4), nUmb = 1 + Math.floor(f*3);
+      for (let k = 0; k < nDecoy && free.length; k++){ const i = free.splice(Math.floor(rnd(seed + k*9.1)*free.length), 1)[0]; mir.push({ i, sol:-1, o:Math.floor(rnd(seed + k*2.3)*2) }); }
+      const umb = []; for (let k = 0; k < nUmb && free.length; k++) umb.push(free.splice(Math.floor(rnd(seed + k*4.9 + 1)*free.length), 1)[0]);
+      P = { row, mir, umb, end:{ r, c } };
+      if (!this.trace(P, true).hit){ P = null; continue; }
+      mir.forEach((m, k) => { if (m.sol >= 0 && rnd(seed + k*6.7) < .7) m.o = 1 - m.sol; });
+      if (this.trace(P).hit) mir.filter(m => m.sol >= 0)[0].o ^= 1; }
+    st.P = P; st.k++; st.deadline = t + BAR*Math.max(2.5, 4 - 1.2*clamp(this.L(t), 0, 1.25)); st.lit = -1;
+    this.mirrors.forEach((g, i) => { g.visible = i < P.mir.length; }); this.umbs.forEach((u, i) => { u.visible = i < P.umb.length; if (u.visible) u.position.set(this.X(P.umb[i] % N), .9, this.Z(Math.floor(P.umb[i]/N))); }); },
+  trace(P, sol){ const N = this.N, pts = [[-1, P.row]], at = {}; P.mir.forEach(m => at[m.i] = sol && m.sol >= 0 ? m.sol : m.o); const um = new Set(P.umb);
+    let r = P.row, c = 0, d = [1, 0];
+    for (let n = 0; n < 60; n++){ if (r < 0 || r >= N || c < 0 || c >= N){ pts.push([c, r]); return { pts, hit:r === P.end.r && c === P.end.c }; }
+      const i = r*N + c; if (um.has(i)){ pts.push([c, r]); return { pts, hit:false }; }
+      if (at[i] != null){ pts.push([c, r]); d = at[i] === 0 ? [d[1], d[0]] : [-d[1], -d[0]]; }
+      c += d[0]; r += d[1]; }
+    return { pts, hit:false }; },
+  down(cx, cy){ const st = this.st; if (st.lit >= 0) return; this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const p = new THREE.Vector3(); if (!this.ray.ray.intersectPlane(this.plane, p)) return;
+    const N = this.N, c = Math.round(p.x + (N - 1)/2), r = Math.round(p.z + (N - 1)/2); if (c >= 0 && c < N && r >= 0 && r < N) this.turn(r*N + c); },
+  move(){}, up(){},
+  // keys: the arrows walk a cursor over the mirrors, Space turns the one it's on
+  key(k){ const st = this.st, ms = st.P.mir; this.cur = this.cur || 0;
+    if (k === "pick"){ const m = ms[this.cur % ms.length]; if (m) this.turn(m.i); } else this.cur = (this.cur + (k === "left" || k === "up" ? ms.length - 1 : 1)) % ms.length; },
+  turn(i){ const st = this.st, m = st.P.mir.find(m => m.i === i); if (!m || st.lit >= 0) return; m.o ^= 1; st.turns++; const beat = onBeat(S.t); if (beat){ st.beatTurns++; S.onBeat++; } S.score += beat ? 30 : 10; sfx.click();
+    if (this.trace(st.P).hit){ st.lit = S.t; st.solved++; S.combo++; S.best = Math.max(S.best, S.combo);
+      const hook = section(S.t) === "hook", pts = Math.round((800 + Math.max(0, st.deadline - S.t)*150)*(hook ? 2 : 1)*Math.min(3, 1 + Math.floor((S.combo - 1)/4)*.5));
+      S.score += pts; sfx.big(); say("LIGHTS ON", "+" + fmt(pts) + (hook ? " · hook x2" : ""), 1, "g"); } },
+  update(dt, t){ const st = this.st;
+    if (st.lit >= 0 && t > st.lit + 1.1) this.make(t);
+    else if (st.lit < 0 && t > st.deadline){ st.missed++; S.combo = 0; if (S.inv <= 0 && hurt("THE LIGHT DIDN'T GET THERE", "Follow the beam from the saucer: turn the mirror where it should bend, keep it off the umbrellas.")) return; this.make(t); }
+  },
+  render(dt, t){ const st = this.st, beat = onBeat(t), portrait = cam.aspect < .8, N = this.N, P = st.P;
+    P.mir.forEach((m, k) => { const g = this.mirrors[k]; g.position.set(this.X(m.i % N), 0, this.Z(Math.floor(m.i/N))); g.rotation.y += ((m.o === 0 ? -Math.PI/4 : Math.PI/4) - g.rotation.y)*(1 - Math.exp(-dt*16)); g.scale.setScalar(this.cur != null && P.mir[this.cur % P.mir.length] === m ? 1.15 : 1); });
+    const tr = this.trace(P), pts = tr.pts.map(([c, r]) => new THREE.Vector3(this.X(c), .5, this.Z(r)));
+    this.segs.forEach((m, k) => { const a = pts[k], b = pts[k + 1]; m.visible = !!(a && b); if (!m.visible) return; m.position.copy(a).add(b).multiplyScalar(.5); m.scale.set(1, Math.max(.01, a.distanceTo(b)), 1); m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); m.material.opacity = tr.hit ? 1 : .7 + (beat ? .2 : 0); });
+    ME.position.set(this.X(-1.2), .9 + Math.sin(t*2)*.08, this.Z(P.row)); ME.rotation.set(0, t*2, 0); ME.scale.setScalar(.45); ME.userData.beam.visible = false;
+    const e = P.end, ex = this.X(clamp(e.c, -.7, N - .3)), ez = this.Z(clamp(e.r, -.7, N - .3));
+    this.car.position.set(ex + (e.c >= N ? .9 : e.c < 0 ? -.9 : 0), 0, ez + (e.r >= N ? .9 : e.r < 0 ? -.9 : 0));
+    this.car.rotation.y = e.c >= N ? Math.PI/2 : e.c < 0 ? -Math.PI/2 : e.r >= N ? 0 : Math.PI;
+    this.car.userData.lights.forEach(l => { l.material.opacity = st.lit >= 0 ? 1 : .1; l.scale.setScalar(st.lit >= 0 ? 2.4 : 1.4); });
+    CAMP.set(0, portrait ? 10.4/cam.aspect : 10.5, portrait ? 3.8/cam.aspect : 6.2); CAML.set(0, 0, .4);
+  }
+};
+
+/* ---------------- the run ---------------- */
+let ME = null;
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = PART === 2 ? LK : UB; camInit = false; G.root.visible = true; END.root.visible = false; END.on = false; ME.visible = true; G.up();
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+}
+// endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+function songT(){
+  if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The car park (or the street) fades and there's the cover: the car head-on in the rain, the big black
+   umbrellas over it, the wet street full of blurred lights, and the saucer low in front of it with its
+   white beam down - "ISSUES". */
+const END = { out:8.5, root:null, X:300 };
+function buildEnd(){
+  const g = new THREE.Group(); g.visible = false; g.position.x = END.X; scene.add(g);
+  const car = carMesh(); car.rotation.y = Math.PI; car.scale.setScalar(1.15); g.add(car); END.car = car;
+  const u1 = umbrella(4.2); u1.position.set(0, 4.6, -1.5); u1.rotation.set(.35, 0, .05); g.add(u1);
+  const u2 = umbrella(3.4); u2.position.set(-4.6, 2.6, .4); u2.rotation.set(.2, 0, .6); g.add(u2);
+  for (let i = 0; i < 70; i++){ const c = [0xffc860, 0x9ad8ff, 0xffffff, 0x4a8aff][i % 4], s = sprite(c, .4 + rnd(i*3)*1.2, .2 + rnd(i*5)*.45); s.position.set((rnd(i*7) - .5)*24, .1 + rnd(i*11)*.6, 2 - rnd(i*13)*20); g.add(s); }
+  const fog = new THREE.Sprite(new THREE.SpriteMaterial({ map:PUFF, color:0x6a8adf, transparent:true, opacity:.35, depthWrite:false })); fog.scale.set(14, 4, 1); fog.position.set(0, .8, -1); g.add(fog);
+  END.root = g;
+}
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  animSaucer(ME, t, beat);
+  if (S.end >= 0){
+    const portrait = cam.aspect < .8;
+    if (S.end < 1){ $("flash").style.background = "#040818"; $("flash").style.opacity = Math.min(1, S.end/.8); G.render(dt, t); }
+    else {
+      if (!END.on){ END.on = true; G.root.visible = false; END.root.visible = true; camInit = false; }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      ME.visible = true; ME.scale.setScalar(.38); ME.position.set(END.X, .75 + Math.sin(t*1.5)*.06, 3.4); ME.rotation.set(.05, t*1.5, 0);
+      ME.userData.beam.visible = true; ME.userData.beam.scale.set(.5, .3, .5); ME.userData.beam.position.y = -.55;
+      END.car.userData.lights.forEach(l => { l.material.opacity = .75; l.scale.setScalar(1.2 + (beat ? .2 : 0)); });
+      const z = 9.5 - clamp((S.end - 1)/5, 0, 1)*1.6;
+      CAMP.set(END.X, portrait ? 2.4 : 1.7, portrait ? z + 6 : z); CAML.set(END.X, portrait ? 2.2 : 1.6, -2);
+      if (S.end > 2.4 && !S.saidEnd){ S.saidEnd = true; say("ISSUES", "LAZY JO FT ZIRKA", 4.5, "t"); }
+    }
+  } else {
+    G.render(dt, t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  rainUpdate(RAIN, Math.min(dt, .05), cam.position.x, 0, cam.position.z - 8);
+  const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
+  cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  const st = G.st;
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:st.solved });
+  const stat = PART === 2 ? st.solved + " streets lit" + (st.beatTurns ? " · " + st.beatTurns + " turns on the beat" : "")
+                          : st.solved + " car parks cleared" + (st.beatMoves ? " · " + st.beatMoves + " moves on the beat" : "");
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the rain &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "ISSUES";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = PART === 2 ? "Every light on." + "<br>Level 18 cleared: <b>Unblock &#8734;</b> and <b>Light Link &#8734;</b> are open in the gold Endless list."
+                               : "The car's out." + "<br><b>Part 2 &middot; Light Link</b> is open.";
+}
+let RAIN = null;
+function boot(){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x040818); scene.fog = new THREE.Fog(0x0a1438, 30, 160);
+  cam = new THREE.PerspectiveCamera(48, innerWidth/innerHeight, .1, 1500);
+  scene.add(new THREE.HemisphereLight(0x9ab8ff, 0x1a2040, 1.5));
+  const key = new THREE.DirectionalLight(0xc8dcff, 1.1); key.position.set(-10, 30, 20); scene.add(key);
+  skyDome(); street(-.02); bokeh(60, [80, 4, 70], .2, -8); RAIN = rain(400, [30, 20, 30]);
+  ME = buildSaucer(); scene.add(ME);
+  (PART === 2 ? LK : UB).setup(); buildEnd();
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---------------- input ---------------- */
+// Unblock: press on a car and drag it along its line. Light Link: tap a mirror. Keys: Space picks
+// (a car / turns the mirror the cursor is on), the arrows slide the car / move the cursor.
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+let pressing = false;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); pressing = true; G.down(e.clientX, e.clientY); }, { passive:false });
+addEventListener("pointermove", e => { if (pressing && live()) G.move(e.clientX, e.clientY); });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, () => { pressing = false; G.up(); });
+const KEYMAP = { ArrowLeft:"left", a:"left", ArrowRight:"right", d:"right", ArrowUp:"up", w:"up", ArrowDown:"down", s:"down", " ":"pick" };
+addEventListener("keydown", e => { if (veilUp()) return; const k = KEYMAP[e.key]; if (k){ e.preventDefault(); if (!e.repeat && live()) G.key(k); } });
+
+$("go").addEventListener("click", () => {
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : G.tag, CFG.endless ? "it never stops" : G.hint, 3, CFG.endless ? "g" : "");
+});
+$("by").textContent = "LAZY JO FT ZIRKA · " + CFG.by;
+$("title").textContent = (PART === 2 ? "LIGHT LINK" : "ISSUES") + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = (PART === 2 ? "The wet street from the cover at night, in the rain. The saucer's beam goes flat across it - bend it with the mirrors so it reaches the car's headlights."
+  : "A car park on the wet street from the cover, at night, in the rain. The blue car is boxed in - slide the others out of its way so it can drive out.") +
+  (ENDLESS ? " <b>Endless:</b> it never stops - the clock gets shorter every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = PART === 2 ? "<b>Tap</b> a mirror to turn it. Umbrellas block the light. Each street has a few bars on the clock - out of time costs a heart (3). Turns <b>on the beat</b> and streets lit in the <b>hooks</b> are worth more."
+  : "<b>Drag</b> a car along its line - they only go the way they point. The way out is on the right. Each car park has a few bars on the clock - out of time costs a heart (3). Moves <b>on the beat</b> and cars out in the <b>hooks</b> are worth more.";
+if (!HUB){
+  $("parts").classList.remove("hid");
+  const now = PART + (ENDLESS ? "x" : "");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String(m === now));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part"); if (m[0] === "2") q.set("part", "2"); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+boot();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

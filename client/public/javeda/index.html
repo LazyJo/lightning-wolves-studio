@@ -429,7 +429,13 @@ let LEVELS = [
     art:"radial-gradient(90% 70% at 50% 10%, #ffffff44, transparent 60%), radial-gradient(70% 50% at 20% 90%, #fdb92755, transparent 70%), linear-gradient(160deg,#552583,#1e0a3a)" },
   { id:"lvl17", num:17, title:"TRUE FIGHTER", requires:"lvl16", src:"levels/true-fighter.html?hub=1",
     ds:"The blue sky and the islands from the cover. Island Blocks: the saucer carries the pieces down into a frame in the sea - fill a row, on the beat it's double.",
-    art:"radial-gradient(90% 60% at 50% 20%, #ffd21a44, transparent 60%), radial-gradient(70% 50% at 50% 90%, #18b4c866, transparent 70%), linear-gradient(160deg,#0a7ab8,#062a4a)" }
+    art:"radial-gradient(90% 60% at 50% 20%, #ffd21a44, transparent 60%), radial-gradient(70% 50% at 50% 90%, #18b4c866, transparent 70%), linear-gradient(160deg,#0a7ab8,#062a4a)" },
+  { id:"lvl18", num:18, title:"ISSUES", requires:"lvl17", src:"levels/issues.html?hub=1",
+    ds:"The rainy night from the cover. Unblock: the blue car is boxed in a car park - slide the others out of its way. Car park after car park through the song.",
+    art:"radial-gradient(90% 60% at 50% 30%, #4a8aff44, transparent 60%), radial-gradient(60% 40% at 50% 100%, #9ad8ff33, transparent 70%), linear-gradient(160deg,#12204e,#040818)" },
+  { id:"lvl18b", num:18, part:2, title:"LIGHT LINK", requires:"lvl18", src:"levels/issues.html?hub=1&part=2",
+    ds:"Part 2. Turn the mirrors on the wet street so the saucer's beam reaches the car's headlights, round the umbrellas.",
+    art:"radial-gradient(90% 60% at 50% 30%, #9ad8ff44, transparent 60%), linear-gradient(160deg,#12204e,#040818)" }
 ];
 // The endless list: each part of a song with no end (id + "x"), and the song's remix,
 // all its parts in turn (lvlNr). All of a song's endless open once all its parts are cleared.
@@ -455,7 +461,8 @@ const ENDLESS = [
   ...endlessOf(14, "la-vibe.html", "lvl14", [["lvl14", "Ice Breaker"]], false),
   ...endlessOf(15, "ghost.html", "lvl15", [["lvl15", "Haunted Windows"]], false),
   ...endlessOf(16, "peace-inside.html", "lvl16", [["lvl16", "Hoops"]], false),
-  ...endlessOf(17, "true-fighter.html", "lvl17", [["lvl17", "Island Blocks"]], false)
+  ...endlessOf(17, "true-fighter.html", "lvl17", [["lvl17", "Island Blocks"]], false),
+  ...endlessOf(18, "issues.html", "lvl18b", [["lvl18", "Unblock"], ["lvl18b", "Light Link"]], false)
 ];
 // JAVEDA: HYPERDRIVE: not a level and not a part - the ultimate one, its own game. Scored like an endless
 // (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.
@@ -636,7 +643,7 @@ function renderUltimate(){
       ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play HYPERDRIVE</button>'
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
-const TABS = [["points","Points"],["1v1","Hoops 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"]];
+const TABS = [["points","Points"],["1v1","Hoops 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
   $("etabs").innerHTML = '<span class="lab">Ultimate</span><button role="tab" type="button" data-tab="' + ULT.id + '" aria-selected="' + (ULT.id === boardTab) + '">' + ULT.title + '</button>' +
@@ -651,7 +658,7 @@ async function renderBoard(){
   const col = boardTab === "points" ? "points" : end ? "best_score" : boardTab + "_best";
   const { data, error } = end
     ? await sb.from("javeda_scores").select("username, avatar, best_score").eq("level", boardTab).order("best_score", { ascending:false }).limit(25)
-    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best")
+    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }

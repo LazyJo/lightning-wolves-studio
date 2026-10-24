@@ -120,6 +120,13 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .ult.vs .ut small{color:#fdb927}
 .ult.vs .modes{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
 .ult.vs .rec{font:700 14px/1.2 var(--cond); letter-spacing:.1em; color:#fdb927; text-transform:uppercase}
+#versus{display:grid; gap:14px}
+/* Level 20's Pass It On: the crowd under the blue light */
+.ult.vs.pass{border-color:#8aa0ff77; background:radial-gradient(60% 90% at 85% 0%,#f0f4ff40,transparent 60%),radial-gradient(70% 100% at 0% 100%,#3a2aff88,transparent 60%),linear-gradient(160deg,#1a1a8a,#04051a);
+  box-shadow:0 0 30px #3a4aff55}
+.ult.vs.pass::after{opacity:0}
+.ult.vs.pass .ut{text-shadow:0 0 18px #6a8aff, 0 0 40px #3a2aff}
+.ult.vs.pass .ut small, .ult.vs.pass .rec{color:#c8d4ff}
 /* JAVEDA: HYPERDRIVE: the ultimate one, a game of its own */
 .ult{position:relative; overflow:hidden; border-radius:16px; border:1.5px solid #ff3d8b66; padding:22px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:end;
   background:radial-gradient(90% 120% at 100% 0%,#ff3d8b40,transparent 60%),radial-gradient(70% 100% at 0% 100%,#7b2ff74d,transparent 60%),linear-gradient(160deg,#1a0b2e,#0b0416);
@@ -438,7 +445,10 @@ let LEVELS = [
     art:"radial-gradient(90% 60% at 50% 30%, #9ad8ff44, transparent 60%), linear-gradient(160deg,#12204e,#040818)" },
   { id:"lvl19", num:19, title:"STAY UP", requires:"lvl18b", src:"levels/stay-up.html?hub=1",
     ds:"Jo's studio at night from the cover. Pad Memory: the drum machine plays a pattern on the beat - play it back, one more pad every round.",
-    art:"radial-gradient(90% 60% at 50% 30%, #3ae8ff44, transparent 60%), radial-gradient(60% 40% at 50% 100%, #9a3aff44, transparent 70%), linear-gradient(160deg,#0a3a44,#020a0c)" }
+    art:"radial-gradient(90% 60% at 50% 30%, #3ae8ff44, transparent 60%), radial-gradient(60% 40% at 50% 100%, #9a3aff44, transparent 70%), linear-gradient(160deg,#0a3a44,#020a0c)" },
+  { id:"lvl20", num:20, title:"STAY UP 2", requires:"lvl19", src:"levels/stay-up-2.html?hub=1",
+    ds:"The chill version, the crowd from the cover under the blue light. Pass It On: the lights play a pattern and add one - play it back, add your own. Then play it 1v1 online.",
+    art:"radial-gradient(50% 40% at 70% 15%, #f0f4ff55, transparent 60%), radial-gradient(70% 50% at 50% 100%, #3a2aff66, transparent 70%), linear-gradient(160deg,#2a2ad8,#04051a)" }
 ];
 // The endless list: each part of a song with no end (id + "x"), and the song's remix,
 // all its parts in turn (lvlNr). All of a song's endless open once all its parts are cleared.
@@ -466,16 +476,19 @@ const ENDLESS = [
   ...endlessOf(16, "peace-inside.html", "lvl16", [["lvl16", "Hoops"]], false),
   ...endlessOf(17, "true-fighter.html", "lvl17", [["lvl17", "Island Blocks"]], false),
   ...endlessOf(18, "issues.html", "lvl18b", [["lvl18", "Unblock"], ["lvl18b", "Light Link"]], false),
-  ...endlessOf(19, "stay-up.html", "lvl19", [["lvl19", "Pad Memory"]], false)
+  ...endlessOf(19, "stay-up.html", "lvl19", [["lvl19", "Pad Memory"]], false),
+  ...endlessOf(20, "stay-up-2.html", "lvl20", [["lvl20", "Pass It On"]], false)
 ];
 // JAVEDA: HYPERDRIVE: not a level and not a part - the ultimate one, its own game. Scored like an endless
 // (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.
 const ULT = { id:"hyperdrive", num:9, endless:true, ultimate:true, title:"HYPERDRIVE", requires:"lvl9c", src:"levels/hyperdrive.html?hub=1" };
-// Online 1v1: Level 16's Hoops against a real player found by quick match. Open to everyone who's
-// logged in (so there's someone to play); the result goes through javeda_report_match.
+// Online 1v1: Level 16's Hoops and Level 20's Pass It On against a real player found by quick match.
+// Open to everyone who's logged in (so there's someone to play); the result goes through
+// javeda_report_match, and every online game counts on the one Online 1v1 record.
 const VERSUS = [
   { id:"lvl16live", num:16, online:"live", title:"Live 1v1", src:"levels/peace-inside.html?hub=1&online=live" },
-  { id:"lvl16horse", num:16, online:"horse", title:"H-O-R-S-E", src:"levels/peace-inside.html?hub=1&online=horse" }
+  { id:"lvl16horse", num:16, online:"horse", title:"H-O-R-S-E", src:"levels/peace-inside.html?hub=1&online=horse" },
+  { id:"lvl20pass", num:20, online:"pass", title:"Pass It On 1v1", src:"levels/stay-up-2.html?hub=1&online=pass" }
 ];
 const ALL = [...LEVELS, ...ENDLESS, ULT, ...VERSUS];
 const levelById = id => ALL.find(l => l.id === id);
@@ -628,14 +641,20 @@ function renderEndless(){
 }
 function renderVersus(){
   const r = record || { wins:0, losses:0, draws:0 };
+  const foot = buttons => '<div class="uf">' + (signedIn()
+      ? '<span class="rec">' + (r.wins + r.losses + r.draws ? r.wins + ' W &middot; ' + r.losses + ' L' + (r.draws ? ' &middot; ' + r.draws + ' D' : '') : 'No matches yet') + '</span>' +
+        '<span class="modes">' + buttons + '</span>'
+      : '<span class="tag">Log in to play online</span><button class="btn primary" data-login="1">Log in</button>') + '</div>';
   $("versus").innerHTML = '<article class="ult vs">' +
     '<div><span class="no">Level 16 &middot; Peace Inside &middot; Lazy Jo feat. Zirka</span><span class="ut"><small>The first online one</small>HOOPS <i>1v1</i></span>' +
     '<p class="ds">Quick match against a real player. <b>Live:</b> the same song and the same shots at the same time, side by side - the highest score wins. ' +
     '<b>H-O-R-S-E:</b> take turns - make a shot and they have to make it too, or it\'s a letter. Spell HORSE and you\'re out. A win is +25 points.</p></div>' +
-    '<div class="uf">' + (signedIn()
-      ? '<span class="rec">' + (r.wins + r.losses + r.draws ? r.wins + ' W &middot; ' + r.losses + ' L' + (r.draws ? ' &middot; ' + r.draws + ' D' : '') : 'No matches yet') + '</span>' +
-        '<span class="modes"><button class="btn gold" data-play="lvl16live">Live 1v1</button><button class="btn gold" data-play="lvl16horse">H-O-R-S-E</button></span>'
-      : '<span class="tag">Log in to play online</span><button class="btn primary" data-login="1">Log in</button>') + '</div></article>';
+    foot('<button class="btn gold" data-play="lvl16live">Live 1v1</button><button class="btn gold" data-play="lvl16horse">H-O-R-S-E</button>') + '</article>' +
+    '<article class="ult vs pass">' +
+    '<div><span class="no">Level 20 &middot; Stay Up 2 &middot; Lazy Jo</span><span class="ut"><small>Memory, head to head</small>PASS IT ON <i>1v1</i></span>' +
+    '<p class="ds">Quick match against a real player, one pattern of lights between you. Play it back, add a light of your own, pass it on - and remember every one they add. ' +
+    'Get one wrong and it\'s a Z; three Z\'s and you fell asleep. A win is +25 points.</p></div>' +
+    foot('<button class="btn gold" data-play="lvl20pass">Pass It On 1v1</button>') + '</article>';
 }
 function renderUltimate(){
   const p = progress[ULT.id] || {}, open = isOpen(ULT);
@@ -647,7 +666,7 @@ function renderUltimate(){
       ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play HYPERDRIVE</button>'
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
-const TABS = [["points","Points"],["1v1","Hoops 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"]];
+const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
   $("etabs").innerHTML = '<span class="lab">Ultimate</span><button role="tab" type="button" data-tab="' + ULT.id + '" aria-selected="' + (ULT.id === boardTab) + '">' + ULT.title + '</button>' +
@@ -662,7 +681,7 @@ async function renderBoard(){
   const col = boardTab === "points" ? "points" : end ? "best_score" : boardTab + "_best";
   const { data, error } = end
     ? await sb.from("javeda_scores").select("username, avatar, best_score").eq("level", boardTab).order("best_score", { ascending:false }).limit(25)
-    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best, lvl19_best")
+    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best, lvl19_best, lvl20_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }

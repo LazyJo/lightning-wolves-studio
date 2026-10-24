@@ -29,6 +29,7 @@ client/public/javeda/
     ├── true-fighter.html   # Level 17: Island Blocks - the falling pieces in a frame in the sea, the saucer carries them (+ endless)
     ├── issues.html         # Level 18: Unblock (the parking puzzle) and Part 2 Light Link (?part=2, the beam puzzle) (+ endless each)
     ├── stay-up.html        # Level 19: Pad Memory - the drum machine in Jo's studio plays a pattern, play it back (+ endless)
+    ├── stay-up-2.html      # Level 20: Pass It On - nine lights over the crowd, play it back and add one (+ endless) - and Pass It On 1v1 online (?online=pass)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
@@ -88,15 +89,17 @@ scoreboard shows as offline.
   score = metres, `max_rate` 40 m/s, 50 m past your best = a point, its own gold scoreboard tab.
   It was called JUMPRIDE (`jumpride`) for a day; the schema moves those bests over.
   Source: `javeda/hyperdrive` on the desktop-tutorial branch.
-- **Online 1v1** (Level 16's Hoops, `VERSUS` in the hub, its own "Online 1v1" card): quick match against
+- **Online 1v1** (Level 16's Hoops and Level 20's Pass It On, `VERSUS` in the hub, a card each under "Online 1v1"): quick match against
   a real player, open to everyone logged in (so there's someone to play) - guests are asked to log in. Two
   modes: **Live** (`lvl16live`, `?online=live`: same song, same seeded shots, side by side, highest score
-  wins) and **H-O-R-S-E** (`lvl16horse`, `?online=horse`: take turns, five letters and you're out). The level
+  wins) and **H-O-R-S-E** (`lvl16horse`, `?online=horse`: take turns, five letters and you're out); and
+  **Pass It On** (`lvl20pass`, `?online=pass` on Level 20: one pattern of lights, play it back and add one, a
+  wrong light is a Z, three Z's and you fell asleep; mode `pass`, reports Z's left). The level
   page talks to the other player itself over **Supabase Realtime** (broadcast + presence; it makes its own
   client from `/api/config` and the saved log-in): a lobby channel per mode, a room channel per match. No
   bots and no made-up players, ever. When a match ends, each side's level posts `javeda:match` and that
   side's hub calls `javeda_report_match`; the match counts only when both reports say the same (mirrored):
-  then a win/loss/draw for both in `javeda_1v1` (the **Hoops 1v1** board tab, from the `javeda_1v1_board`
+  then a win/loss/draw for both in `javeda_1v1` (one record for every online game: the **Online 1v1** board tab, from the `javeda_1v1_board`
   view), +25 points for a win and +5 each for a draw - from at most 6 matches a day per player and 2 a day
   against the same player. A mismatch is `disputed` and counts for nobody; a match someone leaves has no
   result. Realtime needs nothing switched on: public broadcast/presence channels work with the anon key.

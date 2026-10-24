@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>FALL IN LOVE AGAIN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#2a2458; color:#fff0e8; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#fff6f0; line-height:1; text-shadow:0 0 3px #2a2458, 0 0 14px #b88aff}
+#ml{font-size:11px; letter-spacing:.18em; color:#ffe8c8; margin-top:3px; text-shadow:0 0 6px #000}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#e0306a; text-shadow:0 0 8px #000; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ff7aa822; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#ff7aa8,#ff7aa8)}
+.bl{font-size:11px; letter-spacing:.18em; color:#ffe8c8; text-align:right; text-shadow:0 0 6px #000}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#ff7aa8; margin-top:8px; text-align:right; text-shadow:0 0 8px #000}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#ffc83a}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#ff7aa8; text-shadow:0 0 3px #1a0a2a, 0 0 10px #1a0a2a, 0 2px 0 #1a0a2a}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#fff6f0; margin-top:2px; text-shadow:0 0 3px #1a0a2a, 0 0 8px #1a0a2a}
+#phase.ready{color:#ffe08a}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:26px; opacity:0; transition:opacity .25s; color:#ff7aa8; text-shadow:0 0 3px #1a0a2a, 0 0 12px #1a0a2a, 0 2px 0 #1a0a2a; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff6a7a}
+#msg.g{color:#ffc83a}
+#msg.warn{color:#ffe08a}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#f4f8ff; font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:.18em; text-shadow:0 0 24px #c8a8ff, 0 0 60px #ff6a9a, 0 2px 5px #2a2458}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#fff6f0; margin-top:6px; text-shadow:0 0 3px #1a0a2a, 0 0 8px #1a0a2a}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto; color:#f4f0ff;
+  background:radial-gradient(50% 30% at 50% 22%, #c8a8ff44 0%, transparent 70%), radial-gradient(120% 80% at 50% 25%, #5a4ab0 0%, #1e1a48 72%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #3a2a10 0%, #120c04 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#ffe8c8; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#fff6f0; text-shadow:0 0 22px #c8a8ff, 0 0 50px #ff6a9a}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#fff0e8; font-size:17px; max-width:42ch}
+#veil b{color:#ff7aa8}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffe0f0,#ff7aa8); color:#2a0a24; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ff7aa866}
+#go:disabled{opacity:.45; cursor:default; box-shadow:none}
+#go.alt{background:none; color:#ff7aa8; border:1.5px solid #ff7aa8; font-size:15px; padding:12px 30px; box-shadow:none}
+.alt2{font-family:"Barlow Condensed",sans-serif; font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:14px; background:none; color:#fff0e8;
+  border:1.5px solid #fff0e866; border-radius:4px; padding:9px 18px; cursor:pointer}
+#net{font-size:16px; color:#fff0e8; max-width:42ch; min-height:20px}
+#net b{color:#ffe08a}
+#net .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:#3ad07a; margin-right:6px; vertical-align:1px}
+#net.wait .dot{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+#veil small{color:#ffe8c8; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#fff0e8; background:none; border:1.5px solid #ff7aa855}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#ff7aa8; background:#ff7aa822}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ff7aa8; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ff7aa899; background:#ff7aa814}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} #net.wait .dot{animation:none} }
+.hid{display:none!important}
+/* the cover's sky is bright: the HUD in dark ink with a soft white glow */
+#m{color:#2a2458; text-shadow:0 0 4px #fff, 0 0 12px #fff}
+#ml, .bl{color:#2a2458; text-shadow:0 0 4px #fff, 0 0 8px #fff}
+#info{color:#b02a6a; text-shadow:0 0 4px #fff, 0 0 10px #fff}
+#hearts{text-shadow:0 0 4px #fff}
+.bar{background:#2a245833}
+#phase{color:#c02a6a; text-shadow:0 0 4px #fff, 0 0 10px #fff, 0 0 2px #fff}
+#phase small{color:#2a2458; text-shadow:0 0 4px #fff, 0 0 8px #fff}
+#phase.ready{color:#7a3ae0}
+#msg{color:#c02a6a; text-shadow:0 0 4px #fff, 0 0 12px #fff, 0 0 2px #fff}
+#msg small{color:#2a2458; text-shadow:0 0 4px #fff, 0 0 8px #fff}
+#msg.x{color:#e0204a}
+#msg.g{color:#b07a00}
+#msg.warn{color:#8a4ae0}
+#msg.t{color:#fff; text-shadow:0 0 6px #3a2a78, 0 0 22px #8a5ae8, 0 2px 4px #2a2458}
+#msg.t small{color:#fff; text-shadow:0 0 4px #2a2458, 0 0 10px #2a2458}
+body.gold #m{color:#8a5a00}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">FALL IN LOVE AGAIN</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="1">Heart Pop</button><button type="button" data-mode="2">Love Words</button><button type="button" data-mode="3">Heart Merge</button><button type="button" data-mode="1x" class="gold">Heart Pop &#8734;</button><button type="button" data-mode="2x" class="gold">Love Words &#8734;</button><button type="button" data-mode="3x" class="gold">Heart Merge &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= FALL IN LOVE AGAIN =================
+   Level 23 of JAVEDA, in the world of the cover: the bright blue sky with the pink and white clouds, the
+   open book floating on them with the lavender smoke heart on its page - and Jo's saucer as it is on this
+   cover (the dark hull, the lavender dome with the "L", the lavender beam). Jo picked three, so the song
+   has three parts:
+   PART 1 · HEART POP: the bubble shooter. Hearts in five colours hang from the top of the page; the saucer
+   shoots one at a time. Three or more of a colour touching burst, what hangs from nothing falls. Every 2
+   bars they come down a row; reaching the line costs a heart.
+   PART 2 · LOVE WORDS (?part=2): the word search. Drag from a word's first letter to its last - across,
+   down or on the slant, either way round. Every word found and the page turns. Out of time costs a heart.
+   PART 3 · HEART MERGE (?part=3): 2048 with hearts. Swipe, two the same become one. Stop for a bar and
+   hearts drop in, one a beat; full with no move left costs a heart.
+   Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
+   ENDLESS for each (?endless=1) once all three are cleared. */
+
+// the song's grid, measured from the mp3 (SONG.md): 71.5 BPM (a 143 beat in half time), bar 0 at 0.018 s
+const GRID = { bpm:71.5, t0:.018 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(60);                      // the outro ends (3:21)
+const LOOP = [barT(8), barT(56)];             // endless: the last hook runs back into the first
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (intro, breaks), loud (verses), hook
+const SECTIONS = [[8, "calm"], [16, "hook"], [24, "loud"], [28, "calm"], [36, "hook"], [40, "calm"], [44, "loud"], [48, "calm"], [56, "hook"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+
+const PART = { "2":2, "3":3 }[Q.get("part")] || 1;
+const ENDLESS = Q.get("endless") === "1";
+const NAMES = ["", "Heart Pop", "Love Words", "Heart Merge"], IDS = ["", "lvl23", "lvl23b", "lvl23c"];
+const CFG = ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 23" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 23" + (PART > 1 ? " Part " + PART : "") + " ∞" }
+  : { id:IDS[PART], title:NAMES[PART], by:"LEVEL 23" + (PART > 1 ? " PART " + PART : "") };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl23.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [130.8, 98, 110, 87.3];           // a soft, dreamy loop
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  slide:() => ac && (hiss(ac.currentTime, .1, .05, 0, 900), tone("sine", 300, 200, ac.currentTime, .1, .05, 1200)),
+  jump: () => ac && tone("sine", 520, 880, ac.currentTime, .1, .06, 4000),                          // a heart shot, a swipe
+  clink:() => ac && tone("triangle", 2400, 1800, ac.currentTime, .12, .05, 9000),                       // a card turns
+  clap: () => ac && (hiss(ac.currentTime, .12, .25, 0, 1500), hiss(ac.currentTime + .012, .1, .18, 0, 2200)),
+  tick: () => ac && tone("triangle", 1200, 1200, ac.currentTime, .06, .05, 9000),                      // the count-in
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the cover: the pastel sky, the pink and white clouds, the open book floating on them with the lavender smoke heart; Jo's saucer ---------------- */
+let scene, cam, ren, clockR, crashed = null;
+const SC = { lav:0xb88aff, pink:0xffb8d8, sky:0x7ac8f0, white:0xfffaf6, ink:0x2a2440, page:0xf6f2ee };
+const HEART_COLS = [0xff4a8a, 0x8a5aff, 0x3ab8ff, 0xffc83a, 0x3ad88a, 0xff8a3a];
+const HC_CSS = ["#ff6a9a", "#b88aff", "#6ac8ff", "#ffc84a", "#6ae8a8", "#ff9a5a"];
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const PUFF = radial([[0, "rgba(255,255,255,.95)"], [.45, "rgba(255,255,255,.7)"], [1, "rgba(255,255,255,0)"]], 128);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+const puff = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:PUFF, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+const soft = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.8, metalness:0, emissive:c, emissiveIntensity:e == null ? .2 : e });
+// the sky: bright blue at the top, soft pink low down
+const SKY = canvasTex(16, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#3aa8e8"); g.addColorStop(.45, "#8ad0f4"); g.addColorStop(.75, "#f4c8dc"); g.addColorStop(1, "#f8d8e4"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+// a cloud: a bunch of soft puffs, white with pink in the shadows
+function cloud(n, w, seed){ const g = new THREE.Group();
+  for (let i = 0; i < n; i++){ const pink = rnd(seed + i*3) < .45, s = puff(pink ? 0xffc8dc : 0xfffaf6, (.5 + rnd(seed + i*5)*.6)*w*.6, .95);
+    s.position.set((rnd(seed + i*7) - .5)*w, (rnd(seed + i*11) - .5)*w*.25, (rnd(seed + i*13) - .5)*w*.3); g.add(s); }
+  return g; }
+function skyWorld(){ const g = new THREE.Group(); scene.add(g);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), new THREE.MeshBasicMaterial({ map:SKY, side:THREE.BackSide, fog:false })));
+  const far = []; for (let i = 0; i < 26; i++){ const c = cloud(9, 26 + rnd(i*3)*24, i*31); c.position.set((rnd(i) - .5)*260, -30 + rnd(i*5)*90 - (i % 3)*20, -90 - rnd(i*7)*140); g.add(c); far.push(c); }
+  const sea = []; for (let i = 0; i < 18; i++){ const c = cloud(10, 14 + rnd(i*9)*8, 500 + i*17); c.position.set((rnd(i*2) - .5)*60, -9 - rnd(i*4)*4, -30 + rnd(i*6)*36); g.add(c); sea.push(c); }
+  g.userData = { far, sea }; return g; }
+function driftClouds(g, dt){ for (const c of g.userData.far) c.position.x += dt*.8; for (const c of g.userData.sea){ c.position.x += dt*.5; if (c.position.x > 32) c.position.x -= 64; } }
+// the open book, standing on its back cover on the clouds: the left page bent up, the right page flat-ish
+const PAGE = canvasTex(256, 360, (x, w, h) => { x.fillStyle = "#f6f2ee"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(180,170,190,.25)"; for (let i = 0; i < 6; i++) x.fillRect(0, i*60, w, 1); });
+function book(){ const g = new THREE.Group();
+  const cover = new THREE.Mesh(new THREE.BoxGeometry(9.4, .2, 6.6), soft(0xd8d4dc, .25)); cover.position.y = -.1; g.add(cover);
+  const block = new THREE.Mesh(new THREE.BoxGeometry(4.4, .7, 6.2), soft(0xf2eeea, .3)); block.position.set(-2.3, .35, 0); g.add(block);
+  const block2 = new THREE.Mesh(new THREE.BoxGeometry(4.4, .5, 6.2), soft(0xf2eeea, .3)); block2.position.set(2.3, .25, 0); g.add(block2);
+  // the two open pages standing up like on the cover
+  const pg = new THREE.MeshStandardMaterial({ map:PAGE, roughness:.9, emissive:0xffffff, emissiveIntensity:.25, side:THREE.DoubleSide });
+  const left = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 6), pg); left.position.set(-2.05, 3.3, -2.7); left.rotation.y = .18; g.add(left);
+  const right = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 6), pg); right.position.set(2.05, 3.3, -2.7); right.rotation.y = -.18; g.add(right);
+  for (let i = 0; i < 8; i++){ const p = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 6), pg); p.position.set(-2.1 - i*.04, 3.3, -2.65 - i*.03); p.rotation.y = .22 + i*.02; g.add(p); }
+  g.userData = { left, right }; return g; }
+// the lavender smoke heart: a cloud of soft puffs in a heart shape
+function smokeHeart(size){ const g = new THREE.Group(), pts = [];
+  for (let i = 0; i < 70; i++){ const a = rnd(i*3.1)*Math.PI*2, r = Math.sqrt(rnd(i*7.3)); const hx = 16*Math.pow(Math.sin(a), 3), hy = 13*Math.cos(a) - 5*Math.cos(2*a) - 2*Math.cos(3*a) - Math.cos(4*a);
+    const s = puff(rnd(i) < .5 ? 0xc8a8f0 : 0xb090e8, size*(.18 + rnd(i*5)*.14), .75); s.position.set(hx/17*size*.5*r, hy/17*size*.5*r, (rnd(i*9) - .5)*.2); g.add(s); pts.push(s); }
+  g.userData.pts = pts; return g; }
+// a heart (the bubbles, the tiles): a soft puffy 3D heart in one colour
+const HEART_SHAPE = (() => { const s = new THREE.Shape(); s.moveTo(0, -.5); s.bezierCurveTo(-.9, .05, -.45, .65, 0, .25); s.bezierCurveTo(.45, .65, .9, .05, 0, -.5); return s; })();
+const HEART_GEO = new THREE.ExtrudeGeometry(HEART_SHAPE, { depth:.18, bevelEnabled:true, bevelThickness:.08, bevelSize:.06, bevelSegments:3, curveSegments:12 }); HEART_GEO.center();
+function heartMesh(k, s){ const m = new THREE.Mesh(HEART_GEO, new THREE.MeshStandardMaterial({ color:HEART_COLS[k], roughness:.35, metalness:.05, emissive:HEART_COLS[k], emissiveIntensity:.3 })); m.scale.setScalar(s || 1); return m; }
+
+/* ---- Jo's saucer as it is on this cover: the dark hull, the lavender dome with the "L", lavender rim lights, the lavender beam ---- */
+const BADGE = (letter, bg) => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#f4ecff"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = bg; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#1a1030"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(letter, 66, 70); return new THREE.CanvasTexture(cv); };
+function buildSaucer(dc, gc, letter, rim){
+  dc = dc || 0xb88aff; gc = gc || 0x8a5ae8; rim = rim || 0xc8a8ff;
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0x3a3058, roughness:.3, metalness:.6, emissive:0x1a1430, emissiveIntensity:.5 })); hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.28, .14, 32, 1, true), new THREE.MeshStandardMaterial({ color:0x2a2440, metalness:.8, roughness:.3 })));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:dc, roughness:.2, metalness:.3, emissive:gc, emissiveIntensity:.7 })); dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE(letter || "L", "#" + new THREE.Color(rim).getHexString()), transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:i % 2 ? rim : 0xfff6ff })); l.position.set(Math.sin(a)*1.3, 0, Math.cos(a)*1.3); lights.add(l); }
+  const under = sprite(rim, 3, .5); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color:0xd8c0ff, transparent:true, opacity:.3, depthWrite:false, side:THREE.DoubleSide })); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .22 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
+function boot(fov, fogNear, fogFar){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = new THREE.Color(0x8ad0f4); scene.fog = new THREE.Fog(0xf0d0e4, fogNear, fogFar);
+  cam = new THREE.PerspectiveCamera(fov, innerWidth/innerHeight, .1, 1500);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xf0c8dc, .9));
+  const key = new THREE.DirectionalLight(0xfff8f0, .7); key.position.set(-8, 20, 14); scene.add(key);
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { const sec = section(t); p.className = sec === "hook" ? "ready" : ""; p.innerHTML = (sec === "hook" ? "HOOK &middot; DOUBLE POINTS" : G.tag) + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+
+
+/* ================= the three games (the same as in prototypes.html, run by the song) ================= */
+const hookAt = t => section(t) === "hook";
+let down = false;
+
+let ME = null;
+const shuffle = (a, seed) => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd(seed + i*3.7)*(i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pickRay = new THREE.Raycaster();
+const rayAt = (cx, cy, objs) => { pickRay.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); return pickRay.intersectObjects(objs, true)[0]; };
+// where the finger is on the page (the plane z = 0)
+const onPage = (cx, cy, z) => { pickRay.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const q = new THREE.Vector3(); return pickRay.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), -(z || 0)), q) ? q : null; };
+let lastT = 0;
+const dtOf = t => { const d = clamp(t - lastT, 0, .05); lastT = t; return d; };
+const fmt0 = n => Math.max(0, Math.round(n)).toLocaleString("en");
+// the setting every game shares: the sky, the clouds, the open book low behind, the smoke heart drifting over it, a page to play on
+function setting(w, h, y){ const g = skyWorld(); const b = book(); b.position.set(0, -8.5, -9); b.rotation.x = .35; scene.add(b);
+  const sh = smokeHeart(4); sh.position.set(0, -3.6, -11.5); scene.add(sh);
+  const page = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map:PAGE, roughness:.9, emissive:0xffffff, emissiveIntensity:.35, transparent:true, opacity:.94 })); page.position.set(0, y || 0, -.15); scene.add(page);
+  return { sky:g, book:b, heart:sh, page }; }
+function heartBeat(sh, t, beat){ sh.scale.setScalar(beat ? 1.05 : 1); sh.userData.pts.forEach((p, i) => { p.position.y += Math.sin(t*1.3 + i)*.0015; }); }
+
+/* =============== 1. HEART POP: the bubble shooter on the page =============== */
+// Hearts in five colours hang from the top of the page. The saucer at the bottom shoots one at a time:
+// aim (drag, or the arrows) and let go (or Space). Three or more of a colour touching burst, and what's
+// left hanging from nothing falls. Every 2 bars the hearts come down a row; reaching the line costs a heart. Clear the page for a big bonus. Shot on the beat it counts double; in the hooks again.
+const POP = {
+  COLS:8, D:.8, TOP:4.2, ROWS:13, LINE:-1.9,
+  setup(){ boot(48, 60, 420); this.w = setting(7.4, 9.6, .7);
+    this.root = new THREE.Group(); scene.add(this.root);
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(6.8, .05), new THREE.MeshBasicMaterial({ color:0xff6a9a, transparent:true, opacity:.6 })); line.position.set(0, this.LINE - .35, 0); this.root.add(line);
+    this.aimDots = []; for (let i = 0; i < 14; i++){ const d = new THREE.Mesh(new THREE.CircleGeometry(.05, 8), new THREE.MeshBasicMaterial({ color:0x8a5ae8, transparent:true, opacity:.6 })); this.root.add(d); this.aimDots.push(d); }
+    this.burst = []; for (let i = 0; i < 20; i++){ const s = sprite(0xffffff, 1.2, 0); this.root.add(s); this.burst.push(s); }
+    ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); },
+  reset(){ for (const m of this.root.children.slice()) if (m.geometry === HEART_GEO) this.root.remove(m);   // a replay: the old hearts go
+    Object.assign(S, { ang:0, shots:0, popped:0, boards:0, fly:null, k:1, colors:4, falling:[], last:null }); lastT = 0; this.newBoard(); say("HEART POP", "aim, let go - three of a colour burst", 2.4); },
+  info(){ return "SHOTS " + S.shots + " · PAGE " + (S.boards + 1); }, warn(){ return this.lowest() >= this.ROWS - 6; },
+  cellPos(r, c){ const odd = (r + S.par) % 2; return new THREE.Vector3((c + (odd ? .5 : 0) - (this.COLS - 1)/2)*this.D, this.TOP - r*this.D*.866, 0); },
+  cols(r){ return (r + S.par) % 2 ? this.COLS - 1 : this.COLS; },
+  newBoard(){ if (this.grid) for (const row of this.grid) for (const b of row) if (b) this.root.remove(b.m);
+    S.par = 0; S.colors = Math.min(5, 4 + Math.floor(S.boards/2)); this.grid = [];
+    for (let r = 0; r < this.ROWS; r++){ this.grid.push([]); for (let c = 0; c < this.COLS; c++) this.grid[r].push(null); }
+    for (let r = 0; r < 7; r++) for (let c = 0; c < this.cols(r); c++) this.put(r, c, Math.floor(rnd(S.k++*2.9)*S.colors));
+    this.load(); this.load(); },
+  put(r, c, k){ const m = heartMesh(k, this.D*.66); m.position.copy(this.cellPos(r, c)); this.root.add(m); this.grid[r][c] = { k, m }; return this.grid[r][c]; },
+  // the next two hearts: always colours still on the page
+  load(){ const left = new Set(); for (const row of this.grid) for (const b of row) if (b) left.add(b.k); const pick = [...left]; S.cur = S.next != null ? S.next : pick.length ? pick[Math.floor(rnd(S.k++*3.7)*pick.length)] : 0;
+    S.next = pick.length ? pick[Math.floor(rnd(S.k++*5.3)*pick.length)] : 0;
+    if (this.curM) this.root.remove(this.curM); this.curM = heartMesh(S.cur, this.D*.66); this.curM.position.set(0, -3.4, .1); this.root.add(this.curM);
+    if (this.nextM) this.root.remove(this.nextM); this.nextM = heartMesh(S.next, this.D*.42); this.nextM.position.set(1.4, -3.75, .1); this.root.add(this.nextM); },
+  aim(cx, cy){ const p = onPage(cx, cy); if (!p) return; S.ang = clamp(Math.atan2(p.x, p.y + 3.4), -1.35, 1.35); },
+  point(cx, cy){ if (!down || S.fly) return; this.aim(cx, cy); this.aiming = true; },
+  release(){ if (!this.aiming) return; this.aiming = false; this.shoot(); },
+  press(){ this.shoot(); },
+  shoot(){ if (S.fly || S.done) return; S.fly = { p:new THREE.Vector3(0, -3.4, .1), v:new THREE.Vector3(Math.sin(S.ang), Math.cos(S.ang), 0).multiplyScalar(15), k:S.cur, m:this.curM, beat:onBeat(S.t) }; this.curM = null; sfx.jump(); },
+  // where a flying heart would end up: walk it along, bouncing off the sides, until it touches one or the top
+  land(p, v){ const half = this.COLS*this.D/2 - this.D/2 + .05;
+    for (let i = 0; i < 2000; i++){ p.addScaledVector(v, 1/240); if (p.x < -half){ p.x = -half; v.x = Math.abs(v.x); } if (p.x > half){ p.x = half; v.x = -Math.abs(v.x); }
+      if (p.y >= this.TOP){ return this.snap(p); }
+      for (let r = 0; r < this.ROWS; r++) for (let c = 0; c < this.COLS; c++){ const b = this.grid[r][c]; if (b && b.m.position.distanceToSquared(p) < (this.D*.82)**2) return this.snap(p); } }
+    return null; },
+  snap(p){ let best = null, bd = 1e9;
+    for (let r = 0; r < this.ROWS; r++) for (let c = 0; c < this.cols(r); c++){ if (this.grid[r][c]) continue; const d = this.cellPos(r, c).distanceToSquared(p);
+      if (d < bd && (r === 0 || this.nbrs(r, c).some(([a, b]) => this.grid[a][b]))){ bd = d; best = [r, c]; } }
+    return best; },
+  nbrs(r, c){ const odd = (r + S.par) % 2, out = [[r, c - 1], [r, c + 1]];
+    for (const dr of [-1, 1]){ const rr = r + dr; if (odd){ out.push([rr, c], [rr, c + 1]); } else out.push([rr, c - 1], [rr, c]); }
+    return out.filter(([a, b]) => a >= 0 && a < this.ROWS && b >= 0 && b < this.cols(a)); },
+  group(r, c, same){ const k = this.grid[r][c].k, seen = new Set([r + "," + c]), q = [[r, c]];
+    while (q.length){ const [a, b] = q.pop(); for (const [x, y] of this.nbrs(a, b)){ const n = this.grid[x][y]; if (!n || seen.has(x + "," + y) || (same && n.k !== k)) continue; seen.add(x + "," + y); q.push([x, y]); } }
+    return [...seen].map(s => s.split(",").map(Number)); },
+  lowest(){ let lo = -1; this.grid.forEach((row, r) => { if (row.some(b => b)) lo = r; }); return lo; },
+  settle(cell){ const [r, c] = cell, b = this.grid[r][c], hook = hookAt(S.t), mult = (S.fly.beat ? 2 : 1)*(hook ? 2 : 1);
+    S.last = b.m.position.clone();
+    const g = this.group(r, c, true);
+    if (g.length >= 3){ let i = 0; for (const [a, d] of g){ const n = this.grid[a][d]; const s = this.burst[i++ % this.burst.length]; s.position.copy(n.m.position); s.material.color.setHex(HEART_COLS[n.k]); s.material.opacity = 1; s.scale.setScalar(1.4); this.root.remove(n.m); this.grid[a][d] = null; }
+      // what's left hanging from nothing falls
+      const held = new Set(); for (let cc = 0; cc < this.cols(0); cc++) if (this.grid[0][cc]) for (const [a, d] of this.group(0, cc, false)) held.add(a + "," + d);
+      let fell = 0; this.grid.forEach((row, a) => row.forEach((n, d) => { if (n && !held.has(a + "," + d)){ S.falling.push({ m:n.m, vy:0 }); this.grid[a][d] = null; fell++; } }));
+      const n = (g.length*40 + fell*80)*mult; S.score += n; S.popped += g.length + fell; S.got++; S.combo++; sfx.good(S.combo); say(fell ? "POP! " + fell + " FELL" : "POP!", "+" + n, .6); }
+    else { S.combo = 0; }
+    if (!this.grid.some(row => row.some(b => b))){ const bonus = 1500; S.score += bonus*(hook ? 2 : 1); S.boards++; sfx.big(); say("A CLEAR PAGE", "+" + bonus, 1.2); this.newBoard(); S.shots = 0; return; }
+    S.shots++;
+    if (this.lowest() >= this.ROWS - 4){ if (hurt("TOO LOW", "Aim so three or more of a colour touch - they burst, and what hangs from nothing falls. Every 2 bars they come down a row.")) return; this.newBoard(); S.shots = 0; return; }
+    this.load(); },
+  // the whole lot comes down a row, a new row on top
+  drop(){ for (let r = this.ROWS - 1; r > 0; r--) this.grid[r] = this.grid[r - 1]; this.grid[0] = Array(this.COLS).fill(null); S.par = 1 - S.par;
+    for (let c = 0; c < this.cols(0); c++) this.put(0, c, Math.floor(rnd(S.k++*2.9)*S.colors)); sfx.bad(); say("DOWN A ROW", "", .6, "warn"); },
+  update(dt, t){
+    const bar4 = Math.floor(t/(BAR*(LV() > 1 ? 1.5 : 2))); if (bar4 > (S.bar4 || 0)){ S.bar4 = bar4; if (!S.fly){ this.drop(); if (this.lowest() >= this.ROWS - 4){ if (hurt("TOO LOW", "Aim so three or more of a colour touch - they burst, and what hangs from nothing falls. Every 2 bars they come down a row.")) return; this.newBoard(); S.shots = 0; } } }
+    if (keys.left) S.ang = clamp(S.ang - dt*1.6, -1.35, 1.35); if (keys.right) S.ang = clamp(S.ang + dt*1.6, -1.35, 1.35);
+    if (S.fly){ const f = S.fly, half = this.COLS*this.D/2 - this.D/2 + .05;
+      for (let i = 0; i < 6 && S.fly; i++){ f.p.addScaledVector(f.v, dt/6); if (f.p.x < -half){ f.p.x = -half; f.v.x = Math.abs(f.v.x); } if (f.p.x > half){ f.p.x = half; f.v.x = -Math.abs(f.v.x); }
+        let hit = f.p.y >= this.TOP; if (!hit) for (const row of this.grid){ for (const b of row) if (b && b.m.position.distanceToSquared(f.p) < (this.D*.82)**2){ hit = true; break; } if (hit) break; }
+        if (hit){ const cell = this.snap(f.p); this.root.remove(f.m); if (cell){ const b = this.put(cell[0], cell[1], f.k); this.settle(cell); } else this.load(); S.fly = null; } }
+      if (S.fly) f.m.position.copy(f.p); }
+  },
+  render(t){ const dt = dtOf(t), beat = onBeat(t), portrait = cam.aspect < .8;
+    for (const row of this.grid) row.forEach((b, c) => { if (b){ const r = this.grid.indexOf(row); b.m.position.lerp(this.cellPos(r, c), Math.min(1, dt*10)); b.m.rotation.y = Math.sin(t*2 + c)*.2; } });
+    S.falling = S.falling.filter(f => { f.vy -= dt*20; f.m.position.y += f.vy*dt; f.m.rotation.z += dt*4; if (f.m.position.y < -8){ this.root.remove(f.m); return false; } return true; });
+    for (const b of this.burst) if (b.material.opacity > 0){ b.material.opacity = Math.max(0, b.material.opacity - dt*2.5); b.scale.multiplyScalar(1 + dt*2); }
+    // the aim: dots along the way it'll go
+    const p = new THREE.Vector3(0, -3.4, .1), v = new THREE.Vector3(Math.sin(S.ang), Math.cos(S.ang), 0).multiplyScalar(.45), half = this.COLS*this.D/2 - this.D/2;
+    this.aimDots.forEach((d, i) => { p.add(v); if (p.x < -half || p.x > half) v.x = -v.x; d.position.copy(p); d.visible = !S.fly && p.y < this.TOP; });
+    ME.position.set(0, -4.05 + Math.sin(t*2)*.04, -.2); ME.rotation.set(.35, t*1.2, -S.ang*.4); animSaucer(ME, t, beat); ME.userData.beam.visible = false;
+    driftClouds(this.w.sky, dt); heartBeat(this.w.heart, t, beat);
+    if (portrait){ cam.position.set(0, .4, 19.5); cam.lookAt(0, .3, 0); } else { cam.position.set(0, .8, 10.5); cam.lookAt(0, .6, 0); }
+  }
+};
+
+/* =============== 2. LOVE WORDS: the word search in the book =============== */
+// A page of letters; the words to find are listed at the side (LOVE, HEART, AGAIN, CLOUD...). Drag from
+// a word's first letter to its last - across, down or on the slant, either way round. Every word found
+// and the page turns. Found on the beat it counts double.
+const WORDS = ["LOVE", "HEART", "AGAIN", "CLOUD", "DREAM", "KISS", "SKY", "JUICE", "PAGE", "BOOK", "FALL", "STAR", "SMILE", "HUG", "ROSE", "MOON", "SOUL", "TRUE", "ANGEL", "SWEET", "HOLD", "WINGS", "SOFT", "BLUE"];
+const WORDS_SEARCH = {
+  N:8, CELL:.72,
+  setup(){ boot(46, 60, 420); this.w = setting(11.6, 7.2, .4);
+    this.root = new THREE.Group(); scene.add(this.root); this.cells = []; this.listM = null; this.marks = [];
+    this.tex = [...Array(26)].map((_, i) => canvasTex(64, 64, (x, w, h) => { x.fillStyle = "#2a2440"; x.font = "bold 44px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(String.fromCharCode(65 + i), 32, 35); }));
+    ME = buildSaucer(); ME.scale.setScalar(.4); scene.add(ME); },
+  reset(){ Object.assign(S, { page:0, found:[], words:[], deadline:0, nextAt:0, k:1, pages:0, last:null }); lastT = 0; this.make(0); say("LOVE WORDS", "drag across a word, first letter to last", 2.4); },
+  info(){ return "FOUND " + S.found.length + "/" + S.words.length + " · PAGE " + (S.pages + 1); }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
+  make(t){ const N = this.N; for (const c of this.cells) this.root.remove(c.m); for (const m of this.marks) this.root.remove(m); this.cells = []; this.marks = [];
+    const n = Math.min(7, 5 + S.page), words = shuffle(WORDS.slice(), S.k++*41 + 3).filter(w => w.length <= N).slice(0, n), grid = [...Array(N*N)].fill(""), place = [];
+    const dirs = [[1, 0], [0, 1], [1, 1], [1, -1], [-1, 0], [0, -1], [-1, -1], [-1, 1]];
+    for (const w of words){ for (let tries = 0; tries < 200; tries++){ const d = dirs[Math.floor(rnd(S.k++*1.7)*(S.page < 1 ? 4 : 8))], x0 = Math.floor(rnd(S.k++*2.3)*N), y0 = Math.floor(rnd(S.k++*3.1)*N);
+        const cells = [...w].map((_, i) => [x0 + d[0]*i, y0 + d[1]*i]); if (cells.some(([x, y]) => x < 0 || y < 0 || x >= N || y >= N)) continue;
+        if (cells.some(([x, y], i) => grid[y*N + x] && grid[y*N + x] !== w[i])) continue;
+        cells.forEach(([x, y], i) => { grid[y*N + x] = w[i]; }); place.push({ w, cells }); break; } }
+    for (let i = 0; i < N*N; i++) if (!grid[i]) grid[i] = String.fromCharCode(65 + Math.floor(rnd(S.k++*4.7)*26));
+    S.words = place; S.found = []; this.grid = grid;
+    const portrait = cam.aspect < .8, ox = portrait ? 0 : -1.9, oy = portrait ? 2.1 : .4;
+    this.origin = new THREE.Vector3(ox - (N - 1)/2*this.CELL, oy + (N - 1)/2*this.CELL, 0);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(this.CELL*.96, this.CELL*.96), new THREE.MeshBasicMaterial({ map:this.tex[grid[y*N + x].charCodeAt(0) - 65], transparent:true, color:0xffffff }));
+      m.position.copy(this.at(x, y)); this.root.add(m); this.cells.push({ m, x, y }); }
+    this.drawList(); S.nextAt = 0; S.allow = BAR*(2 + n*1.1)*(1.15 - .25*clamp(LV(), 0, 1.4)); S.deadline = t + S.allow; },
+  at(x, y){ return this.origin.clone().add(new THREE.Vector3(x*this.CELL, -y*this.CELL, .01)); },
+  drawList(){ if (this.listM) this.root.remove(this.listM); const portrait = cam.aspect < .8;
+    const tex = canvasTex(256, 320, (x, w, h) => { x.font = "bold 30px Bungee, Impact, sans-serif"; x.textBaseline = "middle";
+      S.words.forEach((p, i) => { const f = S.found.includes(p.w); x.fillStyle = f ? "#b8a8c8" : "#2a2440"; x.fillText(p.w, 20, 30 + i*42); if (f){ x.strokeStyle = "#ff6a9a"; x.lineWidth = 4; x.beginPath(); x.moveTo(14, 30 + i*42); x.lineTo(30 + x.measureText(p.w).width, 30 + i*42); x.stroke(); } }); });
+    this.listM = new THREE.Mesh(new THREE.PlaneGeometry(portrait ? 3 : 3.2, portrait ? 3.75 : 4), new THREE.MeshBasicMaterial({ map:tex, transparent:true })); this.listM.position.set(portrait ? 0 : 3.4, portrait ? -3.3 : .4, .01); this.root.add(this.listM); },
+  cellAt(cx, cy){ const p = onPage(cx, cy); if (!p) return null; const x = Math.round((p.x - this.origin.x)/this.CELL), y = Math.round((this.origin.y - p.y)/this.CELL); return x >= 0 && y >= 0 && x < this.N && y < this.N ? [x, y] : null; },
+  point(cx, cy){ if (!down || S.nextAt) return; const c = this.cellAt(cx, cy); if (!c) return; if (!this.drag) this.drag = { a:c, b:c }; else this.drag.b = c; },
+  line(){ const d = this.drag; if (!d) return []; let dx = d.b[0] - d.a[0], dy = d.b[1] - d.a[1]; const n = Math.max(Math.abs(dx), Math.abs(dy));
+    if (!n) return [d.a]; // snap to the nearest of the 8 directions
+    const ang = Math.round(Math.atan2(dy, dx)/(Math.PI/4))*(Math.PI/4), sx = Math.round(Math.cos(ang)), sy = Math.round(Math.sin(ang));
+    const out = []; for (let i = 0; i <= n; i++){ const x = d.a[0] + sx*i, y = d.a[1] + sy*i; if (x < 0 || y < 0 || x >= this.N || y >= this.N) break; out.push([x, y]); } return out; },
+  release(){ const cells = this.line(); this.drag = null; this.pick(cells); },
+  pick(cells){ if (cells.length < 2) return; const s = cells.map(([x, y]) => this.grid[y*this.N + x]).join(""), r = [...s].reverse().join("");
+    const p = S.words.find(p => !S.found.includes(p.w) && (p.w === s || p.w === r) && p.cells.length === cells.length);
+    if (!p){ sfx.bad(); S.combo = 0; return; }
+    S.found.push(p.w); S.got++; S.combo++; const beat = onBeat(S.t), n = p.w.length*60*(beat ? 2 : 1)*(hookAt(S.t) ? 2 : 1); S.score += n; sfx.good(S.combo); say(p.w, "+" + n, .7);
+    const a = this.at(...p.cells[0]), b = this.at(...p.cells[p.cells.length - 1]), mid = a.clone().add(b).multiplyScalar(.5), len = a.distanceTo(b) + this.CELL*.8;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(len, this.CELL*.7), new THREE.MeshBasicMaterial({ color:HEART_COLS[S.found.length % 6], transparent:true, opacity:.45 })); m.position.copy(mid).setZ(.005); m.rotation.z = Math.atan2(b.y - a.y, b.x - a.x); this.root.add(m); this.marks.push(m);
+    S.last = mid; this.drawList();
+    if (S.found.length === S.words.length){ const bonus = 500 + Math.round(Math.max(0, S.deadline - S.t)*50); S.score += bonus; S.pages++; S.page++; sfx.big(); say("THE PAGE TURNS", "+" + bonus, 1.2); S.nextAt = S.t + BEAT*3; } },
+  update(dt, t){
+    if (S.nextAt && t > S.nextAt) this.make(t);
+    if (!S.nextAt && t > S.deadline){ if (hurt("OUT OF TIME", "Drag from a word's first letter to its last - across, down or on the slant, either way round.")) return; S.page = Math.max(0, S.page - 1); this.make(t); }
+  },
+  render(t){ const dt = dtOf(t), beat = onBeat(t), portrait = cam.aspect < .8, sel = new Set(this.line().map(c => c.join(",")));
+    for (const c of this.cells) c.m.material.color.setHex(sel.has(c.x + "," + c.y) ? 0xffb8d8 : 0xffffff);
+    const p = S.last || new THREE.Vector3(0, 3.6, 0); ME.position.lerp(new THREE.Vector3(portrait ? 1.7 : this.origin.x - .9, portrait ? -3.3 : p.y, 1.2), Math.min(1, dt*6)); ME.rotation.set(1, t*1.5, 0); animSaucer(ME, t, beat); ME.userData.beam.visible = false;
+    driftClouds(this.w.sky, dt); heartBeat(this.w.heart, t, beat);
+    this.w.page.scale.set(portrait ? .62 : 1, portrait ? 1.6 : 1, 1); this.w.page.position.y = portrait ? 0 : .4;
+    if (portrait){ cam.position.set(0, 0, 16); cam.lookAt(0, 0, 0); } else { cam.position.set(0, .4, 10); cam.lookAt(0, .4, 0); }
+  }
+};
+
+/* =============== 3. HEART MERGE: 2048 with hearts =============== */
+// Hearts on a 4x4 page, each with a number. Swipe (or the arrows) and they all slide that way; two the
+// same that meet become one, twice as big. The song keeps you going: stop for a bar and hearts drop
+// in, one a beat. The page full with no move left costs a heart. Merged on the
+// beat it counts double.
+const MERGE_COLS = { 2:0xffd8e8, 4:0xffb8d8, 8:0xff8ab8, 16:0xff6a9a, 32:0xd88aff, 64:0xb88aff, 128:0x8a8aff, 256:0x6ac8ff, 512:0x6ae8c8, 1024:0xffc84a, 2048:0xff9a3a };
+const NUM_TEX = {};
+const numTex = v => NUM_TEX[v] || (NUM_TEX[v] = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#2a2440"; x.font = "bold " + (v < 100 ? 64 : v < 1000 ? 48 : 38) + "px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(v, 64, 70); }));
+const MERGE = {
+  N:4, CELL:1.5,
+  setup(){ boot(46, 60, 420); this.w = setting(6.8, 6.8, .2); this.root = new THREE.Group(); scene.add(this.root);
+    for (let i = 0; i < 16; i++){ const s = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 1.36), new THREE.MeshBasicMaterial({ color:0xe8e0f0 })); s.position.copy(this.at(i % 4, Math.floor(i/4))).setZ(-.05); this.root.add(s); }
+    this.tiles = []; ME = buildSaucer(); ME.scale.setScalar(.45); scene.add(ME); },
+  reset(){ Object.assign(S, { moves:0, merges:0, best:0, boards:0, k:1, lastMoveBar:-1, lastDropBar:-1, last:null }); lastT = 0; this.fresh(); say("HEART MERGE", "swipe - two the same become one", 2.4); },
+  info(){ return "BEST " + S.best + " · MOVES " + S.moves; }, warn(){ return this.tiles.length >= 13; },
+  at(x, y){ return new THREE.Vector3((x - 1.5)*this.CELL, (1.5 - y)*this.CELL + .2, 0); },
+  fresh(){ for (const t of this.tiles) this.root.remove(t.g); this.tiles = []; this.spawn(); this.spawn(); },
+  tile(v, x, y){ const g = new THREE.Group(); const h = heartMesh(0, 1.15); h.material.color.setHex(MERGE_COLS[v] || 0xff6a3a); h.material.emissive.setHex(MERGE_COLS[v] || 0xff6a3a); g.add(h);
+    const n = new THREE.Mesh(new THREE.PlaneGeometry(.9, .9), new THREE.MeshBasicMaterial({ map:numTex(v), transparent:true })); n.position.z = .2; g.add(n);
+    g.position.copy(this.at(x, y)); g.scale.setScalar(.2); this.root.add(g); const t = { v, x, y, g, h, n }; this.tiles.push(t); return t; },
+  spawn(){ const free = []; for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) if (!this.tiles.some(t => t.x === x && t.y === y)) free.push([x, y]);
+    if (!free.length) return false; const [x, y] = free[Math.floor(rnd(S.k++*2.7)*free.length)]; this.tile(rnd(S.k++*1.9) < .88 ? 2 : 4, x, y); return true; },
+  // slide everything one way; returns how much merged (or -1 if nothing moved)
+  slide(dx, dy, dry){ const grid = [...Array(16)].fill(null); for (const t of this.tiles) grid[t.y*4 + t.x] = t;
+    let moved = false, gained = 0; const kill = [], order = [0, 1, 2, 3]; if (dx > 0 || dy > 0) order.reverse();
+    const done = new Set(), plan = [];
+    for (const a of order) for (const b of order){ const x = dx ? a : b, y = dx ? b : a, t = grid[y*4 + x]; if (!t) continue;
+      let nx = x, ny = y; while (true){ const tx = nx + dx, ty = ny + dy; if (tx < 0 || ty < 0 || tx > 3 || ty > 3) break; const o = grid[ty*4 + tx];
+        if (!o){ nx = tx; ny = ty; continue; } if (o.v === t.v && !done.has(o)){ nx = tx; ny = ty; } break; }
+      if (nx === x && ny === y) continue; moved = true; const o = grid[ny*4 + nx]; grid[y*4 + x] = null;
+      if (o){ done.add(o); gained += o.v*2; plan.push([t, nx, ny, o]); } else { grid[ny*4 + nx] = t; plan.push([t, nx, ny, null]); } }
+    if (dry) return moved ? gained : -1;
+    for (const [t, nx, ny, o] of plan){ t.x = nx; t.y = ny; if (o){ kill.push(t); o.v *= 2; o.pop = .25; } }
+    for (const t of kill){ this.root.remove(t.g); this.tiles.splice(this.tiles.indexOf(t), 1); }
+    for (const t of this.tiles) if (t.pop){ t.h.material.color.setHex(MERGE_COLS[t.v] || 0xff6a3a); t.h.material.emissive.setHex(MERGE_COLS[t.v] || 0xff6a3a); t.n.material.map = numTex(t.v); t.n.material.needsUpdate = true; }
+    return moved ? gained : -1; },
+  move(dx, dy){ if (S.done) return; const g = this.slide(dx, dy); if (g < 0) return;
+    S.moves++; S.lastMoveT = S.t; S.saidDrop = false; sfx.jump(); const beat = onBeat(S.t);
+    if (g){ const n = g*4*(beat ? 2 : 1)*(hookAt(S.t) ? 2 : 1); S.score += n; S.merges++; S.got++; sfx.good(Math.log2(g)); }
+    S.best = Math.max(S.best, ...this.tiles.map(t => t.v)); if (S.best >= 256 && !S.said256){ S.said256 = true; say("256!", "keep going", .8); }
+    this.spawn(); this.check(); },
+  check(){ if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => this.slide(dx, dy, true) >= 0)) return;
+    if (hurt("NO MOVES", "Swipe so two hearts with the same number meet - and keep moving: a whole bar without a move drops one in anyway.")) return; S.boards++; this.fresh(); },
+  point(cx, cy){ if (!down) return; if (!this.sw) this.sw = { x:cx, y:cy }; this.sw.ex = cx; this.sw.ey = cy; },
+  release(){ const s = this.sw; this.sw = null; if (!s || s.ex == null) return; const dx = s.ex - s.x, dy = s.ey - s.y; if (Math.max(Math.abs(dx), Math.abs(dy)) < 30) return;
+    if (Math.abs(dx) > Math.abs(dy)) this.move(Math.sign(dx), 0); else this.move(0, Math.sign(dy)); },
+  update(dt, t){
+    // the song keeps you going: a bar with no move drops a heart in
+    const beatN = Math.floor(t/BEAT); if (t - (S.lastMoveT || 0) > BAR*(1 - .25*clamp(LV(), 0, 1.4)) && beatN > (S.lastDropBeat || 0)){ S.lastDropBeat = beatN;
+      if (!this.spawn()){ if (hurt("FULL", "Keep swiping so two hearts with the same number meet - stop moving and they drop in, one a beat.")) return; S.boards++; this.fresh(); S.lastMoveT = t; }
+      else { this.check(); if (!S.saidDrop){ S.saidDrop = true; say("KEEP MOVING", "they drop in, one a beat", .9, "warn"); } } }
+  },
+  render(t){ const dt = dtOf(t), beat = onBeat(t), portrait = cam.aspect < .8;
+    for (const tl of this.tiles){ tl.g.position.lerp(this.at(tl.x, tl.y), Math.min(1, dt*16)); const s = 1 + (tl.pop > 0 ? tl.pop : 0); if (tl.pop > 0) tl.pop -= dt; tl.g.scale.setScalar(Math.min(s, tl.g.scale.x + dt*6)); }
+    const top = this.tiles.reduce((a, b) => !a || b.v > a.v ? b : a, null); const p = top ? top.g.position : new THREE.Vector3(0, 3.6, 0);
+    ME.position.lerp(new THREE.Vector3(p.x, 3.7, .8), Math.min(1, dt*5)); ME.rotation.set(.5, t*1.5, 0); animSaucer(ME, t, beat); ME.userData.beam.visible = true; ME.userData.beam.scale.set(.3, .4, .3); ME.userData.beam.position.y = -.9;
+    driftClouds(this.w.sky, dt); heartBeat(this.w.heart, t, beat);
+    if (portrait){ cam.position.set(0, .4, 18.5); cam.lookAt(0, .4, 0); } else { cam.position.set(0, .4, 10); cam.lookAt(0, .3, 0); }
+  }
+};
+
+// the arrows (or W A S D) slide straight away, however quick the tap
+addEventListener("keydown", e => { if (G !== MERGE || !live() || e.repeat) return; const d = { ArrowLeft:[-1, 0], a:[-1, 0], ArrowRight:[1, 0], d:[1, 0], ArrowUp:[0, -1], w:[0, -1], ArrowDown:[0, 1], s:[0, 1] }[e.key]; if (d) MERGE.move(d[0], d[1]); });
+
+/* ---------------- the games on the song's clock ----------------
+   The three games are the ones from prototypes.html, unchanged at heart; this gives each what the level
+   asks of it: a name, the line under GET READY, how hard it is right now (L, 0 → 1 over the song; endless
+   keeps climbing), and begin() for the song or an endless window. */
+const LV = () => G && G.L ? G.L(S.t) : 0;
+function asPart(E, name, tag, hint){
+  return Object.assign(E, { name, tag, hint, start:0,
+    begin(t0, t1, L0, L1, cont){ this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1; if (cont) return; this.start = t0; this.reset(); },
+    L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+    get st(){ return S; } });
+}
+asPart(POP, "HEART POP", "HEART POP", "aim, let go - three of a colour burst");
+asPart(WORDS_SEARCH, "LOVE WORDS", "LOVE WORDS", "drag across a word, first letter to last");
+asPart(MERGE, "HEART MERGE", "HEART MERGE", "swipe - two the same become one");
+const PARTS = [null, POP, WORDS_SEARCH, MERGE];
+
+/* ---------------- the run ---------------- */
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = PARTS[PART]; camInit = false; G.root.visible = true; showSetting(true); END.root.visible = false; END.on = false; ME.visible = true; ME.scale.setScalar(G.meScale);
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+  $("msg").className = "";
+}
+// endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+const LOOPS = CFG.endless;
+function songT(){
+  if (LOOPS && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The cover: the open book standing on the clouds, its pages up, the lavender smoke heart on them - and
+   Jo's saucer down in front with its lavender beam, small, like on the cover. */
+const END = { out:8.5, root:null };
+POP.meScale = .42; WORDS_SEARCH.meScale = .4; MERGE.meScale = .45;
+function showSetting(on){ for (const k of ["book", "heart", "page"]) G.w[k].visible = on; }
+function buildEnd(){
+  const g = new THREE.Group(); g.visible = false; g.position.set(0, 0, -4); scene.add(g);
+  const b = book(); b.position.set(0, -3.4, 0); b.rotation.x = .1; g.add(b); END.book = b;
+  // up close the pages need their shading, like on the cover: soft grey-white paper, the dark back cover
+  const paper = new THREE.MeshStandardMaterial({ map:PAGE, color:0xe4e0ea, roughness:.95, emissive:0xffffff, emissiveIntensity:.06, side:THREE.DoubleSide });
+  b.traverse(m => { if (!m.isMesh) return; if (m.geometry.type === "PlaneGeometry") m.material = paper; else m.material = new THREE.MeshStandardMaterial({ color:m.material.color.getHex() > 0xe0e0e0 ? 0xdcd8e2 : 0x5a5868, roughness:.9 }); });
+  const sh = smokeHeart(3.4); sh.position.set(.5, -.3, -2.2); g.add(sh); END.heart = sh;
+  // the clouds the book floats on, pink and white, and a few in front
+  const cl = []; for (let i = 0; i < 9; i++){ const c = cloud(8, 5 + rnd(i*5)*4, 900 + i*13); c.position.set((i - 4)*2.6 + (rnd(i*3) - .5), -3.4 - rnd(i*7)*.8, -1 + rnd(i*11)*4.5); g.add(c); cl.push(c); }
+  END.clouds = cl; END.root = g;
+}
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+// while playing, each game puts the camera where it wants it; the ending glides it to the cover
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  if (S.end >= 0){
+    const portrait = cam.aspect < .8;
+    if (S.end < 1){ $("flash").style.background = "#fff0f8"; $("flash").style.opacity = Math.min(1, S.end/.8); G.render(t); }
+    else {
+      if (!END.on){ END.on = true; G.root.visible = false; showSetting(false); END.root.visible = true; camInit = false; }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      // the smoke heart gathers on the page; the saucer floats up from below
+      const u = clamp((S.end - 1.2)/3, 0, 1), e = 1 - Math.pow(1 - u, 3);
+      END.heart.scale.setScalar(.4 + .6*e); END.heart.userData.pts.forEach((p, i) => { p.material.opacity = .75*e; p.position.y += Math.sin(t*1.3 + i)*.0015; });
+      END.clouds.forEach((c, i) => { c.position.x += Math.sin(t*.3 + i)*.002; });
+      driftClouds(G.w.sky, dt);
+      ME.visible = true; ME.scale.setScalar(.55); ME.rotation.set(.12, Math.sin(t*1.5)*.25, 0); animSaucer(ME, t, beat); ME.userData.beam.visible = true; ME.userData.beam.scale.set(.5, .6, .5); ME.userData.beam.position.y = -1.1;
+      ME.position.set(0, (portrait ? -4.6 : -3.9) - (1 - e)*3 + Math.sin(t*2)*.05, -.5);
+      CAMP.set(0, portrait ? .4 : .8, portrait ? 16 : 10); CAML.set(0, portrait ? -1.2 : -.6, -4);
+      const k = camInit ? Math.min(1, dt*1.1) : 1; camInit = true;
+      cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+      if (S.end > 2.4 && !S.saidEnd){ S.saidEnd = true; say("FALL IN LOVE AGAIN", "LAZY JO", 4.5, "t"); }
+    }
+  } else {
+    G.render(t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.disabled = false; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
+  const got = PART === 1 ? S.popped : PART === 2 ? S.got : S.merges;
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:got });
+  const stat = PART === 1 ? S.popped + " hearts popped · " + S.boards + " pages cleared" : PART === 2 ? S.got + " words found · " + S.pages + " pages turned" : S.merges + " merges · up to " + S.best;
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the clouds &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "FALL IN LOVE AGAIN";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = (PART === 3 ? "Juice was right." + "<br>Level 23 cleared: <b>Heart Pop &#8734;</b>, <b>Love Words &#8734;</b> and <b>Heart Merge &#8734;</b> are open in the gold Endless list." : PART === 2 ? "Every word on the page." + "<br>Part 3, <b>Heart Merge</b>, is open." : "Hearts everywhere." + "<br>Part 2, <b>Love Words</b>, is open.");
+}
+
+/* ---------------- input ---------------- */
+// Heart Pop: drag to aim, let go to shoot (or the arrows and Space). Love Words: drag across a word.
+// Heart Merge: swipe (or the arrows).
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); down = true; G.point(e.clientX, e.clientY); }, { passive:false });
+addEventListener("pointermove", e => { if (!live()) return; if (down || e.pointerType === "mouse") G.point(e.clientX, e.clientY); });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, () => { const was = down; down = false; if (was && live() && G.release) G.release(); });
+const KEYMAP = { ArrowLeft:"left", a:"left", ArrowRight:"right", d:"right", ArrowUp:"up", w:"up", ArrowDown:"down", s:"down" };
+addEventListener("keydown", e => { if (veilUp()) return; if (e.key === " "){ e.preventDefault(); if (!e.repeat && live() && G.press) G.press(); return; } const k = KEYMAP[e.key]; if (k){ e.preventDefault(); keys[k] = true; } });
+addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+
+function startGame(){
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? ["", "the hearts never stop", "the pages never stop", "the hearts never stop"][PART] : G.hint, 3, CFG.endless ? "g" : "");
+}
+$("go").addEventListener("click", () => {
+  startGame();
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = "FALL IN LOVE AGAIN" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = "The sky from the cover - pink and white clouds, the open book floating on them with the lavender smoke heart - and Jo's saucer." +
+  [" <b>Part 1 · Heart Pop:</b> hearts in five colours hanging from the top of the page.", " <b>Part 2 · Love Words:</b> a page of letters in the book.", " <b>Part 3 · Heart Merge:</b> hearts with numbers on a 4x4 page."][PART - 1] +
+  (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = [
+  "<b>Drag</b> to aim (or the arrows), <b>let go</b> to shoot (or Space). Three or more of a colour touching burst, and whatever's left hanging from nothing falls. Every 2 bars they all come down a row - reaching the line costs a heart (3). Clear the page for a big bonus. Shot <b>on the beat</b> it counts double; double again in the hooks.",
+  "<b>Drag</b> from a word's first letter to its last - across, down or on the slant, either way round. Find every word on the list and the page turns. Out of time costs a heart (3). Found <b>on the beat</b> it counts double; double again in the hooks.",
+  "<b>Swipe</b> (or the arrows): every heart slides that way, and two the same that meet become one, twice the number. Keep moving - stop for a bar and hearts drop in, one a beat. Full with no move left costs a heart (3). Merged <b>on the beat</b> it counts double; double again in the hooks."][PART - 1];
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
+      if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+PARTS[PART].setup(); buildEnd();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

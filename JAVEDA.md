@@ -32,6 +32,7 @@ client/public/javeda/
     ├── stay-up-2.html      # Level 20: Pass It On - nine lights over the crowd, play it back and add one (+ endless) - and Pass It On 1v1 online (?online=pass)
     ├── blind-love.html     # Level 21: Love Cards (memory cards on her bed) and Part 2 Snap (?part=2) (+ endless each) - and Love Cards 1v1 / Snap 1v1 online (?online=cards|snap)
     ├── space-kid.html      # Level 22: Planet Match (match three), Part 2 Rainbow Sort (?part=2), Part 3 Star Peaks (?part=3, the solitaire) (+ endless each)
+    ├── fall-in-love-again.html # Level 23: Heart Pop (bubble shooter), Part 2 Love Words (?part=2, word search), Part 3 Heart Merge (?part=3, 2048) (+ endless each)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

@@ -469,7 +469,16 @@ let LEVELS = [
     art:"linear-gradient(90deg, #ff3a3a33, #ff9a2a33, #ffe03a33, #4ad84a33, #3a9aff33, #8a4aff33), linear-gradient(160deg,#3a1a8a,#140838)" },
   { id:"lvl22c", num:22, part:3, title:"STAR PEAKS", requires:"lvl22b", src:"levels/space-kid.html?hub=1&part=3",
     ds:"Part 3. The solitaire in the stars - one higher or one lower, streaks count more and more.",
-    art:"radial-gradient(50% 40% at 50% 40%, #e8282a55, transparent 70%), linear-gradient(160deg,#3a1a8a,#140838)" }
+    art:"radial-gradient(50% 40% at 50% 40%, #e8282a55, transparent 70%), linear-gradient(160deg,#3a1a8a,#140838)" },
+  { id:"lvl23", num:23, title:"FALL IN LOVE AGAIN", requires:"lvl22c", src:"levels/fall-in-love-again.html?hub=1",
+    ds:"The sky from the cover - pink and white clouds, the open book with the lavender smoke heart. Heart Pop: aim, let go, three of a colour burst.",
+    art:"radial-gradient(35% 35% at 50% 45%, #c8a8ffaa, transparent 70%), radial-gradient(60% 40% at 20% 90%, #ffc8dccc, transparent 70%), linear-gradient(180deg,#3aa8e8,#8ad0f4 55%,#f4c8dc)" },
+  { id:"lvl23b", num:23, part:2, title:"LOVE WORDS", requires:"lvl23", src:"levels/fall-in-love-again.html?hub=1&part=2",
+    ds:"Part 2. A page of letters in the book - drag across every word on the list and the page turns.",
+    art:"linear-gradient(90deg, transparent 0 46%, #f6f2ee 46% 54%, transparent 54%), radial-gradient(60% 40% at 80% 90%, #ffc8dccc, transparent 70%), linear-gradient(180deg,#3aa8e8,#8ad0f4 60%,#f4c8dc)" },
+  { id:"lvl23c", num:23, part:3, title:"HEART MERGE", requires:"lvl23b", src:"levels/fall-in-love-again.html?hub=1&part=3",
+    ds:"Part 3. 2048 with hearts - swipe, two the same become one. Keep moving or they drop in.",
+    art:"radial-gradient(30% 30% at 35% 50%, #ff8ab8cc, transparent 70%), radial-gradient(30% 30% at 65% 50%, #b88affcc, transparent 70%), linear-gradient(180deg,#8ad0f4,#f4c8dc)" }
 ];
 // The endless list: each part of a song with no end (id + "x"), and the song's remix,
 // all its parts in turn (lvlNr). All of a song's endless open once all its parts are cleared.
@@ -500,7 +509,8 @@ const ENDLESS = [
   ...endlessOf(19, "stay-up.html", "lvl19", [["lvl19", "Pad Memory"]], false),
   ...endlessOf(20, "stay-up-2.html", "lvl20", [["lvl20", "Pass It On"]], false),
   ...endlessOf(21, "blind-love.html", "lvl21b", [["lvl21", "Love Cards"], ["lvl21b", "Snap"]], false),
-  ...endlessOf(22, "space-kid.html", "lvl22c", [["lvl22", "Planet Match"], ["lvl22b", "Rainbow Sort"], ["lvl22c", "Star Peaks"]], false)
+  ...endlessOf(22, "space-kid.html", "lvl22c", [["lvl22", "Planet Match"], ["lvl22b", "Rainbow Sort"], ["lvl22c", "Star Peaks"]], false),
+  ...endlessOf(23, "fall-in-love-again.html", "lvl23c", [["lvl23", "Heart Pop"], ["lvl23b", "Love Words"], ["lvl23c", "Heart Merge"]], false)
 ];
 // JAVEDA: HYPERDRIVE: not a level and not a part - the ultimate one, its own game. Scored like an endless
 // (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.
@@ -696,7 +706,7 @@ function renderUltimate(){
       ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play HYPERDRIVE</button>'
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
-const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"]];
+const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
   $("etabs").innerHTML = '<span class="lab">Ultimate</span><button role="tab" type="button" data-tab="' + ULT.id + '" aria-selected="' + (ULT.id === boardTab) + '">' + ULT.title + '</button>' +
@@ -711,7 +721,7 @@ async function renderBoard(){
   const col = boardTab === "points" ? "points" : end ? "best_score" : boardTab + "_best";
   const { data, error } = end
     ? await sb.from("javeda_scores").select("username, avatar, best_score").eq("level", boardTab).order("best_score", { ascending:false }).limit(25)
-    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best, lvl19_best, lvl20_best, lvl21_best, lvl21b_best, lvl22_best, lvl22b_best, lvl22c_best")
+    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best, lvl19_best, lvl20_best, lvl21_best, lvl21b_best, lvl22_best, lvl22b_best, lvl22c_best, lvl23_best, lvl23b_best, lvl23c_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }

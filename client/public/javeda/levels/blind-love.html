@@ -145,15 +145,15 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    pair and you go again, the most pairs wins; Snap 1v1 - the same cards for both at the same time,
    the quicker snap takes the pair. Nobody is ever made up: if no one's there, nobody is. */
 
-// the song's grid - a stand-in (90 BPM) until the song is here and measured
-const GRID = { bpm:90, t0:0 };
+// the song's grid, measured from the mp3 (SONG.md): 70.5 BPM (a 141 beat in half time), bar 0 at 0.024 s
+const GRID = { bpm:70.5, t0:.024 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
-const END_AT = barT(56);
-const LOOP = [barT(8), barT(56)];             // endless and online: round and round
+const END_AT = barT(52);                      // the beat stops, the song fades out
+const LOOP = [barT(8), barT(52)];             // endless and online: round and round
 const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
 // how the song feels at time t: calm (intro, breaks), loud (verses), hook
-const SECTIONS = [[8, "calm"], [16, "loud"], [24, "hook"], [32, "calm"], [48, "loud"], [56, "hook"]];
+const SECTIONS = [[8, "calm"], [16, "hook"], [20, "loud"], [24, "calm"], [32, "hook"], [36, "calm"], [40, "hook"], [52, "loud"]];
 function section(t){
   const b = Math.floor((songPos(t) - GRID.t0) / BAR);
   for (const [end, sec] of SECTIONS) if (b < end) return sec;
@@ -195,7 +195,7 @@ const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public
 const song = new Audio(SONGS + "lvl21.mp3"); song.preload = "auto";
 let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
 let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
-const PROG = [130.8, 98, 110, 87.3];          // a soft, sweet loop
+const PROG = [130.8, 103.8, 77.8, 98];         // C minor
 function audioInit(){
   try {
     if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
@@ -441,7 +441,7 @@ const LC = {
       c.icon = deck[i]; c.face.map = iconTex(c.icon); c.face.needsUpdate = true; c.state = "down"; c.rot = 0; c.fly = 0; c.beat = false;
       c.home = new THREE.Vector3((col - (cols - 1)/2)*sx, -1.18, (row - (rows - 1)/2)*sz - .1); c.m.position.copy(c.home); c.m.visible = true; c.m.scale.setScalar(1); });
     s.need = pairs; s.pairs = 0; s.open = []; s.wait = 0; s.nextDeal = 0;
-    s.allow = BAR*(2 + pairs*.75)*(1.25 - .3*clamp(this.L(t), 0, 1.5)); s.deadline = t + s.allow;
+    s.allow = BEAT*(5 + pairs*2.2)*(1.25 - .3*clamp(this.L(t), 0, 1.5)); s.deadline = t + s.allow;
   },
   down(cx, cy){ const hit = rayAt(cx, cy, this.cards.filter(c => c.state === "down").map(c => c.m)); if (!hit) return; const c = this.cards.find(c => c.m === hit.object);
     if (ONLINE) V1.mine(c.i, Math.max(0, S.t)); else this.flip(c); },

@@ -85,7 +85,8 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl22c', 22, 'STAR PEAKS',   'lvl22b', 0, 80000, 800, 75, 300, 41),  -- Part 3: ~33k for a bot that plays the first card that fits
   ('lvl23', 23, 'FALL IN LOVE AGAIN', 'lvl22c', 0, 170000, 1700, 75, 500, 42),  -- Heart Pop: ~78k for a bot that tries every angle, a shot a beat (3:21)
   ('lvl23b', 23, 'LOVE WORDS',  'lvl23', 0, 300000, 3000, 75, 300, 43),  -- Part 2: ~143k for a bot that finds a word every other beat
-  ('lvl23c', 23, 'HEART MERGE', 'lvl23b', 0, 90000, 900, 75, 300, 44)  -- Part 3: ~39k for a bot that takes the slide that merges most
+  ('lvl23c', 23, 'HEART MERGE', 'lvl23b', 0, 90000, 900, 75, 300, 44),  -- Part 3: ~39k for a bot that takes the slide that merges most
+  ('lvl24', 24, 'DOWN FOR ME', 'lvl23c', 0, 60000, 600, 75, 500, 45)  -- Sunset Swap: ~27k for a bot that puts a square in its place every other beat (2:29)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -147,6 +148,7 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl23x', 23, 'HEART POP', 'lvl23c', 0, 50000000, 4800, 0, 0, 149, true, 780),  -- ~390/s
   ('lvl23bx', 23, 'LOVE WORDS', 'lvl23c', 0, 50000000, 8800, 0, 0, 150, true, 1400),  -- ~710/s
   ('lvl23cx', 23, 'HEART MERGE', 'lvl23c', 0, 50000000, 2500, 0, 0, 151, true, 400),  -- ~200/s
+  ('lvl24x', 24, 'SUNSET SWAP', 'lvl24', 0, 50000000, 2000, 0, 0, 152, true, 330),  -- ~165/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
   ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 200, true, 40)
@@ -330,7 +332,8 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl22c' THEN g.best_score END), 0)::INT AS lvl22c_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl23' THEN g.best_score END), 0)::INT AS lvl23_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl23b' THEN g.best_score END), 0)::INT AS lvl23b_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl23c' THEN g.best_score END), 0)::INT AS lvl23c_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl23c' THEN g.best_score END), 0)::INT AS lvl23c_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl24' THEN g.best_score END), 0)::INT AS lvl24_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

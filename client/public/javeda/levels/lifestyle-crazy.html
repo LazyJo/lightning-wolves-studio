@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>LIFESTYLE CRAZY</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#060a18; color:#fff0e8; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#fff6f0; line-height:1; text-shadow:0 0 14px #ffc83a}
+#ml{font-size:11px; letter-spacing:.18em; color:#ffe8c8; margin-top:3px; text-shadow:0 0 6px #000}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#e0306a; text-shadow:0 0 8px #000; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ff40c022; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#ff40c0,#ff40c0)}
+.bl{font-size:11px; letter-spacing:.18em; color:#ffe8c8; text-align:right; text-shadow:0 0 6px #000}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#ff40c0; margin-top:8px; text-align:right; text-shadow:0 0 3px #000, 0 0 8px #000, 0 0 16px #000}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#ffc83a}
+/* the other player, top middle: both of you and your pairs */
+#vs{position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:3; pointer-events:none; text-align:center; font-family:Bungee,sans-serif; color:#fff6f0;
+  background:#120420cc; border:1.5px solid #ffc83a55; border-radius:8px; padding:6px 12px; min-width:150px}
+#vs .nm{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#ffe8c8; max-width:40vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#vs .row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+#vs .row + .row{margin-top:3px}
+#vs .lt{font-size:16px; letter-spacing:.12em; color:#ffc83a44}
+#vs .lt b{color:#ff6a8a; font-weight:400}
+#vs .row.up .nm{color:#ffe08a}
+#vs .row.up .nm::before{content:"\25B6  "}
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#ff40c0; text-shadow:0 0 3px #1a0a2a, 0 0 10px #1a0a2a, 0 2px 0 #1a0a2a}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#fff6f0; margin-top:2px; text-shadow:0 0 3px #1a0a2a, 0 0 8px #1a0a2a}
+#phase.ready{color:#ffe08a}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:26px; opacity:0; transition:opacity .25s; color:#ff40c0; text-shadow:0 0 3px #1a0a2a, 0 0 12px #1a0a2a, 0 2px 0 #1a0a2a; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff6a7a}
+#msg.g{color:#ffc83a}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#f4f8ff; font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:.18em; text-shadow:0 0 24px #ffc83a, 0 0 60px #ff5a5a, 0 2px 5px #060a18}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#fff6f0; margin-top:6px; text-shadow:0 0 3px #1a0a2a, 0 0 8px #1a0a2a}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto; color:#f4f0ff;
+  background:radial-gradient(50% 30% at 50% 20%, #b040ff33 0%, transparent 70%), radial-gradient(120% 80% at 50% 25%, #2a0a4a 0%, #060a18 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #3a2a10 0%, #120c04 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#ffe8c8; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#fff6f0; text-shadow:0 0 22px #ffc83a, 0 0 50px #ff5a5a}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#fff0e8; font-size:17px; max-width:42ch}
+#veil b{color:#ff40c0}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffe08a,#ff5a5a); color:#2a0a14; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ff40c066}
+#go:disabled{opacity:.45; cursor:default; box-shadow:none}
+#go.alt{background:none; color:#ff40c0; border:1.5px solid #ff40c0; font-size:15px; padding:12px 30px; box-shadow:none}
+.alt2{font-family:"Barlow Condensed",sans-serif; font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:14px; background:none; color:#fff0e8;
+  border:1.5px solid #fff0e866; border-radius:4px; padding:9px 18px; cursor:pointer}
+#net{font-size:16px; color:#fff0e8; max-width:42ch; min-height:20px}
+#net b{color:#ffe08a}
+#net .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:#3ad07a; margin-right:6px; vertical-align:1px}
+#net.wait .dot{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+#veil small{color:#ffe8c8; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#fff0e8; background:none; border:1.5px solid #ff40c055}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#ff40c0; background:#ff40c022}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ff40c0; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ff40c099; background:#ff40c014}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (max-width:520px){ #vs{top:auto; bottom:calc(58px + env(safe-area-inset-bottom))} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} #net.wait .dot{animation:none} }
+#act-unused{position:fixed; right:18px; bottom:calc(64px + env(safe-area-inset-bottom)); z-index:4; width:84px; height:84px; border-radius:50%; border:2px solid #ff40c0;
+  background:radial-gradient(circle at 50% 40%, #ff40c055, #120420cc); color:#fff0ec; font-family:Bungee,sans-serif; font-size:13px; touch-action:none; cursor:pointer}
+#act-unused.on{background:radial-gradient(circle at 50% 40%, #ff40c0, #9a20a0); color:#fff}
+@media (max-width:520px){ #act-unused{bottom:auto; top:46%} }
+#dmd{position:fixed; left:50%; top:10px; transform:translateX(-50%); z-index:3; pointer-events:none; text-align:center; padding:6px 16px 7px; min-width:min(360px,62vw);
+  background:#0c0402; border:2px solid #3a1a08; border-radius:6px; box-shadow:0 0 18px #ff7a1a33, inset 0 0 12px #000; font-family:Bungee,Impact,sans-serif; color:#ff8a1a; text-shadow:0 0 6px #ff6a00;
+  -webkit-mask-image:radial-gradient(circle, #000 62%, rgba(0,0,0,.55) 64%); -webkit-mask-size:3px 3px; mask-image:radial-gradient(circle, #000 62%, rgba(0,0,0,.55) 64%); mask-size:3px 3px}
+#dmd1{font-size:26px; line-height:1.05; letter-spacing:.06em}
+#dmd2{font-size:11px; letter-spacing:.14em; margin-top:2px; min-height:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+#pad{position:fixed; right:14px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:4; display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(3,58px); gap:4px}
+#pad button, #pad2 button{font-family:Bungee,sans-serif; color:#fff; background:#1a0a2ad8; border:2px solid #b040ff; border-radius:12px; font-size:22px; cursor:pointer; touch-action:none; box-shadow:0 0 12px #b040ff44}
+#pad button:active, #pad2 button:active{background:#b040ff; color:#120420}
+#pad2{position:fixed; left:14px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:4; display:flex; flex-direction:column; gap:6px}
+#pad2 button{font-size:12px; letter-spacing:.08em; padding:12px 14px}
+@media (max-width:520px){ #pad{grid-template-columns:repeat(3,50px); grid-template-rows:repeat(3,50px)} #hud{top:62px} body.push #hud{top:0} body.push #phase{bottom:calc(184px + env(safe-area-inset-bottom))} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="dmd" class="hid"><div id="dmd1">0</div><div id="dmd2"></div></div>
+<div id="pad" class="hid" role="group" aria-label="Move"><i></i><button type="button" data-d="u" aria-label="Up">&#9650;</button><i></i><button type="button" data-d="l" aria-label="Left">&#9664;</button><i></i><button type="button" data-d="r" aria-label="Right">&#9654;</button><i></i><button type="button" data-d="d" aria-label="Down">&#9660;</button><i></i></div>
+<div id="pad2" class="hid"><button type="button" id="undo">&#8630; UNDO</button><button type="button" id="restart">&#8635; RESTART</button></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">LIFESTYLE CRAZY</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="1">Neon Pinball</button><button type="button" data-mode="2">Speaker Push</button><button type="button" data-mode="1x" class="gold">Neon Pinball &#8734;</button><button type="button" data-mode="2x" class="gold">Speaker Push &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= LIFESTYLE CRAZY =================
+   Level 26 of JAVEDA, in the world of the cover: the night full of stars, the lasers crossing high over the black
+   car with the glowing pink hood and the rainbow rings round its headlights, the hooded rider on its roof with his
+   visor lit - and Jo's saucer as it is on this cover (the red dome with the "L", the pink lights, the purple beam).
+   Jo picked two, so the song has two parts:
+   PART 1 · NEON PINBALL: a real pinball table on the floor in front of the car. Score enough and the next table
+   comes in, harder - and so on.
+   PART 2 · SPEAKER PUSH (?part=2): push the speakers onto the glowing pads; the saucer can push but never pull.
+   Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
+   ENDLESS for each (?endless=1) once both are cleared. */
+
+// the song's grid, measured from the mp3 (SONG.md): 70 BPM (a 140 beat in half time), bar 0 at 0.422 s
+const GRID = { bpm:70, t0:0.422 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(56);                      // the outro: just the bass again (3:12)
+const LOOP = [barT(4), barT(44)];             // endless: the third hook is the first one again
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (the bass on its own), hook, loud (the verses)
+const SECTIONS = [[4, "calm"], [12, "hook"], [20, "loud"], [24, "calm"], [32, "hook"], [40, "loud"], [44, "calm"], [52, "hook"], [56, "loud"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+
+const PART = { "2":2 }[Q.get("part")] || 1;
+const ENDLESS = Q.get("endless") === "1";
+const NAMES = ["", "Neon Pinball", "Speaker Push"], IDS = ["", "lvl26", "lvl26b"];
+const CFG = ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 26" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 26" + (PART > 1 ? " Part " + PART : "") + " ∞" }
+  : { id:IDS[PART], title:NAMES[PART], by:"LEVEL 26" + (PART > 1 ? " PART " + PART : "") };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl26.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [110, 87.3, 130.8, 98];            // a dark club loop
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  slide:() => ac && (hiss(ac.currentTime, .1, .05, 0, 900), tone("sine", 300, 200, ac.currentTime, .1, .05, 1200)),
+  jump: () => ac && tone("sine", 520, 880, ac.currentTime, .1, .06, 4000),                          // a heart shot, a swipe
+  clink:() => ac && tone("triangle", 2400, 1800, ac.currentTime, .12, .05, 9000),                       // a card turns
+  clap: () => ac && (hiss(ac.currentTime, .12, .25, 0, 1500), hiss(ac.currentTime + .012, .1, .18, 0, 2200)),
+  flip: () => ac && (tone("square", 180, 90, ac.currentTime, .05, .05, 1500), hiss(ac.currentTime, .04, .08, 0, 2500)),        // a flipper's clack
+  bumper:() => ac && (tone("square", 520, 260, ac.currentTime, .09, .06, 3000), tone("sine", 130, 60, ac.currentTime, .12, .12, 600)),
+  sling:() => ac && tone("triangle", 900, 400, ac.currentTime, .08, .05, 5000),
+  drop: () => ac && (tone("square", 300, 120, ac.currentTime, .12, .06, 1800), hiss(ac.currentTime, .1, .1, 0, 900)),
+  launch:() => ac && (hiss(ac.currentTime, .35, .14, 0, 700), tone("sawtooth", 80, 400, ac.currentTime, .3, .06, 1200)),
+  lock: () => ac && [392, 523, 784, 1047, 1568].forEach((f, i) => tone("sine", f, f, ac.currentTime + i*.07, .35, .06, 7000)),
+  tick: () => ac && tone("triangle", 1200, 1200, ac.currentTime, .06, .05, 9000),                      // the count-in
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the cover: the night full of stars, the lasers crossing over the black car with the glowing pink hood and the rainbow headlights, the hooded rider on its roof; Jo's saucer ---------------- */
+let scene, cam, ren, clockR, crashed = null;
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+const soft = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.8, metalness:0, emissive:c, emissiveIntensity:e == null ? .15 : e });
+
+// far away: the night full of stars, a soft pink-purple haze low down
+const BACK = canvasTex(1024, 640, (x, w, h) => { let g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#02030c"); g.addColorStop(.6, "#070a22"); g.addColorStop(1, "#140a2a"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 900; i++){ const a = rnd(i*1.7); x.fillStyle = "rgba(" + (200 + Math.floor(rnd(i*2)*55)) + "," + (200 + Math.floor(rnd(i*3)*55)) + ",255," + (.2 + a*.8) + ")"; const r = a > .95 ? 1.8 : a > .8 ? 1.1 : .7; x.fillRect(rnd(i*3.3)*w, rnd(i*5.1)*h, r, r); }
+  const hz = x.createRadialGradient(w/2, h*.95, 0, w/2, h*.95, h*.75); hz.addColorStop(0, "rgba(180,60,200,.35)"); hz.addColorStop(1, "rgba(180,60,200,0)"); x.fillStyle = hz; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 6; i++){ const sx = rnd(i*9)*w, sy = rnd(i*11)*h*.7; x.strokeStyle = "rgba(255,255,255,.8)"; x.lineWidth = 1.2; x.beginPath(); x.moveTo(sx - 7, sy); x.lineTo(sx + 7, sy); x.moveTo(sx, sy - 7); x.lineTo(sx, sy + 7); x.stroke(); } });
+function fitBack(){ const a = innerWidth/innerHeight, img = 1024/640, r = Math.min(1, img/a); BACK.repeat.set(r*a/img, r); BACK.offset.set((1 - r*a/img)/2, 1 - r); }
+// the floor: black and glossy, a faint grid, the lasers' colours lying on it
+const GRIDTEX = canvasTex(256, 256, (x, w, h) => { x.fillStyle = "#06040e"; x.fillRect(0, 0, w, h); x.strokeStyle = "rgba(160,80,255,.18)"; x.lineWidth = 2; for (let i = 0; i <= 8; i++){ x.beginPath(); x.moveTo(i*w/8, 0); x.lineTo(i*w/8, h); x.moveTo(0, i*h/8); x.lineTo(w, i*h/8); x.stroke(); } }, [16, 16]);
+const LASER_COLS = [0xff2a4a, 0xb040ff, 0x2af0e0, 0xff40c0, 0x6a8aff, 0xffb02a];
+// a laser: a thin bright core and a wide soft glow, from a to b
+function laser(a, b, col){ const g = new THREE.Group(), d = b.clone().sub(a), L = d.length();
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(.05, .14, L, 8, 1, true), new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:.9, blending:THREE.AdditiveBlending, depthWrite:false }));
+  const glow = new THREE.Mesh(new THREE.CylinderGeometry(.3, 1.1, L, 12, 1, true), new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:.16, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
+  g.add(core); g.add(glow); g.position.copy(a).addScaledVector(d, .5); g.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), d.clone().normalize()); g.userData = { core, glow, col }; return g; }
+// the black car from the cover, nose to you: the glowing pink hood, the rainbow rings round the headlights; the hooded rider on the roof, his visor lit
+const HOOD = canvasTex(256, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#5a1a8a"); g.addColorStop(.5, "#e040c0"); g.addColorStop(1, "#ff70d8"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 500; i++){ x.fillStyle = "rgba(255," + (180 + Math.floor(rnd(i)*75)) + ",255," + rnd(i*3)*.9 + ")"; x.fillRect(rnd(i*5)*w, rnd(i*7)*h, 2, 2); } });
+function car(){ const g = new THREE.Group(), black = new THREE.MeshStandardMaterial({ color:0x0c0a16, roughness:.25, metalness:.7, emissive:0x1a0830, emissiveIntensity:.5 }),
+    glass = new THREE.MeshStandardMaterial({ color:0x1a1030, roughness:.05, metalness:.8, emissive:0x3a1060, emissiveIntensity:.5 }), hood = new THREE.MeshStandardMaterial({ map:HOOD, roughness:.3, metalness:.4, emissive:0xc040b0, emissiveIntensity:.55 });
+  const box = (m, w, h, d, x, y, z, rx) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); if (rx) b.rotation.x = rx; g.add(b); return b; };
+  box(black, 2.9, .75, 5.4, 0, .6, 0);                                   // the body
+  box(hood, 2.6, .12, 1.9, 0, 1.0, 1.55, .12);                           // the glowing hood
+  box(glass, 2.2, .7, 1.3, 0, 1.25, .1, -.55);                           // the windscreen
+  box(black, 2.3, .55, 1.6, 0, 1.35, -1.0);                              // the roof
+  box(glass, 2.2, .5, 1.0, 0, 1.15, -2.1, .6);                           // the back window
+  box(black, 3.0, .35, .5, 0, .45, 2.65);                                // the front bumper
+  const grille = box(new THREE.MeshBasicMaterial({ color:0x080610 }), 1.6, .32, .05, 0, .58, 2.93); 
+  const lip = box(new THREE.MeshBasicMaterial({ color:0xff4ac8 }), 1.7, .03, .06, 0, .76, 2.93);
+  for (const [x, z] of [[-1.35, 1.6], [1.35, 1.6], [-1.35, -1.7], [1.35, -1.7]]){ const w = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .38, 18), soft(0x08080c, .05)); w.rotation.z = Math.PI/2; w.position.set(x, .5, z); g.add(w); }
+  const rings = []; for (const s of [-1, 1]){ const r = new THREE.Mesh(new THREE.TorusGeometry(.22, .045, 8, 24), new THREE.MeshBasicMaterial({ color:0xff40c0 })); r.position.set(s*1.0, .78, 2.72); g.add(r); rings.push(r);
+    const l = new THREE.Mesh(new THREE.CircleGeometry(.14, 16), new THREE.MeshBasicMaterial({ color:0xffffff })); l.position.set(s*1.0, .78, 2.735); g.add(l);
+    const s2 = sprite(0xd0e8ff, 1.6, .7); s2.position.set(s*1.0, .78, 2.9); g.add(s2); }
+  // the rider, sitting on the roof, legs over the windscreen
+  const hoodie = new THREE.MeshStandardMaterial({ color:0x2a1a4a, roughness:.7, emissive:0x2a0a5a, emissiveIntensity:.5 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(.32, .42, .9, 12), hoodie); body.position.set(0, 2.05, -.9); g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(.3, 16, 12), hoodie); head.position.set(0, 2.72, -.88); g.add(head);
+  const visor = new THREE.Mesh(new THREE.SphereGeometry(.3, 16, 8, -Math.PI*.4, Math.PI*.8, Math.PI*.38, Math.PI*.22), new THREE.MeshBasicMaterial({ color:0xff6ad8 })); visor.position.copy(head.position); visor.scale.setScalar(1.04); g.add(visor);
+  for (const s of [-1, 1]){ const leg = new THREE.Mesh(new THREE.BoxGeometry(.24, .22, .9), hoodie); leg.position.set(s*.18, 1.7, -.25); leg.rotation.x = .5; g.add(leg); }
+  g.userData = { rings, visor }; return g; }
+function club(){ const g = new THREE.Group(); scene.add(g);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ map:GRIDTEX, roughness:.55, metalness:.35 })); floor.rotation.x = -Math.PI/2; floor.position.set(0, -.01, -10); g.add(floor);
+  const c = car(); c.position.set(0, 0, -7.2); g.add(c);
+  // the lasers, from high up at the back, crossing over the car
+  const lasers = []; [[-10, 26, -30, 3.5, 2, -8], [10, 26, -30, -3.5, 2, -8], [-5, 30, -34, 2.2, 1.5, -7], [5, 30, -34, -2.2, 1.5, -7], [-16, 24, -28, 4, 2.5, -8], [16, 24, -28, -4, 2.5, -8]].forEach(([ax, ay, az, bx, by, bz], i) => {
+    const l = laser(new THREE.Vector3(ax, ay, az), new THREE.Vector3(bx, by, bz), LASER_COLS[i % LASER_COLS.length]); g.add(l); lasers.push(l);
+    const pool = sprite(LASER_COLS[i % LASER_COLS.length], 2.6, .12); pool.position.set(bx, .05, bz); g.add(pool); l.userData.pool = pool; });
+  g.userData = { car:c, lasers }; return g; }
+function animClub(g, t, dt, beat){ const c = g.userData.car.userData;
+  c.rings.forEach((r, i) => r.material.color.setHSL((t*.25 + i*.5) % 1, 1, .6)); c.visor.material.color.setHSL(.85 + Math.sin(t)*.08, 1, .65);
+  g.userData.lasers.forEach((l, i) => { const on = .6 + .4*Math.sin(t*2 + i*1.3) + (beat ? .3 : 0); l.userData.core.material.opacity = .55*on; l.userData.glow.material.opacity = .12*on; l.userData.pool.material.opacity = .1*on; }); }
+/* ---- Jo's saucer as it is on this cover: the dark hull, the red dome with the "L", the pink rim lights, the purple beam ---- */
+const BADGE = (letter, bg) => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#f4ecff"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = bg; x.beginPath(); x.arc(64, 64, 50, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#1a1030"; x.font = "bold 76px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(letter, 66, 70); return new THREE.CanvasTexture(cv); };
+function buildSaucer(dc, gc, letter, rim){
+  dc = dc || 0xe8203a; gc = gc || 0x8a0a1a; rim = rim || 0xff4ac8;
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0x2a2440, roughness:.3, metalness:.6, emissive:0x141020, emissiveIntensity:.5 })); hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.28, .14, 32, 1, true), new THREE.MeshStandardMaterial({ color:0x1a1830, metalness:.8, roughness:.3 })));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:dc, roughness:.2, metalness:.3, emissive:gc, emissiveIntensity:.7 })); dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE(letter || "L", "#ffffff"), transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:i % 2 ? 0xff4ac8 : 0xffd0f0 })); l.position.set(Math.sin(a)*1.3, 0, Math.cos(a)*1.3); lights.add(l); }
+  const under = sprite(0xff6ad8, 3, .5); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color:0xb070ff, transparent:true, opacity:.3, depthWrite:false, side:THREE.DoubleSide })); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .22 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
+function boot(fov){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = BACK; fitBack(); scene.fog = new THREE.Fog(0x070a22, 30, 70);
+  cam = new THREE.PerspectiveCamera(fov, innerWidth/innerHeight, .1, 500);
+  scene.add(new THREE.HemisphereLight(0x8a7aff, 0x2a0a3a, .7));
+  const pink = new THREE.DirectionalLight(0xff70d0, .55); pink.position.set(-8, 12, -10); scene.add(pink);
+  const fill = new THREE.DirectionalLight(0xc0d0ff, .5); fill.position.set(3, 12, 10); scene.add(fill);
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); fitBack(); });
+}
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { const sec = section(t); p.className = sec === "hook" ? "ready" : ""; p.innerHTML = (sec === "hook" ? "HOOK &middot; DOUBLE POINTS" : G.tag) + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+
+/* ================= the two games ================= */
+const hookAt = t => section(t) === "hook";
+let down = false;
+let ME = null;
+const shuffle = (a, seed) => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd(seed + i*3.7)*(i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pickRay = new THREE.Raycaster();
+const onFloor = (cx, cy, h) => { pickRay.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const q = new THREE.Vector3(); return pickRay.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -(h || 0)), q) ? q : null; };
+let lastT = 0;
+const dtOf = t => { const d = clamp(t - lastT, 0, .05); lastT = t; return d; };
+const fmt0 = n => Math.max(0, Math.round(n)).toLocaleString("en");
+// on the beat double, in the hooks double again
+const mult = t => (onBeat(t) ? 2 : 1)*(hookAt(t) ? 2 : 1);
+const neon = (i, l) => new THREE.Color().setHSL(((i*.13) % 1 + 1) % 1, 1, l || .58);
+// floating score numbers and sparks
+const POP_TEX = {};
+const popTex = s => POP_TEX[s] || (POP_TEX[s] = canvasTex(256, 64, (x, w, h) => { x.font = "bold 40px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.lineWidth = 7; x.strokeStyle = "#1a0420"; x.strokeText(s, w/2, h/2 + 2); x.fillStyle = "#fff4c0"; x.fillText(s, w/2, h/2 + 2); }));
+function fx(root){ const pops = [...Array(10)].map(() => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ transparent:true, depthTest:false, opacity:0 })); s.scale.set(1.6, .4, 1); root.add(s); return s; }),
+    sparks = [...Array(40)].map(() => { const s = sprite(0xffffff, .25, 0); root.add(s); s.userData.v = new THREE.Vector3(); return s; });
+  let pi = 0, si = 0;
+  return { pop(p, txt){ const s = pops[pi++ % pops.length]; s.material.map = popTex(txt); s.material.needsUpdate = true; s.position.copy(p).setY(p.y + .5); s.material.opacity = 1; s.userData.life = .9; },
+    burst(p, col, n){ for (let i = 0; i < (n || 8); i++){ const s = sparks[si++ % sparks.length]; s.position.copy(p).setY(p.y + .2); s.material.color.setHex(col); s.material.opacity = 1; s.userData.life = .45;
+      const a = rnd(si*1.7)*Math.PI*2, v = 2 + rnd(si*2.3)*3; s.userData.v.set(Math.cos(a)*v, 1 + rnd(si)*2, Math.sin(a)*v); } },
+    tick(dt){ for (const s of pops) if (s.userData.life > 0){ s.userData.life -= dt; s.position.y += dt*.9; s.material.opacity = clamp(s.userData.life/.4, 0, 1); }
+      for (const s of sparks) if (s.userData.life > 0){ s.userData.life -= dt; s.position.addScaledVector(s.userData.v, dt); s.userData.v.y -= dt*6; s.material.opacity = clamp(s.userData.life/.45, 0, 1); } } }; }
+// the dot-matrix display over the table: the score, the table, what just happened
+const DMD = { set(a, b){ $("dmd").classList.remove("hid"); $("dmd1").textContent = a; $("dmd2").textContent = b || ""; }, msg(a, b, t){ this.m = [a, b]; this.mt = t || 1.4; }, mt:0 };
+
+/* =============== PART 1 · NEON PINBALL =============== */
+// A real table on the floor in front of the car, tilted up away from you. Launch the ball up the lane (on the beat:
+// a skill shot), flip it back up with the left and right of the screen (or the arrows). Pop bumpers, slingshots, the
+// drop targets on the left, the L-I-F-E lanes at the top (the flippers turn which ones are lit), and Jo's saucer
+// over the lock hole: get the ball in and its beam holds it - three locks and it's multiball. Score enough and
+// the next table comes in - quicker, meaner, a new colour: open outlanes, a bumper that moves, shorter flippers,
+// and on. A ball lost down the middle costs a heart; a new table gives one back.
+const PB_TARGETS = [25000, 45000, 70000, 100000, 140000, 190000];
+const PB = {
+  R:.15, CX:-.22, PZ:2.85,
+  setup(){ boot(48); this.w = club(); this.root = new THREE.Group(); scene.add(this.root);
+    this.T = new THREE.Group(); this.T.rotation.x = .09; this.T.position.set(0, .62, -.4); this.root.add(this.T); this.fx = fx(this.T);
+    this.w.userData.car.position.z = -10.2;                                    // the car parks behind the table's top end
+    ME = buildSaucer(); ME.scale.setScalar(.36); scene.add(ME); },
+  // the table for its number n: the walls, the toys, the art, all in its colour
+  build(n){ if (this.board) this.T.remove(this.board); const B = this.board = new THREE.Group(); this.T.add(B);
+    const hue = (.88 + n*.17) % 1, C = l => new THREE.Color().setHSL(hue, 1, l), C2 = l => new THREE.Color().setHSL((hue + .45) % 1, 1, l), cx = this.CX;
+    this.n = n; this.g = 9.5*Math.min(1.5, 1 + .07*n); this.lockLit = false; this.FL = Math.max(.88, 1.05 - .035*n); this.outlanes = n >= 2; this.mover = n >= 1; this.locksFor = n >= 1 ? 3 : 99;
+    this.kick = this.outlanes ? [true, true] : null;                     // a kickback in each outlane, lit to start with
+    // the playfield art
+    const art = canvasTex(512, 900, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#0a0418"); g.addColorStop(1, "#1a0630"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+      for (let i = 0; i < 260; i++){ x.fillStyle = "rgba(255,255,255," + rnd(i*3 + n)*.5 + ")"; x.fillRect(rnd(i*7 + n)*w, rnd(i*11 + n)*h, 1.5, 1.5); }
+      const hs = "hsl(" + Math.round(hue*360) + ",100%,", hs2 = "hsl(" + Math.round(((hue + .45) % 1)*360) + ",100%,";
+      x.strokeStyle = hs + "60%,.5)"; x.lineWidth = 3; for (let i = 0; i < 6; i++){ x.beginPath(); x.arc(w*.46, h*.32, 40 + i*26, Math.PI*1.1, Math.PI*1.9); x.stroke(); }
+      // the arrows up to the lanes and the lock
+      const arrow = (ax, ay, ang, col) => { x.save(); x.translate(ax, ay); x.rotate(ang); x.fillStyle = col; x.beginPath(); x.moveTo(0, -26); x.lineTo(18, 10); x.lineTo(6, 6); x.lineTo(6, 26); x.lineTo(-6, 26); x.lineTo(-6, 6); x.lineTo(-18, 10); x.closePath(); x.fill(); x.restore(); };
+      arrow(w*.3, h*.55, -.3, hs + "60%,.55)"); arrow(w*.66, h*.55, .35, hs2 + "60%,.55)"); arrow(w*.46, h*.6, 0, hs + "70%,.4)");
+      x.save(); x.translate(w*.46, h*.72); x.rotate(-.06); x.font = "bold 46px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.fillStyle = hs + "65%,.85)"; x.shadowColor = hs + "60%,1)"; x.shadowBlur = 18; x.fillText("LIFESTYLE", 0, 0); x.fillStyle = hs2 + "65%,.85)"; x.fillText("CRAZY", 0, 46); x.restore();
+      x.font = "bold 22px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.fillStyle = "rgba(255,255,255,.55)"; x.fillText("TABLE " + (n + 1), w*.46, h*.86); x.fillText("SHOOT AGAIN", w*.46, h*.965); });
+    const pf = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 9), new THREE.MeshStandardMaterial({ map:art, roughness:.35, metalness:.3, emissive:0xffffff, emissiveMap:art, emissiveIntensity:.45 })); pf.rotation.x = -Math.PI/2; pf.position.set(0, 0, -.1); B.add(pf);
+    // the glass edge: a dark cabinet round it
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(5.7, 1.4, 9.6), new THREE.MeshStandardMaterial({ color:0x0a0812, roughness:.4, metalness:.6, emissive:0x1a0830, emissiveIntensity:.4 })); cab.position.set(0, -.72, -.1); B.add(cab);
+    for (const [w, d, x, z] of [[5.8, .08, 0, -4.92], [5.8, .08, 0, 4.72], [.08, 9.7, -2.88, -.1], [.08, 9.7, 2.88, -.1]]){ const tr = new THREE.Mesh(new THREE.BoxGeometry(w, .06, d), new THREE.MeshBasicMaterial({ color:C(.55) })); tr.position.set(x, .02, z); B.add(tr); }   // a neon trim round the cabinet
+    // the walls
+    const segs = this.segs = [], arcR = 2.6, acz = -2.0;
+    const wall = (ax, az, bx, bz, kind, nx, nz) => { segs.push({ ax, az, bx, bz, kind:kind || "wall", nx, nz }); };
+    wall(-2.6, acz, -2.6, this.outlanes ? 4.4 : 1.75);
+    for (let i = 0; i < 14; i++){ const a0 = Math.PI - i/14*Math.PI, a1 = Math.PI - (i + 1)/14*Math.PI; wall(Math.cos(a0)*arcR, acz - Math.sin(a0)*arcR, Math.cos(a1)*arcR, acz - Math.sin(a1)*arcR); }
+    wall(2.6, acz, 2.6, 4.4); wall(2.15, 4.4, 2.15, -1.3); wall(2.15, 4.15, 2.6, 4.15);              // the plunger lane
+    wall(2.15, -1.3, 2.6, -1.9, "gate");                                                              // a one-way gate at its top
+    const L = cx - 1.1 - this.FL*.15, Rr = cx + 1.1 + this.FL*.15; this.piv = [L, Rr];
+    // the inlane guides down to the flippers; from table 2 the outlanes open outside them (a post half over each, till table 4)
+    if (this.outlanes){ wall(-2.15, 1.6, L - .04, this.PZ - .03); wall(1.71, 1.6, Rr + .04, this.PZ - .03); wall(-2.15, 1.6, -2.15, .85); wall(1.71, 1.6, 1.71, .85);
+      if (n < 4){ wall(-2.6, 2.7, -2.32, 2.7, "post"); wall(2.15, 2.7, 1.87, 2.7, "post"); } }
+    else { wall(-2.6, 1.75, L - .04, this.PZ - .03); wall(2.15, 1.75, Rr + .04, this.PZ - .03); }
+    // the slingshots: triangles above the flippers that kick from their front face only
+    const sling = s => { const X = x => s < 0 ? x : -.44 - x; wall(X(-1.5), 1.1, X(-1.08), 2.15, "sling", s < 0 ? .93 : -.93, -.37); wall(X(-1.5), 1.1, X(-1.5), 1.85); wall(X(-1.5), 1.85, X(-1.08), 2.15); };
+    sling(-1); sling(1);
+    // the top lanes: posts between them
+    this.lanes = [-1.42, -.62, .18, .98].map((lx, i) => ({ x:lx, on:false, ch:"LIFE"[i] }));
+    for (const px of [-1.82, -1.02, -.22, .58, 1.38]) wall(px, -3.95, px, -3.4, "post");
+    // draw them: chrome rails with a neon strip, rubber on the slings
+    const chrome = new THREE.MeshStandardMaterial({ color:0xd0d4e0, roughness:.15, metalness:.95, emissive:0x404050, emissiveIntensity:.5 }), strip = new THREE.MeshBasicMaterial({ color:C(.6) }), rubber = new THREE.MeshStandardMaterial({ color:0xfff0f8, emissive:C2(.5), emissiveIntensity:.8 });
+    for (const s of segs){ const len = Math.hypot(s.bx - s.ax, s.bz - s.az), ang = -Math.atan2(s.bz - s.az, s.bx - s.ax), mx = (s.ax + s.bx)/2, mz = (s.az + s.bz)/2;
+      if (s.kind === "gate"){ const m = new THREE.Mesh(new THREE.BoxGeometry(len, .06, .04), new THREE.MeshBasicMaterial({ color:0xfff0a0 })); m.position.set(mx, .2, mz); m.rotation.y = ang; B.add(m); continue; }
+      const r = new THREE.Mesh(new THREE.CylinderGeometry(s.kind === "post" ? .07 : .06, s.kind === "post" ? .07 : .06, len + .02, 8), s.kind === "sling" ? rubber : chrome); r.rotation.z = Math.PI/2; r.rotation.y = ang; r.position.set(mx, .16, mz); B.add(r);
+      if (s.kind !== "post"){ const st = new THREE.Mesh(new THREE.BoxGeometry(len, .02, .05), strip); st.position.set(mx, .26, mz); st.rotation.y = ang; B.add(st); } }
+    // the bumpers: a dark base, a lit cap, a ring that flashes
+    this.bumpers = [[cx - .85, -2.25], [cx + .85, -2.25], [cx, -1.2]].map(([bx, bz], i) => { const g = new THREE.Group(); g.position.set(bx, 0, bz); B.add(g);
+      g.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.42, .46, .14, 24), new THREE.MeshStandardMaterial({ color:0x18101e, roughness:.4, metalness:.5 })), 0, .07, 0));
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(.34, .38, .2, 24), new THREE.MeshStandardMaterial({ color:i === 2 ? C2(.6) : C(.6), emissive:i === 2 ? C2(.5) : C(.5), emissiveIntensity:.6, roughness:.3 })); cap.position.y = .32; g.add(cap);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(.42, .04, 8, 28), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:.3 })); ring.rotation.x = -Math.PI/2; ring.position.y = .2; g.add(ring);
+      return { x:bx, z:bz, x0:bx, r:.42, g, cap, ring, lit:0 }; });
+    // the drop targets on the left
+    this.drops = [-.55, 0, .55].map((dz, i) => { const m = new THREE.Mesh(new THREE.BoxGeometry(.1, .32, .42), new THREE.MeshStandardMaterial({ color:C2(.55), emissive:C2(.5), emissiveIntensity:.6 })); m.position.set(-2.5, .16, dz); B.add(m); return { x:-2.5, z:dz, m, down:false }; });
+    // the lock hole under Jo's saucer
+    this.lock = { x:cx + 1.05, z:-.15, r:.3 }; const hole = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ color:0x000000 })); hole.rotation.x = -Math.PI/2; hole.position.set(this.lock.x, .012, this.lock.z); B.add(hole);
+    this.lockRing = new THREE.Mesh(new THREE.TorusGeometry(.33, .035, 8, 28), new THREE.MeshBasicMaterial({ color:0xff40c0 })); this.lockRing.rotation.x = -Math.PI/2; this.lockRing.position.set(this.lock.x, .03, this.lock.z); B.add(this.lockRing);
+    // the lit letters of the lanes, the shoot-again light
+    this.laneLamps = this.lanes.map(l => { const m = new THREE.Mesh(new THREE.PlaneGeometry(.42, .42), new THREE.MeshBasicMaterial({ map:popTex(l.ch), transparent:true, opacity:.25 })); m.rotation.x = -Math.PI/2; m.position.set(l.x, .02, -3.05); m.scale.set(1.6, 1, 1); B.add(m); return m; });
+    this.saveLamp = sprite(0xffd060, 1.1, 0); this.saveLamp.position.set(-.22, .05, 3.95); B.add(this.saveLamp);
+    this.kickLamps = [-2.45, 1.95].map(x => { const s = sprite(0x2af0e0, .7, 0); s.position.set(x, .05, 2.2); B.add(s); return s; });
+    // the flippers: a tapered bat, white with a stripe in the table's colour
+    const fs = new THREE.Shape(); fs.absarc(0, 0, .15, Math.PI/2, Math.PI*1.5, false); fs.lineTo(this.FL, -.07); fs.absarc(this.FL, 0, .07, -Math.PI/2, Math.PI/2, false); fs.lineTo(0, .15);
+    const fgeo = new THREE.ExtrudeGeometry(fs, { depth:.2, bevelEnabled:false }); fgeo.rotateX(Math.PI/2); fgeo.translate(0, .22, 0);
+    this.flips = [-1, 1].map((s, i) => { const g = new THREE.Group(); g.position.set(this.piv[i], .0, this.PZ); B.add(g);
+      const m = new THREE.Mesh(fgeo, new THREE.MeshStandardMaterial({ color:0xfaf6ff, roughness:.3, emissive:C(.5), emissiveIntensity:.35 })); g.add(m); if (s > 0) m.scale.x = -1;
+      return { s, g, a:.5, prev:.5, up:false, hold:0 }; });
+    // the plunger
+    this.plunger = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, .6, 10), chrome); this.plunger.rotation.x = Math.PI/2; this.plunger.position.set(2.38, .16, 4.0); B.add(this.plunger);
+    for (const p of this.ballMs || []) this.T.remove(p.m), this.T.remove(p.glow);
+    this.ballMs = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.SphereGeometry(this.R, 20, 14), new THREE.MeshStandardMaterial({ color:0xf4f4ff, roughness:.12, metalness:.55, emissive:0x6a6aa0, emissiveIntensity:.45 })); const glow = sprite(0xd8d0ff, .8, .5); this.T.add(m); this.T.add(glow); return { m, glow }; });
+  },
+  reset(){ Object.assign(S, { table:0, base:0, balls:0, hits:0, lifes:0, locks:0, tables:0, k:1, last:null, saveT:0, saveArm:true, multi:false });
+    lastT = 0; this.balls = []; this.build(0); this.load(); this.locked = null; DMD.set("0", "TABLE 1 · " + fmt0(PB_TARGETS[0]) + " FOR THE NEXT"); },
+  target(n){ return PB_TARGETS[Math.min(n, PB_TARGETS.length - 1)] + Math.max(0, n - PB_TARGETS.length + 1)*60000; },
+  info(){ return "TABLE " + (S.table + 1) + " · " + fmt0(S.score - S.base) + " / " + fmt0(this.target(S.table)); }, warn(){ return this.balls.some(b => b.p.y > 2.4); },
+  // a ball in the plunger lane, waiting for the launch
+  load(){ this.balls.push({ p:new THREE.Vector2(2.38, 3.9), v:new THREE.Vector2(), lane:true, ready:true, wait:0, still:0 }); },
+  launch(){ const b = this.balls.find(x => x.ready); if (!b) return false; const skill = onBeat(S.t); b.ready = false; b.v.set(0, -(13.5 + (skill ? 1.5 : rnd(S.k++)*1.2))); b.skill = skill; if (S.saveArm){ S.saveArm = false; S.saveT = S.t + 6; } sfx.launch();
+    if (skill){ this.score(2500, { x:2.38, z:-2.6 }, 0xffd060, "SKILL SHOT"); DMD.msg("SKILL SHOT", "+" + fmt0(2500*mult(S.t))); } return true; },
+  hitSeg(b, s, rad, vx, vz, e){ const dx = s.bx - s.ax, dz = s.bz - s.az, L2 = dx*dx + dz*dz, u = clamp(((b.p.x - s.ax)*dx + (b.p.y - s.az)*dz)/L2, 0, 1), cx = s.ax + dx*u, cz = s.az + dz*u;
+    let nx = b.p.x - cx, nz = b.p.y - cz; const d = Math.hypot(nx, nz), r = this.R + (rad || 0); if (d >= r || d < 1e-6) return -1; nx /= d; nz /= d;
+    b.p.x = cx + nx*r; b.p.y = cz + nz*r; const rv = (b.v.x - (vx || 0))*nx + (b.v.y - (vz || 0))*nz;
+    if (rv < 0){ b.v.x -= (1 + e)*rv*nx; b.v.y -= (1 + e)*rv*nz; } b.nx = nx; b.nz = nz; return u; },
+  fseg(f, a){ const px = this.piv[f.s < 0 ? 0 : 1], pz = this.PZ; return { ax:px, az:pz, bx:px - f.s*Math.cos(a)*this.FL, bz:pz + Math.sin(a)*this.FL }; },
+  score(n, p, col, txt){ const k = n*mult(S.t); S.score += k; S.hits++; S.got++; S.combo++; if (col != null) this.fx.burst(new THREE.Vector3(p.x, 0, p.z), col, 8); this.fx.pop(new THREE.Vector3(p.x, 0, p.z), txt || "+" + fmt0(k)); S.last = new THREE.Vector3(p.x, 0, p.z); },
+  step(b, dt){ b.v.y += this.g*dt; b.p.x += b.v.x*dt; b.p.y += b.v.y*dt;
+    if (b.lane && b.p.y < -2.9) b.lane = false;
+    for (const s of this.segs){ if (s.kind === "gate" && (b.lane || b.v.y < 0)) continue;
+      const u = this.hitSeg(b, s, s.kind === "post" ? .07 : .05, 0, 0, s.kind === "sling" ? .4 : .45);
+      if (u >= 0 && s.kind === "sling" && u > .12 && u < .88 && b.nx*s.nx + b.nz*s.nz > 0){ b.v.x += b.nx*4.5; b.v.y += b.nz*4.5; this.score(30, { x:b.p.x, z:b.p.y }, 0xfff0f8); sfx.sling(); } }
+    for (const f of this.flips){ const s = this.fseg(f, f.a), sp = this.fseg(f, f.prev), u = this.hitSeg(b, s, .1, 0, 0, .2);
+      if (u >= 0 && f.a !== f.prev){ b.v.x += (s.bx - sp.bx)*u/dt*.95; b.v.y += (s.bz - sp.bz)*u/dt*.95; } }
+    for (const k of this.bumpers){ const dx = b.p.x - k.x, dz = b.p.y - k.z, d = Math.hypot(dx, dz); if (d < k.r + this.R){ const nx = dx/d, nz = dz/d; b.p.x = k.x + nx*(k.r + this.R); b.p.y = k.z + nz*(k.r + this.R);
+        const rv = b.v.x*nx + b.v.y*nz; if (rv < 0){ b.v.x -= 2*rv*nx; b.v.y -= 2*rv*nz; } b.v.x += nx*4.2; b.v.y += nz*4.2; k.lit = .25; this.score(100, k, 0xffffff); sfx.bumper(); } }
+    for (const t of this.drops){ if (t.down) continue; if (Math.abs(b.p.y - t.z) < .21 + this.R*.5 && b.p.x - this.R < t.x + .05 && b.p.x > t.x - .2){ b.p.x = t.x + .05 + this.R; if (b.v.x < 0) b.v.x = -b.v.x*.6;
+        t.down = true; this.score(750, t, 0xffd060); sfx.drop();
+        if (this.drops.every(x => x.down)){ const k = 2000*(this.n + 1); this.score(k, { x:-1.6, z:0 }, null, "BANK +" + fmt0(k*mult(S.t))); this.lightLock("DROP BANK"); sfx.big(); setTimeout(() => this.drops.forEach(x => { x.down = false; }), 1200); } } }
+    // the lanes at the top: through one lights its letter
+    if (!b.lane && b.p.y > -3.75 && b.p.y < -3.55) for (const l of this.lanes) if (Math.abs(b.p.x - l.x) < .3 && !l.on && b.v.y > 0){ l.on = true; this.score(500, { x:l.x, z:-3.6 }, 0xff40c0);
+      if (this.lanes.every(x => x.on)){ S.lifes++; const k = 2000*(this.n + 1); this.score(k, { x:-.22, z:-3.2 }, null, "L-I-F-E +" + fmt0(k*mult(S.t))); this.lightLock("L - I - F - E"); if (this.kick) this.kick = [true, true]; sfx.big(); setTimeout(() => this.lanes.forEach(x => { x.on = false; }), 700); } }
+    // the lock: slow enough over the hole and the beam takes it
+    const lx = b.p.x - this.lock.x, lz = b.p.y - this.lock.z; if (!this.locked && this.lockLit && S.t > (this.lockCool || 0) && Math.hypot(lx, lz) < .3 && b.v.length() < 8){ this.locked = { b, t:1.3 }; b.v.set(0, 0); S.locks++; this.lockLit = false;
+      const k = 3000*(this.n + 1); this.score(k, this.lock, 0xb070ff, "BEAM LOCK +" + fmt0(k*mult(S.t))); DMD.msg("BEAM LOCK", S.locks % this.locksFor === 0 ? "MULTIBALL!" : (this.locksFor - S.locks % this.locksFor) + " MORE FOR MULTIBALL"); sfx.lock();
+      if (S.locks % this.locksFor === 0 && this.balls.length < 2){ this.load(); setTimeout(() => this.launch(), 600); if (S.hearts < HEARTS){ S.hearts++; this.fx.pop(new THREE.Vector3(-.22, 0, 1), "EXTRA BALL"); } } }
+    // a kickback fires the ball back up its outlane, once (L-I-F-E lights them again)
+    if (this.kick && b.p.y > 2.0 && b.p.y < 3.4){ const side = b.p.x < -2.15 ? 0 : b.p.x > 1.71 && b.p.x < 2.15 ? 1 : -1;
+      if (side >= 0 && this.kick[side] && b.v.y > 0){ this.kick[side] = false; b.v.set(0, -13); DMD.msg("KICKBACK", "lit again by L-I-F-E"); sfx.launch(); this.fx.burst(new THREE.Vector3(b.p.x, 0, b.p.y), 0x2af0e0, 10); } }
+    const sp = b.v.length(); if (sp > 19) b.v.multiplyScalar(19/sp); },
+  // the drop bank or L-I-F-E lights the lock under the saucer
+  lightLock(what){ this.lockLit = true; DMD.msg(what, "THE LOCK IS LIT - UNDER THE SAUCER", 2); },
+  // the flippers turn the lit lanes round (so you can aim for the dark one)
+  turnLanes(s){ const on = this.lanes.map(l => l.on); if (on.every(x => x) || !on.some(x => x)) return; this.lanes.forEach((l, i) => { l.on = on[(i - s + 4) % 4]; }); },
+  flip(s, up){ for (const f of this.flips) if (f.s === s){ if (up && !f.up){ sfx.flip(); this.turnLanes(s); } f.up = up; } },
+  // a finger down on the left or the right half: launch if a ball's waiting, else that flipper (one finger each side)
+  hold(s, on){ if (on){ if (!this.launch()) this.flip(s, true); } else this.flip(s, false); },
+  press(){ if (!this.launch()){ this.flip(-1, true); this.flip(1, true); for (const f of this.flips) f.hold = .2; } },
+  nextTable(){ S.tables++; S.table++; S.base = S.score; this.balls = []; this.locked = null; this.build(S.table); this.load(); S.saveArm = true;
+    if (S.hearts < HEARTS){ S.hearts++; } sfx.big(); say("TABLE " + (S.table + 1), "harder - and a ball back", 1.6, "g"); DMD.msg("TABLE " + (S.table + 1), fmt0(this.target(S.table)) + " FOR THE NEXT", 2.2); },
+  update(dt, t){
+    for (const f of this.flips){ const want = (f.s < 0 ? keys.left : keys.right) || f.up || f.hold > 0; if (f.hold > 0){ f.hold -= dt; if (f.hold <= 0) f.up = false; } f.target = want ? -.48 : .5; }
+    if (this.locked){ this.locked.t -= dt; const b = this.locked.b; b.p.set(this.lock.x, this.lock.z); if (this.locked.t <= 0){ b.v.set(-4.2, 3.2); b.p.x -= .4; b.p.y += .2; this.locked = null; this.lockCool = S.t + 4; } }
+    const n = 10; for (let i = 0; i < n; i++){ for (const f of this.flips){ f.prev = f.a; f.a += clamp(f.target - f.a, -26*dt/n, 26*dt/n); }
+      for (const b of this.balls) if (!b.ready && !(this.locked && this.locked.b === b)) this.step(b, dt/n); }
+    for (const b of this.balls){ if (b.ready){ b.wait += dt; if (b.wait > 4){ this.launch(); DMD.msg("AUTO LAUNCH", ""); } continue; }
+      // ball search: a ball that has stopped dead somewhere gets a nudge back into play
+      if (this.locked && this.locked.b === b) continue; b.still = b.v.length() < .4 && b.p.y < 2.1 ? b.still + dt : 0;   // (down by the flippers a ball at rest is the player's own)
+      if (b.still > 2){ b.still = 0; b.v.set((PB.CX - b.p.x)*2 + (rnd(S.k++) - .5)*2, -4); DMD.msg("BALL SEARCH", ""); } }
+    // a ball down the middle (or an outlane)
+    for (const b of this.balls.slice()) if (b.p.y > 4.45 && b.p.x < 2.15){ this.balls.splice(this.balls.indexOf(b), 1); this.fx.burst(new THREE.Vector3(b.p.x, 0, 4.3), 0xff3a5a, 12);
+      if (this.balls.length) { DMD.msg("BALL LOST", "keep the other one up"); continue; }
+      if (S.t < S.saveT){ say("BALL SAVED", "", 1, "g"); DMD.msg("BALL SAVED", ""); this.load(); continue; }
+      S.balls++; S.combo = 0; S.saveArm = true; if (hurt("DRAINED", "Hold the left or the right of the screen to flip - flip just before the ball reaches the flipper's tip. Each table gets harder.")) return; this.load(); }
+    if (S.score - S.base >= this.target(S.table)) this.nextTable();
+    if (DMD.mt > 0) DMD.mt -= dt;
+    const r = this.balls.find(b => b.ready); DMD.set(fmt0(S.score), DMD.mt > 0 ? DMD.m.join("  ·  ") : r ? "TAP TO LAUNCH · ON THE BEAT: SKILL SHOT" : "TABLE " + (S.table + 1) + " · " + fmt0(Math.max(0, this.target(S.table) - (S.score - S.base))) + " TO THE NEXT");
+  },
+  render(t){ const dt = dtOf(t), beat = onBeat(t);
+    for (const f of this.flips) f.g.rotation.y = f.s < 0 ? -f.a : f.a;
+    this.ballMs.forEach((bm, i) => { const b = this.balls[i]; bm.m.visible = bm.glow.visible = !!b; if (b){ bm.m.position.set(b.p.x, this.R + (this.locked && this.locked.b === b ? .25 + Math.sin(t*12)*.03 : .01), b.p.y); bm.glow.position.copy(bm.m.position); } });
+    if (this.mover){ const k = this.bumpers[2]; k.x = k.x0 + Math.sin(t*1.3)*.9; k.g.position.x = k.x; }
+    for (const k of this.bumpers){ if (k.lit > 0) k.lit -= dt; k.cap.material.emissiveIntensity = .6 + (k.lit > 0 ? 1.4 : 0) + (beat ? .25 : 0); k.cap.position.y = .32 - (k.lit > 0 ? .06 : 0); k.ring.material.opacity = k.lit > 0 ? .95 : .3; }
+    for (const d of this.drops) d.m.position.y += ((d.down ? -.2 : .16) - d.m.position.y)*Math.min(1, dt*14);
+    this.lanes.forEach((l, i) => { this.laneLamps[i].material.opacity = l.on ? 1 : .22 + (beat ? .08 : 0); });
+    this.lockRing.material.color.setHSL((t*.4) % 1, 1, this.lockLit ? .6 : .12); this.kickLamps.forEach((k, i) => { k.material.opacity = this.kick && this.kick[i] ? .5 + (beat ? .3 : 0) : 0; }); this.lockRing.scale.setScalar(this.lockLit && beat ? 1.15 : 1); this.saveLamp.material.opacity = S.t < S.saveT ? (Math.sin(t*10) > 0 ? .8 : .2) : 0;
+    this.plunger.position.z = 4.0 + (this.balls.some(b => b.ready) ? .12 + Math.sin(t*4)*.04 : 0);
+    this.fx.tick(dt); animClub(this.w, t, dt, beat);
+    // Jo's saucer hangs over the lock; its beam reaches down when it holds a ball
+    const lp = this.T.localToWorld(new THREE.Vector3(this.lock.x, 0, this.lock.z)); ME.position.set(lp.x, lp.y + 1.5 + Math.sin(t*2)*.06, lp.z); ME.rotation.set(0, t*1.2, 0); animSaucer(ME, t, beat);
+    const bm = ME.userData.beam; bm.visible = true; bm.scale.set(.5, 1.1, .5); bm.position.y = -1.9; bm.material.opacity = this.locked ? .55 + (beat ? .2 : 0) : .2;
+    if (cam.aspect < .8){ cam.position.set(-.1, 14.5, 8.6); cam.lookAt(-.1, .4, -.9); } else { cam.position.set(-.1, 8.6, 8.4); cam.lookAt(-.1, .3, -1.3); }
+  }
+};
+
+/* =============== PART 2 · SPEAKER PUSH =============== */
+// The dance floor, the speakers off, glowing pads where they belong. The saucer pushes them about - it can push but
+// never pull, one at a time. The arrows round the saucer show where it can go; an orange one means it'll push a
+// speaker. Every speaker on a pad and the party starts: the next floor. A speaker stuck in a corner can't come out -
+// UNDO (or RESTART). Out of time costs a heart and the floor starts again.
+const FLOORS = [
+  { rows:["#####", "#.$@#", "#   #", "#####"], moves:1 },
+  { rows:["#######", "#@ $ .#", "#######"], moves:3 },
+  { rows:["######", "# @  #", "# $ ##", "#   .#", "######"], moves:5 },
+  { rows:["######", "# $ .#", "# $ .#", "#@ # #", "######"], moves:8 },
+  { rows:["######", "#.   #", "# $$ #", "#. @ #", "######"], moves:9 },
+  { rows:["######", "##   #", "# . $#", "#  $ #", "# #@.#", "######"], moves:10 },
+  { rows:["#######", "#.#   #", "#  .$ #", "#   $ #", "#  ##@#", "#######"], moves:12 },
+  { rows:["######", "#    #", "# #@ #", "# $* #", "# .* #", "#    #", "######"], moves:16 },
+  { rows:["#######", "#     #", "##    #", "##    #", "##$$  #", "#+$.. #", "#######"], moves:17 },
+  { rows:["########", "#      #", "# .**$@#", "#      #", "#####  #", "    ####"], moves:23 },
+  { rows:[" #######", " #     #", " # .$. #", "## $@$ #", "#  .$. #", "#      #", "########"], moves:25 },
+  { rows:["#######", "#   .##", "#$$   #", "#.#@$##", "#    ##", "##   .#", "#######"], moves:18 },
+  { rows:["####  ", "# .#  ", "#  ###", "#*@  #", "#  $ #", "#  ###", "####  "], moves:33 },
+  { rows:["  ####   ", "###  ####", "#     $ #", "# #  #$ #", "# . .#@ #", "#########"], moves:41 }
+];
+const PAD_TEX = canvasTex(128, 128, (x, w, h) => { x.strokeStyle = "#ffd060"; x.lineWidth = 7; x.setLineDash([16, 10]); x.strokeRect(10, 10, w - 20, h - 20); x.setLineDash([]);
+  x.fillStyle = "rgba(255,208,96,.25)"; x.fillRect(10, 10, w - 20, h - 20); x.fillStyle = "#ffd060"; x.fillRect(w*.36, h*.28, w*.28, h*.44); x.fillStyle = "#3a2a08"; x.beginPath(); x.arc(w/2, h*.6, w*.09, 0, Math.PI*2); x.fill(); x.beginPath(); x.arc(w/2, h*.38, w*.05, 0, Math.PI*2); x.fill(); });
+const ARROW_TEX = c => canvasTex(64, 64, (x, w, h) => { x.fillStyle = c; x.beginPath(); x.moveTo(w/2, 8); x.lineTo(w - 10, h*.55); x.lineTo(w*.66, h*.55); x.lineTo(w*.66, h - 8); x.lineTo(w*.34, h - 8); x.lineTo(w*.34, h*.55); x.lineTo(10, h*.55); x.closePath(); x.fill(); });
+const ARROW_GO = ARROW_TEX("#ffffff"), ARROW_PUSH = ARROW_TEX("#ffa02a");
+const PUSH = {
+  setup(){ boot(48); this.w = club(); this.root = new THREE.Group(); scene.add(this.root); this.meshes = []; this.fx = fx(this.root);
+    this.arrows = [0, 1, 2, 3].map(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map:ARROW_GO, transparent:true, depthWrite:false })); m.rotation.x = -Math.PI/2; this.root.add(m); return m; });
+    ME = buildSaucer(); ME.scale.setScalar(.36); scene.add(ME); },
+  reset(){ Object.assign(S, { lv:0, floors:0, moves:0, pushes:0, k:1, nextAt:0, last:null, deadline:0, lvMoves:0 }); lastT = 0; this.make(0); },
+  info(){ return "FLOOR " + (S.lv + 1) + " · MOVES " + S.lvMoves + " · BEST " + this.par; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
+  // the floors go round again mirrored once they're all done
+  floor(i){ const F = FLOORS[i % FLOORS.length], flip = Math.floor(i/FLOORS.length) % 2; const W = Math.max(...F.rows.map(r => r.length)); return { rows:F.rows.map(r => { r = r.padEnd(W, " "); return flip ? [...r].reverse().join("") : r; }), moves:F.moves }; },
+  make(t, again){ for (const m of this.meshes) this.root.remove(m); this.meshes = [];
+    const F = this.floor(S.lv), L = F.rows, H = L.length, W = L[0].length; this.par = F.moves; this.W = W; this.H = H; this.walls = new Set(); this.goals = new Set(); this.boxes = []; this.hist = [];
+    L.forEach((row, y) => [...row].forEach((ch, x) => { const k = y*W + x; if (ch === "#") this.walls.add(k); if (".*+".includes(ch)) this.goals.add(k); if ("$*".includes(ch)) this.boxes.push(k); if ("@+".includes(ch)) this.p = k; }));
+    this.cell = Math.min(5.6/W, 5.0/H);
+    const c = this.cell, inside = this.reach(), stage = new THREE.Mesh(new THREE.BoxGeometry(W*c + .3, .3, H*c + .3), new THREE.MeshStandardMaterial({ color:0x0c0816, roughness:.4, metalness:.6 })); stage.position.set(0, -.13, -.4); this.root.add(stage); this.meshes.push(stage);
+    for (let k = 0; k < W*H; k++){ const pos = this.at(k), x = k % W, y = Math.floor(k/W);
+      if (inside.has(k)){ const tile = new THREE.Mesh(new THREE.BoxGeometry(c*.96, .06, c*.96), new THREE.MeshStandardMaterial({ color:(x + y) % 2 ? 0x3a2a5a : 0x2a1e48, roughness:.3, metalness:.3, emissive:neon(x + y*2, .45), emissiveIntensity:.32 })); tile.position.copy(pos).setY(.03); tile.userData.base = .18; this.root.add(tile); this.meshes.push(tile); }
+      else if (this.walls.has(k) && [1, -1, W, -W].some(d => inside.has(k + d) && Math.abs(((k + d) % W) - x) <= 1)){
+        // a wall: a dark block, its edges traced in neon
+        const geo = new THREE.BoxGeometry(c*.98, .32, c*.98), m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:0x0e0818, roughness:.5, metalness:.4, emissive:0x1a0830, emissiveIntensity:.5 })); m.position.copy(pos).setY(.16); this.root.add(m); this.meshes.push(m);
+        const edge = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color:0xb040ff })); edge.position.copy(m.position); this.root.add(edge); this.meshes.push(edge); }
+      if (this.goals.has(k)){ const g = new THREE.Mesh(new THREE.PlaneGeometry(c*.9, c*.9), new THREE.MeshBasicMaterial({ map:PAD_TEX, transparent:true, depthWrite:false })); g.rotation.x = -Math.PI/2; g.position.copy(pos).setY(.07); this.root.add(g); this.meshes.push(g); } }
+    // the speakers: a black cabinet, a woofer and a tweeter facing you, a light strip on top
+    this.boxM = this.boxes.map(() => { const g = new THREE.Group(); const body = new THREE.Mesh(new THREE.BoxGeometry(c*.74, c*.92, c*.7), new THREE.MeshStandardMaterial({ color:0x2e2840, roughness:.4, metalness:.3, emissive:0x1a1030, emissiveIntensity:.5 })); body.position.y = c*.46; g.add(body);
+      const cone = (y, r) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(c*r, c*r*.7, c*.06, 20), new THREE.MeshStandardMaterial({ color:0x0a0a10, roughness:.6, emissive:0xff40c0, emissiveIntensity:.15 })); m.rotation.x = Math.PI/2; m.position.set(0, c*y, c*.36); g.add(m); return m; };
+      const woof = cone(.32, .25), tw = cone(.72, .11); const strip = new THREE.Mesh(new THREE.BoxGeometry(c*.74, c*.04, c*.7), new THREE.MeshBasicMaterial({ color:0xff40c0 })); strip.position.y = c*.93; g.add(strip);
+      const edge = new THREE.LineSegments(new THREE.EdgesGeometry(body.geometry), new THREE.LineBasicMaterial({ color:0x2af0e0 })); edge.position.copy(body.position); g.add(edge); g.userData.edge = edge;
+      const beam = new THREE.Mesh(new THREE.CylinderGeometry(c*.3, c*.42, 4, 16, 1, true), new THREE.MeshBasicMaterial({ color:0xffd060, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide })); beam.position.y = 2.6; g.add(beam);
+      const x = sprite(0xff2a3a, c*1.1, 0); x.position.y = c*1.3; g.add(x);
+      g.userData = { woof, tw, strip, beam, x, edge }; this.root.add(g); this.meshes.push(g); return g; });
+    this.boxM.forEach((g, i) => g.position.copy(this.at(this.boxes[i])));
+    S.lvMoves = 0; S.nextAt = 0; S.allow = BAR*(5 + this.par*.55)*(1.1 - .2*clamp(LV(), 0, 1.4)); S.deadline = t + S.allow;
+    if (!again) say("FLOOR " + (S.lv + 1), this.boxes.length + (this.boxes.length > 1 ? " speakers" : " speaker") + " · best " + this.par + " moves" + (S.lv === 0 ? " · push it onto the pad" : ""), 1.8, "g"); },
+  at(k){ return new THREE.Vector3((k % this.W - (this.W - 1)/2)*this.cell, 0, (Math.floor(k/this.W) - (this.H - 1)/2)*this.cell - .4); },
+  reach(){ const seen = new Set([this.p]), q = [this.p]; while (q.length){ const k = q.pop(); for (const d of [1, -1, this.W, -this.W]){ const n = k + d; if (n >= 0 && n < this.W*this.H && !this.walls.has(n) && !seen.has(n) && Math.abs((n % this.W) - (k % this.W)) <= 1){ seen.add(n); q.push(n); } } } return seen; },
+  // what a move would do: 0 blocked, 1 walk, 2 push
+  can(d){ const n = this.p + d; if (this.walls.has(n)) return 0; if (this.boxes.includes(n)){ const m = n + d; return this.walls.has(m) || this.boxes.includes(m) ? 0 : 2; } return 1; },
+  // a speaker in a corner (two walls touching, not on a pad) can never come out
+  stuck(k){ if (this.goals.has(k)) return false; const w = d => this.walls.has(k + d); return (w(-1) || w(1)) && (w(-this.W) || w(this.W)); },
+  move(d){ if (S.nextAt || S.done) return false; const c = this.can(d); if (!c){ sfx.tick(); return false; }
+    const n = this.p + d; this.hist.push([this.p, this.boxes.slice()]);
+    if (c === 2){ const bi = this.boxes.indexOf(n), m = n + d; this.boxes[bi] = m; S.pushes++; sfx.slide();
+      if (this.goals.has(m)){ S.got++; S.combo++; const k = 100*mult(S.t); S.score += k; sfx.good(S.combo); this.fx.burst(this.at(m), 0xffd060, 12); this.fx.pop(this.at(m), "+" + fmt0(k)); }
+      else if (this.stuck(m)){ say("STUCK IN A CORNER", "it can't come out - UNDO", 1.4, "x"); sfx.bad(); } }
+    this.p = n; S.moves++; S.lvMoves++; S.last = this.at(n);
+    if (this.boxes.every(b => this.goals.has(b))){ const extra = Math.max(0, this.par + 4 - S.lvMoves)*30, bonus = 400 + this.par*25 + extra + Math.round(Math.max(0, S.deadline - S.t)*20);
+      S.score += bonus; S.floors++; S.lv++; sfx.big(); say(S.lvMoves <= this.par ? "PERFECT - THE PARTY'S ON" : "THE PARTY'S ON", "+" + fmt0(bonus), 1.6, "g"); S.nextAt = S.t + BEAT*4; this.party = 1; }
+    return true; },
+  undo(){ const h = this.hist.pop(); if (!h || S.nextAt) return; [this.p, this.boxes] = h; S.lvMoves = Math.max(0, S.lvMoves - 1); S.combo = 0; sfx.slide(); },
+  restart(){ if (S.nextAt) return; this.make(S.t, true); S.deadline = S.t + S.allow; sfx.slide(); },
+  press(){ this.undo(); },
+  dirTo(k){ const dx = (k % this.W) - (this.p % this.W), dy = Math.floor(k/this.W) - Math.floor(this.p/this.W); if (Math.abs(dx) + Math.abs(dy) !== 1) return 0; return dx ? dx : dy*this.W; },
+  // a tap next to the saucer moves it; a swipe moves it; a tap further away walks it there round the speakers
+  touchStart(cx, cy){ this.sw = { x:cx, y:cy }; },
+  touchEnd(cx, cy){ const s = this.sw; this.sw = null; if (!s) return; const dx = cx - s.x, dy = cy - s.y;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 30) this.tapCell(cx, cy); else this.move(Math.abs(dx) > Math.abs(dy) ? Math.sign(dx) : Math.sign(dy)*this.W); },
+  tapCell(cx, cy){ const q = onFloor(cx, cy, 0); if (!q) return; const c = Math.round(q.x/this.cell + (this.W - 1)/2), r = Math.round((q.z + .4)/this.cell + (this.H - 1)/2);
+    if (c < 0 || r < 0 || c >= this.W || r >= this.H) return; const k = r*this.W + c, d = this.dirTo(k); if (d){ this.move(d); return; }
+    const prev = new Map([[this.p, -1]]), q2 = [this.p]; while (q2.length){ const a = q2.shift(); if (a === k) break; for (const dd of [1, -1, this.W, -this.W]){ const n = a + dd; if (!prev.has(n) && !this.walls.has(n) && !this.boxes.includes(n) && n >= 0 && n < this.W*this.H){ prev.set(n, a); q2.push(n); } } }
+    if (!prev.has(k)) return; const path = []; for (let a = k; a !== this.p; a = prev.get(a)) path.unshift(a); for (const a of path) this.move(a - this.p); },
+  update(dt, t){
+    if (S.nextAt && t > S.nextAt) this.make(t);
+    if (!S.nextAt && t > S.deadline){ if (hurt("OUT OF TIME", "Push every speaker onto a glowing pad. The saucer can push but never pull - keep speakers out of the corners. UNDO takes a move back.")) return; this.make(t, true); }
+  },
+  render(t){ const dt = dtOf(t), beat = onBeat(t), c = this.cell; if (this.party > 0) this.party -= dt*.4;
+    this.boxes.forEach((k, i) => { const m = this.boxM[i], u = m.userData, on = this.goals.has(k), stuck = !on && this.stuck(k); m.position.lerp(this.at(k), Math.min(1, dt*16));
+      u.woof.material.emissiveIntensity = on ? .9 + (beat ? .6 : 0) : 0; u.tw.material.emissiveIntensity = on ? .8 : 0; u.woof.material.emissive.setHex(on ? 0xffd060 : 0xff40c0);
+      u.strip.material.color.setHex(on ? 0xffd060 : 0xff40c0); u.edge.material.color.setHex(on ? 0xffd060 : stuck ? 0xff2a3a : 0x2af0e0); u.beam.material.opacity = on ? .12 + (beat ? .1 : 0) + (this.party > 0 ? .3 : 0) : 0; m.scale.y = 1 + (on && beat ? .05 : 0); u.x.material.opacity = stuck ? .6 + Math.sin(t*8)*.3 : 0; });
+    // the arrows round the saucer: white where it can go, orange where it'll push a speaker
+    const dirs = [1, -1, this.W, -this.W], rot = [-Math.PI/2, Math.PI/2, Math.PI, 0];
+    dirs.forEach((d, i) => { const a = this.arrows[i], can = S.nextAt ? 0 : this.can(d); a.visible = !!can; if (!can) return; a.material.map = can === 2 ? ARROW_PUSH : ARROW_GO; a.scale.setScalar(c*.55);
+      const p = this.at(this.p + d); a.position.set(p.x, can === 2 ? c*1.05 : .1, p.z); a.rotation.set(-Math.PI/2, 0, rot[i]); a.material.opacity = .55 + (beat ? .35 : 0); });
+    this.fx.tick(dt); animClub(this.w, t, dt, beat);
+    const p = this.at(this.p); ME.position.lerp(new THREE.Vector3(p.x, c*.75 + Math.sin(t*2)*.04, p.z), Math.min(1, dt*16)); ME.rotation.set(0, t*1.2, 0); animSaucer(ME, t, beat);
+    const bm = ME.userData.beam; bm.visible = true; bm.scale.set(.5, .35, .5); bm.position.y = -.75;
+    // the camera fits the floor: as big as it can be between the score at the top and the buttons at the bottom/sides
+    const tall = cam.aspect < .8, el = tall ? .98 : .74, sx = this.W*c + .5, sz = this.H*c + .5, th = Math.tan(cam.fov*Math.PI/360);
+    const d = Math.max(5.5, (sx/2)/(th*cam.aspect*(tall ? .94 : .6)), (sz*Math.sin(el) + c*.9*Math.cos(el))/2/(th*(tall ? .6 : .56)));
+    cam.position.set(0, Math.sin(el)*d, -.4 + Math.cos(el)*d); cam.lookAt(0, tall ? -.2 : .2, tall ? -.25 : -.1);
+  }
+};
+// the arrows (or W A S D) move straight away, however quick the tap
+addEventListener("keydown", e => { if (G !== PUSH || !live() || e.repeat) return; const d = { ArrowLeft:-1, a:-1, ArrowRight:1, d:1, ArrowUp:-PUSH.W, w:-PUSH.W, ArrowDown:PUSH.W, s:PUSH.W }[e.key]; if (d){ e.preventDefault(); PUSH.move(d); } if (e.key === "z" || e.key === "Backspace") PUSH.undo(); if (e.key === "r") PUSH.restart(); });
+
+/* ---------------- the games on the song's clock ----------------
+   The two games are the ones from prototypes.html, unchanged at heart; this gives each what the level
+   asks of it: a name, the line under GET READY, how hard it is right now (L, 0 → 1 over the song; endless
+   keeps climbing), and begin() for the song or an endless window. */
+const LV = () => G && G.L ? G.L(S.t) : 0;
+function asPart(E, name, tag, hint){
+  return Object.assign(E, { name, tag, hint, start:0,
+    begin(t0, t1, L0, L1, cont){ this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1; if (cont) return; this.start = t0; this.reset(); },
+    L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+    get st(){ return S; } });
+}
+asPart(PB, "NEON PINBALL", "NEON PINBALL", "hold the left or right of the screen to flip");
+asPart(PUSH, "SPEAKER PUSH", "SPEAKER PUSH", "every speaker onto a glowing pad");
+const PARTS = [null, PB, PUSH];
+
+/* ---------------- the run ---------------- */
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = PARTS[PART]; camInit = false; G.root.visible = true; showSetting(true); END.root.visible = false; END.on = false; ME.visible = true; ME.scale.setScalar(G.meScale);
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+  $("msg").className = "";
+}
+// endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+const LOOPS = CFG.endless;
+function songT(){
+  if (LOOPS && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The cover: the game slides away and the camera comes down low in front of the black car - the rider on its roof,
+   the lasers crossing over him, the rainbow rings round the headlights - and Jo's saucer settles in front of the
+   grille with its purple beam, like on the cover. */
+const END = { out:8.5, root:null };
+for (const P of PARTS) if (P) P.meScale = .36;
+function showSetting(on){}
+function buildEnd(){ END.root = new THREE.Group(); scene.add(END.root); END.glow = sprite(0xc080ff, 2.4, 0); END.glow.position.set(0, .05, -2.4); END.root.add(END.glow); }
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+// while playing, each game puts the camera where it wants it; the ending glides it to the cover
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  if (S.end >= 0){
+    const portrait = cam.aspect < .8;
+    if (S.end < 1){ $("flash").style.background = "#f0d8ff"; $("flash").style.opacity = Math.min(1, S.end/.8); G.render(t); }
+    else {
+      if (!END.on){ END.on = true; G.root.visible = false; END.root.visible = true; camInit = true; LOOK.copy(portrait ? new THREE.Vector3(0, .2, -1.3) : new THREE.Vector3(0, -.4, -1)); for (const id of ["dmd", "pad", "pad2"]) $(id).classList.add("hid"); }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      // the saucer settles in front of the car's grille, its purple beam on the floor
+      const u = clamp((S.end - 1.2)/3, 0, 1), e = 1 - Math.pow(1 - u, 3);
+      ME.visible = true; ME.scale.setScalar(.5); ME.rotation.set(-.1, Math.sin(t*1.5)*.2, 0); animSaucer(ME, t, beat);
+      const b = ME.userData.beam; b.visible = true; b.scale.set(.5, .5, .5); b.position.y = -.95;
+      ME.position.set(0, 1.0 + (1 - e)*3 + Math.sin(t*2)*.04, -2.4);
+      END.glow.material.opacity = .45*e*(beat ? 1.2 : 1); animClub(G.w, t, dt, beat);
+      CAMP.set(0, portrait ? 2.4 : 1.6, portrait ? 7.5 : 4.6); CAML.set(0, portrait ? 2.2 : 1.9, -8);
+      const k = Math.min(1, dt*1.1);
+      cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+      if (S.end > 2.4 && !S.saidEnd){ S.saidEnd = true; say("LIFESTYLE CRAZY", "LAZY JO", 4.5, "t"); }
+    }
+  } else {
+    G.render(t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.disabled = false; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off"; for (const id of ["dmd", "pad", "pad2"]) $(id).classList.add("hid");
+  const got = S.got;
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:got });
+  const stat = PART === 1 ? "table " + (S.table + 1) + " · " + S.hits + " hits · " + S.locks + " beam locks" : S.floors + " floors partying · " + S.moves + " moves";
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> under the lasers &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "LIFESTYLE CRAZY";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = ["", "Tables down.<br>Part 2, <b>Speaker Push</b>, is open.", "Every speaker on its pad.<br>Level 26 cleared: <b>Neon Pinball &#8734;</b> and <b>Speaker Push &#8734;</b> are open in the gold Endless list."][PART];
+}
+
+/* ---------------- input ---------------- */
+// Neon Pinball: a finger on the left or right half holds that flipper (a finger each side works); the first tap
+// launches. Speaker Push: tap next to the saucer, swipe, or the arrow pad; UNDO and RESTART.
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+const onPads = e => e.target.closest && e.target.closest("#pad, #pad2");
+const fingers = new Map();
+addEventListener("pointerdown", e => { if (veilUp() || !live() || onPads(e)) return; e.preventDefault();
+  if (G === PB){ const s = e.clientX < innerWidth/2 ? -1 : 1; fingers.set(e.pointerId, s); PB.hold(s, true); }
+  else PUSH.touchStart(e.clientX, e.clientY); }, { passive:false });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, e => {
+  if (G === PB){ const s = fingers.get(e.pointerId); fingers.delete(e.pointerId); if (s && ![...fingers.values()].includes(s)) PB.hold(s, false); }
+  else if (live() && !onPads(e)) PUSH.touchEnd(e.clientX, e.clientY); });
+document.querySelectorAll("#pad button").forEach(b => b.addEventListener("pointerdown", e => { e.preventDefault(); if (!live()) return; const W = PUSH.W; PUSH.move({ u:-W, d:W, l:-1, r:1 }[b.dataset.d]); }));
+$("undo").addEventListener("pointerdown", e => { e.preventDefault(); if (live()) PUSH.undo(); });
+$("restart").addEventListener("pointerdown", e => { e.preventDefault(); if (live()) PUSH.restart(); });
+const KEYMAP = { ArrowLeft:"left", a:"left", z:"left", ArrowRight:"right", d:"right", m:"right" };
+addEventListener("keydown", e => { if (veilUp() || !live()) return; if (e.key === " "){ e.preventDefault(); if (!e.repeat && G.press) G.press(); return; }
+  if (G === PB){ const k = KEYMAP[e.key]; if (k){ e.preventDefault(); if (!keys[k]) PB.flip(k === "left" ? -1 : 1, true); keys[k] = true; } } });
+addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k && G === PB){ keys[k] = false; PB.flip(k === "left" ? -1 : 1, false); } });
+
+function startGame(){
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? (PART === 1 ? "the tables never stop" : "the floors never stop") : G.hint, 3, CFG.endless ? "g" : ""); $("dmd").classList.toggle("hid", PART !== 1); $("pad").classList.toggle("hid", PART !== 2); $("pad2").classList.toggle("hid", PART !== 2); document.body.classList.toggle("push", PART === 2); document.body.classList.toggle("push", PART === 2);
+}
+$("go").addEventListener("click", () => {
+  startGame();
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = "LIFESTYLE CRAZY" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = "The night from the cover - the stars, the lasers crossing over the black car with the glowing pink hood and the rider on its roof - and Jo's saucer." +
+  [" <b>Part 1 · Neon Pinball:</b> a real pinball table on the floor in front of the car.", " <b>Part 2 · Speaker Push:</b> the dance floor, the speakers off, the pads where they belong."][PART - 1] +
+  (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = [
+  "<b>Tap</b> to launch (on the beat: a skill shot), then <b>hold the left or the right</b> of the screen for each flipper (or the arrows). Bumpers, slingshots, the drop targets, the L-I-F-E lanes (the flippers turn the lit ones), and the lock under Jo's saucer - three locks for multiball. Score enough and the <b>next table</b> comes in, harder every time. A lost ball costs a heart (3); a new table gives one back.",
+  "Push every speaker onto a glowing pad - the saucer can <b>push</b> but never pull, one speaker at a time. <b>Tap</b> next to it, swipe, or use the <b>arrows</b>; white arrows show where it can go, orange ones where it'll push. A speaker stuck in a corner can't come out: <b>UNDO</b> or <b>RESTART</b>. Out of time costs a heart (3)."][PART - 1];
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
+      if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+PARTS[PART].setup(); buildEnd();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

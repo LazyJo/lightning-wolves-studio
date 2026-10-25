@@ -143,8 +143,8 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
    ENDLESS for each (?endless=1) once all four are cleared. */
 
-// the song's grid, measured from the mp3 (SONG.md): 67 BPM (a 134 beat in half time), bar 0 at 0.018 s
-const GRID = { bpm:67, t0:.018 };
+// the song's grid, measured from the mp3 (SONG.md): 67 BPM (a 134 beat in half time), bar 0 at -0.01 s
+const GRID = { bpm:67, t0:-.0095 };
 const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
 const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
 const END_AT = barT(48);                      // the song fades out (2:52)

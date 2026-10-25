@@ -36,6 +36,7 @@ client/public/javeda/
     ├── down-for-me.html    # Level 24: Sunset Swap - pictures from the cover cut into squares, swap them back (+ endless)
     ├── real-love.html      # Level 25: Heart Flow (link the pairs), Part 2 Crab Sweeper (?part=2), Part 3 Starlight (?part=3, lights out), Part 4 Shell Sudoku (?part=4) (+ endless each)
     ├── lifestyle-crazy.html # Level 26: Neon Pinball (a new, harder table each time you hit the target), Part 2 Speaker Push (?part=2, Sokoban) (+ endless each)
+    ├── be-alright.html     # Level 27: Untangle (drag the birds until no strings cross), Part 2 Bird Code (?part=2, a code breaker) (+ endless each)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

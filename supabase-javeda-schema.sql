@@ -92,7 +92,9 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl25c', 25, 'STARLIGHT',   'lvl25b', 0, 120000, 1200, 75, 300, 48),  -- Part 3: ~57k for a bot that knows the taps
   ('lvl25d', 25, 'SHELL SUDOKU', 'lvl25c', 0, 66000, 660, 75, 300, 49),  -- Part 4: ~30k for a bot that places a picture a beat
   ('lvl26', 26, 'LIFESTYLE CRAZY', 'lvl25d', 0, 130000, 1300, 75, 500, 50),  -- Neon Pinball: ~59k (table 2) for a bot that flips when the ball is out along a flipper (3:12)
-  ('lvl26b', 26, 'SPEAKER PUSH', 'lvl26', 0, 66000, 660, 75, 300, 51)  -- Part 2: ~30k for a bot that takes the shortest way, a move a beat (13 floors)
+  ('lvl26b', 26, 'SPEAKER PUSH', 'lvl26', 0, 66000, 660, 75, 300, 51),  -- Part 2: ~30k for a bot that takes the shortest way, a move a beat (13 floors)
+  ('lvl27', 27, 'BE ALRIGHT', 'lvl26b', 0, 100000, 1000, 75, 500, 52),  -- Untangle: ~45k (8 flocks) for a bot that puts a bird where it belongs every beat (1:30)
+  ('lvl27b', 27, 'BIRD CODE', 'lvl27', 0, 22000, 220, 75, 300, 53)  -- Part 2: ~10k (6 codes) for a bot that plays an order that fits every answer so far
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -161,6 +163,8 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl25dx', 25, 'SHELL SUDOKU', 'lvl25d', 0, 50000000, 2200, 0, 0, 156, true, 350),  -- ~180/s
   ('lvl26x', 26, 'NEON PINBALL', 'lvl26b', 0, 50000000, 4900, 0, 0, 157, true, 800),  -- ~410/s
   ('lvl26bx', 26, 'SPEAKER PUSH', 'lvl26b', 0, 50000000, 2000, 0, 0, 158, true, 320),  -- ~160/s
+  ('lvl27x', 27, 'UNTANGLE', 'lvl27b', 0, 50000000, 7400, 0, 0, 159, true, 1200),  -- ~610/s
+  ('lvl27bx', 27, 'BIRD CODE', 'lvl27b', 0, 50000000, 1300, 0, 0, 160, true, 210),  -- ~107/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
   ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 200, true, 40)
@@ -351,7 +355,9 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl25c' THEN g.best_score END), 0)::INT AS lvl25c_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl25d' THEN g.best_score END), 0)::INT AS lvl25d_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl26' THEN g.best_score END), 0)::INT AS lvl26_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl26b' THEN g.best_score END), 0)::INT AS lvl26b_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl26b' THEN g.best_score END), 0)::INT AS lvl26b_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl27' THEN g.best_score END), 0)::INT AS lvl27_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl27b' THEN g.best_score END), 0)::INT AS lvl27b_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;

@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>BE ALRIGHT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#0a2350; color:#fff0e8; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px 30px; z-index:3; background:linear-gradient(180deg,#06204aa8,#06204a40 60%,transparent); display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#fff6f0; line-height:1; text-shadow:0 0 4px #06204a, 0 0 12px #06204a}
+#ml{font-size:11px; letter-spacing:.18em; color:#ffe8c8; margin-top:3px; text-shadow:0 0 4px #06204a, 0 0 8px #06204a}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#e0306a; text-shadow:0 0 8px #000; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ffc94a22; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#ffc94a,#ffc94a)}
+.bl{font-size:11px; letter-spacing:.18em; color:#ffe8c8; text-align:right; text-shadow:0 0 4px #06204a, 0 0 8px #06204a}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#fff3c8; margin-top:8px; text-align:right; text-shadow:0 0 3px #000, 0 0 8px #000, 0 0 16px #000}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#ffc83a}
+/* the other player, top middle: both of you and your pairs */
+#vs{position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:3; pointer-events:none; text-align:center; font-family:Bungee,sans-serif; color:#fff6f0;
+  background:#06204acc; border:1.5px solid #ffc83a55; border-radius:8px; padding:6px 12px; min-width:150px}
+#vs .nm{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#ffe8c8; max-width:40vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#vs .row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+#vs .row + .row{margin-top:3px}
+#vs .lt{font-size:16px; letter-spacing:.12em; color:#ffc83a44}
+#vs .lt b{color:#ff6a8a; font-weight:400}
+#vs .row.up .nm{color:#ffe08a}
+#vs .row.up .nm::before{content:"\25B6  "}
+#phase{position:fixed; left:0; right:0; bottom:0; padding:26px 0 calc(14px + env(safe-area-inset-bottom)); background:linear-gradient(0deg,#06204a99,transparent); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#ffc94a; text-shadow:0 0 3px #06204a, 0 0 10px #06204a, 0 2px 0 #06204a}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#fff6f0; margin-top:2px; text-shadow:0 0 3px #06204a, 0 0 8px #06204a}
+#phase.ready{color:#ffe08a}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:26px; opacity:0; transition:opacity .25s; color:#ffc94a; text-shadow:0 0 3px #06204a, 0 0 12px #06204a, 0 2px 0 #06204a; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff6a7a}
+#msg.g{color:#ffc83a}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#f4f8ff; font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:.18em; text-shadow:0 0 24px #ffc83a, 0 0 60px #5aa0ff, 0 2px 5px #0a2350}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#fff6f0; margin-top:6px; text-shadow:0 0 3px #06204a, 0 0 8px #06204a}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto; color:#f4f0ff;
+  background:radial-gradient(50% 30% at 50% 20%, #3a7ad833 0%, transparent 70%), radial-gradient(120% 80% at 50% 25%, #1a4a8a 0%, #0a2350 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #3a2a10 0%, #120c04 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#ffe8c8; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#fff6f0; text-shadow:0 0 22px #ffc83a, 0 0 50px #5aa0ff}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#fff0e8; font-size:17px; max-width:42ch}
+#veil b{color:#ffc94a}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffe08a,#5aa0ff); color:#2a1a00; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ffc94a66}
+#go:disabled{opacity:.45; cursor:default; box-shadow:none}
+#go.alt{background:none; color:#ffc94a; border:1.5px solid #ffc94a; font-size:15px; padding:12px 30px; box-shadow:none}
+.alt2{font-family:"Barlow Condensed",sans-serif; font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:14px; background:none; color:#fff0e8;
+  border:1.5px solid #fff0e866; border-radius:4px; padding:9px 18px; cursor:pointer}
+#net{font-size:16px; color:#fff0e8; max-width:42ch; min-height:20px}
+#net b{color:#ffe08a}
+#net .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:#3ad07a; margin-right:6px; vertical-align:1px}
+#net.wait .dot{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+#veil small{color:#ffe8c8; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#fff0e8; background:none; border:1.5px solid #ffc94a55}
+#parts button[aria-pressed="true"]{color:#fff; border-color:#ffc94a; background:#ffc94a22}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ffc94a; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ffc94a99; background:#ffc94a14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (max-width:520px){ #vs{top:auto; bottom:calc(58px + env(safe-area-inset-bottom))} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} #net.wait .dot{animation:none} }
+@media (max-width:520px){ #hud{top:0} }
+/* the coach: what to do right now, in words */
+#coach{position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:3; pointer-events:none; text-align:center; width:max-content; max-width:min(680px,62vw);
+  background:#06204ae0; border:1.5px solid #8fd8ff66; border-radius:10px; padding:7px 14px 8px; font-size:16px; line-height:1.35; color:#f4f9ff; box-shadow:0 4px 18px #06204a55}
+#coach big{font-family:Bungee,sans-serif; font-size:22px; color:#ffc94a; vertical-align:-2px}
+#coach b{color:#ffe08a}
+#coach .s{font-size:13.5px; color:#cfe4ff}
+#coach .r{color:#ff7a8a; font-weight:700}
+#coach .bl{color:#7ac0ff; font-weight:700}
+.gd,.bd{display:inline-block; width:11px; height:11px; border-radius:50%; border:1.5px solid #fff; margin:0 4px 0 2px; vertical-align:-1px}
+.gd{background:#ffc020} .bd{background:#2a86ff}
+@media (max-width:640px){ #coach{top:auto; bottom:calc(58px + env(safe-area-inset-bottom)); max-width:calc(100vw - 20px); font-size:14px; padding:6px 10px} #coach big{font-size:18px} #coach .s{font-size:12px} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="phase" class="off"></div>
+<div id="coach" class="hid"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">BE ALRIGHT</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="1">Untangle</button><button type="button" data-mode="2">Bird Code</button><button type="button" data-mode="1x" class="gold">Untangle &#8734;</button><button type="button" data-mode="2x" class="gold">Bird Code &#8734;</button>
+  </div>
+  <button id="go" type="button">Start</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* ================= BE ALRIGHT =================
+   Level 27 of JAVEDA, in the world of the cover: high up in the sky, an island of cloud over the cloud sea, the car
+   made of cloud coming up through it, the birds, the deep blue overhead - and Jo's saucer as it is on this cover
+   (silver and white, the pearl dome with the "LJ", a red light on the rim, the white beam).
+   Jo picked two, so the song has two parts:
+   PART 1 · UNTANGLE: birds tied together with strings of light - drag them until no strings cross.
+   PART 2 · BIRD CODE (?part=2): crack the order the birds are hiding in; the beads say how close each try is.
+   Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
+   ENDLESS for each (?endless=1) once both are cleared. */
+
+// the song's grid, measured from the mp3 (SONG.md): 85 BPM, bar 0 at -0.006 s
+const GRID = { bpm:85, t0:-0.006 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(32);                      // the outro: the beat drops out and it fades (1:30)
+const LOOP = [barT(8), barT(32)];             // endless: the second hook runs back into the first
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: calm (the intro, the breakdown with no bass), hook, loud (the verse)
+const SECTIONS = [[8, "calm"], [12, "hook"], [20, "loud"], [28, "calm"], [32, "hook"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+
+const PART = { "2":2 }[Q.get("part")] || 1;
+const ENDLESS = Q.get("endless") === "1";
+const NAMES = ["", "Untangle", "Bird Code"], IDS = ["", "lvl27", "lvl27b"];
+const CFG = ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 27" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 27" + (PART > 1 ? " Part " + PART : "") + " ∞" }
+  : { id:IDS[PART], title:NAMES[PART], by:"LEVEL 27" + (PART > 1 ? " PART " + PART : "") };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl27.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [130.8, 98, 110, 87.3];            // a bright loop, up in the sky
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  slide:() => ac && (hiss(ac.currentTime, .1, .05, 0, 900), tone("sine", 300, 200, ac.currentTime, .1, .05, 1200)),
+  jump: () => ac && tone("sine", 520, 880, ac.currentTime, .1, .06, 4000),                          // a heart shot, a swipe
+  clink:() => ac && tone("triangle", 2400, 1800, ac.currentTime, .12, .05, 9000),                       // a card turns
+  clap: () => ac && (hiss(ac.currentTime, .12, .25, 0, 1500), hiss(ac.currentTime + .012, .1, .18, 0, 2200)),
+  flip: () => ac && (tone("square", 180, 90, ac.currentTime, .05, .05, 1500), hiss(ac.currentTime, .04, .08, 0, 2500)),        // a flipper's clack
+  bumper:() => ac && (tone("square", 520, 260, ac.currentTime, .09, .06, 3000), tone("sine", 130, 60, ac.currentTime, .12, .12, 600)),
+  sling:() => ac && tone("triangle", 900, 400, ac.currentTime, .08, .05, 5000),
+  drop: () => ac && (tone("square", 300, 120, ac.currentTime, .12, .06, 1800), hiss(ac.currentTime, .1, .1, 0, 900)),
+  launch:() => ac && (hiss(ac.currentTime, .35, .14, 0, 700), tone("sawtooth", 80, 400, ac.currentTime, .3, .06, 1200)),
+  lock: () => ac && [392, 523, 784, 1047, 1568].forEach((f, i) => tone("sine", f, f, ac.currentTime + i*.07, .35, .06, 7000)),
+  tick: () => ac && tone("triangle", 1200, 1200, ac.currentTime, .06, .05, 9000),                      // the count-in
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900)
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+/* ---------------- the cover: high over a sea of clouds in the deep blue sky, the car made of cloud coming through it, the birds; Jo's saucer ---------------- */
+let scene, cam, ren, clockR, crashed = null;
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const sprite = (color, size, op, normal) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:normal ? THREE.NormalBlending : THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+const soft = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.8, metalness:0, emissive:c, emissiveIntensity:e == null ? .15 : e });
+
+// far away: the deep blue sky, paler down to the bright haze over the clouds, thin wisps, birds
+const BACK = canvasTex(1024, 640, (x, w, h) => { let g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#0b3a86"); g.addColorStop(.35, "#1f62b8"); g.addColorStop(.62, "#5d9be0"); g.addColorStop(.82, "#b4d6f6"); g.addColorStop(1, "#eef7ff"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  const hz = x.createRadialGradient(w/2, h*.86, 0, w/2, h*.86, w*.5); hz.addColorStop(0, "rgba(255,255,255,.75)"); hz.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = hz; x.fillRect(0, 0, w, h);
+  // the high wisps, long and thin
+  for (let i = 0; i < 26; i++){ const cx = rnd(i*3.1)*w, cy = h*(.05 + rnd(i*4.7)*.55), rw = 60 + rnd(i*5.3)*180, rh = 4 + rnd(i*6.1)*10; const e = x.createRadialGradient(cx, cy, 0, cx, cy, rw);
+    e.addColorStop(0, "rgba(255,255,255," + (.18 + rnd(i*7.7)*.25) + ")"); e.addColorStop(1, "rgba(255,255,255,0)"); x.save(); x.translate(cx, cy); x.scale(1, rh/rw); x.translate(-cx, -cy); x.fillStyle = e; x.fillRect(cx - rw, cy - rw, rw*2, rw*2); x.restore(); }
+  // the birds far off, left and right, like on the cover
+  x.strokeStyle = "rgba(10,30,60,.75)"; x.lineWidth = 1.6;
+  for (let i = 0; i < 22; i++){ const side = i % 2 ? .82 : .14, bx = w*(side + (rnd(i*8.3) - .5)*.16), by = h*(.18 + rnd(i*9.1)*.16), s = 3 + rnd(i*2.9)*4;
+    x.beginPath(); x.moveTo(bx - s, by - s*.4); x.quadraticCurveTo(bx - s*.4, by - s*.6, bx, by); x.quadraticCurveTo(bx + s*.4, by - s*.6, bx + s, by - s*.4); x.stroke(); } });
+function fitBack(){ const a = innerWidth/innerHeight, img = 1024/640, r = Math.min(1, img/a); BACK.repeat.set(r*a/img, r); BACK.offset.set((1 - r*a/img)/2, 1 - r); }
+// the cloud sea: soft white, faint blue in the hollows
+const CLOUDTEX = canvasTex(512, 512, (x, w, h) => { x.fillStyle = "#e6eef9"; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 260; i++){ const cx = rnd(i*1.3)*w, cy = rnd(i*2.7)*h, r = 12 + rnd(i*3.9)*46, dark = rnd(i*5.5) < .45; const e = x.createRadialGradient(cx, cy, 0, cx, cy, r);
+    e.addColorStop(0, dark ? "rgba(150,175,215,.22)" : "rgba(255,255,255,.75)"); e.addColorStop(1, dark ? "rgba(150,175,215,0)" : "rgba(255,255,255,0)"); x.fillStyle = e;
+    for (const [ox, oy] of [[0, 0], [w, 0], [-w, 0], [0, h], [0, -h]]) x.fillRect(cx - r + ox, cy - r + oy, r*2, r*2); } }, [10, 10]);
+// fluffy: for the puffs and the car made of cloud
+const FLUFF = canvasTex(256, 256, (x, w, h) => { x.fillStyle = "#f4f7fc"; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 1400; i++){ const v = 205 + Math.floor(rnd(i*1.9)*50); x.fillStyle = "rgba(" + v + "," + (v + 5) + "," + Math.min(255, v + 18) + "," + (.25 + rnd(i*2.3)*.4) + ")"; const r = 1 + rnd(i*3.1)*3; x.beginPath(); x.arc(rnd(i*4.7)*w, rnd(i*6.1)*h, r, 0, Math.PI*2); x.fill(); } }, [2, 2]);
+const PUFF_M = new THREE.MeshStandardMaterial({ color:0xeef3fb, roughness:1, metalness:0, map:FLUFF, emissive:0xb8c8e4, emissiveIntensity:.14 });
+const PUFF_G = new THREE.SphereGeometry(1, 18, 12);
+// many puffs in one draw: [[x, y, z, sx, sy, sz], ...]
+function puffs(list, mat){ const m = new THREE.InstancedMesh(PUFF_G, mat || PUFF_M, list.length), o = new THREE.Object3D();
+  list.forEach((p, i) => { o.position.set(p[0], p[1], p[2]); o.scale.set(p[3], p[4] == null ? p[3] : p[4], p[5] == null ? p[3] : p[5]); o.rotation.set(0, p[0]*1.7, 0); o.updateMatrix(); m.setMatrixAt(i, o.matrix); }); m.instanceMatrix.needsUpdate = true; return m; }
+// the car made of cloud, nose to you, coming up through the cloud sea: a car's shape, every edge soft with fluff
+function cloudCar(){ const g = new THREE.Group(), fluff = [],
+    glass = new THREE.MeshStandardMaterial({ color:0x8aa2c4, roughness:.5, metalness:0, emissive:0x3a5a88, emissiveIntensity:.25 });
+  // a box of cloud, its edges fuzzed with little puffs
+  const fuzz = (w, h, d, x, y, z, rx) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), PUFF_M); b.position.set(x, y, z); b.rotation.x = rx || 0; g.add(b);
+    const e = new THREE.Euler(rx || 0, 0, 0), n = Math.round((w + h + d)*24);
+    for (let i = 0; i < n; i++){ const k = i % 12, u = rnd(x*7 + y*3 + z + i*1.37) - .5, sx = k & 1 ? 1 : -1, sy = k & 2 ? 1 : -1;
+      const v = k < 4 ? new THREE.Vector3(u*w, sy*h/2, sx*d/2) : k < 8 ? new THREE.Vector3(sx*w/2, u*h, sy*d/2) : new THREE.Vector3(sx*w/2, sy*h/2, u*d);
+      v.applyEuler(e); fluff.push([x + v.x, y + v.y, z + v.z, .06 + rnd(i*2.9 + x)*.08]); } return b; };
+  fuzz(3.0, .8, 5.3, 0, .55, 0);                                          // the body
+  fuzz(2.8, .22, 1.9, 0, 1.0, 1.55, .07);                                 // the hood
+  fuzz(2.4, .72, 2.3, 0, 1.3, -.65);                                      // the cabin
+  fuzz(3.05, .32, .45, 0, .35, 2.5);                                      // the bumper
+  for (const s of [-1, 1]) fuzz(.22, .14, .3, s*1.36, 1.38, .52);         // the mirrors
+  const pane = (w, h, x, y, z, rx, ry) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), glass); m.position.set(x, y, z); m.rotation.set(rx || 0, ry || 0, 0, "YXZ"); g.add(m); return m; };
+  pane(2.1, .95, 0, 1.36, .58, -.95);                                     // the windscreen, leaning back
+  pane(2.0, .7, 0, 1.36, -1.86, .9, Math.PI);                             // the back window
+  for (const s of [-1, 1]) pane(1.9, .42, s*1.215, 1.38, -.6, 0, s*Math.PI/2);  // the side windows
+  const lamp = new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0xeaf4ff, emissiveIntensity:.9, roughness:.4 });
+  for (const s of [-1, 1]){ const l = new THREE.Mesh(new THREE.BoxGeometry(.62, .15, .06), lamp); l.position.set(s*.95, .82, 2.66); g.add(l); const gl = sprite(0xffffff, 1.2, .5); gl.position.set(s*.95, .82, 2.8); g.add(gl); }
+  const grille = new THREE.Mesh(new THREE.BoxGeometry(1.3, .26, .05), new THREE.MeshStandardMaterial({ color:0xa8b6cc, roughness:1 })); grille.position.set(0, .62, 2.66); g.add(grille);
+  g.add(puffs(fluff));
+  // half sunk in the cloud: puffs round its wheels and sides
+  const sea = []; for (let i = 0; i < 38; i++){ const a = i/38*Math.PI*2, r = 2.0 + rnd(i*5.1)*.6; sea.push([Math.cos(a)*r*.9, .05, Math.sin(a)*r*1.5 - .1, .5 + rnd(i*6.7)*.4, .38 + rnd(i*7.3)*.2, .62]); }
+  g.add(puffs(sea));
+  return g; }
+// the birds: dark little Vs flapping across high up
+function birdMesh(col){ const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color:col || 0x14284a, side:THREE.DoubleSide });
+  const wing = s => { const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute([0, 0, -.08, 0, 0, .1, s*.55, 0, -.02], 3)); const w = new THREE.Mesh(geo, m); g.add(w); return w; };
+  g.userData.wings = [wing(-1), wing(1)]; return g; }
+function sky(){ const g = new THREE.Group(); scene.add(g);
+  // far below, the cloud sea, lost in the blue haze
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshStandardMaterial({ map:CLOUDTEX, roughness:1, metalness:0, emissive:0xa8bcdc, emissiveIntensity:.12 })); floor.rotation.x = -Math.PI/2; floor.position.set(0, -16, -40); g.add(floor);
+  const list = []; for (let i = 0; i < 260; i++){ const x = (rnd(i*1.1) - .5)*140, z = 10 - rnd(i*2.3)*120, s = 3 + rnd(i*3.7)*5; list.push([x, -16, z, s*1.4, s*.7, s]); }
+  // the island you play on: a bank of puffs round the play and under it, running back to the car
+  for (let i = 0; i < 46; i++){ const a = Math.PI*(-.1 + 1.2*i/45), r = 5.0 + rnd(i*4.3)*.6; list.push([Math.cos(a)*r*1.02, -.35 - rnd(i*2.2)*.2, -1.6 - Math.sin(a)*r*.62, .55 + rnd(i*5.9)*.35, .4, .55]); }
+  for (let i = 0; i < 40; i++){ const a = rnd(i*7.1)*Math.PI*2, r = rnd(i*8.3)*4.6; list.push([Math.cos(a)*r, -1.3 - rnd(i*9.7)*.8, -1.2 + Math.sin(a)*r*.7, 1.2 + rnd(i*3.1)*.8, .7, 1.2]); }
+  for (let i = 0; i < 30; i++){ const z = -4 - rnd(i*6.6)*8, x = (rnd(i*5.5) - .5)*(6 + (-z - 4)*.3); list.push([x, -.6 - rnd(i*1.9)*.6, z, .8 + rnd(i*4.4)*.8, .5, .8]); }
+  // more islands out in the sky, left and right, further and further off
+  for (let k = 0; k < 9; k++){ const side = k % 2 ? 1 : -1, cx = side*(11 + rnd(k*3.3)*16), cz = -10 - rnd(k*4.9)*40, cy = -2 - rnd(k*5.1)*7, n = 10 + Math.floor(rnd(k*6.7)*8);
+    for (let i = 0; i < n; i++){ const s = 1 + rnd(k*31 + i*1.7)*1.8; list.push([cx + (rnd(k*17 + i*2.1) - .5)*7, cy + rnd(k*13 + i*1.3)*1.2, cz + (rnd(k*19 + i*2.9) - .5)*4, s*1.4, s*.75, s]); } }
+  g.add(puffs(list));
+  const c = cloudCar(); c.position.set(0, -.15, -8.6); c.rotation.x = .12; g.add(c);
+  const birds = []; for (let i = 0; i < 16; i++){ const b = birdMesh(); const side = i % 2 ? 1 : -1; b.position.set(side*(5 + rnd(i*2.1)*10), 3 + rnd(i*3.3)*5, -10 - rnd(i*4.1)*10); b.scale.setScalar(1.1 + rnd(i*5.1)*.8); b.userData.ph = rnd(i*6.3)*6; b.userData.v = (.4 + rnd(i*7.7)*.5)*side; g.add(b); birds.push(b); }
+  g.userData = { car:c, birds }; return g; }
+function animSky(g, t, dt, beat){
+  for (const b of g.userData.birds){ const u = b.userData; b.position.x += u.v*dt; if (b.position.x > 22) b.position.x = -22; if (b.position.x < -22) b.position.x = 22; b.rotation.y = u.v > 0 ? -Math.PI/2 : Math.PI/2;
+    const f = Math.sin(t*7 + u.ph)*.6; u.wings[0].rotation.x = f; u.wings[1].rotation.x = -f; b.position.y += Math.sin(t + u.ph)*dt*.15; }
+  g.userData.car.position.y = -.15 + (g.userData.lift || 0) + Math.sin(t*.6)*.04; }
+// a soft flat cloud to play on, its edge rolling in puffs
+function cloudTable(rx, rz, z){ const g = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, .3, 48), new THREE.MeshStandardMaterial({ color:0x9cc0ea, roughness:.35, metalness:.15, emissive:0x3a6ab0, emissiveIntensity:.3 })); top.scale.set(rx, 1, rz); top.position.y = -.15; g.add(top);
+  const rim = []; for (let i = 0; i < 64; i++){ const a = i/64*Math.PI*2; rim.push([Math.cos(a)*rx, -.08, Math.sin(a)*rz, .32 + rnd(i*2.2)*.18, .24, .32 + rnd(i*3.4)*.18]); } g.add(puffs(rim));
+  g.position.z = z || 0; return g; }
+/* ---- Jo's saucer as it is on this cover: the silver-white hull, the pearl dome with the "LJ", a red light on the rim, the white beam ---- */
+const BADGE = (letter, bg) => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
+  x.fillStyle = "#1a2234"; x.beginPath(); x.arc(64, 64, 58, 0, Math.PI*2); x.fill(); x.fillStyle = bg; x.beginPath(); x.arc(64, 64, 52, 0, Math.PI*2); x.fill();
+  x.fillStyle = "#1a2234"; x.font = "bold 64px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(letter, 66, 70); return new THREE.CanvasTexture(cv); };
+function buildSaucer(dc, gc, letter, rim){
+  dc = dc || 0xf4f8ff; gc = gc || 0xc8d8f0; rim = rim || 0xffffff;
+  const g = new THREE.Group();
+  const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 32, 14), new THREE.MeshStandardMaterial({ color:0xdfe6f0, roughness:.22, metalness:.65, emissive:0x8a96aa, emissiveIntensity:.25 })); hull.scale.set(1.3, .28, 1.3); g.add(hull);
+  g.add(new THREE.Mesh(new THREE.CylinderGeometry(1.28, 1.28, .14, 32, 1, true), new THREE.MeshStandardMaterial({ color:0x9aa6ba, metalness:.8, roughness:.3 })));
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(.58, 24, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:dc, roughness:.15, metalness:.2, emissive:gc, emissiveIntensity:.5 })); dome.position.y = .14; g.add(dome);
+  const badge = new THREE.Mesh(new THREE.CircleGeometry(.3, 24), new THREE.MeshBasicMaterial({ map:BADGE(letter || "LJ", "#ffffff"), transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.y = .73; g.add(badge);
+  const lights = new THREE.Group(); g.add(lights);
+  for (let i = 0; i < 14; i++){ const a = i/14*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.075, 6, 5), new THREE.MeshBasicMaterial({ color:i === 0 ? 0xff2a2a : i % 2 ? rim : 0xcfe0ff })); l.position.set(Math.sin(a)*1.3, 0, Math.cos(a)*1.3); lights.add(l); }
+  const under = sprite(0xe8f2ff, 3, .5); under.position.y = -.2; g.add(under);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.35, 1.5, 3.2, 24, 1, true), new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, opacity:.3, depthWrite:false, side:THREE.DoubleSide })); beam.position.y = -1.8; g.add(beam);
+  g.userData = { lights, beam, under };
+  return g;
+}
+function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*1.6; g.userData.beam.material.opacity = .2 + (beat ? .12 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
+function boot(fov){
+  ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); scene.background = BACK; fitBack(); scene.fog = new THREE.Fog(0x8ebdec, 14, 62);
+  cam = new THREE.PerspectiveCamera(fov, innerWidth/innerHeight, .1, 500);
+  scene.add(new THREE.HemisphereLight(0xd0e4ff, 0x5a6c90, .6));
+  const sun = new THREE.DirectionalLight(0xfff2e0, .62); sun.position.set(4, 14, 8); scene.add(sun);
+  const back = new THREE.DirectionalLight(0xa8c8ff, .35); back.position.set(-6, 8, -12); scene.add(back);
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); fitBack(); });
+}
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null;
+const keys = {};
+const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
+let camInit = false;
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "", lastC = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en");
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  if (G.coach){ const c = G.coach(); if (c !== lastC){ lastC = c; $("coach").innerHTML = c; } }
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
+  else { const sec = section(t); p.className = sec === "hook" ? "ready" : ""; p.innerHTML = (sec === "hook" ? "HOOK &middot; DOUBLE POINTS" : G.tag) + "<small>" + G.hint + "</small>"; }
+}
+function hurt(why, tip){
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+
+/* ================= the two games ================= */
+const hookAt = t => section(t) === "hook";
+let down = false;
+let ME = null;
+const shuffle = (a, seed) => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(rnd(seed + i*3.7)*(i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const pickRay = new THREE.Raycaster();
+const onFloor = (cx, cy, h) => { pickRay.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const q = new THREE.Vector3(); return pickRay.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -(h || 0)), q) ? q : null; };
+let lastT = 0;
+const dtOf = t => { const d = clamp(t - lastT, 0, .05); lastT = t; return d; };
+const fmt0 = n => Math.max(0, Math.round(n)).toLocaleString("en");
+// on the beat double, in the hooks double again
+const mult = t => (onBeat(t) ? 2 : 1)*(hookAt(t) ? 2 : 1);
+const neon = (i, l) => new THREE.Color().setHSL(((i*.13) % 1 + 1) % 1, 1, l || .58);
+// floating score numbers and sparks
+const POP_TEX = {};
+const popTex = s => POP_TEX[s] || (POP_TEX[s] = canvasTex(256, 64, (x, w, h) => { x.font = "bold 40px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.lineWidth = 7; x.strokeStyle = "#1a0420"; x.strokeText(s, w/2, h/2 + 2); x.fillStyle = "#fff4c0"; x.fillText(s, w/2, h/2 + 2); }));
+function fx(root){ const pops = [...Array(10)].map(() => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ transparent:true, depthTest:false, opacity:0 })); s.scale.set(1.6, .4, 1); root.add(s); return s; }),
+    sparks = [...Array(40)].map(() => { const s = sprite(0xffffff, .25, 0); root.add(s); s.userData.v = new THREE.Vector3(); return s; });
+  let pi = 0, si = 0;
+  return { pop(p, txt){ const s = pops[pi++ % pops.length]; s.material.map = popTex(txt); s.material.needsUpdate = true; s.position.copy(p).setY(p.y + .5); s.material.opacity = 1; s.userData.life = .9; },
+    burst(p, col, n){ for (let i = 0; i < (n || 8); i++){ const s = sparks[si++ % sparks.length]; s.position.copy(p).setY(p.y + .2); s.material.color.setHex(col); s.material.opacity = 1; s.userData.life = .45;
+      const a = rnd(si*1.7)*Math.PI*2, v = 2 + rnd(si*2.3)*3; s.userData.v.set(Math.cos(a)*v, 1 + rnd(si)*2, Math.sin(a)*v); } },
+    tick(dt){ for (const s of pops) if (s.userData.life > 0){ s.userData.life -= dt; s.position.y += dt*.9; s.material.opacity = clamp(s.userData.life/.4, 0, 1); }
+      for (const s of sparks) if (s.userData.life > 0){ s.userData.life -= dt; s.position.addScaledVector(s.userData.v, dt); s.userData.v.y -= dt*6; s.material.opacity = clamp(s.userData.life/.45, 0, 1); } } }; }
+
+const rayAt = (cx, cy, objs) => { pickRay.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); return pickRay.ray && pickRay.intersectObjects(objs, true)[0]; };
+// the saucer hovers over what you're doing, its white beam on it
+const HOV = new THREE.Vector3();
+function hover(p, t, dt, h){ h = h || 1.9; HOV.set(p.x, p.y + h + Math.sin(t*2)*.06, p.z); ME.position.lerp(HOV, Math.min(1, dt*5)); ME.rotation.set(0, t*1.2, 0); animSaucer(ME, t, onBeat(t));
+  const s = ME.scale.y, b = ME.userData.beam, len = Math.max(.3, (ME.position.y - p.y - .1)/s); b.visible = true; b.scale.set(.55, len/3.2, .55); b.position.y = -.2 - len/2; }
+// the camera for a game: [landscape position, look], [portrait position, look]
+function setCam(L, P){ const [p, l] = cam.aspect < .8 ? P : L; cam.position.set(p[0], p[1], p[2]); cam.lookAt(l[0], l[1], l[2]); }
+// a word or two on a sprite, for the labels on the cloud
+const LABEL_TEX = {};
+function labelTex(key, w, h, draw){ return LABEL_TEX[key] || (LABEL_TEX[key] = canvasTex(w, h, draw)); }
+function label(tex, sw, sh){ const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:tex, transparent:true, depthTest:false })); s.scale.set(sw, sh, 1); s.renderOrder = 5; return s; }
+const dot = (x, cx, cy, r, col) => { x.fillStyle = col; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI*2); x.fill(); x.lineWidth = 3; x.strokeStyle = "#ffffff"; x.stroke(); };
+
+/* =============== PART 1 · UNTANGLE: birds tied together with strings of light =============== */
+// Birds sit on the cloud, tied to each other with strings of light, all in a knot. Drag them about until no two
+// strings cross: a crossing string is red and a red X marks where it crosses; a string that crosses nothing is blue.
+// Every string blue: the flock flies off and a bigger one comes in. Stuck for a few seconds? A bird lights up - try
+// moving that one. Every flock can be untangled: it's made untangled first, then the birds are mixed up round a ring.
+const UNT_BIRD = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#1d4a8f"; x.beginPath(); x.arc(64, 64, 60, 0, Math.PI*2); x.fill(); x.strokeStyle = "#ffffff"; x.lineWidth = 6; x.stroke();
+  x.fillStyle = "#ffffff"; x.beginPath(); x.moveTo(20, 58); x.quadraticCurveTo(44, 40, 64, 66); x.quadraticCurveTo(84, 40, 108, 58); x.quadraticCurveTo(84, 54, 64, 82); x.quadraticCurveTo(44, 54, 20, 58); x.fill(); });
+const CROSS_TEX = canvasTex(64, 64, (x, w, h) => { x.fillStyle = "#ff2a4a"; x.beginPath(); x.arc(32, 32, 26, 0, Math.PI*2); x.fill(); x.strokeStyle = "#ffffff"; x.lineWidth = 4; x.stroke();
+  x.lineWidth = 7; x.lineCap = "round"; x.beginPath(); x.moveTo(21, 21); x.lineTo(43, 43); x.moveTo(43, 21); x.lineTo(21, 43); x.stroke(); });
+const UNT = {
+  X:3.0, Z0:-3.15, Z1:1.25,
+  setup(){ boot(48); this.w = sky(); this.root = new THREE.Group(); scene.add(this.root); this.root.add(cloudTable(3.75, 2.75, -.95)); this.fx = fx(this.root);
+    this.nodes = []; this.edgesM = []; this.xs = [...Array(40)].map(() => { const s = label(CROSS_TEX, .3, .3); s.visible = false; this.root.add(s); return s; });
+    ME = buildSaucer(); ME.scale.setScalar(.3); scene.add(ME); },
+  reset(){ Object.assign(S, { flocks:0, knots:0, best:0, k:1, nextAt:0, last:null, deadline:0, lvl:0, drags:0 }); lastT = 0; this.drag = null; this.idle = 0; this.make(0); },
+  info(){ return "FLOCK " + (S.flocks + 1) + " · " + this.nodes.length + " BIRDS"; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR*.6; },
+  coach(){ if (S.nextAt) return "<b>Untangled!</b> Here comes a bigger flock";
+    const n = S.knots, hint = this.hintNode ? "Stuck? Try moving the <b>glowing bird</b>" : S.drags ? "Move the birds on <span class=r>red</span> strings" : "<b>Drag a bird</b> - move them until no strings cross";
+    return "<big>" + n + "</big> " + (n === 1 ? "crossing" : "crossings") + " left<br><span class=s>" + hint + " · every string <span class=bl>blue</span> wins</span>"; },
+  // the untangled flock first: birds spread out over the cloud, each tied to its nearest ones with strings that
+  // don't cross - so there's always a way back to it
+  gen(n, seed){ const cz = (this.Z0 + this.Z1)/2, hw = this.X*.92, hz = (this.Z1 - this.Z0)/2*.92;
+    for (let tr = 0; tr < 200; tr++){ const sd = seed*31.7 + tr*7.3, P = [];
+      for (let k = 0; k < 4000 && P.length < n; k++){ const p = { x:(rnd(sd + k*1.3)*2 - 1)*hw, z:cz + (rnd(sd + k*2.9)*2 - 1)*hz }; if (P.every(q => Math.hypot(p.x - q.x, p.z - q.z) > 1.0)) P.push(p); }
+      if (P.length < n) continue;
+      const pairs = []; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) pairs.push([i, j, Math.hypot(P[i].x - P[j].x, P[i].z - P[j].z)]); pairs.sort((u, v) => u[2] - v[2]);
+      const E = [], deg = Array(n).fill(0), want = Math.round(n*1.6);
+      for (const [i, j] of pairs){ if (E.length >= want) break; if (deg[i] >= 4 || deg[j] >= 4) continue;
+        if (E.some(([a, b]) => a !== i && a !== j && b !== i && b !== j && segCross(P[a], P[b], P[i], P[j]))) continue;
+        if (P.some((q, k) => k !== i && k !== j && segDist(q, P[i], P[j]) < .4)) continue;
+        E.push([i, j]); deg[i]++; deg[j]++; }
+      if (deg.some(d => d < 2)) continue;
+      return { sol:P, edges:E }; }
+    return null; },
+  make(t){ for (const n of this.nodes) this.root.remove(n.m); for (const e of this.edgesM) this.root.remove(e); this.nodes = []; this.edgesM = [];
+    const nb = [6, 8, 10, 12, 15][Math.min(S.lvl, 4)], G0 = this.gen(nb, S.k++*13 + 5) || this.gen(nb - 2, S.k++*13 + 5); this.edges = G0.edges; this.sol = G0.sol;
+    // mixed up round a ring
+    for (let tr = 0; tr < 50; tr++){ const order = shuffle(G0.sol.map((_, i) => i), S.k++*3.3), n = order.length;
+      this.start = []; order.forEach((v, i) => { const a = i/n*Math.PI*2 + .3; this.start[v] = { x:Math.cos(a)*this.X*.82, z:(this.Z0 + this.Z1)/2 + Math.sin(a)*(this.Z1 - this.Z0)*.44 }; });
+      if (this.crossings(this.start) >= Math.max(2, n/2)) break; }
+    this.start.forEach((p, i) => { const m = new THREE.Group(); const disc = new THREE.Mesh(new THREE.CylinderGeometry(.25, .25, .1, 24), [new THREE.MeshStandardMaterial({ color:0x1d4a8f, roughness:.5, emissive:0x0a2a6a, emissiveIntensity:.5 }), new THREE.MeshStandardMaterial({ map:UNT_BIRD, roughness:.5, emissive:0xffffff, emissiveIntensity:.15 }), new THREE.MeshStandardMaterial({ color:0x1d4a8f })]);
+      m.add(disc); const glow = sprite(0xffd27a, 1.1, 0); glow.position.y = .05; m.add(glow); m.userData.glow = glow; m.position.set(p.x, .12, p.z); this.root.add(m); this.nodes.push({ p:new THREE.Vector3(p.x, .12, p.z), m, i, fly:0 }); });
+    this.edgesM = this.edges.map(() => { const e = new THREE.Mesh(new THREE.BoxGeometry(1, .035, .075), new THREE.MeshBasicMaterial({ color:0x2a7ae8 })); this.root.add(e); return e; });
+    S.knots = S.best = this.crossings(null, true); S.nextAt = 0; this.idle = 0; this.hintNode = null;
+    S.allow = BAR*(3.5 + this.nodes.length*.5)*(1.1 - .2*clamp(LV(), 0, 1.4)); S.deadline = t + S.allow; },
+  pos(){ return this.nodes.map(n => ({ x:n.p.x, z:n.p.z })); },
+  // how many pairs of strings cross; for the real flock also which strings and where
+  crossings(P, keep){ const mine = !P; P = P || this.pos(); let n = 0; const bad = new Set(), at = [];
+    for (let i = 0; i < this.edges.length; i++) for (let j = i + 1; j < this.edges.length; j++){ const [a, b] = this.edges[i], [c, d] = this.edges[j]; if (a === c || a === d || b === c || b === d) continue;
+      if (segCross(P[a], P[b], P[c], P[d])){ n++; bad.add(i); bad.add(j); if (mine) at.push(segAt(P[a], P[b], P[c], P[d])); } }
+    if (mine || keep){ this.bad = bad; this.xat = at; } return n; },
+  check(){ const n = this.crossings(); S.knots = n;
+    if (n < S.best){ const k = (S.best - n)*25*mult(S.t); S.score += k; S.best = n; S.combo++; sfx.good(S.combo); if (S.last) this.fx.pop(S.last, "+" + fmt0(k)); }
+    if (n === 0){ const bonus = Math.round((300 + this.nodes.length*40 + Math.max(0, S.deadline - S.t)*10)*mult(S.t)); S.score += bonus; S.flocks++; S.got += this.nodes.length; S.lvl++; sfx.big(); say("UNTANGLED", "+" + fmt0(bonus), 1.4, "g"); S.nextAt = S.t + BEAT*4; this.drag = null; } },
+  moveTo(node, x, z){ node.p.set(clamp(x, -this.X, this.X), .12, clamp(z, this.Z0, this.Z1)); S.last = node.p; },
+  point(cx, cy){ if (S.nextAt || S.done) return; const q = onFloor(cx, cy, .12); if (!q) return;
+    if (!this.drag){ if (!down) return; let best = null, bd = .6; for (const n of this.nodes){ const d = Math.hypot(n.p.x - q.x, n.p.z - q.z); if (d < bd){ bd = d; best = n; } } if (!best) return; this.drag = best; S.drags++; sfx.tick(); }
+    this.moveTo(this.drag, q.x, q.z); S.knots = this.crossings(); this.idle = 0; this.hintNode = null; },
+  release(){ if (!this.drag) return; this.drag = null; sfx.slide(); this.check(); },
+  // the bot: one bird a beat to where it sits in the untangled flock
+  botStep(){ if (S.nextAt) return; const n = this.nodes.find(n => Math.hypot(n.p.x - this.sol[n.i].x, n.p.z - this.sol[n.i].z) > .05); if (!n) return; this.moveTo(n, this.sol[n.i].x, this.sol[n.i].z); this.idle = 0; this.check(); },
+  update(dt, t){
+    if (S.nextAt && t > S.nextAt) this.make(t);
+    if (S.nextAt) return;
+    // a few seconds without a move: light up the bird on the most red strings
+    if (!this.drag){ this.idle += dt; if (this.idle > 4 && !this.hintNode && S.knots){ const cnt = this.nodes.map(() => 0); this.edges.forEach(([a, b], i) => { if (this.bad.has(i)){ cnt[a]++; cnt[b]++; } }); this.hintNode = this.nodes[cnt.indexOf(Math.max(...cnt))]; } }
+    if (t > S.deadline){ if (hurt("TOO SLOW", "Drag the birds until no strings cross - the red strings are the ones crossing, a red X shows where.")) return; S.deadline = t + S.allow*.7; }
+  },
+  render(t){ const dt = dtOf(t), beat = onBeat(t), done = !!S.nextAt;
+    for (const n of this.nodes){ const m = n.m; if (done){ n.fly += dt; m.position.y += dt*(2 + n.fly*6); m.position.z -= dt*3; m.rotation.y += dt*4; continue; }
+      m.position.lerp(n.p, Math.min(1, dt*20)); m.position.y = n === this.drag ? .45 : .12; const hint = n === this.hintNode;
+      m.userData.glow.material.opacity = n === this.drag ? .9 : hint ? .55 + Math.sin(t*7)*.35 : 0; m.scale.setScalar(n === this.drag ? 1.2 : hint ? 1.1 + Math.sin(t*7)*.08 : 1); }
+    this.edges.forEach(([a, b], i) => { const e = this.edgesM[i], p = this.nodes[a].m.position, q = this.nodes[b].m.position, dx = q.x - p.x, dz = q.z - p.z;
+      e.position.set((p.x + q.x)/2, (p.y + q.y)/2 + .02, (p.z + q.z)/2); e.rotation.set(0, -Math.atan2(dz, dx), 0); e.scale.x = Math.hypot(dx, dz);
+      e.material.color.setHex(done ? 0xffc23a : this.bad.has(i) ? 0xff3a5a : 0x2a7ae8); e.visible = !done || this.nodes[a].fly < 1.2; });
+    // a red X where each pair of strings crosses
+    this.xs.forEach((s, i) => { const p = !done && this.xat && this.xat[i]; s.visible = !!p; if (p){ s.position.set(p.x, .2, p.z); s.scale.setScalar(.3*(beat ? 1.15 : 1)); } });
+    this.fx.tick(dt); animSky(this.w, t, dt, beat);
+    hover(this.drag ? this.drag.m.position : this.hintNode ? this.hintNode.m.position : S.last || new THREE.Vector3(0, 0, -1), t, dt, 2.2);
+    setCam([[0, 6.3, 5.9], [0, -.7, -1.35]], [[0, 10.6, 6.9], [0, -.3, -.75]]);
+  }
+};
+function segCross(p, q, r, s){ const o = (a, b, c) => (b.x - a.x)*(c.z - a.z) - (b.z - a.z)*(c.x - a.x), d1 = o(p, q, r), d2 = o(p, q, s), d3 = o(r, s, p), d4 = o(r, s, q);
+  return ((d1 > 1e-9 && d2 < -1e-9) || (d1 < -1e-9 && d2 > 1e-9)) && ((d3 > 1e-9 && d4 < -1e-9) || (d3 < -1e-9 && d4 > 1e-9)); }
+function segAt(p, q, r, s){ const d = (q.x - p.x)*(s.z - r.z) - (q.z - p.z)*(s.x - r.x), u = ((r.x - p.x)*(s.z - r.z) - (r.z - p.z)*(s.x - r.x))/(d || 1); return { x:p.x + (q.x - p.x)*u, z:p.z + (q.z - p.z)*u }; }
+function segDist(p, a, b){ const dx = b.x - a.x, dz = b.z - a.z, L = dx*dx + dz*dz, u = clamp(((p.x - a.x)*dx + (p.z - a.z)*dz)/(L || 1), 0, 1); return Math.hypot(a.x + dx*u - p.x, a.z + dz*u - p.z); }
+
+/* =============== PART 2 · BIRD CODE: crack the order the birds are hiding in =============== */
+// Birds hide in the cloud at the back ("? ? ?"), in an order you don't know. Tap birds at the front to put them on the
+// wire, one per numbered spot; when the wire is full it's checked: a gold bead for each right bird in the right spot,
+// a blue bead for each right bird in the wrong spot, nothing for a bird that isn't hiding. The beads are counted at
+// the left of each try and said in words at the top; birds the beads rule out get a red X. Crack it in eight tries.
+const CODE_COLS = [0xff3a4a, 0xffc020, 0x2ec860, 0x2a86ff, 0x9a52ff, 0xff6ac0];
+function makeBird(col){ const g = new THREE.Group(), m = new THREE.MeshStandardMaterial({ color:col, roughness:.5, emissive:col, emissiveIntensity:.25 }), dark = new THREE.MeshBasicMaterial({ color:0x0a1020 });
+  const body = new THREE.Mesh(PUFF_G, m); body.scale.set(.19, .17, .22); body.position.y = .17; g.add(body);
+  const head = new THREE.Mesh(PUFF_G, m); head.scale.setScalar(.12); head.position.set(0, .33, .1); g.add(head);
+  const beak = new THREE.Mesh(new THREE.ConeGeometry(.04, .1, 8), new THREE.MeshStandardMaterial({ color:0xffa020, roughness:.5 })); beak.rotation.x = Math.PI/2; beak.position.set(0, .32, .24); g.add(beak);
+  for (const s of [-1, 1]){ const e = new THREE.Mesh(PUFF_G, dark); e.scale.setScalar(.022); e.position.set(s*.06, .36, .2); g.add(e);
+    const w = new THREE.Mesh(PUFF_G, m); w.scale.set(.05, .1, .16); w.position.set(s*.17, .2, -.02); w.rotation.z = s*.3; g.add(w); }
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(.08, .18, 6), m); tail.rotation.x = -Math.PI/2.4; tail.position.set(0, .2, -.24); g.add(tail);
+  g.userData.mat = m; g.userData.col = col; return g; }
+// the count at the left of a try: a gold dot and how many, a blue dot and how many
+const sumTex = (ex, part) => labelTex("s" + ex + "," + part, 176, 64, (x, w, h) => { x.font = "bold 36px Bungee, Impact, sans-serif"; x.textBaseline = "middle"; x.textAlign = "left"; x.lineWidth = 6; x.strokeStyle = "#ffffff";
+  dot(x, 22, 32, 15, "#ffc020"); x.strokeText(String(ex), 44, 35); x.fillStyle = "#10264a"; x.fillText(String(ex), 44, 35);
+  dot(x, 106, 32, 15, "#2a86ff"); x.strokeText(String(part), 128, 35); x.fillText(String(part), 128, 35); });
+// an empty spot on the wire, with its number
+const slotTex = i => labelTex("n" + i, 64, 64, (x, w, h) => { x.fillStyle = "rgba(255,255,255,.75)"; x.beginPath(); x.arc(32, 32, 27, 0, Math.PI*2); x.fill(); x.setLineDash([7, 5]); x.lineWidth = 4; x.strokeStyle = "#1d4a8f"; x.stroke();
+  x.fillStyle = "#1d4a8f"; x.font = "bold 30px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(String(i + 1), 32, 35); });
+const hideTex = n => labelTex("h" + n, 320, 80, (x, w, h) => { x.font = "bold 46px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.lineWidth = 8; x.strokeStyle = "#10264a";
+  const s = Array(n).fill("?").join(" "); x.strokeText(s, w/2, h/2 + 3); x.fillStyle = "#ffffff"; x.fillText(s, w/2, h/2 + 3); });
+const CODE = {
+  SP:.62, ROWZ:1.25, RZ:.6, TRIES:8,
+  setup(){ boot(48); this.w = sky(); this.root = new THREE.Group(); scene.add(this.root); this.root.add(cloudTable(3.6, 3.2, -1.0)); this.objs = []; this.fx = fx(this.root);
+    // the birds to choose from, along the front
+    this.pal = CODE_COLS.map((c, i) => { const b = makeBird(c); b.scale.setScalar(1.25); this.root.add(b); b.userData.ci = i; const x = label(CROSS_TEX, .32, .32); x.position.y = .62; b.add(x); b.userData.x = x; return b; });
+    ME = buildSaucer(); ME.scale.setScalar(.3); scene.add(ME); },
+  reset(){ Object.assign(S, { codes:0, k:1, nextAt:0, last:null, deadline:0, lvl:0, guesses:0 }); lastT = 0; this.make(0); },
+  info(){ return "CODE " + (S.codes + 1) + " · TRY " + Math.min(this.TRIES, this.rows.length + 1) + " OF " + this.TRIES; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR*.6; },
+  coach(){ const n = this.n, filled = this.cur.filter(c => c >= 0).length, last = this.rows[this.rows.length - 1];
+    let top;
+    if (S.nextAt) top = this.cracked ? "<b>Cracked!</b> Here comes the next one" : "That's the order they were hiding in";
+    else if (this.lock) top = "Checking...";
+    else if (filled) top = "<big>" + (n - filled) + "</big> more " + (n - filled === 1 ? "bird" : "birds") + " on the wire <span class=s>(tap one on the wire to take it off)</span>";
+    else if (!last) top = "<b>" + n + " birds are hiding</b> at the back. Guess their order: <b>tap birds below</b> to fill the wire";
+    else top = "Last try: " + (last.ex + last.part ? "<span class=gd></span><b>" + last.ex + "</b> right spot · <span class=bd></span><b>" + last.part + "</b> wrong spot" : "<b>none</b> of those birds is hiding") + " <span class=s>- tap birds for the next try</span>";
+    return top + "<br><span class=s><span class=gd></span>right bird, right spot &nbsp;<span class=bd></span>right bird, wrong spot &nbsp;no bead: not hiding &middot; " + (this.rep ? "a bird can hide twice" : "each bird hides once") + "</span>"; },
+  make(t){ for (const o of this.objs) this.root.remove(o); this.objs = []; this.placed = [];
+    const L = [[3, 4, false], [3, 5, false], [4, 5, false], [4, 6, false], [4, 6, true], [5, 6, true]][Math.min(S.lvl, 5)]; this.n = L[0]; this.nc = L[1]; this.rep = L[2];
+    const sd = S.k++*1.618 + S.codes*.37, left = [...Array(this.nc).keys()];
+    this.code = Array.from({ length:this.n }, (_, i) => this.rep ? Math.floor(rnd(sd + i*7.31 + .5)*this.nc) : left.splice(Math.floor(rnd(sd + i*7.31 + .5)*left.length), 1)[0]);
+    this.rows = []; this.cur = Array(this.n).fill(-1); this.curM = Array(this.n).fill(null); this.lock = 0; this.absent = new Set(); this.cracked = false; this.solved = false;
+    this.pal.forEach((b, i) => { b.visible = i < this.nc; b.position.set((i - (this.nc - 1)/2)*.72, .02, 2.45); });
+    // the wires: one a try
+    for (let r = 0; r < this.TRIES; r++){ const w = new THREE.Mesh(new THREE.BoxGeometry(this.n*this.SP + .3, .03, .04), new THREE.MeshStandardMaterial({ color:0x6a86b8, roughness:.4, emissive:0x2a4a8a, emissiveIntensity:.3 })); w.position.set(0, .12, this.rowZ(r)); this.root.add(w); this.objs.push(w); w.userData.row = r; }
+    this.wires = this.objs.slice();
+    // the numbered spots on the wire you're filling
+    this.slots = [...Array(this.n)].map((_, i) => { const s = label(slotTex(i), .42, .42); this.root.add(s); this.objs.push(s); return s; });
+    // the birds hiding behind the cloud at the back, "? ? ?" over it
+    this.hidden = this.code.map((c, i) => { const b = makeBird(CODE_COLS[c]); b.position.set(this.slotX(i), .1, this.rowZ(this.TRIES) - .15); b.visible = false; this.root.add(b); this.objs.push(b); return b; });
+    this.cover = []; for (let i = 0; i < 9; i++){ const p = new THREE.Mesh(PUFF_G, PUFF_M); const s = .42 + rnd(i*3.3)*.18; p.scale.set(s*1.2, s*.9, s*.8); p.position.set((i - 4)*.42, .3, this.rowZ(this.TRIES) - .05 + rnd(i*2.1)*.1); p.userData.home = p.position.clone(); this.root.add(p); this.objs.push(p); this.cover.push(p); }
+    this.sign = label(hideTex(this.n), 2.3, .58); this.sign.position.set(0, 1.15, this.rowZ(this.TRIES)); this.root.add(this.sign); this.objs.push(this.sign);
+    S.nextAt = 0; S.allow = BAR*(4 + this.n*1.2)*(1.1 - .2*clamp(LV(), 0, 1.4)); S.deadline = t + S.allow; },
+  rowZ(r){ return this.ROWZ - r*this.RZ; },
+  slotX(i){ return (i - (this.n - 1)/2)*this.SP; },
+  add(ci){ if (S.nextAt || this.lock || ci >= this.nc) return; const i = this.cur.indexOf(-1); if (i < 0) return;
+    if (!this.rep && this.cur.includes(ci)){ sfx.tick(); say("ONE OF EACH", "each bird hides only once - pick another", 1.2); return; }
+    this.cur[i] = ci; sfx.tick();
+    const b = makeBird(CODE_COLS[ci]); b.position.copy(this.pal[ci].position); b.userData.to = new THREE.Vector3(this.slotX(i), .12, this.rowZ(this.rows.length)); this.root.add(b); this.objs.push(b); this.placed.push(b); this.curM[i] = b; S.last = b.userData.to;
+    if (!this.cur.includes(-1)) this.lock = S.t + .45; },
+  remove(i){ if (this.lock || this.cur[i] < 0) return; this.cur[i] = -1; this.root.remove(this.curM[i]); this.curM[i] = null; sfx.slide(); },
+  removeLast(){ for (let i = this.n - 1; i >= 0; i--) if (this.cur[i] >= 0){ this.remove(i); return; } },
+  score(g, code){ let ex = 0, any = 0; const a = Array(6).fill(0), b = Array(6).fill(0); g.forEach((c, i) => { if (c === code[i]) ex++; a[c]++; b[code[i]]++; }); for (let c = 0; c < 6; c++) any += Math.min(a[c], b[c]); return [ex, any - ex]; },
+  submit(){ const g = this.cur.slice(), [ex, part] = this.score(g, this.code), r = this.rows.length; this.rows.push({ g, ex, part }); this.cur = Array(this.n).fill(-1); this.curM = Array(this.n).fill(null); this.lock = 0; S.guesses++;
+    // the beads, gold then blue, to the right of the wire; the count at the left
+    for (let k = 0; k < ex + part; k++){ const bead = new THREE.Mesh(PUFF_G, new THREE.MeshStandardMaterial({ color:k < ex ? 0xffc020 : 0x2a86ff, roughness:.3, emissive:k < ex ? 0xffa000 : 0x1a5aff, emissiveIntensity:.6 })); bead.scale.setScalar(.085);
+      bead.position.set(this.slotX(this.n - 1) + .5 + (k % 3)*.21, .14, this.rowZ(r) - .09 + Math.floor(k/3)*.19); this.root.add(bead); this.objs.push(bead); }
+    const sum = label(sumTex(ex, part), .82, .3); sum.position.set(this.slotX(0) - .78, .25, this.rowZ(r)); this.root.add(sum); this.objs.push(sum);
+    // what the beads prove: no bead at all - none of these is hiding; every bird right (each once) - none of the others is
+    if (ex + part === 0) g.forEach(c => this.absent.add(c));
+    if (!this.rep && ex + part === this.n) for (let c = 0; c < this.nc; c++) if (!g.includes(c)) this.absent.add(c);
+    if (ex) { const k = ex*20*mult(S.t); S.score += k; this.fx.pop(new THREE.Vector3(0, .2, this.rowZ(r)), "+" + fmt0(k)); }
+    S.deadline += BEAT*4; S.last = new THREE.Vector3(0, 0, this.rowZ(r));
+    if (ex === this.n){ const bonus = Math.round((400 + (this.TRIES - r - 1)*120 + this.n*60)*mult(S.t)); S.score += bonus; S.codes++; S.got += this.n; S.combo++; S.lvl++; sfx.big(); say("CRACKED", "in " + (r + 1) + (r ? " tries" : " try") + " · +" + fmt0(bonus), 1.6, "g"); this.cracked = true; this.reveal(); return; }
+    sfx.good(ex); if (this.rows.length >= this.TRIES){ this.reveal(); if (hurt("THE BIRDS FLEW OFF", "Gold bead: right bird, right spot. Blue bead: right bird, wrong spot. No bead: that bird isn't hiding.")) return; } },
+  reveal(){ this.solved = true; S.nextAt = S.t + BEAT*5; this.hidden.forEach(b => b.visible = true); this.sign.visible = false; },
+  tap(cx, cy){ if (S.nextAt || S.done) return; const hit = rayAt(cx, cy, [...this.pal.filter(b => b.visible), ...this.curM.filter(Boolean)]); if (!hit) return; let o = hit.object; while (o.parent && o.parent !== this.root) o = o.parent;
+    if (this.pal.includes(o)) this.add(o.userData.ci); else { const i = this.curM.indexOf(o); if (i >= 0) this.remove(i); } },
+  // the bot: the first order that fits every answer so far, a bird a beat
+  botStep(){ if (S.nextAt || this.lock) return; if (!this.cur.includes(-1)) return;
+    if (!this.plan || this.planFor !== S.codes + ":" + this.rows.length){ const all = []; const n = this.n, nc = this.nc; const rec = (p) => { if (p.length === n){ if (this.rep || new Set(p).size === n) all.push(p.slice()); return; } for (let c = 0; c < nc; c++){ p.push(c); rec(p); p.pop(); } }; rec([]);
+      const ok = all.filter(g => this.rows.every(r => { const [a, b] = this.score(g, r.g); return a === r.ex && b === r.part; })); this.plan = ok[Math.floor(rnd(S.k*1.7 + this.rows.length)*ok.length)] || all[0]; this.planFor = S.codes + ":" + this.rows.length; }
+    const i = this.cur.indexOf(-1); this.add(this.plan[i]); },
+  update(dt, t){
+    if (this.lock && t > this.lock) this.submit();
+    if (S.nextAt && t > S.nextAt) this.make(t);
+    if (!S.nextAt && t > S.deadline){ this.reveal(); if (hurt("TOO SLOW", "Tap birds at the front to fill the wire. Gold bead: right bird, right spot. Blue bead: right bird, wrong spot.")) return; }
+  },
+  render(t){ const dt = dtOf(t), beat = onBeat(t);
+    for (const b of this.placed) if (b.parent){ b.position.lerp(b.userData.to, Math.min(1, dt*10)); b.position.y = b.userData.to.y + Math.max(0, Math.sin(Math.min(1, b.position.distanceTo(b.userData.to)/2)*Math.PI))*.4; }
+    const used = new Set(this.cur.filter(c => c >= 0));
+    this.pal.forEach((b, i) => { const u = b.userData, out = this.absent.has(i), dim = out || (!this.rep && used.has(i));
+      b.position.y = .02 + (!dim && beat && i % 2 === Math.floor(t/BEAT) % 2 ? .05 : 0); b.rotation.y = Math.sin(t*1.5 + i)*.3; b.scale.setScalar(dim ? 1.0 : 1.25);
+      u.mat.color.setHex(dim ? 0x8a96aa : u.col); u.mat.emissive.setHex(dim ? 0x202838 : u.col); u.x.visible = out; });
+    const nextI = this.cur.indexOf(-1);
+    this.slots.forEach((s, i) => { s.visible = !S.nextAt && !this.lock && this.cur[i] < 0 && this.rows.length < this.TRIES; s.position.set(this.slotX(i), .3, this.rowZ(this.rows.length)); s.scale.setScalar(i === nextI ? .46 + (beat ? .06 : 0) : .38); });
+    this.wires.forEach(w => { const cur = w.userData.row === this.rows.length && !S.nextAt; w.material.color.setHex(cur ? 0xffc020 : 0x6a86b8); w.material.emissive.setHex(cur ? 0xffa000 : 0x2a4a8a); w.material.emissiveIntensity = cur ? .5 + (beat ? .3 : 0) : .3; });
+    // the cloud at the back parts when the code's cracked (or lost) and the birds fly off
+    this.cover.forEach((p, i) => { const to = this.solved ? p.userData.home.clone().add(new THREE.Vector3((i - 4)*.5, .6 + i % 3*.2, -.6)) : p.userData.home; p.position.lerp(to, Math.min(1, dt*3)); });
+    if (this.solved && S.nextAt && S.nextAt - S.t < BEAT*2) this.hidden.forEach((b, i) => { b.position.y += dt*(2 + i*.3); b.position.z -= dt*2; });
+    this.fx.tick(dt); animSky(this.w, t, dt, beat);
+    hover(S.last || new THREE.Vector3(0, 0, this.rowZ(0)), t, dt, 2.5);
+    setCam([[0, 5.8, 7.4], [0, -.5, -1.2]], [[0, 9.4, 6.9], [0, -.2, -.45]]);
+  }
+};
+
+/* ---------------- the games on the song's clock ----------------
+   The two games are the ones from prototypes.html, unchanged at heart; this gives each what the level
+   asks of it: a name, the line under GET READY, how hard it is right now (L, 0 → 1 over the song; endless
+   keeps climbing), and begin() for the song or an endless window. */
+const LV = () => G && G.L ? G.L(S.t) : 0;
+function asPart(E, name, tag, hint){
+  return Object.assign(E, { name, tag, hint, start:0,
+    begin(t0, t1, L0, L1, cont){ this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1; if (cont) return; this.start = t0; this.reset(); },
+    L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
+    get st(){ return S; } });
+}
+asPart(UNT, "UNTANGLE", "UNTANGLE", "drag the birds until no strings cross");
+asPart(CODE, "BIRD CODE", "BIRD CODE", "guess the order the birds are hiding in");
+const PARTS = [null, UNT, CODE];
+
+/* ---------------- the run ---------------- */
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  G = PARTS[PART]; camInit = false; G.root.visible = true; showSetting(true); END.root.visible = false; END.on = false; ME.visible = true; ME.scale.setScalar(G.meScale);
+  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+  $("msg").className = "";
+}
+// endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+const LOOPS = CFG.endless;
+function songT(){
+  if (LOOPS && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The cover: the game slides away and the camera comes down low in front of the car made of cloud, coming up through
+   the cloud sea with its headlights on, the birds going over in the deep blue - and Jo's saucer comes down in front
+   of it with its white beam, like on the cover. */
+const END = { out:8.5, root:null };
+for (const P of PARTS) if (P) P.meScale = .3;
+function showSetting(on){}
+function buildEnd(){ END.root = new THREE.Group(); scene.add(END.root); END.glow = sprite(0xffffff, 2.6, 0); END.glow.position.set(0, .1, -2.2); END.root.add(END.glow); }
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off"; $("coach").classList.add("hid");
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+// while playing, each game puts the camera where it wants it; the ending glides it to the cover
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
+  if (S.end >= 0){
+    const portrait = cam.aspect < .8;
+    if (S.end < 1){ $("flash").style.background = "#f4f9ff"; $("flash").style.opacity = Math.min(1, S.end/.8); G.render(t); }
+    else {
+      if (!END.on){ END.on = true; G.root.visible = false; END.root.visible = true; camInit = true; LOOK.copy(portrait ? new THREE.Vector3(0, .2, -1.3) : new THREE.Vector3(0, -.4, -1)); }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      // the saucer comes down in front of the car made of cloud, its white beam on the cloud
+      const u = clamp((S.end - 1.2)/3, 0, 1), e = 1 - Math.pow(1 - u, 3);
+      ME.visible = true; ME.scale.setScalar(.42); ME.rotation.set(.22, Math.sin(t*1.5)*.2, 0); animSaucer(ME, t, beat);
+      const b = ME.userData.beam; b.visible = true; b.scale.set(.5, .45, .5); b.position.y = -.9;
+      ME.position.set(0, .42 + (1 - e)*3 + Math.sin(t*2)*.04, -2.2);
+      END.glow.material.opacity = .5*e*(beat ? 1.2 : 1); G.w.userData.lift = .6*e; animSky(G.w, t, dt, beat);
+      CAMP.set(0, portrait ? 1.9 : 1.55, portrait ? 6.6 : 3.4); CAML.set(0, portrait ? 1.1 : 1.15, -8.6);
+      const k = Math.min(1, dt*1.1);
+      cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+      if (S.end > 2.4 && !S.saidEnd){ S.saidEnd = true; say("BE ALRIGHT", "LAZY JO", 4.5, "t"); }
+    }
+  } else {
+    G.render(t);
+    ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
+  }
+  ren.render(scene, cam);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by)"), go = $("go");
+  go.textContent = "Play again"; go.disabled = false; go.classList.toggle("alt", !S.fail && !CFG.endless);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off"; $("coach").classList.add("hid");
+  const got = S.got;
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:got });
+  const stat = PART === 1 ? S.flocks + (S.flocks === 1 ? " flock" : " flocks") + " untangled · " + S.got + " birds" : S.codes + (S.codes === 1 ? " code" : " codes") + " cracked · " + S.guesses + " tries";
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> up in the sky &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = CFG.by + " COMPLETE";
+  v.querySelector("h1").textContent = "BE ALRIGHT";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = ["", "Every knot undone.<br>Part 2, <b>Bird Code</b>, is open.", "Every code cracked.<br>Level 27 cleared: <b>Untangle &#8734;</b> and <b>Bird Code &#8734;</b> are open in the gold Endless list."][PART];
+}
+
+/* ---------------- input ---------------- */
+// Untangle: press on a bird and drag it. Bird Code: tap a bird at the front to put it on the wire, tap one on the
+// wire to take it off (or Backspace).
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault();
+  if (G.tap){ G.tap(e.clientX, e.clientY); return; } down = true; G.point(e.clientX, e.clientY); }, { passive:false });
+addEventListener("pointermove", e => { if (!live() || G.tap) return; if (down || e.pointerType === "mouse") G.point(e.clientX, e.clientY); });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, () => { down = false; if (G.release) G.release(); });
+addEventListener("keydown", e => { if (veilUp() || !live()) return; if (G === CODE && e.key === "Backspace"){ e.preventDefault(); CODE.removeLast(); }
+  const n = +e.key; if (G === CODE && n >= 1 && n <= CODE.nc){ e.preventDefault(); CODE.add(n - 1); } });
+
+function startGame(){
+  reset();
+  $("veil").classList.add("hid"); $("hud").classList.remove("off");
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB) toHub({ type:"javeda:start", level:CFG.id });
+  say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? (PART === 1 ? "the flocks never stop" : "the codes never stop") : G.hint, 3, CFG.endless ? "g" : ""); $("coach").classList.remove("hid"); lastC = "";
+}
+$("go").addEventListener("click", () => {
+  startGame();
+});
+$("by").textContent = "LAZY JO · " + CFG.by;
+$("title").textContent = "BE ALRIGHT" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = "High up in the sky from the cover - an island of cloud over the cloud sea, the car made of cloud, the birds - and Jo's saucer." +
+  [" <b>Part 1 · Untangle:</b> birds tied together with strings of light, all in a knot.", " <b>Part 2 · Bird Code:</b> birds hiding in the cloud, in an order you have to crack."][PART - 1] +
+  (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = [
+  "<b>Drag the birds</b> until no two strings cross. A string that crosses another is <b>red</b>, and a red X shows where; a string that crosses nothing is blue. Every string blue: the flock flies off and a bigger one comes in. Stuck? A bird lights up - try moving that one. Out of time costs a heart (3).",
+  "Some birds hide in the cloud at the back. <b>Tap birds at the front</b> to put them on the wire in the order you think they're hiding. Then the beads tell you: a <b>gold</b> bead for each right bird in the right spot, a <b>blue</b> bead for each right bird in the wrong spot, no bead for a bird that isn't hiding. Use them to crack the order in 8 tries - fewer is worth more. Out of time costs a heart (3)."][PART - 1];
+if (!HUB){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
+      if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+PARTS[PART].setup(); buildEnd();
+reset();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

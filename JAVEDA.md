@@ -34,6 +34,7 @@ client/public/javeda/
     ├── space-kid.html      # Level 22: Planet Match (match three), Part 2 Rainbow Sort (?part=2), Part 3 Star Peaks (?part=3, the solitaire) (+ endless each)
     ├── fall-in-love-again.html # Level 23: Heart Pop (bubble shooter), Part 2 Love Words (?part=2, word search), Part 3 Heart Merge (?part=3, 2048) (+ endless each)
     ├── down-for-me.html    # Level 24: Sunset Swap - pictures from the cover cut into squares, swap them back (+ endless)
+    ├── real-love.html      # Level 25: Heart Flow (link the pairs), Part 2 Crab Sweeper (?part=2), Part 3 Starlight (?part=3, lights out), Part 4 Shell Sudoku (?part=4) (+ endless each)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```

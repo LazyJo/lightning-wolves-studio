@@ -481,7 +481,19 @@ let LEVELS = [
     art:"radial-gradient(30% 30% at 35% 50%, #ff8ab8cc, transparent 70%), radial-gradient(30% 30% at 65% 50%, #b88affcc, transparent 70%), linear-gradient(180deg,#8ad0f4,#f4c8dc)" },
   { id:"lvl24", num:24, title:"DOWN FOR ME", requires:"lvl23c", src:"levels/down-for-me.html?hub=1",
     ds:"The terrace from the cover at sunset - the round table, the bouquet, the cups. Sunset Swap: pictures cut into squares, swap them back.",
-    art:"radial-gradient(30% 22% at 50% 42%, #fff4c8, transparent 70%), linear-gradient(180deg,#2a6ac8 0,#ffb060 40%,#ffd890 44%,#1a8ac8 46%,#0a5294 60%,#8a4a22 62%,#5a2a10)" }
+    art:"radial-gradient(30% 22% at 50% 42%, #fff4c8, transparent 70%), linear-gradient(180deg,#2a6ac8 0,#ffb060 40%,#ffd890 44%,#1a8ac8 46%,#0a5294 60%,#8a4a22 62%,#5a2a10)" },
+  { id:"lvl25", num:25, title:"REAL LOVE", requires:"lvl24", src:"levels/real-love.html?hub=1",
+    ds:"The beach from the cover at night - the glowing heart over the sea, the red pickup. Heart Flow: link the pairs of hearts, lines can't cross.",
+    art:"radial-gradient(14% 14% at 42% 26%, #ffe8e0, #ff8a7a 60%, transparent 75%), radial-gradient(40% 30% at 42% 26%, #ff5a5a55, transparent 70%), linear-gradient(180deg,#03060f 0,#0a1428 38%,#2a3a5a 46%,#0e2a4a 50%,#04142a 64%,#6a5a4a 66%,#3a3028)" },
+  { id:"lvl25b", num:25, part:2, title:"CRAB SWEEPER", requires:"lvl25", src:"levels/real-love.html?hub=1&part=2",
+    ds:"Part 2. Dig the mounds - the numbers count the crabs around. Flag them, and keep digging before the tide comes in.",
+    art:"radial-gradient(12% 10% at 60% 78%, #ff4a2a, transparent 70%), linear-gradient(180deg,#03060f 0,#0a1428 38%,#2a3a5a 46%,#0e2a4a 50%,#04142a 64%,#6a5a4a 66%,#3a3028)" },
+  { id:"lvl25c", num:25, part:3, title:"STARLIGHT", requires:"lvl25b", src:"levels/real-love.html?hub=1&part=3",
+    ds:"Part 3. Stars in the sand: tap one and it changes, and so do the four next to it. Light them all.",
+    art:"radial-gradient(10% 10% at 35% 75%, #ffe8a0, transparent 70%), radial-gradient(10% 10% at 55% 80%, #ffe8a0, transparent 70%), radial-gradient(10% 10% at 72% 74%, #ffe8a0, transparent 70%), linear-gradient(180deg,#03060f 0,#0a1428 38%,#2a3a5a 46%,#0e2a4a 50%,#04142a 64%,#6a5a4a 66%,#3a3028)" },
+  { id:"lvl25d", num:25, part:4, title:"SHELL SUDOKU", requires:"lvl25c", src:"levels/real-love.html?hub=1&part=4",
+    ds:"Part 4. A sudoku with pictures from the beach - each one once in every row, column and box.",
+    art:"linear-gradient(90deg, transparent 0 33%, #00000040 33% 34%, transparent 34% 66%, #00000040 66% 67%, transparent 67%), linear-gradient(180deg,#03060f 0,#0a1428 38%,#2a3a5a 46%,#0e2a4a 50%,#04142a 64%,#6a5a4a 66%,#3a3028)" }
 ];
 // The endless list: each part of a song with no end (id + "x"), and the song's remix,
 // all its parts in turn (lvlNr). All of a song's endless open once all its parts are cleared.
@@ -514,7 +526,8 @@ const ENDLESS = [
   ...endlessOf(21, "blind-love.html", "lvl21b", [["lvl21", "Love Cards"], ["lvl21b", "Snap"]], false),
   ...endlessOf(22, "space-kid.html", "lvl22c", [["lvl22", "Planet Match"], ["lvl22b", "Rainbow Sort"], ["lvl22c", "Star Peaks"]], false),
   ...endlessOf(23, "fall-in-love-again.html", "lvl23c", [["lvl23", "Heart Pop"], ["lvl23b", "Love Words"], ["lvl23c", "Heart Merge"]], false),
-  ...endlessOf(24, "down-for-me.html", "lvl24", [["lvl24", "Sunset Swap"]], false)
+  ...endlessOf(24, "down-for-me.html", "lvl24", [["lvl24", "Sunset Swap"]], false),
+  ...endlessOf(25, "real-love.html", "lvl25d", [["lvl25", "Heart Flow"], ["lvl25b", "Crab Sweeper"], ["lvl25c", "Starlight"], ["lvl25d", "Shell Sudoku"]], false)
 ];
 // JAVEDA: HYPERDRIVE: not a level and not a part - the ultimate one, its own game. Scored like an endless
 // (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.
@@ -710,7 +723,7 @@ function renderUltimate(){
       ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play HYPERDRIVE</button>'
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
-const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"]];
+const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
   $("etabs").innerHTML = '<span class="lab">Ultimate</span><button role="tab" type="button" data-tab="' + ULT.id + '" aria-selected="' + (ULT.id === boardTab) + '">' + ULT.title + '</button>' +
@@ -725,7 +738,7 @@ async function renderBoard(){
   const col = boardTab === "points" ? "points" : end ? "best_score" : boardTab + "_best";
   const { data, error } = end
     ? await sb.from("javeda_scores").select("username, avatar, best_score").eq("level", boardTab).order("best_score", { ascending:false }).limit(25)
-    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best, lvl19_best, lvl20_best, lvl21_best, lvl21b_best, lvl22_best, lvl22b_best, lvl22c_best, lvl23_best, lvl23b_best, lvl23c_best, lvl24_best")
+    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best, lvl19_best, lvl20_best, lvl21_best, lvl21b_best, lvl22_best, lvl22b_best, lvl22c_best, lvl23_best, lvl23b_best, lvl23c_best, lvl24_best, lvl25_best, lvl25b_best, lvl25c_best, lvl25d_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }

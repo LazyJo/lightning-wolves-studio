@@ -37,6 +37,7 @@ client/public/javeda/
     ├── real-love.html      # Level 25: Heart Flow (link the pairs), Part 2 Crab Sweeper (?part=2), Part 3 Starlight (?part=3, lights out), Part 4 Shell Sudoku (?part=4) (+ endless each)
     ├── lifestyle-crazy.html # Level 26: Neon Pinball (a new, harder table each time you hit the target), Part 2 Speaker Push (?part=2, Sokoban) (+ endless each)
     ├── be-alright.html     # Level 27: Untangle (drag the birds until no strings cross), Part 2 Bird Code (?part=2, a code breaker) (+ endless each)
+    ├── go.html             # Level 28: Rooftop Golf (nine holes, each with something new), Part 2 Sky Hockey (?part=2, round after round against the shadow) (+ endless each) - and online Golf for 2, 3 or 4 (?online=golf|golf3|golf4) and Hockey 1v1 (?online=hockey)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
@@ -104,7 +105,12 @@ scoreboard shows as offline.
   wrong light is a Z, three Z's and you fell asleep; mode `pass`, reports Z's left); and Level 21's **Love Cards**
   (`lvl21cards`, `?online=cards`: one shared bed, take turns, a pair and you go again; mode `cards`, reports pairs) and
   **Snap** (`lvl21snap`, `?online=snap`: the same 48 cards for both, the quicker snap takes the pair - each says how
-  quick, both wait for both; mode `snap`, reports points). The level
+  quick, both wait for both; mode `snap`, reports points); and Level 28's **GO!** card: **Golf 1v1** (`lvl28golf`,
+  `?online=golf`: the same nine holes at the same time, the other ball a ghost; mode `golf`, reports holes x 100 +
+  99 - strokes, so level on holes goes to the fewer strokes), **Golf · 3 / 4 players** (`lvl28golf3`, `lvl28golf4`,
+  `?online=golf3|golf4`, see below) and **Hockey 1v1** (`lvl28hockey`, `?online=hockey`: one table, the first
+  player's game runs it; mode `hockey`, reports rounds). Level 28's golf intro also has Play alone / Online 1v1 /
+  3 / 4 buttons: on the hub they post `javeda:play` and the hub opens that one. The level
   page talks to the other player itself over **Supabase Realtime** (broadcast + presence; it makes its own
   client from `/api/config` and the saved log-in): a lobby channel per mode, a room channel per match. No
   bots and no made-up players, ever. When a match ends, each side's level posts `javeda:match` and that
@@ -113,6 +119,13 @@ scoreboard shows as offline.
   view), +25 points for a win and +5 each for a draw - from at most 6 matches a day per player and 2 a day
   against the same player. A mismatch is `disputed` and counts for nobody; a match someone leaves has no
   result. Realtime needs nothing switched on: public broadcast/presence channels work with the anon key.
+- **Online golf for 3 or 4** (Level 28): each size has its own lobby and the game starts when there are enough real
+  players (it says how many are there and waits). Someone who leaves counts 9 strokes on every hole left and the rest
+  play on (if everyone else leaves, no result). Each player's level posts `javeda:match` with everyone in it, the holes
+  and strokes of each and who left; the hub calls `javeda_report_group`, and the game counts when everyone who stayed
+  has reported exactly the same (`javeda_group_matches`; any difference: `disputed`, for nobody). Places by holes, then
+  strokes; points with 3: 25 / 10 / 0, with 4: 25 / 15 / 5 / 0 (a shared place earns the place below it); on the
+  Online record 1st alone is a win, a shared 1st a draw, the rest a loss. The 6-a-day limit counts these and 1v1s.
 - **Rides.** Clearing Level 2 Part 2 earns Zirka's bike: the hub opens Level 1 with `?rides=bike` and
   the level shows a Saucer / Zirka's bike picker. Creators always get it.
 - **Points** come from playing only (never from streaming): up to 40 per run for the
@@ -138,6 +151,8 @@ hub, the level posts to `window.parent` (same origin only):
 | `{type:"javeda:next", level}` | the player tapped "Next level" |
 | `{type:"javeda:menu"}` | the player asked to go back to the level list |
 | `{type:"javeda:match", level, match, mode, opponent, my, their}` | an online 1v1 ended (both scores; H-O-R-S-E: letters left) |
+| `{type:"javeda:match", level, match, mode, players, seat, place, holes, strokes, left}` | an online golf game for 3 or 4 ended (everyone in seat order) |
+| `{type:"javeda:play", level}` | the level asked the hub to open another way to play the same song (Level 28's golf: alone / 1v1 / 3 / 4) |
 
 ## Adding a level
 

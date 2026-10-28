@@ -133,6 +133,13 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .ult.vs.love::after{opacity:0}
 .ult.vs.love .ut{text-shadow:0 0 18px #ff5ac0, 0 0 40px #7a5ae8}
 .ult.vs.love .ut small, .ult.vs.love .rec{color:#ffc8ec}
+/* Level 28's GO!: the city at sunset from the top of a tower - purple overhead, the fire of the sunset low down */
+.ult.vs.go{border-color:#ffb06a77; background:radial-gradient(80% 50% at 50% 100%,#ff8a3a66,transparent 70%),linear-gradient(180deg,#2a0e52 0,#6a2a8a 45%,#d0507a 75%,#ff9a4a);
+  box-shadow:0 0 30px #ff7a4a44}
+.ult.vs.go::after{opacity:0}
+.ult.vs.go .ut{text-shadow:0 0 18px #ff9a4a, 0 0 40px #8a3aff}
+.ult.vs.go .ut small, .ult.vs.go .rec{color:#ffe0b0}
+.ult.vs.go .ds{color:#fff2ea}
 /* JAVEDA: HYPERDRIVE: the ultimate one, a game of its own */
 .ult{position:relative; overflow:hidden; border-radius:16px; border:1.5px solid #ff3d8b66; padding:22px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:18px; align-items:end;
   background:radial-gradient(90% 120% at 100% 0%,#ff3d8b40,transparent 60%),radial-gradient(70% 100% at 0% 100%,#7b2ff74d,transparent 60%),linear-gradient(160deg,#1a0b2e,#0b0416);
@@ -505,7 +512,13 @@ let LEVELS = [
     art:"linear-gradient(30deg, transparent 45%, #ff3a5acc 46%, transparent 48%), linear-gradient(150deg, transparent 50%, #2a7ae8cc 51%, transparent 53%), radial-gradient(40% 18% at 50% 72%, #ffffff, transparent 70%), linear-gradient(180deg,#0b3a86 0,#1f62b8 35%,#8fc0ee 60%,#eef7ff 64%,#dfe8f5)" },
   { id:"lvl27b", num:27, part:2, title:"BIRD CODE", requires:"lvl27", src:"levels/be-alright.html?hub=1&part=2",
     ds:"Part 2. Crack the order the birds are hiding in - the gold and blue beads tell you how close each try is.",
-    art:"radial-gradient(5% 5% at 38% 62%, #ff3a4a, transparent 80%), radial-gradient(5% 5% at 50% 62%, #ffc020, transparent 80%), radial-gradient(5% 5% at 62% 62%, #2ec860, transparent 80%), linear-gradient(180deg,#0b3a86 0,#1f62b8 35%,#8fc0ee 60%,#eef7ff 64%,#dfe8f5)" }
+    art:"radial-gradient(5% 5% at 38% 62%, #ff3a4a, transparent 80%), radial-gradient(5% 5% at 50% 62%, #ffc020, transparent 80%), radial-gradient(5% 5% at 62% 62%, #2ec860, transparent 80%), linear-gradient(180deg,#0b3a86 0,#1f62b8 35%,#8fc0ee 60%,#eef7ff 64%,#dfe8f5)" },
+  { id:"lvl28", num:28, title:"GO!", requires:"lvl27b", src:"levels/go.html?hub=1",
+    ds:"The city at sunset from the top of a tower. Rooftop Golf: nine holes on the roofs, each with something new - or online for 2, 3 or 4.",
+    art:"radial-gradient(4% 4% at 62% 58%, #fff6d8, transparent 80%), linear-gradient(0deg, transparent 0 38%, #2a1a3a 38% 40%, transparent 40%), radial-gradient(60% 30% at 50% 100%, #ff9a4a, transparent 70%), linear-gradient(180deg,#2a0e52 0,#6a2a8a 40%,#d0507a 70%,#ff9a4a)" },
+  { id:"lvl28b", num:28, part:2, title:"SKY HOCKEY", requires:"lvl28", src:"levels/go.html?hub=1&part=2",
+    ds:"Part 2. Air hockey on a roof against the shadow - first to 3 takes a round, and every round has something new.",
+    art:"radial-gradient(6% 4% at 50% 46%, #fff6d8, transparent 80%), radial-gradient(9% 6% at 50% 70%, #ffb840, transparent 80%), radial-gradient(9% 6% at 50% 24%, #2a0e3a, transparent 80%), linear-gradient(180deg,#2a0e52 0,#6a2a8a 40%,#d0507a 70%,#ff9a4a)" }
 ];
 // The endless list: each part of a song with no end (id + "x"), and the song's remix,
 // all its parts in turn (lvlNr). All of a song's endless open once all its parts are cleared.
@@ -541,20 +554,26 @@ const ENDLESS = [
   ...endlessOf(24, "down-for-me.html", "lvl24", [["lvl24", "Sunset Swap"]], false),
   ...endlessOf(25, "real-love.html", "lvl25d", [["lvl25", "Heart Flow"], ["lvl25b", "Crab Sweeper"], ["lvl25c", "Starlight"], ["lvl25d", "Shell Sudoku"]], false),
   ...endlessOf(26, "lifestyle-crazy.html", "lvl26b", [["lvl26", "Neon Pinball"], ["lvl26b", "Speaker Push"]], false),
-  ...endlessOf(27, "be-alright.html", "lvl27b", [["lvl27", "Untangle"], ["lvl27b", "Bird Code"]], false)
+  ...endlessOf(27, "be-alright.html", "lvl27b", [["lvl27", "Untangle"], ["lvl27b", "Bird Code"]], false),
+  ...endlessOf(28, "go.html", "lvl28b", [["lvl28", "Rooftop Golf"], ["lvl28b", "Sky Hockey"]], false)
 ];
 // JAVEDA: HYPERDRIVE: not a level and not a part - the ultimate one, its own game. Scored like an endless
 // (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.
 const ULT = { id:"hyperdrive", num:9, endless:true, ultimate:true, title:"HYPERDRIVE", requires:"lvl9c", src:"levels/hyperdrive.html?hub=1" };
-// Online 1v1: Level 16's Hoops, Level 20's Pass It On and Level 21's cards against a real player found by quick match.
-// Open to everyone who's logged in (so there's someone to play); the result goes through
-// javeda_report_match, and every online game counts on the one Online 1v1 record.
+// Online 1v1: Level 16's Hoops, Level 20's Pass It On, Level 21's cards and Level 28's golf and hockey against a real
+// player found by quick match - and Level 28's golf for 3 or 4 (players: the size). Open to everyone who's logged in
+// (so there's someone to play); a 1v1 goes through javeda_report_match, golf for 3 or 4 through javeda_report_group,
+// and every online game counts on the one Online record.
 const VERSUS = [
   { id:"lvl16live", num:16, online:"live", title:"Live 1v1", src:"levels/peace-inside.html?hub=1&online=live" },
   { id:"lvl16horse", num:16, online:"horse", title:"H-O-R-S-E", src:"levels/peace-inside.html?hub=1&online=horse" },
   { id:"lvl20pass", num:20, online:"pass", title:"Pass It On 1v1", src:"levels/stay-up-2.html?hub=1&online=pass" },
   { id:"lvl21cards", num:21, online:"cards", title:"Love Cards 1v1", src:"levels/blind-love.html?hub=1&online=cards" },
-  { id:"lvl21snap", num:21, online:"snap", title:"Snap 1v1", src:"levels/blind-love.html?hub=1&online=snap" }
+  { id:"lvl21snap", num:21, online:"snap", title:"Snap 1v1", src:"levels/blind-love.html?hub=1&online=snap" },
+  { id:"lvl28golf", num:28, online:"golf", title:"Golf 1v1", src:"levels/go.html?hub=1&online=golf" },
+  { id:"lvl28golf3", num:28, online:"golf3", players:3, title:"Golf · 3 players", src:"levels/go.html?hub=1&online=golf3" },
+  { id:"lvl28golf4", num:28, online:"golf4", players:4, title:"Golf · 4 players", src:"levels/go.html?hub=1&online=golf4" },
+  { id:"lvl28hockey", num:28, online:"hockey", title:"Hockey 1v1", src:"levels/go.html?hub=1&online=hockey" }
 ];
 const ALL = [...LEVELS, ...ENDLESS, ULT, ...VERSUS];
 const levelById = id => ALL.find(l => l.id === id);
@@ -636,6 +655,7 @@ function comingSoon(){
     const last = runs[runs.length - 1];
     if (last && last[1] === n - 1) last[1] = n; else runs.push([n, n]);
   }
+  if (!runs.length) return "";      // all 28: the album is complete
   return (runs.length === 1 && runs[0][0] === runs[0][1] ? "Level " : "Levels ") +
     runs.map(([a, b]) => a === b ? a : a + " - " + b).join(", ");
 }
@@ -687,8 +707,8 @@ function renderLevels(){
       '<div class="parts' + (real.length > 3 ? ' four' : '') + '">' + parts.map(partTile).join("") + '</div>' +
       '</article>';
   }).join("") +
-  '<article class="song soon"><span class="tr" aria-hidden="true">&hellip;</span><div><span class="no">' + comingSoon() + '</span>' +
-    '<p class="ds">One per song on the album. Coming as the songs come.</p></div></article>';
+  (comingSoon() ? '<article class="song soon"><span class="tr" aria-hidden="true">&hellip;</span><div><span class="no">' + comingSoon() + '</span>' +
+    '<p class="ds">One per song on the album. Coming as the songs come.</p></div></article>' : '');
   $("levels").innerHTML = html;
 }
 // the endless list: a gold row per song that has one
@@ -725,7 +745,12 @@ function renderVersus(){
     '<div><span class="no">Level 21 &middot; Blind Love &middot; Lazy Jo</span><span class="ut"><small>Two card games</small>BLIND LOVE <i>1v1</i></span>' +
     '<p class="ds">Quick match against a real player. <b>Love Cards:</b> one bed of cards between you - take turns turning two, a pair and you go again, the most pairs wins. ' +
     '<b>Snap:</b> the same cards for both at the same time - the quicker snap takes the pair. A win is +25 points.</p></div>' +
-    foot('<button class="btn gold" data-play="lvl21cards">Love Cards 1v1</button><button class="btn gold" data-play="lvl21snap">Snap 1v1</button>') + '</article>';
+    foot('<button class="btn gold" data-play="lvl21cards">Love Cards 1v1</button><button class="btn gold" data-play="lvl21snap">Snap 1v1</button>') + '</article>' +
+    '<article class="ult vs go">' +
+    '<div><span class="no">Level 28 &middot; GO! &middot; Lazy Jo</span><span class="ut"><small>On the roofs at sunset</small>GO! <i>ONLINE</i></span>' +
+    '<p class="ds">Quick match against real players. <b>Golf</b> for 2, 3 or 4: the same nine holes at the same time, the others as ghost balls - the fewest strokes takes the hole, the most holes wins. ' +
+    '<b>Hockey:</b> one air hockey table, first to 3 rounds. A win is +25 points; with 3 or 4, 2nd place earns some too.</p></div>' +
+    foot('<button class="btn gold" data-play="lvl28golf">Golf 1v1</button><button class="btn gold" data-play="lvl28golf3">Golf &middot; 3</button><button class="btn gold" data-play="lvl28golf4">Golf &middot; 4</button><button class="btn gold" data-play="lvl28hockey">Hockey 1v1</button>') + '</article>';
 }
 function renderUltimate(){
   const p = progress[ULT.id] || {}, open = isOpen(ULT);
@@ -737,7 +762,7 @@ function renderUltimate(){
       ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play HYPERDRIVE</button>'
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
-const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"]];
+const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"],["lvl28","Level 28"],["lvl28b","Level 28 Part 2"]];
 function renderTabs(){
   $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
   $("etabs").innerHTML = '<span class="lab">Ultimate</span><button role="tab" type="button" data-tab="' + ULT.id + '" aria-selected="' + (ULT.id === boardTab) + '">' + ULT.title + '</button>' +
@@ -752,7 +777,7 @@ async function renderBoard(){
   const col = boardTab === "points" ? "points" : end ? "best_score" : boardTab + "_best";
   const { data, error } = end
     ? await sb.from("javeda_scores").select("username, avatar, best_score").eq("level", boardTab).order("best_score", { ascending:false }).limit(25)
-    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best, lvl19_best, lvl20_best, lvl21_best, lvl21b_best, lvl22_best, lvl22b_best, lvl22c_best, lvl23_best, lvl23b_best, lvl23c_best, lvl24_best, lvl25_best, lvl25b_best, lvl25c_best, lvl25d_best, lvl26_best, lvl26b_best, lvl27_best, lvl27b_best")
+    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best, lvl19_best, lvl20_best, lvl21_best, lvl21b_best, lvl22_best, lvl22b_best, lvl22c_best, lvl23_best, lvl23b_best, lvl23c_best, lvl24_best, lvl25_best, lvl25b_best, lvl25c_best, lvl25d_best, lvl26_best, lvl26b_best, lvl27_best, lvl27b_best, lvl28_best, lvl28b_best")
     .gt(col, 0).order(col, { ascending:false }).limit(25);
   if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
   if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }
@@ -1004,10 +1029,13 @@ async function saveEndless(lv, r){
 // so if theirs isn't in yet, ask again a few times
 async function reportMatch(m){
   if (!signedIn()) return;
-  const args = { p_match:String(m.match), p_mode:m.mode, p_opponent:String(m.opponent), p_my:m.my | 0, p_their:m.their | 0 };
+  const group = Array.isArray(m.players), fn = group ? "javeda_report_group" : "javeda_report_match";
+  const args = group
+    ? { p_match:String(m.match), p_mode:m.mode, p_players:m.players.map(String), p_holes:(m.holes || []).map(v => v | 0), p_strokes:(m.strokes || []).map(v => v | 0), p_left:(m.left || []).map(String) }
+    : { p_match:String(m.match), p_mode:m.mode, p_opponent:String(m.opponent), p_my:m.my | 0, p_their:m.their | 0 };
   let res;
   for (let i = 0; i < 8; i++){
-    res = await sb.rpc("javeda_report_match", args);
+    res = await sb.rpc(fn, args);
     if (res.error || res.data.status !== "waiting") break;
     await new Promise(ok => setTimeout(ok, 2500));
   }
@@ -1016,8 +1044,9 @@ async function reportMatch(m){
   if (d.player) player = d.player;
   if (d.record) record = d.record;
   renderMe(); renderVersus(); if (boardTab === "1v1" || boardTab === "points") renderBoard();
-  if (d.status === "waiting") toast("Match saved - it counts once the other player's result is in.", 5000);
-  else if (d.status === "disputed") toast("The two results didn't match, so this one doesn't count.", 5000);
+  if (d.status === "waiting") toast(group ? "Game saved - it counts once everyone's result is in." : "Match saved - it counts once the other player's result is in.", 5000);
+  else if (d.status === "disputed") toast(group ? "The results didn't all match, so this one doesn't count." : "The two results didn't match, so this one doesn't count.", 5000);
+  else if (group) toast((d.place === 1 ? "<b>1st place!</b>" : "<b>" + ["", "1st", "2nd", "3rd", "4th"][d.place] + " place.</b>") + (d.earned ? " <b>+" + fmt(d.earned) + " points</b>" : " On the board."), 5000);
   else toast({ win:"<b>1v1 win!</b>", loss:"1v1 loss.", draw:"<b>A 1v1 draw.</b>" }[d.result] + (d.earned ? " <b>+" + fmt(d.earned) + " points</b>" : d.result === "loss" ? " On the board - get them next time." : " On the board.") , 5000);
 }
 addEventListener("message", e => {
@@ -1028,6 +1057,10 @@ addEventListener("message", e => {
   else if (m.type === "javeda:result" && current && m.level === current.id) saveRun(m);
   else if (m.type === "javeda:match" && current && current.online && m.level === current.id) reportMatch(m);
   else if (m.type === "javeda:menu") stopPlay();
+  else if (m.type === "javeda:play" && current && levelById(m.level) && levelById(m.level).num === current.num){
+    const lv = levelById(m.level);
+    if (isOpen(lv)) play(lv.id); else toast(lvName(lv) + " - " + needText(lv) + ".");
+  }
   else if (m.type === "javeda:next"){
     const nextLv = nextMain(m.level || (current && current.id));
     if (nextLv && isOpen(nextLv)) play(nextLv.id);

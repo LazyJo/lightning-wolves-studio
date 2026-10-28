@@ -1,0 +1,2405 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>GO!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{color-scheme:dark}
+html,body{height:100%}
+body{margin:0; background:#120a2a; color:#fff0e8; overflow:hidden; font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
+#cab{position:fixed; inset:0}
+canvas{display:block; touch-action:none}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px 30px; z-index:3; background:linear-gradient(180deg,#1a0a2aa8,#1a0a2a40 60%,transparent); display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud.off{opacity:0}
+#m{font-family:Bungee,sans-serif; font-size:24px; color:#fff6f0; line-height:1; text-shadow:0 0 4px #1a0a2a, 0 0 12px #1a0a2a}
+#ml{font-size:11px; letter-spacing:.18em; color:#ffe8c8; margin-top:3px; text-shadow:0 0 4px #1a0a2a, 0 0 8px #1a0a2a}
+#hearts{font-size:18px; letter-spacing:.12em; margin-top:7px; color:#e0306a; text-shadow:0 0 8px #000; min-height:20px}
+#hearts.hit{animation:hurt .5s}
+@keyframes hurt{0%,100%{transform:none}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.bar{width:120px; height:6px; border-radius:3px; background:#ffc94a22; margin:4px 0 0 auto; overflow:hidden}
+.bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#ffc94a,#ffc94a)}
+.bl{font-size:11px; letter-spacing:.18em; color:#ffe8c8; text-align:right; text-shadow:0 0 4px #1a0a2a, 0 0 8px #1a0a2a}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#fff3c8; margin-top:8px; text-align:right; text-shadow:0 0 3px #000, 0 0 8px #000, 0 0 16px #000}
+body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
+body.gold #m{color:#ffc83a}
+/* the other player, top middle: both of you and your pairs */
+#vs{position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:3; pointer-events:none; text-align:center; font-family:Bungee,sans-serif; color:#fff6f0;
+  background:#1a0a2acc; border:1.5px solid #ffc83a55; border-radius:8px; padding:6px 12px; min-width:150px}
+#vs .nm{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:#ffe8c8; max-width:40vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+#vs .row{display:flex; align-items:center; justify-content:space-between; gap:10px}
+#vs .row + .row{margin-top:3px}
+#vs .lt{font-size:16px; letter-spacing:.12em; color:#ffc83a44}
+#vs .lt b{color:#ff6a8a; font-weight:400}
+#vs .row.up .nm{color:#ffe08a}
+#vs .row.up .nm::before{content:"\25B6  "}
+#vs .dot{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; vertical-align:middle}
+#phase{position:fixed; left:0; right:0; bottom:0; padding:26px 0 calc(14px + env(safe-area-inset-bottom)); background:linear-gradient(0deg,#1a0a2a99,transparent); text-align:center; pointer-events:none; z-index:3;
+  font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#ffc94a; text-shadow:0 0 3px #1a0a2a, 0 0 10px #1a0a2a, 0 2px 0 #1a0a2a}
+#phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#fff6f0; margin-top:2px; text-shadow:0 0 3px #1a0a2a, 0 0 8px #1a0a2a}
+#phase.ready{color:#ffe08a}
+#phase.off{opacity:0}
+#msg{position:fixed; left:0; right:0; top:24%; text-align:center; pointer-events:none; z-index:3; font-family:Bungee,sans-serif;
+  font-size:26px; opacity:0; transition:opacity .25s; color:#ffc94a; text-shadow:0 0 3px #1a0a2a, 0 0 12px #1a0a2a, 0 2px 0 #1a0a2a; padding:0 16px}
+#msg.on{opacity:1}
+#msg.x{color:#ff6a7a}
+#msg.g{color:#ffc83a}
+#msg.t{font-size:clamp(30px,8vw,60px); color:#fff4ec; font-family:'Barlow Condensed',sans-serif; font-weight:600; letter-spacing:.18em; text-shadow:0 0 24px #ffc83a, 0 0 60px #ff9a5a, 0 2px 5px #120a2a}
+#msg small{display:block; font-family:"Barlow Condensed",sans-serif; font-size:15px; letter-spacing:.14em; color:#fff6f0; margin-top:6px; text-shadow:0 0 3px #1a0a2a, 0 0 8px #1a0a2a}
+#flash{position:fixed; inset:0; pointer-events:none; z-index:2; opacity:0; background:#fff}
+#veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto; color:#fff4ec;
+  background:radial-gradient(50% 30% at 50% 20%, #8a4aff33 0%, transparent 70%), radial-gradient(120% 80% at 50% 25%, #5a2a9a 0%, #120a2a 70%)}
+body.gold #veil{background:radial-gradient(60% 30% at 50% 62%, #ffc83a44 0%, transparent 60%), radial-gradient(120% 80% at 50% 25%, #3a2a10 0%, #120c04 70%)}
+#veil .sp{flex:1 0 0; display:block}
+#veil .by{letter-spacing:.42em; font-size:14px; color:#ffe8c8; margin:0 0 -8px}
+#veil h1{font-family:Bungee,sans-serif; font-weight:400; margin:0; font-size:clamp(32px,10vw,60px); line-height:1; color:#fff6f0; text-shadow:0 0 22px #ffc83a, 0 0 50px #ff9a5a}
+body.gold #veil h1{text-shadow:0 0 24px #ffb000}
+#veil p{margin:0; color:#fff0e8; font-size:17px; max-width:42ch}
+#veil b{color:#ffc94a}
+#go{font-family:Bungee,sans-serif; font-size:19px; background:linear-gradient(180deg,#ffe08a,#ff9a5a); color:#2a1a00; border:0; border-radius:4px; padding:15px 36px; cursor:pointer; box-shadow:0 0 24px #ffc94a66}
+#go:disabled{opacity:.45; cursor:default; box-shadow:none}
+#go.alt{background:none; color:#ffc94a; border:1.5px solid #ffc94a; font-size:15px; padding:12px 30px; box-shadow:none}
+.alt2{font-family:"Barlow Condensed",sans-serif; font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:14px; background:none; color:#fff0e8;
+  border:1.5px solid #fff0e866; border-radius:4px; padding:9px 18px; cursor:pointer}
+#net{font-size:16px; color:#fff0e8; max-width:42ch; min-height:20px}
+#net b{color:#ffe08a}
+#net .dot{display:inline-block; width:8px; height:8px; border-radius:50%; background:#3ad07a; margin-right:6px; vertical-align:1px}
+#net.wait .dot{animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.25}}
+#veil small{color:#ffe8c8; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+#parts, #sizes{display:flex; gap:8px; flex-wrap:wrap; justify-content:center}
+#parts button, #sizes button{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:14px; letter-spacing:.1em; text-transform:uppercase; padding:8px 14px; border-radius:4px; cursor:pointer;
+  color:#fff0e8; background:none; border:1.5px solid #ffc94a55}
+#parts button[aria-pressed="true"], #sizes button[aria-pressed="true"]{color:#fff; border-color:#ffc94a; background:#ffc94a22}
+#parts button.gold{color:#ffe08a; border-color:#e0a41a99}
+#parts button.gold[aria-pressed="true"]{background:#e0a41a33; border-color:#ffe08a}
+/* after the song: the song, the merch, the fans. Plain links - nothing in the game
+   is ever traded for a stream, same rule as the rest of JAVEDA. */
+#outs{display:flex; flex-wrap:wrap; justify-content:center; gap:8px; max-width:360px}
+#outs a{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:10px 14px; border-radius:4px; border:1.5px solid}
+#outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+#outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
+#outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+#outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#ffc94a; padding:9px 22px;
+  border-radius:4px; border:1.5px solid #ffc94a99; background:#ffc94a14}
+#veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
+@media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:38px} #outs{max-width:none} }
+@media (max-width:520px){ #vs{top:auto; bottom:calc(58px + env(safe-area-inset-bottom))} }
+@media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} #net.wait .dot{animation:none} }
+@media (max-width:520px){ #hud{top:0} }
+/* the coach: what to do right now, in words */
+#coach{position:fixed; left:50%; top:12px; transform:translateX(-50%); z-index:3; pointer-events:none; text-align:center; width:max-content; max-width:min(680px,62vw);
+  background:#1a0a2ae0; border:1.5px solid #ff9a5a66; border-radius:10px; padding:7px 14px 8px; font-size:16px; line-height:1.35; color:#fff4ec; box-shadow:0 4px 18px #1a0a2a55}
+#coach big{font-family:Bungee,sans-serif; font-size:22px; color:#ffc94a; vertical-align:-2px}
+#coach b{color:#ffe08a}
+#coach .s{font-size:13.5px; color:#ffd8c0}
+#coach .r{color:#ff7a8a; font-weight:700}
+#coach .bl{color:#ff9a5a; font-weight:700}
+.gd,.bd{display:inline-block; width:11px; height:11px; border-radius:50%; border:1.5px solid #fff; margin:0 4px 0 2px; vertical-align:-1px}
+.gd{background:#ffc020} .bd{background:#8a4aff}
+@media (max-width:640px){ #coach{top:auto; bottom:calc(58px + env(safe-area-inset-bottom)); max-width:calc(100vw - 20px); font-size:14px; padding:6px 10px} #coach big{font-size:18px} #coach .s{font-size:12px} }
+.hid{display:none!important}
+</style>
+
+<div id="cab"></div>
+<div id="hud" class="off">
+  <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
+  <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
+</div>
+<div id="vs" class="hid"></div>
+<div id="phase" class="off"></div>
+<div id="coach" class="hid"></div>
+<div id="msg"></div>
+<div id="flash"></div>
+<div id="veil">
+  <i class="sp"></i>
+  <p class="by" id="by">LAZY JO</p>
+  <h1 id="title">GO!</h1>
+  <p id="intro"></p>
+  <p id="how"></p>
+  <div id="parts" class="hid" role="group" aria-label="Mode">
+    <button type="button" data-mode="1">Rooftop Golf</button><button type="button" data-mode="2">Sky Hockey</button><button type="button" data-mode="1x" class="gold">Rooftop Golf &#8734;</button><button type="button" data-mode="2x" class="gold">Sky Hockey &#8734;</button>
+  </div>
+  <div id="sizes" class="hid" role="group" aria-label="Golf: alone or online">
+    <button type="button" data-size="">Play alone</button><button type="button" data-size="golf">Online 1v1</button><button type="button" data-size="golf3">Online &middot; 3 players</button><button type="button" data-size="golf4">Online &middot; 4 players</button>
+  </div>
+  <p id="net" class="hid" role="status" aria-live="polite"></p>
+  <button id="go" type="button">Start</button>
+  <button id="practice" class="alt2 hid" type="button">Warm up on your own</button>
+  <div id="outs" class="hid">
+    <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
+    <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
+    <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
+    <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+  </div>
+  <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
+  <small id="snd">sound on</small>
+  <i class="sp"></i>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+/* ================= GO! =================
+   Level 28 of JAVEDA, the last song, in the world of the cover: the city at sunset seen from high over the towers -
+   the sky deep purple overhead going to the fire of the sunset, the towers lit, the spires with their red lights - in
+   the cinematic 3D Jo approved. No face is shown and there's no saucer in the games (Jo). Jo picked two:
+   PART 1 · ROOFTOP GOLF: nine holes on the roofs, each with something new - ledges, the air-con, boost pads, portals,
+     the gap, the wind, the windmill, and the spire where the cup won't keep still.
+   PART 2 · SKY HOCKEY (?part=2): air hockey on a roof against the shadow, round after round, each with something new -
+     two pucks, bumpers, the golden puck, the wind, portal walls, the split, and the final with everything.
+   Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
+   ENDLESS for each (?endless=1) once both are cleared.
+   ONLINE (?online=golf|golf3|golf4|hockey, from the JAVEDA page, logged in): Golf for 2, 3 or 4 - the same nine holes
+   at the same time, the others' balls ghosts on yours, the fewest strokes takes the hole; Hockey 1v1 - one table, each
+   of you at your own end, the rounds the same as against the shadow. A quick match against real players - never
+   made-up ones. */
+
+// the song's grid, measured (SONG.md): 80.5 BPM, the 1 at -0.007 s; 56 bars, 2:47
+const GRID = { bpm:80.5, t0:-0.007 };
+const BEAT = 60 / GRID.bpm, BAR = BEAT * 4;
+const barT = (b, beat) => GRID.t0 + b * BAR + (beat || 0) * BEAT;
+const END_AT = barT(52);                      // the outro: the cover
+const LOOP = [barT(4), barT(52)];             // endless and online: round and round, the last hook back into the first
+const songPos = t => t < LOOP[1] ? t : LOOP[0] + (t - LOOP[0]) % (LOOP[1] - LOOP[0]);
+// how the song feels at time t: the hook (4-11, 24-31, 44-51), the verses, the breaks with no kick (20-23, 40-43),
+// the breakdown with no bass (32-35)
+const SECTIONS = [[4, "calm"], [12, "hook"], [20, "loud"], [24, "calm"], [32, "hook"], [36, "calm"], [40, "loud"], [44, "calm"], [52, "hook"]];
+function section(t){
+  const b = Math.floor((songPos(t) - GRID.t0) / BAR);
+  for (const [end, sec] of SECTIONS) if (b < end) return sec;
+  return "calm";                                // the outro
+}
+const hookAt = t => section(t) === "hook";
+const STINT = BAR * 8;                        // endless: one window
+const HEARTS = 3;
+
+const Q = new URLSearchParams(location.search);
+const OMODES = { golf:"golf", golf3:"golf3", golf4:"golf4", hockey:"hockey" };
+const ONLINE = OMODES[Q.get("online")] || null;
+const PRACTICE = !ONLINE && OMODES[Q.get("practice")] || null;
+const GOLF_N = { golf:2, golf3:3, golf4:4 }[ONLINE] || 0;      // online golf: 2, 3 or 4 players
+const MODE_NAME = m => m === "hockey" ? "HOCKEY 1v1" : m === "golf" ? "GOLF 1v1" : "GOLF · " + m.slice(4) + " PLAYERS";
+const PART = ONLINE === "hockey" || PRACTICE === "hockey" ? 2 : ONLINE || PRACTICE ? 1 : { "2":2 }[Q.get("part")] || 1;
+const ENDLESS = !ONLINE && !PRACTICE && Q.get("endless") === "1";
+const NAMES = ["", "Rooftop Golf", "Sky Hockey"], IDS = ["", "lvl28", "lvl28b"];
+const CFG = ONLINE ? { id:"lvl28" + ONLINE, title:NAMES[PART] + (GOLF_N > 2 ? " · " + GOLF_N + " players" : " 1v1"), by:"LEVEL 28 · ONLINE " + (GOLF_N > 2 ? GOLF_N + " PLAYERS" : "1v1"), online:ONLINE }
+  : PRACTICE ? { id:"lvl28" + PRACTICE, title:NAMES[PART], by:"LEVEL 28 · WARM UP", practice:PRACTICE }
+  : ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 28" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 28" + (PART > 1 ? " Part " + PART : "") + " ∞" }
+  : { id:IDS[PART], title:NAMES[PART], by:"LEVEL 28" + (PART > 1 ? " PART " + PART : "") };
+
+const LINKS = {
+  spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
+  merch:   "https://www.even.biz/l/lightningwolves",
+  even:    "https://www.even.biz/l/lazyjomusic",
+  discord: "https://discord.gg/ngZ4MRjV6",
+  home:    "https://lightningwolves.studio/javeda/"
+};
+document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
+const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+if (HUB) document.getElementById("home").addEventListener("click", e => { e.preventDefault(); song.pause(); toHub({ type:"javeda:menu" }); });
+if (CFG.endless) document.body.classList.add("gold");
+
+const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
+const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
+const lerp = (a, b, k) => a + (b - a)*k;
+
+/* ---------------- sound: the song, or the stand-in beat ---------------- */
+const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
+const song = new Audio(SONGS + "lvl28.mp3"); song.preload = "auto";
+let haveSong = true; song.addEventListener("error", () => { haveSong = false; });
+let ac = null, bus = null, noise = null, beatT0 = 0, nextStep = 0, stepI = 0;
+const PROG = [116.5, 87.3, 98, 130.8];            // a rising loop, at sunset
+function audioInit(){
+  try {
+    if (!ac){ ac = new (window.AudioContext || window.webkitAudioContext)(); bus = ac.createGain(); bus.gain.value = .45; bus.connect(ac.destination);
+      noise = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    if (ac.state === "suspended") ac.resume();
+  } catch(e){ ac = null; }
+}
+function tone(type, f0, f1, at, dur, gain, lp){
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+  f.type = "lowpass"; f.frequency.value = lp || 8000; o.type = type;
+  o.frequency.setValueAtTime(f0, at); o.frequency.exponentialRampToValueAtTime(f1, at + dur);
+  g.gain.setValueAtTime(.0001, at); g.gain.exponentialRampToValueAtTime(gain, at + .01); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  o.connect(f); f.connect(g); g.connect(bus); o.start(at); o.stop(at + dur + .05);
+}
+function hiss(at, dur, gain, hp, bp){
+  if (!ac) return;
+  const s = ac.createBufferSource(), g = ac.createGain(), f = ac.createBiquadFilter();
+  s.buffer = noise; f.type = bp ? "bandpass" : "highpass"; f.frequency.value = bp || hp;
+  g.gain.setValueAtTime(gain, at); g.gain.exponentialRampToValueAtTime(.0001, at + dur);
+  s.connect(f); f.connect(g); g.connect(bus); s.start(at); s.stop(at + dur + .02);
+}
+function synthBeat(){
+  if (!ac || haveSong || !S.started || S.done || S.end >= 0) return;
+  while (nextStep < ac.currentTime + .15){
+    const i = stepI++, at = nextStep, s8 = i % 8, bar = Math.floor(i / 8), sec = section(bar*BAR + .01), full = sec !== "calm" && sec !== "rest";
+    if (full && (s8 === 0 || s8 === 5)) tone("sine", 110, 38, at, .5, .5, 800);
+    if (full && (s8 === 2 || s8 === 6)){ hiss(at, .22, .2, 0, 1800); tone("triangle", 190, 140, at, .1, .07); }
+    hiss(at, .03, s8 % 2 ? .025 : .045, 8000);
+    if (s8 === 0){ const f = PROG[bar % 4]; tone("sine", f/2, f/2, at, BAR*.9, .14, 300);
+      [2, 2.38, 3, 3.56].forEach(m => tone("triangle", f*m, f*m, at, BAR*.8, sec === "hook" ? .03 : .02, 1800)); }
+    nextStep += BEAT / 2;
+  }
+}
+const sfx = {
+  good: n => ac && tone("triangle", 784*Math.pow(2, ((n || 0) % 8)/24), 1175*Math.pow(2, ((n || 0) % 8)/24), ac.currentTime, .12, .06, 6000),
+  big:  () => ac && [523, 659, 784, 1047].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.06, .3, .05, 6000)),
+  bad:  () => ac && (tone("sawtooth", 220, 60, ac.currentTime, .35, .08, 1200), hiss(ac.currentTime, .3, .12, 0, 600)),
+  slide:() => ac && (hiss(ac.currentTime, .1, .05, 0, 900), tone("sine", 300, 200, ac.currentTime, .1, .05, 1200)),
+  jump: () => ac && tone("sine", 520, 880, ac.currentTime, .1, .06, 4000),                          // a heart shot, a swipe
+  clink:() => ac && tone("triangle", 2400, 1800, ac.currentTime, .12, .05, 9000),                       // a card turns
+  clap: () => ac && (hiss(ac.currentTime, .12, .25, 0, 1500), hiss(ac.currentTime + .012, .1, .18, 0, 2200)),
+  flip: () => ac && (tone("square", 180, 90, ac.currentTime, .05, .05, 1500), hiss(ac.currentTime, .04, .08, 0, 2500)),        // a flipper's clack
+  bumper:() => ac && (tone("square", 520, 260, ac.currentTime, .09, .06, 3000), tone("sine", 130, 60, ac.currentTime, .12, .12, 600)),
+  sling:() => ac && tone("triangle", 900, 400, ac.currentTime, .08, .05, 5000),
+  drop: () => ac && (tone("square", 300, 120, ac.currentTime, .12, .06, 1800), hiss(ac.currentTime, .1, .1, 0, 900)),
+  launch:() => ac && (hiss(ac.currentTime, .35, .14, 0, 700), tone("sawtooth", 80, 400, ac.currentTime, .3, .06, 1200)),
+  lock: () => ac && [392, 523, 784, 1047, 1568].forEach((f, i) => tone("sine", f, f, ac.currentTime + i*.07, .35, .06, 7000)),
+  tick: () => ac && tone("triangle", 1200, 1200, ac.currentTime, .06, .05, 9000),                      // the count-in
+  heart:() => ac && [880, 1320].forEach((f, i) => tone("triangle", f, f, ac.currentTime + i*.09, .3, .07, 6000)),
+  whoosh:() => ac && hiss(ac.currentTime, .9, .16, 0, 900),
+  zap:  () => ac && tone("sawtooth", 1200, 200, ac.currentTime, .2, .05, 4000),
+  putt: () => ac && (tone("triangle", 900, 600, ac.currentTime, .06, .07, 6000), hiss(ac.currentTime, .05, .08, 0, 3000)),
+  cup:  () => ac && [660, 990, 1320].forEach((f, i) => tone("sine", f, f, ac.currentTime + i*.08, .25, .07, 7000))
+};
+const onBeat = t => { const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT; return ph < .14 || ph > .86; };
+
+
+/* three.js r128 post-processing (examples/js, MIT licence, (c) three.js authors): EffectComposer, RenderPass, ShaderPass, UnrealBloomPass and their shaders */
+( function () {
+
+	/**
+ * Full-screen textured quad shader
+ */
+	var CopyShader = {
+		uniforms: {
+			'tDiffuse': {
+				value: null
+			},
+			'opacity': {
+				value: 1.0
+			}
+		},
+		vertexShader:
+  /* glsl */
+  `
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vUv = uv;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+		}`,
+		fragmentShader:
+  /* glsl */
+  `
+
+		uniform float opacity;
+
+		uniform sampler2D tDiffuse;
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vec4 texel = texture2D( tDiffuse, vUv );
+			gl_FragColor = opacity * texel;
+
+		}`
+	};
+
+	THREE.CopyShader = CopyShader;
+
+} )();
+( function () {
+
+	/**
+ * Luminosity
+ * http://en.wikipedia.org/wiki/Luminosity
+ */
+
+	const LuminosityHighPassShader = {
+		shaderID: 'luminosityHighPass',
+		uniforms: {
+			'tDiffuse': {
+				value: null
+			},
+			'luminosityThreshold': {
+				value: 1.0
+			},
+			'smoothWidth': {
+				value: 1.0
+			},
+			'defaultColor': {
+				value: new THREE.Color( 0x000000 )
+			},
+			'defaultOpacity': {
+				value: 0.0
+			}
+		},
+		vertexShader:
+  /* glsl */
+  `
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vUv = uv;
+
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+		}`,
+		fragmentShader:
+  /* glsl */
+  `
+
+		uniform sampler2D tDiffuse;
+		uniform vec3 defaultColor;
+		uniform float defaultOpacity;
+		uniform float luminosityThreshold;
+		uniform float smoothWidth;
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vec4 texel = texture2D( tDiffuse, vUv );
+
+			vec3 luma = vec3( 0.299, 0.587, 0.114 );
+
+			float v = dot( texel.xyz, luma );
+
+			vec4 outputColor = vec4( defaultColor.rgb, defaultOpacity );
+
+			float alpha = smoothstep( luminosityThreshold, luminosityThreshold + smoothWidth, v );
+
+			gl_FragColor = mix( outputColor, texel, alpha );
+
+		}`
+	};
+
+	THREE.LuminosityHighPassShader = LuminosityHighPassShader;
+
+} )();
+( function () {
+
+	/**
+ * Gamma Correction Shader
+ * http://en.wikipedia.org/wiki/gamma_correction
+ */
+	const GammaCorrectionShader = {
+		uniforms: {
+			'tDiffuse': {
+				value: null
+			}
+		},
+		vertexShader:
+  /* glsl */
+  `
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vUv = uv;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+		}`,
+		fragmentShader:
+  /* glsl */
+  `
+
+		uniform sampler2D tDiffuse;
+
+		varying vec2 vUv;
+
+		void main() {
+
+			vec4 tex = texture2D( tDiffuse, vUv );
+
+			gl_FragColor = LinearTosRGB( tex ); // optional: LinearToGamma( tex, float( GAMMA_FACTOR ) );
+
+		}`
+	};
+
+	THREE.GammaCorrectionShader = GammaCorrectionShader;
+
+} )();
+( function () {
+
+	class EffectComposer {
+
+		constructor( renderer, renderTarget ) {
+
+			this.renderer = renderer;
+
+			if ( renderTarget === undefined ) {
+
+				const parameters = {
+					minFilter: THREE.LinearFilter,
+					magFilter: THREE.LinearFilter,
+					format: THREE.RGBAFormat
+				};
+				const size = renderer.getSize( new THREE.Vector2() );
+				this._pixelRatio = renderer.getPixelRatio();
+				this._width = size.width;
+				this._height = size.height;
+				renderTarget = new THREE.WebGLRenderTarget( this._width * this._pixelRatio, this._height * this._pixelRatio, parameters );
+				renderTarget.texture.name = 'EffectComposer.rt1';
+
+			} else {
+
+				this._pixelRatio = 1;
+				this._width = renderTarget.width;
+				this._height = renderTarget.height;
+
+			}
+
+			this.renderTarget1 = renderTarget;
+			this.renderTarget2 = renderTarget.clone();
+			this.renderTarget2.texture.name = 'EffectComposer.rt2';
+			this.writeBuffer = this.renderTarget1;
+			this.readBuffer = this.renderTarget2;
+			this.renderToScreen = true;
+			this.passes = []; // dependencies
+
+			if ( THREE.CopyShader === undefined ) {
+
+				console.error( 'THREE.EffectComposer relies on THREE.CopyShader' );
+
+			}
+
+			if ( THREE.ShaderPass === undefined ) {
+
+				console.error( 'THREE.EffectComposer relies on THREE.ShaderPass' );
+
+			}
+
+			this.copyPass = new THREE.ShaderPass( THREE.CopyShader );
+			this.clock = new THREE.Clock();
+
+		}
+
+		swapBuffers() {
+
+			const tmp = this.readBuffer;
+			this.readBuffer = this.writeBuffer;
+			this.writeBuffer = tmp;
+
+		}
+
+		addPass( pass ) {
+
+			this.passes.push( pass );
+			pass.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+		}
+
+		insertPass( pass, index ) {
+
+			this.passes.splice( index, 0, pass );
+			pass.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+		}
+
+		removePass( pass ) {
+
+			const index = this.passes.indexOf( pass );
+
+			if ( index !== - 1 ) {
+
+				this.passes.splice( index, 1 );
+
+			}
+
+		}
+
+		isLastEnabledPass( passIndex ) {
+
+			for ( let i = passIndex + 1; i < this.passes.length; i ++ ) {
+
+				if ( this.passes[ i ].enabled ) {
+
+					return false;
+
+				}
+
+			}
+
+			return true;
+
+		}
+
+		render( deltaTime ) {
+
+			// deltaTime value is in seconds
+			if ( deltaTime === undefined ) {
+
+				deltaTime = this.clock.getDelta();
+
+			}
+
+			const currentRenderTarget = this.renderer.getRenderTarget();
+			let maskActive = false;
+
+			for ( let i = 0, il = this.passes.length; i < il; i ++ ) {
+
+				const pass = this.passes[ i ];
+				if ( pass.enabled === false ) continue;
+				pass.renderToScreen = this.renderToScreen && this.isLastEnabledPass( i );
+				pass.render( this.renderer, this.writeBuffer, this.readBuffer, deltaTime, maskActive );
+
+				if ( pass.needsSwap ) {
+
+					if ( maskActive ) {
+
+						const context = this.renderer.getContext();
+						const stencil = this.renderer.state.buffers.stencil; //context.stencilFunc( context.NOTEQUAL, 1, 0xffffffff );
+
+						stencil.setFunc( context.NOTEQUAL, 1, 0xffffffff );
+						this.copyPass.render( this.renderer, this.writeBuffer, this.readBuffer, deltaTime ); //context.stencilFunc( context.EQUAL, 1, 0xffffffff );
+
+						stencil.setFunc( context.EQUAL, 1, 0xffffffff );
+
+					}
+
+					this.swapBuffers();
+
+				}
+
+				if ( THREE.MaskPass !== undefined ) {
+
+					if ( pass instanceof THREE.MaskPass ) {
+
+						maskActive = true;
+
+					} else if ( pass instanceof THREE.ClearMaskPass ) {
+
+						maskActive = false;
+
+					}
+
+				}
+
+			}
+
+			this.renderer.setRenderTarget( currentRenderTarget );
+
+		}
+
+		reset( renderTarget ) {
+
+			if ( renderTarget === undefined ) {
+
+				const size = this.renderer.getSize( new THREE.Vector2() );
+				this._pixelRatio = this.renderer.getPixelRatio();
+				this._width = size.width;
+				this._height = size.height;
+				renderTarget = this.renderTarget1.clone();
+				renderTarget.setSize( this._width * this._pixelRatio, this._height * this._pixelRatio );
+
+			}
+
+			this.renderTarget1.dispose();
+			this.renderTarget2.dispose();
+			this.renderTarget1 = renderTarget;
+			this.renderTarget2 = renderTarget.clone();
+			this.writeBuffer = this.renderTarget1;
+			this.readBuffer = this.renderTarget2;
+
+		}
+
+		setSize( width, height ) {
+
+			this._width = width;
+			this._height = height;
+			const effectiveWidth = this._width * this._pixelRatio;
+			const effectiveHeight = this._height * this._pixelRatio;
+			this.renderTarget1.setSize( effectiveWidth, effectiveHeight );
+			this.renderTarget2.setSize( effectiveWidth, effectiveHeight );
+
+			for ( let i = 0; i < this.passes.length; i ++ ) {
+
+				this.passes[ i ].setSize( effectiveWidth, effectiveHeight );
+
+			}
+
+		}
+
+		setPixelRatio( pixelRatio ) {
+
+			this._pixelRatio = pixelRatio;
+			this.setSize( this._width, this._height );
+
+		}
+
+	}
+
+	class Pass {
+
+		constructor() {
+
+			// if set to true, the pass is processed by the composer
+			this.enabled = true; // if set to true, the pass indicates to swap read and write buffer after rendering
+
+			this.needsSwap = true; // if set to true, the pass clears its buffer before rendering
+
+			this.clear = false; // if set to true, the result of the pass is rendered to screen. This is set automatically by EffectComposer.
+
+			this.renderToScreen = false;
+
+		}
+
+		setSize( ) {}
+
+		render( ) {
+
+			console.error( 'THREE.Pass: .render() must be implemented in derived pass.' );
+
+		}
+
+	} // Helper for passes that need to fill the viewport with a single quad.
+
+
+	const _camera = new THREE.OrthographicCamera( - 1, 1, 1, - 1, 0, 1 ); // https://github.com/mrdoob/three.js/pull/21358
+
+
+	const _geometry = new THREE.BufferGeometry();
+
+	_geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( [ - 1, 3, 0, - 1, - 1, 0, 3, - 1, 0 ], 3 ) );
+
+	_geometry.setAttribute( 'uv', new THREE.Float32BufferAttribute( [ 0, 2, 0, 0, 2, 0 ], 2 ) );
+
+	class FullScreenQuad {
+
+		constructor( material ) {
+
+			this._mesh = new THREE.Mesh( _geometry, material );
+
+		}
+
+		dispose() {
+
+			this._mesh.geometry.dispose();
+
+		}
+
+		render( renderer ) {
+
+			renderer.render( this._mesh, _camera );
+
+		}
+
+		get material() {
+
+			return this._mesh.material;
+
+		}
+
+		set material( value ) {
+
+			this._mesh.material = value;
+
+		}
+
+	}
+
+	THREE.EffectComposer = EffectComposer;
+	THREE.FullScreenQuad = FullScreenQuad;
+	THREE.Pass = Pass;
+
+} )();
+( function () {
+
+	class RenderPass extends THREE.Pass {
+
+		constructor( scene, camera, overrideMaterial, clearColor, clearAlpha ) {
+
+			super();
+			this.scene = scene;
+			this.camera = camera;
+			this.overrideMaterial = overrideMaterial;
+			this.clearColor = clearColor;
+			this.clearAlpha = clearAlpha !== undefined ? clearAlpha : 0;
+			this.clear = true;
+			this.clearDepth = false;
+			this.needsSwap = false;
+			this._oldClearColor = new THREE.Color();
+
+		}
+
+		render( renderer, writeBuffer, readBuffer
+			/*, deltaTime, maskActive */
+		) {
+
+			const oldAutoClear = renderer.autoClear;
+			renderer.autoClear = false;
+			let oldClearAlpha, oldOverrideMaterial;
+
+			if ( this.overrideMaterial !== undefined ) {
+
+				oldOverrideMaterial = this.scene.overrideMaterial;
+				this.scene.overrideMaterial = this.overrideMaterial;
+
+			}
+
+			if ( this.clearColor ) {
+
+				renderer.getClearColor( this._oldClearColor );
+				oldClearAlpha = renderer.getClearAlpha();
+				renderer.setClearColor( this.clearColor, this.clearAlpha );
+
+			}
+
+			if ( this.clearDepth ) {
+
+				renderer.clearDepth();
+
+			}
+
+			renderer.setRenderTarget( this.renderToScreen ? null : readBuffer ); // TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
+
+			if ( this.clear ) renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil );
+			renderer.render( this.scene, this.camera );
+
+			if ( this.clearColor ) {
+
+				renderer.setClearColor( this._oldClearColor, oldClearAlpha );
+
+			}
+
+			if ( this.overrideMaterial !== undefined ) {
+
+				this.scene.overrideMaterial = oldOverrideMaterial;
+
+			}
+
+			renderer.autoClear = oldAutoClear;
+
+		}
+
+	}
+
+	THREE.RenderPass = RenderPass;
+
+} )();
+( function () {
+
+	class ShaderPass extends THREE.Pass {
+
+		constructor( shader, textureID ) {
+
+			super();
+			this.textureID = textureID !== undefined ? textureID : 'tDiffuse';
+
+			if ( shader instanceof THREE.ShaderMaterial ) {
+
+				this.uniforms = shader.uniforms;
+				this.material = shader;
+
+			} else if ( shader ) {
+
+				this.uniforms = THREE.UniformsUtils.clone( shader.uniforms );
+				this.material = new THREE.ShaderMaterial( {
+					defines: Object.assign( {}, shader.defines ),
+					uniforms: this.uniforms,
+					vertexShader: shader.vertexShader,
+					fragmentShader: shader.fragmentShader
+				} );
+
+			}
+
+			this.fsQuad = new THREE.FullScreenQuad( this.material );
+
+		}
+
+		render( renderer, writeBuffer, readBuffer
+			/*, deltaTime, maskActive */
+		) {
+
+			if ( this.uniforms[ this.textureID ] ) {
+
+				this.uniforms[ this.textureID ].value = readBuffer.texture;
+
+			}
+
+			this.fsQuad.material = this.material;
+
+			if ( this.renderToScreen ) {
+
+				renderer.setRenderTarget( null );
+				this.fsQuad.render( renderer );
+
+			} else {
+
+				renderer.setRenderTarget( writeBuffer ); // TODO: Avoid using autoClear properties, see https://github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
+
+				if ( this.clear ) renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil );
+				this.fsQuad.render( renderer );
+
+			}
+
+		}
+
+	}
+
+	THREE.ShaderPass = ShaderPass;
+
+} )();
+( function () {
+
+	/**
+ * UnrealBloomPass is inspired by the bloom pass of Unreal Engine. It creates a
+ * mip map chain of bloom textures and blurs them with different radii. Because
+ * of the weighted combination of mips, and because larger blurs are done on
+ * higher mips, this effect provides good quality and performance.
+ *
+ * Reference:
+ * - https://docs.unrealengine.com/latest/INT/Engine/Rendering/PostProcessEffects/Bloom/
+ */
+
+	class UnrealBloomPass extends THREE.Pass {
+
+		constructor( resolution, strength, radius, threshold ) {
+
+			super();
+			this.strength = strength !== undefined ? strength : 1;
+			this.radius = radius;
+			this.threshold = threshold;
+			this.resolution = resolution !== undefined ? new THREE.Vector2( resolution.x, resolution.y ) : new THREE.Vector2( 256, 256 ); // create color only once here, reuse it later inside the render function
+
+			this.clearColor = new THREE.Color( 0, 0, 0 ); // render targets
+
+			const pars = {
+				minFilter: THREE.LinearFilter,
+				magFilter: THREE.LinearFilter,
+				format: THREE.RGBAFormat, type: THREE.HalfFloatType
+			};
+			this.renderTargetsHorizontal = [];
+			this.renderTargetsVertical = [];
+			this.nMips = 5;
+			let resx = Math.round( this.resolution.x / 2 );
+			let resy = Math.round( this.resolution.y / 2 );
+			this.renderTargetBright = new THREE.WebGLRenderTarget( resx, resy, pars );
+			this.renderTargetBright.texture.name = 'UnrealBloomPass.bright';
+			this.renderTargetBright.texture.generateMipmaps = false;
+
+			for ( let i = 0; i < this.nMips; i ++ ) {
+
+				const renderTargetHorizonal = new THREE.WebGLRenderTarget( resx, resy, pars );
+				renderTargetHorizonal.texture.name = 'UnrealBloomPass.h' + i;
+				renderTargetHorizonal.texture.generateMipmaps = false;
+				this.renderTargetsHorizontal.push( renderTargetHorizonal );
+				const renderTargetVertical = new THREE.WebGLRenderTarget( resx, resy, pars );
+				renderTargetVertical.texture.name = 'UnrealBloomPass.v' + i;
+				renderTargetVertical.texture.generateMipmaps = false;
+				this.renderTargetsVertical.push( renderTargetVertical );
+				resx = Math.round( resx / 2 );
+				resy = Math.round( resy / 2 );
+
+			} // luminosity high pass material
+
+
+			if ( THREE.LuminosityHighPassShader === undefined ) console.error( 'THREE.UnrealBloomPass relies on THREE.LuminosityHighPassShader' );
+			const highPassShader = THREE.LuminosityHighPassShader;
+			this.highPassUniforms = THREE.UniformsUtils.clone( highPassShader.uniforms );
+			this.highPassUniforms[ 'luminosityThreshold' ].value = threshold;
+			this.highPassUniforms[ 'smoothWidth' ].value = 0.01;
+			this.materialHighPassFilter = new THREE.ShaderMaterial( {
+				uniforms: this.highPassUniforms,
+				vertexShader: highPassShader.vertexShader,
+				fragmentShader: highPassShader.fragmentShader,
+				defines: {}
+			} ); // Gaussian Blur Materials
+
+			this.separableBlurMaterials = [];
+			const kernelSizeArray = [ 3, 5, 7, 9, 11 ];
+			resx = Math.round( this.resolution.x / 2 );
+			resy = Math.round( this.resolution.y / 2 );
+
+			for ( let i = 0; i < this.nMips; i ++ ) {
+
+				this.separableBlurMaterials.push( this.getSeperableBlurMaterial( kernelSizeArray[ i ] ) );
+				this.separableBlurMaterials[ i ].uniforms[ 'texSize' ].value = new THREE.Vector2( resx, resy );
+				resx = Math.round( resx / 2 );
+				resy = Math.round( resy / 2 );
+
+			} // Composite material
+
+
+			this.compositeMaterial = this.getCompositeMaterial( this.nMips );
+			this.compositeMaterial.uniforms[ 'blurTexture1' ].value = this.renderTargetsVertical[ 0 ].texture;
+			this.compositeMaterial.uniforms[ 'blurTexture2' ].value = this.renderTargetsVertical[ 1 ].texture;
+			this.compositeMaterial.uniforms[ 'blurTexture3' ].value = this.renderTargetsVertical[ 2 ].texture;
+			this.compositeMaterial.uniforms[ 'blurTexture4' ].value = this.renderTargetsVertical[ 3 ].texture;
+			this.compositeMaterial.uniforms[ 'blurTexture5' ].value = this.renderTargetsVertical[ 4 ].texture;
+			this.compositeMaterial.uniforms[ 'bloomStrength' ].value = strength;
+			this.compositeMaterial.uniforms[ 'bloomRadius' ].value = 0.1;
+			this.compositeMaterial.needsUpdate = true;
+			const bloomFactors = [ 1.0, 0.8, 0.6, 0.4, 0.2 ];
+			this.compositeMaterial.uniforms[ 'bloomFactors' ].value = bloomFactors;
+			this.bloomTintColors = [ new THREE.Vector3( 1, 1, 1 ), new THREE.Vector3( 1, 1, 1 ), new THREE.Vector3( 1, 1, 1 ), new THREE.Vector3( 1, 1, 1 ), new THREE.Vector3( 1, 1, 1 ) ];
+			this.compositeMaterial.uniforms[ 'bloomTintColors' ].value = this.bloomTintColors; // copy material
+
+			if ( THREE.CopyShader === undefined ) {
+
+				console.error( 'THREE.UnrealBloomPass relies on THREE.CopyShader' );
+
+			}
+
+			const copyShader = THREE.CopyShader;
+			this.copyUniforms = THREE.UniformsUtils.clone( copyShader.uniforms );
+			this.copyUniforms[ 'opacity' ].value = 1.0;
+			this.materialCopy = new THREE.ShaderMaterial( {
+				uniforms: this.copyUniforms,
+				vertexShader: copyShader.vertexShader,
+				fragmentShader: copyShader.fragmentShader,
+				blending: THREE.AdditiveBlending,
+				depthTest: false,
+				depthWrite: false,
+				transparent: true
+			} );
+			this.enabled = true;
+			this.needsSwap = false;
+			this._oldClearColor = new THREE.Color();
+			this.oldClearAlpha = 1;
+			this.basic = new THREE.MeshBasicMaterial();
+			this.fsQuad = new THREE.FullScreenQuad( null );
+
+		}
+
+		dispose() {
+
+			for ( let i = 0; i < this.renderTargetsHorizontal.length; i ++ ) {
+
+				this.renderTargetsHorizontal[ i ].dispose();
+
+			}
+
+			for ( let i = 0; i < this.renderTargetsVertical.length; i ++ ) {
+
+				this.renderTargetsVertical[ i ].dispose();
+
+			}
+
+			this.renderTargetBright.dispose();
+
+		}
+
+		setSize( width, height ) {
+
+			let resx = Math.round( width / 2 );
+			let resy = Math.round( height / 2 );
+			this.renderTargetBright.setSize( resx, resy );
+
+			for ( let i = 0; i < this.nMips; i ++ ) {
+
+				this.renderTargetsHorizontal[ i ].setSize( resx, resy );
+				this.renderTargetsVertical[ i ].setSize( resx, resy );
+				this.separableBlurMaterials[ i ].uniforms[ 'texSize' ].value = new THREE.Vector2( resx, resy );
+				resx = Math.round( resx / 2 );
+				resy = Math.round( resy / 2 );
+
+			}
+
+		}
+
+		render( renderer, writeBuffer, readBuffer, deltaTime, maskActive ) {
+
+			renderer.getClearColor( this._oldClearColor );
+			this.oldClearAlpha = renderer.getClearAlpha();
+			const oldAutoClear = renderer.autoClear;
+			renderer.autoClear = false;
+			renderer.setClearColor( this.clearColor, 0 );
+			if ( maskActive ) renderer.state.buffers.stencil.setTest( false ); // Render input to screen
+
+			if ( this.renderToScreen ) {
+
+				this.fsQuad.material = this.basic;
+				this.basic.map = readBuffer.texture;
+				renderer.setRenderTarget( null );
+				renderer.clear();
+				this.fsQuad.render( renderer );
+
+			} // 1. Extract Bright Areas
+
+
+			this.highPassUniforms[ 'tDiffuse' ].value = readBuffer.texture;
+			this.highPassUniforms[ 'luminosityThreshold' ].value = this.threshold;
+			this.fsQuad.material = this.materialHighPassFilter;
+			renderer.setRenderTarget( this.renderTargetBright );
+			renderer.clear();
+			this.fsQuad.render( renderer ); // 2. Blur All the mips progressively
+
+			let inputRenderTarget = this.renderTargetBright;
+
+			for ( let i = 0; i < this.nMips; i ++ ) {
+
+				this.fsQuad.material = this.separableBlurMaterials[ i ];
+				this.separableBlurMaterials[ i ].uniforms[ 'colorTexture' ].value = inputRenderTarget.texture;
+				this.separableBlurMaterials[ i ].uniforms[ 'direction' ].value = UnrealBloomPass.BlurDirectionX;
+				renderer.setRenderTarget( this.renderTargetsHorizontal[ i ] );
+				renderer.clear();
+				this.fsQuad.render( renderer );
+				this.separableBlurMaterials[ i ].uniforms[ 'colorTexture' ].value = this.renderTargetsHorizontal[ i ].texture;
+				this.separableBlurMaterials[ i ].uniforms[ 'direction' ].value = UnrealBloomPass.BlurDirectionY;
+				renderer.setRenderTarget( this.renderTargetsVertical[ i ] );
+				renderer.clear();
+				this.fsQuad.render( renderer );
+				inputRenderTarget = this.renderTargetsVertical[ i ];
+
+			} // Composite All the mips
+
+
+			this.fsQuad.material = this.compositeMaterial;
+			this.compositeMaterial.uniforms[ 'bloomStrength' ].value = this.strength;
+			this.compositeMaterial.uniforms[ 'bloomRadius' ].value = this.radius;
+			this.compositeMaterial.uniforms[ 'bloomTintColors' ].value = this.bloomTintColors;
+			renderer.setRenderTarget( this.renderTargetsHorizontal[ 0 ] );
+			renderer.clear();
+			this.fsQuad.render( renderer ); // Blend it additively over the input texture
+
+			this.fsQuad.material = this.materialCopy;
+			this.copyUniforms[ 'tDiffuse' ].value = this.renderTargetsHorizontal[ 0 ].texture;
+			if ( maskActive ) renderer.state.buffers.stencil.setTest( true );
+
+			if ( this.renderToScreen ) {
+
+				renderer.setRenderTarget( null );
+				this.fsQuad.render( renderer );
+
+			} else {
+
+				renderer.setRenderTarget( readBuffer );
+				this.fsQuad.render( renderer );
+
+			} // Restore renderer settings
+
+
+			renderer.setClearColor( this._oldClearColor, this.oldClearAlpha );
+			renderer.autoClear = oldAutoClear;
+
+		}
+
+		getSeperableBlurMaterial( kernelRadius ) {
+
+			return new THREE.ShaderMaterial( {
+				defines: {
+					'KERNEL_RADIUS': kernelRadius,
+					'SIGMA': kernelRadius
+				},
+				uniforms: {
+					'colorTexture': {
+						value: null
+					},
+					'texSize': {
+						value: new THREE.Vector2( 0.5, 0.5 )
+					},
+					'direction': {
+						value: new THREE.Vector2( 0.5, 0.5 )
+					}
+				},
+				vertexShader: `varying vec2 vUv;
+				void main() {
+					vUv = uv;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+				}`,
+				fragmentShader: `#include <common>
+				varying vec2 vUv;
+				uniform sampler2D colorTexture;
+				uniform vec2 texSize;
+				uniform vec2 direction;
+
+				float gaussianPdf(in float x, in float sigma) {
+					return 0.39894 * exp( -0.5 * x * x/( sigma * sigma))/sigma;
+				}
+				void main() {
+					vec2 invSize = 1.0 / texSize;
+					float fSigma = float(SIGMA);
+					float weightSum = gaussianPdf(0.0, fSigma);
+					vec3 diffuseSum = texture2D( colorTexture, vUv).rgb * weightSum;
+					for( int i = 1; i < KERNEL_RADIUS; i ++ ) {
+						float x = float(i);
+						float w = gaussianPdf(x, fSigma);
+						vec2 uvOffset = direction * invSize * x;
+						vec3 sample1 = texture2D( colorTexture, vUv + uvOffset).rgb;
+						vec3 sample2 = texture2D( colorTexture, vUv - uvOffset).rgb;
+						diffuseSum += (sample1 + sample2) * w;
+						weightSum += 2.0 * w;
+					}
+					gl_FragColor = vec4(diffuseSum/weightSum, 1.0);
+				}`
+			} );
+
+		}
+
+		getCompositeMaterial( nMips ) {
+
+			return new THREE.ShaderMaterial( {
+				defines: {
+					'NUM_MIPS': nMips
+				},
+				uniforms: {
+					'blurTexture1': {
+						value: null
+					},
+					'blurTexture2': {
+						value: null
+					},
+					'blurTexture3': {
+						value: null
+					},
+					'blurTexture4': {
+						value: null
+					},
+					'blurTexture5': {
+						value: null
+					},
+					'dirtTexture': {
+						value: null
+					},
+					'bloomStrength': {
+						value: 1.0
+					},
+					'bloomFactors': {
+						value: null
+					},
+					'bloomTintColors': {
+						value: null
+					},
+					'bloomRadius': {
+						value: 0.0
+					}
+				},
+				vertexShader: `varying vec2 vUv;
+				void main() {
+					vUv = uv;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+				}`,
+				fragmentShader: `varying vec2 vUv;
+				uniform sampler2D blurTexture1;
+				uniform sampler2D blurTexture2;
+				uniform sampler2D blurTexture3;
+				uniform sampler2D blurTexture4;
+				uniform sampler2D blurTexture5;
+				uniform sampler2D dirtTexture;
+				uniform float bloomStrength;
+				uniform float bloomRadius;
+				uniform float bloomFactors[NUM_MIPS];
+				uniform vec3 bloomTintColors[NUM_MIPS];
+
+				float lerpBloomFactor(const in float factor) {
+					float mirrorFactor = 1.2 - factor;
+					return mix(factor, mirrorFactor, bloomRadius);
+				}
+
+				void main() {
+					gl_FragColor = bloomStrength * ( lerpBloomFactor(bloomFactors[0]) * vec4(bloomTintColors[0], 1.0) * texture2D(blurTexture1, vUv) +
+						lerpBloomFactor(bloomFactors[1]) * vec4(bloomTintColors[1], 1.0) * texture2D(blurTexture2, vUv) +
+						lerpBloomFactor(bloomFactors[2]) * vec4(bloomTintColors[2], 1.0) * texture2D(blurTexture3, vUv) +
+						lerpBloomFactor(bloomFactors[3]) * vec4(bloomTintColors[3], 1.0) * texture2D(blurTexture4, vUv) +
+						lerpBloomFactor(bloomFactors[4]) * vec4(bloomTintColors[4], 1.0) * texture2D(blurTexture5, vUv) );
+				}`
+			} );
+
+		}
+
+	}
+
+	UnrealBloomPass.BlurDirectionX = new THREE.Vector2( 1.0, 0.0 );
+	UnrealBloomPass.BlurDirectionY = new THREE.Vector2( 0.0, 1.0 );
+
+	THREE.UnrealBloomPass = UnrealBloomPass;
+
+} )();
+
+/* ---------------- the sky: deep purple overhead, pink, the fire of the sunset on the horizon, long clouds lit from below ---------------- */
+const GLSL_NOISE = `
+float hash12(vec2 p){ vec3 p3 = fract(vec3(p.xyx)*.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y)*p3.z); }
+float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); vec2 u = f*f*(3. - 2.*f);
+  return mix(mix(hash12(i), hash12(i + vec2(1, 0)), u.x), mix(hash12(i + vec2(0, 1)), hash12(i + vec2(1, 1)), u.x), u.y); }
+float fbm(vec2 p){ float a = .5, s = 0.; for (int i = 0; i < 5; i++){ s += a*vnoise(p); p = p*2.03 + vec2(1.7, 9.2); a *= .5; } return s; }`;
+const SUN_DIR = new THREE.Vector3(-.12, .035, -1).normalize();
+function makeSky(){
+  const mat = new THREE.ShaderMaterial({ side:THREE.BackSide, depthWrite:false, fog:false,
+    uniforms:{ sunDir:{ value:SUN_DIR }, time:{ value:0 } },
+    vertexShader:`varying vec3 vDir; void main(){ vDir = position; vec4 p = modelViewMatrix*vec4(position, 1.); gl_Position = projectionMatrix*p; gl_Position.z = gl_Position.w; }`,
+    fragmentShader:`uniform vec3 sunDir; uniform float time; varying vec3 vDir; ${GLSL_NOISE}
+      void main(){ vec3 d = normalize(vDir); float h = d.y;
+        // the gradient, top to bottom: indigo overhead, deep magenta, a narrow band of pink and then fire at the horizon
+        vec3 zen = vec3(.010, .010, .045), hi = vec3(.030, .022, .11), mid = vec3(.13, .03, .16), pink = vec3(.55, .09, .20), hor = vec3(1.9, .50, .12), below = vec3(.22, .06, .10);
+        // the fire is on the sun's side; away from it the horizon goes to a dusky purple
+        float az = max(dot(normalize(d.xz + 1e-5), normalize(sunDir.xz)), 0.), toSun = .12 + .88*pow(az, 2.5);
+        hor = mix(vec3(.28, .07, .2), hor, toSun); pink = mix(vec3(.2, .05, .18), pink, .35 + .65*toSun); below = mix(vec3(.05, .02, .05), below, toSun);
+        vec3 c = h > .45 ? mix(hi, zen, smoothstep(.45, .95, h)) : h > .2 ? mix(mid, hi, smoothstep(.2, .45, h)) : h > .07 ? mix(pink, mid, smoothstep(.07, .2, h)) : h > 0. ? mix(hor, pink, smoothstep(0., .07, h)) : mix(hor*.5, below, smoothstep(0., -.08, h));
+        // the sun going down: a warm glow along the horizon around it, a bright core, the disc half under the horizon
+        float s = max(dot(d, sunDir), 0.), low = 1. - smoothstep(0., .25, h);
+        c += vec3(1.4, .45, .12)*pow(s, 18.)*low*1.2 + vec3(2.6, 1.3, .45)*pow(s, 90.) + vec3(9., 6., 3.)*smoothstep(.9994, .9997, s)*step(-.004, h);
+        // the clouds: long banks low down, dark purple on top, lit pink and orange underneath where the sun gets them
+        vec2 p = d.xz/(max(h, 0.) + .08); p.x *= .3;
+        float n = fbm(p*1.1 + vec2(time*.004, 0.)), n2 = fbm(p*3.1 + 4.), band = smoothstep(.0, .035, h)*(1. - smoothstep(.3, .55, h));
+        float cl = smoothstep(.42, .66, n + (n2 - .5)*.25)*band;
+        float under = smoothstep(.55, .42, n2), lit = clamp(pow(s, 3.)*.9 + low*.7, 0., 1.);
+        vec3 cc = mix(vec3(.05, .018, .08), mix(vec3(.55, .12, .22), vec3(1.7, .55, .25), pow(s, 4.)), lit*(.35 + .65*under));
+        c = mix(c, cc, cl*.92);
+        // high thin wisps
+        float w = smoothstep(.6, .82, fbm(p*.5 + 7.))*smoothstep(.12, .25, h)*(1. - smoothstep(.5, .8, h)); c = mix(c, vec3(.16, .05, .22), w*.6);
+        // a few faint stars overhead
+        vec2 sp = d.xz/(h + 1.)*900.; float st = step(.9992, hash12(floor(sp)))*smoothstep(.5, .85, h); c += st*vec3(.8, .78, 1.)*(.3 + .5*hash12(floor(sp) + 3.));
+        gl_FragColor = vec4(c, 1.);
+        #include <tonemapping_fragment>
+        #include <encodings_fragment>
+      }` });
+  const m = new THREE.Mesh(new THREE.SphereGeometry(2000, 48, 24), mat); m.frustumCulled = false; m.renderOrder = -10; return m; }
+// the sky as an environment map, so the glass and the metal reflect the sunset
+function skyEnv(renderer, sky){ const s = new THREE.Scene(); s.add(sky.clone()); const rt = new THREE.WebGLCubeRenderTarget(256, { type:THREE.HalfFloatType });
+  const cc = new THREE.CubeCamera(1, 4000, rt); s.add(cc); cc.update(renderer, s); const pm = new THREE.PMREMGenerator(renderer); const env = pm.fromCubemap(rt.texture).texture; pm.dispose(); return env; }
+
+/* ---------------- the city: towers to the horizon, every window its own, the streets far below ---------------- */
+// one tower = one instance of a unit box (base at y=0) scaled to w x h x d; its windows are drawn in the shader from the
+// world position, so they're all the same size and every tower has its own pattern of lit ones
+function towerMaterial(){
+  const m = new THREE.MeshStandardMaterial({ color:0xffffff, roughness:.5, metalness:.4, envMapIntensity:.22 });
+  m.onBeforeCompile = sh => {
+    sh.uniforms.time = { value:0 }; m.userData.shader = sh;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nattribute vec4 aLook; varying vec4 vLook; varying vec3 vWPos; varying vec3 vONorm;")
+      .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvLook = aLook; vONorm = objectNormal;\n#ifdef USE_INSTANCING\nvWPos = (instanceMatrix*vec4(transformed, 1.)).xyz;\n#else\nvWPos = transformed + vec3(vLook.x*13.7, 0., vLook.x*7.3);\n#endif");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float time; varying vec4 vLook; varying vec3 vWPos; varying vec3 vONorm;\nfloat h21(vec2 p){ vec3 q = fract(vec3(p.xyx)*.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y)*q.z); }")
+      .replace("#include <map_fragment>", `
+        // aLook: x seed, y style (0 glass curtain, 1 stone and windows, 2 dark with light strips), z how many lit, w floor height
+        float seed = floor(vLook.x*16. + .5)/16., style = floor(vLook.y + .5), fh = vLook.w;   // rounded: the interpolation is never quite exact and the hash would make that speckle
+        // glass towers and the strip-lit ones show far fewer lights than the stone ones, and dimmer
+        float litP = vLook.z*(style < .5 ? .45 : style < 1.5 ? 1. : .4), emS = style < .5 ? .55 : style < 1.5 ? 1. : .45;
+        bool roof = abs(vONorm.y) > .5; float u = abs(vONorm.x) > .5 ? vWPos.z : vWPos.x, v = vWPos.y;
+        float cw = style < .5 ? 1.8 : style < 1.5 ? 2.6 : 1.2;
+        vec2 cell = vec2(floor(u/cw), floor(v/fh)), f = vec2(fract(u/cw), fract(v/fh));
+        float win = style < .5 ? step(.06, f.x)*step(f.x, .94)*step(.1, f.y)*step(f.y, .92) : style < 1.5 ? step(.22, f.x)*step(f.x, .78)*step(.25, f.y)*step(f.y, .8) : step(.35, f.x)*step(f.x, .65);
+        float r = h21(cell + seed*17.3), on = step(r, litP)*win;
+        // far away the windows are smaller than a pixel: fade to their average, or they shimmer
+        float fw = max(fwidth(u/cw), fwidth(v/fh)), far = smoothstep(.18, .5, fw);
+        float winA = style < .5 ? .75 : style < 1.5 ? .3 : .3; win = mix(win, winA, far); on = mix(on, litP*winA, far);
+        vec3 base = style < .5 ? vec3(.035, .04, .07) : style < 1.5 ? vec3(.10, .085, .10) : vec3(.025, .02, .04);
+        diffuseColor.rgb = roof ? vec3(.04, .035, .05) : mix(base, vec3(.015, .018, .035), win);
+        float wr = h21(cell*1.7 + seed); vec3 wc = wr < .7 ? mix(vec3(1., .55, .22), vec3(1., .78, .45), h21(cell + 2.)) : wr < .9 ? vec3(.75, .85, 1.) : vec3(1., .4, .55);
+        vec3 winEm = roof ? vec3(0.) : on*emS*mix(wc*(1.1 + 1.8*h21(cell + 5.)), vec3(1., .62, .32)*1.6, far);
+        if (style > 1.5 && !roof) winEm += vec3(.8, .45, 1.)*win*step(.5, fract(seed*7.))*.18;
+        float isGlass = roof ? 0. : (style < .5 ? win : win*.6);`)
+      .replace("#include <roughnessmap_fragment>", "#include <roughnessmap_fragment>\nroughnessFactor = mix(.75, .22, isGlass);")
+      .replace("#include <metalnessmap_fragment>", "#include <metalnessmap_fragment>\nmetalnessFactor = mix(.1, .7, isGlass)*(1. - on*.8);")
+      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += winEm;");
+  };
+  return m; }
+// lay a grid of blocks out from the viewpoint to the horizon; keep a clear space where the hero's tower stands
+function makeCity(opts){ opts = opts || {};
+  const g = new THREE.Group(), mat = towerMaterial(), list = [];
+  const R = opts.radius || 1400, block = 62, street = 18, box = opts.box || [-R, R, -R, 4*block], sd = opts.seed || 0, hMul = opts.hMul || 1;
+  for (let bx = Math.ceil(box[0]/block); bx <= box[1]/block; bx++) for (let bz = Math.ceil(box[2]/block); bz <= box[3]/block; bz++){
+    const cx = bx*block, cz = bz*block; if (!opts.box && Math.hypot(cx, cz) > R) continue;
+    if (opts.clear && opts.clear(cx, cz)) continue;
+    const n = 1 + Math.floor(rnd(bx*13.1 + bz*7.7 + sd)*3), dist = opts.dist ? opts.dist(cx, cz) : Math.hypot(cx, cz);
+    for (let k = 0; k < n; k++){ const s = bx*31.7 + bz*17.3 + k*5.1 + sd;
+      const w = 14 + rnd(s)*(block - street - 14)*.8, d = 14 + rnd(s + 1)*(block - street - 14)*.8;
+      // most are mid-rise; a few skyscrapers, more of them towards the middle distance
+      const tall = rnd(s + 2) < (dist > 300 && dist < 1000 ? .07 : .02);
+      let h = (tall ? 130 + rnd(s + 3)*170 : 18 + rnd(s + 4)*rnd(s + 5)*95)*hMul; if (opts.maxH) h = Math.min(h, opts.maxH(cx, cz));
+      const x = cx + (rnd(s + 6) - .5)*(block - street - w), z = cz + (rnd(s + 7) - .5)*(block - street - d);
+      list.push({ x, z, w, h, d, seed:rnd(s + 8)*100, style:Math.floor(rnd(s + 9)*3), lit:.18 + rnd(s + 10)*.4, fh:3.2 + rnd(s + 11)*.8, tall });
+      // setbacks: the tall ones step in near the top, and some get a crown
+      if (tall){ const h2 = h*(.15 + rnd(s + 12)*.2); list.push({ x, z, w:w*.7, h:h + h2, d:d*.7, seed:rnd(s + 13)*100, style:list[list.length - 1].style, lit:.4, fh:3.6, crown:true }); } } }
+  const geo = new THREE.BoxGeometry(1, 1, 1).translate(0, .5, 0), mesh = new THREE.InstancedMesh(geo, mat, list.length), look = new Float32Array(list.length*4), o = new THREE.Object3D();
+  list.forEach((t, i) => { o.position.set(t.x, 0, t.z); o.scale.set(t.w, t.h, t.d); o.updateMatrix(); mesh.setMatrixAt(i, o.matrix); look.set([t.seed, t.style, t.lit, t.fh], i*4); });
+  geo.setAttribute("aLook", new THREE.InstancedBufferAttribute(look, 4)); mesh.instanceMatrix.needsUpdate = true; mesh.frustumCulled = false; g.add(mesh);
+  // spires and the red lights on top of the tallest
+  const spires = list.filter(t => t.crown && t.h > 190), sg = new THREE.ConeGeometry(1, 1, 6).translate(0, .5, 0), sm = new THREE.InstancedMesh(sg, new THREE.MeshStandardMaterial({ color:0x111018, roughness:.4, metalness:.8 }), spires.length);
+  const red = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 8, 6), new THREE.MeshBasicMaterial({ color:new THREE.Color(6, .4, .3), toneMapped:false }), spires.length);
+  spires.forEach((t, i) => { const sh = 25 + rnd(t.seed)*45; o.position.set(t.x, t.h, t.z); o.scale.set(2, sh, 2); o.updateMatrix(); sm.setMatrixAt(i, o.matrix); o.position.set(t.x, t.h + sh, t.z); o.scale.setScalar(1.3); o.updateMatrix(); red.setMatrixAt(i, o.matrix); });
+  g.add(sm); g.add(red);
+  // the crowns: a strip of light round the top of some of the tall ones
+  const crowns = list.filter(t => t.crown && rnd(t.seed + 1) < .6), cm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color:new THREE.Color(2.2, 1.3, .6), toneMapped:false }), crowns.length);
+  crowns.forEach((t, i) => { o.position.set(t.x, t.h - 1.5, t.z); o.scale.set(t.w*1.02, .8, t.d*1.02); o.updateMatrix(); cm.setMatrixAt(i, o.matrix); }); g.add(cm);
+  // the streets: dark, the street lights and the traffic in lines of light
+  const streets = new THREE.Mesh(opts.box ? new THREE.PlaneGeometry(box[1] - box[0] + 120, box[3] - box[2] + 120).translate((box[0] + box[1])/2, -(box[2] + box[3])/2, 0) : new THREE.PlaneGeometry(R*2.4, R*2.4), new THREE.ShaderMaterial({ fog:true, uniforms:THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { time:{ value:0 } }]),
+    vertexShader:"varying vec3 vW;\n#include <fog_pars_vertex>\nvoid main(){ vec4 mvPosition = modelViewMatrix*vec4(position, 1.); vW = vec3(position.x, 0., -position.y); gl_Position = projectionMatrix*mvPosition;\n#include <fog_vertex>\n}",
+    fragmentShader:`uniform float time; varying vec3 vW; ${GLSL_NOISE}
+      #include <fog_pars_fragment>
+      void main(){ vec2 p = vW.xz/62.; vec2 f = abs(fract(p) - .5); float road = smoothstep(.36, .38, max(f.x, f.y));
+        vec3 c = vec3(.012, .01, .02) + road*vec3(.05, .03, .03);
+        // street lights along the roads, and cars: warm white one way, red the other
+        float lx = step(.47, f.x)*step(fract(vW.z/9.), .2), lz = step(.47, f.y)*step(fract(vW.x/9.), .2); c += (lx + lz)*vec3(1.6, .8, .35);
+        float cx = step(.43, f.x)*step(f.x, .47)*step(.96, fract(vW.z/23. + time*.5*sign(fract(p.x) - .5) + hash12(floor(p))));
+        float cz = step(.43, f.y)*step(f.y, .47)*step(.96, fract(vW.x/23. + time*.4*sign(fract(p.y) - .5) + hash12(floor(p) + 3.)));
+        c += cx*mix(vec3(2.5, 2.2, 1.6), vec3(2.5, .2, .15), step(.5, fract(p.x)))*1. + cz*mix(vec3(2.5, 2.2, 1.6), vec3(2.5, .2, .15), step(.5, fract(p.y)));
+        gl_FragColor = vec4(c, 1.);
+        #include <tonemapping_fragment>
+        #include <encodings_fragment>
+        #include <fog_fragment>
+      }` }));
+  streets.rotation.x = -Math.PI/2; g.add(streets);
+  g.userData = { mat, streets, red, list }; return g; }
+function tickCity(g, t){ const sh = g.userData.mat.userData.shader; if (sh) sh.uniforms.time.value = t; g.userData.streets.material.uniforms.time.value = t;
+  const on = Math.sin(t*2.4) > .2; g.userData.red.visible = on; }
+
+/* ---------------- the hooded one: sculpted smooth, his back to you, the golden wings ---------------- */
+// a smooth skin through rings: each ring is a centre and two half-axes [cx,cy,cz, ax,ay,az, bx,by,bz]; caps close the ends
+function loft(rings, seg, caps){ seg = seg || 28; const pos = [], idx = [], V = a => new THREE.Vector3(a[0], a[1], a[2]);
+  rings.forEach(r => { const c = V(r), a = V(r.slice(3)), b = V(r.slice(6)); for (let j = 0; j <= seg; j++){ const th = j/seg*Math.PI*2; const p = c.clone().addScaledVector(a, Math.cos(th)).addScaledVector(b, Math.sin(th)); pos.push(p.x, p.y, p.z); } });
+  const dir = V(rings[rings.length - 1]).sub(V(rings[0])), flip = new THREE.Vector3().crossVectors(V(rings[0].slice(3)), V(rings[0].slice(6))).dot(dir) > 0;
+  const q = (a, b, c) => flip ? idx.push(a, c, b) : idx.push(a, b, c);
+  for (let i = 0; i + 1 < rings.length; i++) for (let j = 0; j < seg; j++){ const a = i*(seg + 1) + j, b = a + seg + 1; q(a, b, a + 1); q(a + 1, b, b + 1); }
+  if (caps){ [[0, -1], [rings.length - 1, 1]].forEach(([ri, s]) => { if ((s < 0 && caps === "end") || (s > 0 && caps === "start")) return; const r = rings[ri], ci = pos.length/3; pos.push(r[0], r[1], r[2]);
+    for (let j = 0; j < seg; j++){ const a = ri*(seg + 1) + j; if (s < 0) q(ci, a + 1, a); else q(ci, a, a + 1); } }); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g; }
+// a ring round a vertical axis (the body, the legs), or round a path going any way
+const ringH = (x, y, z, rx, rz, tilt) => [x, y, z, rx, 0, 0, 0, tilt || 0, rz];
+function ringAlong(p, d, rx, rz){ const t = new THREE.Vector3(...d).normalize(), up = Math.abs(t.y) < .9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, 0, 1),
+    a = new THREE.Vector3().crossVectors(up, t).normalize(), b = new THREE.Vector3().crossVectors(t, a).normalize(); return [...p, ...a.multiplyScalar(rx).toArray(), ...b.multiplyScalar(rz).toArray()]; }
+// a limb through joints, the radius going from r0 to r1, with a ring every few cm so the bends stay smooth
+function limb(points, radii, flat){ const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p))), n = 18, rings = [];
+  for (let i = 0; i <= n; i++){ const u = i/n, p = curve.getPoint(u), t = curve.getTangent(u), r = radii(u); rings.push(ringAlong(p.toArray(), t.toArray(), r, r*(flat || 1))); }
+  return loft(rings, 20, "both"); }
+// fabric: a fine knit for the hoodie, a twill for the jeans, as normal maps
+function fabricNormal(kind){ const cv = document.createElement("canvas"); cv.width = cv.height = 256; const x = cv.getContext("2d"); x.fillStyle = "rgb(128,128,255)"; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 9000; i++){ const px = rnd(i*1.3)*256, py = rnd(i*2.7)*256, k = rnd(i*3.1); x.fillStyle = "rgba(" + (110 + k*36 | 0) + "," + (110 + rnd(i*4.4)*36 | 0) + ",255,.35)"; x.fillRect(px, py, kind ? 3 : 2, kind ? 1 : 2); }
+  if (kind) for (let i = -256; i < 256; i += 4){ x.strokeStyle = "rgba(150,110,255,.35)"; x.lineWidth = 1.2; x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 256, 256); x.stroke(); }
+  else for (let r = 0; r < 256; r += 4) for (let c = 0; c < 256; c += 4){ x.fillStyle = (r/4 + c/4) % 2 ? "rgba(140,128,255,.25)" : "rgba(116,128,255,.25)"; x.fillRect(c, r, 4, 4); }
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); return t; }
+function buildHero(){ const g = new THREE.Group();
+  const hoodie = new THREE.MeshPhysicalMaterial({ color:new THREE.Color(.04, .04, .048), roughness:.92, sheen:new THREE.Color(.18, .16, .24), normalMap:fabricNormal(0), normalScale:new THREE.Vector2(.5, .5), envMapIntensity:.4 });
+  const jeans = new THREE.MeshPhysicalMaterial({ color:new THREE.Color(.03, .032, .045), roughness:.85, sheen:new THREE.Color(.08, .09, .14), normalMap:fabricNormal(1), normalScale:new THREE.Vector2(.6, .6), envMapIntensity:.35 });
+  const shoeM = new THREE.MeshStandardMaterial({ color:new THREE.Color(.03, .03, .035), roughness:.55, envMapIntensity:.5 }), sole = new THREE.MeshStandardMaterial({ color:new THREE.Color(.5, .48, .46), roughness:.7 });
+  const skin = new THREE.MeshStandardMaterial({ color:new THREE.Color(.09, .05, .035), roughness:.6 });
+  const add = (geo, m, to) => { const o = new THREE.Mesh(geo, m); o.castShadow = o.receiveShadow = true; (to || g).add(o); return o; };
+  // a limb hangs from a pivot (shoulder, hip) so it can swing: its meshes are built in body space and shifted onto the pivot
+  const pivot = (x, y, z) => { const p = new THREE.Group(); p.position.set(x, y, z); g.add(p); const inner = new THREE.Group(); inner.position.set(-x, -y, -z); p.add(inner); p.userData.inner = inner; return p; };
+  // the hoodie: loose, the hem over the hips, the shoulders broad, up to the neck
+  const torso = add(loft([ringH(0, .86, -.005, .205, .135), ringH(0, .9, 0, .2, .132), ringH(0, 1.0, 0, .19, .122), ringH(0, 1.12, 0, .195, .125), ringH(0, 1.25, .005, .218, .134),
+    ringH(0, 1.34, .01, .232, .138), ringH(0, 1.39, .013, .234, .135), ringH(0, 1.43, .016, .205, .125), ringH(0, 1.465, .02, .165, .11), ringH(0, 1.5, .02, .11, .095), ringH(0, 1.53, .02, .08, .08)], 36, "start"), hoodie);
+  // the hood: up over his head, a soft point at the back, the cloth gathered round the shoulders
+  const hood = add(loft([ringH(0, 1.44, .025, .17, .14), ringH(0, 1.5, .03, .15, .135), ringH(0, 1.57, .035, .135, .14), ringH(0, 1.64, .04, .132, .145), ringH(0, 1.71, .05, .128, .14),
+    ringH(0, 1.77, .065, .105, .12), ringH(0, 1.81, .085, .065, .08), ringH(0, 1.825, .1, .02, .025)], 36, "end"), hoodie);
+  // the arms, hanging relaxed, the sleeves bunched at the wrist; the hands
+  const arms = [-1, 1].map(s => { const P = pivot(s*.19, 1.4, .01), a = add(limb([[s*.17, 1.41, .012], [s*.225, 1.33, .008], [s*.252, 1.2, 0], [s*.258, 1.06, -.02], [s*.25, .9, -.04]], u => .07 - .02*u + (u > .85 ? (u - .85)*.08 : 0), 1.0), hoodie, P.userData.inner);
+    add(limb([[s*.249, .9, -.042], [s*.247, .855, -.048], [s*.243, .815, -.045]], u => .03 - .006*u, .75), skin, P.userData.inner); return P; });
+
+  // the legs: the jeans straight, a slight bend at the knee; the shoes
+  const legs = [-1, 1].map(s => { const P = pivot(s*.1, .93, 0), I = P.userData.inner; add(limb([[s*.1, .93, 0], [s*.105, .7, .005], [s*.1, .5, -.012], [s*.098, .28, -.005], [s*.095, .1, 0]], u => .095 - .032*u, 1.05), jeans, I);
+    add(loft([[s*.095, .045, .12, .045, 0, 0, 0, .045, 0], [s*.095, .05, .06, .052, 0, 0, 0, .055, 0], [s*.095, .055, -.03, .05, 0, 0, 0, .055, 0], [s*.095, .045, -.12, .047, 0, 0, 0, .042, 0], [s*.095, .035, -.17, .03, 0, 0, 0, .028, 0]], 20, "both"), shoeM, I);
+    add(loft([[s*.095, .012, .125, .046, 0, 0, 0, .012, 0], [s*.095, .012, -.17, .046, 0, 0, 0, .012, 0]], 16, "both"), sole, I); return P; });
+  g.userData = { hoodie, arms, legs }; return g; }
+
+/* ---- the wings: a skeleton (upper arm, forearm, hand) carrying the feathers in their real rows ---- */
+const FEATHER_TEX = (() => { const cv = document.createElement("canvas"); cv.width = 128; cv.height = 512; const x = cv.getContext("2d"), W = 128, H = 512;
+  // the vane: wide near the base, a rounded tip; amber at the base to a warm white at the tip
+  const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#e8681a"); g.addColorStop(.2, "#f58a2a"); g.addColorStop(.55, "#ffb850"); g.addColorStop(.85, "#ffd99a"); g.addColorStop(1, "#ffe8c0");
+  x.fillStyle = g; x.beginPath(); x.moveTo(W/2, 0); x.bezierCurveTo(W*.98, H*.08, W*.98, H*.7, W*.62, H*.97); x.quadraticCurveTo(W/2, H*1.01, W*.38, H*.97); x.bezierCurveTo(W*.02, H*.7, W*.02, H*.08, W/2, 0); x.fill();
+  // the barbs: fine lines from the shaft out towards the tip, a little lighter and darker in turn
+  x.globalCompositeOperation = "source-atop";
+  for (let i = 0; i < 150; i++){ const y = 8 + i*3.4, k = rnd(i*1.7); x.strokeStyle = k < .5 ? "rgba(255,255,240,.22)" : "rgba(180,90,20,.18)"; x.lineWidth = 1.2;
+    x.beginPath(); x.moveTo(W/2, y); x.quadraticCurveTo(W*.75, y + 10, W, y + 34); x.stroke(); x.beginPath(); x.moveTo(W/2, y); x.quadraticCurveTo(W*.25, y + 10, 0, y + 34); x.stroke(); }
+  // little splits in the vane, near the edges
+  for (let i = 0; i < 14; i++){ const y = 60 + rnd(i*3.3)*400, side = rnd(i*5.1) < .5 ? -1 : 1; x.strokeStyle = "rgba(0,0,0,1)"; x.globalCompositeOperation = "destination-out"; x.lineWidth = 1.5;
+    x.beginPath(); x.moveTo(W/2 + side*W*.3, y); x.lineTo(W/2 + side*W*.55, y + 26); x.stroke(); }
+  // the shaft, bright, fading towards the tip
+  x.globalCompositeOperation = "source-over"; const sg = x.createLinearGradient(0, 0, 0, H); sg.addColorStop(0, "rgba(255,250,235,.95)"); sg.addColorStop(1, "rgba(255,250,235,.1)");
+  x.strokeStyle = sg; x.lineWidth = 3; x.beginPath(); x.moveTo(W/2, 0); x.lineTo(W/2, H*.93); x.stroke();
+  const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t; })();
+// three tints, mixed at random over the wing, so it isn't one flat colour
+const FEATHER_MATS = [[1, .82, .62, .8], [1, .7, .45, .65], [1, .9, .75, .95]].map(([r, g, b, e]) => new THREE.MeshStandardMaterial({ map:FEATHER_TEX, color:new THREE.Color(r, g, b), emissive:new THREE.Color(r, g*.92, b*.8), emissiveMap:FEATHER_TEX, emissiveIntensity:e, alphaTest:.45, side:THREE.DoubleSide, roughness:.55, metalness:0, envMapIntensity:.25 }));
+const FEATHER_MAT = FEATHER_MATS[0];
+// a feather hangs from its base (y = 0) to its tip (y = -1), curving gently back
+const featherGeo = curl => { const g = new THREE.PlaneGeometry(1, 1, 1, 10).translate(0, -.5, 0), p = g.attributes.position; for (let i = 0; i < p.count; i++){ const t = -p.getY(i); p.setZ(i, curl*t*t); } g.computeVertexNormals(); return g; };
+const FG = [featherGeo(.06), featherGeo(.12), featherGeo(.03)];
+function buildWing(){ const root = new THREE.Group(), S = new THREE.Group(), E = new THREE.Group(), W = new THREE.Group(); root.add(S); S.add(E); E.add(W);
+  const LH = .36, LF = .52, LW = .36; E.position.x = LH; W.position.x = LF;
+  let k = 0;
+  const feather = (bone, x, y, z, len, wid, phi, geo, roll) => { k++; const j = (a, n) => (rnd(k*a + 3.7) - .5)*n;
+    const f = new THREE.Mesh(geo || FG[0], FEATHER_MATS[Math.floor(rnd(k*1.93)*3)]); f.position.set(x, y + j(2.1, .01), z); len *= 1 + j(1.3, .14); f.scale.set(wid*(1 + j(4.7, .2)), len, len); f.rotation.set(j(5.3, .08), (roll || 0) + j(6.1, .1), phi + j(7.9, .07)); f.castShadow = true; bone.add(f); return f; };
+  // the primaries: on the hand, fanning from hanging down-and-out to reaching straight out at the tip
+  for (let i = 0; i < 10; i++){ const u = i/9; feather(W, .04 + u*LW*.95, .01, -.02 + u*.01, .62 + .2*Math.sin(u*2.6), .13 + .03*(1 - u), (.38 + u*1.15), FG[1], -.08*u); }
+  // the secondaries: along the forearm, hanging down and a little out
+  for (let i = 0; i < 14; i++){ const u = i/13; feather(E, .02 + u*LF*.98, 0, -.025, .52 + .05*Math.sin(u*3), .14, .05 + u*.28, FG[0]); }
+  // the tertials and scapulars: near the body
+  for (let i = 0; i < 5; i++){ const u = i/4; feather(S, .05 + u*LH*.9, -.005, -.02, .44 - u*.04, .13, -.12 + u*.08, FG[0]); }
+  for (let i = 0; i < 6; i++){ const u = i/5; feather(S, .02 + u*.2, .02, .01, .32 - u*.05, .11, -.3 + u*.1, FG[2]); }
+  // the coverts, three rows over the bases, each shorter, on the upper side; the primary coverts on the hand
+  [[.28, .085, .012, .03], [.17, .07, .024, .045], [.09, .055, .036, .055]].forEach(([len, wid, z, y], row) => {
+    for (let i = 0; i < 16 - row*2; i++){ const u = i/(15 - row*2); feather(E, .01 + u*LF, y, z, len*(1 - .15*u), wid, .1 + u*.3, FG[2]); }
+    for (let i = 0; i < 6; i++){ const u = i/5; feather(S, .03 + u*LH*.9, y, z, len*.9, wid, -.05 + u*.15, FG[2]); } });
+  for (let i = 0; i < 9; i++){ const u = i/8; feather(W, .02 + u*LW*.85, .04, .02, .26 - u*.05, .1, .45 + u*1.05, FG[2]); }
+  for (let i = 0; i < 3; i++) feather(W, .01 + i*.02, .07, .03, .14 - i*.02, .07, 1.0 + i*.2, FG[2]);       // the alula, at the wrist
+  // the leading edge: a soft round bone line under the small feathers
+  const edge = new THREE.Mesh(new THREE.CylinderGeometry(.025, .02, 1, 8).rotateZ(Math.PI/2).translate(.5, 0, 0), FEATHER_MAT); [S, E, W].forEach((b, i) => { const m = edge.clone(); m.scale.x = [LH, LF, LW][i]; b.add(m); });
+  root.userData = { S, E, W }; return root; }
+// the pose: spread is the cover (raised in a V), beat adds a flap, fold tucks them behind the back
+function poseWing(w, spread, beat, fold){ const { S, E, W } = w.userData; fold = fold || 0; beat = beat || 0;
+  S.rotation.set(.12 - fold*.6, .1 + fold*.9, (.52 + beat*.9)*spread*(1 - fold) + (-1.3)*fold);
+  E.rotation.set(0, -fold*.4, (.38 - beat*.35)*(1 - fold) + 2.5*fold);
+  W.rotation.set(0, fold*.3, (.3 - beat*.25)*(1 - fold) - 2.6*fold); }
+function addWings(hero){ const wings = [-1, 1].map(s => { const w = buildWing(); w.position.set(s*.075, 1.34, .11); w.scale.set(s*1.15, 1.15, 1.15); hero.add(w); return w; });
+  // the glow of the wings on his back and hood, like on the cover
+  const glow = new THREE.PointLight(new THREE.Color(1, .58, .26), 1.7, 3.2, 2); glow.position.set(0, 1.55, .45); hero.add(glow);
+  hero.userData.wings = wings; hero.userData.wingGlow = glow; wings.forEach(w => poseWing(w, 1, 0, 0)); return wings; }
+
+/* ---- for the games: him in a group you can move, lean (about his middle), the wings open or folded, beating ---- */
+function buildAngel(){ const A = new THREE.Group(), body = new THREE.Group(); A.add(body); const h = buildHero(); body.add(h); addWings(h);
+  A.userData = { body, hero:h, wings:h.userData.wings, legs:h.userData.legs, arms:h.userData.arms, glow:h.userData.wingGlow }; return A; }
+// open: 1 spread, 0 folded; flap: beats a second (0 = still); lean: forward, radians
+function animAngel(A, t, open, flap, lean){ const u = A.userData; open = open == null ? 1 : open; const ln = lean || 0;
+  const beat = flap ? Math.sin(t*flap*Math.PI*2)*.55 - .1 : Math.sin(t*1.3)*.04;
+  u.wings.forEach(w => poseWing(w, 1, beat*open, 1 - open));
+  u.body.rotation.x = -ln; u.body.position.set(0, 1 - Math.cos(ln), -Math.sin(ln)*-1);
+  u.legs.forEach((l, i) => l.rotation.x = ln*.35*(i ? 1 : .8)); u.arms.forEach(m => m.rotation.x = ln*.3); u.glow.intensity = .8 + 1.0*open; }
+
+/* ---------------- the world for the games: the new look (sky, city, light, glow), what the games call ---------------- */
+let scene, cam, ren, clockR, composer, bloom, SKY;
+function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
+  stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
+const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+const sprite = (color, size, op, normal) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:normal ? THREE.NormalBlending : THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv); t.encoding = THREE.sRGBEncoding;
+  if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
+// the renderer: film-like colour (ACES), the glow (bloom), smooth edges; the sky and its reflections; the sunset light
+// yaw turns the sky round (the sunset off to one side), for a game that mustn't look into the sun
+function boot(fov, fogDensity, yaw){
+  ren = new THREE.WebGLRenderer({ antialias:false, powerPreference:"high-performance" }); ren.setPixelRatio(Math.min(1.5, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight);
+  ren.toneMapping = THREE.ACESFilmicToneMapping; ren.toneMappingExposure = .9; ren.outputEncoding = THREE.sRGBEncoding; $("cab").appendChild(ren.domElement);
+  scene = new THREE.Scene(); cam = new THREE.PerspectiveCamera(fov, innerWidth/innerHeight, .1, 5000);
+  SKY = makeSky(); SKY.rotation.y = yaw || 0; scene.add(SKY); scene.environment = skyEnv(ren, SKY);
+  scene.fog = new THREE.FogExp2(new THREE.Color(.34, .09, .14), fogDensity || .0007);
+  const sun = new THREE.DirectionalLight(new THREE.Color(1, .55, .28), 2.2); sun.position.copy(SUN_DIR).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw || 0).multiplyScalar(300).add(new THREE.Vector3(0, 40, 0)); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(new THREE.Color(.45, .3, .75), new THREE.Color(.12, .05, .1), .3));
+  const back = new THREE.DirectionalLight(new THREE.Color(.55, .5, 1), .3); back.position.set(6, 10, 30); scene.add(back);
+  composer = new THREE.EffectComposer(ren, ren.capabilities.isWebGL2 ? new THREE.WebGLMultisampleRenderTarget(innerWidth*ren.getPixelRatio(), innerHeight*ren.getPixelRatio(), { type:THREE.HalfFloatType }) : undefined);
+  composer.addPass(new THREE.RenderPass(scene, cam));
+  bloom = new THREE.UnrealBloomPass(new THREE.Vector2(innerWidth/2, innerHeight/2), .7, .5, .76); composer.addPass(bloom);
+  composer.addPass(new THREE.ShaderPass(THREE.GammaCorrectionShader));
+  clockR = new THREE.Clock();
+  addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+function renderFrame(t){ if (SKY) SKY.material.uniforms.time.value = t || 0; composer.render(); }
+// one building: the same window shader as the city, the windows fixed to it so it can move
+let TOWER_MAT = null;
+function tower(w, h, d, style, y0, lit){ TOWER_MAT = TOWER_MAT || towerMaterial(); const geo = new THREE.BoxGeometry(w, h, d), n = geo.attributes.position.count, look = new Float32Array(n*4);
+  const seed = rnd(style*7.31 + w*1.7 + h*.3)*100; for (let i = 0; i < n; i++) look.set([seed, style % 3, lit != null ? lit : .2 + rnd(seed)*.35, 3.3 + rnd(seed + 1)*.6], i*4);
+  geo.setAttribute("aLook", new THREE.BufferAttribute(look, 4)); const t = new THREE.Mesh(geo, TOWER_MAT); t.position.y = (y0 || 0) + h/2; return t; }
+const SPIRE_M = new THREE.MeshStandardMaterial({ color:0x111018, roughness:.4, metalness:.8 });
+function spire(t, h){ const s = new THREE.Mesh(new THREE.ConeGeometry(.9, h, 6), SPIRE_M); s.position.y = t.geometry.parameters.height/2 + h/2; t.add(s);
+  const l = new THREE.Mesh(new THREE.SphereGeometry(.7, 8, 6), new THREE.MeshBasicMaterial({ color:new THREE.Color(6, .4, .3), toneMapped:false })); l.position.y = t.geometry.parameters.height/2 + h; t.add(l); return t; }
+// no saucer in the games (Jo): a stand-in nobody sees, so the games' calls do nothing
+function buildSaucer(){ const g = new THREE.Group(); g.visible = false; g.userData = { beam:new THREE.Object3D(), lights:new THREE.Group(), under:sprite(0, 1, 0) }; return g; }
+function animSaucer(){}
+const FEATHER_G = FG[0], FEATHER_M = FEATHER_MATS[2];
+
+// the camera for a game: [landscape position, look], [portrait position, look]
+function setCam(L, P){ const [p, l] = cam.aspect < .8 ? P : L; cam.position.set(p[0], p[1], p[2]); cam.lookAt(l[0], l[1], l[2]); }
+// floating score numbers
+const POP_TEX = {};
+const popTex = s => POP_TEX[s] || (POP_TEX[s] = canvasTex(256, 64, (x, w, h) => { x.font = "bold 40px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.lineWidth = 7; x.strokeStyle = "#2a0a3a"; x.strokeText(s, w/2, h/2 + 2); x.fillStyle = "#ffe6a0"; x.fillText(s, w/2, h/2 + 2); }));
+function fx(root){ const pops = [...Array(10)].map(() => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ transparent:true, depthTest:false, opacity:0 })); s.scale.set(2, .5, 1); root.add(s); s.userData.life = 0; return s; }),
+    sparks = [...Array(60)].map(() => { const s = sprite(0xffffff, .3, 0); root.add(s); s.userData.v = new THREE.Vector3(); s.userData.life = 0; return s; });
+  let pi = 0, si = 0;
+  return { pop(p, txt){ const s = pops[pi++ % pops.length]; s.material.map = popTex(txt); s.material.needsUpdate = true; s.position.copy(p).setY(p.y + .6); s.material.opacity = 1; s.userData.life = .9; },
+    burst(p, col, n, sp){ for (let i = 0; i < (n || 10); i++){ const s = sparks[si++ % sparks.length]; s.position.copy(p); s.material.color.setHex(col); s.material.opacity = 1; s.userData.life = .6;
+      const a = rnd(si*1.7)*Math.PI*2, b = rnd(si*2.9)*Math.PI - Math.PI/2, v = (sp || 4)*(.5 + rnd(si*2.3)); s.userData.v.set(Math.cos(a)*Math.cos(b)*v, Math.sin(b)*v, Math.sin(a)*Math.cos(b)*v); } },
+    tick(dt){ for (const s of pops) if (s.userData.life > 0){ s.userData.life -= dt; s.position.y += dt*1.1; s.material.opacity = clamp(s.userData.life/.4, 0, 1); }
+      for (const s of sparks) if (s.userData.life > 0){ s.userData.life -= dt; s.position.addScaledVector(s.userData.v, dt); s.userData.v.multiplyScalar(.96); s.material.opacity = clamp(s.userData.life/.4, 0, 1); } } }; }
+// the city below, in two tiles that ride towards you and go round again; the play space is ALT metres up, the lane
+// you fly down kept clear, the tall towers standing either side of it
+const ALT = 95, TILE = 744;
+function corridor(root, gapX){ const g = new THREE.Group(); root.add(g); g.position.y = -ALT;
+  const tiles = [0, 1].map(i => { const c = makeCity({ box:[-640, 640, -TILE + 31, 31], seed:i*97.3, clear:(x, z) => Math.abs(x) < gapX*7, maxH:(x, z) => Math.abs(x) < 160 ? ALT - 38 : 1e9, dist:(x, z) => Math.abs(x) + 280 }); c.position.z = 30 - i*TILE; g.add(c); return c; });
+  return { g, tiles, move(dz){ for (const c of tiles){ c.position.z += dz; if (c.position.z > TILE + 60) c.position.z -= 2*TILE; } }, tick(t){ for (const c of tiles) tickCity(c, t); } }; }
+// a city all round, for the swing (behind the roofs) and the climb (below you as you go up)
+function cityAround(root, opts){ const c = makeCity(opts); root.add(c); return c; }
+
+
+/* ---------------- the feel: a camera that follows and shakes, the glow that flares, lines of speed, the dark below ---------------- */
+const V3 = new THREE.Vector3(), V4 = new THREE.Vector3(), YUP = new THREE.Vector3(0, 1, 0);
+const CAM = { o:new THREE.Vector3(), l:new THREE.Vector3(), init:false, shake:0, flash:0 };
+// the camera sits at p + off and looks at p + look; the offsets ease, so the shot changes smoothly however fast he goes
+function follow(p, off, look, k, dt){ const a = CAM.init ? 1 - Math.exp(-k*dt) : 1; CAM.init = true; CAM.o.lerp(off, a); CAM.l.lerp(look, a);
+  cam.position.copy(p).add(CAM.o); if (CAM.shake > .002){ cam.position.x += (Math.random() - .5)*CAM.shake; cam.position.y += (Math.random() - .5)*CAM.shake; }
+  cam.lookAt(V4.copy(p).add(CAM.l)); }
+function feel(dt, fov){ CAM.shake = Math.max(0, CAM.shake - dt*2.2); CAM.flash = Math.max(0, CAM.flash - dt*1.8); if (bloom) bloom.strength = .7 + Math.min(.3, CAM.flash*.5);
+  if (fov){ cam.fov = lerp(cam.fov, fov, Math.min(1, dt*3)); cam.updateProjectionMatrix(); } }
+const kick = (s, f) => { CAM.shake = Math.max(CAM.shake, s || 0); CAM.flash = Math.max(CAM.flash, f || 0); };
+const ease = u => u < 0 ? 0 : u > 1 ? 1 : u*u*(3 - 2*u);
+// lines of speed: short streaks of light hung in the air ahead that he flies past
+function speedLines(root, n){ const pos = new Float32Array(n*6), geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.LineBasicMaterial({ color:new THREE.Color(2.4, 1.6, 1.1), transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, fog:false });
+  const L = new THREE.LineSegments(geo, mat); L.frustumCulled = false; root.add(L);
+  const pts = [...Array(n)].map((_, i) => ({ o:new THREE.Vector3(), life:-i*.01 })), d = new THREE.Vector3(), a = new THREE.Vector3(), b = new THREE.Vector3();
+  return { tick(c, v, dt, amt, drift){ const sp = v.length(); mat.opacity = clamp(amt, 0, 1)*.55; if (sp < .5) return; d.copy(v).divideScalar(sp);
+      a.crossVectors(d, Math.abs(d.y) < .9 ? YUP : V3.set(1, 0, 0)).normalize(); b.crossVectors(d, a);
+      const len = Math.min(9, sp*.09);
+      pts.forEach((p, i) => { p.life -= dt; if (p.life <= 0){ const an = Math.random()*6.283, r = 2 + Math.random()*7; p.o.copy(c).addScaledVector(d, 6 + Math.random()*30).addScaledVector(a, Math.cos(an)*r).addScaledVector(b, Math.sin(an)*r); p.life = .3 + Math.random()*.4; }
+        if (drift) p.o.addScaledVector(drift, dt);
+        pos[i*6] = p.o.x; pos[i*6 + 1] = p.o.y; pos[i*6 + 2] = p.o.z; pos[i*6 + 3] = p.o.x - d.x*len; pos[i*6 + 4] = p.o.y - d.y*len; pos[i*6 + 5] = p.o.z - d.z*len; });
+      geo.attributes.position.needsUpdate = true; } }; }
+// the dark below: a sea of shadow mist, moving, that he must not fall into
+function mist(root, y){ const m = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), new THREE.ShaderMaterial({ transparent:true, depthWrite:false, fog:false, uniforms:{ time:{ value:0 } },
+    vertexShader:"varying vec3 vW; void main(){ vec4 w = modelMatrix*vec4(position, 1.); vW = w.xyz; gl_Position = projectionMatrix*viewMatrix*w; }",
+    fragmentShader:`uniform float time; varying vec3 vW; ${GLSL_NOISE}
+      void main(){ vec2 p = vW.xz*.02; float n = fbm(p + vec2(time*.03, -time*.05)), n2 = fbm(p*2.7 - vec2(time*.06, 0.) + 3.);
+        float a = (.55 + .4*smoothstep(.35, .7, n))*(1. - smoothstep(220., 560., distance(vW.xz, cameraPosition.xz)));
+        vec3 c = mix(vec3(.025, .008, .04), vec3(.16, .03, .12), smoothstep(.4, .75, n2)) + vec3(.5, .08, .2)*pow(max(n2 - .55, 0.)*2.2, 3.);
+        gl_FragColor = vec4(c, a);
+        #include <tonemapping_fragment>
+        #include <encodings_fragment>
+      }` }));
+  m.rotation.x = -Math.PI/2; m.position.y = y; root.add(m); return m; }
+// the avenue: a row of tall towers each side, their faces at x = -av and +av, built ahead of you as you go and taken down behind
+function avenue(root, o){ const A = { av:o.av, rows:[[], []], end:[o.z0, o.z0], k:0 };
+  A.build = z => { for (const s of [0, 1]) while (A.end[s] > z){ const k = A.k++, side = s ? 1 : -1, d = o.dMin + rnd(k*1.37 + s)*(o.dMax - o.dMin), w = 16 + rnd(k*2.1)*12, h = o.hMin + rnd(k*3.3 + s*.7)*(o.hMax - o.hMin);
+      const t = tower(w, h, d, k*7 + s, o.y0, .14 + rnd(k*4.1)*.3); t.position.set(side*(A.av + w/2), o.y0 + h/2, A.end[s] - d/2); if (rnd(k*5.7) < .3) spire(t, 16 + rnd(k)*30); root.add(t);
+      A.rows[s].push({ m:t, z0:A.end[s] - d, z1:A.end[s], top:o.y0 + h }); A.end[s] -= d + (rnd(k*6.9) < o.gapP ? o.gMin + rnd(k*7.3)*(o.gMax - o.gMin) : .3); } };
+  A.prune = z => { for (const r of A.rows) while (r.length && r[0].z0 > z){ const m = r.shift().m; root.remove(m); m.traverse(c => c.geometry && c.geometry.dispose()); } };
+  // the tower on a side that covers z, or the nearest one ahead of it
+  A.at = (side, z) => { const r = A.rows[side > 0 ? 1 : 0]; return r.find(t => z >= t.z0 - .5 && z <= t.z1 + .5) || r.find(t => t.z1 < z); };
+  return A; }
+// a gold ring of light, and the glow round it
+const RING_G = new THREE.TorusGeometry(1, .07, 10, 48), RING_M = new THREE.MeshBasicMaterial({ color:new THREE.Color(2.6, 1.7, .6), toneMapped:false });
+function goldRing(r){ const g = new THREE.Group(); const m = new THREE.Mesh(RING_G, RING_M); m.scale.setScalar(r); g.add(m); const s = sprite(0xffa040, r*3.2, .35); g.add(s); g.userData = { ring:m, glow:s }; return g; }
+const pentaHz = y => { const sc = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24], i = clamp(Math.round(y), 0, sc.length - 1); return 392*Math.pow(2, sc[i]/12); };
+const chime = (f, g) => { if (!ac) return; tone("triangle", f, f, ac.currentTime, .35, g || .06, 7000); tone("sine", f*2, f*2, ac.currentTime, .2, (g || .06)*.4, 9000); };
+
+
+/* ---------------- the stage: a board over the city, or a table on a roof ---------------- */
+// The board games float in front of you high over the city, the sunset off to the left so it never sits behind them.
+const STAGE_Y = 150, STAGE_Z = -34, SUN_YAW = .95;
+// the cloth of a table: a colour, a fine weave, lighter in the middle
+function feltTex(col){ return canvasTex(256, 256, (x, w) => { const g = x.createRadialGradient(w/2, w/2, 10, w/2, w/2, w*.75); g.addColorStop(0, col); g.addColorStop(1, "#0a0612"); x.fillStyle = g; x.fillRect(0, 0, w, w);
+  for (let i = 0; i < 2500; i++){ x.fillStyle = "rgba(255,255,255," + rnd(i)*.05 + ")"; x.fillRect(rnd(i*1.7)*w, rnd(i*2.3)*w, 1.5, 1.5); } }); }
+// flat: the board lies on a roof like a table and you look down at it
+function stage(bw, bh, flat){ boot(36, .0006, SUN_YAW); const root = new THREE.Group(); scene.add(root);
+  const city = makeCity({ clear:(x, z) => Math.abs(x) < 50 && z > -90 }); root.add(city);
+  const B = new THREE.Group(); B.position.set(0, STAGE_Y, STAGE_Z); root.add(B);
+  let roof = null; if (flat){ B.rotation.x = -Math.PI/2; roof = tower(bw + 2.4, 160, bh + 2.4, 4, STAGE_Y - 160.6, .25); roof.position.set(0, STAGE_Y - 80.6, STAGE_Z); root.add(roof); }
+  // a pane of dark glass behind the board, a gold edge round it
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color:0x0a0614, transparent:true, opacity:.66, depthWrite:false })); panel.position.z = -.35; B.add(panel);
+  const edge = new THREE.Group(), EM = new THREE.MeshBasicMaterial({ color:new THREE.Color(1.5, .95, .35), toneMapped:false }); for (let i = 0; i < 4; i++) edge.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), EM)); B.add(edge);
+  const st = { root, B, city, panel, edge, roof, bw, bh, flat:!!flat, size(w, h){ st.bw = w; st.bh = h; panel.scale.set(w + .7, h + .7, 1); const t = .06, W = w + .7, H = h + .7;
+      [[W, t, 0, H/2], [W, t, 0, -H/2], [t, H, -W/2, 0], [t, H, W/2, 0]].forEach(([a, b, x, y], i) => { const m = edge.children[i]; m.scale.set(a, b, t); m.position.set(x, y, -.3); }); } };
+  st.size(bw, bh); return st; }
+function fitCam(st, t){ const tn = Math.tan(cam.fov*Math.PI/360), d = Math.max(st.bh/2/tn, st.bw/2/(tn*cam.aspect))*(st.flat ? (cam.aspect < .8 ? 1.45 : 1.22) : 1.07) + .4, B = st.B.position;
+  if (st.flat){ const el = .78; cam.position.set(B.x + Math.sin(t*.21)*.15, B.y + d*Math.sin(el), B.z + d*Math.cos(el)); cam.lookAt(B.x, B.y + st.bh*.06, B.z - st.bh*.1); }
+  else { cam.position.set(B.x + Math.sin(t*.21)*.25, B.y + Math.sin(t*.27)*.12, B.z + d); cam.lookAt(B); } cam.updateMatrixWorld(); }
+const BPLANE = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), BQ = new THREE.Vector3();
+function boardAt(st, cx, cy){ pickRay.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); st.B.updateMatrixWorld();
+  BPLANE.setFromNormalAndCoplanarPoint(V4.set(0, 0, 1).applyQuaternion(st.B.quaternion), st.B.position);
+  if (!pickRay.ray.intersectPlane(BPLANE, BQ)) return null; st.B.worldToLocal(BQ); return { x:BQ.x, y:BQ.y }; }
+// a swipe: where the finger went down, where it was when it came up
+const swipeOf = sw => { if (!sw || sw.lx == null) return "tap"; const dx = sw.lx - sw.x, dy = sw.ly - sw.y; if (Math.hypot(dx, dy) < 24) return "tap"; return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up"); };
+const KEYDIR = { ArrowLeft:"left", a:"left", A:"left", ArrowRight:"right", d:"right", D:"right", ArrowUp:"up", w:"up", W:"up", ArrowDown:"down", s:"down", S:"down" };
+// the lit windows: six colours, each with its own mark so you can tell them apart
+const WIN_COLS = ["#ffbf4a", "#ff4f8f", "#45d8ff", "#a86bff", "#ff8a3d", "#f4f0ff"];
+function markPath(x, k, c, r){ x.beginPath();
+  if (k === 0){ x.moveTo(c, c - r); x.lineTo(c + r, c); x.lineTo(c, c + r); x.lineTo(c - r, c); }
+  else if (k === 1) x.arc(c, c, r*.85, 0, Math.PI*2);
+  else if (k === 2){ x.moveTo(c, c - r); x.lineTo(c + r*.95, c + r*.75); x.lineTo(c - r*.95, c + r*.75); }
+  else if (k === 3) x.rect(c - r*.75, c - r*.75, r*1.5, r*1.5);
+  else if (k === 4){ for (let i = 0; i < 8; i++){ const a = i*Math.PI/4 - Math.PI/2, q = i % 2 ? r*.42 : r; x.lineTo(c + Math.cos(a)*q, c + Math.sin(a)*q); } }
+  else { x.moveTo(c, c + r*.8); x.bezierCurveTo(c - r*1.3, c - r*.1, c - r*.5, c - r*1.1, c, c - r*.35); x.bezierCurveTo(c + r*.5, c - r*1.1, c + r*1.3, c - r*.1, c, c + r*.8); }
+  x.closePath(); }
+const WIN_TEX = WIN_COLS.map((col, k) => canvasTex(128, 128, (x, w) => { x.fillStyle = "#120a1c"; x.fillRect(0, 0, w, w);
+  const g = x.createLinearGradient(0, 10, 0, w - 10); g.addColorStop(0, col); g.addColorStop(1, "#2a0a2a"); x.fillStyle = g; x.beginPath(); x.roundRect ? x.roundRect(10, 10, w - 20, w - 20, 16) : x.rect(10, 10, w - 20, w - 20); x.fill();
+  x.strokeStyle = "rgba(255,255,255,.35)"; x.lineWidth = 3; x.stroke(); x.fillStyle = "rgba(255,255,255,.92)"; markPath(x, k, w/2, 30); x.fill(); }));
+const WIN_MATS = WIN_TEX.map(t => new THREE.MeshStandardMaterial({ map:t, emissive:0xffffff, emissiveMap:t, emissiveIntensity:.8, roughness:.35, metalness:.25, envMapIntensity:.4 }));
+const TILE_G = new THREE.BoxGeometry(.92, .92, .2);
+const SEL_TEX = radial([[0, "rgba(255,255,255,0)"], [.62, "rgba(255,255,255,0)"], [.7, "rgba(255,255,255,1)"], [.8, "rgba(255,255,255,.15)"], [1, "rgba(255,255,255,0)"]], 128);
+
+
+
+/* ================= PART 1 · ROOFTOP GOLF =================
+   Nine holes on a roof over the city, each with something new: put a finger down anywhere, pull back and let go to
+   putt the ball of light (the further, the harder; the dots show the line). A hole has a clock (8 bars): run out, or
+   take 8 strokes, and it costs a heart and you're on to the next. Fewer strokes, more points (par is on the flag); a
+   putt on the beat is a bit more, the hooks double it, the last hole doubles it again. Done before the song is? The
+   holes come round again, the other way round and windy. */
+const GW = 6, GH = 10, G_FRIC = 2.6, G_MAXV = 10.5, G_R = .15, PULL_MAX = 2.6, G_CLOCK = 8;
+// x across, y up the green (away from you). walls: [x0, y0, x1, y1]. via: where the bot aims on the way
+const HOLES = [
+  { name:"THE FIRST GREEN", tip:"pull back and let go - round the ledge", par:2, tee:[0, -4], cup:[0, 3.6], walls:[[-1.3, -.15, 1.3, .25]], via:[[-2.2, .05]] },
+  { name:"LEDGES", tip:"bank it off the ledges", par:3, tee:[2, -4], cup:[-2, 3.8], walls:[[-1.4, -1.9, 3, -1.45], [-3, 1.1, 1.4, 1.55]], via:[[-2.2, -2.6], [-2.2, -.6], [2.2, 0], [2.2, 2.6]] },
+  { name:"THE AIR-CON", tip:"it slides on the beat - go when it's out of the way", par:2, tee:[0, -4], cup:[0, 3.6], walls:[[-3, 1.6, -1.6, 2], [1.6, 1.6, 3, 2]], movers:[{ y:0, w:2, amp:1.8, beats:4 }], via:[] },
+  { name:"BOOST PADS", tip:"the gold arrows throw the ball on", par:2, tee:[-2, -4], cup:[-2, 3.5], walls:[[-3, -.9, 1.2, -.5], [-3, 1.6, 1.2, 2]], boosts:[[2.2, -2.4, 0, 1], [2.2, 2.6, -1, 0]], via:[[2.2, -2.4]] },
+  { name:"PORTALS", tip:"in one ring, out of the other", par:2, tee:[0, -4], cup:[0, 3.8], walls:[[-3, -.2, 3, .2]], portals:[[[0, -1.8], [0, 1.6]]], via:[[0, -1.8]] },
+  { name:"THE GAP", tip:"over the plank - the gap is a stroke and back", par:3, tee:[-2, -4], cup:[-1.5, 3.5], voids:[[-3, -.6, 1.15, .6], [2.05, -.6, 3, .6]], via:[[1.6, -1.7], [1.6, 1.7]] },
+  { name:"THE WIND", tip:"it blows the other way every 2 bars", par:2, tee:[-1.5, -4], cup:[1.5, 3.6], posts:[[-.8, 0], [1, -1.4], [.4, 1.6]], wind:.8, via:[] },
+  { name:"THE WINDMILL", tip:"through the gap when the sails are clear", par:2, tee:[0, -4], cup:[0, 3.6], walls:[[-3, .85, -.95, 1.25], [.95, .85, 3, 1.25]], mill:{ x:0, y:1.05, len:1.4, sp:.9 }, via:[[.56, -1], [.56, 2]] },
+  { name:"THE SPIRE", tip:"the cup won't keep still - double points", par:3, tee:[2.2, -4], cup:[0, 3.4], cupMove:{ amp:1.8, sp:.9 }, walls:[[-3, -.9, 1.3, -.5]], boosts:[[2.4, -1.6, 0, 1]], portals:[[[-2.2, -2.6], [-2.2, 1.2]]], gold:true, via:[[2.4, -1.6]] }
+];
+const pullDots = (B, n) => [...Array(n)].map(() => { const s = sprite(0xffe6a0, .16, 0); B.add(s); return s; });
+const STONE_M = new THREE.MeshStandardMaterial({ color:0x3a3040, roughness:.7, metalness:.2 }), LEDGE_M = new THREE.MeshBasicMaterial({ color:new THREE.Color(1.5, .9, .3), toneMapped:false });
+function gBlock(B, r, h){ const g = new THREE.Group(), w = r[2] - r[0], d = r[3] - r[1]; h = h || .35; const m = new THREE.Mesh(new THREE.BoxGeometry(w, d, h), STONE_M); m.position.z = h/2; g.add(m);
+  for (const [ew, ed, ex, ey] of [[w, .05, 0, d/2], [w, .05, 0, -d/2], [.05, d, w/2, 0], [.05, d, -w/2, 0]]){ const e = new THREE.Mesh(new THREE.BoxGeometry(ew, ed, .04), LEDGE_M); e.position.set(ex, ey, h + .02); g.add(e); }
+  g.position.set((r[0] + r[2])/2, (r[1] + r[3])/2, 0); B.add(g); return g; }
+const ARROW_TEX = canvasTex(128, 128, (x, w) => { x.fillStyle = "rgba(255,190,60,.25)"; x.fillRect(0, 0, w, w); x.strokeStyle = "#ffd27a"; x.lineWidth = 6; x.strokeRect(4, 4, w - 8, w - 8);
+  x.fillStyle = "#ffe6a0"; for (const o of [0, 40]){ x.beginPath(); x.moveTo(w/2, 14 + o); x.lineTo(w - 22, 54 + o); x.lineTo(22, 54 + o); x.closePath(); x.fill(); } });
+const PORTAL_COLS = [0x40d0ff, 0xff60c0];
+const ballOf = (col, glow) => { const m = new THREE.Mesh(new THREE.SphereGeometry(G_R, 20, 14), new THREE.MeshStandardMaterial({ color:col, emissive:col, emissiveIntensity:glow, roughness:.25, metalness:.2 })); m.add(sprite(col, .9, .55)); return m; };
+const GOLF = {
+  setup(){ this.st = stage(GW, GH, true); this.root = this.st.root; this.B = this.st.B; const P = this.st.panel.material; P.map = feltTex("#3a9a5a"); P.color.setHex(0xffffff); P.opacity = 1; P.needsUpdate = true;
+    this.fx = fx(this.B); this.parts = [];
+    this.ball = ballOf(0xfff2d0, .9); this.B.add(this.ball);
+    // online: the others' balls, ghosts in their colours
+    this.ghosts = SEAT_COLS.map(c => { const m = ballOf(c, .7); m.material.transparent = true; m.material.opacity = .75; m.visible = false; this.B.add(m); return m; });
+    this.cup = new THREE.Group(); const hole = new THREE.Mesh(new THREE.CircleGeometry(.27, 24), new THREE.MeshBasicMaterial({ color:0x050208 })); hole.position.z = .01; this.cup.add(hole);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, 1.3, 6).rotateX(Math.PI/2).translate(0, 0, .65), new THREE.MeshStandardMaterial({ color:0xdddddd })); this.cup.add(pole);
+    this.flag = new THREE.Mesh(new THREE.PlaneGeometry(.5, .32), new THREE.MeshBasicMaterial({ map:null, color:new THREE.Color(2, .5, .4), toneMapped:false, side:THREE.DoubleSide })); this.flag.rotation.x = Math.PI/2; this.flag.position.set(.26, 0, 1.15); this.cup.add(this.flag);
+    const ring = sprite(0xffc060, 1.1, .5); ring.position.z = .05; this.cup.add(ring); this.B.add(this.cup);
+    this.dots = pullDots(this.B, 12); this.windFx = [...Array(14)].map(() => { const s = sprite(0xd8e8ff, .5, 0); s.scale.set(.9, .06, 1); this.B.add(s); return s; }); },
+  // ---- the course ----
+  hole(n){ const H = HOLES[n % 9]; if (n < 9) return H; const m = JSON.parse(JSON.stringify(H)), fx = p => [-p[0], p[1]];     // round again: the other way round, and windy
+    m.tee = fx(m.tee); m.cup = fx(m.cup); m.walls = (m.walls || []).map(r => [-r[2], r[1], -r[0], r[3]]); m.voids = (m.voids || []).map(r => [-r[2], r[1], -r[0], r[3]]); m.via = (m.via || []).map(fx);
+    m.boosts = (m.boosts || []).map(b => [-b[0], b[1], -b[2], b[3]]); m.portals = (m.portals || []).map(([a, b]) => [fx(a), fx(b)]); m.posts = (m.posts || []).map(fx); if (m.mill) m.mill.x = -m.mill.x;
+    if (!m.voids.length) m.wind = Math.max(m.wind || 0, .5 + Math.min(.4, (n - 9)*.04)); m.name = m.name + " · AGAIN"; m.tip = m.wind ? "the other way round - and windy" : "the other way round"; return m; },
+  load(n){ for (const p of this.parts) this.B.remove(p); this.parts = []; const H = this.H = this.hole(n); this.n = n; const s = this.g;
+    s.strokes = 0; s.bx = H.tee[0]; s.by = H.tee[1]; s.lx = s.bx; s.ly = s.by; s.vx = s.vy = 0; s.moving = false; s.holed = false; s.at = S.t; s.port = 0; s.boostIn = -1; this.vi = 0;
+    for (const w of H.walls || []) this.parts.push(gBlock(this.B, w));
+    this.movers = (H.movers || []).map(m => { const g = gBlock(this.B, [-m.w/2, m.y - .25, m.w/2, m.y + .25], .5); this.parts.push(g); return Object.assign({ g, x:0 }, m); });
+    for (const v of H.voids || []){ const m = new THREE.Mesh(new THREE.PlaneGeometry(v[2] - v[0], v[3] - v[1]), new THREE.MeshBasicMaterial({ color:0x020104 })); m.position.set((v[0] + v[2])/2, (v[1] + v[3])/2, .02); this.B.add(m); this.parts.push(m); }
+    if (H.voids && H.voids.length > 1){ const vs = H.voids.slice().sort((a, b) => a[0] - b[0]), plank = new THREE.Mesh(new THREE.BoxGeometry(.9, 1.3, .06), new THREE.MeshStandardMaterial({ color:0x6a5040, roughness:.8 })), x = (vs[0][2] + vs[1][0])/2; plank.position.set(x, 0, .03); this.B.add(plank); this.parts.push(plank); }
+    for (const b of H.boosts || []){ const m = new THREE.Mesh(new THREE.PlaneGeometry(.9, .9), new THREE.MeshBasicMaterial({ map:ARROW_TEX, transparent:true, color:new THREE.Color(1.6, 1.3, .8), toneMapped:false })); m.position.set(b[0], b[1], .03); m.rotation.z = Math.atan2(b[3], b[2]) - Math.PI/2; this.B.add(m); this.parts.push(m); }
+    (H.portals || []).forEach(([a, b], i) => { for (const [p, k] of [[a, 0], [b, 1]]){ const r = new THREE.Mesh(new THREE.TorusGeometry(.36, .05, 8, 32), new THREE.MeshBasicMaterial({ color:new THREE.Color(PORTAL_COLS[k]).multiplyScalar(2), toneMapped:false })); r.position.set(p[0], p[1], .06); this.B.add(r); this.parts.push(r); const s = sprite(PORTAL_COLS[k], 1.1, .45); s.position.set(p[0], p[1], .1); this.B.add(s); this.parts.push(s); } });
+    for (const p of H.posts || []){ const m = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, .5, 20).rotateX(Math.PI/2).translate(0, 0, .25), new THREE.MeshStandardMaterial({ color:0x2a1a3a, emissive:0xff4a9a, emissiveIntensity:.5, roughness:.3, metalness:.4 })); m.position.set(p[0], p[1], 0); this.B.add(m); this.parts.push(m); }
+    this.mill = null; if (H.mill){ const g = new THREE.Group(); g.position.set(H.mill.x, H.mill.y, 0); const hub = new THREE.Mesh(new THREE.CylinderGeometry(.18, .18, .6, 14).rotateX(Math.PI/2).translate(0, 0, .3), STONE_M); g.add(hub);
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(H.mill.len*2, .12, .14), new THREE.MeshStandardMaterial({ color:0xd8c8b0, emissive:0x402010, roughness:.5 })); arm.position.z = .45; g.add(arm); this.B.add(g); this.parts.push(g); this.mill = { g, arm, ang:0 }; }
+    const tee = sprite(0x80ffb0, .5, .5); tee.position.set(H.tee[0], H.tee[1], .02); this.B.add(tee); this.parts.push(tee);
+    this.cup.position.set(H.cup[0], H.cup[1], 0); this.flag.material.color.copy(H.gold ? new THREE.Color(2.4, 1.8, .5) : new THREE.Color(2, .5, .4));
+    if (!ONLINE || n === 0) say("HOLE " + (n + 1) + " · " + H.name, "par " + H.par + " · " + H.tip, 2.2, H.gold ? "g" : ""); },
+  reset(){ this.g = { strokes:0, total:0, holes:0, aces:0, birdies:0, bx:0, by:0, vx:0, vy:0, moving:false };
+    S.holes = 0; S.strokes = 0; S.aces = 0; S.under = 0; this.pull = null; this.done = []; this.load(0); },
+  info(){ const g = this.g, left = Math.max(0, this.clock() - (S.t - g.at)); return "HOLE " + (this.n + 1) + " · PAR " + this.H.par + " · " + g.strokes + (g.strokes === 1 ? " STROKE" : " STROKES") + (g.holed ? "" : " · " + Math.ceil(left) + "s"); },
+  clock(){ return (ONLINE ? 10 : CFG.endless ? Math.max(5, G_CLOCK - Math.floor(this.n/3)) : G_CLOCK)*BAR; },
+  // ---- putting ----
+  ready(){ return S.started && !S.done && S.end < 0 && !this.g.moving && !this.g.holed; },
+  down(cx, cy){ if (!this.ready()) return; const p = boardAt(this.st, cx, cy); if (p) this.pull = { x0:p.x, y0:p.y, x:p.x, y:p.y }; },
+  point(cx, cy){ if (!this.pull) return; const p = boardAt(this.st, cx, cy); if (p){ this.pull.x = p.x; this.pull.y = p.y; } },
+  release(){ const P = this.pull; this.pull = null; if (!P || !this.ready()) return; const dx = P.x0 - P.x, dy = P.y0 - P.y, L = Math.hypot(dx, dy); if (L < .15) return; this.shoot(dx/L, dy/L, Math.min(PULL_MAX, L)/PULL_MAX); },
+  aim(){ const P = this.pull; if (!P) return null; const dx = P.x0 - P.x, dy = P.y0 - P.y, L = Math.hypot(dx, dy); return L > .05 ? { x:dx/L, y:dy/L, p:Math.min(PULL_MAX, L)/PULL_MAX } : null; },
+  shoot(dx, dy, p){ const g = this.g, v = p*G_MAXV; g.lx = g.bx; g.ly = g.by; g.vx = dx*v; g.vy = dy*v; g.moving = true; g.strokes++; S.strokes++; sfx.putt(); if (onBeat(S.t)){ S.score += 50; S.onBeat++; this.fx.pop(V3.set(g.bx, g.by, .5), "ON THE BEAT +50"); } },
+  // ---- the course moving ----
+  cupX(t){ const c = this.H.cupMove; return this.H.cup[0] + (c ? Math.sin(t*c.sp)*c.amp : 0); },
+  rects(){ return [...(this.H.walls || []), ...this.movers.map(m => [m.x - m.w/2, m.y - .25, m.x + m.w/2, m.y + .25])]; },
+  wind(t){ const w = this.H.wind; if (!w) return 0; return (Math.floor(t/(2*BAR)) % 2 ? 1 : -1)*w*(1 + LV()*.2); },
+  millAng(t){ return t*this.H.mill.sp*Math.PI; },
+  // the ball, one small step: s is the ball (the real one, or the bot's guess at a shot), ev hears what happens
+  move(s, h, t, ev){ const H = this.H, w = this.wind(t);
+    let sp = Math.hypot(s.vx, s.vy); if (sp < .05){ s.vx = s.vy = 0; return "stop"; } s.vx += w*h;
+    const k = Math.max(0, sp - G_FRIC*h)/sp; s.vx *= k; s.vy *= k; s.bx += s.vx*h; s.by += s.vy*h;
+    if (s.bx < -GW/2 + G_R){ s.bx = -GW/2 + G_R; s.vx = Math.abs(s.vx)*.75; } if (s.bx > GW/2 - G_R){ s.bx = GW/2 - G_R; s.vx = -Math.abs(s.vx)*.75; }
+    if (s.by < -GH/2 + G_R){ s.by = -GH/2 + G_R; s.vy = Math.abs(s.vy)*.75; } if (s.by > GH/2 - G_R){ s.by = GH/2 - G_R; s.vy = -Math.abs(s.vy)*.75; }
+    for (const r of this.rects()){ const cx = clamp(s.bx, r[0], r[2]), cy = clamp(s.by, r[1], r[3]), dx = s.bx - cx, dy = s.by - cy, d = Math.hypot(dx, dy); if (d >= G_R) continue;
+      if (d < 1e-4){ s.vy = -s.vy; s.by += Math.sign(s.vy || 1)*.02; continue; } const nx = dx/d, ny = dy/d, vn = s.vx*nx + s.vy*ny; s.bx = cx + nx*(G_R + .001); s.by = cy + ny*(G_R + .001); if (vn < 0){ s.vx -= 1.75*vn*nx; s.vy -= 1.75*vn*ny; } ev("clink"); }
+    for (const p of H.posts || []){ const dx = s.bx - p[0], dy = s.by - p[1], d = Math.hypot(dx, dy); if (d >= .3 + G_R || d < 1e-4) continue; const nx = dx/d, ny = dy/d, vn = s.vx*nx + s.vy*ny;
+      s.bx = p[0] + nx*(.3 + G_R); s.by = p[1] + ny*(.3 + G_R); if (vn < 0){ const e = onBeat(t) ? 2.3 : 2; s.vx -= e*vn*nx; s.vy -= e*vn*ny; ev("bumper"); } }
+    if (H.mill){ const a = this.millAng(t), ux = Math.cos(a), uy = Math.sin(a), mx = H.mill.x, my = H.mill.y, px = s.bx - mx, py = s.by - my, u = clamp(px*ux + py*uy, -H.mill.len, H.mill.len), qx = mx + ux*u, qy = my + uy*u, dx = s.bx - qx, dy = s.by - qy, d = Math.hypot(dx, dy);
+      if (d < G_R + .06 && d > 1e-4){ const nx = dx/d, ny = dy/d, bvx = -uy*u*H.mill.sp*Math.PI, bvy = ux*u*H.mill.sp*Math.PI, vn = (s.vx - bvx)*nx + (s.vy - bvy)*ny; s.bx = qx + nx*(G_R + .061); s.by = qy + ny*(G_R + .061); if (vn < 0){ s.vx -= 1.45*vn*nx; s.vy -= 1.45*vn*ny; ev("clink"); } } }
+    // the gold arrows, the rings
+    let on = -1; (H.boosts || []).forEach((b, j) => { if (Math.abs(s.bx - b[0]) < .45 && Math.abs(s.by - b[1]) < .45) on = j; });
+    if (on >= 0 && on !== s.boostIn){ const b = H.boosts[on], s2 = Math.max(Math.hypot(s.vx, s.vy), 7.5); s.vx = b[2]*s2; s.vy = b[3]*s2; s.bx = b[0]; s.by = b[1]; ev("boost", b); } s.boostIn = on;
+    if (s.port > 0) s.port -= h; else for (const [a, b] of H.portals || []) if (Math.hypot(s.bx - a[0], s.by - a[1]) < .3){ ev("portal", a, b); s.bx = b[0]; s.by = b[1]; s.port = .5; break; }
+    // the gap: a stroke, and back where you hit it from
+    if ((H.voids || []).some(v => s.bx > v[0] && s.bx < v[2] && s.by > v[1] && s.by < v[3])){ s.vx = s.vy = 0; s.bx = s.lx; s.by = s.ly; ev("gap"); return "gap"; }
+    const cx = this.cupX(t), cd = Math.hypot(s.bx - cx, s.by - H.cup[1]); sp = Math.hypot(s.vx, s.vy);
+    if (cd < .24 && sp < 5.5) return "in";
+    if (cd < .3 && sp >= 5.5){ s.vx += (s.bx - cx)*2; s.vy += (s.by - H.cup[1])*2; } },
+  step(dt, t){ const g = this.g, n = 6, h = dt/n;
+    const ev = (e, a, b) => { if (e === "clink") sfx.clink(); else if (e === "bumper") sfx.bumper();
+      else if (e === "boost"){ sfx.launch(); this.fx.burst(V3.set(a[0], a[1], .2), 0xffd27a, 8, 4); }
+      else if (e === "portal"){ this.fx.burst(V3.set(a[0], a[1], .2), PORTAL_COLS[0], 10, 4); sfx.zap(); this.fx.burst(V3.set(b[0], b[1], .2), PORTAL_COLS[1], 10, 4); }
+      else if (e === "gap"){ g.strokes++; S.strokes++; say("IN THE GAP", "a stroke, and back", .9, "x"); sfx.drop(); } };
+    for (let i = 0; i < n; i++){ const r = this.move(g, h, t, ev); if (r === "in"){ this.sink(t); return; } if (r) break; }
+    if (!g.vx && !g.vy) g.moving = false; },
+  // the bot's guess at a shot: how close it gets to (x, y) before anything takes it elsewhere (0 if it's in)
+  guess(ax, ay, v, x, y){ const g = this.g, s = { bx:g.bx, by:g.by, lx:g.bx, ly:g.by, vx:ax*v, vy:ay*v, port:0, boostIn:g.boostIn }, h = 1/180;
+    let best = Math.hypot(s.bx - x, s.by - y), gone = false; const ev = (e, a) => { if (e === "portal" || e === "boost"){ gone = true; if (Math.hypot(a[0] - x, a[1] - y) < .35) best = 0; } };
+    for (let t = S.t; t < S.t + 5; t += h){ const r = this.move(s, h, t, ev); if (r === "in") return 0; if (r === "gap") return 99; best = Math.min(best, Math.hypot(s.bx - x, s.by - y)); if (gone || r) break; }
+    return best; },
+  // in: the points for the strokes against par
+  sink(t){ const g = this.g, H = this.H, d = g.strokes - H.par; g.moving = false; g.holed = true; g.vx = g.vy = 0; g.bx = this.cupX(t); g.by = H.cup[1];
+    const name = g.strokes === 1 ? "HOLE IN ONE" : d <= -2 ? "EAGLE" : d === -1 ? "BIRDIE" : d === 0 ? "PAR" : d === 1 ? "BOGEY" : "IN";
+    const base = g.strokes === 1 ? 3000 : d <= -2 ? 2000 : d === -1 ? 1500 : d === 0 ? 1000 : d === 1 ? 600 : 300, k = base*(hookAt(t) ? 2 : 1)*(H.gold ? 2 : 1)*(1 + (CFG.endless ? Math.min(4, Math.floor(this.n/9))*.5 : 0));
+    S.score += k; S.holes++; S.got++; if (g.strokes === 1) S.aces++; if (d < 0) S.under++;
+    say(name, "+" + fmt0(k) + (ONLINE ? "" : ""), 1.2, d < 0 ? "g" : ""); sfx.cup(); if (d < 0){ sfx.big(); kick(.2, .4); } this.fx.burst(V3.set(g.bx, g.by, .3), 0xffd27a, 26, 6);
+    this.finishHole(false); },
+  // a hole over: solo goes straight on; online waits for the other player
+  finishHole(lost){ const g = this.g; g.holed = true; g.lost = lost; this.endT = S.t;
+    if (ONLINE){ GV.mine(this.n, lost ? 9 : g.strokes); return; }
+    this.next = S.t + 1.2; },
+  bot(){ const g = this.g; if (!this.ready() || S.t < (this.botT || 0)) return; const H = this.H, V = H.via || [];
+    for (let j = this.vi; j < V.length; j++) if (Math.hypot(g.bx - V[j][0], g.by - V[j][1]) < .8) this.vi = j + 1;      // the waypoints in order: past the ones it's reached
+    const tgts = [...V.slice(this.vi), [this.cupX(S.t + .8), H.cup[1]]];
+    if (this.movers.length){ const m = this.movers[0]; if (Math.abs(m.x - g.bx) < m.w/2 + .7 && g.by < m.y){ this.botT = S.t + .05; return; } }
+    // the first of the waypoints (then the cup) it has a clear line to - the windmill's hub counts as a wall
+    let tg = null; const walls = [...(H.walls || []), ...(H.voids || []), ...(H.mill ? [[H.mill.x - .2, H.mill.y - .2, H.mill.x + .2, H.mill.y + .2]] : [])];
+    for (let i = tgts.length - 1; i >= 0; i--){ const [x, y] = tgts[i]; let clear = true; for (const r of walls) for (let k = 0; k <= 40 && clear; k++){ const u = k/40, px = g.bx + (x - g.bx)*u, py = g.by + (y - g.by)*u; if (px > r[0] - .17 && px < r[2] + .17 && py > r[1] - .17 && py < r[3] + .17) clear = false; } if (clear){ tg = tgts[i]; break; } }
+    tg = tg || tgts[0]; const dx = tg[0] - g.bx, dy = tg[1] - g.by, d = Math.hypot(dx, dy), last = tg === tgts[tgts.length - 1], v = Math.min(G_MAXV, Math.sqrt(2*G_FRIC*d + 2.2));
+    // the windmill: only when the sails will be out of the way as it gets there
+    if (this.mill && (g.by - H.mill.y)*(tg[1] - H.mill.y) < 0){ const dc = d*Math.abs((H.mill.y - g.by)/dy), ta = (v - Math.sqrt(Math.max(.05, v*v - 2*G_FRIC*dc)))/G_FRIC;
+      if (Math.abs(Math.sin(this.millAng(S.t + ta))) < .8){ this.botT = S.t + .03; return; } }
+    let ax = dx/d, ay = dy/d;
+    if (H.wind){ let bestE = 1e9, a0 = Math.atan2(dy, dx); for (let o = -.7; o <= .7; o += .035){ const c = Math.cos(a0 + o), sn = Math.sin(a0 + o), e = this.guess(c, sn, v, tg[0], tg[1]) + Math.abs(o)*.01; if (e < bestE){ bestE = e; ax = c; ay = sn; } } }
+    this.shoot(ax, ay, v/G_MAXV); this.botT = S.t + .3; },
+  update(dt, t){ const g = this.g;
+    for (const m of this.movers){ m.x = Math.sin(Math.PI*t/(m.beats*BEAT))*m.amp; m.g.position.x = m.x; }
+    if (g.moving) this.step(dt, t);
+    if (!g.holed && (t - g.at > this.clock() || g.strokes >= 8)){ const why = g.strokes >= 8 ? "PICKED UP" : "OUT OF TIME";
+      if (ONLINE){ say(why, "it counts 9 strokes", 1.2, "x"); this.finishHole(true); }
+      else { if (hurt(why, g.strokes >= 8 ? "Eight strokes is the most on a hole - look at the line the dots show, and pull back less near the cup." : "A hole has 8 bars - putt sooner.")) return; this.finishHole(true); this.next = t + .8; } }
+    if (!ONLINE && g.holed && this.next && t >= this.next){ this.next = 0; this.load(this.n + 1); }
+    if (ONLINE) GV.tick(t); },
+  render(t){ const dt = dtOf(t), g = this.g, H = this.H; fitCam(this.st, t); this.fx.tick(dt); tickCity(this.st.city, t);
+    this.ball.position.set(g.bx, g.by, G_R); this.ball.visible = !(g.holed && S.t - (this.endT || 0) > .4);
+    this.cup.position.x = this.cupX(t); this.flag.rotation.y = Math.sin(t*4)*.3;
+    if (this.mill){ this.mill.g.rotation.z = this.millAng(t); }
+    const a = this.aim(); this.dots.forEach(s => s.material.opacity = 0);
+    if (a) this.dots.forEach((s, i) => { const u = (i + 1)/this.dots.length, L = .4 + a.p*3.6; s.position.set(g.bx + a.x*L*u, g.by + a.y*L*u, .12); s.material.opacity = .9 - u*.6; s.scale.setScalar(.12 + .1*(1 - u)); });
+    const w = this.wind(t); this.windFx.forEach((s, i) => { if (!w){ s.material.opacity = 0; return; } const u = ((t*.6*Math.sign(w) + i*.37) % 1 + 1) % 1; s.position.set(-GW/2 + u*GW, -GH/2 + (i + .5)/this.windFx.length*GH, .2); s.material.opacity = .35*Math.sin(u*Math.PI); });
+    this.ghosts.forEach((m, i) => { const gh = GOLF_N && GV.ghosts[i], p = GOLF_N && NET.players[i]; m.visible = !!(gh && p && i !== NET.seat && !NET.gone[p.id] && gh.n === this.n && !gh.holed); if (m.visible) m.position.set(gh.x, gh.y, G_R); }); }
+};
+
+
+/* ================= PART 2 · SKY HOCKEY =================
+   Air hockey on a roof against the shadow, round after round, each with something new. Move your golden striker
+   (drag, the mouse, or the arrows) and hit the puck of light into the shadow's goal at the far end; keep it out of
+   yours. First to 3 takes the round (10 bars on the clock: then whoever's ahead; level, the next goal). Losing a round
+   costs a heart; winning one is worth more every round (up to the eighth, the final). The shadow gets quicker every round. The roof slopes to the
+   goals: a puck left slow on your half slides into yours. */
+const HW = 4.6, HH = 8, HG = .95, HR = .38, PKR = .24, H_FRIC = .2, H_MAXV = 14, H_TO = 3, H_CLOCK = 10;
+const BUMPERS = [[-1.2, 1.25], [1.2, -1.25], [1.2, 1.25], [-1.2, -1.25]];
+const ROUNDS = [
+  { name:"FACE-OFF", tip:"first to 3 takes the round" },
+  { name:"TWO PUCKS", tip:"two at once - watch both", pucks:2 },
+  { name:"BUMPERS", tip:"they kick harder on the beat", bumpers:true },
+  { name:"THE GOLDEN PUCK", tip:"gold every other bar - a gold goal counts 2", gold:true },
+  { name:"THE WIND", tip:"it blows the other way every bar", wind:true },
+  { name:"PORTAL WALLS", tip:"out one side, in at the other", portal:true },
+  { name:"THE SPLIT", tip:"hit it on the beat and it splits in two", split:true },
+  { name:"THE FINAL", tip:"everything at once", pucks:2, bumpers:true, gold:true, wind:true }
+];
+// after the eighth, a mix: the same rounds, two or three things at once
+function roundOf(k){ if (k < ROUNDS.length) return ROUNDS[k]; const r = { name:"ROUND " + (k + 1), tip:"" }, f = ["bumpers", "gold", "wind", "portal", "split"], pick = [];
+  for (let i = 0; i < f.length; i++) if (rnd(k*7.3 + i*1.9) < .45) pick.push(f[i]); if (!pick.length) pick.push(f[k % f.length]);
+  for (const p of pick) r[p] = true; if (rnd(k*3.1) < .5) r.pucks = 2; r.tip = pick.map(p => ({ bumpers:"bumpers", gold:"the golden puck", wind:"the wind", portal:"portal walls", split:"the split" })[p]).join(" + "); return r; }
+const HOCKEY = {
+  setup(){ this.st = stage(HW, HH, true); this.root = this.st.root; this.B = this.st.B; const P = this.st.panel.material; P.map = feltTex("#3a6ab8"); P.color.setHex(0xffffff); P.opacity = 1; P.needsUpdate = true; this.fx = fx(this.B);
+    const lm = new THREE.MeshBasicMaterial({ color:new THREE.Color(1, .6, .9), toneMapped:false }), line = new THREE.Mesh(new THREE.PlaneGeometry(HW, .04), lm); line.position.z = .01; this.B.add(line);
+    const circ = new THREE.Mesh(new THREE.RingGeometry(.7, .74, 40), lm); circ.position.z = .01; this.B.add(circ);
+    for (const s of [-1, 1]){ const g = new THREE.Mesh(new THREE.BoxGeometry(HG*2, .1, .08), new THREE.MeshBasicMaterial({ color:s < 0 ? new THREE.Color(2, 1.4, .4) : new THREE.Color(1.5, .2, .6), toneMapped:false })); g.position.set(0, s*HH/2, .05); this.B.add(g); }
+    const mk = (col, em) => { const g = new THREE.Group(); const b = new THREE.Mesh(new THREE.CylinderGeometry(HR, HR, .18, 28).rotateX(Math.PI/2), new THREE.MeshStandardMaterial({ color:col, emissive:em, emissiveIntensity:.7, roughness:.3, metalness:.5 })); b.position.z = .09; g.add(b);
+      const k = new THREE.Mesh(new THREE.CylinderGeometry(.14, .16, .3, 16).rotateX(Math.PI/2), b.material); k.position.z = .3; g.add(k); this.B.add(g); return g; };
+    this.me = mk(0xffb840, 0xc07010); this.me.add(sprite(0xffb040, 1.4, .5));
+    this.ai = mk(ONLINE ? 0xff5ac8 : 0x14081c, ONLINE ? 0xa02a80 : 0x4a1050); const e = sprite(ONLINE ? 0xff8ad0 : 0xff2040, .5, .9); e.position.z = .5; this.ai.add(e);
+    this.puckMs = [0, 1, 2].map(() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(PKR, PKR, .07, 24).rotateX(Math.PI/2), new THREE.MeshBasicMaterial({ color:new THREE.Color(2.4, 2.2, 1.8), toneMapped:false })); const s = sprite(0xffe0a0, 1.1, .7); m.add(s); m.userData.glow = s; m.visible = false; this.B.add(m); return m; });
+    this.bumps = BUMPERS.map(([x, y]) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .4, 24).rotateX(Math.PI/2).translate(0, 0, .2), new THREE.MeshStandardMaterial({ color:0x2a1a3a, emissive:0xff4a9a, emissiveIntensity:.6, roughness:.3, metalness:.4 })); m.position.set(x, y, 0); m.visible = false; this.B.add(m); return m; });
+    this.windFx = [...Array(12)].map(() => { const s = sprite(0xd8e8ff, .5, 0); s.scale.set(.8, .06, 1); this.B.add(s); return s; });
+    this.walls = [-1, 1].map(s => { const w = new THREE.Mesh(new THREE.PlaneGeometry(.12, HH), new THREE.MeshBasicMaterial({ color:new THREE.Color(.5, 1.6, 2.4), transparent:true, opacity:0, toneMapped:false })); w.position.set(s*(HW/2 + .02), 0, .1); this.B.add(w); return w; }); },
+  reset(){ S.rounds = [0, 0]; S.goals = 0; S.against = 0; S.rd = -1; this.h = { mx:0, my:-3, tx:0, ty:-3, mvx:0, mvy:0, ax:0, ay:3, avx:0, avy:0, sc:[0, 0], pucks:[], wait:0, back:0, sd:false, clockAt:0, pause:0 };
+    this.newRound(0); },
+  R(){ return roundOf(Math.max(0, S.rd)); },
+  // a round: the board for it, the pucks served
+  newRound(k){ const h = this.h; S.rd = k; h.sc = [0, 0]; h.sd = false; h.clockAt = S.t; h.pucks = []; const R = this.R();
+    this.bumps.forEach(b => b.visible = !!R.bumpers); this.serve(R.pucks || 1, k % 2 ? 1 : -1);
+    say("ROUND " + (k + 1) + " · " + R.name, R.tip, 2.2, k >= 7 ? "g" : ""); h.pause = .9; },
+  serve(n, dir){ const h = this.h; for (let i = 0; i < n; i++) h.pucks.push({ x:n > 1 ? (i ? .9 : -.9) : 0, y:dir*.9, vx:(i ? .7 : -.7), vy:0, gold:false }); },
+  info(){ const h = this.h, left = Math.max(0, H_CLOCK*BAR - (S.t - h.clockAt)); return (ONLINE ? "" : "ROUND " + (S.rd + 1) + " · ") + "YOU " + h.sc[0] + " - " + h.sc[1] + (ONLINE ? "" : " SHADOW") + (h.sd ? " · NEXT GOAL" : " · " + Math.ceil(left) + "s"); },
+  point(cx, cy){ const p = boardAt(this.st, cx, cy); if (p){ this.h.tx = clamp(p.x, -HW/2 + HR, HW/2 - HR); this.h.ty = clamp(p.y, -HH/2 + HR, -HR - .05); } },
+  // the shadow (and the bot for you): get behind the puck nearest its goal and drive it at the open side of the other goal
+  drive(sx, sy, side, hit){ const h = this.h, own = h.pucks.filter(p => side < 0 ? p.y < .2 : p.y > -.2).sort((a, b) => side < 0 ? a.y - b.y : b.y - a.y)[0];
+    if (!own){ const p = h.pucks[0]; return [p ? p.x*.4 : 0, side*(HH/2 - 1.1)]; }
+    const other = side < 0 ? [h.ax, h.ay] : [h.mx, h.my], gx = (other[0] > own.x*.3 ? -1 : 1)*(HG - .25) - own.x, gy = -side*HH/2 - own.y, gl = Math.hypot(gx, gy), ux = gx/gl, uy = gy/gl;
+    const bx = own.x - ux*(HR + PKR + .35), by = own.y - uy*(HR + PKR + .35), behind = side < 0 ? sy < own.y : sy > own.y;
+    // on the line behind the puck (and close enough): go through it
+    const rx = own.x - sx, ry = own.y - sy, along = rx*ux + ry*uy, perp = Math.abs(rx*uy - ry*ux);
+    if (behind && along > 0 && along < HR + PKR + .6 && perp < .3) return [own.x + ux*hit, own.y + uy*hit];
+    if (!behind) return [own.x + (sx < own.x ? -1 : 1)*(HR + PKR + .3), own.y + side*.9];
+    return [bx, by]; },
+  bot(){ const [x, y] = this.drive(this.h.mx, this.h.my, -1, 1.2); this.h.tx = clamp(x, -HW/2 + HR, HW/2 - HR); this.h.ty = clamp(y, -HH/2 + HR, -HR - .05); },
+  // a striker on a puck (view: only how it looks - the second player's screen online - so no split)
+  strike(p, sx, sy, svx, svy, who, t, view){ const dx = p.x - sx, dy = p.y - sy, d = Math.hypot(dx, dy); if (d >= HR + PKR || d < 1e-5) return false; const nx = dx/d, ny = dy/d;
+    p.x = sx + nx*(HR + PKR); p.y = sy + ny*(HR + PKR); const rv = (p.vx - svx)*nx + (p.vy - svy)*ny; if (rv < 0){ p.vx -= 1.9*rv*nx; p.vy -= 1.9*rv*ny; sfx.tick(); }
+    if (Math.abs(p.vx) < .3) p.vx += p.x >= sx ? .6 : -.6;
+    const sp = Math.hypot(p.vx, p.vy); if (sp > H_MAXV){ p.vx *= H_MAXV/sp; p.vy *= H_MAXV/sp; }
+    // the split: hit hard on the beat and it splits in two
+    if (!view && this.R().split && onBeat(t) && sp > 5 && this.h.pucks.length < 3 && !p.split){ p.split = .6; this.h.pucks.push({ x:p.x, y:p.y, vx:-p.vx*.8 + p.vy*.3, vy:p.vy, gold:p.gold, split:.6 }); this.fx.burst(V3.set(p.x, p.y, .2), 0xffe0a0, 14, 5); sfx.zap(); }
+    return true; },
+  // the table: pucks, the two strikers, goals. Online only the first player's game does this (it decides)
+  sim(dt, t){ const h = this.h, R = this.R(), n = 6, st = dt/n, aiV = 5.6 + Math.min(4, S.rd*.45) + LV()*1.5;
+    h.pucks.forEach(p => { p.gold = !!R.gold && Math.floor(t/BAR) % 2 === 0; });
+    for (let i = 0; i < n; i++){
+      const ox = h.mx, oy = h.my, mv = 24*st, dx = h.tx - h.mx, dy = h.ty - h.my, dd = Math.hypot(dx, dy); if (dd > mv){ h.mx += dx/dd*mv; h.my += dy/dd*mv; } else { h.mx = h.tx; h.my = h.ty; } h.mvx = (h.mx - ox)/st; h.mvy = (h.my - oy)/st;
+      if (!ONLINE){ if (h.back > 0) h.back -= st; const [gx, gy] = h.back > 0 ? [0, HH/2 - 1.1] : this.drive(h.ax, h.ay, 1, .9), ax0 = h.ax, ay0 = h.ay, adx = gx - h.ax, ady = gy - h.ay, ad = Math.hypot(adx, ady), am = aiV*st;
+        if (ad > am){ h.ax += adx/ad*am; h.ay += ady/ad*am; } else { h.ax = gx; h.ay = gy; } h.ay = clamp(h.ay, HR + .05, HH/2 - HR); h.ax = clamp(h.ax, -HW/2 + HR, HW/2 - HR); h.avx = (h.ax - ax0)/st; h.avy = (h.ay - ay0)/st; }
+      if (h.pause > 0){ h.pause -= st; continue; }
+      const w = R.wind ? (Math.floor(t/BAR) % 2 ? 1 : -1)*1.4 : 0;
+      for (const p of h.pucks){ if (p.split > 0) p.split -= st; const sp = Math.hypot(p.vx, p.vy); if (sp > 0){ const k = Math.max(0, sp - H_FRIC*st)/sp; p.vx *= k; p.vy *= k; } p.vx += w*st; if (sp < 2){ p.vy += (p.y < 0 ? -1 : 1)*.9*st; p.vx -= p.x*.3*st; } p.x += p.vx*st; p.y += p.vy*st;
+        if (Math.abs(p.x) > HW/2 - PKR){ if (R.portal){ p.x = -Math.sign(p.x)*(HW/2 - PKR - .02); this.fx.burst(V3.set(p.x, p.y, .2), 0x80e0ff, 6, 3); } else { p.x = Math.sign(p.x)*(HW/2 - PKR); p.vx = -p.vx*.9; sfx.clink(); } }
+        if (Math.abs(p.y) > HH/2 - PKR){ if (Math.abs(p.x) < HG){ p.goal = p.y > 0 ? 0 : 1; continue; } p.y = Math.sign(p.y)*(HH/2 - PKR); p.vy = -p.vy*.9; sfx.clink(); }
+        if (R.bumpers) for (const [bx, by] of BUMPERS){ const ddx = p.x - bx, ddy = p.y - by, d = Math.hypot(ddx, ddy); if (d >= .32 + PKR || d < 1e-5) continue; const nx = ddx/d, ny = ddy/d, vn = p.vx*nx + p.vy*ny;
+          p.x = bx + nx*(.32 + PKR); p.y = by + ny*(.32 + PKR); if (vn < 0){ const e = onBeat(t) ? 2.4 : 2; p.vx -= e*vn*nx; p.vy -= e*vn*ny; sfx.bumper(); } }
+        this.strike(p, h.mx, h.my, h.mvx, h.mvy, 0, t); if (p.theirs > 0) p.theirs -= st; else if (this.strike(p, h.ax, h.ay, h.avx, h.avy, 1, t) && !ONLINE) h.back = .45;
+        for (const q of h.pucks) if (q !== p){ const ddx = q.x - p.x, ddy = q.y - p.y, d = Math.hypot(ddx, ddy); if (d >= PKR*2 || d < 1e-5) continue; const nx = ddx/d, ny = ddy/d, rv = (q.vx - p.vx)*nx + (q.vy - p.vy)*ny; if (rv < 0){ p.vx += rv*nx; p.vy += rv*ny; q.vx -= rv*nx; q.vy -= rv*ny; } } }
+      const scored = h.pucks.filter(p => p.goal != null); if (scored.length){ h.pucks = h.pucks.filter(p => p.goal == null); for (const p of scored) this.goal(p.goal, p.gold ? 2 : 1, t, p); if (S.done) return; } } },
+  // a goal: who (0 you / 1 them), how many (a gold one counts 2)
+  goal(who, k, t, p){ const h = this.h; h.sc[who] += k;
+    if (who === 0){ S.goals += k; const pts = (500 + 250*Math.min(S.rd, 7))*k*(hookAt(t) ? 2 : 1); S.score += pts; S.got++; say(k > 1 ? "GOLDEN GOAL" : "GOAL", "+" + fmt0(pts), .9, "g"); sfx.big(); kick(.3, .5); this.fx.burst(V3.set(p.x, HH/2, .3), 0xffd27a, 30, 7); }
+    else { S.against += k; say(ONLINE ? esc(NET.oppName()).toUpperCase() + " SCORES" : "THE SHADOW SCORES", h.sc[0] + " - " + h.sc[1], .9, "x"); sfx.bad(); kick(.4, 0); }
+    if (ONLINE) HV.event({ k:"goal", who, n:k, sc:h.sc.slice() });
+    if (this.roundOver(t)) return;
+    if (!h.pucks.length){ this.serve(this.R().pucks || 1, who === 0 ? 1 : -1); h.pause = .8; } },
+  // the round: first to 3; after 10 bars whoever's ahead; level, the next goal
+  roundOver(t, timeUp){ const h = this.h, [a, b] = h.sc; let w = -1;
+    if (a >= H_TO || b >= H_TO) w = a >= H_TO ? 0 : 1; else if ((h.sd || timeUp) && a !== b) w = a > b ? 0 : 1;
+    if (w < 0) return false; S.rounds[w]++;
+    if (ONLINE){ HV.event({ k:"round", w, rw:S.rounds.slice() }); HV.roundDone(w, t); return true; }
+    if (w === 0){ const k = 2000*Math.min(S.rd + 1, 8)*(hookAt(t) ? 2 : 1); S.score += k; say("ROUND " + (S.rd + 1) + " IS YOURS", "+" + fmt0(k), 1.4, "g"); sfx.big(); kick(.3, .6); }
+    else if (hurt("THE SHADOW TAKES ROUND " + (S.rd + 1), "Get behind the puck and hit it at the side of the goal the shadow isn't covering.")) return true;
+    h.pucks = []; this.nextAt = t + 1.6; return true; },
+  update(dt, t){ const h = this.h;
+    if (keys.left) h.tx = Math.max(-HW/2 + HR, h.tx - dt*6); if (keys.right) h.tx = Math.min(HW/2 - HR, h.tx + dt*6); if (keys.up) h.ty = Math.min(-HR - .05, h.ty + dt*6); if (keys.down) h.ty = Math.max(-HH/2 + HR, h.ty - dt*6);
+    if (ONLINE){ HV.tick(dt, t); return; }
+    if (this.nextAt){ if (t >= this.nextAt){ this.nextAt = 0; this.newRound(S.rd + 1); } else { this.sim(dt, t); return; } }
+    if (!h.sd && t - h.clockAt > H_CLOCK*BAR){ if (h.sc[0] === h.sc[1]){ h.sd = true; say("LEVEL", "the next goal takes it", 1, "g"); } else this.roundOver(t, true); }
+    this.sim(dt, t); },
+  render(t){ const dt = dtOf(t), h = this.h, R = this.R(); fitCam(this.st, t); this.fx.tick(dt); tickCity(this.st.city, t);
+    this.me.position.set(h.mx, h.my, 0); this.ai.position.set(h.ax, h.ay, 0);
+    this.puckMs.forEach((m, i) => { const p = h.pucks[i]; m.visible = !!p; if (!p) return; m.position.set(p.x, p.y, .04); const gold = p.gold; m.material.color.setRGB(gold ? 3 : 2.4, gold ? 2.1 : 2.2, gold ? .6 : 1.8); m.userData.glow.material.color.setHex(gold ? 0xffb020 : 0xffe0a0); m.userData.glow.scale.setScalar(gold ? 1.5 : 1.1); });
+    this.bumps.forEach(b => b.material.emissiveIntensity = onBeat(t) ? 1.2 : .5);
+    this.walls.forEach(w => w.material.opacity = R.portal ? .5 + Math.sin(t*6)*.2 : 0);
+    const w = R.wind ? (Math.floor(t/BAR) % 2 ? 1 : -1) : 0; this.windFx.forEach((s, i) => { if (!w){ s.material.opacity = 0; return; } const u = ((t*.7*w + i*.41) % 1 + 1) % 1; s.position.set(-HW/2 + u*HW, -HH/2 + (i + .5)/this.windFx.length*HH, .2); s.material.opacity = .35*Math.sin(u*Math.PI); }); }
+};
+
+/* ---------------- online golf: 2, 3 or 4 players ----------------
+   The same nine holes for everyone at the same time; the others' balls are ghosts on yours, each in its own colour.
+   Each says how many strokes it took them (a hole run out of time, or picked up, counts 9); when everyone has, the
+   fewest strokes takes the hole (a tie for the fewest is nobody's) and all go on together. Nine holes: the most holes
+   wins, then the fewest strokes. Someone who leaves a 3 or 4 player game counts 9 on every hole left, and the rest
+   play on. */
+const SEAT_COLS = [0xff6ac8, 0x40d0ff, 0x9dff6a, 0xffa040];          // the others' ghost balls and their dots on the board
+const ORD = n => n + (["", "ST", "ND", "RD"][n] || "TH");                  // 1ST ... 4TH
+const GV = {
+  won:[0, 0], total:[0, 0], got:{}, ghosts:{}, nextAt:0, sentAt:0,
+  init(){ const N = NET.players.length; this.won = Array(N).fill(0); this.total = Array(N).fill(0); this.got = {}; this.ghosts = {}; },
+  nm(i){ return i === NET.seat ? "You" : esc(NET.players[i].name); },
+  // the strokes on hole n: mine, theirs (9 for someone who's gone)
+  sc(n, i){ const g = this.got[n] || {}; return g[i] != null ? g[i] : NET.gone[NET.players[i].id] ? 9 : null; },
+  all(n){ return NET.players.every((p, i) => this.sc(n, i) != null); },
+  mine(n, s){ (this.got[n] = this.got[n] || {})[NET.seat] = s; NET.send("ev", { k:"hole", n, s });
+    if (!this.all(n)) say(s >= 9 ? "WAITING" : "IN - WAITING", "for " + (NET.players.length > 2 ? "the others" : esc(NET.oppName())) + " to finish the hole", 30);
+    this.check(n); },
+  hear(p){ const i = NET.seatOf(p.from); if (i < 0 || i === NET.seat) return;
+    if (p.k === "pos"){ this.ghosts[i] = { n:p.n | 0, x:+p.x || 0, y:+p.y || 0, holed:!!p.h }; return; }
+    if (p.k === "hole"){ const n = p.n | 0, g = this.got[n] = this.got[n] || {}; if (g[i] != null) return; g[i] = Math.max(1, p.s | 0);
+      if (g[NET.seat] == null) say(esc(NET.players[i].name).toUpperCase() + " IS IN", "in " + g[i] + (g[i] === 1 ? " stroke" : " strokes"), 1.2);
+      this.check(n); } },
+  dropped(){ this.check(GOLF.n); },
+  check(n){ if (!this.all(n) || n !== GOLF.n || this.nextAt) return;
+    const sc = NET.players.map((p, i) => this.sc(n, i)), best = Math.min(...sc), top = sc.flatMap((s, i) => s === best ? [i] : []), w = top.length === 1 ? top[0] : -1;
+    sc.forEach((s, i) => this.total[i] += s); if (w >= 0) this.won[w]++;
+    const line = NET.players.length > 2 ? "best " + best + (best === 1 ? " stroke" : " strokes") : sc.map(s => s >= 9 ? "-" : s).join(" v ") + " · " + this.won.join(" - ");
+    say(w === NET.seat ? "HOLE " + (n + 1) + " IS YOURS" : w >= 0 ? "HOLE " + (n + 1) + " TO " + esc(NET.players[w].name).toUpperCase() : "HOLE " + (n + 1) + " HALVED", line, 1.6, w === NET.seat ? "g" : w >= 0 ? "x" : "");
+    if (w === NET.seat) sfx.big(); this.nextAt = S.t + 1.8; },
+  tick(t){ const g = GOLF.g; if (t - this.sentAt > .12){ this.sentAt = t; NET.send("ev", { k:"pos", n:GOLF.n, x:+g.bx.toFixed(3), y:+g.by.toFixed(3), h:g.holed ? 1 : 0 }); }
+    if (this.nextAt && t >= this.nextAt){ this.nextAt = 0; if (GOLF.n >= 8){ NET.over(); return; } GOLF.load(GOLF.n + 1); say("HOLE " + (GOLF.n + 1) + " · " + GOLF.H.name, "par " + GOLF.H.par + " · " + GOLF.H.tip, 2, GOLF.H.gold ? "g" : ""); } },
+  watching(){ return false; },
+  // the table: most holes, then fewest strokes
+  better(a, b){ return this.won[a] > this.won[b] || (this.won[a] === this.won[b] && this.total[a] < this.total[b]); },
+  place(i){ return 1 + NET.players.filter((p, j) => this.better(j, i)).length; },
+  order(){ return NET.players.map((p, i) => i).sort((a, b) => this.better(a, b) ? -1 : this.better(b, a) ? 1 : a - b); },
+  result(){ const me = NET.seat, N = NET.players.length, pl = this.place(me), shared = NET.players.some((p, j) => j !== me && this.place(j) === pl);
+    if (N === 2){ const o = 1 - me; return { my:this.won[me], their:this.won[o], res:this.better(me, o) ? "win" : this.better(o, me) ? "loss" : "draw" }; }
+    return { my:this.won[me], place:pl, shared, res:pl === 1 ? (shared ? "draw" : "win") : "loss" }; },
+  rows(){ return this.order().map(i => [this.nm(i) + (NET.gone[NET.players[i].id] ? " (left)" : ""), this.won[i], i === NET.seat, i === NET.seat ? 0xfff2d0 : SEAT_COLS[i]]); }
+};
+
+/* ---------------- online 1v1: hockey ----------------
+   One table, each of you at your own end (each screen is the other turned round). The first player's game runs the
+   table - the pucks, the goals, the rounds - and sends it ~20 times a second; the second sends where their striker is.
+   The rounds are the same as against the shadow. First to 3 rounds wins. */
+const HV = {
+  opp:null, st:null, stAt:0, sentAt:0, nextAt:0, ended:false,
+  host(){ return NET.seat === 0; },
+  event(e){ if (this.host()) NET.send("ev", e); },
+  // (the host) a round is over: the match, or the next one
+  roundDone(w, t){ const h = HOCKEY.h; h.pucks = [];
+    say(w === 0 ? "ROUND " + (S.rd + 1) + " IS YOURS" : "ROUND " + (S.rd + 1) + " TO " + esc(NET.oppName()).toUpperCase(), S.rounds[0] + " - " + S.rounds[1], 1.6, w === 0 ? "g" : "x");
+    if (S.rounds[w] >= 3){ this.ended = true; NET.send("ev", { k:"over", rw:S.rounds.slice() }); setTimeout(() => NET.over(), 1200); return; }
+    this.nextAt = t + 1.8; },
+  hear(p){ const h = HOCKEY.h;
+    if (this.host()){ if (p.k === "me") this.opp = { x:+p.x || 0, y:+p.y || 0, vx:+p.vx || 0, vy:+p.vy || 0 };
+      // their hit, as they saw it on their screen: it counts (a puck near where they hit it), so the lag isn't theirs to pay
+      if (p.k === "hit"){ const q = h.pucks[p.i | 0], x = +p.x || 0, y = +p.y || 0; if (q && Math.hypot(q.x - x, q.y - y) < 1.2){ q.x = x; q.y = y; q.vx = clamp(+p.vx || 0, -H_MAXV, H_MAXV); q.vy = clamp(+p.vy || 0, -H_MAXV, H_MAXV); q.theirs = .25; sfx.tick(); } }
+      return; }
+    // the second player: everything turned round (their 0 is our 1)
+    if (p.k === "st"){ this.st = p; this.stAt = S.t; if (p.rd !== S.rd) HOCKEY.newRound(p.rd | 0); h.sc = [p.sc[1] | 0, p.sc[0] | 0]; h.sd = !!p.sd; return; }
+    if (p.k === "goal"){ const who = 1 - (p.who | 0), k = p.n | 0 || 1; h.sc = [p.sc[1] | 0, p.sc[0] | 0];
+      if (who === 0){ S.goals += k; S.got++; say(k > 1 ? "GOLDEN GOAL" : "GOAL", h.sc[0] + " - " + h.sc[1], .9, "g"); sfx.big(); } else { S.against += k; say(esc(NET.oppName()).toUpperCase() + " SCORES", h.sc[0] + " - " + h.sc[1], .9, "x"); sfx.bad(); } return; }
+    if (p.k === "round"){ const w = 1 - (p.w | 0); S.rounds = [p.rw[1] | 0, p.rw[0] | 0];
+      say(w === 0 ? "ROUND " + (S.rd + 1) + " IS YOURS" : "ROUND " + (S.rd + 1) + " TO " + esc(NET.oppName()).toUpperCase(), S.rounds[0] + " - " + S.rounds[1], 1.6, w === 0 ? "g" : "x"); return; }
+    if (p.k === "over"){ S.rounds = [p.rw[1] | 0, p.rw[0] | 0]; setTimeout(() => NET.over(), 1200); } },
+  tick(dt, t){ const h = HOCKEY.h;
+    if (this.host()){
+      if (this.ended) return;
+      if (this.opp){ const ox = h.ax, oy = h.ay, k = Math.min(1, dt*30); h.ax = lerp(h.ax, clamp(this.opp.x + this.opp.vx*.05, -HW/2 + HR, HW/2 - HR), k); h.ay = lerp(h.ay, clamp(this.opp.y + this.opp.vy*.05, HR + .05, HH/2 - HR), k); h.avx = dt ? (h.ax - ox)/dt : 0; h.avy = dt ? (h.ay - oy)/dt : 0; }
+      if (this.nextAt){ if (t >= this.nextAt){ this.nextAt = 0; HOCKEY.newRound(S.rd + 1); } }
+      else if (!h.sd && t - h.clockAt > H_CLOCK*BAR){ if (h.sc[0] === h.sc[1]){ h.sd = true; say("LEVEL", "the next goal takes it", 1, "g"); } else HOCKEY.roundOver(t, true); }
+      HOCKEY.sim(dt, t);
+      if (t - this.sentAt > .05){ this.sentAt = t; NET.send("ev", { k:"st", rd:S.rd, sc:h.sc, sd:h.sd, m:[+h.mx.toFixed(3), +h.my.toFixed(3)], p:h.pucks.map(q => [+q.x.toFixed(3), +q.y.toFixed(3), +q.vx.toFixed(2), +q.vy.toFixed(2), q.gold ? 1 : 0]) }); }
+      return; }
+    // the second player: my striker here, the rest from the first player's table (turned round, carried on a little)
+    const s = this.st, age = s ? Math.min(.15, t - this.stAt) : 0, ox = h.mx, oy = h.my; this.mine = this.mine || [];
+    // the pucks: the first player's, turned round and carried on a little - or one I just hit, carried on from my hit
+    h.pucks = s ? s.p.map((q, i) => { const m = this.mine[i], u = m && t - m.t; return m && u < .2 ? { x:m.x + m.vx*u, y:m.y + m.vy*u, vx:m.vx, vy:m.vy, gold:!!q[4] } : { x:-(q[0] + q[2]*age), y:-(q[1] + q[3]*age), vx:-q[2], vy:-q[3], gold:!!q[4] }; }) : [];
+    // my striker, in small steps (so it can't jump through a puck); my hits are seen here first and sent - the first player's table takes them
+    const n = 6, st = dt/n;
+    for (let k = 0; k < n; k++){ const mv = 24*st, dx = h.tx - h.mx, dy = h.ty - h.my, dd = Math.hypot(dx, dy), px = h.mx, py = h.my; if (dd > mv){ h.mx += dx/dd*mv; h.my += dy/dd*mv; } else { h.mx = h.tx; h.my = h.ty; }
+      const svx = st ? (h.mx - px)/st : 0, svy = st ? (h.my - py)/st : 0;
+      h.pucks.forEach((q, i) => { const m = this.mine[i]; if (m && t - m.t < .2) return;
+        if (HOCKEY.strike(q, h.mx, h.my, svx, svy, 0, t, true)){ this.mine[i] = { t, x:q.x, y:q.y, vx:q.vx, vy:q.vy }; NET.send("ev", { k:"hit", i, x:+(-q.x).toFixed(3), y:+(-q.y).toFixed(3), vx:+(-q.vx).toFixed(2), vy:+(-q.vy).toFixed(2) }); } }); }
+    h.mvx = dt ? (h.mx - ox)/dt : 0; h.mvy = dt ? (h.my - oy)/dt : 0;
+    if (t - this.sentAt > .04){ this.sentAt = t; NET.send("ev", { k:"me", x:+(-h.mx).toFixed(3), y:+(-h.my).toFixed(3), vx:+(-h.mvx).toFixed(2), vy:+(-h.mvy).toFixed(2) }); }
+    if (!s) return;
+    h.ax = lerp(h.ax, -s.m[0], Math.min(1, dt*18)); h.ay = lerp(h.ay, -s.m[1], Math.min(1, dt*18)); },
+  watching(){ return false; },
+  result(){ const [my, their] = S.rounds; return { my, their, res:my > their ? "win" : my < their ? "loss" : "draw" }; },
+  rows(){ return [["You", S.rounds[0], false], [esc(NET.oppName()), S.rounds[1], false]]; }
+};
+
+/* ---------------- online: finding players ----------------
+   Supabase Realtime, the same log-in as the JAVEDA page. Everyone looking for a mode is in its lobby (javeda28-golf,
+   -golf3, -golf4, -hockey); oldest first, they're put together in twos (threes, fours) and meet in their own room. The
+   one who came first (seat 0) sends "go" with the match id, the seed and who's in it; the others "ack", and after a
+   count of three all play. A heartbeat every second: 15 s of silence or a closed page and that player's gone - in a
+   1v1 the match ends with no result, in a 3 or 4 player golf game the rest play on. Each reports the result to the
+   JAVEDA page. Nobody is ever invented here: no bots, no fake names. Not enough players there means waiting. */
+const PROTO = 1, SB_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
+const NET = {
+  sb:null, me:null, name:"", seat:0, size:GOLF_N || 2, players:[], opp:null, gone:{}, heardAt:{}, acks:{}, match:null, state:"off",
+  lobby:null, room:null, since:0, endAt:0, result:null, early:[], seed:1,
+  inMatch(){ return this.state === "play" || this.state === "done"; },
+  oppName(){ return this.opp ? this.opp.name : "them"; },
+  seatOf(id){ return this.players.findIndex(p => p.id === id); },
+  others(){ return this.players.filter(p => p.id !== this.me && !this.gone[p.id]); },
+  status(html, wait){ const n = $("net"); n.classList.remove("hid"); n.classList.toggle("wait", !!wait); n.innerHTML = '<span class="dot"></span>' + html; },
+  async init(){
+    $("go").disabled = true; this.status("Connecting&hellip;", true);
+    try {
+      // on the JAVEDA page the page has the library already; on its own, load it (and don't wait for ever)
+      if (!window.supabase && HUB) try { if (window.parent.supabase) window.supabase = window.parent.supabase; } catch(e){}
+      if (!window.supabase) await new Promise((ok, bad) => { const s = document.createElement("script"); s.src = SB_JS; s.onload = ok; s.onerror = bad; document.head.appendChild(s); setTimeout(bad, 15000); });
+      const r = await fetch("/api/config"), cfg = r.ok ? await r.json() : {};
+      if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) throw new Error("no config");
+      this.sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:true, autoRefreshToken:true } });
+    } catch(e){ this.status("Online play only works on the JAVEDA page, and it can't be reached right now."); return; }
+    const { data } = await this.sb.auth.getSession();
+    if (!data || !data.session){ this.status("<b>Log in</b> on the JAVEDA page to play online - the result goes on your account."); return; }
+    this.me = data.session.user.id;
+    const p = await this.sb.from("javeda_players").select("username").eq("user_id", this.me).maybeSingle();
+    if (!p.data){ this.status("Make your player on the JAVEDA page first (a name and a picture)."); return; }
+    this.name = p.data.username; this.state = "ready";
+    this.status("Playing as <b>" + esc(this.name) + "</b>. Quick match finds you " + (this.size > 2 ? (this.size - 1) + " real players." : "a real player."));
+    $("go").disabled = false;
+    // leaving the page: say bye in a match, and leave the lobby and the room (on the JAVEDA page the connection is the page's)
+    addEventListener("pagehide", () => { if (this.inMatch()) this.send("bye", {}); for (const c of [this.lobby, this.room]) if (c) try { this.sb.removeChannel(c); } catch(e){} });
+    setInterval(() => this.tick(), 1000);
+  },
+  send(event, payload){ if (this.room) try { this.room.send({ type:"broadcast", event, payload:Object.assign({ from:this.me }, payload) }); } catch(e){} },
+  chan(name){ return this.sb.channel(name, { config:{ presence:{ key:this.me }, broadcast:{ self:false } } }); },
+  // the lobby: everyone looking for this mode right now
+  seek(){
+    this.state = "seek"; if (!this.since) this.since = Date.now();
+    $("go").disabled = true; $("go").textContent = "Looking…";
+    this.status("Looking for " + (this.size > 2 ? "players" : "a player") + "&hellip;", true);
+    if (this.lobby){ this.lobby.track({ id:this.me, name:this.name, since:this.since }); this.pair(); return; }
+    const ch = this.lobby = this.chan("javeda28-" + ONLINE + "-v" + PROTO);
+    ch.on("presence", { event:"sync" }, () => this.pair());
+    ch.subscribe(s => { if (s === "SUBSCRIBED" && this.state === "seek") ch.track({ id:this.me, name:this.name, since:this.since }); });
+  },
+  waiting(){ const st = this.lobby.presenceState(), out = [];
+    for (const k in st){ const p = st[k] && st[k][0]; if (p && p.id) out.push(p); }
+    return out.sort((a, b) => a.since - b.since || (a.id < b.id ? -1 : 1)); },
+  pair(){
+    if (this.state !== "seek") return;
+    const N = this.size, L = this.waiting(), i = L.findIndex(p => p.id === this.me);
+    const need = N - (L.length % N || N), lone = L.length < N;
+    this.status(N === 2 ? (L.length > 1 ? "Looking for a player&hellip; <b>" + L.length + "</b> here now." : "Looking for a player&hellip; nobody else is looking right now. Stay here - the next one in plays you.")
+      : lone ? "Looking for players&hellip; <b>" + L.length + " of " + N + "</b> here" + (L.length < 2 ? " - nobody else is looking right now" : "") + ". Stay here - it starts when there are " + N + "."
+      : "Looking for players&hellip; <b>" + L.length + "</b> here now.", true);
+    if (i < 0) return;
+    // in fours (threes, twos), oldest first; the first of each is seat 0 and names the room
+    const g = Math.floor(i/N), group = L.slice(g*N, g*N + N);
+    if (group.length < N) return;
+    this.join("javeda28-" + ONLINE + "-v" + PROTO + "-" + group[0].id.slice(0, 8) + "-" + group[0].since + "-" + group.map(p => p.id.slice(0, 4)).join(""), i - g*N, group);
+  },
+  join(name, seat, group){
+    this.state = "room"; this.seat = seat; this.match = null; this.gone = {}; this.acks = {}; this.seen = false;
+    this.players = group.map(p => ({ id:p.id, name:String(p.name || "player").slice(0, 24) })); this.opp = this.players.length === 2 ? this.players[1 - seat] : null;
+    this.status("Found " + this.others().map(p => "<b>" + esc(p.name) + "</b>").join(", ") + " - " + (ONLINE === "hockey" ? "setting up the table" : "setting up the course") + "&hellip;", true);
+    this.lobby.untrack();
+    const ch = this.room = this.chan(name);
+    ch.on("presence", { event:"sync" }, () => this.roomSync());
+    for (const ev of ["go", "ack", "ev", "hb", "bye"]) ch.on("broadcast", { event:ev }, m => this.hear(ev, (m && m.payload) || {}));
+    ch.subscribe(s => { if (s === "SUBSCRIBED") ch.track({ id:this.me, name:this.name }); });
+    clearTimeout(this.roomT); this.roomT = setTimeout(() => { if (this.state === "room") this.back(); }, 8000);
+  },
+  // not everyone turned up (some saw a different group for a moment): back in the lobby, same place in line
+  back(){ clearInterval(this.goT); const r = this.room; this.room = null; this.opp = null; this.players = []; if (r) try { this.sb.removeChannel(r); } catch(e){} this.seek(); },
+  roomSync(){
+    const st = this.room.presenceState(), here = p => !!(st[p.id] && st[p.id].length), all = this.players.every(here);
+    if (this.state === "room" && all && this.seat === 0 && !this.match){
+      this.match = (crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ Math.random()*16 >> c/4).toString(16)));
+      this.seed = 1 + Math.floor(Math.random()*9999);
+      const go = () => this.send("go", { match:this.match, seed:this.seed, v:PROTO, ids:this.players.map(p => p.id) }); go(); this.goT = setInterval(go, 700); }
+    if (all) this.seen = true;
+    if (this.state === "play" && this.seen) for (const p of this.others()) if (!here(p)) this.drop(p.id, "left the match");
+  },
+  hear(ev, p){
+    if (p.from) this.heardAt[p.from] = Date.now();
+    if (ev === "go" && this.seat !== 0){ const ok = Array.isArray(p.ids) && p.ids.join() === this.players.map(q => q.id).join();
+      if (this.state === "room" && p.v === PROTO && ok){ this.match = p.match; this.seed = p.seed | 0; this.play(); } if (this.match === p.match) this.send("ack", { match:p.match }); }
+    else if (ev === "ack" && this.seat === 0 && this.state === "room" && p.match === this.match){ this.acks[p.from] = true;
+      if (this.players.every(q => q.id === this.me || this.acks[q.id])){ clearInterval(this.goT); this.play(); } }
+    else if (ev === "ev"){ if (S && S.started) OV.hear(p); else this.early.push(p); }
+    else if (ev === "bye" && p.from) this.drop(p.from, "left the match");
+  },
+  // matched: a count of three, then all play
+  play(){
+    clearTimeout(this.roomT); this.state = "play"; const now = Date.now(); for (const q of this.players) this.heardAt[q.id] = now;
+    if (OV.init) OV.init();
+    const who = this.others().map(q => "<b>" + esc(q.name) + "</b>").join(", ");
+    let n = 3; const count = () => { if (this.state !== "play") return;
+      if (n === 0){ startGame(); return; }
+      this.status("Playing " + who + " - starting in <b>" + n + "</b>", true); sfx.tick(); n--; setTimeout(count, 1000); };
+    audioInit(); count();
+  },
+  tick(){
+    if (this.state === "room" || !this.inMatch() || !this.room) return;
+    this.send("hb", {});
+    if (this.state !== "play") return;
+    for (const q of this.others()) if (Date.now() - (this.heardAt[q.id] || 0) > 15000) this.drop(q.id, "lost the connection");
+  },
+  // a player gone: a 1v1 ends with no result; in a bigger golf game the rest play on (theirs count 9) - unless nobody's left
+  drop(id, why){
+    if (this.state !== "play" || this.gone[id] || id === this.me) return;
+    if (this.players.length <= 2){ this.left(why); return; }
+    this.gone[id] = why; const q = this.players[this.seatOf(id)];
+    if (!this.others().length){ this.left("everyone else left"); return; }
+    if (S && S.started){ say(esc(q.name).toUpperCase() + " LEFT", "the rest play on", 1.4, "x"); if (OV.dropped) OV.dropped(); }
+  },
+  over(){ if (this.state !== "play") return; S.done = true; this.endAt = Date.now(); this.done(); },
+  done(){
+    if (this.state !== "play") return;
+    this.state = "done";
+    this.result = OV.result();
+    if (HUB){ const msg = { type:"javeda:match", level:CFG.id, match:this.match, mode:ONLINE, my:this.result.my };
+      // golf 1v1: level on holes goes to the fewer strokes, so the page gets both in one number (holes x 100 + 99 - strokes)
+      if (GOLF_N === 2){ const g = i => GV.won[i]*100 + Math.max(0, 99 - GV.total[i]); Object.assign(msg, { opponent:this.opp.id, my:g(this.seat), their:g(1 - this.seat) }); }
+      else if (this.players.length === 2) Object.assign(msg, { opponent:this.opp.id, their:this.result.their });
+      else Object.assign(msg, { players:this.players.map(q => q.id), seat:this.seat, place:this.result.place, holes:GV.won.slice(), strokes:GV.total.slice(), left:this.players.filter(q => this.gone[q.id]).map(q => q.id) });
+      toHub(msg); }
+    if (this.result.res === "win") sfx.big(); else if (this.result.res === "loss") sfx.bad();
+    setTimeout(finish, 1200);
+  },
+  left(why){
+    if (this.state !== "play") return;
+    this.state = "left"; this.why = why; S.done = true; song.pause(); setTimeout(finish, 300);
+  }
+};
+const OV = ONLINE === "hockey" ? HV : GV;      // the online rules for this part
+// everyone up top: holes won (golf) or rounds won (hockey), a dot in each player's colour in golf
+let lastVs = "";
+function vsHud(){
+  const h = OV.rows().map(([nm, v, up, col]) => '<div class="row' + (up ? ' up' : '') + '"><span class="nm">' + (col != null ? '<i class="dot" style="background:#' + col.toString(16).padStart(6, "0") + '"></i>' : "") + nm + '</span><span class="lt"><b>' + v + '</b></span></div>').join("");
+  if (h !== lastVs){ lastVs = h; $("vs").innerHTML = h; }
+}
+
+
+/* ---------------- state, HUD ---------------- */
+let S = null, G = null, crashed = null;
+const keys = {};
+function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+let lastH = "";
+const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
+const fmt = n => Math.round(n).toLocaleString("en"), fmt0 = n => Math.max(0, Math.round(n)).toLocaleString("en");
+const mult = t => (onBeat(t) ? 2 : 1)*(hookAt(t) ? 2 : 1);
+let lastT = 0;
+const dtOf = t => { const d = clamp(t - lastT, 0, .05); lastT = t; return d; };
+const pickRay = new THREE.Raycaster();
+let ME = null;
+function hud(){
+  $("m").textContent = fmt(S.score);
+  const h = ONLINE ? "" : "♥".repeat(Math.max(0, S.hearts)) + "♡".repeat(Math.max(0, HEARTS - S.hearts));
+  if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
+    lastH = h; $("hearts").textContent = h; }
+  const t = Math.max(0, S.t);
+  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  else if (ONLINE){ $("bl").textContent = GOLF_N ? "HOLE " + (GOLF.n + 1) + " OF 9" : "ROUND " + (S.rd + 1) + " · FIRST TO 3"; $("songbar").firstChild.style.width = (GOLF_N ? (GOLF.n + (GOLF.g.holed ? 1 : 0))/9 : Math.max(S.rounds[0], S.rounds[1])/3)*100 + "%"; }
+  else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  $("info").textContent = G.info();
+  if (ONLINE) vsHud();
+  const p = $("phase");
+  if (S.end >= 0 || S.done){ p.className = "off"; return; }
+  const sec = section(t); p.className = sec === "hook" ? "ready" : "";
+  p.innerHTML = (sec === "hook" ? "HOOK &middot; DOUBLE POINTS" : G.tag) + "<small>" + G.hint + "</small>";
+}
+function hurt(why, tip){
+  if (ONLINE) return false;
+  S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
+  if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
+  say(why, S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1.1, "x");
+  return false;
+}
+
+/* ---------------- the games on the song's clock ----------------
+   How hard it is right now (L, 0 → 1 over the song; endless keeps climbing), and begin() for the song or an endless
+   window. Golf's holes and hockey's rounds go at their own pace; L makes the wind blow harder and the shadow quicker. */
+let LVb = { t0:0, t1:1, L0:0, L1:1 };
+const LV = () => S ? LVb.L0 + (LVb.L1 - LVb.L0)*clamp((S.t - LVb.t0)/(LVb.t1 - LVb.t0), 0, 1) : 0;
+const LVL = LV;
+Object.assign(GOLF, { name:"ROOFTOP GOLF", tag:"ROOFTOP GOLF", hint:"pull back and let go to putt" });
+Object.assign(HOCKEY, { name:"SKY HOCKEY", tag:"SKY HOCKEY", hint:"move your striker · hit the puck into the far goal" });
+
+/* ---------------- the run ---------------- */
+function reset(){
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0 };
+  lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0; lastT = 0;
+  camInit = false; G.st.B.visible = true; if (G.st.roof) G.st.roof.visible = true; END.root.visible = false; END.on = false; CAM.init = false;
+  LVb = CFG.endless ? { t0:0, t1:STINT, L0:.3, L1:.4 } : ONLINE ? { t0:0, t1:1, L0:.4, L1:.4 } : { t0:0, t1:END_AT, L0:0, L1:1 };
+  G.reset();
+  $("msg").className = "";
+}
+let camInit = false;
+// endless goes in 8-bar windows, a little harder every window. Every 24 bars: +2,000 and a heart back
+function startStint(n, t){
+  S.stint = n; let back = false;
+  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  const L0 = .3 + n*.1; LVb = { t0:n*STINT, t1:(n + 1)*STINT, L0, L1:L0 + .1 };
+  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+const LOOPS = CFG.endless || ONLINE;
+function songT(){
+  if (LOOPS && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
+  return song.currentTime + S.loops*(LOOP[1] - LOOP[0]);
+}
+function update(dt){
+  if (haveSong && !song.paused && song.currentTime > 0 && S.end < 0 && !S.done) S.t = songT();
+  else if (!haveSong && ac && S.end < 0 && !S.done) S.t = ac.currentTime - beatT0;
+  else S.t += dt;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) $("msg").className = ""; }
+  if (S.flashT > 0){ S.flashT -= dt; $("flash").style.opacity = Math.max(0, S.flashT/.5*.6); }
+  if (S.end >= 0){ S.end += dt; if (S.end > END.out && !S.finished){ S.finished = true; finish(); } return; }
+  if (S.done) return;
+  const t = Math.max(0, S.t);
+  if (S.inv > 0) S.inv -= dt;
+  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  G.update(dt, t);
+  if (!CFG.endless && !ONLINE && t >= END_AT && !S.done && S.end < 0) win();
+}
+
+/* ================= THE ENDING =================
+   The cover: the game goes, and the camera is behind him on the ledge at the top of his tower, the golden wings open,
+   the city at sunset below and the fire on the horizon. (His back to you: no face. No saucer.) */
+const END = { out:9, root:null };
+const ROOF = STAGE_Y;
+function buildEnd(){ END.root = new THREE.Group(); scene.add(END.root); END.root.visible = false;
+  const roofM = new THREE.MeshStandardMaterial({ color:0x1a1620, roughness:.8, metalness:.15, envMapIntensity:.15 });
+  const t = new THREE.Mesh(new THREE.BoxGeometry(5, ROOF, 5).translate(0, ROOF/2, 0), roofM); t.position.set(0, 0, -4.2); END.root.add(t);
+  const lip = new THREE.Mesh(new THREE.BoxGeometry(5.3, .35, 5.3), roofM); lip.position.set(0, ROOF + .175, -4.2); END.root.add(lip);
+  END.hero = buildAngel(); END.hero.position.set(0, ROOF + .35, -4.2); END.root.add(END.hero); }
+function win(){
+  if (S.end >= 0 || S.done) return;
+  S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
+  $("hud").classList.add("off"); $("phase").className = "off";
+}
+function lose(why, tip){
+  if (S.done) return;
+  S.fail = true; S.done = true; S.why = why; S.tip = tip;
+  say(why, "", 2, "x"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+function over(why){
+  if (S.done) return;
+  S.done = true; S.why = why;
+  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  setTimeout(finish, 1500);
+}
+
+/* ---------------- drawing ---------------- */
+function render(dt){
+  const t = Math.max(0, S ? S.t : 0);
+  if (S.end >= 0){
+    if (S.end < 1){ $("flash").style.background = "#fff0e0"; $("flash").style.opacity = Math.min(1, S.end/.8); G.render(t); }
+    else {
+      if (!END.on){ END.on = true; G.st.B.visible = false; if (G.st.roof) G.st.roof.visible = false; END.root.visible = true; }
+      $("flash").style.opacity = S.end < 1.8 ? Math.max(0, 1 - (S.end - 1)/.8) : S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
+      // the wings open slowly; the camera comes in behind him, as on the cover
+      const u = clamp((S.end - 1.2)/4, 0, 1), e = 1 - Math.pow(1 - u, 3), portrait = cam.aspect < .8;
+      animAngel(END.hero, t, .3 + .7*e, 0, 0);
+      cam.fov = 38; cam.updateProjectionMatrix();
+      cam.position.set(0, ROOF + (portrait ? .35 : .8) + (1 - e)*3, (portrait ? 6.4 : 4.4) + (1 - e)*6); cam.lookAt(0, ROOF + (portrait ? 2.9 : 1.6), -4.2);      // a phone: from lower, looking up - the sky, not the roof
+      if (S.end > 2.4 && !S.saidEnd){ S.saidEnd = true; say("GO!", "LAZY JO", 4.5, "t"); }
+    }
+  } else G.render(t);
+  renderFrame(t);
+}
+function frame(){
+  try {
+    const dt = Math.min(.05, clockR.getDelta());
+    if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
+    render(dt);
+  } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
+  requestAnimationFrame(frame);
+}
+function score(){ return S.fail ? Math.floor(S.score / 4) : Math.round(S.score); }
+function finish(){
+  song.pause();
+  const v = $("veil"); v.classList.remove("hid");
+  const ps = v.querySelectorAll("p:not(.by):not(#net)"), go = $("go");
+  go.textContent = "Play again"; go.disabled = false; go.classList.toggle("alt", !S.fail && !CFG.endless && !ONLINE);
+  for (const id of ["outs", "home"]) $(id).classList.remove("hid");
+  $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off"; $("vs").classList.add("hid"); $("net").classList.add("hid");
+  if (ONLINE){
+    go.textContent = "Find another match"; $("practice").classList.remove("hid");
+    const them = esc(NET.oppName()), mode = MODE_NAME(ONLINE), many = NET.players.length > 2;
+    if (NET.state === "left"){
+      v.querySelector(".by").textContent = mode + " · NO RESULT";
+      v.querySelector("h1").textContent = many ? "THEY ALL LEFT" : "THEY LEFT";
+      ps[0].innerHTML = many ? "Everyone else left the game." : "<b>" + them + "</b> " + esc(NET.why || "left the match") + ".";
+      ps[1].innerHTML = "No result and no points either way.";
+      return;
+    }
+    const r = NET.result, unit = GOLF_N ? " holes" : " rounds";
+    if (many){
+      // the table: place, name, holes (strokes)
+      v.querySelector(".by").textContent = mode;
+      v.querySelector("h1").textContent = r.res === "win" ? "YOU WIN" : ORD(r.place) + (r.shared ? "=" : "") + " OF " + NET.players.length;
+      ps[0].innerHTML = GV.order().map(i => ORD(GV.place(i)) + " <b>" + GV.nm(i) + "</b> " + GV.won[i] + (GV.won[i] === 1 ? " hole" : " holes") + " (" + GV.total[i] + ")" + (NET.gone[NET.players[i].id] ? " - left" : "")).join("<br>");
+      ps[1].innerHTML = (HUB ? "It goes on your account once the results are in." : "Play from the JAVEDA page to put it on your account.") + " Most holes wins; level on holes, the fewest strokes (in brackets).";
+      return;
+    }
+    v.querySelector(".by").textContent = mode + " · VS " + NET.oppName().toUpperCase();
+    v.querySelector("h1").textContent = { win:"YOU WIN", loss:"YOU LOSE", draw:"A DRAW" }[r.res];
+    ps[0].innerHTML = "You <b>" + r.my + "</b>" + unit + " &middot; " + them + " <b>" + r.their + "</b>" + unit + (GOLF_N && r.my === r.their ? " &middot; strokes " + GV.total[NET.seat] + " v " + GV.total[1 - NET.seat] : "");
+    ps[1].innerHTML = HUB ? (r.res === "win" ? "A win is <b>+25 points</b> once both of your results are in. " : r.res === "draw" ? "A draw is <b>+5 points</b> each. " : "") + "It counts on the <b>Online 1v1</b> board."
+      : "Play from the JAVEDA page to put it on your account.";
+    return;
+  }
+  if (HUB && !PRACTICE) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:S.got });
+  if (PRACTICE){ $("practice").textContent = "Back online"; $("practice").classList.remove("hid"); }
+  const stat = PART === 1 ? S.holes + (S.holes === 1 ? " hole" : " holes") + " in " + S.strokes + " strokes" + (S.aces ? " · " + S.aces + " in one" : "") + (S.under ? " · " + S.under + " under par" : "")
+    : S.goals + (S.goals === 1 ? " goal" : " goals") + " · " + S.rounds[0] + " of " + (S.rounds[0] + S.rounds[1]) + " rounds won";
+  if (CFG.endless){
+    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector("h1").textContent = fmt(score());
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> on the roofs &middot; " + stat;
+    ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
+  if (S.fail){
+    v.querySelector(".by").textContent = S.why;
+    v.querySelector("h1").textContent = "NOT YET";
+    ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+    ps[1].innerHTML = S.tip + " <b>Go again.</b>";
+    return;
+  }
+  v.querySelector(".by").textContent = (PRACTICE ? "WARM-UP" : CFG.by) + " COMPLETE";
+  v.querySelector("h1").textContent = "GO!";
+  ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
+  ps[1].innerHTML = PRACTICE ? "Warmed up. Now go and find someone." : (PART === 2 ? "The shadow's beaten." + "<br>Level 28 cleared: <b>Rooftop Golf &#8734;</b> and <b>Sky Hockey &#8734;</b> are open in the gold Endless list." : "Every hole on the roofs." + "<br>Part 2, <b>Sky Hockey</b>, is open.");
+}
+
+/* ---------------- input ---------------- */
+// Golf: a finger down anywhere, pull back, let go. Hockey: the striker follows a finger (or the mouse); the arrows too
+const veilUp = () => !$("veil").classList.contains("hid");
+const live = () => S.started && !S.done && S.end < 0;
+let down = false;
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); down = true; G.point(e.clientX, e.clientY); if (G.down) G.down(e.clientX, e.clientY); }, { passive:false });
+addEventListener("pointermove", e => { if (!live()) return; if (down || e.pointerType === "mouse") G.point(e.clientX, e.clientY); });
+for (const ev of ["pointerup", "pointercancel"]) addEventListener(ev, () => { down = false; if (G.release) G.release(); });
+const KEYMAP = { ArrowLeft:"left", a:"left", ArrowRight:"right", d:"right", ArrowUp:"up", w:"up", ArrowDown:"down", s:"down" };
+addEventListener("keydown", e => { const k = KEYMAP[e.key]; if (k && !veilUp()){ e.preventDefault(); keys[k] = true; } });
+addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k) keys[k] = false; });
+
+function startGame(){
+  reset();
+  if (ONLINE){ for (const p of NET.early) OV.hear(p); NET.early = []; }
+  $("veil").classList.add("hid"); $("hud").classList.remove("off"); if (ONLINE){ $("vs").classList.remove("hid"); lastVs = ""; $("ml").textContent = ONLINE === "golf" ? "SCORE" : "SCORE"; }
+  audioInit();
+  if (haveSong){ try { song.currentTime = 0; } catch(e){} const p = song.play(); if (p && p.catch) p.catch(() => {}); }
+  if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
+  S.started = true; S.t = 0;
+  if (HUB && !PRACTICE && !ONLINE) toHub({ type:"javeda:start", level:CFG.id });
+  if (GOLF_N) say(MODE_NAME(ONLINE), "the same holes at the same time - the fewest strokes takes the hole", 2.6, "g");
+  else if (ONLINE) say("HOCKEY 1v1", "first to 3 rounds - you're at the near end", 2.6, "g");
+  else if (CFG.endless) say("ENDLESS", PART === 1 ? "the holes never stop" : "the rounds never stop", 2.5, "g");
+}
+$("go").addEventListener("click", () => {
+  if (ONLINE){ if (NET.state === "ready") NET.seek(); else if (NET.state === "done" || NET.state === "left") location.reload(); return; }
+  startGame();
+});
+// online: warm up on your own (nothing is saved), and back
+$("practice").addEventListener("click", () => {
+  const q = new URLSearchParams(location.search);
+  if (ONLINE){ q.delete("online"); q.set("practice", ONLINE); } else { q.delete("practice"); q.set("online", PRACTICE); }
+  location.search = q.toString();
+});
+$("by").textContent = ONLINE ? CFG.by : "LAZY JO · " + (PRACTICE ? "WARM-UP" : CFG.by);
+$("title").textContent = ONLINE ? MODE_NAME(ONLINE) : "GO!" + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = ONLINE === "golf" ? "<b>GOLF 1v1:</b> you and a real player, found by quick match, on the same nine holes over the city at the same time - their ball is the pink ghost on yours. The fewer strokes takes the hole; after nine, the most holes wins (level: the fewest strokes)."
+  : GOLF_N ? "<b>GOLF · " + GOLF_N + " PLAYERS:</b> you and " + (GOLF_N - 1) + " real players, found by quick match, on the same nine holes over the city at the same time - theirs are the coloured ghost balls on yours. The fewest strokes takes the hole (a tie for the fewest is nobody's); after nine, the most holes wins, then the fewest strokes. It starts when there are " + GOLF_N + " - nobody is made up."
+  : ONLINE === "hockey" ? "<b>HOCKEY 1v1:</b> you and a real player, found by quick match, one air hockey table on a roof - you at the near end, them at the far end. First to 3 goals takes a round, and every round has something new; first to 3 rounds wins."
+  : "The city at sunset from the cover, high over the towers - the sky going from purple to fire, the towers lit." +
+    [" <b>Part 1 · Rooftop Golf:</b> nine holes on the roofs, every one with something new.", " <b>Part 2 · Sky Hockey:</b> air hockey on a roof against the shadow, round after round."][PART - 1] +
+    (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
+$("how").innerHTML = PART === 1
+  ? "<b>Put a finger down anywhere, pull back and let go</b> to putt the ball of light - the further you pull, the harder; the dots show the line. Each hole has something new: ledges, the sliding air-con, gold boost pads, portals, the gap, the wind, the windmill, and the spire where the cup won't keep still. Fewer strokes, more points. A hole has 8 bars: out of time, or 8 strokes, costs a heart (3)."
+  : "<b>Move your golden striker</b> (drag, the mouse, or the arrow keys) and hit the puck of light into the far goal. First to 3 takes a round - and every round has something new: two pucks, bumpers, the golden puck, the wind, portal walls, the split, the final. The shadow gets quicker every round. Losing a round costs a heart (3).";
+if (!HUB && !ONLINE && !PRACTICE){
+  $("parts").classList.remove("hid");
+  document.querySelectorAll("#parts button").forEach(b => {
+    const m = b.dataset.mode;
+    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
+      if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+  });
+}
+if (PRACTICE){ $("practice").textContent = "Back online"; $("practice").classList.remove("hid"); }
+// golf: alone, or online with 1, 2 or 3 others
+if (PART === 1 && !ENDLESS && !PRACTICE){
+  $("sizes").classList.remove("hid");
+  document.querySelectorAll("#sizes button").forEach(b => {
+    b.setAttribute("aria-pressed", String(b.dataset.size === (ONLINE || "")));
+    // on the JAVEDA page, the page opens it (so it knows what's being played); on its own, the address changes
+    b.addEventListener("click", () => { if (b.dataset.size === (ONLINE || "")) return;
+      if (HUB){ song.pause(); toHub({ type:"javeda:play", level:"lvl28" + b.dataset.size }); return; }
+      const q = new URLSearchParams(location.search); for (const k of ["online", "practice", "part", "endless"]) q.delete(k);
+      if (b.dataset.size) q.set("online", b.dataset.size); location.search = q.toString(); });
+  });
+}
+G = PART === 2 ? HOCKEY : GOLF; G.setup(); ME = buildSaucer(); buildEnd();
+reset();
+if (ONLINE) NET.init();
+requestAnimationFrame(frame);
+</script>
+
+</body>
+</html>

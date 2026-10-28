@@ -94,7 +94,9 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl26', 26, 'LIFESTYLE CRAZY', 'lvl25d', 0, 130000, 1300, 75, 500, 50),  -- Neon Pinball: ~59k (table 2) for a bot that flips when the ball is out along a flipper (3:12)
   ('lvl26b', 26, 'SPEAKER PUSH', 'lvl26', 0, 66000, 660, 75, 300, 51),  -- Part 2: ~30k for a bot that takes the shortest way, a move a beat (13 floors)
   ('lvl27', 27, 'BE ALRIGHT', 'lvl26b', 0, 100000, 1000, 75, 500, 52),  -- Untangle: ~45k (8 flocks) for a bot that puts a bird where it belongs every beat (1:30)
-  ('lvl27b', 27, 'BIRD CODE', 'lvl27', 0, 22000, 220, 75, 300, 53)  -- Part 2: ~10k (6 codes) for a bot that plays an order that fits every answer so far
+  ('lvl27b', 27, 'BIRD CODE', 'lvl27', 0, 22000, 220, 75, 300, 53),  -- Part 2: ~10k (6 codes) for a bot that plays an order that fits every answer so far
+  ('lvl28', 28, 'GO!', 'lvl27b', 0, 130000, 1300, 75, 500, 54),  -- Rooftop Golf: ~58k (28 holes, 74 strokes) for a bot that tries each putt in the game's physics first (2:35)
+  ('lvl28b', 28, 'SKY HOCKEY', 'lvl28', 0, 190000, 1900, 75, 300, 55)  -- Part 2: ~84k (6 rounds won, none lost) for a bot that drives the puck at the open post
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -165,6 +167,8 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl26bx', 26, 'SPEAKER PUSH', 'lvl26b', 0, 50000000, 2000, 0, 0, 158, true, 320),  -- ~160/s
   ('lvl27x', 27, 'UNTANGLE', 'lvl27b', 0, 50000000, 7400, 0, 0, 159, true, 1200),  -- ~610/s
   ('lvl27bx', 27, 'BIRD CODE', 'lvl27b', 0, 50000000, 1300, 0, 0, 160, true, 210),  -- ~107/s
+  ('lvl28x', 28, 'ROOFTOP GOLF', 'lvl28b', 0, 50000000, 11400, 0, 0, 161, true, 1900),  -- ~950/s
+  ('lvl28bx', 28, 'SKY HOCKEY', 'lvl28b', 0, 50000000, 28400, 0, 0, 162, true, 4800),  -- ~2370/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
   ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 200, true, 40)
@@ -357,7 +361,9 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl26' THEN g.best_score END), 0)::INT AS lvl26_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl26b' THEN g.best_score END), 0)::INT AS lvl26b_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl27' THEN g.best_score END), 0)::INT AS lvl27_best,
-       COALESCE(MAX(CASE WHEN g.level = 'lvl27b' THEN g.best_score END), 0)::INT AS lvl27b_best
+       COALESCE(MAX(CASE WHEN g.level = 'lvl27b' THEN g.best_score END), 0)::INT AS lvl27b_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl28' THEN g.best_score END), 0)::INT AS lvl28_best,
+       COALESCE(MAX(CASE WHEN g.level = 'lvl28b' THEN g.best_score END), 0)::INT AS lvl28b_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
 GROUP BY p.user_id, p.username, p.avatar, p.points;
@@ -623,7 +629,7 @@ CREATE TABLE IF NOT EXISTS javeda_matches (
   match_id    UUID NOT NULL,
   player      UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
   opponent    UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
-  mode        TEXT NOT NULL CHECK (mode IN ('live', 'horse', 'pass', 'cards', 'snap')),
+  mode        TEXT NOT NULL CHECK (mode IN ('live', 'horse', 'pass', 'cards', 'snap', 'golf', 'hockey')),
   my_score    INT  NOT NULL,
   their_score INT  NOT NULL,
   status      TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'settled', 'disputed')),
@@ -633,9 +639,10 @@ CREATE TABLE IF NOT EXISTS javeda_matches (
   PRIMARY KEY (match_id, player)
 );
 CREATE INDEX IF NOT EXISTS javeda_matches_player_idx ON javeda_matches (player, created_at DESC);
--- Level 20's Pass It On ('pass') and Level 21's Love Cards and Snap ('cards', 'snap') joined Hoops' two modes: let an older table take them too
+-- Level 20's Pass It On ('pass'), Level 21's Love Cards and Snap ('cards', 'snap') and Level 28's Golf and Hockey
+-- ('golf', 'hockey') joined Hoops' two modes: let an older table take them too
 ALTER TABLE javeda_matches DROP CONSTRAINT IF EXISTS javeda_matches_mode_check;
-ALTER TABLE javeda_matches ADD CONSTRAINT javeda_matches_mode_check CHECK (mode IN ('live', 'horse', 'pass', 'cards', 'snap'));
+ALTER TABLE javeda_matches ADD CONSTRAINT javeda_matches_mode_check CHECK (mode IN ('live', 'horse', 'pass', 'cards', 'snap', 'golf', 'hockey'));
 
 CREATE TABLE IF NOT EXISTS javeda_1v1 (
   user_id    UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
@@ -661,13 +668,46 @@ SELECT p.username, p.avatar, v.wins, v.losses, v.draws
 FROM javeda_1v1 v JOIN javeda_players p ON p.user_id = v.user_id;
 GRANT SELECT ON javeda_1v1_board TO anon, authenticated;
 
+-- ── Online golf for 3 or 4 (Level 28, GO!) ──────────────────────────────────
+-- Three or four real players meet by quick match and play the same nine holes at the same time. When the game ends,
+-- each reports it from their own JAVEDA page: the game id, the mode, everyone in it (in seat order), the holes each
+-- won and the strokes each took, and who left during the game. It counts when everyone who didn't leave has reported
+-- and every report says exactly the same; reports that don't agree count for nobody. Places: the most holes, then the
+-- fewest strokes; level on both is a shared place. Points: with 3, 25 / 10 / 0; with 4, 25 / 15 / 5 / 0; a shared
+-- place earns the points of the place below it. On the Online record: 1st alone is a win, a shared 1st a draw, the
+-- rest a loss. Points from at most 6 online games a day per player (1v1s and these together). Someone who left gets
+-- nothing. Nobody reads or writes this table directly.
+CREATE TABLE IF NOT EXISTS javeda_group_matches (
+  match_id   UUID NOT NULL,
+  player     UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  mode       TEXT NOT NULL CHECK (mode IN ('golf3', 'golf4')),
+  players    UUID[] NOT NULL,
+  holes      INT[]  NOT NULL,
+  strokes    INT[]  NOT NULL,
+  left_ids   UUID[] NOT NULL DEFAULT '{}',
+  status     TEXT NOT NULL DEFAULT 'waiting' CHECK (status IN ('waiting', 'settled', 'disputed')),
+  place      INT,
+  result     TEXT CHECK (result IN ('win', 'loss', 'draw')),
+  earned     INT  NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (match_id, player)
+);
+CREATE INDEX IF NOT EXISTS javeda_group_matches_player_idx ON javeda_group_matches (player, created_at DESC);
+ALTER TABLE javeda_group_matches ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS javeda_group_matches_read ON javeda_group_matches;
+CREATE POLICY javeda_group_matches_read ON javeda_group_matches FOR SELECT USING (auth.uid() = player);
+REVOKE ALL ON javeda_group_matches FROM anon, authenticated;
+GRANT SELECT ON javeda_group_matches TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.javeda_report_match(p_match UUID, p_mode TEXT, p_opponent UUID, p_my INT, p_their INT)
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE
   uid UUID := auth.uid();
-  cap INT := CASE WHEN p_mode IN ('horse', 'pass') THEN 5 WHEN p_mode = 'cards' THEN 10 WHEN p_mode = 'snap' THEN 100 ELSE 350000 END;   -- letters left; pairs; points
+  -- letters left; pairs; points; golf: holes x 100 + 99 - strokes (level on holes, the fewer strokes wins); hockey: rounds
+  cap INT := CASE WHEN p_mode IN ('horse', 'pass') THEN 5 WHEN p_mode = 'cards' THEN 10 WHEN p_mode = 'snap' THEN 100
+                  WHEN p_mode = 'golf' THEN 999 WHEN p_mode = 'hockey' THEN 3 ELSE 350000 END;
   mine javeda_matches;
   theirs javeda_matches;
   me javeda_players;
@@ -677,7 +717,7 @@ DECLARE
   pts_them INT;
 BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
-  IF p_mode IS NULL OR p_mode NOT IN ('live', 'horse', 'pass', 'cards', 'snap') THEN RAISE EXCEPTION 'no such mode' USING ERRCODE = '22023'; END IF;
+  IF p_mode IS NULL OR p_mode NOT IN ('live', 'horse', 'pass', 'cards', 'snap', 'golf', 'hockey') THEN RAISE EXCEPTION 'no such mode' USING ERRCODE = '22023'; END IF;
   IF p_match IS NULL OR p_opponent IS NULL OR p_opponent = uid THEN RAISE EXCEPTION 'no opponent' USING ERRCODE = '22023'; END IF;
   IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
   IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = p_opponent) THEN RAISE EXCEPTION 'no such player' USING ERRCODE = 'P0002'; END IF;
@@ -702,11 +742,13 @@ BEGIN
       r_them := CASE r_me WHEN 'win' THEN 'loss' WHEN 'loss' THEN 'win' ELSE 'draw' END;
       pts_me   := CASE r_me   WHEN 'win' THEN 25 WHEN 'draw' THEN 5 ELSE 0 END;
       pts_them := CASE r_them WHEN 'win' THEN 25 WHEN 'draw' THEN 5 ELSE 0 END;
-      IF (SELECT count(*) FROM javeda_matches WHERE player = uid AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 6
+      IF (SELECT count(*) FROM javeda_matches WHERE player = uid AND earned > 0 AND created_at > now() - INTERVAL '1 day')
+         + (SELECT count(*) FROM javeda_group_matches WHERE player = uid AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 6
          OR (SELECT count(*) FROM javeda_matches WHERE player = uid AND opponent = theirs.player AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 2 THEN
         pts_me := 0;
       END IF;
-      IF (SELECT count(*) FROM javeda_matches WHERE player = theirs.player AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 6
+      IF (SELECT count(*) FROM javeda_matches WHERE player = theirs.player AND earned > 0 AND created_at > now() - INTERVAL '1 day')
+         + (SELECT count(*) FROM javeda_group_matches WHERE player = theirs.player AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 6
          OR (SELECT count(*) FROM javeda_matches WHERE player = theirs.player AND opponent = uid AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 2 THEN
         pts_them := 0;
       END IF;
@@ -732,3 +774,90 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_report_match(UUID, TEXT, UUID, INT, INT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_report_match(UUID, TEXT, UUID, INT, INT) TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_report_group(p_match UUID, p_mode TEXT, p_players UUID[], p_holes INT[], p_strokes INT[], p_left UUID[])
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+  n INT := CASE p_mode WHEN 'golf3' THEN 3 WHEN 'golf4' THEN 4 END;
+  lft UUID[] := ARRAY(SELECT DISTINCT x FROM unnest(COALESCE(p_left, '{}'::UUID[])) x ORDER BY x);
+  mine javeda_group_matches;
+  r javeda_group_matches;
+  me javeda_players;
+  i INT;
+  j INT;
+  pl INT;
+  shared BOOLEAN;
+  pts INT;
+  res TEXT;
+  table_pts INT[];
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  IF n IS NULL THEN RAISE EXCEPTION 'no such mode' USING ERRCODE = '22023'; END IF;
+  IF p_match IS NULL OR array_length(p_players, 1) IS DISTINCT FROM n OR array_length(p_holes, 1) IS DISTINCT FROM n
+     OR array_length(p_strokes, 1) IS DISTINCT FROM n OR (SELECT count(DISTINCT x) FROM unnest(p_players) x) <> n
+     OR NOT (uid = ANY(p_players)) OR uid = ANY(lft) OR NOT (lft <@ p_players) THEN
+    RAISE EXCEPTION 'not a game you were in' USING ERRCODE = '22023';
+  END IF;
+  -- nine holes: each won by one player at most, and at least a stroke a hole
+  IF EXISTS (SELECT 1 FROM unnest(p_holes) h WHERE h IS NULL OR h < 0 OR h > 9) OR (SELECT sum(h) FROM unnest(p_holes) h) > 9
+     OR EXISTS (SELECT 1 FROM unnest(p_strokes) k WHERE k IS NULL OR k < 9 OR k > 81) THEN
+    RAISE EXCEPTION 'not a possible result' USING ERRCODE = '22023';
+  END IF;
+  IF (SELECT count(*) FROM javeda_players WHERE user_id = ANY(p_players)) <> n THEN RAISE EXCEPTION 'no such player' USING ERRCODE = 'P0002'; END IF;
+  -- the reports of one game take turns here, so the last always sees the others
+  PERFORM pg_advisory_xact_lock(hashtextextended(p_match::TEXT, 17));
+
+  SELECT * INTO mine FROM javeda_group_matches WHERE match_id = p_match AND player = uid;
+  IF mine.match_id IS NULL THEN
+    -- a game is the players in it: nobody else reports into it
+    IF EXISTS (SELECT 1 FROM javeda_group_matches WHERE match_id = p_match AND players <> p_players) THEN
+      RAISE EXCEPTION 'not your game' USING ERRCODE = '42501';
+    END IF;
+    INSERT INTO javeda_group_matches (match_id, player, mode, players, holes, strokes, left_ids)
+    VALUES (p_match, uid, p_mode, p_players, p_holes, p_strokes, lft)
+    RETURNING * INTO mine;
+  END IF;
+
+  IF mine.status = 'waiting' THEN
+    IF EXISTS (SELECT 1 FROM javeda_group_matches WHERE match_id = p_match
+               AND (mode <> mine.mode OR players <> mine.players OR holes <> mine.holes OR strokes <> mine.strokes OR left_ids <> mine.left_ids)) THEN
+      UPDATE javeda_group_matches SET status = 'disputed' WHERE match_id = p_match;
+    ELSIF (SELECT count(*) FROM javeda_group_matches WHERE match_id = p_match) = n - COALESCE(array_length(mine.left_ids, 1), 0) THEN
+      -- everyone who stayed has said the same: the places, the points, the record
+      table_pts := CASE n WHEN 3 THEN ARRAY[25, 10, 0] ELSE ARRAY[25, 15, 5, 0] END;
+      FOR r IN SELECT * FROM javeda_group_matches WHERE match_id = p_match LOOP
+        i := array_position(mine.players, r.player);
+        pl := 1; shared := false;
+        FOR j IN 1..n LOOP
+          IF j <> i THEN
+            IF mine.holes[j] > mine.holes[i] OR (mine.holes[j] = mine.holes[i] AND mine.strokes[j] < mine.strokes[i]) THEN pl := pl + 1;
+            ELSIF mine.holes[j] = mine.holes[i] AND mine.strokes[j] = mine.strokes[i] THEN shared := true; END IF;
+          END IF;
+        END LOOP;
+        pts := COALESCE(table_pts[pl + CASE WHEN shared THEN 1 ELSE 0 END], 0);
+        res := CASE WHEN pl = 1 AND NOT shared THEN 'win' WHEN pl = 1 THEN 'draw' ELSE 'loss' END;
+        IF (SELECT count(*) FROM javeda_matches WHERE player = r.player AND earned > 0 AND created_at > now() - INTERVAL '1 day')
+         + (SELECT count(*) FROM javeda_group_matches WHERE player = r.player AND earned > 0 AND created_at > now() - INTERVAL '1 day') >= 6 THEN
+          pts := 0;
+        END IF;
+        UPDATE javeda_group_matches SET status = 'settled', place = pl, result = res, earned = pts WHERE match_id = p_match AND player = r.player;
+        INSERT INTO javeda_1v1 AS v (user_id, wins, losses, draws)
+        VALUES (r.player, (res = 'win')::INT, (res = 'loss')::INT, (res = 'draw')::INT)
+        ON CONFLICT (user_id) DO UPDATE SET wins = v.wins + EXCLUDED.wins, losses = v.losses + EXCLUDED.losses,
+                                            draws = v.draws + EXCLUDED.draws, updated_at = now();
+        UPDATE javeda_players SET points = points + pts, updated_at = now() WHERE user_id = r.player;
+      END LOOP;
+    END IF;
+    SELECT * INTO mine FROM javeda_group_matches WHERE match_id = p_match AND player = uid;
+  END IF;
+
+  SELECT * INTO me FROM javeda_players WHERE user_id = uid;
+  RETURN json_build_object('status', mine.status, 'place', mine.place, 'result', mine.result, 'earned', mine.earned, 'player', row_to_json(me),
+                           'record', (SELECT row_to_json(v) FROM (SELECT wins, losses, draws FROM javeda_1v1 WHERE user_id = uid) v));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_report_group(UUID, TEXT, UUID[], INT[], INT[], UUID[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_report_group(UUID, TEXT, UUID[], INT[], INT[], UUID[]) TO authenticated;

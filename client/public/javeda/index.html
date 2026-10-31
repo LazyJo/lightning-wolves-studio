@@ -99,6 +99,20 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 /* the endless list: gold. A tile per part with no end; the remix spans the row */
 .song.gold{border-color:#ffd60a4d}
 .song.gold .tr{-webkit-text-stroke-color:#ffd60a80}
+/* on each part: its endless, a gold ∞ beside Play (locked: dim, with a lock) */
+.part{container-type:inline-size}
+.part .btns{display:flex; gap:6px; align-items:stretch; margin-left:auto; min-width:0}
+.part .inf{display:inline-flex; align-items:center; justify-content:center; gap:5px; padding-left:11px; padding-right:11px; white-space:nowrap}
+.part .inf b{font-size:17px; line-height:1; letter-spacing:0; font-weight:700}
+.part .inf.lock{border-radius:6px; border:1px dashed #ffd60a55; color:#ffd60a8c; padding-top:7px; padding-bottom:7px; font:700 12px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase; cursor:help}
+.song .rmx{grid-column:2; justify-self:start; margin-top:6px}
+/* a narrow tile (three or four parts side by side): just the ∞, a bit tighter */
+@container (max-width:175px){
+  .part .inf .lb{display:none}
+  .part .btns .btn.small{padding-left:10px; padding-right:10px; letter-spacing:.1em}
+  .part .inf b{font-size:19px}
+}
+.song .rmx.lock{font:700 12px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase; color:#ffd60a8c; border:1px dashed #ffd60a55; border-radius:6px; padding:7px 10px; cursor:help}
 .part.endless{border-color:#ffd60a8c; background:linear-gradient(160deg,#ffd60a24,#050c1ea8 60%); box-shadow:0 0 18px #ffd60a14 inset}
 .part.endless .pl{color:var(--gold)}
 .part.endless .pt{color:#ffe89a}
@@ -169,10 +183,31 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
   .part .foot{flex-direction:column; align-items:flex-end; gap:6px; margin:0; flex:none}
 }
 
-/* scoreboard */
-.tabs{display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px}
-.tabs button{border:1px solid var(--line); background:var(--panel); border-radius:999px; padding:7px 13px; font:700 13px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; color:var(--dim)}
-.tabs button[aria-selected="true"]{background:var(--blue); border-color:var(--blue); color:#041024}
+/* scoreboard: which board (points, online, a level, an endless, HYPERDRIVE), then for a level or an endless the
+   number grid 01-28, then its parts */
+.seg{display:flex; gap:4px; flex-wrap:wrap; padding:4px; margin-bottom:10px; background:var(--panel); border:1px solid var(--line); border-radius:12px; width:fit-content; max-width:100%}
+.seg button{border:0; background:none; border-radius:8px; padding:9px 14px; font:700 14px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
+.seg button:hover{color:var(--ink); background:#ffffff0d}
+.seg button[aria-selected="true"]{background:var(--blue); color:#041024}
+.seg button.g{color:#ffe89a}
+.seg button.g[aria-selected="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+.bpick{display:grid; gap:8px; margin-bottom:10px}
+.bpick:empty{display:none}
+.bpick .nums{display:grid; grid-template-columns:repeat(14,minmax(0,1fr)); gap:5px}
+.bpick .nums button{border:1px solid var(--line); background:#050c1ea8; border-radius:8px; padding:8px 0; font:400 14px/1 var(--display); color:var(--dim); font-variant-numeric:tabular-nums}
+.bpick .nums button:hover{color:var(--ink); border-color:#ffffff40}
+.bpick .nums button[aria-pressed="true"]{background:var(--blue); border-color:var(--blue); color:#041024}
+.bpick .pts{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+.bpick .pts button{display:flex; align-items:baseline; gap:7px; border:1px solid var(--line); background:#050c1ea8; border-radius:999px; padding:7px 13px; font:700 12px/1 var(--cond); letter-spacing:.16em; text-transform:uppercase; color:var(--mute)}
+.bpick .pts button small{font:400 12px/1 var(--display); letter-spacing:0; text-transform:none; color:var(--ink)}
+.bpick .pts button[aria-pressed="true"]{border-color:var(--blue); background:#2f8fe02e; color:var(--beam)}
+.bpick .cap{font:400 15px/1.2 var(--display); color:var(--ink)}
+.bpick .cap small{font:700 11px/1 var(--cond); letter-spacing:.22em; text-transform:uppercase; color:var(--mute); margin-right:8px}
+.bpick.gold .nums button[aria-pressed="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
+.bpick.gold .pts button[aria-pressed="true"]{border-color:#e0a41a; background:#ffd60a24; color:var(--gold)}
+.bpick.gold .pts button small, .bpick.gold .cap{color:#ffe89a}
+@media (max-width:760px){ .bpick .nums{grid-template-columns:repeat(7,minmax(0,1fr))}
+  .seg{width:auto; display:grid; grid-template-columns:repeat(6,minmax(0,1fr))} .seg button{grid-column:span 2; padding:9px 4px} .seg button:nth-child(n+4){grid-column:span 3} }
 .board{background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden}
 .board ol{list-style:none; margin:0; padding:0}
 .board li{display:grid; grid-template-columns:34px 36px 1fr auto; align-items:center; gap:10px; padding:8px 14px; border-top:1px solid #ffffff0d}
@@ -269,8 +304,8 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
 
   <section aria-labelledby="hBoard">
     <h2 id="hBoard">Scoreboard</h2>
-    <div class="tabs" role="tablist" id="tabs"></div>
-    <div class="tabs gold" role="tablist" id="etabs"></div>
+    <div class="seg" role="tablist" aria-label="Which scoreboard" id="tabs"></div>
+    <div class="bpick" id="etabs"></div>
     <div class="board" id="board"><p class="empty">Loading…</p></div>
   </section>
 
@@ -685,9 +720,25 @@ function partTile(lv){
     '<div class="foot">' +
       (open
         ? (done ? '<span class="best">Best ' + fmt(p.best) + '</span>' : '<span class="tag">' + (p.runs ? 'Not cleared yet' : 'New') + '</span>') +
-          '<button class="btn ' + (done ? '' : 'primary') + ' small" data-play="' + lv.id + '">' + (done ? 'Replay' : 'Play') + '</button>'
-        : '<span class="tag">&#128274; ' + lock + '</span>') +
+          '<span class="btns"><button class="btn ' + (done ? '' : 'primary') + ' small" data-play="' + lv.id + '">' + (done ? 'Replay' : 'Play') + '</button>' + infButton(lv) + '</span>'
+        : '<span class="tag">&#128274; ' + lock + '</span>' + infButton(lv)) +
     '</div></div>';
+}
+// a part's endless, right beside it: gold when it's open, dim with a lock (and what opens it) when it isn't
+function infButton(lv){
+  const x = ENDLESS.find(e => e.id === lv.id + "x");
+  if (!x) return "";
+  const best = (progress[x.id] || {}).best;
+  return isOpen(x)
+    ? '<button class="btn gold small inf" data-play="' + x.id + '" title="' + esc(x.title) + ' with no end' + (best ? ' - your best ' + fmt(best) : '') + '"><b>&#8734;</b><span class="lb">Endless</span></button>'
+    : '<span class="inf lock" title="Endless: ' + esc(needText(x)) + '"><b>&#8734;</b><span class="lb">Endless</span> &#128274;</span>';
+}
+// a song's remix (all its parts, round and round), under its title
+function remixButton(num){
+  const r = ENDLESS.find(e => e.num === num && e.remix);
+  if (!r) return "";
+  return isOpen(r) ? '<button class="btn gold small rmx" data-play="' + r.id + '">Remix &#8734;</button>'
+    : '<span class="rmx lock" title="' + esc(needText(r)) + '">Remix &#8734; &#128274;</span>';
 }
 // one row per song: its number, its world, and its parts side by side
 function renderLevels(){
@@ -703,6 +754,7 @@ function renderLevels(){
         '<span class="ti' + (main.title.length > 10 ? ' long' : '') + '">' + esc(main.title) + '</span>' +
         '<p class="ds">' + esc(main.ds) + '</p>' +
         '<span class="bar" title="' + cleared + ' of ' + real.length + ' cleared">' + real.map(l => '<i class="' + (progress[l.id] && progress[l.id].cleared ? 'on' : '') + '"></i>').join("") + '</span>' +
+        remixButton(num) +
       '</div>' +
       '<div class="parts' + (real.length > 3 ? ' four' : '') + '">' + parts.map(partTile).join("") + '</div>' +
       '</article>';
@@ -763,11 +815,27 @@ function renderUltimate(){
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
 const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"],["lvl28","Level 28"],["lvl28b","Level 28 Part 2"]];
+// the scoreboard picker: which kind of board, then (a level or an endless) the level, then its part
+const boardKind = id => id === "points" || id === "1v1" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
+const boardLevels = () => TABS.filter(([k]) => k !== "points" && k !== "1v1").map(([k]) => levelById(k)).filter(Boolean);
+let lastBoard = { level:"lvl28", endless:"lvl28x" };
 function renderTabs(){
-  $("tabs").innerHTML = TABS.map(([k, t]) => '<button role="tab" type="button" data-tab="' + k + '" aria-selected="' + (k === boardTab) + '">' + t + '</button>').join("");
-  $("etabs").innerHTML = '<span class="lab">Ultimate</span><button role="tab" type="button" data-tab="' + ULT.id + '" aria-selected="' + (ULT.id === boardTab) + '">' + ULT.title + '</button>' +
-    '<span class="lab">Endless &#8734;</span>' + ENDLESS.map(l => '<button role="tab" type="button" data-tab="' + l.id + '" aria-selected="' + (l.id === boardTab) + '">' + esc(lvName(l)) + '</button>').join("");
+  const kind = boardKind(boardTab), pad = n => String(n).padStart(2, "0");
+  if (kind === "level" || kind === "endless") lastBoard[kind] = boardTab;
+  $("tabs").innerHTML = [["points", "Points"], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title]].map(([k, t, c]) =>
+    '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
+  const el = $("etabs"); el.classList.toggle("gold", kind === "endless");
+  if (kind !== "level" && kind !== "endless"){ el.innerHTML = ""; return; }
+  const list = kind === "level" ? boardLevels() : ENDLESS, cur = levelById(boardTab), here = list.filter(l => l.num === cur.num);
+  const nums = [...new Set(list.map(l => l.num))], main = LEVELS.find(l => l.num === cur.num && !l.part) || cur;
+  el.innerHTML = '<div class="nums" role="group" aria-label="Level">' + nums.map(n =>
+      '<button type="button" data-num="' + n + '" aria-pressed="' + (n === cur.num) + '" title="Level ' + n + '">' + pad(n) + '</button>').join("") + '</div>' +
+    (here.length > 1
+      ? '<div class="pts" role="group" aria-label="Part">' + here.map(l => '<button type="button" data-tab="' + l.id + '" aria-pressed="' + (l.id === boardTab) + '">' +
+          (l.remix ? 'Remix' : 'Part ' + (l.part || 1)) + (l.remix ? '' : ' <small>' + esc(l.title) + '</small>') + '</button>').join("") + '</div>'
+      : '<div class="pts"><span class="cap"><small>Level ' + cur.num + (kind === "endless" ? ' &#8734;' : '') + '</small>' + esc(main.title) + '</span></div>');
 }
+
 async function renderBoard(){
   const el = $("board");
   if (sb && boardTab === "1v1") return renderVsBoard(el);
@@ -959,7 +1027,13 @@ function stopPlay(){
   renderLevels(); renderVersus(); renderUltimate(); renderEndless();
 }
 $("levels").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
-for (const id of ["tabs", "etabs"]) $(id).addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b){ boardTab = b.dataset.tab; renderTabs(); renderBoard(); } });
+for (const id of ["tabs", "etabs"]) $(id).addEventListener("click", e => {
+  const b = e.target.closest("[data-tab], [data-kind], [data-num]"); if (!b) return;
+  if (b.dataset.kind){ const k = b.dataset.kind; boardTab = k === "level" || k === "endless" ? lastBoard[k] : k === "ult" ? ULT.id : k; }
+  else if (b.dataset.num){ const list = boardKind(boardTab) === "endless" ? ENDLESS : boardLevels(); boardTab = list.find(l => l.num === +b.dataset.num).id; }
+  else boardTab = b.dataset.tab;
+  renderTabs(); renderBoard();
+});
 $("ultimate").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
 $("versus").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); else if (e.target.closest("[data-login]")) openLogin(); });
 $("endless").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });

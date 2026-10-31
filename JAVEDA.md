@@ -74,11 +74,13 @@ scoreboard shows as offline.
 - **Parts.** A song can have a Part 2, a bonus level (`part:2` in `LEVELS`): it opens when its Part 1
   is cleared and nothing waits on it. "Next level" always means the next song (`nextMain`).
   Level 2 Part 2 is ZIRKA'S RIDE (`lvl2b`).
-- **Endless.** A gold list of its own, under the levels (`ENDLESS` in the hub, `endless` in
+- **Endless.** A gold list of its own, under the levels - and a gold ∞ beside each part's Play on the level row
+  (Remix ∞ under the song's title), dim with a lock until it opens, so nobody has to scroll to find it (`ENDLESS` in the hub, `endless` in
   `javeda_levels`): for every song, each part with no end (`?endless=1`, id = the part's id + `x`,
   e.g. `lvl8bx`) and the song's **remix**, all its parts in turn (`?remix=1`, id `lvlNr`). A song's
-  endless open once all its parts are cleared (`requires` = its last part). They have their own row
-  of scoreboard tabs, read from the `javeda_scores` view (per level), so a new one needs no new
+  endless open once all its parts are cleared (`requires` = its last part). Their scoreboards (the
+  Endless ∞ choice of the scoreboard picker: Points / Online / Levels / Endless / HYPERDRIVE, then the
+  level number, then the part) read from the `javeda_scores` view (per level), so a new one needs no new
   column. Endless levels follow their own rules:
   - **Points only for a new best**: the gain over your best, turned into points by `score_per_point`
     (at most 40 a run). No clear bonuses. So they can't be farmed for profile pictures.

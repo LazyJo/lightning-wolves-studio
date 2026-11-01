@@ -171,7 +171,12 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl28bx', 28, 'SKY HOCKEY', 'lvl28b', 0, 50000000, 28400, 0, 0, 162, true, 4800),  -- ~2370/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
-  ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 200, true, 40)
+  ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 200, true, 40),
+  -- The album marathon: Part 1 of every song back to back, one try - fail a song and the run ends. Open once the
+  -- album is complete (javeda_start_run checks that: no single level can say it). Score = songs cleared x 1,000,000
+  -- + the run's level scores / 10 (the tiebreak, at most 999,999). max_rate 10,000/s: a song at least every 100 s
+  -- on average, where the real album takes well over twice that. A song more than your best = 40 points.
+  ('marathon', 28, 'ALBUM MARATHON', NULL, 0, 28999999, 25000, 0, 0, 300, true, 10000)
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,
   max_score = EXCLUDED.max_score, score_per_point = EXCLUDED.score_per_point,
@@ -198,6 +203,8 @@ CREATE TABLE IF NOT EXISTS javeda_avatars (
   cost INT  NOT NULL CHECK (cost >= 0),
   sort INT  NOT NULL
 );
+-- unlock: a picture you can't buy, only earn ('album': finish the whole album). Its cost is 0 but it is not free.
+ALTER TABLE javeda_avatars ADD COLUMN IF NOT EXISTS unlock TEXT;
 
 INSERT INTO javeda_avatars (id, name, cost, sort) VALUES
   ('saucer',     'Blue Saucer',     0,    1),
@@ -213,6 +220,9 @@ INSERT INTO javeda_avatars (id, name, cost, sort) VALUES
   ('goldwolf',   'Gold Wolf',       1200, 11),
   ('crown',      'Crowned Saucer',  2000, 12)
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, cost = EXCLUDED.cost, sort = EXCLUDED.sort;
+INSERT INTO javeda_avatars (id, name, cost, sort, unlock) VALUES
+  ('complete',   'JAVEDA Complete', 0,    13, 'album')
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, cost = EXCLUDED.cost, sort = EXCLUDED.sort, unlock = EXCLUDED.unlock;
 
 -- ── Players ────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS javeda_players (
@@ -226,6 +236,8 @@ CREATE TABLE IF NOT EXISTS javeda_players (
   imported_at TIMESTAMPTZ
 );
 ALTER TABLE javeda_players ADD COLUMN IF NOT EXISTS imported_at TIMESTAMPTZ;
+-- set once, the moment every level (every part of all 28 songs) is cleared: the gold JAVEDA Complete badge
+ALTER TABLE javeda_players ADD COLUMN IF NOT EXISTS album_completed_at TIMESTAMPTZ;
 -- one name per person, whatever the capitals
 CREATE UNIQUE INDEX IF NOT EXISTS javeda_players_username_key ON javeda_players (lower(username));
 CREATE INDEX IF NOT EXISTS javeda_players_points_idx ON javeda_players (points DESC);
@@ -307,7 +319,7 @@ GRANT SELECT ON javeda_creators TO authenticated;
 -- every run, so its columns can change.
 DROP VIEW IF EXISTS javeda_board;
 CREATE VIEW javeda_board WITH (security_invoker = true) AS
-SELECT p.username, p.avatar, p.points,
+SELECT p.username, p.avatar, p.points, (p.album_completed_at IS NOT NULL) AS album_complete,
        COALESCE(SUM(CASE WHEN g.cleared THEN 1 ELSE 0 END), 0)::INT AS levels_cleared,
        COALESCE(MAX(CASE WHEN g.level = 'lvl1' THEN g.best_score END), 0)::INT AS lvl1_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl2' THEN g.best_score END), 0)::INT AS lvl2_best,
@@ -366,14 +378,14 @@ SELECT p.username, p.avatar, p.points,
        COALESCE(MAX(CASE WHEN g.level = 'lvl28b' THEN g.best_score END), 0)::INT AS lvl28b_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
-GROUP BY p.user_id, p.username, p.avatar, p.points;
+GROUP BY p.user_id, p.username, p.avatar, p.points, p.album_completed_at;
 GRANT SELECT ON javeda_board TO anon, authenticated;
 
 -- Per-level scores, one row per player and level: the endless scoreboards read this
 -- (filtered by level), so a new endless level needs no new column anywhere.
 DROP VIEW IF EXISTS javeda_scores;
 CREATE VIEW javeda_scores WITH (security_invoker = true) AS
-SELECT g.level, p.username, p.avatar, g.best_score
+SELECT g.level, p.username, p.avatar, g.best_score, (p.album_completed_at IS NOT NULL) AS album_complete
 FROM javeda_progress g JOIN javeda_players p ON p.user_id = g.user_id
 WHERE g.best_score > 0;
 GRANT SELECT ON javeda_scores TO anon, authenticated;
@@ -383,9 +395,33 @@ CREATE OR REPLACE FUNCTION public.javeda_owns(p_user UUID, p_avatar TEXT)
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
-  SELECT EXISTS (SELECT 1 FROM javeda_avatars WHERE id = p_avatar AND cost = 0)
-      OR EXISTS (SELECT 1 FROM javeda_owned WHERE user_id = p_user AND avatar = p_avatar);
+  SELECT EXISTS (SELECT 1 FROM javeda_avatars WHERE id = p_avatar AND cost = 0 AND unlock IS NULL)
+      OR EXISTS (SELECT 1 FROM javeda_owned WHERE user_id = p_user AND avatar = p_avatar)
+      OR EXISTS (SELECT 1 FROM javeda_avatars a JOIN javeda_players p ON p.user_id = p_user
+                 WHERE a.id = p_avatar AND a.unlock = 'album' AND p.album_completed_at IS NOT NULL);
 $$;
+
+-- Has this player just finished the album? Every level that isn't endless cleared: then the badge goes on, once.
+-- True only the moment it happens. javeda_submit_run and javeda_import_guest ask after a first clear.
+CREATE OR REPLACE FUNCTION public.javeda_album_check(p_user UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM javeda_players WHERE user_id = p_user AND album_completed_at IS NOT NULL)
+     OR EXISTS (SELECT 1 FROM javeda_levels l WHERE NOT l.endless AND NOT EXISTS (
+                  SELECT 1 FROM javeda_progress g WHERE g.user_id = p_user AND g.level = l.id AND g.cleared)) THEN
+    RETURN false;
+  END IF;
+  UPDATE javeda_players SET album_completed_at = now(), updated_at = now() WHERE user_id = p_user;
+  RETURN true;
+END;
+$$;
+-- anyone who finished before the badge existed has it too
+UPDATE javeda_players p SET album_completed_at = now()
+WHERE p.album_completed_at IS NULL AND NOT EXISTS (
+  SELECT 1 FROM javeda_levels l WHERE NOT l.endless AND NOT EXISTS (
+    SELECT 1 FROM javeda_progress g WHERE g.user_id = p.user_id AND g.level = l.id AND g.cleared));
 
 -- Create or rename your player. A new player may only start with a free
 -- picture; an existing one may switch to any picture they own.
@@ -441,6 +477,9 @@ BEGIN
   SELECT cost INTO price FROM javeda_avatars WHERE id = p_avatar;
   IF price IS NULL THEN RAISE EXCEPTION 'no such picture' USING ERRCODE = 'P0002'; END IF;
   IF javeda_owns(uid, p_avatar) THEN RAISE EXCEPTION 'you already have it' USING ERRCODE = '23505'; END IF;
+  IF EXISTS (SELECT 1 FROM javeda_avatars WHERE id = p_avatar AND unlock IS NOT NULL) THEN
+    RAISE EXCEPTION 'that one is earned, not bought: finish the album' USING ERRCODE = '42501';
+  END IF;
   -- the row lock makes two quick taps spend the points only once
   SELECT * INTO row FROM javeda_players WHERE user_id = uid FOR UPDATE;
   IF row IS NULL THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
@@ -472,6 +511,10 @@ BEGIN
      AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
     RAISE EXCEPTION 'level locked' USING ERRCODE = '42501';
   END IF;
+  IF lv.id = 'marathon' AND NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid AND album_completed_at IS NOT NULL)
+     AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
+    RAISE EXCEPTION 'finish the album to open the marathon' USING ERRCODE = '42501';
+  END IF;
   INSERT INTO javeda_runs (user_id, level, started_at) VALUES (uid, p_level, now())
   ON CONFLICT (user_id, level) DO UPDATE SET started_at = now();
   RETURN json_build_object('level', p_level, 'started_at', now());
@@ -498,6 +541,7 @@ DECLARE
   earned INT;
   started TIMESTAMPTZ;
   new_best BOOLEAN;
+  album BOOLEAN := false;
 BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
   SELECT * INTO lv FROM javeda_levels WHERE id = p_level;
@@ -544,12 +588,14 @@ BEGIN
     first_cleared_at = COALESCE(g.first_cleared_at, EXCLUDED.first_cleared_at),
     updated_at       = now()
   RETURNING * INTO prog;
+  IF first_clear THEN album := javeda_album_check(uid); END IF;
 
   UPDATE javeda_players SET points = points + earned, last_run_at = now(), updated_at = now()
   WHERE user_id = uid RETURNING * INTO me;
 
   RETURN json_build_object('player', row_to_json(me), 'progress', row_to_json(prog),
-                           'earned', earned, 'first_clear', first_clear, 'new_best', new_best, 'score', score);
+                           'earned', earned, 'first_clear', first_clear, 'new_best', new_best, 'score', score,
+                           'album_complete', album);
 END;
 $$;
 
@@ -596,6 +642,7 @@ BEGIN
     imported := imported + 1;
     IF COALESCE((item ->> 'cleared')::BOOLEAN, false) THEN earned := earned + lv.first_clear_points; END IF;
   END LOOP;
+  PERFORM javeda_album_check(uid);
   UPDATE javeda_players SET points = points + earned, imported_at = now(), updated_at = now()
   WHERE user_id = uid RETURNING * INTO me;
   RETURN json_build_object('player', row_to_json(me), 'imported', imported, 'earned', earned);
@@ -609,6 +656,7 @@ REVOKE ALL ON FUNCTION public.javeda_buy_avatar(TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_submit_run(TEXT, INT, INT, BOOLEAN) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_start_run(TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_import_guest(JSONB) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.javeda_album_check(UUID) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_join(TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_set_avatar(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_buy_avatar(TEXT) TO authenticated;
@@ -664,7 +712,7 @@ GRANT SELECT ON javeda_matches TO authenticated;
 -- the 1v1 board: one row per player who has played a counted match
 DROP VIEW IF EXISTS javeda_1v1_board;
 CREATE VIEW javeda_1v1_board WITH (security_invoker = true) AS
-SELECT p.username, p.avatar, v.wins, v.losses, v.draws
+SELECT p.username, p.avatar, v.wins, v.losses, v.draws, (p.album_completed_at IS NOT NULL) AS album_complete
 FROM javeda_1v1 v JOIN javeda_players p ON p.user_id = v.user_id;
 GRANT SELECT ON javeda_1v1_board TO anon, authenticated;
 
@@ -861,3 +909,140 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_report_group(UUID, TEXT, UUID[], INT[], INT[], UUID[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_report_group(UUID, TEXT, UUID[], INT[], INT[], UUID[]) TO authenticated;
+
+-- ── The daily challenge ─────────────────────────────────────────────────────
+-- One level a day for everyone: the endless of one song's Part 1 (lvlNx), with a scoreboard of its own that starts
+-- empty every day. The day is Brussels time. The songs come round in a fixed shuffled order, so no song comes back
+-- within 28 days. Open to every player whether they have reached that song or not - a taste of the album; it
+-- unlocks nothing and earns no points, it's for the daily board. A run is started with javeda_start_daily and held
+-- to that level's max_rate a second since then, like an endless run.
+CREATE TABLE IF NOT EXISTS javeda_daily_scores (
+  day        DATE NOT NULL,
+  user_id    UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  level      TEXT NOT NULL REFERENCES javeda_levels(id),
+  best_score INT  NOT NULL DEFAULT 0,
+  runs       INT  NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (day, user_id)
+);
+CREATE INDEX IF NOT EXISTS javeda_daily_scores_day_idx ON javeda_daily_scores (day, best_score DESC);
+-- a daily run in progress, one per player; javeda_submit_daily uses it up. Nobody reads or writes it directly.
+CREATE TABLE IF NOT EXISTS javeda_daily_runs (
+  user_id    UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  day        DATE NOT NULL,
+  level      TEXT NOT NULL REFERENCES javeda_levels(id),
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE javeda_daily_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE javeda_daily_runs   ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS javeda_daily_scores_read ON javeda_daily_scores;
+CREATE POLICY javeda_daily_scores_read ON javeda_daily_scores FOR SELECT USING (true);
+REVOKE ALL ON javeda_daily_scores, javeda_daily_runs FROM anon, authenticated;
+GRANT SELECT ON javeda_daily_scores TO anon, authenticated;
+
+DROP VIEW IF EXISTS javeda_daily_board;
+CREATE VIEW javeda_daily_board WITH (security_invoker = true) AS
+SELECT d.day, d.level, p.username, p.avatar, d.best_score, (p.album_completed_at IS NOT NULL) AS album_complete
+FROM javeda_daily_scores d JOIN javeda_players p ON p.user_id = d.user_id
+WHERE d.best_score > 0;
+GRANT SELECT ON javeda_daily_board TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_daily_level(p_day DATE)
+RETURNS TEXT
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  WITH pool AS (SELECT id, row_number() OVER (ORDER BY md5('javeda-daily-' || id)) - 1 AS i, count(*) OVER () AS n
+                FROM javeda_levels WHERE endless AND id ~ '^lvl[0-9]+x$')
+  SELECT id FROM pool WHERE i = (((p_day - DATE '2026-11-01') % n) + n) % n;
+$$;
+
+-- today's challenge, for anyone (guests see it too)
+CREATE OR REPLACE FUNCTION public.javeda_daily()
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT json_build_object('day', d, 'level', javeda_daily_level(d))
+  FROM (SELECT (now() AT TIME ZONE 'Europe/Brussels')::DATE AS d) t;
+$$;
+
+CREATE OR REPLACE FUNCTION public.javeda_start_daily()
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+  d DATE := (now() AT TIME ZONE 'Europe/Brussels')::DATE;
+  lvl TEXT := javeda_daily_level((now() AT TIME ZONE 'Europe/Brussels')::DATE);
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
+  INSERT INTO javeda_daily_runs (user_id, day, level, started_at) VALUES (uid, d, lvl, now())
+  ON CONFLICT (user_id) DO UPDATE SET day = EXCLUDED.day, level = EXCLUDED.level, started_at = now();
+  RETURN json_build_object('day', d, 'level', lvl);
+END;
+$$;
+
+-- a daily run is over: it counts for the day it started on (a run over midnight still counts for that day)
+CREATE OR REPLACE FUNCTION public.javeda_submit_daily(p_score INT)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+  run javeda_daily_runs;
+  lv javeda_levels;
+  score INT;
+  was INT;
+  row javeda_daily_scores;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  DELETE FROM javeda_daily_runs WHERE user_id = uid RETURNING * INTO run;
+  IF run.user_id IS NULL THEN RAISE EXCEPTION 'no run started' USING ERRCODE = '22023'; END IF;
+  SELECT * INTO lv FROM javeda_levels WHERE id = run.level;
+  score := GREATEST(0, LEAST(COALESCE(p_score, 0), lv.max_score, FLOOR(lv.max_rate * EXTRACT(EPOCH FROM now() - run.started_at))::INT));
+  SELECT best_score INTO was FROM javeda_daily_scores WHERE day = run.day AND user_id = uid;
+  INSERT INTO javeda_daily_scores AS s (day, user_id, level, best_score, runs) VALUES (run.day, uid, run.level, score, 1)
+  ON CONFLICT (day, user_id) DO UPDATE SET best_score = GREATEST(s.best_score, EXCLUDED.best_score), runs = s.runs + 1, updated_at = now()
+  RETURNING * INTO row;
+  RETURN json_build_object('day', run.day, 'level', run.level, 'score', score, 'best', row.best_score,
+                           'new_best', was IS NULL OR score > was,
+                           'rank', (SELECT count(*) + 1 FROM javeda_daily_scores WHERE day = run.day AND best_score > row.best_score));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_daily_level(DATE) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.javeda_start_daily() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.javeda_submit_daily(INT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_daily_level(DATE) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_daily() TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_start_daily() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_submit_daily(INT) TO authenticated;
+
+-- ── Where players get stuck (creators only) ─────────────────────────────────
+-- Per level that isn't endless: how many players could play it (its gate cleared, or no gate), how many tried, how
+-- many cleared it, how many tried and never did (stuck), and all their runs and clears. Creators' own runs are left
+-- out, so testing doesn't skew it. Guests aren't in it (their runs stay on their phone).
+CREATE OR REPLACE FUNCTION public.javeda_level_stats()
+RETURNS TABLE (level TEXT, num INT, sort INT, could INT, tried INT, cleared INT, stuck INT, runs INT, clears INT)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+#variable_conflict use_column
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'creators only' USING ERRCODE = '42501';
+  END IF;
+  RETURN QUERY
+  WITH g AS (SELECT * FROM javeda_progress pr WHERE NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = pr.user_id)),
+       pl AS (SELECT count(*)::INT AS n FROM javeda_players p WHERE NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id))
+  SELECT l.id, l.num, l.sort,
+         CASE WHEN l.requires IS NULL THEN (SELECT n FROM pl)
+              ELSE (SELECT count(*)::INT FROM g WHERE g.level = l.requires AND g.cleared AND g.best_score >= l.requires_score) END,
+         (SELECT count(*)::INT FROM g WHERE g.level = l.id AND g.runs > 0),
+         (SELECT count(*)::INT FROM g WHERE g.level = l.id AND g.cleared),
+         (SELECT count(*)::INT FROM g WHERE g.level = l.id AND g.runs > 0 AND NOT g.cleared),
+         (SELECT COALESCE(sum(g.runs), 0)::INT FROM g WHERE g.level = l.id),
+         (SELECT COALESCE(sum(g.clears), 0)::INT FROM g WHERE g.level = l.id)
+  FROM javeda_levels l WHERE NOT l.endless ORDER BY l.sort;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_level_stats() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_level_stats() TO authenticated;

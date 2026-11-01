@@ -77,8 +77,9 @@ scoreboard shows as offline.
 - **Endless.** A gold list of its own, under the levels - and a gold ∞ beside each part's Play on the level row
   (Remix ∞ under the song's title), dim with a lock until it opens, so nobody has to scroll to find it (`ENDLESS` in the hub, `endless` in
   `javeda_levels`): for every song, each part with no end (`?endless=1`, id = the part's id + `x`,
-  e.g. `lvl8bx`) and the song's **remix**, all its parts in turn (`?remix=1`, id `lvlNr`). A song's
-  endless open once all its parts are cleared (`requires` = its last part). Their scoreboards (the
+  e.g. `lvl8bx`) and the song's **remix**, all its parts in turn (`?remix=1`, id `lvlNr`). A part's
+  endless opens once that part is cleared (`requires` = the part); the remix once all the song's parts are
+  (`requires` = its last part). Their scoreboards (the
   Endless ∞ choice of the scoreboard picker: Points / Online / Levels / Endless / HYPERDRIVE, then the
   level number, then the part) read from the `javeda_scores` view (per level), so a new one needs no new
   column. Endless levels follow their own rules:

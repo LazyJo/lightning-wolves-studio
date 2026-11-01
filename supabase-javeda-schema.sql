@@ -34,8 +34,8 @@ CREATE TABLE IF NOT EXISTS javeda_levels (
 );
 ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS requires_score INT NOT NULL DEFAULT 0;
 -- Endless levels (the gold Endless list: every part of a song with no end, id + "x", and
--- the song's remix of all its parts, lvlNr; they open once all the song's parts are
--- cleared) have no end and no top score: they are for the scoreboard. A run
+-- the song's remix of all its parts, lvlNr; a part's endless opens once that part is
+-- cleared, the remix once all the song's parts are) have no end and no top score: they are for the scoreboard. A run
 -- has to be started with javeda_start_run, and its score may be at most max_rate per
 -- second of real time since then. Only a new best earns points (see javeda_submit_run).
 ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS endless  BOOLEAN NOT NULL DEFAULT false;
@@ -108,34 +108,34 @@ ON CONFLICT (id) DO UPDATE SET
 -- above the best a perfect bot managed in each mode. They sort after the levels.
 INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, score_per_point, clear_points, first_clear_points, sort, endless, max_rate) VALUES
   ('lvl1x',  1, 'I''M LOST',        'lvl1',  0, 50000000, 300,   0, 0, 100, true, 60),     -- score = metres, ~30/s at 30 m/s
-  ('lvl2x',  2, 'SOMEBODY',         'lvl2b', 0, 50000000, 3000,  0, 0, 101, true, 1800),   -- ~860/s at best
+  ('lvl2x',  2, 'SOMEBODY',         'lvl2',  0, 50000000, 3000,  0, 0, 101, true, 1800),   -- ~860/s at best
   ('lvl2bx', 2, 'ZIRKA''S RIDE',    'lvl2b', 0, 50000000, 300,   0, 0, 102, true, 60),     -- metres, like Level 1
-  ('lvl3x',  3, 'MY HEART',         'lvl3c', 0, 50000000, 700,   0, 0, 103, true, 300),    -- ~140/s at best
-  ('lvl3bx', 3, 'LIGHTS OUT',       'lvl3c', 0, 50000000, 700,   0, 0, 104, true, 300),
+  ('lvl3x',  3, 'MY HEART',         'lvl3',  0, 50000000, 700,   0, 0, 103, true, 300),    -- ~140/s at best
+  ('lvl3bx', 3, 'LIGHTS OUT',       'lvl3b', 0, 50000000, 700,   0, 0, 104, true, 300),
   ('lvl3cx', 3, 'HEARTBREAK',       'lvl3c', 0, 50000000, 700,   0, 0, 105, true, 300),
   ('lvl3r',  3, 'REMIX',            'lvl3c', 0, 50000000, 700,   0, 0, 106, true, 300),
-  ('lvl4x',  4, 'ROLLERCOASTER',    'lvl4c', 0, 50000000, 15000, 0, 0, 107, true, 5000),   -- a perfect run ~2,600/s at full speed
-  ('lvl4bx', 4, 'FULL SPEED',       'lvl4c', 0, 50000000, 15000, 0, 0, 108, true, 5000),
+  ('lvl4x',  4, 'ROLLERCOASTER',    'lvl4',  0, 50000000, 15000, 0, 0, 107, true, 5000),   -- a perfect run ~2,600/s at full speed
+  ('lvl4bx', 4, 'FULL SPEED',       'lvl4b', 0, 50000000, 15000, 0, 0, 108, true, 5000),
   ('lvl4cx', 4, 'NO BRAKES',        'lvl4c', 0, 50000000, 15000, 0, 0, 109, true, 5000),
   ('lvl4r',  4, 'REMIX',            'lvl4c', 0, 50000000, 15000, 0, 0, 110, true, 5000),
-  ('lvl5x',  5, 'FEEL LIKE THAT',   'lvl5c', 0, 50000000, 2000,  0, 0, 111, true, 700),    -- ~330/s at best
-  ('lvl5bx', 5, 'MOTH NIGHT',       'lvl5c', 0, 50000000, 2000,  0, 0, 112, true, 700),
+  ('lvl5x',  5, 'FEEL LIKE THAT',   'lvl5',  0, 50000000, 2000,  0, 0, 111, true, 700),    -- ~330/s at best
+  ('lvl5bx', 5, 'MOTH NIGHT',       'lvl5b', 0, 50000000, 2000,  0, 0, 112, true, 700),
   ('lvl5cx', 5, 'STAY LIT',         'lvl5c', 0, 50000000, 2000,  0, 0, 113, true, 700),
   ('lvl5r',  5, 'REMIX',            'lvl5c', 0, 50000000, 2000,  0, 0, 114, true, 700),
-  ('lvl6x',  6, 'ISLAND HOPPER',    'lvl6c', 0, 50000000, 2500,  0, 0, 115, true, 600),    -- ~280/s
-  ('lvl6bx', 6, 'CRAB NIGHT',       'lvl6c', 0, 50000000, 6000,  0, 0, 116, true, 3500),   -- climbs to ~1,700/s
+  ('lvl6x',  6, 'ISLAND HOPPER',    'lvl6',  0, 50000000, 2500,  0, 0, 115, true, 600),    -- ~280/s
+  ('lvl6bx', 6, 'CRAB NIGHT',       'lvl6b', 0, 50000000, 6000,  0, 0, 116, true, 3500),   -- climbs to ~1,700/s
   ('lvl6cx', 6, 'SURF THE SUNSET',  'lvl6c', 0, 50000000, 1500,  0, 0, 117, true, 400),    -- ~160/s
   ('lvl6r',  6, 'REMIX',            'lvl6c', 0, 50000000, 3000,  0, 0, 118, true, 1800),   -- ~880/s
-  ('lvl7x',  7, 'JOURNEY',          'lvl7c', 0, 50000000, 6000,  0, 0, 119, true, 1300),   -- ~625/s over a run
-  ('lvl7bx', 7, 'METEOR SHOWER',    'lvl7c', 0, 50000000, 6000,  0, 0, 120, true, 1300),
+  ('lvl7x',  7, 'JOURNEY',          'lvl7',  0, 50000000, 6000,  0, 0, 119, true, 1300),   -- ~625/s over a run
+  ('lvl7bx', 7, 'METEOR SHOWER',    'lvl7b', 0, 50000000, 6000,  0, 0, 120, true, 1300),
   ('lvl7cx', 7, 'THE LONG WAY HOME','lvl7c', 0, 50000000, 6000,  0, 0, 121, true, 1300),
   ('lvl7r',  7, 'REMIX',            'lvl7c', 0, 50000000, 6000,  0, 0, 122, true, 1300),
-  ('lvl8x',  8, 'PETAL RAIN',  'lvl8c', 0, 50000000, 3000, 0, 0, 123, true, 2500),   -- bot ~950/s at 10 min
-  ('lvl8bx', 8, 'THE STEM',    'lvl8c', 0, 50000000, 1000, 0, 0, 124, true, 800),    -- ~300/s
+  ('lvl8x',  8, 'PETAL RAIN',  'lvl8',  0, 50000000, 3000, 0, 0, 123, true, 2500),   -- bot ~950/s at 10 min
+  ('lvl8bx', 8, 'THE STEM',    'lvl8b', 0, 50000000, 1000, 0, 0, 124, true, 800),    -- ~300/s
   ('lvl8cx', 8, 'MY SHADOW',   'lvl8c', 0, 50000000, 1000, 0, 0, 125, true, 600),    -- ~200/s
   ('lvl8r',  8, 'REMIX',       'lvl8c', 0, 50000000, 1500, 0, 0, 126, true, 1000),   -- all three in turn, ~370/s
-  ('lvl9x',  9, 'NIGHT FLIGHT', 'lvl9c', 0, 50000000, 10000, 0, 0, 127, true, 3200),  -- ~1,500/s
-  ('lvl9bx', 9, 'ROOFTOP RUN',  'lvl9c', 0, 50000000, 6000,  0, 0, 128, true, 1800),  -- ~900/s
+  ('lvl9x',  9, 'NIGHT FLIGHT', 'lvl9',  0, 50000000, 10000, 0, 0, 127, true, 3200),  -- ~1,500/s
+  ('lvl9bx', 9, 'ROOFTOP RUN',  'lvl9b', 0, 50000000, 6000,  0, 0, 128, true, 1800),  -- ~900/s
   ('lvl9cx', 9, 'THE KING',     'lvl9c', 0, 50000000, 3000,  0, 0, 129, true, 900),   -- ~430/s
   ('lvl9r',  9, 'REMIX',        'lvl9c', 0, 50000000, 5000,  0, 0, 131, true, 1500),  -- all three, ~730/s
   ('lvl10x', 10, 'FREEFALL',    'lvl10', 0, 50000000, 6000,  0, 0, 132, true, 1200),  -- ~560/s
@@ -146,28 +146,28 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl15x', 15, 'HAUNTED WINDOWS', 'lvl15', 0, 50000000, 9000, 0, 0, 137, true, 1500),  -- ~730/s
   ('lvl16x', 16, 'HOOPS', 'lvl16', 0, 50000000, 13000, 0, 0, 138, true, 2400),  -- ~1,130/s
   ('lvl17x', 17, 'ISLAND BLOCKS', 'lvl17', 0, 50000000, 3500, 0, 0, 139, true, 600),  -- ~280/s
-  ('lvl18x', 18, 'UNBLOCK', 'lvl18b', 0, 50000000, 12000, 0, 0, 140, true, 1800),  -- ~890/s
+  ('lvl18x', 18, 'UNBLOCK', 'lvl18',  0, 50000000, 12000, 0, 0, 140, true, 1800),  -- ~890/s
   ('lvl18bx', 18, 'LIGHT LINK', 'lvl18b', 0, 50000000, 25000, 0, 0, 141, true, 4300),  -- ~2,100/s
   ('lvl19x', 19, 'PAD MEMORY', 'lvl19', 0, 50000000, 5500, 0, 0, 142, true, 900),  -- ~420/s
   ('lvl20x', 20, 'PASS IT ON', 'lvl20', 0, 50000000, 4000, 0, 0, 143, true, 650),  -- ~340/s
-  ('lvl21x', 21, 'LOVE CARDS', 'lvl21b', 0, 50000000, 4500, 0, 0, 144, true, 700),  -- ~360/s
+  ('lvl21x', 21, 'LOVE CARDS', 'lvl21',  0, 50000000, 4500, 0, 0, 144, true, 700),  -- ~360/s
   ('lvl21bx', 21, 'SNAP', 'lvl21b', 0, 50000000, 4400, 0, 0, 145, true, 700),  -- ~350/s
-  ('lvl22x', 22, 'PLANET MATCH', 'lvl22c', 0, 50000000, 6200, 0, 0, 146, true, 1000),  -- ~500/s
-  ('lvl22bx', 22, 'RAINBOW SORT', 'lvl22c', 0, 50000000, 3100, 0, 0, 147, true, 500),  -- ~250/s
+  ('lvl22x', 22, 'PLANET MATCH', 'lvl22',  0, 50000000, 6200, 0, 0, 146, true, 1000),  -- ~500/s
+  ('lvl22bx', 22, 'RAINBOW SORT', 'lvl22b', 0, 50000000, 3100, 0, 0, 147, true, 500),  -- ~250/s
   ('lvl22cx', 22, 'STAR PEAKS', 'lvl22c', 0, 50000000, 3100, 0, 0, 148, true, 500),  -- ~250/s
-  ('lvl23x', 23, 'HEART POP', 'lvl23c', 0, 50000000, 4800, 0, 0, 149, true, 780),  -- ~390/s
-  ('lvl23bx', 23, 'LOVE WORDS', 'lvl23c', 0, 50000000, 8800, 0, 0, 150, true, 1400),  -- ~710/s
+  ('lvl23x', 23, 'HEART POP', 'lvl23',  0, 50000000, 4800, 0, 0, 149, true, 780),  -- ~390/s
+  ('lvl23bx', 23, 'LOVE WORDS', 'lvl23b', 0, 50000000, 8800, 0, 0, 150, true, 1400),  -- ~710/s
   ('lvl23cx', 23, 'HEART MERGE', 'lvl23c', 0, 50000000, 2500, 0, 0, 151, true, 400),  -- ~200/s
   ('lvl24x', 24, 'SUNSET SWAP', 'lvl24', 0, 50000000, 2000, 0, 0, 152, true, 330),  -- ~165/s
-  ('lvl25x', 25, 'HEART FLOW', 'lvl25d', 0, 50000000, 5500, 0, 0, 153, true, 900),  -- ~450/s
-  ('lvl25bx', 25, 'CRAB SWEEPER', 'lvl25d', 0, 50000000, 1450, 0, 0, 154, true, 230),  -- ~120/s
-  ('lvl25cx', 25, 'STARLIGHT', 'lvl25d', 0, 50000000, 3800, 0, 0, 155, true, 620),  -- ~310/s
+  ('lvl25x', 25, 'HEART FLOW', 'lvl25',  0, 50000000, 5500, 0, 0, 153, true, 900),  -- ~450/s
+  ('lvl25bx', 25, 'CRAB SWEEPER', 'lvl25b', 0, 50000000, 1450, 0, 0, 154, true, 230),  -- ~120/s
+  ('lvl25cx', 25, 'STARLIGHT', 'lvl25c', 0, 50000000, 3800, 0, 0, 155, true, 620),  -- ~310/s
   ('lvl25dx', 25, 'SHELL SUDOKU', 'lvl25d', 0, 50000000, 2200, 0, 0, 156, true, 350),  -- ~180/s
-  ('lvl26x', 26, 'NEON PINBALL', 'lvl26b', 0, 50000000, 4900, 0, 0, 157, true, 800),  -- ~410/s
+  ('lvl26x', 26, 'NEON PINBALL', 'lvl26',  0, 50000000, 4900, 0, 0, 157, true, 800),  -- ~410/s
   ('lvl26bx', 26, 'SPEAKER PUSH', 'lvl26b', 0, 50000000, 2000, 0, 0, 158, true, 320),  -- ~160/s
-  ('lvl27x', 27, 'UNTANGLE', 'lvl27b', 0, 50000000, 7400, 0, 0, 159, true, 1200),  -- ~610/s
+  ('lvl27x', 27, 'UNTANGLE', 'lvl27',  0, 50000000, 7400, 0, 0, 159, true, 1200),  -- ~610/s
   ('lvl27bx', 27, 'BIRD CODE', 'lvl27b', 0, 50000000, 1300, 0, 0, 160, true, 210),  -- ~107/s
-  ('lvl28x', 28, 'ROOFTOP GOLF', 'lvl28b', 0, 50000000, 11400, 0, 0, 161, true, 1900),  -- ~950/s
+  ('lvl28x', 28, 'ROOFTOP GOLF', 'lvl28',  0, 50000000, 11400, 0, 0, 161, true, 1900),  -- ~950/s
   ('lvl28bx', 28, 'SKY HOCKEY', 'lvl28b', 0, 50000000, 28400, 0, 0, 162, true, 4800),  -- ~2370/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point

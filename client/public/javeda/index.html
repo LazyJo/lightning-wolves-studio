@@ -393,7 +393,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 
   <section aria-labelledby="hEn">
     <h2 id="hEn">Endless &#8734;</h2>
-    <p class="sub">Clear every part of a song and its endless list opens: each part with no end, and the remix of them all. Play till the hearts run out. Only a new best earns points.</p>
+    <p class="sub">Clear a part and its endless opens: that part with no end. Clear every part of a song and its remix opens too, all of them in turn. Play till the hearts run out. Only a new best earns points.</p>
     <div class="levels" id="endless"></div>
   </section>
 
@@ -726,15 +726,15 @@ let LEVELS = [
     ds:"Part 2. Air hockey on a roof against the shadow - first to 3 takes a round, and every round has something new.",
     art:"radial-gradient(6% 4% at 50% 46%, #fff6d8, transparent 80%), radial-gradient(9% 6% at 50% 70%, #ffb840, transparent 80%), radial-gradient(9% 6% at 50% 24%, #2a0e3a, transparent 80%), linear-gradient(180deg,#2a0e52 0,#6a2a8a 40%,#d0507a 70%,#ff9a4a)" }
 ];
-// The endless list: each part of a song with no end (id + "x"), and the song's remix,
-// all its parts in turn (lvlNr). All of a song's endless open once all its parts are cleared.
+// The endless list: each part of a song with no end (id + "x"), open once that part is cleared, and the song's
+// remix, all its parts in turn (lvlNr), open once all of them are (`last`).
 const endlessOf = (num, file, last, parts, remix) => parts.map(([id, title], i) =>
-    ({ id:id + "x", num, part:i + 1, endless:true, title, requires:last, src:"levels/" + file + "?hub=1" + (i ? "&part=" + (i + 1) : "") + "&endless=1" }))
+    ({ id:id + "x", num, part:i + 1, endless:true, title, requires:id, src:"levels/" + file + "?hub=1" + (i ? "&part=" + (i + 1) : "") + "&endless=1" }))
   .concat(remix ? [{ id:"lvl" + num + "r", num, remix:true, endless:true, title:"Remix", requires:last, src:"levels/" + file + "?hub=1&remix=1" }] : []);
 const ENDLESS = [
   ...endlessOf(1, "im-lost.html", "lvl1", [["lvl1", "I'm Lost"]], false),
   // Level 2's two parts are two pages: no remix
-  { id:"lvl2x", num:2, part:1, endless:true, title:"Somebody", requires:"lvl2b", src:"levels/somebody.html?hub=1&endless=1" },
+  { id:"lvl2x", num:2, part:1, endless:true, title:"Somebody", requires:"lvl2", src:"levels/somebody.html?hub=1&endless=1" },
   { id:"lvl2bx", num:2, part:2, endless:true, title:"Zirka's Ride", requires:"lvl2b", src:"levels/zirkas-ride.html?hub=1&endless=1" },
   ...endlessOf(3, "my-heart.html", "lvl3c", [["lvl3", "My Heart"], ["lvl3b", "Lights Out"], ["lvl3c", "Heartbreak"]], true),
   ...endlessOf(4, "rollercoaster.html", "lvl4c", [["lvl4", "Rollercoaster"], ["lvl4b", "Full Speed"], ["lvl4c", "No Brakes"]], true),
@@ -852,7 +852,7 @@ function needText(lv){
   const where = need.num === lv.num ? "Part " + (need.part || 1) : "Level " + need.num;
   if (need.num !== lv.num && early(need.num)) return "Get to Level " + need.num + " the normal way first";
   if (lv.needScore && p && p.cleared) return "Score " + fmt(lv.needScore) + " in " + where + " to open";
-  if (lv.endless){ const n = LEVELS.filter(l => l.num === lv.num).length; return n > 1 ? "Clear all " + n + " parts to open" : "Clear Level " + lv.num + " to open"; }
+  if (lv.endless){ const n = LEVELS.filter(l => l.num === lv.num).length; return lv.remix ? "Clear all " + n + " parts to open" : n > 1 ? "Clear Part " + lv.part + " to open" : "Clear Level " + lv.num + " to open"; }
   return "Finish " + where + " first";
 }
 const cleared = id => !!(progress[id] && progress[id].cleared);
@@ -1357,7 +1357,7 @@ async function saveRun(r, quiet){
   const after = { ...progress, [lv.id]: { ...was, cleared: was.cleared || !!r.cleared, best: Math.max(was.best || 0, r.score | 0) } };
   const opensWith = (l, pr) => { const p = pr[l.requires]; return !!(p && p.cleared && (p.best || 0) >= (l.needScore || 0)); };
   const opened = LEVELS.filter(l => l.requires === lv.id && (l.num === lv.num || !early(lv.num)) && !opensWith(l, progress) && opensWith(l, after)).map(lvName);
-  if (ENDLESS.some(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after))) opened.push("Level " + lv.num + " Endless &#8734;");
+  opened.push(...ENDLESS.filter(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after)).map(lvName));
   if (r.cleared && !was.cleared && lv.id === "lvl2b") opened.push("Zirka's bike in Level 1");
   if (ULT.requires === lv.id && !opensWith(ULT, progress) && opensWith(ULT, after)) opened.push("JAVEDA: HYPERDRIVE");
   const unlocks = opened.length ? opened.join(" and ") + (opened.length > 1 ? " are" : " is") + " open" : "";

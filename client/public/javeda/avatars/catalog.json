@@ -10,5 +10,6 @@
   { "id": "comet", "name": "Re-entry", "cost": 600 },
   { "id": "headphones", "name": "Stay Up", "cost": 800 },
   { "id": "goldwolf", "name": "Gold Wolf", "cost": 1200 },
-  { "id": "crown", "name": "Crowned Saucer", "cost": 2000 }
+  { "id": "crown", "name": "Crowned Saucer", "cost": 2000 },
+  { "id": "complete", "name": "JAVEDA Complete", "cost": 0, "unlock": "album" }
 ]

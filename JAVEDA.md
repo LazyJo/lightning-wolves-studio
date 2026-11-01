@@ -7,7 +7,7 @@ app. The only React change is the 🛸 JAVEDA link in `Navbar.tsx`.
 ```
 client/public/javeda/
 ├── index.html          # the hub: player, levels, scoreboard, profile pictures, links
-├── avatars/<id>.svg    # 12 profile pictures (+ catalog.json); prices live in the database
+├── avatars/<id>.svg    # 13 profile pictures (+ catalog.json); prices live in the database
 └── levels/
     ├── im-lost.html    # Level 1, 3D saucer runner (three.js r128 from cdnjs) + lvl1.mp3
     ├── somebody.html   # Level 2, 3D desert arena with Zirka (three.js r128) + lvl2.mp3
@@ -128,6 +128,30 @@ scoreboard shows as offline.
   has reported exactly the same (`javeda_group_matches`; any difference: `disputed`, for nobody). Places by holes, then
   strokes; points with 3: 25 / 10 / 0, with 4: 25 / 15 / 5 / 0 (a shared place earns the place below it); on the
   Online record 1st alone is a win, a shared 1st a draw, the rest a loss. The 6-a-day limit counts these and 1v1s.
+- **Invite a friend** (every online card): a private room. The hub makes a code and a link,
+  `/javeda/?vs=<online mode>&room=<code>` (Share, Copy, WhatsApp), and opens the level with `&room=<code>`; the four
+  online pages put `-room-<code>` in their lobby channel's name, so the same quick match there only finds the people
+  with the link. Opening the link offers "Play now" (log in first; the invite is kept in `sessionStorage` through
+  the log-in). Switching between online modes inside a level keeps the room. Results count like any online game.
+- **Continue** (top of the page): "N of 28 songs cleared" (a song counts when all its parts are) and a button to the
+  first level you can play and haven't cleared, after the last one you cleared.
+- **The finale.** Clearing every part of all 28 songs (every `javeda_levels` row that isn't endless) sets
+  `javeda_players.album_completed_at` (`javeda_album_check`, from `javeda_submit_run` and `javeda_import_guest`):
+  a gold 28/28 badge beside the name on every board, the earned picture `complete` (`javeda_avatars.unlock =
+  'album'`: cost 0 but not free, and never for sale), the credits (`CREDITS` in the hub; they roll to `lvl28.mp3`
+  when the level closes) and the **album marathon** (`marathon`, `MARATHON` in the hub): Part 1 of every song back
+  to back, one try each - fail one and the run ends. Score = songs x 1,000,000 + the level scores / 10;
+  `javeda_start_run('marathon')` checks the album is done (or a creator), `max_rate` 10,000/s.
+- **Daily challenge**: one song's Part 1 endless a day (Brussels time) for everyone, reached or not; the songs come
+  round in a fixed shuffled order (`javeda_daily_level`). Its own board (`javeda_daily_scores`, empty every day);
+  `javeda_start_daily` / `javeda_submit_daily` work like an endless run. No points. When that endless is open to
+  you, the run also counts as a normal endless run.
+- **Where players get stuck** (creators only, a button on the Continue card): `javeda_level_stats()` - per level,
+  how many could play it, tried, cleared, are stuck (tried, never cleared) and runs per clear. Creators' own runs
+  are left out; guests aren't in it.
+- **Share cards**: after a clear or a new best (and the marathon, the finale, a daily best) a Share button makes a
+  1080x1920 picture in the browser (the level's colours, the score, your picture and name, the link) and shares it
+  (phones) or shows it to save.
 - **Rides.** Clearing Level 2 Part 2 earns Zirka's bike: the hub opens Level 1 with `?rides=bike` and
   the level shows a Saucer / Zirka's bike picker. Creators always get it.
 - **Points** come from playing only (never from streaming): up to 40 per run for the

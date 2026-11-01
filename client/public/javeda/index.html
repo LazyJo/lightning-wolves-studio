@@ -262,6 +262,84 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
 .toast b{color:var(--gold)}
 @media (max-width:520px){ .pics{grid-template-columns:repeat(3,1fr)} .me .nm{max-width:92px} .logo span{display:none} }
 @media (prefers-reduced-motion:no-preference){ .toast{animation:up .25s ease-out} @keyframes up{from{transform:translate(-50%,12px); opacity:0}} }
+
+/* where you are: songs cleared and the way back in (gold once the album is done), and today's challenge beside it */
+.now{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:12px}
+.cont, .daily{position:relative; overflow:hidden; border-radius:14px; border:1px solid var(--line); background:var(--panel); padding:16px; display:grid; gap:10px; align-content:start}
+.cont::before{content:""; position:absolute; inset:0; background:var(--art); opacity:.55; pointer-events:none}
+.cont > *, .daily > *{position:relative; min-width:0}
+.cont .count{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+.cont .count b{font:400 34px/1 var(--display)}
+.cont .count span{font:700 13px/1 var(--cond); letter-spacing:.2em; text-transform:uppercase; color:var(--dim)}
+.cont .meter{height:6px; border-radius:3px; background:#ffffff1a; overflow:hidden}
+.cont .meter i{display:block; height:100%; background:linear-gradient(90deg,var(--good),var(--cyan)); border-radius:3px}
+.cont .next{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
+.cont .nt{display:grid; gap:4px; min-width:0}
+.cont .nt small{font:700 11px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase; color:var(--mute)}
+.cont .nt span{font:400 19px/1.1 var(--display); overflow-wrap:anywhere}
+.cont .acts{display:flex; gap:8px; flex-wrap:wrap}
+.cont .crt{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font:700 11px/1 var(--cond); letter-spacing:.22em; text-transform:uppercase; color:var(--mute); border-top:1px solid #ffffff14; padding-top:10px}
+.cont.complete{border-color:#ffd60a8c; box-shadow:0 0 26px #ffd60a24 inset}
+.cont.complete::before{background:radial-gradient(90% 120% at 100% 0%,#ffd60a40,transparent 60%),linear-gradient(160deg,#3a2808,#0e1d3f 70%); opacity:1}
+.cont.complete .count b{color:var(--gold)}
+.cont .best{font:700 14px/1.2 var(--cond); letter-spacing:.08em; color:var(--gold)}
+.badge{display:inline-flex; align-items:center; gap:6px; width:fit-content; font:700 12px/1 var(--cond); letter-spacing:.18em; text-transform:uppercase; color:#2a1a02; background:linear-gradient(180deg,#ffe08a,#e0a41a); border-radius:999px; padding:6px 11px}
+.daily{border-color:#ff3d8b66; background:radial-gradient(90% 120% at 100% 0%,#ff3d8b33,transparent 60%),radial-gradient(70% 100% at 0% 100%,#7b2ff733,transparent 60%),var(--panel)}
+.daily .dl{font:700 11px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase; color:#ff9ad0}
+.daily .dt{font:400 20px/1.1 var(--display); overflow-wrap:anywhere}
+.daily .dd{font-size:13.5px; color:var(--dim); margin:0}
+.daily .row{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:auto}
+.daily .best{font:700 14px/1.2 var(--cond); letter-spacing:.08em; color:var(--gold)}
+.daily .tag{font:700 12px/1.1 var(--cond); letter-spacing:.12em; text-transform:uppercase; padding:5px 8px; border-radius:4px; background:#ffffff12; color:var(--dim)}
+.daily .btns{display:flex; gap:6px}
+.btn.hot{background:var(--magenta); border-color:var(--magenta); color:#fff}
+.btn.hot:hover{background:#ff5a9e}
+@media (max-width:760px){ .now{grid-template-columns:minmax(0,1fr)} }
+/* the gold badge beside a name on the boards: everyone who finished the album */
+.board .un .gb{display:inline-block; margin-left:7px; font:700 10px/1 var(--cond); letter-spacing:.1em; color:#2a1a02; background:linear-gradient(180deg,#ffe08a,#e0a41a); border-radius:999px; padding:3px 6px; vertical-align:2px}
+.pic .cost.earn{background:#2a1a02; color:var(--gold); border:1px solid #e0a41a; font-size:10.5px}
+/* invite a friend */
+.ivmodes{display:flex; gap:8px; flex-wrap:wrap}
+.ivmodes:empty{display:none}
+.ivmodes button[aria-pressed="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
+.linkrow{display:flex; gap:8px}
+.linkrow input{font:600 14px/1 var(--ui); min-width:0; flex:1}
+.ivacts{display:flex; gap:8px; flex-wrap:wrap}
+.btn.wa{background:#1fa855; border-color:#1fa855; color:#fff}
+/* where players get stuck */
+.st{list-style:none; margin:0; padding:0; display:grid; gap:2px}
+.st li{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto; gap:10px; align-items:center; padding:8px 4px; border-top:1px solid #ffffff0d; font-size:13.5px}
+.st li:first-child{border-top:0}
+.st li.hd{font:700 11px/1.2 var(--cond); letter-spacing:.16em; text-transform:uppercase; color:var(--mute)}
+.st .nm{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.st .nm small{color:var(--mute)}
+.st .rate{display:grid; gap:4px}
+.st .rate i{display:block; height:5px; border-radius:3px; background:#ffffff14; overflow:hidden}
+.st .rate i b{display:block; height:100%; background:var(--good)}
+.st .rate span{font:700 12px/1 var(--cond); letter-spacing:.06em; color:var(--dim)}
+.st .num{font:700 13px/1.2 var(--cond); letter-spacing:.04em; color:var(--dim); text-align:right; white-space:nowrap}
+.st li.hot .nm{color:#ffb0c8} .st li.hot .rate i b{background:var(--magenta)}
+.card.wide{width:min(760px,100%)}
+/* the share picture */
+.shot{width:100%; max-width:300px; justify-self:center; border-radius:12px; border:1px solid var(--line); display:block}
+.sharechip{position:fixed; z-index:41; top:max(8px, env(safe-area-inset-top)); left:118px; border:1px solid #ffd60a99; background:#2a1a02e6; color:var(--gold); border-radius:999px; padding:7px 13px; font:700 13px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; box-shadow:0 6px 20px #0008}
+body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, calc(env(safe-area-inset-bottom) + 70px))}
+/* the credits: the songs roll up the screen to the album's last song */
+.credits{position:fixed; inset:0; z-index:35; background:radial-gradient(80% 50% at 50% 100%,#ff8a3a33,transparent 70%),linear-gradient(180deg,#050c1e,#120624); overflow:hidden; cursor:pointer}
+.credits .roll{position:absolute; left:0; right:0; top:100%; display:grid; gap:34px; justify-items:center; text-align:center; padding:0 16px 40px; animation:roll var(--dur,90s) linear forwards}
+@keyframes roll{to{transform:translateY(calc(-100% - 100vh))}}
+.credits h4{margin:0; font:400 clamp(44px,12vw,96px)/1 var(--display); background:linear-gradient(172deg,#fff 20%,#67c8ff 110%); -webkit-background-clip:text; background-clip:text; color:transparent}
+.credits .cr{display:grid; gap:6px}
+.credits .cr small{font:700 13px/1 var(--cond); letter-spacing:.32em; text-transform:uppercase; color:var(--mute)}
+.credits .cr span{font:400 22px/1.2 var(--display)}
+.credits ol{list-style:none; margin:0; padding:0; display:grid; gap:10px}
+.credits ol li{font:400 19px/1.2 var(--display); color:var(--ink)}
+.credits ol li b{font:700 15px/1 var(--cond); letter-spacing:.14em; color:var(--gold); margin-right:12px}
+.credits .end{font:400 26px/1.2 var(--display); color:var(--gold)}
+.credits .close{position:absolute; top:max(8px, env(safe-area-inset-top)); right:8px; z-index:2; border:1px solid #ffffff30; background:#050c1ecc; border-radius:999px; padding:7px 12px; font:700 13px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase}
+@media (prefers-reduced-motion:reduce){ .credits{overflow-y:auto} .credits .roll{position:static; animation:none; padding-top:60px} }
+#shareSheet{z-index:45}
+@media (max-width:640px){ .ult.vs .uf{flex-wrap:wrap} }
 </style>
 </head>
 <body>
@@ -280,6 +358,8 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
   </section>
 
   <div class="banner" id="guestNote"><b>Playing as a guest.</b> Your progress stays on this phone only. <button class="switch" id="loginLink" type="button">Log in</button> to save it, earn points and get on the scoreboard.</div>
+
+  <section class="now" id="now" aria-label="Where you are"></section>
 
   <section aria-labelledby="hLv">
     <h2 id="hLv">Levels</h2>
@@ -358,12 +438,85 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
   </div>
 </div>
 
+<!-- invite a friend: a private room for an online game -->
+<div class="sheet hid" id="invite" role="dialog" aria-modal="true" aria-labelledby="ivT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="ivT">Invite a friend</h3>
+    <p>A private room just for you and the people you send this link to. No waiting for strangers: they open it, log in, and you play.</p>
+    <div class="ivmodes" id="ivModes" role="group" aria-label="Which game"></div>
+    <div class="linkrow"><input class="in" id="ivLink" readonly aria-label="Invite link"><button class="btn small" id="ivCopy" type="button">Copy</button></div>
+    <div class="ivacts">
+      <button class="btn" id="ivShare" type="button">Share&hellip;</button>
+      <a class="btn wa" id="ivWa" target="_blank" rel="noopener">WhatsApp</a>
+      <button class="btn primary" id="ivGo" type="button">Open the room</button>
+    </div>
+    <p id="ivNote"></p>
+  </div>
+</div>
+
+<!-- you were invited -->
+<div class="sheet hid" id="join" role="dialog" aria-modal="true" aria-labelledby="jnT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="jnT">You're invited</h3>
+    <p id="jnText"></p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn primary" id="jnGo" type="button">Play now</button>
+      <button class="btn small" id="jnNo" type="button">Not now</button>
+    </div>
+  </div>
+</div>
+
+<!-- where players get stuck (creators) -->
+<div class="sheet hid" id="stats" role="dialog" aria-modal="true" aria-labelledby="stT">
+  <div class="card wide">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="stT">Where players get stuck</h3>
+    <p>Every logged-in player but the creators. <b>Cleared</b> is how many of the players who tried a level cleared it; <b>stuck</b> tried and never did; <b>never tried</b> could play it and didn't. Guests aren't in here.</p>
+    <div id="stBody"></div>
+  </div>
+</div>
+
+<!-- a share picture, when the phone can't share it straight away -->
+<div class="sheet hid" id="shareSheet" role="dialog" aria-modal="true" aria-labelledby="shT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="shT">Share it</h3>
+    <img class="shot" id="shImg" alt="Your JAVEDA score card">
+    <p>Save the picture and post it to your story. The link to play is on it.</p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+      <a class="btn primary" id="shSave" download="javeda.png">Save picture</a>
+      <button class="btn" id="shCopy" type="button">Copy the link</button>
+    </div>
+  </div>
+</div>
+
+<!-- the end of the album, and every run in one -->
+<div class="sheet hid" id="done" role="dialog" aria-modal="true" aria-labelledby="dnT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="dnT">Album marathon</h3>
+    <div id="dnBody"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn gold" id="dnShare" type="button">Share</button>
+      <button class="btn" id="dnAgain" type="button">Run it again</button>
+    </div>
+  </div>
+</div>
+
+<div class="credits hid" id="credits" role="dialog" aria-modal="true" aria-label="Credits">
+  <button class="close" id="crClose" type="button">&#10005; Close</button>
+  <div class="roll" id="crRoll"></div>
+</div>
+
 <!-- the level -->
 <div class="play hid" id="play">
   <button class="close" id="playClose" type="button">&#10005; JAVEDA</button>
   <iframe id="frame" title="JAVEDA level" allow="autoplay; fullscreen"></iframe>
 </div>
 
+<button class="sharechip hid" id="shareChip" type="button">&#128248; Share</button>
 <div class="toast hid" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -383,6 +536,9 @@ const LINKS = {
   discord: "https://discord.gg/ngZ4MRjV6"
 };
 document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });
+// the credits that roll when the album is done (after the 28 songs), and the song they roll to
+const CREDITS = [["Featuring", "Zirka"], ["Label", "Lightning Wolves"]];
+const SONGS_URL = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";
 
 /* The levels, in play order. `requires` is the gate (the database enforces
    the same one), and `needScore` a best score it also needs in that level. `src` is the level's own page. The art is just a gradient
@@ -627,7 +783,9 @@ let AVATARS = [
   { id:"vortex", name:"Vortex", cost:250 }, { id:"moon", name:"Night Moon", cost:300 },
   { id:"earth", name:"Earth", cost:400 }, { id:"redufo", name:"Red Saucer", cost:500 },
   { id:"comet", name:"Re-entry", cost:600 }, { id:"headphones", name:"Stay Up", cost:800 },
-  { id:"goldwolf", name:"Gold Wolf", cost:1200 }, { id:"crown", name:"Crowned Saucer", cost:2000 }
+  { id:"goldwolf", name:"Gold Wolf", cost:1200 }, { id:"crown", name:"Crowned Saucer", cost:2000 },
+  // earned, never bought: every part of all 28 songs cleared
+  { id:"complete", name:"JAVEDA Complete", cost:0, unlock:"album" }
 ];
 const pic = id => "avatars/" + (AVATARS.some(a => a.id === id) ? id : "saucer") + ".svg";
 
@@ -650,6 +808,10 @@ let owned = new Set();      // bought pictures
 let creator = false;        // a creator account (javeda_creators) plays every level, cleared or not
 let record = null;          // your online 1v1 wins, losses, draws
 let boardTab = "points";
+let daily = null;           // today's challenge: { day, level } from javeda_daily
+let dailyBest = 0;          // your best in it today
+let mode = {};              // how the level in the frame is played: { room }, { daily:true } or { marathon:true }
+let marathon = null;        // a marathon in progress: { i, songs, total, start }
 
 const signedIn = () => !!(session && player);
 function isOpen(lv){
@@ -665,6 +827,21 @@ function needText(lv){
   if (lv.endless){ const n = LEVELS.filter(l => l.num === lv.num).length; return n > 1 ? "Clear all " + n + " parts to open" : "Clear Level " + lv.num + " to open"; }
   return "Finish " + where + " first";
 }
+const cleared = id => !!(progress[id] && progress[id].cleared);
+const SONGS_N = [...new Set(LEVELS.map(l => l.num))];
+// a song is cleared when all its parts are; the album when every part of every song is
+const songDone = n => LEVELS.every(l => l.num !== n || cleared(l.id));
+const albumDone = () => LEVELS.every(l => cleared(l.id));
+// where to pick up: the first level you can play and haven't cleared, after the last one you cleared
+function continueLevel(){
+  const todo = l => isOpen(l) && !cleared(l.id);
+  let last = -1; LEVELS.forEach((l, i) => { if (cleared(l.id)) last = i; });
+  return LEVELS.slice(last + 1).find(todo) || LEVELS.find(todo) || null;
+}
+// the album marathon: Part 1 of every song, back to back. Score = songs x 1,000,000 + the level scores / 10
+const MARATHON = LEVELS.filter(l => !l.part);
+const marathonScore = (songs, total) => songs * 1e6 + Math.min(999999, Math.floor(total / 10));
+const marathonText = v => Math.floor(v / 1e6) + "/" + MARATHON.length + " songs &middot; " + fmt((v % 1e6) * 10);
 
 /* ---- toast ---- */
 let toastT = 0;
@@ -681,6 +858,55 @@ function renderMe(){
   $("meImg").src = pic(av);
   $("mePts").textContent = signedIn() ? fmt(player.points) + " points" + (creator ? " · creator, every level open" : "") : "Guest · not saved";
   $("guestNote").classList.toggle("hid", !!session);
+}
+// where you are in the album and the way back in - or, once it's all cleared, the finale - and today's challenge
+function renderNow(){
+  const songs = SONGS_N.filter(songDone).length, parts = LEVELS.filter(l => cleared(l.id)).length, nx = continueLevel();
+  const crt = creator ? '<div class="crt">Creator <button class="btn small" data-stats="1">Where players get stuck</button>' +
+    (albumDone() ? '' : '<button class="btn small" data-marathon="1">Marathon</button><button class="btn small" data-credits="1">Credits</button>') + '</div>' : '';
+  let html;
+  if (albumDone()){
+    const mb = (progress.marathon || {}).best;
+    html = '<article class="cont complete"><span class="badge">&#9733; JAVEDA complete</span>' +
+      '<div class="count"><b>' + songs + ' of ' + SONGS_N.length + '</b><span>songs cleared &middot; the whole album</span></div>' +
+      '<p class="sub" style="margin:0">The gold badge is on your name and the gold picture is yours. Now every song back to back, one try each:</p>' +
+      (mb ? '<span class="best">Marathon best ' + marathonText(mb) + '</span>' : '') +
+      '<div class="acts"><button class="btn gold" data-marathon="1">Album marathon</button><button class="btn" data-credits="1">Credits</button>' +
+      '<button class="btn small" data-share="complete">&#128248; Share</button></div>' + crt + '</article>';
+  } else {
+    // nothing open left to clear: the next level waits on a score
+    const wait = nx ? null : LEVELS.find(l => !cleared(l.id));
+    html = '<article class="cont" style="--art:' + (nx || wait || LEVELS[0]).art + '">' +
+      '<div class="count"><b>' + songs + ' of ' + SONGS_N.length + '</b><span>songs cleared</span></div>' +
+      '<div class="meter" title="' + parts + ' of ' + LEVELS.length + ' parts cleared"><i style="width:' + (parts / LEVELS.length * 100).toFixed(1) + '%"></i></div>' +
+      (nx ? '<div class="next"><span class="nt"><small>' + (parts ? 'Continue' : 'Start here') + ' &middot; ' + lvName(nx) + '</small><span>' + esc(nx.title) + '</span></span>' +
+              '<button class="btn primary" data-play="' + nx.id + '">' + (parts ? 'Continue' : 'Play') + ' &#9654;</button></div>'
+          : wait ? '<div class="next"><span class="nt"><small>Next &middot; ' + lvName(wait) + ' &middot; ' + needText(wait) + '</small><span>' + esc(wait.title) + '</span></span>' +
+              '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>' : '') + crt + '</article>';
+  }
+  $("now").innerHTML = html + dailyCard();
+}
+// today's challenge: one song's endless for everyone, a board of its own that starts empty every day
+function dailyCard(){
+  const lv = daily && levelById(daily.level);
+  if (!lv) return "";
+  const main = LEVELS.find(l => l.num === lv.num && !l.part), day = new Date(daily.day + "T12:00:00").toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
+  return '<article class="daily"><span class="dl">Today\'s challenge &middot; ' + esc(day) + '</span>' +
+    '<span class="dt">Level ' + lv.num + ' &#8734; ' + esc(main.title) + '</span>' +
+    '<p class="dd">' + esc(lv.title) + ' with no end - the same song for everyone today' + (isOpen(lv) ? '' : ', even if you haven\'t got that far yet') + '. Its own scoreboard, empty again tomorrow.</p>' +
+    '<div class="row">' + (dailyBest ? '<span class="best">Your best today ' + fmt(dailyBest) + '</span>' : '<span class="tag">' + (session ? 'Not played yet today' : 'Log in for the board') + '</span>') +
+      '<span class="btns"><button class="btn small" data-board="daily">Board</button><button class="btn hot small" data-daily="1">Play &#8734;</button></span></div></article>';
+}
+async function loadDaily(){
+  if (!sb) return;
+  const { data } = await sb.rpc("javeda_daily");
+  if (!data || !levelById(data.level)) return;
+  daily = data; dailyBest = 0;
+  if (signedIn()){
+    const r = await sb.from("javeda_daily_scores").select("best_score").eq("day", daily.day).eq("user_id", session.user.id).maybeSingle();
+    dailyBest = (r.data && r.data.best_score) || 0;
+  } else if (guest.daily && guest.daily.day === daily.day) dailyBest = guest.daily.best || 0;
+  renderNow(); if (boardTab === "daily") { renderTabs(); renderBoard(); }
 }
 // the album songs that have no level yet, as ranges: "Levels 5 - 8, 10 - 28"
 function comingSoon(){
@@ -779,30 +1005,32 @@ function renderEndless(){
 }
 function renderVersus(){
   const r = record || { wins:0, losses:0, draws:0 };
-  const foot = buttons => '<div class="uf">' + (signedIn()
+  // and under the quick-match buttons, a private room for friends (ids: the card's modes)
+  const foot = (buttons, ids) => '<div class="uf">' + (signedIn()
       ? '<span class="rec">' + (r.wins + r.losses + r.draws ? r.wins + ' W &middot; ' + r.losses + ' L' + (r.draws ? ' &middot; ' + r.draws + ' D' : '') : 'No matches yet') + '</span>' +
-        '<span class="modes">' + buttons + '</span>'
+        '<span class="modes">' + buttons + '</span>' +
+        '<button class="btn small" data-invite="' + ids + '">&#128140; Invite a friend</button>'
       : '<span class="tag">Log in to play online</span><button class="btn primary" data-login="1">Log in</button>') + '</div>';
   $("versus").innerHTML = '<article class="ult vs">' +
     '<div><span class="no">Level 16 &middot; Peace Inside &middot; Lazy Jo feat. Zirka</span><span class="ut"><small>The first online one</small>HOOPS <i>1v1</i></span>' +
     '<p class="ds">Quick match against a real player. <b>Live:</b> the same song and the same shots at the same time, side by side - the highest score wins. ' +
     '<b>H-O-R-S-E:</b> take turns - make a shot and they have to make it too, or it\'s a letter. Spell HORSE and you\'re out. A win is +25 points.</p></div>' +
-    foot('<button class="btn gold" data-play="lvl16live">Live 1v1</button><button class="btn gold" data-play="lvl16horse">H-O-R-S-E</button>') + '</article>' +
+    foot('<button class="btn gold" data-play="lvl16live">Live 1v1</button><button class="btn gold" data-play="lvl16horse">H-O-R-S-E</button>', "lvl16live,lvl16horse") + '</article>' +
     '<article class="ult vs pass">' +
     '<div><span class="no">Level 20 &middot; Stay Up 2 &middot; Lazy Jo</span><span class="ut"><small>Memory, head to head</small>PASS IT ON <i>1v1</i></span>' +
     '<p class="ds">Quick match against a real player, one pattern of lights between you. Play it back, add a light of your own, pass it on - and remember every one they add. ' +
     'Get one wrong and it\'s a Z; three Z\'s and you fell asleep. A win is +25 points.</p></div>' +
-    foot('<button class="btn gold" data-play="lvl20pass">Pass It On 1v1</button>') + '</article>' +
+    foot('<button class="btn gold" data-play="lvl20pass">Pass It On 1v1</button>', "lvl20pass") + '</article>' +
     '<article class="ult vs love">' +
     '<div><span class="no">Level 21 &middot; Blind Love &middot; Lazy Jo</span><span class="ut"><small>Two card games</small>BLIND LOVE <i>1v1</i></span>' +
     '<p class="ds">Quick match against a real player. <b>Love Cards:</b> one bed of cards between you - take turns turning two, a pair and you go again, the most pairs wins. ' +
     '<b>Snap:</b> the same cards for both at the same time - the quicker snap takes the pair. A win is +25 points.</p></div>' +
-    foot('<button class="btn gold" data-play="lvl21cards">Love Cards 1v1</button><button class="btn gold" data-play="lvl21snap">Snap 1v1</button>') + '</article>' +
+    foot('<button class="btn gold" data-play="lvl21cards">Love Cards 1v1</button><button class="btn gold" data-play="lvl21snap">Snap 1v1</button>', "lvl21cards,lvl21snap") + '</article>' +
     '<article class="ult vs go">' +
     '<div><span class="no">Level 28 &middot; GO! &middot; Lazy Jo</span><span class="ut"><small>On the roofs at sunset</small>GO! <i>ONLINE</i></span>' +
     '<p class="ds">Quick match against real players. <b>Golf</b> for 2, 3 or 4: the same nine holes at the same time, the others as ghost balls - the fewest strokes takes the hole, the most holes wins. ' +
     '<b>Hockey:</b> one air hockey table, first to 3 rounds. A win is +25 points; with 3 or 4, 2nd place earns some too.</p></div>' +
-    foot('<button class="btn gold" data-play="lvl28golf">Golf 1v1</button><button class="btn gold" data-play="lvl28golf3">Golf &middot; 3</button><button class="btn gold" data-play="lvl28golf4">Golf &middot; 4</button><button class="btn gold" data-play="lvl28hockey">Hockey 1v1</button>') + '</article>';
+    foot('<button class="btn gold" data-play="lvl28golf">Golf 1v1</button><button class="btn gold" data-play="lvl28golf3">Golf &middot; 3</button><button class="btn gold" data-play="lvl28golf4">Golf &middot; 4</button><button class="btn gold" data-play="lvl28hockey">Hockey 1v1</button>', "lvl28golf,lvl28golf3,lvl28golf4,lvl28hockey") + '</article>';
 }
 function renderUltimate(){
   const p = progress[ULT.id] || {}, open = isOpen(ULT);
@@ -815,16 +1043,19 @@ function renderUltimate(){
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
 const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"],["lvl28","Level 28"],["lvl28b","Level 28 Part 2"]];
-// the scoreboard picker: which kind of board, then (a level or an endless) the level, then its part
-const boardKind = id => id === "points" || id === "1v1" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
+/// the scoreboard picker: which kind of board, then (a level or an endless) the level, then its part
+const boardKind = id => id === "points" || id === "1v1" || id === "daily" || id === "marathon" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
 const boardLevels = () => TABS.filter(([k]) => k !== "points" && k !== "1v1").map(([k]) => levelById(k)).filter(Boolean);
 let lastBoard = { level:"lvl28", endless:"lvl28x" };
 function renderTabs(){
   const kind = boardKind(boardTab), pad = n => String(n).padStart(2, "0");
   if (kind === "level" || kind === "endless") lastBoard[kind] = boardTab;
-  $("tabs").innerHTML = [["points", "Points"], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title]].map(([k, t, c]) =>
+  $("tabs").innerHTML = [["points", "Points"], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["marathon", "Marathon", "g"]].map(([k, t, c]) =>
     '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
-  const el = $("etabs"); el.classList.toggle("gold", kind === "endless");
+  const el = $("etabs"); el.classList.toggle("gold", kind === "endless" || kind === "marathon");
+  if (kind === "daily"){ const lv = daily && levelById(daily.level);
+    el.innerHTML = lv ? '<div class="pts"><span class="cap"><small>Today &middot; Level ' + lv.num + ' &#8734;</small>' + esc(lv.title) + '</span></div>' : ""; return; }
+  if (kind === "marathon"){ el.innerHTML = '<div class="pts"><span class="cap"><small>Album marathon</small>songs cleared in one run</span></div>'; return; }
   if (kind !== "level" && kind !== "endless"){ el.innerHTML = ""; return; }
   const list = kind === "level" ? boardLevels() : ENDLESS, cur = levelById(boardTab), here = list.filter(l => l.num === cur.num);
   const nums = [...new Set(list.map(l => l.num))], main = LEVELS.find(l => l.num === cur.num && !l.part) || cur;
@@ -836,39 +1067,49 @@ function renderTabs(){
       : '<div class="pts"><span class="cap"><small>Level ' + cur.num + (kind === "endless" ? ' &#8734;' : '') + '</small>' + esc(main.title) + '</span></div>');
 }
 
-async function renderBoard(){
-  const el = $("board");
-  if (sb && boardTab === "1v1") return renderVsBoard(el);
-  if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
-  // an endless board reads the per-level scores; the rest read the one-row-per-player board
-  const end = ENDLESS.some(l => l.id === boardTab) || boardTab === ULT.id;
-  const col = boardTab === "points" ? "points" : end ? "best_score" : boardTab + "_best";
-  const { data, error } = end
-    ? await sb.from("javeda_scores").select("username, avatar, best_score").eq("level", boardTab).order("best_score", { ascending:false }).limit(25)
-    : await sb.from("javeda_board").select("username, avatar, points, lvl1_best, lvl2_best, lvl2b_best, lvl3_best, lvl3b_best, lvl3c_best, lvl4_best, lvl4b_best, lvl4c_best, lvl5_best, lvl5b_best, lvl5c_best, lvl6_best, lvl6b_best, lvl6c_best, lvl7_best, lvl7b_best, lvl7c_best, lvl8_best, lvl8b_best, lvl8c_best, lvl9_best, lvl9b_best, lvl9c_best, lvl10_best, lvl11_best, lvl12_best, lvl13_best, lvl14_best, lvl15_best, lvl16_best, lvl17_best, lvl18_best, lvl18b_best, lvl19_best, lvl20_best, lvl21_best, lvl21b_best, lvl22_best, lvl22b_best, lvl22c_best, lvl23_best, lvl23b_best, lvl23c_best, lvl24_best, lvl25_best, lvl25b_best, lvl25c_best, lvl25d_best, lvl26_best, lvl26b_best, lvl27_best, lvl27b_best, lvl28_best, lvl28b_best")
-    .gt(col, 0).order(col, { ascending:false }).limit(25);
-  if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
-  if (!data.length){ el.innerHTML = '<p class="empty">Nobody on this board yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }
+// one board's rows: rank, picture, name (with the gold badge for everyone who finished the album), value
+function boardRows(data, val){
   const mine = signedIn() ? player.username.toLowerCase() : null;
-  el.innerHTML = '<ol>' + data.map((r, i) =>
+  return '<ol>' + data.map((r, i) =>
     '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '"><span class="rk">' + (i + 1) + '</span>' +
-    '<img src="' + pic(r.avatar) + '" alt=""><span class="un">' + esc(r.username) + '</span>' +
-    '<span class="val">' + fmt(r[col]) + (boardTab === "points" ? ' pts' : boardTab === ULT.id ? ' m' : '') + '</span></li>').join("") + '</ol>' +
+    '<img src="' + pic(r.avatar) + '" alt=""><span class="un">' + esc(r.username) +
+      (r.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + '</span>' +
+    '<span class="val">' + val(r) + '</span></li>').join("") + '</ol>';
+}
+let boardAsk = 0;
+async function renderBoard(){
+  const el = $("board"), tab = boardTab, ask = ++boardAsk;
+  if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
+  const fail = () => '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>';
+  const none = what => '<p class="empty">' + what + ' ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>';
+  // the 1v1 board: most wins first
+  if (tab === "1v1"){
+    const { data, error } = await sb.from("javeda_1v1_board").select("*").gt("wins", 0).order("wins", { ascending:false }).limit(25);
+    if (ask !== boardAsk) return;
+    el.innerHTML = error ? fail() : !data.length ? none("No 1v1 wins yet.") : boardRows(data, r => fmt(r.wins) + ' W &middot; ' + fmt(r.losses) + ' L');
+    return;
+  }
+  // today's challenge: today's scores only
+  if (tab === "daily"){
+    if (!daily){ el.innerHTML = '<p class="empty">The daily challenge isn\'t on right now.</p>'; return; }
+    const { data, error } = await sb.from("javeda_daily_board").select("*").eq("day", daily.day).order("best_score", { ascending:false }).limit(25);
+    if (ask !== boardAsk) return;
+    el.innerHTML = error ? fail() : !data.length ? none("Nobody has played today's challenge yet.") : boardRows(data, r => fmt(r.best_score));
+    return;
+  }
+  // an endless board (and HYPERDRIVE and the marathon) reads the per-level scores; the rest read the one-row-per-player board
+  const end = ENDLESS.some(l => l.id === tab) || tab === ULT.id || tab === "marathon";
+  const col = tab === "points" ? "points" : end ? "best_score" : tab + "_best";
+  const { data, error } = end
+    ? await sb.from("javeda_scores").select("*").eq("level", tab).order("best_score", { ascending:false }).limit(25)
+    : await sb.from("javeda_board").select("*").gt(col, 0).order(col, { ascending:false }).limit(25);
+  if (ask !== boardAsk) return;
+  if (error){ el.innerHTML = fail(); return; }
+  if (!data.length){ el.innerHTML = none(tab === "marathon" ? "Nobody has run the album marathon yet." : "Nobody on this board yet."); return; }
+  el.innerHTML = boardRows(data, r => tab === "marathon" ? marathonText(r[col]) : fmt(r[col]) + (tab === "points" ? ' pts' : tab === ULT.id ? ' m' : '')) +
     (signedIn() ? '' : '<p class="empty" style="border-top:1px solid #ffffff0d">Log in to get your name on here.</p>');
 }
-// the 1v1 board: most wins first
-async function renderVsBoard(el){
-  const { data, error } = await sb.from("javeda_1v1_board").select("username, avatar, wins, losses, draws").gt("wins", 0).order("wins", { ascending:false }).limit(25);
-  if (boardTab !== "1v1") return;
-  if (error){ el.innerHTML = '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>'; return; }
-  if (!data.length){ el.innerHTML = '<p class="empty">No 1v1 wins yet. ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>'; return; }
-  const mine = signedIn() ? player.username.toLowerCase() : null;
-  el.innerHTML = '<ol>' + data.map((r, i) =>
-    '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '"><span class="rk">' + (i + 1) + '</span>' +
-    '<img src="' + pic(r.avatar) + '" alt=""><span class="un">' + esc(r.username) + '</span>' +
-    '<span class="val">' + fmt(r.wins) + ' W &middot; ' + fmt(r.losses) + ' L</span></li>').join("") + '</ol>';
-}
-function renderAll(){ renderMe(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); }
+function renderAll(){ renderMe(); renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); }
 
 /* ---- profile sheet ---- */
 let pickAv = "saucer";
@@ -879,14 +1120,18 @@ document.querySelectorAll(".sheet").forEach(s => {
 });
 addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".sheet:not(.hid)").forEach(s => closeSheet(s.id)); });
 
-function ownsPic(a){ return a.cost === 0 || owned.has(a.id); }
+// an earned picture (unlock: "album") is yours once the album is done - for an account, once the database says so
+function ownsPic(a){
+  if (a.unlock) return a.unlock === "album" && (signedIn() ? !!player.album_completed_at : albumDone());
+  return a.cost === 0 || owned.has(a.id);
+}
 function renderPics(){
   const pts = signedIn() ? player.points : 0;
   $("pics").innerHTML = AVATARS.map(a => {
     const have = ownsPic(a);
     return '<button type="button" class="pic' + (a.id === pickAv ? ' on' : '') + (have ? ' owned' : ' locked') + '" data-pic="' + a.id + '"' +
-      ' aria-label="' + esc(a.name) + (have ? '' : ', ' + a.cost + ' points') + '">' +
-      '<img src="' + pic(a.id) + '" alt="">' + '<span class="cost">' + fmt(a.cost) + ' pts</span>' +
+      ' aria-label="' + esc(a.name) + (have ? '' : a.unlock ? ', earned by finishing the album' : ', ' + a.cost + ' points') + '">' +
+      '<img src="' + pic(a.id) + '" alt="">' + (a.unlock ? '<span class="cost earn">28/28</span>' : '<span class="cost">' + fmt(a.cost) + ' pts</span>') +
       '<span class="pn">' + esc(a.name) + '</span></button>';
   }).join("");
   $("pfRules").innerHTML = signedIn()
@@ -907,6 +1152,7 @@ $("pics").addEventListener("click", async e => {
   const a = AVATARS.find(x => x.id === b.dataset.pic);
   $("pfErr").textContent = "";
   if (ownsPic(a)){ pickAv = a.id; renderPics(); return; }
+  if (a.unlock){ $("pfErr").textContent = a.name + " can't be bought: clear every part of all 28 songs and it's yours."; return; }
   if (!signedIn()){ $("pfErr").textContent = "Log in to earn points and unlock " + a.name + "."; return; }
   if (player.points < a.cost){ $("pfErr").textContent = a.name + " costs " + fmt(a.cost) + " points. You have " + fmt(player.points) + "."; return; }
   if (!confirm("Unlock " + a.name + " for " + fmt(a.cost) + " points?")) return;
@@ -968,7 +1214,7 @@ $("lgGoogle").onclick = async () => {
 /* ---- account ---- */
 async function loadAccount(){
   player = null; owned = new Set(); creator = false; record = null;
-  if (!session){ progress = { ...guest.progress }; renderAll(); return; }
+  if (!session){ progress = { ...guest.progress }; renderAll(); showJoin(); return; }
   const uid = session.user.id;
   const [p, g, o, c, v] = await Promise.all([
     sb.from("javeda_players").select("*").eq("user_id", uid).maybeSingle(),
@@ -997,7 +1243,7 @@ async function loadAccount(){
     await importGuest();
     return loadAccount();
   }
-  renderAll();
+  renderAll(); showJoin();
 }
 async function importGuest(){
   const has = Object.keys(guest.progress || {}).length;
@@ -1011,22 +1257,39 @@ async function importGuest(){
 
 /* ---- playing ---- */
 let current = null;
-function play(id){
+// how: { room } (an online game in a private room), { daily:true } (today's challenge - open whether you got
+// there or not) or { marathon:true } (the album marathon)
+function play(id, how){
   const lv = levelById(id);
-  if (!lv || !isOpen(lv)) return;
+  how = how || {};
+  if (!lv || !(isOpen(lv) || how.daily)) return;
   if (lv.online && !signedIn()){ toast("Log in to play online - the result goes on your account."); openLogin(); return; }
-  current = lv;
+  current = lv; mode = how;
   const r = lv.id === "lvl1" || lv.id === "lvl1x" ? rides() : [];
-  $("frame").src = lv.src + (r.length ? "&rides=" + r.join(",") : "");
+  $("frame").src = lv.src + (how.room ? "&room=" + how.room : "") + (r.length ? "&rides=" + r.join(",") : "");
+  $("playClose").innerHTML = "&#10005; " + (how.marathon ? "Marathon " + (marathon.i + 1) + "/" + MARATHON.length : how.daily ? "Daily" : how.room ? "Private room" : "JAVEDA");
   $("play").classList.remove("hid");
-  document.body.style.overflow = "hidden";
+  document.body.style.overflow = "hidden"; document.body.classList.add("playing");
 }
 function stopPlay(){
-  $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null;
-  document.body.style.overflow = "";
-  renderLevels(); renderVersus(); renderUltimate(); renderEndless();
+  if (marathon) return endMarathon("You left the run.");
+  $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null; mode = {};
+  document.body.style.overflow = ""; document.body.classList.remove("playing");
+  renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless();
+  if (creditsDue){ creditsDue = false; openCredits(); }
 }
 $("levels").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
+$("now").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.play) play(b.dataset.play);
+  else if (b.dataset.daily) play(daily.level, { daily:true });
+  else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
+  else if (b.dataset.marathon) startMarathon();
+  else if (b.dataset.credits) openCredits();
+  else if (b.dataset.stats) openStats();
+  else if (b.dataset.share) shareCard(completeCard || (completeCard = { kind:"complete" }));
+});
+let completeCard = null;
 for (const id of ["tabs", "etabs"]) $(id).addEventListener("click", e => {
   const b = e.target.closest("[data-tab], [data-kind], [data-num]"); if (!b) return;
   if (b.dataset.kind){ const k = b.dataset.kind; boardTab = k === "level" || k === "endless" ? lastBoard[k] : k === "ult" ? ULT.id : k; }
@@ -1035,18 +1298,28 @@ for (const id of ["tabs", "etabs"]) $(id).addEventListener("click", e => {
   renderTabs(); renderBoard();
 });
 $("ultimate").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
-$("versus").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); else if (e.target.closest("[data-login]")) openLogin(); });
+$("versus").addEventListener("click", e => {
+  const b = e.target.closest("[data-play]"), iv = e.target.closest("[data-invite]");
+  if (b) play(b.dataset.play); else if (iv) openInvite(iv.dataset.invite.split(",")); else if (e.target.closest("[data-login]")) openLogin();
+});
 $("endless").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
 $("playClose").onclick = stopPlay;
 
-// an endless run starts with the database, which holds its score to the time played
-let runStart = null;
-function startRun(lv){ runStart = signedIn() && lv.endless ? sb.rpc("javeda_start_run", { p_level:lv.id }) : null; }
-async function saveRun(r){
+// An endless run starts with the database, which holds its score to the time played (a daily run and the
+// marathon too). .then() sends it now: a supabase query only goes out when something awaits it, and awaited
+// at the end of the run it would say the run took no time at all.
+let runStart = null, dailyStart = null;
+const sendNow = q => q.then(r => r);
+function startRun(lv){
+  runStart = signedIn() && lv.endless && isOpen(lv) ? sendNow(sb.rpc("javeda_start_run", { p_level:lv.id })) : null;
+  dailyStart = signedIn() && mode.daily ? sendNow(sb.rpc("javeda_start_daily")) : null;
+}
+// quiet: no toast or share offer (the marathon says its own)
+async function saveRun(r, quiet){
   const lv = levelById(r.level); if (!lv) return;
   if (lv.online) return;   // an online 1v1 is saved by javeda_report_match (javeda:match), not as a level run
-  if (lv.endless) return saveEndless(lv, r);
-  const was = progress[lv.id] || {};
+  if (lv.endless) return saveEndless(lv, r, quiet);
+  const was = progress[lv.id] || {}, before = albumDone();
   // what this run opens: the next song, a Part 2, a Part 3 that waits on a score,
   // and for Level 2 Part 2 Zirka's bike
   const after = { ...progress, [lv.id]: { ...was, cleared: was.cleared || !!r.cleared, best: Math.max(was.best || 0, r.score | 0) } };
@@ -1061,7 +1334,10 @@ async function saveRun(r){
     g.cleared = g.cleared || !!r.cleared; g.best = Math.max(g.best, r.score | 0);
     g.metres = Math.max(g.metres, r.metres | 0); g.runs++;
     guest.progress[lv.id] = g; saveGuest(); progress = { ...guest.progress };
-    if (unlocks) toast(unlocks + ". <b>Log in</b> to save it everywhere.", 5000);
+    if (!before && albumDone()) finale();
+    else if (unlocks && !quiet) toast(unlocks + ". <b>Log in</b> to save it everywhere.", 5000);
+    if (r.cleared && !quiet) offerShare({ kind:"level", lv, score:r.score | 0, head:"Cleared" });
+    renderNow();
     return;
   }
   let res = await sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:r.score | 0, p_metres:r.metres | 0, p_cleared:!!r.cleared });
@@ -1073,32 +1349,300 @@ async function saveRun(r){
   const d = res.data;
   player = d.player;
   progress[lv.id] = { cleared:d.progress.cleared, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
-  renderMe(); renderBoard();
-  toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), 4500);
+  renderMe(); renderNow(); renderBoard();
+  if (d.album_complete) finale();
+  else if (!quiet) toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), 4500);
+  if (r.cleared && !quiet) offerShare({ kind:"level", lv, score:d.score, head:d.first_clear ? "First clear" : d.new_best ? "New best" : "Cleared" });
 }
-async function saveEndless(lv, r){
-  const was = (progress[lv.id] || {}).best || 0, score = r.score | 0;
+async function saveEndless(lv, r, quiet){
+  const was = (progress[lv.id] || {}).best || 0, score = r.score | 0, unit = lv.ultimate ? " m" : "";
   if (!signedIn()){
     const g = guest.progress[lv.id] || { cleared:true, best:0, metres:0, runs:0 };
     g.best = Math.max(g.best, score); g.runs++; guest.progress[lv.id] = g; saveGuest(); progress = { ...guest.progress };
-    toast((score > was ? "<b>New best!</b> " : "Best " + fmt(was) + (lv.ultimate ? " m" : "") + ". ") + "<b>Log in</b> to put it on the scoreboard.", 5000);
+    if (quiet) return;
+    toast((score > was ? "<b>New best!</b> " : "Best " + fmt(was) + unit + ". ") + "<b>Log in</b> to put it on the scoreboard.", 5000);
+    if (score > was && score) offerShare({ kind:"level", lv, score, unit, head:"New best" });
     return;
   }
   const started = runStart ? await runStart : null; runStart = null;
-  if (!started || started.error){ toast("That run didn't save: " + esc(started && started.error ? started.error.message : "it never started")); return; }
+  if (!started || started.error){ if (!quiet) toast("That run didn't save: " + esc(started && started.error ? started.error.message : "it never started")); return; }
   let res = await sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:score, p_metres:r.metres | 0, p_cleared:true });
   if (res.error && /slow down/.test(res.error.message)){
     await new Promise(ok => setTimeout(ok, 10500));
     res = await sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:score, p_metres:r.metres | 0, p_cleared:true });
   }
-  if (res.error){ toast("That run didn't save: " + esc(res.error.message)); return; }
+  if (res.error){ if (!quiet) toast("That run didn't save: " + esc(res.error.message)); return; }
   const d = res.data;
   player = d.player;
   progress[lv.id] = { cleared:true, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
   renderMe(); renderBoard();
-  toast(d.new_best ? "<b>New best! " + fmt(d.score) + (lv.ultimate ? " m" : "") + "</b>" + (d.earned ? " · +" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") : "")
-                   : "Your best is still <b>" + fmt(d.progress.best_score) + (lv.ultimate ? " m" : "") + "</b> · beat it for points", 4500);
+  if (quiet) return;
+  toast(d.new_best ? "<b>New best! " + fmt(d.score) + unit + "</b>" + (d.earned ? " · +" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") : "")
+                   : "Your best is still <b>" + fmt(d.progress.best_score) + unit + "</b> · beat it for points", 4500);
+  if (d.new_best && d.score) offerShare({ kind:"level", lv, score:d.score, unit, head:"New best" });
 }
+// today's challenge: the day's board (and, when that endless is open to you, your endless best too, quietly)
+async function saveDaily(r){
+  const lv = levelById(r.level), score = r.score | 0;
+  if (isOpen(lv)) saveEndless(lv, r, true);
+  if (!signedIn()){
+    const d = guest.daily && daily && guest.daily.day === daily.day ? guest.daily : { day:daily && daily.day, best:0 };
+    const nb = score > d.best; d.best = Math.max(d.best, score); guest.daily = d; saveGuest(); dailyBest = d.best; renderNow();
+    toast((nb ? "<b>New best today: " + fmt(score) + "</b>" : "Today's best: <b>" + fmt(d.best) + "</b>") + " · <b>Log in</b> to get on the daily board.", 5000);
+    if (nb && score) offerShare({ kind:"daily", lv, score, head:"Daily challenge" });
+    return;
+  }
+  const started = dailyStart ? await dailyStart : null; dailyStart = null;
+  if (!started || started.error){ toast("That daily run didn't save: " + esc(started && started.error ? started.error.message : "it never started")); return; }
+  const res = await sb.rpc("javeda_submit_daily", { p_score:score });
+  if (res.error){ toast("That daily run didn't save: " + esc(res.error.message)); return; }
+  const d = res.data;
+  if (daily && d.day === daily.day) dailyBest = d.best;
+  renderNow(); if (boardTab === "daily") renderBoard();
+  toast((d.new_best ? "<b>New best today! " + fmt(d.score) + "</b>" : "Today's best is still <b>" + fmt(d.best) + "</b>") + " · <b>#" + d.rank + "</b> on today's board", 5000);
+  if (d.new_best && d.score) offerShare({ kind:"daily", lv, score:d.score, head:"Daily challenge" });
+}
+
+/* ---- the album marathon: Part 1 of every song back to back, one try each ---- */
+function startMarathon(){
+  if (!albumDone() && !creator){ toast("The album marathon opens when every part of all 28 songs is cleared."); return; }
+  closeSheet("done");
+  marathon = { i:0, songs:0, total:0, stepped:-1, start: signedIn() ? sendNow(sb.rpc("javeda_start_run", { p_level:"marathon" })) : null };
+  play(MARATHON[0].id, { marathon:true });
+  toast("<b>Album marathon</b> · " + MARATHON.length + " songs back to back, one try each. Fail one and the run is over.", 5500);
+}
+// a song is over: cleared, on to the next in a moment (or straight away with the level's own Next); not, the end
+function marathonStep(r){
+  const m = marathon;
+  if (!m || r.level !== MARATHON[m.i].id || m.stepped === m.i) return;
+  m.stepped = m.i;
+  if (!r.cleared){ m.t = setTimeout(() => { if (marathon === m) endMarathon("Level " + MARATHON[m.i].num + " didn't clear - that's the end of the run."); }, 1800); return; }
+  m.songs++; m.total += Math.max(0, r.score | 0);
+  const nx = MARATHON[m.i + 1];
+  if (!nx){ m.t = setTimeout(() => { if (marathon === m) endMarathon(null); }, 2500); return; }
+  toast("<b>Song " + m.songs + " of " + MARATHON.length + " &#10003;</b> · next: Level " + nx.num + " " + esc(nx.title), 3200);
+  m.t = setTimeout(marathonNext, 3500);
+}
+function marathonNext(){
+  const m = marathon;
+  if (!m || m.stepped !== m.i || !MARATHON[m.i + 1]) return;
+  clearTimeout(m.t); m.i++; play(MARATHON[m.i].id, { marathon:true });
+}
+let doneCard = null;
+async function endMarathon(why){
+  const m = marathon; if (!m) return;
+  marathon = null; clearTimeout(m.t);
+  stopPlay();
+  const score = marathonScore(m.songs, m.total), all = m.songs === MARATHON.length;
+  doneCard = { kind:"marathon", score, songs:m.songs, total:m.total };
+  $("dnT").textContent = all ? "The whole album!" : "Album marathon";
+  $("dnBody").innerHTML = '<p><b style="font:400 34px/1 var(--display); color:var(--gold)">' + m.songs + ' of ' + MARATHON.length + '</b> songs in one run</p>' +
+    '<p>' + (why ? esc(why) + ' ' : all ? 'Every song back to back, not one missed. ' : '') + 'Level scores together: <b>' + fmt(m.total) + '</b>.</p>' +
+    '<p class="ok-msg" id="dnNote">' + (!m.songs ? '' : signedIn() ? 'Saving&hellip;' : '<b>Log in</b> to put your runs on the marathon board.') + '</p>';
+  $("dnShare").classList.toggle("hid", !m.songs);
+  openSheet("done");
+  if (!m.songs) return;
+  doneCard.blob = makeCard(doneCard);
+  if (!signedIn()){
+    const g = guest.progress.marathon || { cleared:true, best:0, metres:0, runs:0 };
+    g.best = Math.max(g.best, score); g.runs++; guest.progress.marathon = g; saveGuest(); progress = { ...guest.progress }; renderNow();
+    return;
+  }
+  const note = t => { const n = $("dnNote"); if (n) n.innerHTML = t; };
+  const started = m.start ? await m.start : null;
+  if (!started || started.error){ note("It didn't save: " + esc(started && started.error ? started.error.message : "it never started")); return; }
+  // the last song's own run saved a moment ago, and the database wants 10 s between runs
+  let res = await sb.rpc("javeda_submit_run", { p_level:"marathon", p_score:score, p_metres:m.songs, p_cleared:true });
+  if (res.error && /slow down/.test(res.error.message)){
+    note("Saving&hellip; (a few seconds)");
+    await new Promise(ok => setTimeout(ok, 10500));
+    res = await sb.rpc("javeda_submit_run", { p_level:"marathon", p_score:score, p_metres:m.songs, p_cleared:true });
+  }
+  if (res.error){ note("It didn't save: " + esc(res.error.message)); return; }
+  const d = res.data;
+  player = d.player;
+  progress.marathon = { cleared:true, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
+  renderMe(); renderNow(); if (boardTab === "marathon" || boardTab === "points") renderBoard();
+  note(d.new_best ? "New marathon best!" + (d.earned ? " <b>+" + fmt(d.earned) + " points</b>" : "") : "Your best is still " + marathonText(d.progress.best_score) + ".");
+}
+$("dnShare").onclick = () => { if (doneCard) shareCard(doneCard); };
+$("dnAgain").onclick = () => startMarathon();
+
+/* ---- the end of the album ---- */
+let creditsDue = false, crSong = null;
+// the last part cleared: the badge and the picture are on, the marathon opens, and the credits roll when the level closes
+function finale(){
+  creditsDue = true;
+  toast("<b>JAVEDA complete!</b> All 28 songs. The gold badge and the gold picture are yours, and the album marathon is open.", 9000);
+  offerShare(completeCard = { kind:"complete" });
+  renderNow();
+}
+function openCredits(){
+  const pad = n => String(n).padStart(2, "0");
+  $("crRoll").innerHTML = '<h4>JAVEDA</h4><div class="cr"><small>The playable album by</small><span>Lazy Jo</span></div>' +
+    '<ol>' + MARATHON.map(l => '<li><b>' + pad(l.num) + '</b>' + esc(l.title) + '</li>').join("") + '</ol>' +
+    CREDITS.map(([k, v]) => '<div class="cr"><small>' + esc(k) + '</small><span>' + esc(v) + '</span></div>').join("") +
+    '<p class="end">Thank you for playing.</p>';
+  const roll = $("crRoll"); roll.style.animation = "none"; void roll.offsetWidth; roll.style.animation = "";
+  $("credits").classList.remove("hid"); document.body.style.overflow = "hidden";
+  try { crSong = new Audio(SONGS_URL + "lvl28.mp3"); crSong.volume = .8; crSong.play().catch(() => {}); } catch(e){}
+  $("crClose").focus();
+}
+function closeCredits(){
+  if ($("credits").classList.contains("hid")) return;
+  $("credits").classList.add("hid"); document.body.style.overflow = current ? "hidden" : "";
+  if (crSong){ crSong.pause(); crSong = null; }
+}
+$("credits").onclick = closeCredits;
+$("crRoll").addEventListener("animationend", closeCredits);
+addEventListener("keydown", e => { if (e.key === "Escape") closeCredits(); });
+
+/* ---- invite a friend: a private room for an online game ---- */
+// A room is a lobby of its own (the level pages put ?room= in the lobby's name), so the quick match there
+// only finds the people with the link. The link: /javeda/?vs=<online mode>&room=<code>.
+const ROOM_RE = /^[a-z0-9]{6,16}$/, INVITE_KEY = "javeda.invite";
+const newRoom = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), b => "abcdefghijkmnpqrstuvwxyz23456789"[b & 31]).join("");
+let invite = null;
+function openInvite(ids){
+  invite = { ids:ids.filter(id => levelById(id)), room:newRoom() }; invite.id = invite.ids[0];
+  renderInvite(); openSheet("invite");
+}
+function renderInvite(){
+  const lv = levelById(invite.id), url = location.origin + "/javeda/?vs=" + invite.id + "&room=" + invite.room;
+  invite.url = url; invite.text = "Play " + lv.title + " with me on JAVEDA, Lazy Jo's playable album:";
+  $("ivModes").innerHTML = invite.ids.length > 1 ? invite.ids.map(id => '<button type="button" class="btn small" data-mode="' + id + '" aria-pressed="' + (id === invite.id) + '">' + esc(levelById(id).title) + '</button>').join("") : "";
+  $("ivLink").value = url;
+  $("ivWa").href = "https://wa.me/?text=" + encodeURIComponent(invite.text + " " + url);
+  $("ivShare").classList.toggle("hid", !navigator.share);
+  $("ivNote").textContent = lv.players ? "Golf for " + lv.players + " starts when " + lv.players + " of you are in the room." : "";
+}
+$("ivModes").addEventListener("click", e => { const b = e.target.closest("[data-mode]"); if (b){ invite.id = b.dataset.mode; renderInvite(); } });
+$("ivCopy").onclick = async () => { try { await navigator.clipboard.writeText(invite.url); toast("Link copied - send it to your friend"); } catch(e){ $("ivLink").select(); } };
+$("ivShare").onclick = async () => { try { await navigator.share({ title:"JAVEDA", text:invite.text, url:invite.url }); } catch(e){} };
+$("ivGo").onclick = () => { closeSheet("invite"); play(invite.id, { room:invite.room }); };
+// someone opened an invite: keep it through a log-in (the page reloads), then offer to join
+function readInvite(){
+  const q = new URLSearchParams(location.search), id = q.get("vs"), room = q.get("room");
+  if (id && ROOM_RE.test(room || "") && VERSUS.some(v => v.id === id)){
+    try { sessionStorage.setItem(INVITE_KEY, JSON.stringify({ id, room })); } catch(e){}
+    history.replaceState(null, "", location.pathname);
+    return { id, room };
+  }
+  try { const j = JSON.parse(sessionStorage.getItem(INVITE_KEY)); if (j && levelById(j.id) && ROOM_RE.test(j.room)) return j; } catch(e){}
+  return null;
+}
+let joining = readInvite();
+function dropInvite(){ joining = null; try { sessionStorage.removeItem(INVITE_KEY); } catch(e){} }
+function showJoin(){
+  if (!joining || current) return;
+  const lv = levelById(joining.id);
+  $("jnText").innerHTML = "A friend wants to play <b>" + esc(lv.title) + "</b> with you, in a private room of your own." +
+    (signedIn() ? "" : " Log in first (free) - the result goes on your account.");
+  $("jnGo").textContent = signedIn() ? "Play now" : "Log in to play";
+  openSheet("join");
+}
+$("jnGo").onclick = () => {
+  if (!signedIn()){ closeSheet("join"); openLogin(); return; }
+  const j = joining; dropInvite(); closeSheet("join"); play(j.id, { room:j.room });
+};
+$("jnNo").onclick = () => { dropInvite(); closeSheet("join"); };
+
+/* ---- where players get stuck (creators) ---- */
+async function openStats(){
+  openSheet("stats");
+  const el = $("stBody"); el.innerHTML = "<p>Loading&hellip;</p>";
+  const { data, error } = await sb.rpc("javeda_level_stats");
+  if (error){ el.innerHTML = '<p class="err">' + esc(error.message) + '</p>'; return; }
+  const rows = data.filter(r => levelById(r.level)), part = r => r.tried ? r.stuck / r.tried : 0;
+  // the three levels the most players who tried them are stuck on
+  const worst = new Set(rows.filter(r => r.tried >= 3 && r.stuck).sort((a, b) => part(b) - part(a)).slice(0, 3).map(r => r.level));
+  el.innerHTML = '<ol class="st"><li class="hd"><span>Level</span><span>Cleared</span><span>Stuck &middot; runs a clear</span></li>' +
+    rows.map(r => {
+      const lv = levelById(r.level), pc = r.tried ? Math.round(r.cleared / r.tried * 100) : 0;
+      return '<li class="' + (worst.has(r.level) ? 'hot' : '') + '"><span class="nm">' + lvName(lv) + ' <small>' + esc(lv.title) + '</small></span>' +
+        '<span class="rate"><i><b style="width:' + pc + '%"></b></i><span>' + (r.tried ? r.cleared + ' of ' + r.tried + ' (' + pc + '%)' : 'nobody yet') + '</span></span>' +
+        '<span class="num">' + r.stuck + ' stuck &middot; ' + (r.clears ? (r.runs / r.clears).toFixed(1) : r.runs ? r.runs + '+' : '-') +
+        '<br>' + Math.max(0, r.could - r.tried) + ' never tried</span></li>';
+    }).join("") + '</ol>' +
+    (rows.some(r => r.tried) ? '' : '<p>No runs from players yet. It fills up as people play.</p>');
+}
+
+/* ---- share cards: a story-sized picture of a clear or a new best, with the way to play ---- */
+const SHARE_URL = location.origin + "/javeda/";
+function cardText(c){
+  if (c.kind === "complete") return "I finished JAVEDA - all 28 songs of Lazy Jo's playable album.";
+  if (c.kind === "marathon") return "Album marathon on JAVEDA: " + c.songs + " of " + MARATHON.length + " songs in one run.";
+  if (c.kind === "daily") return "Today's JAVEDA challenge: " + fmt(c.score) + ". Beat it:";
+  return lvName(c.lv).replace(" ∞", " endless") + ", " + c.lv.title + ": " + fmt(c.score) + (c.unit || "") + " on JAVEDA, Lazy Jo's playable album.";
+}
+async function makeCard(c){
+  const W = 1080, H = 1920, cv = document.createElement("canvas"), x = cv.getContext("2d");
+  cv.width = W; cv.height = H;
+  try { await Promise.all(['400 100px Bungee', '700 50px "Barlow Condensed"', '600 50px Barlow'].map(f => document.fonts.load(f))); } catch(e){}
+  const gold = c.kind === "complete" || c.kind === "marathon";
+  const main = c.lv ? LEVELS.find(l => l.num === c.lv.num && !l.part) : null, art = c.lv ? (c.lv.art || main.art) : "";
+  // the level's world: the colours of its art's last gradient, its first colour as the glow
+  const base = ((art.match(/linear-gradient\([^)]*\)/g) || []).pop() || "").match(/#[0-9a-f]{6}/gi) || [];
+  const cols = base.length > 1 ? base : gold ? ["#4a3008", "#120a1e"] : ["#2a1450", "#0b0416"];
+  const glow = gold ? "#ffd60a" : (art.match(/#[0-9a-f]{6}/i) || ["#2f8fe0"])[0];
+  let g = x.createLinearGradient(0, 0, W * .3, H);
+  cols.forEach((k, i) => g.addColorStop(i / (cols.length - 1), k)); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  g = x.createRadialGradient(W * .8, 0, 0, W * .8, 0, W * 1.2); g.addColorStop(0, glow + "99"); g.addColorStop(1, glow + "00"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+  x.fillStyle = "#050c1e99"; x.fillRect(0, 0, W, H);
+  let s = 11; const rnd = () => (s = s * 16807 % 2147483647) / 2147483647;
+  x.fillStyle = "#fff";
+  for (let i = 0; i < 150; i++){ x.globalAlpha = .15 + rnd() * .6; x.beginPath(); x.arc(rnd() * W, rnd() * H * .75, rnd() * 2.6 + .4, 0, 7); x.fill(); }
+  x.globalAlpha = 1; x.textAlign = "center"; x.textBaseline = "alphabetic";
+  const text = (t, y, font, color, glowCol) => { x.font = font; x.fillStyle = color; x.shadowColor = glowCol || "transparent"; x.shadowBlur = glowCol ? 40 : 0; x.fillText(t, W / 2, y, W - 120); x.shadowBlur = 0; };
+  // a title on as many lines as it needs (at most two)
+  const lines = (t, font, max) => { x.font = font; const out = [""]; for (const w of t.split(" ")){ const k = out.length - 1, tryIt = out[k] ? out[k] + " " + w : w; if (x.measureText(tryIt).width > max && out[k]) out.push(w); else out[k] = tryIt; } return out.slice(0, 2); };
+  text("JAVEDA", 250, '400 150px Bungee', "#ffffff", glow);
+  text("THE PLAYABLE ALBUM BY LAZY JO", 330, '700 46px "Barlow Condensed"', "#bcd6f2");
+  const label = c.kind === "complete" ? "ALL 28 SONGS" : c.kind === "marathon" ? "ALBUM MARATHON"
+    : (c.kind === "daily" ? "TODAY'S CHALLENGE - " : "") + lvName(c.lv).replace(" ∞", " ENDLESS").toUpperCase();
+  const title = c.kind === "complete" ? "JAVEDA COMPLETE" : c.kind === "marathon" ? "ONE RUN" : (c.lv.endless ? main.title : c.lv.title);
+  text(label, 720, '700 58px "Barlow Condensed"', "#d6e6f8");
+  let y = 830;
+  for (const ln of lines(title, '400 108px Bungee', W - 140)){ text(ln, y, '400 108px Bungee', "#ffffff"); y += 120; }
+  // the pill: what happened
+  const head = (c.kind === "complete" ? "Every part cleared" : c.kind === "marathon" ? "SONGS IN A ROW" : (c.head || "")).toUpperCase();
+  x.font = '700 52px "Barlow Condensed"'; const pw = x.measureText(head).width + 80;
+  x.fillStyle = "#ffd60a"; x.beginPath(); x.roundRect ? x.roundRect(W / 2 - pw / 2, y - 10, pw, 84, 42) : x.rect(W / 2 - pw / 2, y - 10, pw, 84); x.fill();
+  text(head, y + 50, '700 52px "Barlow Condensed"', "#2a1a02");
+  const big = c.kind === "complete" ? "28/28" : c.kind === "marathon" ? c.songs + "/" + MARATHON.length : fmt(c.score) + (c.unit || "");
+  text(big, y + 300, '400 ' + (big.length > 9 ? 150 : 200) + 'px Bungee', "#ffd60a", "#ffb000");
+  // who: your picture and name
+  const name = signedIn() ? player.username : guest.name, av = signedIn() ? player.avatar : guest.avatar;
+  if (name){
+    try { const im = new Image(); im.src = pic(av); await im.decode(); x.save(); x.beginPath(); x.arc(W / 2, 1495, 78, 0, 7); x.clip(); x.drawImage(im, W / 2 - 78, 1417, 156, 156); x.restore(); } catch(e){}
+    text(name, 1640, '700 64px "Barlow Condensed"', "#ffffff");
+  }
+  text("PLAY IT FREE", 1760, '700 44px "Barlow Condensed"', "#bcd6f2");
+  text(location.host + "/javeda", 1830, '600 56px Barlow', "#ffffff");
+  return new Promise(ok => cv.toBlob(ok, "image/png"));
+}
+// after a clear or a new best: a Share button for a while (the picture is made first, so a tap shares it at once)
+let shareT = 0, chipCard = null;
+function offerShare(c){
+  chipCard = c; c.blob = makeCard(c);
+  c.blob.then(b => { if (!b || chipCard !== c) return; $("shareChip").classList.remove("hid"); clearTimeout(shareT); shareT = setTimeout(() => $("shareChip").classList.add("hid"), 25000); });
+}
+$("shareChip").onclick = () => { $("shareChip").classList.add("hid"); if (chipCard) shareCard(chipCard); };
+async function shareCard(c){
+  const blob = await (c.blob || (c.blob = makeCard(c)));
+  if (!blob) return;
+  const name = "javeda-" + (c.lv ? c.lv.id : c.kind) + ".png", file = new File([blob], name, { type:"image/png" });
+  if (navigator.canShare && navigator.canShare({ files:[file] })){
+    try { await navigator.share({ files:[file], text:cardText(c) + " " + SHARE_URL }); return; }
+    catch(e){ if (e && e.name === "AbortError") return; }
+  }
+  // no sharing a file from here (most computers): show it, to save and post
+  const url = URL.createObjectURL(blob);
+  $("shImg").src = url; $("shSave").href = url; $("shSave").download = name;
+  openSheet("shareSheet");
+}
+$("shCopy").onclick = async () => { try { await navigator.clipboard.writeText(SHARE_URL); toast("Link copied"); } catch(e){ toast(SHARE_URL); } };
+
 // an online 1v1 is over: report it. It counts once the other player's report says the same,
 // so if theirs isn't in yet, ask again a few times
 async function reportMatch(m){
@@ -1128,14 +1672,20 @@ addEventListener("message", e => {
   if (e.origin !== location.origin || e.source !== $("frame").contentWindow) return;
   const m = e.data || {};
   if (m.type === "javeda:start" && current && m.level === current.id) startRun(current);
-  else if (m.type === "javeda:result" && current && m.level === current.id) saveRun(m);
+  else if (m.type === "javeda:result" && current && m.level === current.id){
+    if (mode.daily) saveDaily(m);
+    else { saveRun(m, !!mode.marathon); if (mode.marathon) marathonStep(m); }
+  }
   else if (m.type === "javeda:match" && current && current.online && m.level === current.id) reportMatch(m);
   else if (m.type === "javeda:menu") stopPlay();
   else if (m.type === "javeda:play" && current && levelById(m.level) && levelById(m.level).num === current.num){
     const lv = levelById(m.level);
-    if (isOpen(lv)) play(lv.id); else toast(lvName(lv) + " - " + needText(lv) + ".");
+    if (marathon) return void endMarathon("You left the run.");
+    // switching between online games keeps you in your private room
+    if (isOpen(lv)) play(lv.id, lv.online && mode.room ? { room:mode.room } : undefined); else toast(lvName(lv) + " - " + needText(lv) + ".");
   }
   else if (m.type === "javeda:next"){
+    if (marathon) return void marathonNext();
     const nextLv = nextMain(m.level || (current && current.id));
     if (nextLv && isOpen(nextLv)) play(nextLv.id);
     else { stopPlay(); if (nextLv) toast(lvName(nextLv) + " opens when you finish this one."); }
@@ -1153,12 +1703,12 @@ renderAll();
   } catch(e){}
   if (!sb){ progress = { ...guest.progress }; renderAll(); return; }
   // the live catalogue wins over the built-in copy, so prices can change without a deploy
-  sb.from("javeda_avatars").select("id, name, cost").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
+  sb.from("javeda_avatars").select("*").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
   const { data } = await sb.auth.getSession();
-  session = data.session; await loadAccount();
+  session = data.session; await loadAccount(); loadDaily();
   sb.auth.onAuthStateChange((_e, s) => {
     const changed = (s && s.user.id) !== (session && session.user.id);
-    session = s; if (changed) loadAccount();
+    session = s; if (changed) loadAccount().then(loadDaily);
   });
 })();
 </script>

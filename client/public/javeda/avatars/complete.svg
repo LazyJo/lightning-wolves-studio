@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="jc-bg" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#5a3a08"/><stop offset=".5" stop-color="#241404"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<radialGradient id="jc-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd60a" stop-opacity=".45"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></radialGradient>
+<linearGradient id="jc-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2a8" stop-opacity=".8"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></linearGradient>
+<linearGradient id="jc-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".35" stop-color="#ffd60a"/><stop offset=".75" stop-color="#d89a00"/><stop offset="1" stop-color="#8a5200"/></linearGradient>
+<linearGradient id="jc-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#fff2b8"/><stop offset="1" stop-color="#e8b830"/></linearGradient>
+<linearGradient id="jc-r" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".3" stop-color="#ffd60a"/><stop offset=".55" stop-color="#a86d00"/><stop offset=".8" stop-color="#ffd60a"/><stop offset="1" stop-color="#fff6c8"/></linearGradient>
+<filter id="jc-b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="2.5"/></filter>
+<path id="jc-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+<path id="jc-lf" d="M0 0C6-4 14-4 18 0C14 4 6 4 0 0Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#jc-bg)"/>
+<circle cx="128" cy="120" r="100" fill="url(#jc-gl)"/>
+<path d="M110 142H146L178 214H78Z" fill="url(#jc-beam)"/>
+<g transform="translate(128 120) scale(.86)">
+<ellipse cy="34" rx="34" ry="10" fill="#6a3e00"/>
+<ellipse cy="8" rx="88" ry="26" fill="#8a5200"/>
+<ellipse rx="88" ry="26" fill="url(#jc-hull)"/>
+<ellipse cy="-6" rx="62" ry="14" fill="#fff6c8" opacity=".4"/>
+<path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#jc-dome)"/>
+<path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+<g fill="#fff6c8"><circle cy="30" r="4.5"/><circle cx="-32" cy="28" r="4.5"/><circle cx="32" cy="28" r="4.5"/><circle cx="-62" cy="22" r="4.5"/><circle cx="62" cy="22" r="4.5"/></g>
+</g>
+<g fill="#ffd60a">
+<use href="#jc-lf" transform="translate(58 170) rotate(-60)"/><use href="#jc-lf" transform="translate(50 146) rotate(-80)"/><use href="#jc-lf" transform="translate(50 120) rotate(-100)"/>
+<use href="#jc-lf" transform="translate(66 190) rotate(-35)"/><use href="#jc-lf" transform="translate(198 170) rotate(240)"/><use href="#jc-lf" transform="translate(206 146) rotate(260)"/>
+<use href="#jc-lf" transform="translate(206 120) rotate(280)"/><use href="#jc-lf" transform="translate(190 190) rotate(215)"/>
+</g>
+<rect x="84" y="176" width="88" height="34" rx="8" fill="#1a0e02" stroke="url(#jc-r)" stroke-width="3"/>
+<text x="128" y="201" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="22" font-weight="900" fill="#ffd60a" letter-spacing="1">28/28</text>
+<circle cx="128" cy="128" r="117" fill="none" stroke="#ffd60a" stroke-width="14" opacity=".35" filter="url(#jc-b)"/>
+<circle cx="128" cy="128" r="117" fill="none" stroke="url(#jc-r)" stroke-width="10"/>
+<circle cx="128" cy="128" r="106" fill="none" stroke="#ffd60a" stroke-width="1.5" opacity=".7"/>
+<use href="#jc-sp" transform="translate(190 62) scale(1.1)" fill="#fff6c8"/>
+<use href="#jc-sp" transform="translate(64 66) scale(.8)" fill="#ffd60a"/>
+<use href="#jc-sp" transform="translate(212 104) scale(.5)" fill="#fff"/>
+<use href="#jc-sp" transform="translate(44 100) scale(.55)" fill="#fff6c8"/>
+</svg>

@@ -354,12 +354,20 @@ const HP = [
 S.push(["JAVEDA by Lazy Jo ·", "JAVEDA door Lazy Jo ·", "JAVEDA par Lazy Jo ·", "JAVEDA de Lazy Jo ·"],
        ["Language", "Taal", "Langue", "Idioma"]);
 
+// the levels' own words (i18n-levels.js, loaded before this file on the level pages)
+const X = window.JAVEDA_I18N || {};
+if (X.S) S.push(...X.S); if (X.P) P.unshift(...X.P); if (X.HTML) HTML.push(...X.HTML); if (X.HP) HP.push(...X.HP);
+
 /* ---- the machinery ---- */
-const EX = new Map(); if (I != null) for (const r of S) EX.set(r[0], r[I + 1]);
+const EX = new Map(), TPL = new Map(); if (I != null) for (const r of S) (r[0].includes("#") ? TPL : EX).set(r[0], r[I + 1]);
 const norm = s => s.replace(/\s+/g, " ").trim();
+// a sentence with numbers in it, written once with # for each number: the numbers go back in, in order
+const NUM = /\d+(?:[.,:]\d+)*/g;
+const byTemplate = (k, map) => { if (!/\d/.test(k)) return null; const nums = k.match(NUM), t = map.get(k.replace(NUM, "#")); if (t == null) return null; let i = 0; return t.replace(/#/g, () => nums[i++] != null ? nums[i - 1] : "#"); };
 function tr(s){
   const k = norm(s); if (!k || I == null) return null;
   if (EX.has(k)) return EX.get(k);
+  const bt = byTemplate(k, TPL); if (bt != null) return bt;
   for (const p of P){ const m = k.match(p[0]); if (!m) continue;
     const r = p[1]; if (typeof r === "function") return r(m, x => tr(x) || x);
     return k.replace(p[0], p[I + 1]); }
@@ -371,7 +379,7 @@ function tr(s){
 }
 const done = new WeakMap();      // a node -> the text we put there (so we don't translate our own words again)
 const ATTRS = ["placeholder", "title", "aria-label"];
-const INLINE = new Set(["B", "I", "STRONG", "EM", "A", "SMALL", "BR", "U", "CODE"]);
+const INLINE = new Set(["B", "I", "STRONG", "EM", "A", "SMALL", "BR", "U", "CODE", "SPAN"]);
 function doText(n){
   const v = n.nodeValue; if (!v || done.get(n) === v || !/[A-Za-z]{2}/.test(v)) return;
   const t = tr(v); if (t == null) return;
@@ -384,14 +392,24 @@ function doAttrs(e){
     const t = tr(v); if (t != null && t !== v){ e.setAttribute(a, t); (done.get(e) || done.set(e, {}).get(e))[a + ":" + t] = 1; } }
 }
 // a sentence with bold words or links inside: the whole of it at once (H), else its pieces one by one
-const H = new Map(); if (I != null) for (const r of HTML) H.set(norm(r[0]), r[I + 1]);
+const H = new Map(), HT = new Map(); if (I != null) for (const r of HTML) (r[0].includes("#") ? HT : H).set(norm(r[0]), r[I + 1]);
+// put a translated sentence into its element in place: the same bold words and links stay the same elements (a level
+// may hold on to one, like a counter it updates), only their words change; if the shapes differ, the html goes in
+function put(e, html){
+  const t = document.createElement("template"); t.innerHTML = html;
+  const a = [...e.childNodes], b = [...t.content.childNodes];
+  const same = a.length === b.length && a.every((n, i) => n.nodeType === b[i].nodeType && (n.nodeType !== 1 || (n.tagName === b[i].tagName && [...n.childNodes].every(c => c.nodeType === 3))));
+  if (!same){ e.innerHTML = html; return; }
+  a.forEach((n, i) => { if (n.nodeType === 3) n.nodeValue = b[i].nodeValue; else if (n.nodeType === 1 && n.tagName !== "BR") n.textContent = b[i].textContent; });
+}
 function doBlock(e){
   const kids = e.childNodes; if (!kids.length) return false;
   let inl = false; for (const k of kids){ if (k.nodeType === 1){ if (!INLINE.has(k.tagName)) return false; inl = true; } }
   if (!inl) return false;
   const k = norm(e.innerHTML); if (done.get(e) === k) return true;
-  for (const [re, f] of HP){ const m = k.match(re); if (m){ const t = f(m); e.innerHTML = t; done.set(e, norm(e.innerHTML)); return true; } }
-  if (H.has(k)){ e.innerHTML = H.get(k); done.set(e, norm(e.innerHTML)); return true; }
+  for (const [re, f] of HP){ const m = k.match(re); if (m){ put(e, f(m)); done.set(e, norm(e.innerHTML)); return true; } }
+  if (H.has(k)){ put(e, H.get(k)); done.set(e, norm(e.innerHTML)); return true; }
+  const bt = byTemplate(k, HT); if (bt != null){ put(e, bt); done.set(e, norm(e.innerHTML)); return true; }
   return false;
 }
 function walk(root){
@@ -407,7 +425,8 @@ function walk(root){
 
 /* ---- the picker: EN NL FR ES, in the top bar ---- */
 function picker(){
-  if (document.getElementById("langPick")) return;
+  // only on the JAVEDA page: a level follows the language picked there
+  if (document.getElementById("langPick") || !document.getElementById("meBtn")) return;
   const top = document.querySelector(".top") || document.body;
   const st = document.createElement("style");
   st.textContent = "#langPick{display:flex;gap:2px;padding:3px;border:1px solid var(--line,#ffffff26);border-radius:999px;background:var(--panel,#0b1630);margin-left:auto;margin-right:8px}" +
@@ -430,7 +449,9 @@ function start(){
   new MutationObserver(list => { for (const m of list){
     if (m.type === "characterData"){ if (m.target.parentElement && !m.target.parentElement.closest("#stats,#codes,.crt,[data-i18n-skip]")) doText(m.target); }
     else if (m.type === "attributes") doAttrs(m.target);
-    else for (const n of m.addedNodes) walk(n.nodeType === 3 ? n : n); } })
+    else { // new words put into a sentence (a level writing its message): the whole sentence first, else the new pieces
+      const t = m.target; if (t.nodeType === 1 && !t.closest("script,style,svg,[data-i18n-skip],#stats,#codes,.crt") && doBlock(t)) continue;
+      for (const n of m.addedNodes) walk(n); } } })
     .observe(document.body, { childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:ATTRS });
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();

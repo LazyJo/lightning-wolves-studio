@@ -699,9 +699,24 @@ function render(dt){
   }
   ren.render(scene, cam);
 }
+/* A phone that can't keep up: after the first seconds, if frames average over 28 ms (under ~35 a second), draw
+   fewer pixels - a step at a time, at most every 2 s, down to .75 of a CSS pixel. Fast phones never notice. */
+const LITE = { from:0, n:0, wait:3000, steps:[1.5, 1.25, 1, .75] };    // real time (ms): the game's dt is capped
+function autoLite(){
+  if (!ren || LITE.wait === Infinity) return;
+  const now = performance.now();
+  if (!LITE.from){ LITE.from = now + LITE.wait; return; }
+  if (now < LITE.from) return;
+  if (++LITE.n < 2 || now - LITE.from < 2000) return;
+  const avg = (now - LITE.from) / LITE.n; LITE.from = now; LITE.n = 0;
+  if (avg < 28) return;
+  const pr = LITE.steps.find(s => s < ren.getPixelRatio() - .01);
+  if (pr == null) return;
+  ren.setPixelRatio(pr); ren.setSize(innerWidth, innerHeight); LITE.from = now + 1000;
+}
 function frame(){
   try {
-    const dt = Math.min(.05, clockR.getDelta());
+    const dt = Math.min(.05, clockR.getDelta()); autoLite(dt);
     if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
     render(dt);
   } catch(e){ if (!crashed){ crashed = e; console.error(e); } }

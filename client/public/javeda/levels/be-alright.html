@@ -282,9 +282,16 @@ const CLOUDTEX = canvasTex(512, 512, (x, w, h) => { x.fillStyle = "#e6eef9"; x.f
 const FLUFF = canvasTex(256, 256, (x, w, h) => { x.fillStyle = "#f4f7fc"; x.fillRect(0, 0, w, h);
   for (let i = 0; i < 1400; i++){ const v = 205 + Math.floor(rnd(i*1.9)*50); x.fillStyle = "rgba(" + v + "," + (v + 5) + "," + Math.min(255, v + 18) + "," + (.25 + rnd(i*2.3)*.4) + ")"; const r = 1 + rnd(i*3.1)*3; x.beginPath(); x.arc(rnd(i*4.7)*w, rnd(i*6.1)*h, r, 0, Math.PI*2); x.fill(); } }, [2, 2]);
 const PUFF_M = new THREE.MeshStandardMaterial({ color:0xeef3fb, roughness:1, metalness:0, map:FLUFF, emissive:0xb8c8e4, emissiveIntensity:.14 });
+// the cloud sea and the islands: hundreds of big puffs over each other, lit per vertex - the same soft look
+// for a fraction of the work per pixel (lit per pixel they were most of a phone's frame)
+const PUFF_ML = new THREE.MeshLambertMaterial({ color:0xeef3fb, map:FLUFF, emissive:0xb8c8e4, emissiveIntensity:.14 });
 const PUFF_G = new THREE.SphereGeometry(1, 18, 12);
+// the puffs drawn by the hundred get fewer faces the smaller they are (the fuzz on the car is a tenth of a
+// unit across: 18x12 there was 230,000 triangles a frame nobody could see; phones were down to a crawl)
+const PUFF_LOD = [[.3, new THREE.SphereGeometry(1, 7, 5)], [1.2, new THREE.SphereGeometry(1, 12, 8)], [1e9, new THREE.SphereGeometry(1, 14, 9)]];
 // many puffs in one draw: [[x, y, z, sx, sy, sz], ...]
-function puffs(list, mat){ const m = new THREE.InstancedMesh(PUFF_G, mat || PUFF_M, list.length), o = new THREE.Object3D();
+function puffs(list, mat){ const avg = list.reduce((a, p) => a + p[3], 0)/Math.max(1, list.length), geo = PUFF_LOD.find(([k]) => avg < k)[1];
+  const m = new THREE.InstancedMesh(geo, mat || PUFF_M, list.length), o = new THREE.Object3D();
   list.forEach((p, i) => { o.position.set(p[0], p[1], p[2]); o.scale.set(p[3], p[4] == null ? p[3] : p[4], p[5] == null ? p[3] : p[5]); o.rotation.set(0, p[0]*1.7, 0); o.updateMatrix(); m.setMatrixAt(i, o.matrix); }); m.instanceMatrix.needsUpdate = true; return m; }
 // the car made of cloud, nose to you, coming up through the cloud sea: a car's shape, every edge soft with fluff
 function cloudCar(){ const g = new THREE.Group(), fluff = [],
@@ -327,7 +334,7 @@ function sky(){ const g = new THREE.Group(); scene.add(g);
   // more islands out in the sky, left and right, further and further off
   for (let k = 0; k < 9; k++){ const side = k % 2 ? 1 : -1, cx = side*(11 + rnd(k*3.3)*16), cz = -10 - rnd(k*4.9)*40, cy = -2 - rnd(k*5.1)*7, n = 10 + Math.floor(rnd(k*6.7)*8);
     for (let i = 0; i < n; i++){ const s = 1 + rnd(k*31 + i*1.7)*1.8; list.push([cx + (rnd(k*17 + i*2.1) - .5)*7, cy + rnd(k*13 + i*1.3)*1.2, cz + (rnd(k*19 + i*2.9) - .5)*4, s*1.4, s*.75, s]); } }
-  g.add(puffs(list));
+  g.add(puffs(list, PUFF_ML));
   const c = cloudCar(); c.position.set(0, -.15, -8.6); c.rotation.x = .12; g.add(c);
   const birds = []; for (let i = 0; i < 16; i++){ const b = birdMesh(); const side = i % 2 ? 1 : -1; b.position.set(side*(5 + rnd(i*2.1)*10), 3 + rnd(i*3.3)*5, -10 - rnd(i*4.1)*10); b.scale.setScalar(1.1 + rnd(i*5.1)*.8); b.userData.ph = rnd(i*6.3)*6; b.userData.v = (.4 + rnd(i*7.7)*.5)*side; g.add(b); birds.push(b); }
   g.userData = { car:c, birds }; return g; }
@@ -736,9 +743,24 @@ function render(dt){
   }
   ren.render(scene, cam);
 }
+/* A phone that can't keep up: after the first seconds, if frames average over 28 ms (under ~35 a second), draw
+   fewer pixels - a step at a time, at most every 2 s, down to .75 of a CSS pixel. Fast phones never notice. */
+const LITE = { from:0, n:0, wait:3000, steps:[1.5, 1.25, 1, .75] };    // real time (ms): the game's dt is capped
+function autoLite(){
+  if (!ren || LITE.wait === Infinity) return;
+  const now = performance.now();
+  if (!LITE.from){ LITE.from = now + LITE.wait; return; }
+  if (now < LITE.from) return;
+  if (++LITE.n < 2 || now - LITE.from < 2000) return;
+  const avg = (now - LITE.from) / LITE.n; LITE.from = now; LITE.n = 0;
+  if (avg < 28) return;
+  const pr = LITE.steps.find(s => s < ren.getPixelRatio() - .01);
+  if (pr == null) return;
+  ren.setPixelRatio(pr); ren.setSize(innerWidth, innerHeight); LITE.from = now + 1000;
+}
 function frame(){
   try {
-    const dt = Math.min(.05, clockR.getDelta());
+    const dt = Math.min(.05, clockR.getDelta()); autoLite(dt);
     if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
     render(dt);
   } catch(e){ if (!crashed){ crashed = e; console.error(e); } }

@@ -1493,6 +1493,23 @@ function boot(fov, fogDensity, yaw){
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }
+/* A phone that can't keep up: after the first seconds, if frames average over 28 ms (under ~35 a second), draw
+   fewer pixels - 1x, then .75x - and last of all drop the glow. A step at most every 2 s; fast phones never notice. */
+const LITE = { from:0, n:0, wait:3000 };    // real time (ms): the game's dt is capped
+function autoLite(){
+  if (!ren || LITE.wait === Infinity) return;
+  const now = performance.now();
+  if (!LITE.from){ LITE.from = now + LITE.wait; return; }
+  if (now < LITE.from) return;
+  if (++LITE.n < 2 || now - LITE.from < 2000) return;
+  const avg = (now - LITE.from) / LITE.n; LITE.from = now; LITE.n = 0;
+  if (avg < 28) return;
+  const pr = [1, .75].find(s => s < ren.getPixelRatio() - .01);
+  if (pr != null){ ren.setPixelRatio(pr); ren.setSize(innerWidth, innerHeight); if (composer){ composer.setPixelRatio(pr); composer.setSize(innerWidth, innerHeight); } }
+  else if (bloom && bloom.enabled) bloom.enabled = false;
+  else return;
+  LITE.from = now + 1000;
+}
 function renderFrame(t){ if (SKY) SKY.material.uniforms.time.value = t || 0; composer.render(); }
 // one building: the same window shader as the city, the windows fixed to it so it can move
 let TOWER_MAT = null;
@@ -2267,7 +2284,7 @@ function render(dt){
 }
 function frame(){
   try {
-    const dt = Math.min(.05, clockR.getDelta());
+    const dt = Math.min(.05, clockR.getDelta()); autoLite(dt);
     if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done && S.end < 0) hud(); }
     render(dt);
   } catch(e){ if (!crashed){ crashed = e; console.error(e); } }

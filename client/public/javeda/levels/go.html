@@ -1992,6 +1992,9 @@ const HV = {
    1v1 the match ends with no result, in a 3 or 4 player golf game the rest play on. Each reports the result to the
    JAVEDA page. Nobody is ever invented here: no bots, no fake names. Not enough players there means waiting. */
 const PROTO = 1, SB_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
+// "Invite a friend" on the JAVEDA page sends a link with ?room=: that room is a lobby of its own, so only the people
+// with the link meet there - the same quick match, just among friends.
+const ROOM = /^[a-z0-9]{6,16}$/.test(Q.get("room") || "") ? Q.get("room") : null, RTAG = ROOM ? "-room-" + ROOM : "";
 const NET = {
   sb:null, me:null, name:"", seat:0, size:GOLF_N || 2, players:[], opp:null, gone:{}, heardAt:{}, acks:{}, match:null, state:"off",
   lobby:null, room:null, since:0, endAt:0, result:null, early:[], seed:1,
@@ -2016,7 +2019,8 @@ const NET = {
     const p = await this.sb.from("javeda_players").select("username").eq("user_id", this.me).maybeSingle();
     if (!p.data){ this.status("Make your player on the JAVEDA page first (a name and a picture)."); return; }
     this.name = p.data.username; this.state = "ready";
-    this.status("Playing as <b>" + esc(this.name) + "</b>. Quick match finds you " + (this.size > 2 ? (this.size - 1) + " real players." : "a real player."));
+    this.status("Playing as <b>" + esc(this.name) + "</b>. " + (ROOM ? "<b>Private room:</b> you play the " + (this.size > 2 ? "friends" : "friend") + " who open" + (this.size > 2 ? "" : "s") + " your link." : "Quick match finds you " + (this.size > 2 ? (this.size - 1) + " real players." : "a real player.")));
+    if (ROOM) $("go").textContent = "Join the room";
     $("go").disabled = false;
     // leaving the page: say bye in a match, and leave the lobby and the room (on the JAVEDA page the connection is the page's)
     addEventListener("pagehide", () => { if (this.inMatch()) this.send("bye", {}); for (const c of [this.lobby, this.room]) if (c) try { this.sb.removeChannel(c); } catch(e){} });
@@ -2030,7 +2034,7 @@ const NET = {
     $("go").disabled = true; $("go").textContent = "Looking…";
     this.status("Looking for " + (this.size > 2 ? "players" : "a player") + "&hellip;", true);
     if (this.lobby){ this.lobby.track({ id:this.me, name:this.name, since:this.since }); this.pair(); return; }
-    const ch = this.lobby = this.chan("javeda28-" + ONLINE + "-v" + PROTO);
+    const ch = this.lobby = this.chan("javeda28-" + ONLINE + "-v" + PROTO + RTAG);
     ch.on("presence", { event:"sync" }, () => this.pair());
     ch.subscribe(s => { if (s === "SUBSCRIBED" && this.state === "seek") ch.track({ id:this.me, name:this.name, since:this.since }); });
   },
@@ -2041,14 +2045,14 @@ const NET = {
     if (this.state !== "seek") return;
     const N = this.size, L = this.waiting(), i = L.findIndex(p => p.id === this.me);
     const need = N - (L.length % N || N), lone = L.length < N;
-    this.status(N === 2 ? (L.length > 1 ? "Looking for a player&hellip; <b>" + L.length + "</b> here now." : "Looking for a player&hellip; nobody else is looking right now. Stay here - the next one in plays you.")
-      : lone ? "Looking for players&hellip; <b>" + L.length + " of " + N + "</b> here" + (L.length < 2 ? " - nobody else is looking right now" : "") + ". Stay here - it starts when there are " + N + "."
+    this.status(N === 2 ? (L.length > 1 ? "Looking for a player&hellip; <b>" + L.length + "</b> here now." : (ROOM ? "Waiting for your friend&hellip; they join as soon as they open your link." : "Looking for a player&hellip; nobody else is looking right now. Stay here - the next one in plays you."))
+      : lone ? "Looking for players&hellip; <b>" + L.length + " of " + N + "</b> here" + (L.length < 2 ? (ROOM ? " - waiting for your friends" : " - nobody else is looking right now") : "") + ". Stay here - it starts when there are " + N + "."
       : "Looking for players&hellip; <b>" + L.length + "</b> here now.", true);
     if (i < 0) return;
     // in fours (threes, twos), oldest first; the first of each is seat 0 and names the room
     const g = Math.floor(i/N), group = L.slice(g*N, g*N + N);
     if (group.length < N) return;
-    this.join("javeda28-" + ONLINE + "-v" + PROTO + "-" + group[0].id.slice(0, 8) + "-" + group[0].since + "-" + group.map(p => p.id.slice(0, 4)).join(""), i - g*N, group);
+    this.join("javeda28-" + ONLINE + "-v" + PROTO + RTAG + "-" + group[0].id.slice(0, 8) + "-" + group[0].since + "-" + group.map(p => p.id.slice(0, 4)).join(""), i - g*N, group);
   },
   join(name, seat, group){
     this.state = "room"; this.seat = seat; this.match = null; this.gone = {}; this.acks = {}; this.seen = false;

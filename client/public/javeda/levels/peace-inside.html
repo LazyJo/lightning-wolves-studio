@@ -518,6 +518,9 @@ const HORSE = {
 // page, which only pays out when both reports say the same.
 // Nobody is ever invented here: no bots, no fake names. Nobody there means nobody there.
 const PROTO = 1, SB_JS = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
+// "Invite a friend" on the JAVEDA page sends a link with ?room=: that room is a lobby of its own, so only the people
+// with the link meet there - the same quick match, just among friends.
+const ROOM = /^[a-z0-9]{6,16}$/.test(Q.get("room") || "") ? Q.get("room") : null, RTAG = ROOM ? "-room-" + ROOM : "";
 const NET = {
   sb:null, me:null, name:"", seat:0, opp:null, match:null, state:"off", lobby:null, room:null, since:0, heard:0,
   oppScore:0, oppMade:0, oppShots:0, oppFinal:null, endAt:0, result:null,
@@ -538,7 +541,8 @@ const NET = {
     const p = await this.sb.from("javeda_players").select("username").eq("user_id", this.me).maybeSingle();
     if (!p.data){ this.status("Make your player on the JAVEDA page first (a name and a picture)."); return; }
     this.name = p.data.username; this.state = "ready";
-    this.status("Playing as <b>" + esc(this.name) + "</b>. Quick match finds you a real player.");
+    this.status("Playing as <b>" + esc(this.name) + "</b>. " + (ROOM ? "<b>Private room:</b> you play the friend who opens your link." : "Quick match finds you a real player."));
+    if (ROOM) $("go").textContent = "Join the room";
     $("go").disabled = false;
     addEventListener("pagehide", () => { if (this.inMatch()) this.send("bye", {}); });
     setInterval(() => this.tick(), 1000);
@@ -551,7 +555,7 @@ const NET = {
     $("go").disabled = true; $("go").textContent = "Looking…";
     this.status("Looking for a player&hellip;", true);
     if (this.lobby){ this.lobby.track({ id:this.me, name:this.name, since:this.since }); this.pair(); return; }
-    const ch = this.lobby = this.chan("javeda16-" + ONLINE + "-v" + PROTO);
+    const ch = this.lobby = this.chan("javeda16-" + ONLINE + "-v" + PROTO + RTAG);
     ch.on("presence", { event:"sync" }, () => this.pair());
     ch.subscribe(s => { if (s === "SUBSCRIBED" && this.state === "seek") ch.track({ id:this.me, name:this.name, since:this.since }); });
   },
@@ -562,13 +566,13 @@ const NET = {
     if (this.state !== "seek") return;
     const L = this.waiting(), i = L.findIndex(p => p.id === this.me);
     this.status(L.length > 1 ? "Looking for a player&hellip; <b>" + L.length + "</b> here now." :
-      "Looking for a player&hellip; nobody else is looking right now. Stay here - the next one in plays you.", true);
+      (ROOM ? "Waiting for your friend&hellip; they join as soon as they open your link." : "Looking for a player&hellip; nobody else is looking right now. Stay here - the next one in plays you."), true);
     if (i < 0) return;
     const o = L[i % 2 ? i - 1 : i + 1];
     if (!o || o.id === this.me) return;
     // the one who came first is seat 0 (Jo's saucer) and names the room
     const host = i % 2 === 0, a = host ? L[i] : o;
-    this.join("javeda16-" + ONLINE + "-v" + PROTO + "-" + a.id.slice(0, 8) + "-" + a.since + "-" + (host ? o : L[i]).id.slice(0, 8), host ? 0 : 1, o);
+    this.join("javeda16-" + ONLINE + "-v" + PROTO + RTAG + "-" + a.id.slice(0, 8) + "-" + a.since + "-" + (host ? o : L[i]).id.slice(0, 8), host ? 0 : 1, o);
   },
   join(name, seat, o){
     this.state = "room"; this.seat = seat; this.opp = { id:o.id, name:String(o.name || "player").slice(0, 24) }; this.match = null;

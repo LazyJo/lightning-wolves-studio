@@ -26,7 +26,7 @@ S: [
 ["GOOD","GOED","BIEN","BIEN"],
 ["PERFECT","PERFECT","PARFAIT","PERFECTO"],
 ["THE RIDE STOPPED","DE RIT IS GESTOPT","LE TOUR S'EST ARRÊTÉ","EL VIAJE SE HA PARADO"],
-["LAZY JO · LEVEL # PART #","LAZY JO · LEVEL # DEEL #","LAZY JO · NIVEAU # PARTIE #","LAZY JO · NIVEL # PARTE #"],
+["LAZY JO · LEVEL # PART #","LAZY JO · LEVEL # DEEL #","LAZY JO · NIVEAU # PARTIE #","LAZY JO · NIVEL # PARTE #"],
 ["LAMPS","LAMPEN","LAMPES","FAROLAS"],
 ["NIGHT","NACHT","NUIT","NOCHE"],
 ["The night is over","De nacht is voorbij","La nuit est finie","La noche ha terminado"],

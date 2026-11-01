@@ -355,6 +355,31 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 @media (prefers-reduced-motion:reduce){ .credits{overflow-y:auto} .credits .roll{position:static; animation:none; padding-top:60px} }
 #shareSheet{z-index:45}
 @media (max-width:640px){ .ult.vs .uf{flex-wrap:wrap} }
+/* the JAVEDA Pass: gold and lightning. A part it opens shows up gold once you've reached it */
+.passrow{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; border:1px solid #ffd60a59; background:linear-gradient(100deg,#ffd60a1f,#050c1e80 70%); border-radius:10px; padding:9px 10px 9px 12px; font-size:13.5px; color:var(--dim)}
+.passrow b{color:var(--gold)}
+.part.locked.passy{opacity:1; border-color:#ffd60a59}
+.part.passy .pi{opacity:.6}
+.part .tag.ready, .ult .tag.ready{background:#ffd60a1f; color:var(--gold)}
+.btn.passlock{border:1px dashed #ffd60a88; background:#ffd60a12; color:var(--gold)}
+.passcard{border-color:#ffd60a66; background:radial-gradient(90% 70% at 100% 0%,#ffd60a26,transparent 60%),var(--deep)}
+.passcard .incl{margin:0; padding:0; list-style:none; display:grid; gap:7px; font-size:14.5px}
+.passcard .incl li::before{content:"\26A1"; margin-right:8px}
+.passcard .fine{font-size:13px; color:var(--mute)}
+.passcard .fine a{color:var(--dim)}
+.passcard .have{border:1px solid #3ddc9759; border-radius:10px; padding:10px 12px; color:var(--good); font-weight:600}
+.btn.big{padding:15px 20px; font-size:17px}
+.mk{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; align-items:end}
+.newcode{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; border:1px dashed #ffd60a88; border-radius:10px; padding:12px 14px}
+.newcode b{font:400 22px/1 var(--display); color:var(--gold); letter-spacing:.04em; overflow-wrap:anywhere}
+.st .cb{display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end}
+.st li.off{opacity:.5}
+.st.cdl li{grid-template-columns:minmax(0,1fr) auto; row-gap:8px}
+.st.cdl .nm{white-space:normal}
+.st.cdl .nm b{font:700 15px/1.2 var(--cond); letter-spacing:.08em; color:var(--ink)}
+.st.cdl .cb{grid-column:1 / -1; justify-content:flex-start}
+.st.cdl li.hd span:last-child{display:none}
+#psWhy:empty{display:none}
 </style>
 </head>
 <body>
@@ -517,6 +542,54 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <button class="btn gold" id="dnShare" type="button">Share</button>
       <button class="btn" id="dnAgain" type="button">Run it again</button>
     </div>
+  </div>
+</div>
+
+<!-- the JAVEDA Pass -->
+<div class="sheet hid" id="pass" role="dialog" aria-modal="true" aria-labelledby="psT">
+  <div class="card passcard">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <span class="badge">&#9889; JAVEDA Pass</span>
+    <h3 id="psT">The whole album, yours</h3>
+    <p id="psWhy"></p>
+    <ul class="incl">
+      <li>Every Part 2, 3 and 4 of all 28 songs</li>
+      <li>Every endless and remix, and a place on their scoreboards</li>
+      <li>JAVEDA: HYPERDRIVE and the album marathon</li>
+      <li>One payment, no subscription. Yours for good.</li>
+    </ul>
+    <p class="fine">Part 1 of every song, the daily challenge and the online games stay free. With the Pass you still open each part by clearing the one before it.</p>
+    <div class="have hid" id="psHave"></div>
+    <button class="btn gold big" id="psBuy" type="button">Get the Pass</button>
+    <div class="or">OR</div>
+    <label class="f">A code from EVEN or your merch
+      <span class="linkrow"><input class="in" id="psCode" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="EVEN-XXXX-XXXX"><button class="btn" id="psRedeem" type="button">Redeem</button></span>
+    </label>
+    <p class="fine">A merch code opens every remix straight away too. No code? <a data-link="even" target="_blank" rel="noopener">EVEN</a> &middot; <a data-link="merch" target="_blank" rel="noopener">Merch</a></p>
+    <div class="err" id="psErr"></div>
+  </div>
+</div>
+
+<!-- Pass codes (creators) -->
+<div class="sheet hid" id="codes" role="dialog" aria-modal="true" aria-labelledby="cdT">
+  <div class="card wide">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="cdT">JAVEDA Pass codes</h3>
+    <p id="cdState"></p>
+    <p>An <b>EVEN</b> code gives the Pass; a <b>merch</b> code the Pass and every remix straight away. One code can go to many people (cap how many can use it) or make one per person. Switch a code off if it leaks.</p>
+    <div class="mk">
+      <div class="ivmodes" id="cdKind" role="group" aria-label="Kind of code">
+        <button class="btn small" type="button" data-ck="even" aria-pressed="true">EVEN</button>
+        <button class="btn small" type="button" data-ck="merch" aria-pressed="false">Merch</button>
+      </div>
+      <label class="f">Uses <input class="in" id="cdUses" type="number" min="1" inputmode="numeric" placeholder="No limit"></label>
+      <label class="f">Days <input class="in" id="cdDays" type="number" min="1" inputmode="numeric" placeholder="No end"></label>
+      <label class="f">Note <input class="in" id="cdNote" maxlength="60" placeholder="EVEN, November"></label>
+      <button class="btn gold" id="cdMake" type="button">Make a code</button>
+    </div>
+    <div class="err" id="cdErr"></div>
+    <div id="cdNew"></div>
+    <ol class="st cdl" id="cdList"></ol>
   </div>
 </div>
 
@@ -828,9 +901,28 @@ let dailyBest = 0;          // your best in it today
 let mode = {};              // how the level in the frame is played: { room }, { daily:true } or { marathon:true }
 let marathon = null;        // a marathon in progress: { i, songs, total, start }
 let unlocks = new Set();    // Part 1s kept open by a daily challenge cleared before you got there (javeda_unlocks)
+let passOn = false;         // the JAVEDA Pass is switched on (javeda_settings): until it is, nothing needs it
+let passIds = null;         // the levels that need it (javeda_levels.pass); till they load: all but a song's Part 1 and the online games
+let pass = null;            // your Pass (javeda_passes): { source, merch } - merch opens every remix straight away
+let passCents = null;       // its price from /api/config; null: payments aren't set up (a code still works)
+let freeView = false;       // a creator seeing the hub as a player without the Pass would (here only, nothing saved)
 
 const signedIn = () => !!(session && player);
-const gateOpen = lv => { const p = progress[lv.requires]; return !!(p && p.cleared && (p.best || 0) >= (lv.needScore || 0)); };
+const passLevel = lv => passIds ? passIds.has(lv.id) : !lv.online && !!(lv.endless || lv.part);
+const hasPass = () => !freeView && (creator || !!pass);
+// a level that needs the Pass you haven't got (once it's switched on)
+const lacksPass = lv => !!lv && (passOn || freeView) && !hasPass() && passLevel(lv);
+// From Level 19 on a song's Part 1 waits on the song before's last part, which needs the Pass. While the Pass is on,
+// such a Part 1 opens with the song before's Part 1 too - for everyone, as the database has it (javeda_free_gate).
+function freeGate(lv){
+  if (!passOn || lv.part || lv.endless || lv.online || !lv.requires) return null;
+  const need = levelById(lv.requires);
+  return need && need.num !== lv.num && passLevel(need) ? "lvl" + need.num : null;
+}
+const gateOpen = lv => {
+  const p = progress[lv.requires], f = freeGate(lv);
+  return !!(p && p.cleared && (p.best || 0) >= (lv.needScore || 0)) || !!(f && progress[f] && progress[f].cleared);
+};
 // a song you're only in thanks to a daily challenge: its Part 1 is kept open (unlocks) but you haven't got to it the
 // normal way. Its Parts 2-3 open from it as usual; the song after it waits until you get there.
 function early(n){
@@ -840,15 +932,20 @@ function early(n){
   const need = levelById(p1.requires);
   return need.num !== n && early(need.num);
 }
-function isOpen(lv){
-  if (creator || !lv.requires || unlocks.has(lv.id)) return true;
+// the way in is open (the Pass aside)
+function reached(lv){
+  if (creator || !lv.requires || unlocks.has(lv.id) || (lv.remix && pass && pass.merch)) return true;
   const need = levelById(lv.requires);
   return gateOpen(lv) && !(need && need.num !== lv.num && early(need.num));
 }
+const isOpen = lv => reached(lv) && !lacksPass(lv);
+// reached, and only the Pass in the way: it shows up gold, with the way to get it
+const passReady = lv => lacksPass(lv) && reached(lv);
 // what a locked card says it's waiting for
 function needText(lv){
+  if (passReady(lv)) return "Unlock with the JAVEDA Pass";
   if (lv.ultimate) return "Clear Level 9 Part 3 to open";
-  const need = levelById(lv.requires), p = progress[lv.requires];
+  const need = levelById(freeGate(lv) || lv.requires), p = progress[lv.requires];
   const where = need.num === lv.num ? "Part " + (need.part || 1) : "Level " + need.num;
   if (need.num !== lv.num && early(need.num)) return "Get to Level " + need.num + " the normal way first";
   if (lv.needScore && p && p.cleared) return "Score " + fmt(lv.needScore) + " in " + where + " to open";
@@ -885,14 +982,19 @@ function renderMe(){
   const av = signedIn() ? player.avatar : guest.avatar;
   $("meName").textContent = name;
   $("meImg").src = pic(av);
-  $("mePts").textContent = signedIn() ? fmt(player.points) + " points" + (creator ? " · creator, every level open" : "") : "Guest · not saved";
+  $("mePts").textContent = signedIn() ? fmt(player.points) + " points" + (pass ? " \u00b7 \u26A1 Pass" : "") + (creator ? " · creator, every level open" : "") : "Guest · not saved";
   $("guestNote").classList.toggle("hid", !!session);
 }
 // where you are in the album and the way back in - or, once it's all cleared, the finale - and today's challenge
 function renderNow(){
   const songs = SONGS_N.filter(songDone).length, parts = LEVELS.filter(l => cleared(l.id)).length, nx = continueLevel();
   const crt = creator ? '<div class="crt">Creator <button class="btn small" data-stats="1">Where players get stuck</button>' +
-    (albumDone() ? '' : '<button class="btn small" data-marathon="1">Marathon</button><button class="btn small" data-credits="1">Credits</button>') + '</div>' : '';
+    (albumDone() ? '' : '<button class="btn small" data-marathon="1">Marathon</button><button class="btn small" data-credits="1">Credits</button>') +
+    '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
+    (freeView ? 'Free view: on' : 'See it free') + '</button></div>' : '';
+  // the Pass, for anyone who hasn't got it, once it's on
+  const passrow = (passOn || freeView) && !hasPass() ? '<div class="passrow"><span><b>&#9889; JAVEDA Pass</b> &middot; every part, endless and remix' +
+    (passCents ? ' &middot; ' + euro(passCents) + ' once' : '') + '</span><button class="btn gold small" data-pass="">Get it</button></div>' : '';
   let html;
   if (albumDone()){
     const mb = (progress.marathon || {}).best;
@@ -911,11 +1013,12 @@ function renderNow(){
       (nx ? '<div class="next"><span class="nt"><small>' + (parts ? 'Continue' : 'Start here') + ' &middot; ' + lvName(nx) + '</small><span>' + esc(nx.title) + '</span></span>' +
               '<button class="btn primary" data-play="' + nx.id + '">' + (parts ? 'Continue' : 'Play') + ' &#9654;</button></div>'
           : wait ? '<div class="next"><span class="nt"><small>Next &middot; ' + lvName(wait) + ' &middot; ' + needText(wait) + '</small><span>' + esc(wait.title) + '</span></span>' +
-              '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>' : '') + crt + '</article>';
+              (passReady(wait) ? '<button class="btn gold" data-pass="' + wait.id + '">&#9889; Unlock</button></div>'
+                               : '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>') : '') + passrow + crt + '</article>';
   }
   $("now").innerHTML = html + dailyCard();
 }
-// today's challenge: one song's endless for everyone, a board of its own that starts empty every day
+// today's challenge: one song's Part 1 for everyone, a board of its own that starts empty every day
 function dailyCard(){
   const lv = daily && levelById(daily.level);
   if (!lv) return "";
@@ -953,7 +1056,7 @@ function comingSoon(){
 // the endless tile: gold, no "cleared" - just your best and the way back in
 function endlessTile(lv){
   const p = progress[lv.id] || {}, open = isOpen(lv), many = LEVELS.filter(l => l.num === lv.num).length > 1;
-  return '<div class="part endless' + (lv.remix ? ' remix' : '') + (open ? '' : ' locked') + '">' +
+  return '<div class="part endless' + (lv.remix ? ' remix' : '') + (open ? '' : ' locked') + (passReady(lv) ? ' passy' : '') + '">' +
     '<div class="pi"><span class="pl">' + (lv.remix ? 'Remix &#8734; &middot; all parts' : (many ? 'Part ' + lv.part + ' ' : 'Endless ') + '&#8734;') + '</span>' +
     '<span class="pt">' + esc(lv.title) + '</span>' +
     (lv.remix ? '<p class="pd">Every part, one after the other, round and round. Every lap is harder, and a finished lap gives a heart back.</p>' : '') + '</div>' +
@@ -961,6 +1064,7 @@ function endlessTile(lv){
       (open
         ? (p.best ? '<span class="best">Best ' + fmt(p.best) + '</span>' : '<span class="tag">New</span>') +
           '<button class="btn gold small" data-play="' + lv.id + '">Play &#8734;</button>'
+        : passReady(lv) ? '<span class="tag ready">Ready</span><button class="btn gold small" data-pass="' + lv.id + '">&#9889; JAVEDA Pass</button>'
         : '<span class="tag">&#128274; ' + needText(lv) + '</span>') +
     '</div></div>';
 }
@@ -969,7 +1073,7 @@ function partTile(lv){
   const p = progress[lv.id] || {};
   const open = isOpen(lv), done = !!p.cleared;
   const lock = lv.requires ? needText(lv) : '';
-  return '<div class="part' + (done ? ' done' : '') + (open ? '' : ' locked') + '">' +
+  return '<div class="part' + (done ? ' done' : '') + (open ? '' : ' locked') + (passReady(lv) ? ' passy' : '') + '">' +
     '<div class="pi"><span class="pl">Part ' + (lv.part || 1) + (done ? '<b>&#10003; Cleared</b>' : '') + '</span>' +
     '<span class="pt">' + esc(lv.title) + '</span>' +
     (lv.part ? '<p class="pd">' + esc(lv.ds.replace(/^Part \d+\.\s*/, "")) + '</p>' : '') + '</div>' +
@@ -977,7 +1081,7 @@ function partTile(lv){
       (open
         ? (done ? '<span class="best">Best ' + fmt(p.best) + '</span>' : '<span class="tag">' + (p.runs ? 'Not cleared yet' : 'New') + '</span>') +
           '<span class="btns"><button class="btn ' + (done ? '' : 'primary') + ' small" data-play="' + lv.id + '">' + (done ? 'Replay' : 'Play') + '</button>' + infButton(lv) + '</span>'
-        : '<span class="tag">&#128274; ' + lock + '</span>' + infButton(lv)) +
+        : (passReady(lv) ? '<span class="tag ready">Ready</span><button class="btn gold small" data-pass="' + lv.id + '">&#9889; JAVEDA Pass</button>' : '<span class="tag">&#128274; ' + lock + '</span>') + infButton(lv)) +
     '</div></div>';
 }
 // a part's endless, right beside it: gold when it's open, dim with a lock (and what opens it) when it isn't
@@ -987,6 +1091,7 @@ function infButton(lv){
   const best = (progress[x.id] || {}).best;
   return isOpen(x)
     ? '<button class="btn gold small inf" data-play="' + x.id + '" title="' + esc(x.title) + ' with no end' + (best ? ' - your best ' + fmt(best) : '') + '"><b>&#8734;</b><span class="lb">Endless</span></button>'
+    : passReady(x) ? '<button class="btn small inf passlock" data-pass="' + x.id + '" title="Endless: unlock with the JAVEDA Pass"><b>&#8734;</b><span class="lb">Endless</span> &#9889;</button>'
     : '<span class="inf lock" title="Endless: ' + esc(needText(x)) + '"><b>&#8734;</b><span class="lb">Endless</span> &#128274;</span>';
 }
 // a song's remix (all its parts, round and round), under its title
@@ -994,6 +1099,7 @@ function remixButton(num){
   const r = ENDLESS.find(e => e.num === num && e.remix);
   if (!r) return "";
   return isOpen(r) ? '<button class="btn gold small rmx" data-play="' + r.id + '">Remix &#8734;</button>'
+    : passReady(r) ? '<button class="btn small rmx passlock" data-pass="' + r.id + '" title="Unlock with the JAVEDA Pass">Remix &#8734; &#9889;</button>'
     : '<span class="rmx lock" title="' + esc(needText(r)) + '">Remix &#8734; &#128274;</span>';
 }
 // one row per song: its number, its world, and its parts side by side
@@ -1070,6 +1176,7 @@ function renderUltimate(){
     'grab power-ups (magnet, shield, double coins, HYPERDRIVE) and ? boxes that transform you. Wolf Coins buy 24 skins, 9 trails and 8 gadgets. The album on the radio.</p></div>' +
     '<div class="uf">' + (open
       ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play HYPERDRIVE</button>'
+      : passReady(ULT) ? '<span class="tag ready">Ready</span><button class="btn gold" data-pass="' + ULT.id + '">&#9889; JAVEDA Pass</button>'
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>') + '</div></article>';
 }
 const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"],["lvl28","Level 28"],["lvl28b","Level 28 Part 2"]];
@@ -1243,18 +1350,20 @@ $("lgGoogle").onclick = async () => {
 
 /* ---- account ---- */
 async function loadAccount(){
-  player = null; owned = new Set(); creator = false; record = null;
+  player = null; owned = new Set(); creator = false; record = null; pass = null;
   if (!session){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); showJoin(); return; }
   const uid = session.user.id;
-  const [p, g, o, c, v, u] = await Promise.all([
+  const [p, g, o, c, v, u, ps] = await Promise.all([
     sb.from("javeda_players").select("*").eq("user_id", uid).maybeSingle(),
     sb.from("javeda_progress").select("level, cleared, best_score, best_metres, runs").eq("user_id", uid),
     sb.from("javeda_owned").select("avatar").eq("user_id", uid),
     sb.from("javeda_creators").select("user_id").eq("user_id", uid).maybeSingle(),
     sb.from("javeda_1v1").select("wins, losses, draws").eq("user_id", uid).maybeSingle(),
-    sb.from("javeda_unlocks").select("level").eq("user_id", uid)
+    sb.from("javeda_unlocks").select("level").eq("user_id", uid),
+    sb.from("javeda_passes").select("source, merch").eq("user_id", uid).maybeSingle()
   ]);
   unlocks = new Set((u.data || []).map(r => r.level));
+  pass = ps.data || null;
   record = v.data || null;
   player = p.data || null;
   creator = !!c.data;
@@ -1276,6 +1385,7 @@ async function loadAccount(){
     return loadAccount();
   }
   renderAll(); showJoin();
+  if (takePassNext()) openPass();
 }
 async function importGuest(){
   const has = Object.keys(guest.progress || {}).length;
@@ -1294,6 +1404,7 @@ let current = null;
 function play(id, how){
   const lv = levelById(id);
   how = how || {};
+  if (lv && !how.daily && passReady(lv)) return openPass(lv);
   if (!lv || !(isOpen(lv) || how.daily)) return;
   if (lv.online && !signedIn()){ toast("Log in to play online - the result goes on your account."); openLogin(); return; }
   current = lv; mode = how;
@@ -1309,16 +1420,25 @@ function stopPlay(){
   document.body.style.overflow = ""; document.body.classList.remove("playing");
   renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless();
   if (creditsDue){ creditsDue = false; openCredits(); }
+  else if (passDue){ const lv = passDue; passDue = null; if (passNudge()) openPass(lv); }
 }
-$("levels").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
+// a Play button plays; a gold Pass one (data-pass: the level it's for, or nothing) opens the Pass
+const playOrPass = e => {
+  const b = e.target.closest("[data-play], [data-pass]"); if (!b) return false;
+  if (b.dataset.pass !== undefined) openPass(levelById(b.dataset.pass)); else play(b.dataset.play);
+  return true;
+};
+$("levels").addEventListener("click", playOrPass);
 $("now").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
-  if (b.dataset.play) play(b.dataset.play);
+  if (b.dataset.play || b.dataset.pass !== undefined) playOrPass(e);
   else if (b.dataset.daily) play(daily.level, { daily:true });
   else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (b.dataset.marathon) startMarathon();
   else if (b.dataset.credits) openCredits();
   else if (b.dataset.stats) openStats();
+  else if (b.dataset.codes) openCodes();
+  else if (b.dataset.freeview){ freeView = !freeView; renderAll(); toast(freeView ? "Free view: the hub as a player without the Pass sees it" + (passOn ? "" : " once it's switched on") + ". Only here, nothing changes." : "Back to the creator view."); }
   else if (b.dataset.share) shareCard(completeCard || (completeCard = { kind:"complete" }));
 });
 let completeCard = null;
@@ -1329,12 +1449,12 @@ for (const id of ["tabs", "etabs"]) $(id).addEventListener("click", e => {
   else boardTab = b.dataset.tab;
   renderTabs(); renderBoard();
 });
-$("ultimate").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
+$("ultimate").addEventListener("click", playOrPass);
 $("versus").addEventListener("click", e => {
   const b = e.target.closest("[data-play]"), iv = e.target.closest("[data-invite]");
   if (b) play(b.dataset.play); else if (iv) openInvite(iv.dataset.invite.split(",")); else if (e.target.closest("[data-login]")) openLogin();
 });
-$("endless").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
+$("endless").addEventListener("click", playOrPass);
 $("playClose").onclick = stopPlay;
 
 // An endless run starts with the database, which holds its score to the time played (the marathon too; a daily
@@ -1355,12 +1475,15 @@ async function saveRun(r, quiet){
   // what this run opens: the next song, a Part 2, a Part 3 that waits on a score,
   // and for Level 2 Part 2 Zirka's bike
   const after = { ...progress, [lv.id]: { ...was, cleared: was.cleared || !!r.cleared, best: Math.max(was.best || 0, r.score | 0) } };
-  const opensWith = (l, pr) => { const p = pr[l.requires]; return !!(p && p.cleared && (p.best || 0) >= (l.needScore || 0)); };
-  const opened = LEVELS.filter(l => l.requires === lv.id && (l.num === lv.num || !early(lv.num)) && !opensWith(l, progress) && opensWith(l, after)).map(lvName);
-  opened.push(...ENDLESS.filter(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after)).map(lvName));
+  const opensWith = (l, pr) => { const p = pr[l.requires], f = freeGate(l); return !!(p && p.cleared && (p.best || 0) >= (l.needScore || 0)) || !!(f && pr[f] && pr[f].cleared); };
+  const fresh = l => (l.requires === lv.id || freeGate(l) === lv.id) && !(l.remix && pass && pass.merch) && !opensWith(l, progress) && opensWith(l, after);
+  // what it opens for you, and what it makes ready for the Pass
+  const next = [...LEVELS.filter(l => fresh(l) && (l.num === lv.num || !early(lv.num))), ...ENDLESS.filter(fresh), ...(fresh(ULT) ? [ULT] : [])];
+  const opened = next.filter(l => !lacksPass(l)).map(l => l === ULT ? "JAVEDA: HYPERDRIVE" : lvName(l)), ready = next.filter(lacksPass);
   if (r.cleared && !was.cleared && lv.id === "lvl2b") opened.push("Zirka's bike in Level 1");
-  if (ULT.requires === lv.id && !opensWith(ULT, progress) && opensWith(ULT, after)) opened.push("JAVEDA: HYPERDRIVE");
-  const unlocks = opened.length ? opened.join(" and ") + (opened.length > 1 ? " are" : " is") + " open" : "";
+  const unlocks = (opened.length ? opened.join(" and ") + (opened.length > 1 ? " are" : " is") + " open" : "") +
+    (ready.length ? (opened.length ? " &middot; " : "") + ready.map(l => l === ULT ? "JAVEDA: HYPERDRIVE" : lvName(l)).join(" and ") + (ready.length > 1 ? " are" : " is") + " ready for the <b>JAVEDA Pass</b>" : "");
+  if (ready.length && !quiet) passDue = ready.find(l => !l.endless) || ready[0];
   if (!signedIn()){
     const g = guest.progress[lv.id] || { cleared:false, best:0, metres:0, runs:0 };
     g.cleared = g.cleared || !!r.cleared; g.best = Math.max(g.best, r.score | 0);
@@ -1445,6 +1568,7 @@ async function saveDaily(r){
 
 /* ---- the album marathon: Part 1 of every song back to back, one try each ---- */
 function startMarathon(){
+  if (lacksPass({ id:"marathon", endless:true })) return openPass();
   if (!albumDone() && !creator){ toast("The album marathon opens when every part of all 28 songs is cleared."); return; }
   closeSheet("done");
   marathon = { i:0, songs:0, total:0, stepped:-1, start: signedIn() ? sendNow(sb.rpc("javeda_start_run", { p_level:"marathon" })) : null };
@@ -1607,6 +1731,131 @@ async function openStats(){
     (rows.some(r => r.tried) ? '' : '<p>No runs from players yet. It fills up as people play.</p>');
 }
 
+/* ---- the JAVEDA Pass ---- */
+// One payment through Stripe (the server's /api/javeda/pass/*) or a code from EVEN or merch (javeda_redeem). What a
+// level needs comes from the database; this only shows it and gets you there.
+const PASS_KEY = "javeda.passNext", NUDGE_KEY = "javeda.passNudge";
+const euro = c => (c / 100).toLocaleString("en-IE", { style:"currency", currency:"EUR" });
+let passDue = null;         // a run made a level ready for the Pass: offered when you leave the level
+// the offer opens by itself at most once a day; the gold buttons are always there
+function passNudge(){
+  const day = new Date().toDateString();
+  try { if (localStorage.getItem(NUDGE_KEY) === day) return false; localStorage.setItem(NUDGE_KEY, day); } catch(e){}
+  return true;
+}
+function takePassNext(){ try { const v = sessionStorage.getItem(PASS_KEY); sessionStorage.removeItem(PASS_KEY); return !!v; } catch(e){ return false; } }
+function openPass(lv){
+  $("psErr").textContent = "";
+  $("psWhy").innerHTML = lv ? "<b>" + esc(lv === ULT ? "JAVEDA: HYPERDRIVE" : lvName(lv)) + "</b> is ready for you. The Pass opens it, and the rest of the album with it." : "";
+  $("psHave").classList.toggle("hid", !pass);
+  $("psHave").innerHTML = pass ? "&#10003; You have the JAVEDA Pass" + (pass.merch ? " and every remix." : ". A merch code still opens every remix straight away.") : "";
+  $("psBuy").classList.toggle("hid", !!pass);
+  $("psBuy").disabled = !passCents;
+  $("psBuy").textContent = passCents ? "Get the Pass \u00b7 " + euro(passCents) : "Payments open soon \u00b7 a code works now";
+  openSheet("pass");
+}
+// both need an account: log in, then the sheet comes back (after a Google log-in too)
+function passLogin(){
+  try { sessionStorage.setItem(PASS_KEY, "1"); } catch(e){}
+  closeSheet("pass"); toast("Log in first: the Pass goes on your account."); openLogin();
+}
+function passWelcome(merch){
+  closeSheet("pass"); $("psCode").value = "";
+  renderAll();
+  toast("<b>&#9889; The JAVEDA Pass is yours</b>" + (merch ? " &middot; every remix is open" : "") + ". Every part opens as you clear the one before it.", 7000);
+}
+$("psBuy").onclick = async () => {
+  if (!signedIn()) return passLogin();
+  $("psBuy").disabled = true; $("psErr").textContent = "";
+  try {
+    const r = await fetch("/api/javeda/pass/checkout", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ token:session.access_token }) });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.url){ location.href = d.url; return; }
+    if (r.status === 409){ await loadAccount(); return passWelcome(!!(pass && pass.merch)); }
+    $("psErr").textContent = d.error || "The checkout didn't open. Try again in a minute.";
+  } catch(e){ $("psErr").textContent = "No connection. Try again in a minute."; }
+  $("psBuy").disabled = false;
+};
+$("psRedeem").onclick = async () => {
+  if (!signedIn()) return passLogin();
+  const code = $("psCode").value.trim();
+  if (!code){ $("psErr").textContent = "Type your code first."; return; }
+  $("psRedeem").disabled = true; $("psErr").textContent = "";
+  const { data, error } = await sb.rpc("javeda_redeem", { p_code:code });
+  $("psRedeem").disabled = false;
+  if (error || !data || data.error){ $("psErr").textContent = (data && data.error) || (error && error.message) || "That didn't work. Try again."; return; }
+  pass = { source:data.source, merch:data.merch };
+  passWelcome(data.kind === "merch");
+};
+$("psCode").addEventListener("keydown", e => { if (e.key === "Enter") $("psRedeem").click(); });
+// back from the Stripe checkout: ?pass=done&session_id=... (or ?pass=cancelled). The webhook grants the Pass too;
+// asking the server here just means not waiting for it.
+async function passReturn(){
+  const q = new URLSearchParams(location.search), how = q.get("pass"), sid = q.get("session_id");
+  if (!how) return;
+  history.replaceState(null, "", location.pathname + location.hash);
+  if (how !== "done"){ toast("No payment made. The Pass is here whenever you want it."); return; }
+  if (!signedIn()){ toast("Log in with the account you paid with: the Pass is on it."); return; }
+  if (pass) return passWelcome(!!pass.merch);
+  for (let i = 0; i < 6; i++){
+    try {
+      const r = await fetch("/api/javeda/pass/confirm", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ token:session.access_token, session_id:sid }) });
+      const d = await r.json().catch(() => ({}));
+      if (d.pass){ await loadAccount(); return passWelcome(!!(pass && pass.merch)); }
+      if (!r.ok && r.status !== 500) break;
+    } catch(e){}
+    await new Promise(ok => setTimeout(ok, 2500));
+  }
+  toast("Your payment is going through. The Pass shows up as soon as it's done: refresh in a minute.", 8000);
+}
+
+/* ---- Pass codes (creators): make them, see who used them, switch them off ---- */
+let codeKind = "even";
+const codeText = c => c.replace(/^(EVEN|MERCH)([A-Z0-9]{4})([A-Z0-9]{4})$/, "$1-$2-$3");
+async function openCodes(){
+  openSheet("codes"); $("cdErr").textContent = ""; $("cdNew").innerHTML = "";
+  $("cdState").innerHTML = passOn ? "The Pass is <b>on</b>: every part after Part 1 needs it." : "The Pass is <b>off</b>: nothing needs it yet. Codes already work, so a code given out now is ready for the day it goes on.";
+  await listCodes();
+}
+async function listCodes(){
+  const { data, error } = await sb.rpc("javeda_codes_list");
+  if (error){ $("cdList").innerHTML = '<li><span class="err">' + esc(error.message) + '</span></li>'; return; }
+  const day = d => new Date(d).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+  $("cdList").innerHTML = '<li class="hd"><span>Code</span><span>Used</span><span></span></li>' + (data.length ? data.map(c =>
+    '<li class="' + (c.active ? '' : 'off') + '"><span class="nm"><b>' + codeText(c.code) + '</b> <small>' + (c.kind === "merch" ? "merch" : "EVEN") +
+      (c.note ? " &middot; " + esc(c.note) : "") + (c.expires_at ? " &middot; until " + day(c.expires_at) : "") + (c.active ? "" : " &middot; off") + '</small></span>' +
+    '<span class="num">' + fmt(c.uses) + (c.max_uses ? " of " + fmt(c.max_uses) : "") + ' used</span>' +
+    '<span class="cb"><button class="btn small" type="button" data-copy="' + c.code + '">Copy</button>' +
+      '<button class="btn small" type="button" data-set="' + c.code + '" data-on="' + (c.active ? "" : "1") + '">' + (c.active ? "Switch off" : "Switch on") + '</button></span></li>').join("")
+    : '<li><span>No codes yet.</span></li>');
+}
+$("cdKind").addEventListener("click", e => {
+  const b = e.target.closest("[data-ck]"); if (!b) return;
+  codeKind = b.dataset.ck;
+  $("cdKind").querySelectorAll("[data-ck]").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+});
+$("cdMake").onclick = async () => {
+  $("cdErr").textContent = ""; $("cdMake").disabled = true;
+  const { data, error } = await sb.rpc("javeda_make_code", { p_kind:codeKind, p_note:$("cdNote").value.trim() || null,
+    p_max_uses:parseInt($("cdUses").value, 10) || null, p_days:parseInt($("cdDays").value, 10) || null });
+  $("cdMake").disabled = false;
+  if (error){ $("cdErr").textContent = error.message; return; }
+  $("cdNew").innerHTML = '<div class="newcode"><b>' + codeText(data.code) + '</b><button class="btn gold small" type="button" data-copy="' + data.code + '">Copy</button></div>';
+  listCodes();
+};
+$("codes").addEventListener("click", async e => {
+  const cp = e.target.closest("[data-copy]"), st = e.target.closest("[data-set]");
+  if (cp){
+    try { await navigator.clipboard.writeText(codeText(cp.dataset.copy)); toast("Copied: <b>" + codeText(cp.dataset.copy) + "</b>"); }
+    catch(err){ toast(codeText(cp.dataset.copy)); }
+  } else if (st){
+    st.disabled = true;
+    const { error } = await sb.rpc("javeda_code_set", { p_code:st.dataset.set, p_active:!!st.dataset.on });
+    if (error) $("cdErr").textContent = error.message;
+    listCodes();
+  }
+});
+
 /* ---- share cards: a story-sized picture of a clear or a new best, with the way to play ---- */
 const SHARE_URL = location.origin + "/javeda/";
 function cardText(c){
@@ -1722,7 +1971,9 @@ addEventListener("message", e => {
     const lv = levelById(m.level);
     if (marathon) return void endMarathon("You left the run.");
     // switching between online games keeps you in your private room
-    if (isOpen(lv)) play(lv.id, lv.online && mode.room ? { room:mode.room } : undefined); else toast(lvName(lv) + " - " + needText(lv) + ".");
+    if (isOpen(lv)) play(lv.id, lv.online && mode.room ? { room:mode.room } : undefined);
+    else if (passReady(lv)){ stopPlay(); openPass(lv); }
+    else toast(lvName(lv) + " - " + needText(lv) + ".");
   }
   else if (m.type === "javeda:next"){
     if (marathon) return void marathonNext();
@@ -1740,12 +1991,19 @@ renderAll();
     const cfg = r.ok ? await r.json() : {};
     if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase)
       sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:true, autoRefreshToken:true } });
+    passCents = cfg.javedaPassCents || null;
   } catch(e){}
   if (!sb){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); return; }
   // the live catalogue wins over the built-in copy, so prices can change without a deploy
   sb.from("javeda_avatars").select("*").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
-  const { data } = await sb.auth.getSession();
-  session = data.session; await loadAccount(); loadDaily();
+  // the Pass switch and which levels need it (nothing, until it's switched on)
+  const passInfo = Promise.all([sb.from("javeda_settings").select("pass_on").maybeSingle(), sb.from("javeda_levels").select("id, pass")])
+    .then(([st, lv]) => {
+      passOn = !!(st.data && st.data.pass_on);
+      if (lv.data && lv.data.length) passIds = new Set(lv.data.filter(r => r.pass).map(r => r.id));
+    });
+  const [{ data }] = await Promise.all([sb.auth.getSession(), passInfo]);
+  session = data.session; await loadAccount(); loadDaily(); passReturn();
   sb.auth.onAuthStateChange((_e, s) => {
     const changed = (s && s.user.id) !== (session && session.user.id);
     session = s; if (changed) loadAccount().then(loadDaily);

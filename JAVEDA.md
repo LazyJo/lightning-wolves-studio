@@ -55,6 +55,21 @@ supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabas
 Without step 1 the hub still works for guests (progress on the phone only), and the
 scoreboard shows as offline.
 
+### Switching on the JAVEDA Pass (Jo, once)
+
+Built and switched **off**: until it's on, nothing needs it and the hub looks as it always did.
+
+1. **Rotate the Stripe secret key first** (it's been flagged), then make sure Vercel has `STRIPE_SECRET_KEY`
+   and `STRIPE_WEBHOOK_SECRET` (the studio subscriptions use the same ones).
+2. **Webhook events.** The existing endpoint `https://lightningwolves.studio/api/stripe-webhook` already gets
+   `checkout.session.completed`. Add `checkout.session.async_payment_succeeded` too (payments that settle later).
+3. **Price / VAT (optional).** `JAVEDA_PASS_CENTS` (default `599` = EUR 5.99, VAT included). With Stripe Tax set
+   up in the Stripe dashboard, `JAVEDA_STRIPE_TAX=1` turns on automatic tax for the Pass checkout.
+4. **Codes.** On the hub, as a creator: Continue card > **Pass codes**: make EVEN and merch codes (they already
+   work while the Pass is off). **See it free** shows the hub as a player without the Pass would see it.
+5. **Switch it on:** in Supabase > SQL Editor `UPDATE javeda_settings SET pass_on = true;` (`false` switches it
+   off again; re-running the schema never flips it).
+
 ## How it works
 
 - **Accounts** are Lightning Wolves accounts (same Supabase auth as the Wolf Hub), so a
@@ -154,6 +169,25 @@ scoreboard shows as offline.
   - Its Parts 2-3 (and its endless) then open as usual. **The next song does not**: it waits until you get to the
     kept song the normal way (`early()` in the hub; a locked card says "Get to Level N the normal way first").
     When you do, your earlier clear counts straight away.
+- **The JAVEDA Pass** (switched on with `javeda_settings.pass_on`; off, nothing needs it). Free: an account, Part 1
+  of every song (so the daily challenge), the online games, points and pictures. The Pass opens the rest - every
+  Part 2-4, every endless and remix, HYPERDRIVE and the marathon (`javeda_levels.pass`: everything but `lvlN`) -
+  but the way in stays the same: a part still needs the one before it cleared, a remix all its parts.
+  - **Every Part 1 stays free**: from Level 19 on a song's Part 1 waits on the song before's last part, which
+    needs the Pass, so while the Pass is on such a Part 1 also opens with the song before's Part 1, for everyone
+    (`javeda_free_gate` in the database, `freeGate()` in the hub).
+  - **Two ways in.** EUR 5.99 once through Stripe Checkout (`/api/javeda/pass/checkout`; back on the hub with
+    `?pass=done&session_id=...`, which calls `/api/javeda/pass/confirm`; the webhook grants it too, whichever is
+    first, via `javeda_grant_pass`, service role only) - or a code (`javeda_redeem`): an **EVEN** code gives the
+    Pass, a **merch** code the Pass and every remix open straight away. Codes (`javeda_codes`) can be shared
+    (`max_uses`, none = no limit), expire (`expires_at`) and be switched off; one use per account, 10 tries an hour.
+    Creators make and manage them (`javeda_make_code`, `javeda_codes_list`, `javeda_code_set`; the hub's
+    **Pass codes**). The Pass itself is a row in `javeda_passes` (source `stripe` / `even` / `merch` / `gift`).
+  - **Enforced** in `javeda_submit_run` and `javeda_start_run` ("JAVEDA Pass needed"); `javeda_import_guest`
+    skips what needs it. Creators need no Pass.
+  - **The hub**: a part you've reached that only waits on the Pass shows up gold ("Ready", a JAVEDA Pass button);
+    the Continue card has a Pass row; a clear that makes something ready says so, and leaving the level offers
+    the Pass (by itself at most once a day). Never points or random rewards for money.
 - **Where players get stuck** (creators only, a button on the Continue card): `javeda_level_stats()` - per level,
   how many could play it, tried, cleared, are stuck (tried, never cleared) and runs per clear. Creators' own runs
   are left out; guests aren't in it.

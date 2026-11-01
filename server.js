@@ -88,6 +88,23 @@ const TIER_CREDITS = {
   elite:   4550,
 };
 
+// ─── JAVEDA Pass ─────────────────────────────────────────────────────────────
+// One payment opens the rest of JAVEDA (lightningwolves.studio/javeda) for a player: every part after Part 1, the
+// endless and the remixes. The Pass is a row in javeda_passes that only javeda_grant_pass (service role) writes -
+// from the webhook and from /api/javeda/pass/confirm when the player comes back, whichever is first. What a level
+// needs is the database's business (supabase-javeda-schema.sql), not this file's.
+const JAVEDA_PASS_CENTS = parseInt(process.env.JAVEDA_PASS_CENTS || '599', 10);
+// where a checkout may send the player back to: the site, its previews, local dev
+const JAVEDA_ORIGINS = /^https:\/\/((www\.)?lightningwolves\.studio|lightning-wolves-studio-[a-z0-9-]+-lazyjos-projects\.vercel\.app)$|^http:\/\/localhost(:\d+)?$/;
+
+async function grantJavedaPass(session) {
+  const userId = session.client_reference_id || session.metadata?.userId;
+  if (!userId || session.metadata?.kind !== 'javeda_pass' || session.payment_status !== 'paid') return false;
+  const { error } = await supabase.rpc('javeda_grant_pass', { p_user: userId, p_source: 'stripe', p_ref: session.id });
+  if (error) throw new Error(`javeda_grant_pass: ${error.message}`);
+  return true;
+}
+
 // ─── Middleware ───────────────────────────────────────────────────────────────
 app.use(cors());
 
@@ -113,6 +130,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
+        if (session.metadata?.kind === 'javeda_pass') { await grantJavedaPass(session); break; }
         const userId = session.client_reference_id || session.metadata?.userId;
         const tier = session.metadata?.tier;
         if (userId && tier && TIER_CREDITS[tier] !== undefined) {
@@ -126,6 +144,11 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
             })
             .eq('id', userId);
         }
+        break;
+      }
+      // a JAVEDA Pass paid with a method that settles later (SEPA and the like)
+      case 'checkout.session.async_payment_succeeded': {
+        await grantJavedaPass(event.data.object);
         break;
       }
       case 'customer.subscription.updated': {
@@ -239,6 +262,7 @@ app.get('/api/config', (req, res) => {
     supabaseUrl:     process.env.SUPABASE_URL     || null,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY || null,
     stripeConfigured: !!stripe,
+    javedaPassCents: stripe ? JAVEDA_PASS_CENTS : null,
   });
 });
 
@@ -287,6 +311,71 @@ app.post('/api/create-checkout-session', async (req, res) => {
   } catch (err) {
     console.error('Create checkout session error:', err);
     res.status(500).json({ error: err.message || 'Checkout failed' });
+  }
+});
+
+// The JAVEDA Pass: a one-time Checkout for a signed-in player who hasn't got it yet.
+app.post('/api/javeda/pass/checkout', async (req, res) => {
+  if (!stripe || !supabase) return res.status(503).json({ error: "Payments aren't set up yet" });
+  try {
+    const { token } = req.body || {};
+    const user = await getUserFromToken({ headers: { authorization: token ? `Bearer ${token}` : '' } });
+    if (!user) return res.status(401).json({ error: 'Sign in first' });
+    // no Pass table yet (the schema isn't run): no payment either, there'd be nowhere to put the Pass
+    const { data: has, error: passErr } = await supabase.from('javeda_passes').select('user_id').eq('user_id', user.id).maybeSingle();
+    if (passErr) return res.status(503).json({ error: "Payments aren't set up yet" });
+    if (has) return res.status(409).json({ error: 'You already have the JAVEDA Pass' });
+    const origin = JAVEDA_ORIGINS.test(req.headers.origin || '')
+      ? req.headers.origin
+      : (process.env.PUBLIC_APP_URL || 'https://lightningwolves.studio').replace(/\/$/, '');
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: 'eur',
+          unit_amount: JAVEDA_PASS_CENTS,
+          tax_behavior: 'inclusive',
+          product_data: {
+            name: 'JAVEDA Pass',
+            description: 'Every part, endless and remix of JAVEDA by Lazy Jo. One payment, yours for good.',
+          },
+        },
+      }],
+      customer_email: user.email,
+      client_reference_id: user.id,
+      metadata: { kind: 'javeda_pass', userId: user.id },
+      payment_intent_data: { metadata: { kind: 'javeda_pass', userId: user.id } },
+      ...(process.env.JAVEDA_STRIPE_TAX === '1' ? { automatic_tax: { enabled: true } } : {}),
+      success_url: `${origin}/javeda/?pass=done&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${origin}/javeda/?pass=cancelled`,
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('JAVEDA Pass checkout error:', err);
+    res.status(500).json({ error: 'Checkout failed. Try again in a minute.' });
+  }
+});
+
+// Back from the checkout: grant the Pass now rather than wait for the webhook.
+app.post('/api/javeda/pass/confirm', async (req, res) => {
+  if (!stripe || !supabase) return res.status(503).json({ error: "Payments aren't set up yet" });
+  try {
+    const { token, session_id } = req.body || {};
+    const user = await getUserFromToken({ headers: { authorization: token ? `Bearer ${token}` : '' } });
+    if (!user) return res.status(401).json({ error: 'Sign in first' });
+    if (typeof session_id !== 'string' || !/^cs_[A-Za-z0-9_]+$/.test(session_id)) {
+      return res.status(400).json({ error: 'No such checkout' });
+    }
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+    if ((session.client_reference_id || session.metadata?.userId) !== user.id) {
+      return res.status(403).json({ error: "That checkout isn't yours" });
+    }
+    if (await grantJavedaPass(session)) return res.json({ pass: true });
+    res.json({ pass: false, status: session.payment_status });
+  } catch (err) {
+    console.error('JAVEDA Pass confirm error:', err);
+    res.status(500).json({ error: "Couldn't check the payment" });
   }
 });
 

@@ -812,17 +812,30 @@ let daily = null;           // today's challenge: { day, level } from javeda_dai
 let dailyBest = 0;          // your best in it today
 let mode = {};              // how the level in the frame is played: { room }, { daily:true } or { marathon:true }
 let marathon = null;        // a marathon in progress: { i, songs, total, start }
+let unlocks = new Set();    // Part 1s kept open by a daily challenge cleared before you got there (javeda_unlocks)
 
 const signedIn = () => !!(session && player);
+const gateOpen = lv => { const p = progress[lv.requires]; return !!(p && p.cleared && (p.best || 0) >= (lv.needScore || 0)); };
+// a song you're only in thanks to a daily challenge: its Part 1 is kept open (unlocks) but you haven't got to it the
+// normal way. Its Parts 2-3 open from it as usual; the song after it waits until you get there.
+function early(n){
+  const p1 = LEVELS.find(l => l.num === n && !l.part);
+  if (!p1 || !unlocks.has(p1.id) || !p1.requires) return false;
+  if (!gateOpen(p1)) return true;
+  const need = levelById(p1.requires);
+  return need.num !== n && early(need.num);
+}
 function isOpen(lv){
-  const p = lv.requires && progress[lv.requires];
-  return creator || !lv.requires || !!(p && p.cleared && (p.best || 0) >= (lv.needScore || 0));
+  if (creator || !lv.requires || unlocks.has(lv.id)) return true;
+  const need = levelById(lv.requires);
+  return gateOpen(lv) && !(need && need.num !== lv.num && early(need.num));
 }
 // what a locked card says it's waiting for
 function needText(lv){
   if (lv.ultimate) return "Clear Level 9 Part 3 to open";
   const need = levelById(lv.requires), p = progress[lv.requires];
   const where = need.num === lv.num ? "Part " + (need.part || 1) : "Level " + need.num;
+  if (need.num !== lv.num && early(need.num)) return "Get to Level " + need.num + " the normal way first";
   if (lv.needScore && p && p.cleared) return "Score " + fmt(lv.needScore) + " in " + where + " to open";
   if (lv.endless){ const n = LEVELS.filter(l => l.num === lv.num).length; return n > 1 ? "Clear all " + n + " parts to open" : "Clear Level " + lv.num + " to open"; }
   return "Finish " + where + " first";
@@ -833,9 +846,10 @@ const SONGS_N = [...new Set(LEVELS.map(l => l.num))];
 const songDone = n => LEVELS.every(l => l.num !== n || cleared(l.id));
 const albumDone = () => LEVELS.every(l => cleared(l.id));
 // where to pick up: the first level you can play and haven't cleared, after the last one you cleared
+// (not counting a song you're only in thanks to a daily)
 function continueLevel(){
   const todo = l => isOpen(l) && !cleared(l.id);
-  let last = -1; LEVELS.forEach((l, i) => { if (cleared(l.id)) last = i; });
+  let last = -1; LEVELS.forEach((l, i) => { if (cleared(l.id) && !early(l.num)) last = i; });
   return LEVELS.slice(last + 1).find(todo) || LEVELS.find(todo) || null;
 }
 // the album marathon: Part 1 of every song, back to back. Score = songs x 1,000,000 + the level scores / 10
@@ -890,12 +904,13 @@ function renderNow(){
 function dailyCard(){
   const lv = daily && levelById(daily.level);
   if (!lv) return "";
-  const main = LEVELS.find(l => l.num === lv.num && !l.part), day = new Date(daily.day + "T12:00:00").toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
+  const day = new Date(daily.day + "T12:00:00").toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
   return '<article class="daily"><span class="dl">Today\'s challenge &middot; ' + esc(day) + '</span>' +
-    '<span class="dt">Level ' + lv.num + ' &#8734; ' + esc(main.title) + '</span>' +
-    '<p class="dd">' + esc(lv.title) + ' with no end - the same song for everyone today' + (isOpen(lv) ? '' : ', even if you haven\'t got that far yet') + '. Its own scoreboard, empty again tomorrow.</p>' +
+    '<span class="dt">Level ' + lv.num + ' &middot; ' + esc(lv.title) + '</span>' +
+    '<p class="dd">The same song for everyone today, with its own scoreboard - empty again tomorrow.' +
+      (isOpen(lv) ? '' : ' You haven\'t got this far yet: <b>clear it and it stays open for you.</b>') + '</p>' +
     '<div class="row">' + (dailyBest ? '<span class="best">Your best today ' + fmt(dailyBest) + '</span>' : '<span class="tag">' + (session ? 'Not played yet today' : 'Log in for the board') + '</span>') +
-      '<span class="btns"><button class="btn small" data-board="daily">Board</button><button class="btn hot small" data-daily="1">Play &#8734;</button></span></div></article>';
+      '<span class="btns"><button class="btn small" data-board="daily">Board</button><button class="btn hot small" data-daily="1">Play &#9654;</button></span></div></article>';
 }
 async function loadDaily(){
   if (!sb) return;
@@ -1054,7 +1069,7 @@ function renderTabs(){
     '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
   const el = $("etabs"); el.classList.toggle("gold", kind === "endless" || kind === "marathon");
   if (kind === "daily"){ const lv = daily && levelById(daily.level);
-    el.innerHTML = lv ? '<div class="pts"><span class="cap"><small>Today &middot; Level ' + lv.num + ' &#8734;</small>' + esc(lv.title) + '</span></div>' : ""; return; }
+    el.innerHTML = lv ? '<div class="pts"><span class="cap"><small>Today &middot; Level ' + lv.num + '</small>' + esc(lv.title) + '</span></div>' : ""; return; }
   if (kind === "marathon"){ el.innerHTML = '<div class="pts"><span class="cap"><small>Album marathon</small>songs cleared in one run</span></div>'; return; }
   if (kind !== "level" && kind !== "endless"){ el.innerHTML = ""; return; }
   const list = kind === "level" ? boardLevels() : ENDLESS, cur = levelById(boardTab), here = list.filter(l => l.num === cur.num);
@@ -1214,15 +1229,17 @@ $("lgGoogle").onclick = async () => {
 /* ---- account ---- */
 async function loadAccount(){
   player = null; owned = new Set(); creator = false; record = null;
-  if (!session){ progress = { ...guest.progress }; renderAll(); showJoin(); return; }
+  if (!session){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); showJoin(); return; }
   const uid = session.user.id;
-  const [p, g, o, c, v] = await Promise.all([
+  const [p, g, o, c, v, u] = await Promise.all([
     sb.from("javeda_players").select("*").eq("user_id", uid).maybeSingle(),
     sb.from("javeda_progress").select("level, cleared, best_score, best_metres, runs").eq("user_id", uid),
     sb.from("javeda_owned").select("avatar").eq("user_id", uid),
     sb.from("javeda_creators").select("user_id").eq("user_id", uid).maybeSingle(),
-    sb.from("javeda_1v1").select("wins, losses, draws").eq("user_id", uid).maybeSingle()
+    sb.from("javeda_1v1").select("wins, losses, draws").eq("user_id", uid).maybeSingle(),
+    sb.from("javeda_unlocks").select("level").eq("user_id", uid)
   ]);
+  unlocks = new Set((u.data || []).map(r => r.level));
   record = v.data || null;
   player = p.data || null;
   creator = !!c.data;
@@ -1248,10 +1265,10 @@ async function loadAccount(){
 async function importGuest(){
   const has = Object.keys(guest.progress || {}).length;
   if (!has) return;
-  const { data, error } = await sb.rpc("javeda_import_guest", { p_progress: guest.progress });
+  const { data, error } = await sb.rpc("javeda_import_guest", { p_progress: { ...guest.progress, _unlocks: guest.unlocks || [] } });
   if (!error && data && data.imported){
     toast("Your guest progress is saved" + (data.earned ? " · <b>+" + fmt(data.earned) + " points</b>" : ""));
-    guest.progress = {}; saveGuest();
+    guest.progress = {}; guest.unlocks = []; saveGuest();
   }
 }
 
@@ -1305,8 +1322,8 @@ $("versus").addEventListener("click", e => {
 $("endless").addEventListener("click", e => { const b = e.target.closest("[data-play]"); if (b) play(b.dataset.play); });
 $("playClose").onclick = stopPlay;
 
-// An endless run starts with the database, which holds its score to the time played (a daily run and the
-// marathon too). .then() sends it now: a supabase query only goes out when something awaits it, and awaited
+// An endless run starts with the database, which holds its score to the time played (the marathon too; a daily
+// run starts there as well, which fixes the day and the level it counts for). .then() sends it now: a supabase query only goes out when something awaits it, and awaited
 // at the end of the run it would say the run took no time at all.
 let runStart = null, dailyStart = null;
 const sendNow = q => q.then(r => r);
@@ -1324,7 +1341,7 @@ async function saveRun(r, quiet){
   // and for Level 2 Part 2 Zirka's bike
   const after = { ...progress, [lv.id]: { ...was, cleared: was.cleared || !!r.cleared, best: Math.max(was.best || 0, r.score | 0) } };
   const opensWith = (l, pr) => { const p = pr[l.requires]; return !!(p && p.cleared && (p.best || 0) >= (l.needScore || 0)); };
-  const opened = LEVELS.filter(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after)).map(lvName);
+  const opened = LEVELS.filter(l => l.requires === lv.id && (l.num === lv.num || !early(lv.num)) && !opensWith(l, progress) && opensWith(l, after)).map(lvName);
   if (ENDLESS.some(l => l.requires === lv.id && !opensWith(l, progress) && opensWith(l, after))) opened.push("Level " + lv.num + " Endless &#8734;");
   if (r.cleared && !was.cleared && lv.id === "lvl2b") opened.push("Zirka's bike in Level 1");
   if (ULT.requires === lv.id && !opensWith(ULT, progress) && opensWith(ULT, after)) opened.push("JAVEDA: HYPERDRIVE");
@@ -1353,6 +1370,7 @@ async function saveRun(r, quiet){
   if (d.album_complete) finale();
   else if (!quiet) toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), 4500);
   if (r.cleared && !quiet) offerShare({ kind:"level", lv, score:d.score, head:d.first_clear ? "First clear" : d.new_best ? "New best" : "Cleared" });
+  return d;
 }
 async function saveEndless(lv, r, quiet){
   const was = (progress[lv.id] || {}).best || 0, score = r.score | 0, unit = lv.ultimate ? " m" : "";
@@ -1381,25 +1399,32 @@ async function saveEndless(lv, r, quiet){
                    : "Your best is still <b>" + fmt(d.progress.best_score) + unit + "</b> · beat it for points", 4500);
   if (d.new_best && d.score) offerShare({ kind:"level", lv, score:d.score, unit, head:"New best" });
 }
-// today's challenge: the day's board (and, when that endless is open to you, your endless best too, quietly)
+// today's challenge: the day's board. Cleared on a song you hadn't got to yet, that song stays open for you; and once
+// the level is yours to play, the run counts like any other run of it (quietly: the daily says its own)
 async function saveDaily(r){
-  const lv = levelById(r.level), score = r.score | 0;
-  if (isOpen(lv)) saveEndless(lv, r, true);
+  const lv = levelById(r.level), score = r.score | 0, keeps = !!r.cleared && !isOpen(lv);
+  const kept = keeps ? " &middot; <b>Level " + lv.num + " stays open for you</b>" : "";
   if (!signedIn()){
+    if (keeps){ guest.unlocks = [...new Set([...(guest.unlocks || []), lv.id])]; unlocks.add(lv.id); }
     const d = guest.daily && daily && guest.daily.day === daily.day ? guest.daily : { day:daily && daily.day, best:0 };
-    const nb = score > d.best; d.best = Math.max(d.best, score); guest.daily = d; saveGuest(); dailyBest = d.best; renderNow();
-    toast((nb ? "<b>New best today: " + fmt(score) + "</b>" : "Today's best: <b>" + fmt(d.best) + "</b>") + " · <b>Log in</b> to get on the daily board.", 5000);
+    const nb = score > d.best; d.best = Math.max(d.best, score); guest.daily = d; saveGuest(); dailyBest = d.best;
+    if (isOpen(lv)) await saveRun(r, true);
+    renderNow();
+    toast((nb ? "<b>New best today: " + fmt(score) + "</b>" : "Today's best: <b>" + fmt(d.best) + "</b>") + kept + " · <b>Log in</b> to get on the daily board.", 5500);
     if (nb && score) offerShare({ kind:"daily", lv, score, head:"Daily challenge" });
     return;
   }
   const started = dailyStart ? await dailyStart : null; dailyStart = null;
   if (!started || started.error){ toast("That daily run didn't save: " + esc(started && started.error ? started.error.message : "it never started")); return; }
-  const res = await sb.rpc("javeda_submit_daily", { p_score:score });
+  const res = await sb.rpc("javeda_submit_daily", { p_score:score, p_cleared:!!r.cleared });
   if (res.error){ toast("That daily run didn't save: " + esc(res.error.message)); return; }
   const d = res.data;
+  if (d.kept) unlocks.add(d.level);
   if (daily && d.day === daily.day) dailyBest = d.best;
+  const run = isOpen(lv) ? await saveRun(r, true) : null;
   renderNow(); if (boardTab === "daily") renderBoard();
-  toast((d.new_best ? "<b>New best today! " + fmt(d.score) + "</b>" : "Today's best is still <b>" + fmt(d.best) + "</b>") + " · <b>#" + d.rank + "</b> on today's board", 5000);
+  toast((d.new_best ? "<b>New best today! " + fmt(d.score) + "</b>" : "Today's best is still <b>" + fmt(d.best) + "</b>") + " · <b>#" + d.rank + "</b> on today's board" +
+        (run && run.earned ? " · +" + fmt(run.earned) + (run.earned === 1 ? " point" : " points") : "") + kept, 6000);
   if (d.new_best && d.score) offerShare({ kind:"daily", lv, score:d.score, head:"Daily challenge" });
 }
 
@@ -1688,7 +1713,7 @@ addEventListener("message", e => {
     if (marathon) return void marathonNext();
     const nextLv = nextMain(m.level || (current && current.id));
     if (nextLv && isOpen(nextLv)) play(nextLv.id);
-    else { stopPlay(); if (nextLv) toast(lvName(nextLv) + " opens when you finish this one."); }
+    else { stopPlay(); if (nextLv) toast(lvName(nextLv) + (cleared(nextLv.requires) ? " - " + needText(nextLv) + "." : " opens when you finish this one.")); }
   }
 });
 
@@ -1701,7 +1726,7 @@ renderAll();
     if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase)
       sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:true, autoRefreshToken:true } });
   } catch(e){}
-  if (!sb){ progress = { ...guest.progress }; renderAll(); return; }
+  if (!sb){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); return; }
   // the live catalogue wins over the built-in copy, so prices can change without a deploy
   sb.from("javeda_avatars").select("*").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
   const { data } = await sb.auth.getSession();

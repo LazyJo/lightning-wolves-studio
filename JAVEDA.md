@@ -142,10 +142,17 @@ scoreboard shows as offline.
   when the level closes) and the **album marathon** (`marathon`, `MARATHON` in the hub): Part 1 of every song back
   to back, one try each - fail one and the run ends. Score = songs x 1,000,000 + the level scores / 10;
   `javeda_start_run('marathon')` checks the album is done (or a creator), `max_rate` 10,000/s.
-- **Daily challenge**: one song's Part 1 endless a day (Brussels time) for everyone, reached or not; the songs come
-  round in a fixed shuffled order (`javeda_daily_level`). Its own board (`javeda_daily_scores`, empty every day);
-  `javeda_start_daily` / `javeda_submit_daily` work like an endless run. No points. When that endless is open to
-  you, the run also counts as a normal endless run.
+- **Daily challenge**: one song's Part 1 a day (Brussels time) for everyone, reached or not; the songs come round
+  in a fixed shuffled order (`javeda_daily_level`), so none comes back within 28 days. Its own board
+  (`javeda_daily_scores`: the best score that day, empty every day) through `javeda_start_daily` /
+  `javeda_submit_daily(score, cleared)`.
+  - **Cleared = it stays open.** A clear on a song you hadn't got to yet keeps that song's Part 1 open for you
+    (`javeda_unlocks`; a guest keeps it in `javeda.guest.v1` `unlocks` and brings it along at the first log-in via
+    `javeda_import_guest`'s `_unlocks`). Once the level is yours to play, the daily run also counts as a normal run
+    of it (progress, points, the level board, the album).
+  - Its Parts 2-3 (and its endless) then open as usual. **The next song does not**: it waits until you get to the
+    kept song the normal way (`early()` in the hub; a locked card says "Get to Level N the normal way first").
+    When you do, your earlier clear counts straight away.
 - **Where players get stuck** (creators only, a button on the Continue card): `javeda_level_stats()` - per level,
   how many could play it, tried, cleared, are stuck (tried, never cleared) and runs per clear. Creators' own runs
   are left out; guests aren't in it.

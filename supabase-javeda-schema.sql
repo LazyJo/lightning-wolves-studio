@@ -551,6 +551,7 @@ BEGIN
   IF lv.requires IS NOT NULL AND NOT EXISTS (
        SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared
                                        AND best_score >= lv.requires_score)
+     AND NOT EXISTS (SELECT 1 FROM javeda_unlocks WHERE user_id = uid AND level = p_level)
      AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
     RAISE EXCEPTION 'level locked' USING ERRCODE = '42501';
   END IF;
@@ -622,15 +623,24 @@ BEGIN
      OR EXISTS (SELECT 1 FROM javeda_progress WHERE user_id = uid) THEN
     RETURN json_build_object('player', row_to_json(me), 'imported', 0, 'earned', 0);
   END IF;
+  -- songs a guest kept open by clearing a daily challenge before getting there (Part 1s only)
+  IF jsonb_typeof(p_progress -> '_unlocks') = 'array' THEN
+    INSERT INTO javeda_unlocks (user_id, level)
+    SELECT uid, l.id FROM javeda_levels l
+    WHERE NOT l.endless AND l.id ~ '^lvl[0-9]+$'
+      AND l.id IN (SELECT jsonb_array_elements_text(p_progress -> '_unlocks') LIMIT 60)
+    ON CONFLICT DO NOTHING;
+  END IF;
   FOR lv IN SELECT * FROM javeda_levels ORDER BY sort LOOP
     item := p_progress -> lv.id;
     CONTINUE WHEN item IS NULL OR jsonb_typeof(item) <> 'object';
     CONTINUE WHEN lv.endless;              -- a guest's endless score can't be checked: it stays on the phone
     CONTINUE WHEN EXISTS (SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.id);
-    -- a guest clear only counts if the level before it is cleared too
+    -- a guest clear only counts if the level before it is cleared too (or a daily kept it open)
     CONTINUE WHEN lv.requires IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared
-                                      AND best_score >= lv.requires_score);
+                                      AND best_score >= lv.requires_score)
+      AND NOT EXISTS (SELECT 1 FROM javeda_unlocks WHERE user_id = uid AND level = lv.id);
     INSERT INTO javeda_progress (user_id, level, cleared, best_score, best_metres, runs, clears, first_cleared_at)
     VALUES (uid, lv.id,
             COALESCE((item ->> 'cleared')::BOOLEAN, false),
@@ -911,11 +921,12 @@ REVOKE ALL ON FUNCTION public.javeda_report_group(UUID, TEXT, UUID[], INT[], INT
 GRANT EXECUTE ON FUNCTION public.javeda_report_group(UUID, TEXT, UUID[], INT[], INT[], UUID[]) TO authenticated;
 
 -- ── The daily challenge ─────────────────────────────────────────────────────
--- One level a day for everyone: the endless of one song's Part 1 (lvlNx), with a scoreboard of its own that starts
--- empty every day. The day is Brussels time. The songs come round in a fixed shuffled order, so no song comes back
--- within 28 days. Open to every player whether they have reached that song or not - a taste of the album; it
--- unlocks nothing and earns no points, it's for the daily board. A run is started with javeda_start_daily and held
--- to that level's max_rate a second since then, like an endless run.
+-- One level a day for everyone: Part 1 of one song (lvlN), with a scoreboard of its own (the best score that day)
+-- that starts empty every day. The day is Brussels time. The songs come round in a fixed shuffled order, so no song
+-- comes back within 28 days. Open to every player whether they have reached that song or not - a taste of the album.
+-- Clear it and it's a real clear: a song you hadn't got to yet stays open for you (javeda_unlocks), and the run
+-- counts like any other run of that level (the hub sends it on to javeda_submit_run). A run is started with
+-- javeda_start_daily, which fixes the day and the level it counts for.
 CREATE TABLE IF NOT EXISTS javeda_daily_scores (
   day        DATE NOT NULL,
   user_id    UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
@@ -933,12 +944,26 @@ CREATE TABLE IF NOT EXISTS javeda_daily_runs (
   level      TEXT NOT NULL REFERENCES javeda_levels(id),
   started_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- a song's Part 1 a player may play before reaching it: a daily challenge cleared there keeps it open. Its Parts 2-3
+-- then open as usual when it's cleared; the next song still waits until they get there the normal way (the hub
+-- keeps to that). Each player reads their own; nobody writes it directly.
+CREATE TABLE IF NOT EXISTS javeda_unlocks (
+  user_id    UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  level      TEXT NOT NULL REFERENCES javeda_levels(id),
+  via        TEXT NOT NULL DEFAULT 'daily',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, level)
+);
 ALTER TABLE javeda_daily_scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_daily_runs   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE javeda_unlocks      ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS javeda_daily_scores_read ON javeda_daily_scores;
 CREATE POLICY javeda_daily_scores_read ON javeda_daily_scores FOR SELECT USING (true);
-REVOKE ALL ON javeda_daily_scores, javeda_daily_runs FROM anon, authenticated;
+DROP POLICY IF EXISTS javeda_unlocks_read ON javeda_unlocks;
+CREATE POLICY javeda_unlocks_read ON javeda_unlocks FOR SELECT USING (auth.uid() = user_id);
+REVOKE ALL ON javeda_daily_scores, javeda_daily_runs, javeda_unlocks FROM anon, authenticated;
 GRANT SELECT ON javeda_daily_scores TO anon, authenticated;
+GRANT SELECT ON javeda_unlocks TO authenticated;
 
 DROP VIEW IF EXISTS javeda_daily_board;
 CREATE VIEW javeda_daily_board WITH (security_invoker = true) AS
@@ -952,7 +977,7 @@ RETURNS TEXT
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
   WITH pool AS (SELECT id, row_number() OVER (ORDER BY md5('javeda-daily-' || id)) - 1 AS i, count(*) OVER () AS n
-                FROM javeda_levels WHERE endless AND id ~ '^lvl[0-9]+x$')
+                FROM javeda_levels WHERE NOT endless AND id ~ '^lvl[0-9]+$')
   SELECT id FROM pool WHERE i = (((p_day - DATE '2026-11-01') % n) + n) % n;
 $$;
 
@@ -982,8 +1007,10 @@ BEGIN
 END;
 $$;
 
--- a daily run is over: it counts for the day it started on (a run over midnight still counts for that day)
-CREATE OR REPLACE FUNCTION public.javeda_submit_daily(p_score INT)
+-- a daily run is over: it counts for the day it started on (a run over midnight still counts for that day).
+-- Cleared, the level stays open for the player ('kept').
+DROP FUNCTION IF EXISTS public.javeda_submit_daily(INT);
+CREATE OR REPLACE FUNCTION public.javeda_submit_daily(p_score INT, p_cleared BOOLEAN)
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
@@ -999,26 +1026,30 @@ BEGIN
   DELETE FROM javeda_daily_runs WHERE user_id = uid RETURNING * INTO run;
   IF run.user_id IS NULL THEN RAISE EXCEPTION 'no run started' USING ERRCODE = '22023'; END IF;
   SELECT * INTO lv FROM javeda_levels WHERE id = run.level;
-  score := GREATEST(0, LEAST(COALESCE(p_score, 0), lv.max_score, FLOOR(lv.max_rate * EXTRACT(EPOCH FROM now() - run.started_at))::INT));
+  score := GREATEST(0, LEAST(COALESCE(p_score, 0), lv.max_score));
+  IF lv.endless THEN score := LEAST(score, FLOOR(lv.max_rate * EXTRACT(EPOCH FROM now() - run.started_at))::INT); END IF;
   SELECT best_score INTO was FROM javeda_daily_scores WHERE day = run.day AND user_id = uid;
   INSERT INTO javeda_daily_scores AS s (day, user_id, level, best_score, runs) VALUES (run.day, uid, run.level, score, 1)
   ON CONFLICT (day, user_id) DO UPDATE SET best_score = GREATEST(s.best_score, EXCLUDED.best_score), runs = s.runs + 1, updated_at = now()
   RETURNING * INTO row;
-  RETURN json_build_object('day', run.day, 'level', run.level, 'score', score, 'best', row.best_score,
+  IF p_cleared THEN
+    INSERT INTO javeda_unlocks (user_id, level) VALUES (uid, run.level) ON CONFLICT DO NOTHING;
+  END IF;
+  RETURN json_build_object('day', run.day, 'level', run.level, 'score', score, 'best', row.best_score, 'kept', COALESCE(p_cleared, false),
                            'new_best', was IS NULL OR score > was,
                            'rank', (SELECT count(*) + 1 FROM javeda_daily_scores WHERE day = run.day AND best_score > row.best_score));
 END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_daily_level(DATE) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.javeda_start_daily() FROM PUBLIC, anon;
-REVOKE ALL ON FUNCTION public.javeda_submit_daily(INT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.javeda_submit_daily(INT, BOOLEAN) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_daily_level(DATE) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_daily() TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_start_daily() TO authenticated;
-GRANT EXECUTE ON FUNCTION public.javeda_submit_daily(INT) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_submit_daily(INT, BOOLEAN) TO authenticated;
 
 -- ── Where players get stuck (creators only) ─────────────────────────────────
--- Per level that isn't endless: how many players could play it (its gate cleared, or no gate), how many tried, how
+-- Per level that isn't endless: how many players could play it (its gate cleared, no gate, or kept open by a daily), how many tried, how
 -- many cleared it, how many tried and never did (stuck), and all their runs and clears. Creators' own runs are left
 -- out, so testing doesn't skew it. Guests aren't in it (their runs stay on their phone).
 CREATE OR REPLACE FUNCTION public.javeda_level_stats()
@@ -1035,7 +1066,11 @@ BEGIN
        pl AS (SELECT count(*)::INT AS n FROM javeda_players p WHERE NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id))
   SELECT l.id, l.num, l.sort,
          CASE WHEN l.requires IS NULL THEN (SELECT n FROM pl)
-              ELSE (SELECT count(*)::INT FROM g WHERE g.level = l.requires AND g.cleared AND g.best_score >= l.requires_score) END,
+              ELSE (SELECT count(*)::INT FROM (
+                      SELECT g.user_id FROM g WHERE g.level = l.requires AND g.cleared AND g.best_score >= l.requires_score
+                      UNION
+                      SELECT u.user_id FROM javeda_unlocks u WHERE u.level = l.id
+                        AND NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = u.user_id)) w) END,
          (SELECT count(*)::INT FROM g WHERE g.level = l.id AND g.runs > 0),
          (SELECT count(*)::INT FROM g WHERE g.level = l.id AND g.cleared),
          (SELECT count(*)::INT FROM g WHERE g.level = l.id AND g.runs > 0 AND NOT g.cleared),

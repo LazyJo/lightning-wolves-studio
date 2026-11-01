@@ -172,6 +172,14 @@ const S = [
   ["Share it", "Deel het", "Partage-le", "Compártelo"],
   ["Share…", "Delen…", "Partager…", "Compartir…"],
   ["Save picture", "Foto bewaren", "Enregistrer l'image", "Guardar imagen"],
+  ["Share the link", "Deel de link", "Partager le lien", "Compartir el enlace"],
+  ["I finished JAVEDA - all # songs of Lazy Jo's playable album.", "Ik heb JAVEDA uitgespeeld - alle # nummers van het speelbare album van Lazy Jo.", "J'ai fini JAVEDA - les # morceaux de l'album jouable de Lazy Jo.", "He terminado JAVEDA - las # canciones del álbum jugable de Lazy Jo."],
+  ["Album marathon on JAVEDA: # of # songs in one run.", "Albummarathon op JAVEDA: # van de # nummers in één run.", "Marathon de l'album sur JAVEDA : # morceaux sur # d'une traite.", "Maratón del álbum en JAVEDA: # de # canciones de una tirada."],
+  ["Today's JAVEDA challenge: #. Beat it:", "De JAVEDA-uitdaging van vandaag: #. Versla het:", "Le défi JAVEDA du jour : #. Fais mieux :", "El reto de JAVEDA de hoy: #. Supéralo:"],
+  ["on JAVEDA, Lazy Jo's playable album.", "op JAVEDA, het speelbare album van Lazy Jo.", "sur JAVEDA, l'album jouable de Lazy Jo.", "en JAVEDA, el álbum jugable de Lazy Jo."],
+  ["endless", "eindeloos", "infini", "infinito"],
+  ["Share the picture", "Deel de foto", "Partager l'image", "Compartir la imagen"],
+  ["Send the link - it shows the JAVEDA preview in the chat. Or put the picture in your story.", "Stuur de link - dan zie je de JAVEDA-preview in de chat. Of zet de foto in je story.", "Envoie le lien - l'aperçu JAVEDA s'affiche dans la discussion. Ou mets l'image dans ta story.", "Envía el enlace - se ve la vista previa de JAVEDA en el chat. O pon la imagen en tu historia."],
   ["Save the picture and post it to your story. The link to play is on it.", "Bewaar de foto en zet hem in je story. De link om te spelen staat erop.", "Enregistre l'image et publie-la dans ta story. Le lien pour jouer est dessus.", "Guarda la imagen y súbela a tu historia. El enlace para jugar está en ella."],
   ["I finished JAVEDA - all 28 songs of Lazy Jo's playable album.", "Ik heb JAVEDA uitgespeeld - alle 28 nummers van het speelbare album van Lazy Jo.", "J'ai fini JAVEDA - les 28 morceaux de l'album jouable de Lazy Jo.", "He terminado JAVEDA - las 28 canciones del álbum jugable de Lazy Jo."],
   // continue, finale, marathon, daily
@@ -364,6 +372,8 @@ const norm = s => s.replace(/\s+/g, " ").trim();
 // a sentence with numbers in it, written once with # for each number: the numbers go back in, in order
 const NUM = /\d+(?:[.,:]\d+)*/g;
 const byTemplate = (k, map) => { if (!/\d/.test(k)) return null; const nums = k.match(NUM), t = map.get(k.replace(NUM, "#")); if (t == null) return null; let i = 0; return t.replace(/#/g, () => nums[i++] != null ? nums[i - 1] : "#"); };
+// for the page's own code: a sentence in the language picked (the words that go with a shared link)
+window.JAVEDA_T = t => (I == null ? t : tr(t) || t);
 function tr(s){
   const k = norm(s); if (!k || I == null) return null;
   if (EX.has(k)) return EX.get(k);

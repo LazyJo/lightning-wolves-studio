@@ -521,16 +521,21 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
   </div>
 </div>
 
-<!-- a share picture, when the phone can't share it straight away -->
+<!-- sharing a clear or a best: the link (it shows the JAVEDA preview in a chat), or the picture for a story -->
 <div class="sheet hid" id="shareSheet" role="dialog" aria-modal="true" aria-labelledby="shT">
   <div class="card">
     <button class="x" type="button" data-close aria-label="Close">&times;</button>
     <h3 id="shT">Share it</h3>
     <img class="shot" id="shImg" alt="Your JAVEDA score card">
-    <p>Save the picture and post it to your story. The link to play is on it.</p>
+    <p>Send the link - it shows the JAVEDA preview in the chat. Or put the picture in your story.</p>
     <div style="display:flex; gap:8px; flex-wrap:wrap">
-      <a class="btn primary" id="shSave" download="javeda.png">Save picture</a>
+      <button class="btn primary" id="shLink" type="button">Share the link</button>
+      <a class="btn wa" id="shWa" target="_blank" rel="noopener">WhatsApp</a>
       <button class="btn" id="shCopy" type="button">Copy the link</button>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn" id="shPic" type="button">Share the picture</button>
+      <a class="btn" id="shSave" download="javeda.png">Save picture</a>
     </div>
   </div>
 </div>
@@ -1862,11 +1867,13 @@ $("codes").addEventListener("click", async e => {
 
 /* ---- share cards: a story-sized picture of a clear or a new best, with the way to play ---- */
 const SHARE_URL = location.origin + "/javeda/";
+// the words that go with a shared link, in the language picked (i18n.js translates them)
 function cardText(c){
-  if (c.kind === "complete") return "I finished JAVEDA - all 28 songs of Lazy Jo's playable album.";
-  if (c.kind === "marathon") return "Album marathon on JAVEDA: " + c.songs + " of " + MARATHON.length + " songs in one run.";
-  if (c.kind === "daily") return "Today's JAVEDA challenge: " + fmt(c.score) + ". Beat it:";
-  return lvName(c.lv).replace(" ∞", " endless") + ", " + c.lv.title + ": " + fmt(c.score) + (c.unit || "") + " on JAVEDA, Lazy Jo's playable album.";
+  const T = window.JAVEDA_T || (t => t);
+  if (c.kind === "complete") return T("I finished JAVEDA - all 28 songs of Lazy Jo's playable album.");
+  if (c.kind === "marathon") return T("Album marathon on JAVEDA: " + c.songs + " of " + MARATHON.length + " songs in one run.");
+  if (c.kind === "daily") return T("Today's JAVEDA challenge: " + fmt(c.score) + ". Beat it:");
+  return T(lvName(c.lv)).replace(" ∞", " " + T("endless")) + ", " + c.lv.title + ": " + fmt(c.score) + (c.unit || "") + " " + T("on JAVEDA, Lazy Jo's playable album.");
 }
 async function makeCard(c){
   const W = 1080, H = 1920, cv = document.createElement("canvas"), x = cv.getContext("2d");
@@ -1921,19 +1928,22 @@ function offerShare(c){
   c.blob.then(b => { if (!b || chipCard !== c) return; $("shareChip").classList.remove("hid"); clearTimeout(shareT); shareT = setTimeout(() => $("shareChip").classList.add("hid"), 25000); });
 }
 $("shareChip").onclick = () => { $("shareChip").classList.add("hid"); if (chipCard) shareCard(chipCard); };
+// a link with no picture attached, so the chat shows the JAVEDA preview (a picture in the same message hides it)
+let shareNow = null;
 async function shareCard(c){
   const blob = await (c.blob || (c.blob = makeCard(c)));
   if (!blob) return;
   const name = "javeda-" + (c.lv ? c.lv.id : c.kind) + ".png", file = new File([blob], name, { type:"image/png" });
-  if (navigator.canShare && navigator.canShare({ files:[file] })){
-    try { await navigator.share({ files:[file], text:cardText(c) + " " + SHARE_URL }); return; }
-    catch(e){ if (e && e.name === "AbortError") return; }
-  }
-  // no sharing a file from here (most computers): show it, to save and post
+  shareNow = { c, file, text:cardText(c) };
   const url = URL.createObjectURL(blob);
   $("shImg").src = url; $("shSave").href = url; $("shSave").download = name;
+  $("shWa").href = "https://wa.me/?text=" + encodeURIComponent(shareNow.text + " " + SHARE_URL);
+  $("shLink").classList.toggle("hid", !navigator.share);
+  $("shPic").classList.toggle("hid", !(navigator.canShare && navigator.canShare({ files:[file] })));
   openSheet("shareSheet");
 }
+$("shLink").onclick = async () => { if (!shareNow) return; try { await navigator.share({ title:"JAVEDA · The playable album by Lazy Jo", text:shareNow.text, url:SHARE_URL }); } catch(e){} };
+$("shPic").onclick = async () => { if (!shareNow) return; try { await navigator.share({ files:[shareNow.file], text:shareNow.text + " " + SHARE_URL }); } catch(e){} };
 $("shCopy").onclick = async () => { try { await navigator.clipboard.writeText(SHARE_URL); toast("Link copied"); } catch(e){ toast(SHARE_URL); } };
 
 // an online 1v1 is over: report it. It counts once the other player's report says the same,

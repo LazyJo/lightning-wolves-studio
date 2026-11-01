@@ -362,21 +362,29 @@ function makeHole(from, to){
 function rnd(n){ const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); }
 // every wall leaves at least one lane open, and never the same one twice running
 let last = 0, rowN = 0, lifts = 0;     // the last open lane, the last row built, lift rows running (endless)
+/* Where the rows are. The first is 50 m out, and the space between them starts wide - ~24 m, two and a
+   half seconds at the start speed - and closes as he speeds up, to ~13 m by the line (it was 11 m all the
+   way, and new players died in the first seconds). Past the line, endless closes it on to 11 m. */
+const ROW0 = 50;
+const rowGap = d => d <= CP_TOTAL * CP_EVERY ? 13 + 11 * Math.exp(-d / 260) : Math.max(11, 13.2 - (d - CP_TOTAL * CP_EVERY) / 1500);
+const ROWD = [0, ROW0];
+const rowD = i => { while (ROWD.length <= i) ROWD.push(ROWD[ROWD.length - 1] + rowGap(ROWD[ROWD.length - 1])); return ROWD[i]; };
 function buildWalls(){
   last = 0; lifts = 0;
   // endless builds the part's own rows up to the line and grows the rest as he flies
-  for (let i = 1; ENDLESS ? i * 11 + 24 < CP_TOTAL * CP_EVERY - 4 : i < 190; i++) buildRow(i, false);
+  for (let i = 1; ENDLESS ? rowD(i) < CP_TOTAL * CP_EVERY - 4 : rowD(i) < 2100; i++) buildRow(i, false);
 }
-/* One row, 11 m on from the last. The part's rows (e false) are exactly what they
+/* One row, rowGap() on from the last. The part's rows (e false) are exactly what they
    always were. Endless rows (e true) lean harder the further past the line they
    are - more low walls and holes, wider holes, and slabs with a hole in the one
    open lane - but never two rows running that both need a lift: back to back,
-   the hop (0.72 s) and the row gap (0.37-0.58 s) leave a frame-perfect window,
+   the hop (0.72 s) and the row gap (0.4-0.7 s at speed) leave a frame-perfect window,
    which is not fair. So there is always a way through. */
 function buildRow(i, e){
   rowN = i;
-  const z = -(i * 11 + 24);
-  const r = rnd(i * 3.7);
+  const z = -rowD(i);
+  // the first three rows are slabs to go round: no lift needed until he has the feel of it
+  const r = i <= 3 ? 1 : rnd(i * 3.7);
   let gap = Math.floor(rnd(i * 9.1) * 3) - 1;
   if (gap === last && i > 1) gap = gap === 1 ? -1 : gap + 1;
   last = gap;
@@ -409,7 +417,7 @@ function dropWall(w){
   w.traverse(o => { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
 }
 function growRoad(){
-  while (rowN * 11 + 24 < S.dist + 100) buildRow(rowN + 1, true);
+  while (rowD(rowN) < S.dist + 100) buildRow(rowN + 1, true);
   while (walls.length && walls[0].position.z > -S.dist + 30) dropWall(walls.shift());
 }
 

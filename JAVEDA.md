@@ -233,6 +233,13 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
 - **Points** come from playing only (never from streaming): up to 40 per run for the
   score, +50 per clear, plus a first-clear bonus (300, Level 9 500). Points buy profile
   pictures (`javeda_buy_avatar`). The first four pictures are free.
+- **Stars** (only in the hub, nothing in the database): every scoring game counts differently, so a score alone
+  says little. A cleared part gets 1 star, 2 at half a great run and 3 for a great run (`GREAT` in the hub, one
+  number per part: a bit under the best a person was measured at; from Level 15 on, about three quarters of what a
+  bot made, less where the bot is far quicker than a hand). They show on the part's tile (gold the ones you have,
+  "next star at" on hover), as "N of 165 stars" on the Continue card, in the message after a clear (with what the
+  next star needs) and big on the share card. Endless and online have none. Once real players' scores come in,
+  tune `GREAT` against `javeda_progress` (the cleared bests per level).
 - **Safety.** Every `javeda_*` table can be read by anyone (the scoreboard is public)
   and written by no one directly; all changes go through the `SECURITY DEFINER`
   functions, which clamp scores to each level's `max_score`, refuse runs closer than

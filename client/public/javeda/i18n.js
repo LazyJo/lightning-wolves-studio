@@ -370,6 +370,8 @@ const P = [
   [/^(.+) with no end - your best (.+)$/, "$1 zonder einde - je record $2", "$1 sans fin - ton record $2", "$1 sin fin - tu récord $2"],
   [/^(.+) with no end$/, "$1 zonder einde", "$1 sans fin", "$1 sin fin"],
   [/^(\d+) of (\d+) parts cleared$/, "$1 van $2 delen uitgespeeld", "$1 parties sur $2 terminées", "$1 de $2 partes superadas"],
+  [/^(\d+) of (\d+) stars$/, (m) => m[1] + [" van " + m[2] + " sterren", (m[1] === "1" ? " étoile" : " étoiles") + " sur " + m[2], " de " + m[2] + " estrellas"][I]],
+  [/^Next star at ([\d,.]+)$/, "Volgende ster bij $1", "Prochaine étoile à $1", "Siguiente estrella en $1"],
   [/^(\d+) of (\d+) cleared$/, "$1 van $2 uitgespeeld", "$1 sur $2 terminées", "$1 de $2 superadas"],
   [/^(\d+) of (\d+)$/, "$1 van $2", "$1 sur $2", "$1 de $2"],
   [/^([\d,.]+) points · creator, every level open$/, "$1 punten · maker, elk level open", "$1 points · créateur, tous les niveaux ouverts", "$1 puntos · creador, todos los niveles abiertos"],
@@ -379,8 +381,9 @@ const P = [
   [/^Start here · (.+)$/, (m, tr) => ["Begin hier · ", "Commence ici · ", "Empieza aquí · "][I] + tr(m[1])],
   [/^(.+), (\d+) points$/, "$1, $2 punten", "$1, $2 points", "$1, $2 puntos"],
   [/^Unlocked$/, "Ontgrendeld", "Débloqué", "Desbloqueado"],
-  [/^(.+) and (.+) are open$/, (m, tr) => tr(m[1]) + [" en ", " et ", " y "][I] + tr(m[2]) + [" zijn open", " sont ouverts", " están abiertos"][I]],
-  [/^(.+) is open$/, (m, tr) => tr(m[1]) + [" is open", " est ouvert", " está abierto"][I]],
+  // "Level 3 Part 2 and Level 4 are open", with or without a full stop (a guest's message goes on: "Log in to save it")
+  [/^([^·]+?) (is|are) open(\.?)$/, (m, tr) => m[1].split(" and ").map(x => tr(x)).join([" en ", " et ", " y "][I]) +
+    (m[2] === "is" ? [" is open", " est ouvert", " está abierto"] : [" zijn open", " sont ouverts", " están abiertos"])[I] + m[3]],
   [/^(.+) opens when you finish this one\.$/, (m, tr) => tr(m[1]) + [" gaat open als je deze uitspeelt.", " s'ouvre quand tu termines celui-ci.", " se abre cuando termines este."][I]],
   [/^(.+) - (Clear|Finish|Score) (.+)\.$/, (m, tr) => tr(m[1]) + " - " + tr(m[2] + " " + m[3]) + "."],
   [/^Song (\d+) of (\d+) ✓$/, "Nummer $1 van $2 ✓", "Morceau $1 sur $2 ✓", "Canción $1 de $2 ✓"],

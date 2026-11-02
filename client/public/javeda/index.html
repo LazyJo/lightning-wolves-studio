@@ -193,6 +193,8 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .part .pi{display:grid; gap:5px}
 .part .pl{display:flex; justify-content:space-between; gap:6px; font:700 11px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase; color:var(--mute)}
 .part .pl b{color:var(--good); letter-spacing:.14em}
+.stars{display:inline-flex; gap:2px; font-size:14px; line-height:1; letter-spacing:0; color:#ffffff2b; white-space:nowrap}
+.stars .on{color:var(--gold); text-shadow:0 0 8px #ffd60a59}
 .part .pt{font:400 15px/1.1 var(--display); overflow-wrap:anywhere}
 .part .pd{font-size:13px; line-height:1.35; color:var(--dim); margin:0}
 .part .foot{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:auto}
@@ -379,6 +381,7 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 
 .toast{position:fixed; left:50%; bottom:max(18px, env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:40; background:var(--panel-2); border:1px solid var(--beam); color:var(--ink); border-radius:10px; padding:11px 16px; font-weight:600; max-width:calc(100vw - 32px); box-shadow:0 10px 30px #0008; text-align:center}
 .toast b{color:var(--gold)}
+.toast .ts{color:var(--gold); letter-spacing:.06em}
 @media (max-width:520px){ .pics{grid-template-columns:repeat(3,1fr)} .me .nm, .me .pts{max-width:92px} .logo span{display:none} }
 @media (prefers-reduced-motion:no-preference){ .toast{animation:up .25s ease-out} @keyframes up{from{transform:translate(-50%,12px); opacity:0}} }
 
@@ -390,6 +393,7 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .cont .count{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
 .cont .count b{font:400 34px/1 var(--display)}
 .cont .count span{font:700 13px/1 var(--cond); letter-spacing:.2em; text-transform:uppercase; color:var(--dim)}
+.cont .count .stt{margin-left:auto; font:700 14px/1 var(--cond); font-style:normal; letter-spacing:.12em; color:var(--gold); white-space:nowrap}
 .cont .meter{height:6px; border-radius:3px; background:#ffffff1a; overflow:hidden}
 .cont .meter i{display:block; height:100%; background:linear-gradient(90deg,var(--good),var(--cyan)); border-radius:3px}
 .cont .next{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
@@ -1187,6 +1191,7 @@ function renderMe(){
 // where you are in the album and the way back in - or, once it's all cleared, the finale - and today's challenge
 function renderNow(){
   const songs = SONGS_N.filter(songDone).length, parts = LEVELS.filter(l => cleared(l.id)).length, nx = continueLevel();
+  const st = starTotal(), stars = st ? '<em class="stt">&#9733; ' + st + ' of ' + LEVELS.length * 3 + ' stars</em>' : '';
   const crt = creator ? '<div class="crt">Creator <button class="btn small" data-players="1">Players &amp; downloads</button><button class="btn small" data-stats="1">Where players get stuck</button>' +
     (albumDone() ? '' : '<button class="btn small" data-marathon="1">Marathon</button><button class="btn small" data-credits="1">Credits</button>') +
     '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
@@ -1198,7 +1203,7 @@ function renderNow(){
   if (albumDone()){
     const mb = (progress.marathon || {}).best;
     html = '<article class="cont complete"><span class="badge">&#9733; JAVEDA complete</span>' +
-      '<div class="count"><b>' + songs + ' of ' + SONGS_N.length + '</b><span>songs cleared &middot; the whole album</span></div>' +
+      '<div class="count"><b>' + songs + ' of ' + SONGS_N.length + '</b><span>songs cleared &middot; the whole album</span>' + stars + '</div>' +
       '<p class="sub" style="margin:0">The gold badge is on your name and the gold picture is yours. Now every song back to back, one try each:</p>' +
       (mb ? '<span class="best">Marathon best ' + marathonText(mb) + '</span>' : '') +
       '<div class="acts"><button class="btn gold" data-marathon="1">Album marathon</button><button class="btn" data-credits="1">Credits</button>' +
@@ -1207,7 +1212,7 @@ function renderNow(){
     // nothing open left to clear: the next level waits on a score
     const wait = nx ? null : LEVELS.find(l => !cleared(l.id));
     html = '<article class="cont" style="--art:' + (nx || wait || LEVELS[0]).art + '">' +
-      '<div class="count"><b>' + songs + ' of ' + SONGS_N.length + '</b><span>songs cleared</span></div>' +
+      '<div class="count"><b>' + songs + ' of ' + SONGS_N.length + '</b><span>songs cleared</span>' + stars + '</div>' +
       '<div class="meter" title="' + parts + ' of ' + LEVELS.length + ' parts cleared"><i style="width:' + (parts / LEVELS.length * 100).toFixed(1) + '%"></i></div>' +
       (nx ? '<div class="next"><span class="nt"><small>' + (parts ? 'Continue' : 'Start here') + ' &middot; ' + lvName(nx) + '</small><span>' + esc(nx.title) + '</span></span>' +
               '<button class="btn primary" data-play="' + nx.id + '">' + (parts ? 'Continue' : 'Play') + ' &#9654;</button></div>'
@@ -1268,12 +1273,45 @@ function endlessTile(lv){
     '</div></div>';
 }
 // one tile per part: what it is, how you did, and the way in
+// Stars on a cleared part: one for the clear, two at half a great run, three for a great run. A great run is a bit
+// under the best a person was measured at (from Level 15 on, where a bot measured it: about three quarters of that,
+// less where a bot is far quicker than a hand). Endless and online have none. Tune them here (JAVEDA.md, Stars).
+const GREAT = {
+  lvl1:2800, lvl2:60000, lvl2b:2800, lvl3:10000, lvl3b:14000, lvl3c:16500, lvl4:85000, lvl4b:140000, lvl4c:115000,
+  lvl5:18000, lvl5b:18000, lvl5c:18000, lvl6:35000, lvl6b:54000, lvl6c:18000, lvl7:57000, lvl7b:62000, lvl7c:85000,
+  lvl8:76000, lvl8b:30000, lvl8c:21500, lvl9:195000, lvl9b:83000, lvl9c:51000, lvl10:40000, lvl11:69000, lvl12:45000,
+  lvl13:20000, lvl14:39000, lvl15:95000, lvl16:125000, lvl17:33000, lvl18:125000, lvl18b:230000, lvl19:40000,
+  lvl20:34000, lvl21:42000, lvl21b:40000, lvl22:75000, lvl22b:28000, lvl22c:26000, lvl23:55000, lvl23b:85000,
+  lvl23c:31000, lvl24:20000, lvl25:55000, lvl25b:14000, lvl25c:37000, lvl25d:18000, lvl26:45000, lvl26b:18000,
+  lvl27:30000, lvl27b:7500, lvl28:38000, lvl28b:55000
+};
+// a part's stars from its progress (or from one run: { cleared, best })
+function starsOf(id, p){
+  p = p || progress[id]; const g = GREAT[id], b = p ? p.best || 0 : 0;
+  if (!p || !p.cleared) return 0;
+  return !g ? 1 : b >= g ? 3 : b >= g / 2 ? 2 : 1;
+}
+// the score the next star needs (0 at three)
+const nextStar = (id, n) => !GREAT[id] || n >= 3 ? 0 : n === 2 ? GREAT[id] : Math.ceil(GREAT[id] / 2);
+const starText = n => "\u2605".repeat(n) + "\u2606".repeat(3 - n);
+const starTotal = () => LEVELS.reduce((s, l) => s + starsOf(l.id), 0);
+// on a part's tile: gold the ones you have, dim the rest
+function starIcons(id){
+  const n = starsOf(id), nx = nextStar(id, n);
+  return '<span class="stars" role="img" aria-label="Cleared &middot; ' + n + ' of 3 stars"' + (nx ? ' title="Next star at ' + fmt(nx) + '"' : '') + '>' +
+    '<i class="on">&#9733;</i>'.repeat(n) + '<i>&#9733;</i>'.repeat(3 - n) + '</span>';
+}
+// in the message after a run: the part's stars now, and what the next one needs
+function starNote(id, p){
+  const n = starsOf(id, p), nx = nextStar(id, n);
+  return n ? '<span class="ts">' + starText(n) + '</span>' + (nx ? ' &middot; Next star at ' + fmt(nx) : '') : '';
+}
 function partTile(lv){
   const p = progress[lv.id] || {};
   const open = isOpen(lv), done = !!p.cleared;
   const lock = lv.requires ? needText(lv) : '';
   return '<div class="part' + (done ? ' done' : '') + (open ? '' : ' locked') + (passReady(lv) ? ' passy' : '') + '">' +
-    '<div class="pi"><span class="pl">Part ' + (lv.part || 1) + (done ? '<b>&#10003; Cleared</b>' : '') + '</span>' +
+    '<div class="pi"><span class="pl">Part ' + (lv.part || 1) + (done ? starIcons(lv.id) : '') + '</span>' +
     '<span class="pt">' + esc(lv.title) + '</span>' +
     (lv.part ? '<p class="pd">' + esc(lv.ds.replace(/^Part \d+\.\s*/, "")) + '</p>' : '') + '</div>' +
     '<div class="foot">' +
@@ -1841,8 +1879,11 @@ async function saveRun(r, quiet){
     g.metres = Math.max(g.metres, r.metres | 0); g.runs++;
     guest.progress[lv.id] = g; saveGuest(); progress = { ...guest.progress };
     if (!before && albumDone()) finale();
-    else if (unlocks && !quiet) toast(unlocks + ". <b>Log in</b> to save it everywhere.", 5000);
-    if (r.cleared && !quiet) offerShare({ kind:"level", lv, score:r.score | 0, head:"Cleared" });
+    else if (!quiet && (unlocks || r.cleared)){
+      const sn = r.cleared ? starNote(lv.id, g) : "";
+      toast(sn + (sn && unlocks ? " &middot; " : "") + (unlocks ? unlocks + ". <b>Log in</b> to save it everywhere." : ""), 5000);
+    }
+    if (r.cleared && !quiet) offerShare({ kind:"level", lv, score:r.score | 0, head:"Cleared", stars:starsOf(lv.id, { cleared:true, best:r.score | 0 }) });
     renderNow();
     return;
   }
@@ -1853,7 +1894,7 @@ async function saveRun(r, quiet){
     progress[lv.id] = { cleared:w.cleared || !!r.cleared, best:Math.max(w.best || 0, r.score | 0), metres:Math.max(w.metres || 0, r.metres | 0), runs:(w.runs || 0) + 1 };
     renderNow(); renderLevels(); renderEndless();
     if (!before && albumDone()) finale();
-    else if (!quiet) toast((unlocks ? unlocks + " · " : "") + "You're offline: this run is saved on this phone. It goes to your account when you're back online.", 5500);
+    else if (!quiet) toast((r.cleared ? starNote(lv.id) + " &middot; " : "") + (unlocks ? unlocks + " · " : "") + "You're offline: this run is saved on this phone. It goes to your account when you're back online.", 5500);
     return null;
   };
   if (session.offline || !navigator.onLine) return offline();
@@ -1871,8 +1912,10 @@ async function saveRun(r, quiet){
   renderMe(); renderNow(); renderBoard();
   saveSnap();
   if (d.album_complete) finale();
-  else if (!quiet) toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), 4500);
-  if (r.cleared && !quiet) offerShare({ kind:"level", lv, score:d.score, head:d.first_clear ? "First clear" : d.new_best ? "New best" : "Cleared" });
+  else if (!quiet) toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (r.cleared ? " &middot; " + starNote(lv.id) : "") +
+    (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), r.cleared ? 5500 : 4500);
+  if (r.cleared && !quiet) offerShare({ kind:"level", lv, score:d.score, head:d.first_clear ? "First clear" : d.new_best ? "New best" : "Cleared",
+    stars:starsOf(lv.id, { cleared:true, best:d.score }) });
   return d;
 }
 async function saveEndless(lv, r, quiet){
@@ -2269,7 +2312,7 @@ function cardText(c){
   if (c.kind === "complete") return T("I finished JAVEDA - all 28 songs of Lazy Jo's playable album.");
   if (c.kind === "marathon") return T("Album marathon on JAVEDA: " + c.songs + " of " + MARATHON.length + " songs in one run.");
   if (c.kind === "daily") return T("Today's JAVEDA challenge: " + fmt(c.score) + ". Beat it:");
-  return T(lvName(c.lv)).replace(" ∞", " " + T("endless")) + ", " + c.lv.title + ": " + fmt(c.score) + (c.unit || "") + " " + T("on JAVEDA, Lazy Jo's playable album.");
+  return T(lvName(c.lv)).replace(" ∞", " " + T("endless")) + ", " + c.lv.title + ": " + fmt(c.score) + (c.unit || "") + (c.stars ? " " + starText(c.stars) : "") + " " + T("on JAVEDA, Lazy Jo's playable album.");
 }
 async function makeCard(c){
   const W = 1080, H = 1920, cv = document.createElement("canvas"), x = cv.getContext("2d");
@@ -2297,6 +2340,17 @@ async function makeCard(c){
   const label = c.kind === "complete" ? "ALL 28 SONGS" : c.kind === "marathon" ? "ALBUM MARATHON"
     : (c.kind === "daily" ? "TODAY'S CHALLENGE - " : "") + lvName(c.lv).replace(" ∞", " ENDLESS").toUpperCase();
   const title = c.kind === "complete" ? "JAVEDA COMPLETE" : c.kind === "marathon" ? "ONE RUN" : (c.lv.endless ? main.title : c.lv.title);
+  // a cleared part's stars, big, in the space under the name of the game
+  if (c.stars){
+    const star = (cx, cy, r, on) => {
+      x.beginPath();
+      for (let i = 0; i < 10; i++){ const a = -Math.PI / 2 + i * Math.PI / 5, k = i % 2 ? r * .45 : r; x.lineTo(cx + Math.cos(a) * k, cy + Math.sin(a) * k); }
+      x.closePath(); x.shadowColor = on ? "#ffb000" : "transparent"; x.shadowBlur = on ? 40 : 0;
+      x.fillStyle = on ? "#ffd60a" : "#ffffff1a"; x.fill(); x.shadowBlur = 0;
+      if (!on){ x.lineWidth = 4; x.strokeStyle = "#ffffff4d"; x.stroke(); }
+    };
+    [0, 1, 2].forEach(i => star(W / 2 + (i - 1) * 190, i === 1 ? 500 : 530, i === 1 ? 88 : 72, i < c.stars));
+  }
   text(label, 720, '700 58px "Barlow Condensed"', "#d6e6f8");
   let y = 830;
   for (const ln of lines(title, '400 108px Bungee', W - 140)){ text(ln, y, '400 108px Bungee', "#ffffff"); y += 120; }

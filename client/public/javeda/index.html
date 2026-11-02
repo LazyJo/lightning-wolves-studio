@@ -69,7 +69,7 @@ button:focus-visible, a:focus-visible, input:focus-visible{outline:2px solid var
 .me img{width:36px; height:36px; border-radius:50%; display:block; flex:none}
 .me .who{display:grid; line-height:1.1; min-width:0}
 .me .nm{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px}
-.me .pts{font:700 12px/1.2 var(--cond); letter-spacing:.1em; color:var(--gold)}
+.me .pts{font:700 12px/1.2 var(--cond); letter-spacing:.1em; color:var(--gold); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px}
 .btn{border:0; border-radius:6px; padding:11px 18px; font:700 15px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase;
   background:var(--panel-2); color:var(--ink); border:1px solid var(--line); text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:7px}
 .btn:hover{border-color:var(--beam)}
@@ -306,7 +306,7 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 
 .toast{position:fixed; left:50%; bottom:max(18px, env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:40; background:var(--panel-2); border:1px solid var(--beam); color:var(--ink); border-radius:10px; padding:11px 16px; font-weight:600; max-width:calc(100vw - 32px); box-shadow:0 10px 30px #0008; text-align:center}
 .toast b{color:var(--gold)}
-@media (max-width:520px){ .pics{grid-template-columns:repeat(3,1fr)} .me .nm{max-width:92px} .logo span{display:none} }
+@media (max-width:520px){ .pics{grid-template-columns:repeat(3,1fr)} .me .nm, .me .pts{max-width:92px} .logo span{display:none} }
 @media (prefers-reduced-motion:no-preference){ .toast{animation:up .25s ease-out} @keyframes up{from{transform:translate(-50%,12px); opacity:0}} }
 
 /* where you are: songs cleared and the way back in (gold once the album is done), and today's challenge beside it */
@@ -427,7 +427,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <h1>The playable album</h1>
     <p>Every song is a level. Finish one to open the next, then come back and beat your score.</p>
     <div class="app hid" id="appBox"><button class="btn" id="appBtn" type="button">&#128242; Get the app</button><span id="appNote">On your home screen, and it plays offline.</span></div>
-    <div class="app hid" id="carryBox"><button class="btn small" id="carryPaste" type="button" data-i18n-skip>Paste my progress from Safari</button></div>
+    <div class="app hid" id="carryBox"><button class="btn small" id="carryPaste" type="button" data-i18n-skip>Paste my progress</button></div>
   </section>
 
   <section aria-labelledby="hBoard">
@@ -2118,11 +2118,14 @@ const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|TikTok|Snapchat|musical_ly|Twi
 const ANDROID = /Android/.test(UA);
 const MAC_SAFARI = !IOS && /Macintosh/.test(UA) && /Safari\//.test(UA) && !/Chrome|Chromium|Edg|Firefox|OPR/.test(UA);
 const CHROMIUM = /Chrome|Chromium|Edg|OPR/.test(UA) && !/Firefox/.test(UA);
+// Samsung Internet installs a site as an Android app built for an old Android, and Google Play Protect blocks it on
+// newer phones ("Unsafe app blocked"). So there, JAVEDA is installed from Chrome instead.
+const SAMSUNG = /SamsungBrowser/.test(UA);
 const STANDALONE = matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || navigator.standalone === true;
 const SONG_URLS = [...new Set(LEVELS.map(l => SONGS_URL + "lvl" + l.num + ".mp3"))];
 let installEvt = null, songsSaved = null, songsBusy = false;
 if ("serviceWorker" in navigator) addEventListener("load", () => { navigator.serviceWorker.register("/javeda/sw.js", { scope:"/javeda/" }).then(() => STANDALONE && countSongs()).catch(() => {}); });
-addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; renderApp(); });
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); if (!SAMSUNG) installEvt = e; renderApp(); });
 addEventListener("appinstalled", () => { installEvt = null; closeSheet("appSheet"); toast("JAVEDA is on your home screen. Open it from there."); renderApp(); });
 // ask the service worker something and get its answers
 function askSW(msg, onReply){
@@ -2165,7 +2168,8 @@ $("appBtn").onclick = async () => {
 const SHARE_ICON = '<svg class="ios-share" viewBox="0 0 18 20" aria-label="Share" role="img"><path d="M9 1v11M5 5l4-4 4 4" fill="none" stroke="#4ea6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 8H3v11h12V8h-3" fill="none" stroke="#4ea6ff" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 // the steps, in the language picked (here, not in i18n.js: they hold the Share icon)
 const APP_TXT = {
-  en:{ iosInApp:'This page is open inside another app. Open it in <b>Safari</b> first: tap the <b>&middot;&middot;&middot;</b> menu and choose <b>Open in browser</b> (or Open in Safari). Then tap Get the app again.',
+  en:{ samsung:'Samsung Internet\'s own install gets blocked by Google Play Protect on newer phones. Install JAVEDA from <b>Chrome</b> instead: tap <b>Open in Chrome</b>, then <b>Get the app</b> there.', chromeBtn:'Open in Chrome',
+    iosInApp:'This page is open inside another app. Open it in <b>Safari</b> first: tap the <b>&middot;&middot;&middot;</b> menu and choose <b>Open in browser</b> (or Open in Safari). Then tap Get the app again.',
     ios:['Tap <b>Share</b> # (in Safari at the bottom of the screen, in Chrome at the top).', 'Scroll down and tap <b>Add to Home Screen</b>.', 'Tap <b>Add</b>. JAVEDA is on your home screen.'],
     andInApp:'This page is open inside another app. Tap the <b>&vellip;</b> menu, choose <b>Open in Chrome</b> (or Open in browser), then tap Get the app again.',
     and:['Open your browser menu <b>&vellip;</b>.', 'Tap <b>Install app</b> or <b>Add to Home screen</b>.'],
@@ -2173,7 +2177,8 @@ const APP_TXT = {
     chr:['Click the <b>install</b> icon at the right of the address bar (a screen with an arrow), or open the menu <b>&vellip;</b>.', 'Click <b>Install JAVEDA</b>.'], chrNote:'Already installed? Open it from your apps.',
     none:'This browser can\'t put JAVEDA on your computer as an app. <b>Chrome</b> or <b>Edge</b> can - or keep this page as a bookmark.',
     foot:'The app plays offline too. Your progress keeps saving, and with an account it goes everywhere you log in.' },
-  nl:{ iosInApp:'Deze pagina is geopend in een andere app. Open hem eerst in <b>Safari</b>: tik op het menu <b>&middot;&middot;&middot;</b> en kies <b>Open in browser</b> (of Open in Safari). Tik daarna opnieuw op Download de app.',
+  nl:{ samsung:'De eigen installatie van Samsung Internet wordt op nieuwere telefoons geblokkeerd door Google Play Protect. Installeer JAVEDA daarom via <b>Chrome</b>: tik op <b>Open in Chrome</b> en daar op <b>Download de app</b>.', chromeBtn:'Open in Chrome',
+    iosInApp:'Deze pagina is geopend in een andere app. Open hem eerst in <b>Safari</b>: tik op het menu <b>&middot;&middot;&middot;</b> en kies <b>Open in browser</b> (of Open in Safari). Tik daarna opnieuw op Download de app.',
     ios:['Tik op <b>Deel</b> # (in Safari onderaan het scherm, in Chrome bovenaan).', 'Scroll naar beneden en tik op <b>Zet op beginscherm</b>.', 'Tik op <b>Voeg toe</b>. JAVEDA staat op je beginscherm.'],
     andInApp:'Deze pagina is geopend in een andere app. Tik op het menu <b>&vellip;</b>, kies <b>Openen in Chrome</b> (of Openen in browser) en tik daarna opnieuw op Download de app.',
     and:['Open het menu van je browser <b>&vellip;</b>.', 'Tik op <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.'],
@@ -2181,7 +2186,8 @@ const APP_TXT = {
     chr:['Klik op het <b>installeer</b>-icoon rechts in de adresbalk (een scherm met een pijl), of open het menu <b>&vellip;</b>.', 'Klik op <b>JAVEDA installeren</b>.'], chrNote:'Al geïnstalleerd? Open hem bij je apps.',
     none:'Deze browser kan JAVEDA niet als app op je computer zetten. <b>Chrome</b> of <b>Edge</b> kan dat wel - of bewaar deze pagina als bladwijzer.',
     foot:'De app werkt ook offline. Je voortgang blijft bewaard, en met een account gaat hij mee naar elk apparaat waarop je inlogt.' },
-  fr:{ iosInApp:'Cette page est ouverte dans une autre app. Ouvre-la d\'abord dans <b>Safari</b> : touche le menu <b>&middot;&middot;&middot;</b> et choisis <b>Ouvrir dans le navigateur</b> (ou Ouvrir dans Safari). Puis touche à nouveau Télécharger l\'app.',
+  fr:{ samsung:'L\'installation de Samsung Internet est bloquée par Google Play Protect sur les téléphones récents. Installe JAVEDA depuis <b>Chrome</b> : touche <b>Ouvrir dans Chrome</b>, puis <b>Télécharger l\'app</b> là-bas.', chromeBtn:'Ouvrir dans Chrome',
+    iosInApp:'Cette page est ouverte dans une autre app. Ouvre-la d\'abord dans <b>Safari</b> : touche le menu <b>&middot;&middot;&middot;</b> et choisis <b>Ouvrir dans le navigateur</b> (ou Ouvrir dans Safari). Puis touche à nouveau Télécharger l\'app.',
     ios:['Touche <b>Partager</b> # (dans Safari en bas de l\'écran, dans Chrome en haut).', 'Fais défiler et touche <b>Sur l\'écran d\'accueil</b>.', 'Touche <b>Ajouter</b>. JAVEDA est sur ton écran d\'accueil.'],
     andInApp:'Cette page est ouverte dans une autre app. Touche le menu <b>&vellip;</b>, choisis <b>Ouvrir dans Chrome</b> (ou Ouvrir dans le navigateur), puis touche à nouveau Télécharger l\'app.',
     and:['Ouvre le menu de ton navigateur <b>&vellip;</b>.', 'Touche <b>Installer l\'application</b> ou <b>Ajouter à l\'écran d\'accueil</b>.'],
@@ -2189,7 +2195,8 @@ const APP_TXT = {
     chr:['Clique sur l\'icône <b>installer</b> à droite de la barre d\'adresse (un écran avec une flèche), ou ouvre le menu <b>&vellip;</b>.', 'Clique sur <b>Installer JAVEDA</b>.'], chrNote:'Déjà installée ? Ouvre-la depuis tes applications.',
     none:'Ce navigateur ne peut pas installer JAVEDA comme app sur ton ordinateur. <b>Chrome</b> ou <b>Edge</b> le peuvent - ou garde cette page en favori.',
     foot:'L\'app marche aussi hors ligne. Ta progression reste sauvegardée, et avec un compte elle te suit partout où tu te connectes.' },
-  es:{ iosInApp:'Esta página está abierta dentro de otra app. Ábrela primero en <b>Safari</b>: toca el menú <b>&middot;&middot;&middot;</b> y elige <b>Abrir en el navegador</b> (o Abrir en Safari). Luego vuelve a tocar Descarga la app.',
+  es:{ samsung:'La instalación propia de Samsung Internet la bloquea Google Play Protect en los móviles nuevos. Instala JAVEDA desde <b>Chrome</b>: toca <b>Abrir en Chrome</b> y luego <b>Descarga la app</b> allí.', chromeBtn:'Abrir en Chrome',
+    iosInApp:'Esta página está abierta dentro de otra app. Ábrela primero en <b>Safari</b>: toca el menú <b>&middot;&middot;&middot;</b> y elige <b>Abrir en el navegador</b> (o Abrir en Safari). Luego vuelve a tocar Descarga la app.',
     ios:['Toca <b>Compartir</b> # (en Safari abajo de la pantalla, en Chrome arriba).', 'Desliza hacia abajo y toca <b>Añadir a pantalla de inicio</b>.', 'Toca <b>Añadir</b>. JAVEDA está en tu pantalla de inicio.'],
     andInApp:'Esta página está abierta dentro de otra app. Toca el menú <b>&vellip;</b>, elige <b>Abrir en Chrome</b> (o Abrir en el navegador) y vuelve a tocar Descarga la app.',
     and:['Abre el menú de tu navegador <b>&vellip;</b>.', 'Toca <b>Instalar aplicación</b> o <b>Añadir a pantalla de inicio</b>.'],
@@ -2204,6 +2211,7 @@ function openAppSheet(){
   let how;
   if (IOS && IN_APP) how = para(t.iosInApp);
   else if (IOS) how = list(t.ios);
+  else if (ANDROID && SAMSUNG) how = para(t.samsung) + '<a class="btn primary" data-i18n-skip href="intent://' + location.host + '/javeda/#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent("https://play.google.com/store/apps/details?id=com.android.chrome") + ';end">' + t.chromeBtn + '</a>';
   else if (ANDROID && IN_APP) how = para(t.andInApp);
   else if (ANDROID) how = list(t.and);
   else if (MAC_SAFARI) how = list(t.mac);
@@ -2220,49 +2228,57 @@ const CARRY_TXT = {
   "guest": "On iPhone the app keeps its own save. To take your progress along: copy it here, then in the app tap <b>Paste my progress</b>.",
   "copy": "Copy my progress",
   "copied": "Copied. Now open the app and tap Paste my progress.",
-  "paste": "Paste my progress from Safari",
+  "paste": "Paste my progress",
   "ask": "Paste your progress code here:",
-  "bad": "That is not a JAVEDA progress code. Copy it again in Safari (Get the app > Copy my progress).",
-  "done": "Your progress is here: # levels."
+  "bad": "That is not a JAVEDA progress code. Copy it again where you played (Get the app > Copy my progress).",
+  "done": "Your progress is here: # levels.",
+  "acctChrome": "Chrome keeps its own save: log in there and all your progress is there.",
+  "guestChrome": "Chrome keeps its own save. To take your progress along: copy it here, then in the app tap <b>Paste my progress</b>."
  },
  "nl": {
   "acct": "Op een iPhone heeft de app zijn eigen opslag: log in in de app en al je voortgang staat erin.",
   "guest": "Op een iPhone heeft de app zijn eigen opslag. Om je voortgang mee te nemen: kopieer hem hier, en tik in de app op <b>Plak mijn voortgang</b>.",
   "copy": "Kopieer mijn voortgang",
   "copied": "Gekopieerd. Open nu de app en tik op Plak mijn voortgang.",
-  "paste": "Plak mijn voortgang uit Safari",
+  "paste": "Plak mijn voortgang",
   "ask": "Plak hier je voortgangscode:",
-  "bad": "Dat is geen JAVEDA-voortgangscode. Kopieer hem opnieuw in Safari (Download de app > Kopieer mijn voortgang).",
-  "done": "Je voortgang staat erin: # levels."
+  "bad": "Dat is geen JAVEDA-voortgangscode. Kopieer hem opnieuw waar je speelde (Download de app > Kopieer mijn voortgang).",
+  "done": "Je voortgang staat erin: # levels.",
+  "acctChrome": "Chrome heeft zijn eigen opslag: log daar in en al je voortgang staat erin.",
+  "guestChrome": "Chrome heeft zijn eigen opslag. Om je voortgang mee te nemen: kopieer hem hier, en tik in de app op <b>Plak mijn voortgang</b>."
  },
  "fr": {
   "acct": "Sur iPhone, l'app a sa propre sauvegarde : connecte-toi dans l'app et toute ta progression y est.",
   "guest": "Sur iPhone, l'app a sa propre sauvegarde. Pour emporter ta progression : copie-la ici, puis dans l'app touche <b>Coller ma progression</b>.",
   "copy": "Copier ma progression",
   "copied": "Copié. Ouvre maintenant l'app et touche Coller ma progression.",
-  "paste": "Coller ma progression depuis Safari",
+  "paste": "Coller ma progression",
   "ask": "Colle ton code de progression ici :",
-  "bad": "Ce n'est pas un code de progression JAVEDA. Copie-le à nouveau dans Safari (Télécharger l'app > Copier ma progression).",
-  "done": "Ta progression est là : # niveaux."
+  "bad": "Ce n'est pas un code de progression JAVEDA. Copie-le à nouveau là où tu as joué (Télécharger l'app > Copier ma progression).",
+  "done": "Ta progression est là : # niveaux.",
+  "acctChrome": "Chrome a sa propre sauvegarde : connecte-toi là-bas et toute ta progression y est.",
+  "guestChrome": "Chrome a sa propre sauvegarde. Pour emporter ta progression : copie-la ici, puis dans l'app touche <b>Coller ma progression</b>."
  },
  "es": {
   "acct": "En iPhone la app tiene su propio guardado: inicia sesión en la app y todo tu progreso estará ahí.",
   "guest": "En iPhone la app tiene su propio guardado. Para llevarte tu progreso: cópialo aquí y luego en la app toca <b>Pegar mi progreso</b>.",
   "copy": "Copiar mi progreso",
   "copied": "Copiado. Ahora abre la app y toca Pegar mi progreso.",
-  "paste": "Pegar mi progreso desde Safari",
+  "paste": "Pegar mi progreso",
   "ask": "Pega aquí tu código de progreso:",
-  "bad": "Eso no es un código de progreso de JAVEDA. Cópialo de nuevo en Safari (Descarga la app > Copiar mi progreso).",
-  "done": "Tu progreso está aquí: # niveles."
+  "bad": "Eso no es un código de progreso de JAVEDA. Cópialo de nuevo donde jugaste (Descarga la app > Copiar mi progreso).",
+  "done": "Tu progreso está aquí: # niveles.",
+  "acctChrome": "Chrome tiene su propio guardado: inicia sesión allí y todo tu progreso estará ahí.",
+  "guestChrome": "Chrome tiene su propio guardado. Para llevarte tu progreso: cópialo aquí y luego en la app toca <b>Pegar mi progreso</b>."
  }
 };
 const ct = k => (CARRY_TXT[window.JAVEDA_LANG] || CARRY_TXT.en)[k];
 const guestHas = () => Object.keys(guest.progress || {}).length > 0;
 function carryHtml(){
-  if (!IOS || IN_APP) return "";
-  if (signedIn()) return '<p class="small" data-i18n-skip>' + ct("acct") + '</p>';
+  if (IN_APP || !(IOS || (ANDROID && SAMSUNG))) return "";
+  if (signedIn()) return '<p class="small" data-i18n-skip>' + ct(IOS ? "acct" : "acctChrome") + '</p>';
   if (!guestHas()) return "";
-  return '<p class="small" data-i18n-skip>' + ct("guest") + '</p><button class="btn small" type="button" id="carryCopy" data-i18n-skip>' + ct("copy") + '</button>';
+  return '<p class="small" data-i18n-skip>' + ct(IOS ? "guest" : "guestChrome") + '</p><button class="btn small" type="button" id="carryCopy" data-i18n-skip>' + ct("copy") + '</button>';
 }
 const carryCode = () => "JAVEDA1:" + btoa(unescape(encodeURIComponent(JSON.stringify({ p:guest.progress, u:guest.unlocks || [], n:guest.name || "", a:guest.avatar || "" }))));
 $("appCarry").addEventListener("click", async e => {
@@ -2272,7 +2288,7 @@ $("appCarry").addEventListener("click", async e => {
   catch(err){ $("appCarry").insertAdjacentHTML("beforeend", '<textarea readonly rows="3" style="width:100%" data-i18n-skip>' + esc(code) + '</textarea>'); const t = $("appCarry").querySelector("textarea"); t.focus(); t.select(); }
 });
 // in the app, a guest with nothing yet: bring the progress from Safari
-function renderCarry(){ const b = $("carryBox"); if (b){ b.classList.toggle("hid", !(STANDALONE && IOS && !session && !guestHas())); $("carryPaste").textContent = ct("paste"); } }
+function renderCarry(){ const b = $("carryBox"); if (b){ b.classList.toggle("hid", !(STANDALONE && !session && !guestHas())); $("carryPaste").textContent = ct("paste"); } }
 $("carryPaste").onclick = async () => {
   let text = "";
   try { text = await navigator.clipboard.readText(); } catch(e){}

@@ -412,6 +412,25 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 .st.cdl .cb{grid-column:1 / -1; justify-content:flex-start}
 .st.cdl li.hd span:last-child{display:none}
 #psWhy:empty{display:none}
+/* delete my account: out of the way under the profile, then asked a second time */
+.pfdel{justify-self:start; background:none; border:0; padding:2px 0; color:var(--mute); font-size:13px; text-decoration:underline; text-underline-offset:3px; cursor:pointer}
+.pfdel:hover{color:#ff8fae}
+.btn.danger{background:#e5484d; border-color:#e5484d; color:#fff}
+.btn.danger:hover{background:#f2555a}
+.delwhat{margin:0; padding-left:20px; display:grid; gap:4px; color:var(--dim); font-size:14.5px}
+/* the creators' players and app downloads */
+.ptiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
+#plT{padding-right:40px}
+.ptiles div{background:var(--panel); border-radius:10px; padding:12px 14px; display:grid; gap:5px; align-content:start}
+.ptiles b{font:400 30px/1 var(--display); color:var(--ink)}
+.ptiles span{font:700 11px/1.25 var(--cond); letter-spacing:.14em; text-transform:uppercase; color:var(--mute)}
+.ptiles small{font-size:12.5px; color:var(--dim)}
+.st.pll li{grid-template-columns:36px minmax(0,1fr) auto}
+.st.pll img{width:36px; height:36px; border-radius:8px; display:block}
+.st.pll .nm b{color:var(--ink)}
+.st.pll .em{display:block; overflow:hidden; text-overflow:ellipsis; color:var(--mute)}
+.st.pll .tg{font:700 10px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; color:var(--gold); border:1px solid #ffd60a55; border-radius:999px; padding:2px 6px; margin-left:4px; vertical-align:2px}
+@media (max-width:560px){ .st.pll li{grid-template-columns:36px minmax(0,1fr)} .st.pll .num{grid-column:2; text-align:left; white-space:normal} .st.pll li.hd span:last-child{display:none} }
 </style>
 </head>
 <body>
@@ -496,6 +515,28 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <button class="btn primary" id="pfSave" type="button">Save</button>
       <button class="btn" id="pfLogin" type="button">Log in to save</button>
       <button class="btn small" id="pfOut" type="button">Log out</button>
+    </div>
+    <button class="pfdel hid" id="pfDel" type="button">Delete my account</button>
+  </div>
+</div>
+
+<!-- delete my account: asked a second time -->
+<div class="sheet hid" id="delSheet" role="dialog" aria-modal="true" aria-labelledby="dlT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="dlT">Delete your account?</h3>
+    <p>This can't be undone. Gone for good:</p>
+    <ul class="delwhat">
+      <li>your player name and profile picture</li>
+      <li>your points, the pictures you unlocked and every level you cleared</li>
+      <li>your scores on the leaderboards and your 1v1 record</li>
+    </ul>
+    <p class="hid" id="dlPass">Your JAVEDA Pass goes too.</p>
+    <p class="small">If you also use this login for the Lightning Wolves Studio or the Wolf Hub, the login itself stays and only your JAVEDA player goes.</p>
+    <div class="err" id="dlErr"></div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn" type="button" data-close>Keep my account</button>
+      <button class="btn danger" id="dlGo" type="button">Yes, delete it</button>
     </div>
   </div>
 </div>
@@ -620,6 +661,20 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     </label>
     <p class="fine">A merch code opens every remix straight away too. No code? <a data-link="even" target="_blank" rel="noopener">EVEN</a> &middot; <a data-link="merch" target="_blank" rel="noopener">Merch</a></p>
     <div class="err" id="psErr"></div>
+  </div>
+</div>
+
+<!-- players and app downloads (creators) -->
+<div class="sheet hid" id="players" role="dialog" aria-modal="true" aria-labelledby="plT" data-i18n-skip>
+  <div class="card wide">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="plT">Players &amp; downloads</h3>
+    <div class="ptiles" id="plTiles"></div>
+    <p class="small">A download is a phone or computer with JAVEDA on its home screen, counted from 2 November 2026: when it's installed, or (iPhone) the first time it's opened from the home screen.</p>
+    <input class="in" id="plFind" type="search" placeholder="Find a name or email" autocomplete="off">
+    <div class="err" id="plErr"></div>
+    <ol class="st pll" id="plList"></ol>
+    <p class="small">Their email is here to help them with their account. Emailing them news needs their OK first (EU privacy rules).</p>
   </div>
 </div>
 
@@ -1045,7 +1100,7 @@ function renderMe(){
 // where you are in the album and the way back in - or, once it's all cleared, the finale - and today's challenge
 function renderNow(){
   const songs = SONGS_N.filter(songDone).length, parts = LEVELS.filter(l => cleared(l.id)).length, nx = continueLevel();
-  const crt = creator ? '<div class="crt">Creator <button class="btn small" data-stats="1">Where players get stuck</button>' +
+  const crt = creator ? '<div class="crt">Creator <button class="btn small" data-players="1">Players &amp; downloads</button><button class="btn small" data-stats="1">Where players get stuck</button>' +
     (albumDone() ? '' : '<button class="btn small" data-marathon="1">Marathon</button><button class="btn small" data-credits="1">Credits</button>') +
     '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
     (freeView ? 'Free view: on' : 'See it free') + '</button></div>' : '';
@@ -1349,6 +1404,7 @@ function openProfile(){
   $("pfErr").textContent = "";
   $("pfLogin").classList.toggle("hid", !!session);
   $("pfOut").classList.toggle("hid", !session);
+  $("pfDel").classList.toggle("hid", !signedIn() || !!session.offline || creator);
   renderPics(); openSheet("profile");
 }
 $("meBtn").onclick = openProfile;
@@ -1381,6 +1437,26 @@ $("pfSave").onclick = async () => {
 };
 $("pfLogin").onclick = () => { closeSheet("profile"); openLogin(); };
 $("pfOut").onclick = async () => { await sb.auth.signOut(); closeSheet("profile"); };
+/* ---- delete my account: asked a second time, then javeda_delete_account. The whole login goes - or only the JAVEDA
+   player, when the login is also used for the Studio or the Wolf Hub. Logged out here either way. ---- */
+$("pfDel").onclick = () => {
+  if (!navigator.onLine){ $("pfErr").textContent = "Deleting your account needs the internet."; return; }
+  closeSheet("profile"); $("dlErr").textContent = ""; $("dlPass").classList.toggle("hid", !pass); openSheet("delSheet");
+};
+$("dlGo").onclick = async () => {
+  if (!session || session.offline) return;
+  const uid = session.user.id;
+  $("dlErr").textContent = ""; $("dlGo").disabled = true;
+  const { data, error } = await sb.rpc("javeda_delete_account").then(r => r, e => ({ error:e }));
+  $("dlGo").disabled = false;
+  if (error){ $("dlErr").textContent = netErr(error) ? "No internet. Try again when you're online." : error.message; return; }
+  try { localStorage.removeItem(ACCT_KEY); } catch(e){}
+  setPending(pending().filter(x => x.uid !== uid));
+  closeSheet("delSheet");
+  // only this phone: the login may be gone already, and a Studio login stays logged in elsewhere
+  await sb.auth.signOut({ scope:"local" }).catch(() => {});
+  toast(data && data.deleted === "javeda" ? "Your JAVEDA player is deleted. Your Lightning Wolves login stays, because you also use it for the Studio or the Wolf Hub." : "Your account is deleted.", 7000);
+};
 
 /* ---- login sheet ---- */
 let signUp = false;
@@ -1564,6 +1640,7 @@ $("now").addEventListener("click", e => {
   else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (b.dataset.marathon) startMarathon();
   else if (b.dataset.credits) openCredits();
+  else if (b.dataset.players) openPlayers();
   else if (b.dataset.stats) openStats();
   else if (b.dataset.codes) openCodes();
   else if (b.dataset.freeview){ freeView = !freeView; renderAll(); toast(freeView ? "Free view: the hub as a player without the Pass sees it" + (passOn ? "" : " once it's switched on") + ". Only here, nothing changes." : "Back to the creator view."); }
@@ -1984,6 +2061,36 @@ async function passReturn(){
   toast("Your payment is going through. The Pass shows up as soon as it's done: refresh in a minute.", 8000);
 }
 
+/* ---- players and app downloads (creators): everyone with an account, newest first, and the app installs ---- */
+let plRows = [];
+async function openPlayers(){
+  openSheet("players"); $("plFind").blur(); $("plErr").textContent = ""; $("plFind").value = ""; $("plTiles").innerHTML = "";
+  $("plList").innerHTML = "<li><span></span><span>Loading&hellip;</span></li>";
+  const { data, error } = await sb.rpc("javeda_creator_overview").then(r => r, e => ({ error:e }));
+  if (error){ $("plList").innerHTML = ""; $("plErr").textContent = netErr(error) ? "No internet." : error.message; return; }
+  const d = data.downloads, week = Date.now() - 7 * 864e5, recent = t => !!t && new Date(t).getTime() > week;
+  plRows = data.players || [];
+  const tile = (n, what, sub) => '<div><b>' + fmt(n) + '</b><span>' + what + '</span>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>';
+  $("plTiles").innerHTML =
+    tile(plRows.length, "Accounts", "+" + fmt(plRows.filter(p => recent(p.joined)).length) + " this week") +
+    tile(plRows.filter(p => recent(p.played)).length, "Played this week") +
+    tile(d.total, "App downloads", "+" + fmt(d.week) + " this week<br>" + fmt(d.ios) + " iPhone &middot; " + fmt(d.android) + " Android &middot; " + fmt(d.desktop) + " computer") +
+    tile(d.active, "Opened the app this week");
+  listPlayers();
+}
+function listPlayers(){
+  const q = $("plFind").value.trim().toLowerCase();
+  const rows = q ? plRows.filter(p => (p.name || "").toLowerCase().includes(q) || (p.email || "").toLowerCase().includes(q)) : plRows;
+  const day = t => new Date(t).toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+  const ago = t => { if (!t) return "never played"; const n = Math.floor((Date.now() - new Date(t).getTime()) / 864e5); return n < 1 ? "played today" : n < 2 ? "played yesterday" : "played " + n + " days ago"; };
+  $("plList").innerHTML = '<li class="hd"><span></span><span>' + (q ? fmt(rows.length) + " of " + fmt(plRows.length) : "Player") + '</span><span>Joined</span></li>' + (rows.length ? rows.map(p =>
+    '<li><img src="' + pic(p.avatar) + '" alt=""><span class="nm"><b>' + esc(p.name) + '</b>' + (p.creator ? '<span class="tg">creator</span>' : '') +
+      (p.app ? '<span class="tg" title="Has the app">app</span>' : '') + '<small class="em">' + esc(p.email || "") + '</small></span>' +
+    '<span class="num">' + day(p.joined) + ' &middot; ' + ago(p.played) + '<br>' + fmt(p.points) + ' points &middot; ' + fmt(p.parts) + (p.parts === 1 ? ' part' : ' parts') + ' cleared</span></li>').join("")
+    : '<li><span></span><span>' + (q ? "Nobody matches." : "No players yet.") + '</span></li>');
+}
+$("plFind").oninput = listPlayers;
+
 /* ---- Pass codes (creators): make them, see who used them, switch them off ---- */
 let codeKind = "even";
 const codeText = c => c.replace(/^(EVEN|MERCH)([A-Z0-9]{4})([A-Z0-9]{4})$/, "$1-$2-$3");
@@ -2127,12 +2234,27 @@ const SONG_URLS = [...new Set(LEVELS.map(l => SONGS_URL + "lvl" + l.num + ".mp3"
 let installEvt = null, songsSaved = null, songsBusy = false;
 if ("serviceWorker" in navigator) addEventListener("load", () => { navigator.serviceWorker.register("/javeda/sw.js", { scope:"/javeda/" }).then(() => STANDALONE && countSongs()).catch(() => {}); });
 addEventListener("beforeinstallprompt", e => { e.preventDefault(); if (!SAMSUNG) installEvt = e; renderApp(); });
-addEventListener("appinstalled", () => { installEvt = null; closeSheet("appSheet"); toast("JAVEDA is on your home screen. Open it from there."); renderApp(); });
+addEventListener("appinstalled", () => { installEvt = null; appSeen("install"); closeSheet("appSheet"); toast("JAVEDA is on your home screen. Open it from there."); renderApp(); });
 // ask the service worker something and get its answers
 function askSW(msg, onReply){
   if (!("serviceWorker" in navigator)) return false;
   navigator.serviceWorker.ready.then(reg => { const ch = new MessageChannel(); ch.port1.onmessage = e => onReply(e.data); (reg.active || navigator.serviceWorker.controller).postMessage(msg, [ch.port2]); });
   return true;
+}
+// the app downloads the creators see: a random id for this install (nothing else about the phone), sent when the
+// app is installed and when it's opened from the home screen (javeda_app_seen counts an open once per half hour)
+const DEV_KEY = "javeda.device.v1";
+function appSeen(how){
+  if (!sb) return;
+  let id = null;
+  try {
+    id = localStorage.getItem(DEV_KEY);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id || "")){
+      id = crypto.randomUUID ? crypto.randomUUID() : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+      localStorage.setItem(DEV_KEY, id);
+    }
+  } catch(e){ return; }      // nowhere to keep the id: not counted, rather than counted again on every open
+  sb.rpc("javeda_app_seen", { p_device:id, p_platform:IOS ? "ios" : ANDROID ? "android" : "desktop", p_how:how }).then(() => {}, () => {});
 }
 function countSongs(){ askSW({ type:"songs:saved" }, d => { songsSaved = SONG_URLS.filter(u => d.saved.includes(u)).length; renderApp(); }); }
 function renderApp(){
@@ -2387,6 +2509,7 @@ renderAll();
     });
   const [{ data }] = await Promise.all([sb.auth.getSession(), passInfo]);
   session = data.session; await loadAccount(); loadDaily(); passReturn();
+  if (STANDALONE) appSeen("open");
   sb.auth.onAuthStateChange((_e, s) => {
     const changed = (s && s.user.id) !== (session && session.user.id);
     session = s; if (changed) loadAccount().then(loadDaily);

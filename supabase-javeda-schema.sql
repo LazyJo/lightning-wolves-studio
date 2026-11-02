@@ -1095,6 +1095,120 @@ $$;
 REVOKE ALL ON FUNCTION public.javeda_level_stats() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_level_stats() TO authenticated;
 
+-- ── Accounts: delete your own, and the creator's list of players and app downloads ──
+-- The app on a phone or computer (Get the app): one row per install - a random id the app makes, the kind of device,
+-- when it came and when it was last opened from the home screen. Nothing else about the device. Not public: only
+-- javeda_app_seen writes it and only javeda_creator_overview reads it.
+CREATE TABLE IF NOT EXISTS javeda_app_devices (
+  device_id  UUID PRIMARY KEY,
+  platform   TEXT NOT NULL CHECK (platform IN ('ios', 'android', 'desktop')),
+  user_id    UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  first_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  opened_at  TIMESTAMPTZ,
+  opens      INT NOT NULL DEFAULT 0
+);
+ALTER TABLE javeda_app_devices ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_app_devices FROM anon, authenticated;
+
+-- the hub says so when the app is installed (where the browser tells it) and every time it opens from the home screen;
+-- an open counts once per half hour
+CREATE OR REPLACE FUNCTION public.javeda_app_seen(p_device UUID, p_platform TEXT, p_how TEXT)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  opened BOOLEAN := COALESCE(p_how = 'open', false);
+BEGIN
+  IF p_device IS NULL OR p_platform IS NULL OR p_platform NOT IN ('ios', 'android', 'desktop') THEN RETURN; END IF;
+  -- a flood of made-up installs is cut off (60 new ones a minute is far more than real)
+  IF (SELECT count(*) FROM javeda_app_devices WHERE first_at > now() - interval '1 minute') >= 60
+     AND NOT EXISTS (SELECT 1 FROM javeda_app_devices WHERE device_id = p_device) THEN RETURN; END IF;
+  INSERT INTO javeda_app_devices (device_id, platform, user_id, opened_at, opens)
+  VALUES (p_device, p_platform, auth.uid(), CASE WHEN opened THEN now() END, CASE WHEN opened THEN 1 ELSE 0 END)
+  ON CONFLICT (device_id) DO UPDATE SET
+    user_id = COALESCE(auth.uid(), javeda_app_devices.user_id),
+    opens = javeda_app_devices.opens + CASE WHEN opened AND (javeda_app_devices.opened_at IS NULL
+              OR javeda_app_devices.opened_at < now() - interval '30 minutes') THEN 1 ELSE 0 END,
+    opened_at = CASE WHEN opened THEN now() ELSE javeda_app_devices.opened_at END;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_app_seen(UUID, TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.javeda_app_seen(UUID, TEXT, TEXT) TO anon, authenticated;
+
+-- Delete my account (the hub asks twice first). A JAVEDA login is a Lightning Wolves login, so when it is also used
+-- for the Studio or the Wolf Hub (a paid plan, or anything of theirs in those tables) only the JAVEDA player goes -
+-- name, progress, points, pictures, runs and scores (they hang off javeda_players) - and the login stays. Otherwise
+-- the login itself is deleted, and everything of theirs with it (ON DELETE CASCADE). A creator can't do it here.
+CREATE OR REPLACE FUNCTION public.javeda_delete_account()
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid  UUID := auth.uid();
+  used BOOLEAN := false;
+  r    RECORD;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'Log in first' USING ERRCODE = '42501'; END IF;
+  IF EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
+    RAISE EXCEPTION 'A creator account can''t be deleted here' USING ERRCODE = '42501';
+  END IF;
+  IF to_regclass('public.profiles') IS NOT NULL THEN
+    EXECUTE 'SELECT EXISTS (SELECT 1 FROM public.profiles WHERE id = $1
+               AND (COALESCE(tier, ''free'') <> ''free'' OR stripe_subscription_id IS NOT NULL))' INTO used USING uid;
+  END IF;
+  IF NOT used THEN
+    FOR r IN SELECT c.table_name AS t, c.column_name AS col
+             FROM information_schema.columns c
+             JOIN information_schema.tables tb ON tb.table_schema = c.table_schema AND tb.table_name = c.table_name AND tb.table_type = 'BASE TABLE'
+             WHERE c.table_schema = 'public' AND c.data_type = 'uuid' AND c.table_name NOT LIKE 'javeda%' AND c.table_name <> 'profiles'
+               AND c.column_name IN ('user_id', 'author_id', 'sender_id', 'recipient_id', 'referrer_id', 'referred_user_id') LOOP
+      EXECUTE format('SELECT EXISTS (SELECT 1 FROM public.%I WHERE %I = $1)', r.t, r.col) INTO used USING uid;
+      EXIT WHEN used;
+    END LOOP;
+  END IF;
+  UPDATE javeda_app_devices SET user_id = NULL WHERE user_id = uid;
+  IF used THEN
+    DELETE FROM javeda_players WHERE user_id = uid;
+    RETURN json_build_object('deleted', 'javeda');
+  END IF;
+  DELETE FROM auth.users WHERE id = uid;
+  RETURN json_build_object('deleted', 'account');
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_delete_account() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_delete_account() TO authenticated;
+
+-- The creator's overview: every player with an account (newest first) with their email, and the app downloads.
+CREATE OR REPLACE FUNCTION public.javeda_creator_overview()
+RETURNS JSON
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'creators only' USING ERRCODE = '42501';
+  END IF;
+  RETURN json_build_object(
+    'downloads', (SELECT json_build_object(
+        'total',   count(*),
+        'ios',     count(*) FILTER (WHERE platform = 'ios'),
+        'android', count(*) FILTER (WHERE platform = 'android'),
+        'desktop', count(*) FILTER (WHERE platform = 'desktop'),
+        'week',    count(*) FILTER (WHERE first_at > now() - interval '7 days'),
+        'active',  count(*) FILTER (WHERE opened_at > now() - interval '7 days'))
+      FROM javeda_app_devices),
+    'players', (SELECT COALESCE(json_agg(x ORDER BY x.joined DESC), '[]'::json) FROM (
+        SELECT p.username AS name, u.email, p.avatar, p.points, p.created_at AS joined, p.last_run_at AS played,
+               (SELECT count(*) FROM javeda_progress g JOIN javeda_levels l ON l.id = g.level
+                 WHERE g.user_id = p.user_id AND g.cleared AND NOT l.endless)::INT AS parts,
+               EXISTS (SELECT 1 FROM javeda_app_devices d WHERE d.user_id = p.user_id) AS app,
+               EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id) AS creator
+        FROM javeda_players p LEFT JOIN auth.users u ON u.id = p.user_id) x)
+  );
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_creator_overview() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_creator_overview() TO authenticated;
+
 -- ── The JAVEDA Pass ─────────────────────────────────────────────────────────
 -- Free: an account, Part 1 of every song (so the daily challenge too) and its boards, the online games, points and
 -- pictures. The JAVEDA Pass opens the rest - every Part 2-4, every endless and remix, HYPERDRIVE and the album

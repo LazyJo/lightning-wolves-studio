@@ -191,6 +191,18 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
 - **Where players get stuck** (creators only, a button on the Continue card): `javeda_level_stats()` - per level,
   how many could play it, tried, cleared, are stuck (tried, never cleared) and runs per clear. Creators' own runs
   are left out; guests aren't in it.
+- **Players & downloads** (creators only, a button on the Continue card): `javeda_creator_overview()` - every
+  player with an account, newest first, with their email, points, parts cleared, when they joined and last played
+  and whether they have the app; and the app downloads: every install counts once (`javeda_app_devices`, a random
+  id the app keeps in `localStorage` `javeda.device.v1`, the kind of device, nothing else), split iPhone / Android /
+  computer, new this week and opened this week. The hub reports it with `javeda_app_seen` on the browser's
+  `appinstalled` (Android, computers) and on every open from the home screen (an open counts once per half hour;
+  an iPhone app has its own storage, so it counts from its first open). Counted from 2 November 2026.
+- **Delete my account** (the profile, logged-in players but creators): asked a second time, then
+  `javeda_delete_account()`. A JAVEDA login is a Lightning Wolves login: when it's also used for the Studio or the
+  Wolf Hub (a paid plan, or any row of theirs in those tables) only the JAVEDA player goes (everything JAVEDA hangs
+  off `javeda_players`) and the login stays; otherwise the login itself is deleted (`auth.users`, and everything
+  with it). The app install stays counted, without them. The hub logs out on that phone.
 - **Share cards**: after a clear or a new best (and the marathon, the finale, a daily best) a Share button makes a
   1080x1920 picture in the browser (the level's colours, the score, your picture and name, the link) and shares it
   (phones) or shows it to save.

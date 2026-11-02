@@ -235,6 +235,12 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .board .un{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .board .val{font:700 17px/1 var(--cond); font-variant-numeric:tabular-nums; color:var(--ink)}
 .board .empty{padding:18px 14px; color:var(--dim); margin:0}
+.board.short li:nth-child(n+6){display:none}
+#boardMore{justify-self:start; margin-top:-4px}
+.join{display:grid; gap:10px; background:linear-gradient(135deg,#ffd60a1a,#2f8fe01a); border:1px solid #ffd60a66; border-radius:12px; padding:14px 16px; color:var(--dim); font-size:14.5px}
+.join b{color:var(--gold)}
+.join .small{font-size:13px; color:var(--mute)}
+.join .jbtn{display:flex; gap:14px; align-items:center; flex-wrap:wrap}
 
 /* links */
 .outs{display:flex; flex-wrap:wrap; gap:8px}
@@ -400,7 +406,18 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <p>Every song is a level. Finish one to open the next, then come back and beat your score.</p>
   </section>
 
-  <div class="banner" id="guestNote"><b>Playing as a guest.</b> Your progress stays on this phone only. <button class="switch" id="loginLink" type="button">Log in</button> to save it, earn points and get on the scoreboard.</div>
+  <section aria-labelledby="hBoard">
+    <h2 id="hBoard">Scoreboard</h2>
+    <div class="join hid" id="boardJoin">
+      <div><b>Want your name up here?</b> The scoreboard is for players with an account. It's free: your scores go on the board, you earn points, and your progress is saved on every phone and computer.</div>
+      <div class="small">Playing as a guest, your progress stays on this phone only.</div>
+      <div class="jbtn"><button class="btn primary" type="button" data-signup="1">Create a free account</button><button class="switch" type="button" data-login="1">Log in</button></div>
+    </div>
+    <div class="seg" role="tablist" aria-label="Which scoreboard" id="tabs"></div>
+    <div class="bpick" id="etabs"></div>
+    <div class="board short" id="board"><p class="empty">Loading…</p></div>
+    <button class="switch hid" id="boardMore" type="button">Show the top 25</button>
+  </section>
 
   <section class="now" id="now" aria-label="Where you are"></section>
 
@@ -423,13 +440,6 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <h2 id="hEn">Endless &#8734;</h2>
     <p class="sub">Clear a part and its endless opens: that part with no end. Clear every part of a song and its remix opens too, all of them in turn. Play till the hearts run out. Only a new best earns points.</p>
     <div class="levels" id="endless"></div>
-  </section>
-
-  <section aria-labelledby="hBoard">
-    <h2 id="hBoard">Scoreboard</h2>
-    <div class="seg" role="tablist" aria-label="Which scoreboard" id="tabs"></div>
-    <div class="bpick" id="etabs"></div>
-    <div class="board" id="board"><p class="empty">Loading…</p></div>
   </section>
 
   <section aria-labelledby="hOut">
@@ -991,7 +1001,7 @@ function renderMe(){
   $("meName").textContent = name;
   $("meImg").src = pic(av);
   $("mePts").textContent = signedIn() ? fmt(player.points) + " points" + (pass ? " \u00b7 \u26A1 Pass" : "") + (creator ? " · creator, every level open" : "") : "Guest · not saved";
-  $("guestNote").classList.toggle("hid", !!session);
+  $("boardJoin").classList.toggle("hid", !!session);
 }
 // where you are in the album and the way back in - or, once it's all cleared, the finale - and today's challenge
 function renderNow(){
@@ -1226,13 +1236,13 @@ async function renderBoard(){
   const el = $("board"), tab = boardTab, ask = ++boardAsk;
   if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
   const fail = () => '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>';
-  const none = what => '<p class="empty">' + what + ' ' + (signedIn() ? 'Be the first.' : 'Log in and be the first.') + '</p>';
+  const none = what => '<p class="empty">' + what + ' ' + (signedIn() ? 'Be the first.' : 'Create a free account and be the first.') + '</p>';
   // the 1v1 board: most wins first
   if (tab === "1v1"){
     const { data, error } = await sb.from("javeda_1v1_board").select("*").gt("wins", 0).order("wins", { ascending:false }).limit(25);
     if (ask !== boardAsk) return;
     el.innerHTML = error ? fail() : !data.length ? none("No 1v1 wins yet.") : boardRows(data, r => fmt(r.wins) + ' W &middot; ' + fmt(r.losses) + ' L');
-    return;
+    boardMoreBtn(); return;
   }
   // today's challenge: today's scores only
   if (tab === "daily"){
@@ -1240,7 +1250,7 @@ async function renderBoard(){
     const { data, error } = await sb.from("javeda_daily_board").select("*").eq("day", daily.day).order("best_score", { ascending:false }).limit(25);
     if (ask !== boardAsk) return;
     el.innerHTML = error ? fail() : !data.length ? none("Nobody has played today's challenge yet.") : boardRows(data, r => fmt(r.best_score));
-    return;
+    boardMoreBtn(); return;
   }
   // an endless board (and HYPERDRIVE and the marathon) reads the per-level scores; the rest read the one-row-per-player board
   const end = ENDLESS.some(l => l.id === tab) || tab === ULT.id || tab === "marathon";
@@ -1252,8 +1262,19 @@ async function renderBoard(){
   if (error){ el.innerHTML = fail(); return; }
   if (!data.length){ el.innerHTML = none(tab === "marathon" ? "Nobody has run the album marathon yet." : "Nobody on this board yet."); return; }
   el.innerHTML = boardRows(data, r => tab === "marathon" ? marathonText(r[col]) : fmt(r[col]) + (tab === "points" ? ' pts' : tab === ULT.id ? ' m' : '')) +
-    (signedIn() ? '' : '<p class="empty" style="border-top:1px solid #ffffff0d">Log in to get your name on here.</p>');
+    (signedIn() ? '' : '<p class="empty" style="border-top:1px solid #ffffff0d">Create a free account to get your name on here.</p>');
+  boardMoreBtn();
 }
+// at the top of the page the board shows the top 5; the rest on a tap
+let boardAll = false;
+function boardMoreBtn(){
+  const n = $("board").querySelectorAll("li").length;
+  $("board").classList.toggle("short", !boardAll);
+  $("boardMore").classList.toggle("hid", n <= 5);
+  $("boardMore").textContent = boardAll ? "Show the top 5" : "Show the top " + n;
+}
+$("boardMore").onclick = () => { boardAll = !boardAll; boardMoreBtn(); };
+$("boardJoin").addEventListener("click", e => { if (e.target.closest("[data-signup]")) openLogin(true); else if (e.target.closest("[data-login]")) openLogin(); });
 function renderAll(){ renderMe(); renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); }
 
 /* ---- profile sheet ---- */
@@ -1321,13 +1342,12 @@ $("pfSave").onclick = async () => {
 };
 $("pfLogin").onclick = () => { closeSheet("profile"); openLogin(); };
 $("pfOut").onclick = async () => { await sb.auth.signOut(); closeSheet("profile"); };
-$("loginLink").onclick = () => openLogin();
 
 /* ---- login sheet ---- */
 let signUp = false;
-function openLogin(){
+function openLogin(up){
   if (!sb){ toast("Log-in is offline right now. Your progress is saved on this phone."); return; }
-  $("lgErr").textContent = ""; setMode(false); openSheet("login");
+  $("lgErr").textContent = ""; setMode(!!up); openSheet("login");
 }
 function setMode(up){
   signUp = up;

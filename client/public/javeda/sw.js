@@ -5,7 +5,7 @@
    - The songs (Supabase Storage): saved the first time a level plays one (or all at once, from the page), then
      played from the phone - with the byte ranges an iPhone asks for, or it won't play them.
    - The scoreboard, log-in and saving runs (Supabase) always go to the network: never a stale copy. */
-const V = "javeda-v1";
+const V = "javeda-v2";
 const PAGES = V + "-pages", LIBS = "javeda-libs-v1", SONGS = "javeda-songs-v1";
 const SONG_RE = /\/storage\/v1\/object\/public\/media\/javeda\/[^/?]+\.mp3$/;
 const LIB_RE = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;

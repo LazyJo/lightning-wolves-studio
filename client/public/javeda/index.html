@@ -94,6 +94,7 @@
 <meta name="theme-color" content="#050b1e">
 <meta name="theme-color" content="#050c1e">
 <link rel="icon" href="avatars/saucer.svg" type="image/svg+xml">
+<script src="/javeda/report.js"></script>
 <!-- JAVEDA as an app on a phone or computer (sw.js keeps it playable offline) -->
 <link rel="manifest" href="/javeda/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/javeda/icons/apple-touch-icon.png?v=2">
@@ -348,6 +349,21 @@ footer{color:var(--mute); font-size:13px}
 .card p{margin:0; color:var(--dim); font-size:14.5px}
 .x{position:absolute; top:12px; right:12px; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:var(--panel); font-size:18px; line-height:1}
 label.f{display:grid; gap:6px; font:700 12px/1 var(--cond); letter-spacing:.2em; text-transform:uppercase; color:var(--mute)}
+select.in, textarea.in{font:600 16px/1.35 var(--ui); color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:11px 12px; width:100%}
+textarea.in{resize:vertical; min-height:96px}
+.flinks{display:flex; gap:16px; flex-wrap:wrap; font-size:13px; color:var(--mute); margin-top:-10px}
+.flinks a, .flinks button{color:var(--dim); font:inherit; background:none; border:0; padding:0; text-decoration:underline; cursor:pointer}
+.rptabs{display:flex; gap:8px}
+.rptabs button[aria-pressed="true"]{background:var(--blue); border-color:var(--blue); color:#041024}
+.rpl{list-style:none; margin:0; padding:0; display:grid; gap:10px}
+.rpl li{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:grid; gap:6px}
+.rpl .rh{display:flex; justify-content:space-between; gap:10px; font:700 12px/1.2 var(--cond); letter-spacing:.14em; text-transform:uppercase}
+.rpl .rh .k-error{color:#ff8fae} .rpl .rh .k-player{color:var(--gold)} .rpl .rh .when{color:var(--mute)}
+.rpl .rm{font-size:15px; color:var(--ink); white-space:pre-wrap; overflow-wrap:anywhere}
+.rpl .rs{font-size:12.5px; color:var(--mute); overflow-wrap:anywhere}
+.rpl .rs a{color:var(--beam)}
+.rpl details{font-size:12px; color:var(--mute)} .rpl pre{white-space:pre-wrap; overflow-wrap:anywhere; margin:6px 0 0; font-size:11.5px}
+.rpl .rb{display:flex; gap:8px; justify-content:flex-end}
 input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; width:100%}
 .err{color:#ff8fae; font-size:14px; min-height:1em}
 .ok-msg{color:var(--good); font-size:14px}
@@ -582,6 +598,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
   </section>
 
   <footer>JAVEDA by Lazy Jo &middot; <a href="/">Lightning Wolves</a>. Points are earned by playing, never by streaming.</footer>
+  <div class="flinks"><a href="/javeda/privacy.html">Privacy</a><button type="button" id="repLink">Report a problem</button></div>
 </div>
 
 <!-- profile -->
@@ -641,6 +658,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <div class="err" id="lgErr"></div>
     <button class="btn primary" id="lgGo" type="button">Log in</button>
     <p><span id="lgSwitchTxt">New here?</span> <button class="switch" id="lgSwitch" type="button">Create an account</button></p>
+    <p class="small"><a href="/javeda/privacy.html" target="_blank" rel="noopener">How JAVEDA keeps your data</a></p>
   </div>
 </div>
 
@@ -751,6 +769,35 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     </label>
     <p class="fine">A merch code opens every remix straight away too. No code? <a data-link="even" target="_blank" rel="noopener">EVEN</a> &middot; <a data-link="merch" target="_blank" rel="noopener">Merch</a></p>
     <div class="err" id="psErr"></div>
+  </div>
+</div>
+
+<!-- Report a problem (anyone) -->
+<div class="sheet hid" id="repSheet" role="dialog" aria-modal="true" aria-labelledby="rpT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="rpT">Report a problem</h3>
+    <p>Something broken, a level that won't work, or a question about your data? Tell Lazy Jo.</p>
+    <label class="f">What is it about?
+      <select class="in" id="repTopic"><option value="level">A level</option><option value="account">My account or points</option><option value="privacy">My data (privacy)</option><option value="other">Something else</option></select></label>
+    <label class="f" id="repLvWrap">Which level? <select class="in" id="repLevel"></select></label>
+    <label class="f">What happened? <textarea class="in" id="repMsg" rows="4" maxlength="1500"></textarea></label>
+    <label class="f">Your email (only if you want an answer) <input class="in" id="repMail" type="email" maxlength="120" autocomplete="email"></label>
+    <p class="small">It goes with the kind of phone and browser you use, so the problem can be found - nothing else. <a href="/javeda/privacy.html" target="_blank" rel="noopener">Privacy</a></p>
+    <div class="err" id="repErr"></div>
+    <button class="btn primary" id="repGo" type="button">Send</button>
+  </div>
+</div>
+
+<!-- reports (creators): crashes and what players sent -->
+<div class="sheet hid" id="reports" role="dialog" aria-modal="true" aria-labelledby="rlT" data-i18n-skip>
+  <div class="card wide">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="rlT">Reports</h3>
+    <div class="rptabs"><button class="btn small" type="button" data-rp="open" aria-pressed="true">Open</button><button class="btn small" type="button" data-rp="done" aria-pressed="false">Done</button></div>
+    <div class="err" id="rlErr"></div>
+    <ol class="rpl" id="rlList"></ol>
+    <p class="small">Crashes come in by themselves: the game sends them when something breaks (the same crash on the same kind of phone is one row with a count). Players send theirs with Report a problem, at the bottom of the page. Tick one off with Done. Reports go after 180 days.</p>
   </div>
 </div>
 
@@ -1192,7 +1239,7 @@ function renderMe(){
 function renderNow(){
   const songs = SONGS_N.filter(songDone).length, parts = LEVELS.filter(l => cleared(l.id)).length, nx = continueLevel();
   const st = starTotal(), stars = st ? '<em class="stt">&#9733; ' + st + ' of ' + LEVELS.length * 3 + ' stars</em>' : '';
-  const crt = creator ? '<div class="crt">Creator <button class="btn small" data-players="1">Players &amp; downloads</button><button class="btn small" data-stats="1">Where players get stuck</button>' +
+  const crt = creator ? '<div class="crt">Creator <button class="btn small" data-reports="1">Reports' + (reportsOpen ? ' (' + reportsOpen + ')' : '') + '</button><button class="btn small" data-players="1">Players &amp; downloads</button><button class="btn small" data-stats="1">Where players get stuck</button>' +
     (albumDone() ? '' : '<button class="btn small" data-marathon="1">Marathon</button><button class="btn small" data-credits="1">Credits</button>') +
     '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
     (freeView ? 'Free view: on' : 'See it free') + '</button></div>' : '';
@@ -1738,6 +1785,7 @@ async function loadAccount(){
   renderAll(); showJoin();
   if (takePassNext()) openPass();
   flushPending();
+  countReports();
 }
 async function importGuest(){
   const has = Object.keys(guest.progress || {}).length;
@@ -1753,8 +1801,9 @@ async function importGuest(){
 let current = null;
 // how: { room } (an online game in a private room), { daily:true } (today's challenge - open whether you got
 // there or not) or { marathon:true } (the album marathon)
+let lastPlayed = null;
 function play(id, how){
-  const lv = levelById(id);
+  const lv = levelById(id); if (lv) lastPlayed = id;
   how = how || {};
   if (lv && !navigator.onLine && !how.offlineOk){
     if (lv.online){ toast("Online games need the internet."); return; }
@@ -1794,6 +1843,7 @@ $("now").addEventListener("click", e => {
   else if (b.dataset.marathon) startMarathon();
   else if (b.dataset.credits) openCredits();
   else if (b.dataset.players) openPlayers();
+  else if (b.dataset.reports) openReports();
   else if (b.dataset.stats) openStats();
   else if (b.dataset.codes) openCodes();
   else if (b.dataset.freeview){ freeView = !freeView; renderAll(); toast(freeView ? "Free view: the hub as a player without the Pass sees it" + (passOn ? "" : " once it's switched on") + ". Only here, nothing changes." : "Back to the creator view."); }
@@ -2221,6 +2271,87 @@ async function passReturn(){
 
 /* ---- players and app downloads (creators): everyone with an account, newest first, and the app installs ---- */
 let plRows = [];
+/* ---- reports: crashes (report.js catches them, in a level and here) and Report a problem ---- */
+const REP_KEY = "javeda.reports.v1";
+let reportsOpen = 0, repTab = "open";
+function queueReport(r){ try { const a = JSON.parse(localStorage.getItem(REP_KEY) || "[]"); a.push(r); localStorage.setItem(REP_KEY, JSON.stringify(a.slice(-10))); } catch(e){} }
+async function sendReport(r){
+  if (!sb || !navigator.onLine){ queueReport(r); return false; }
+  const { error } = await sb.rpc("javeda_report", { p_kind:r.kind, p_topic:r.topic || null, p_level:r.level || null, p_message:r.message,
+    p_detail:r.detail || null, p_page:r.page || null, p_device:r.device || (window.JAVEDA_DEVICE ? JAVEDA_DEVICE() : null),
+    p_lang:r.lang || window.JAVEDA_LANG || null, p_app:!!r.app, p_contact:r.contact || null }).then(x => x, e => ({ error:e }));
+  if (error && netErr(error)){ queueReport(r); return false; }
+  return error ? { error } : true;
+}
+async function flushReports(){
+  if (!sb || !navigator.onLine) return;
+  let a = []; try { a = JSON.parse(localStorage.getItem(REP_KEY) || "[]"); localStorage.removeItem(REP_KEY); } catch(e){}
+  for (const r of a) await sendReport(r);
+}
+// the page's own crashes (report.js keeps them until the database is there) and a level's (from its frame)
+window.JAVEDA_REPORT = () => { if (!sb) return; const q = window.__javedaReports || []; window.__javedaReports = []; q.forEach(r => sendReport(r)); };
+addEventListener("message", e => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== "javeda:report" || !e.data.report) return;
+  const r = e.data.report; sendReport({ ...r, kind:"error", level: current ? current.id : null });
+});
+addEventListener("online", () => { flushReports(); });
+// Report a problem: the sheet
+function openReport(){
+  const opts = [...LEVELS, ULT].filter(Boolean).map(l => '<option value="' + l.id + '"' + (l.id === lastPlayed ? " selected" : "") + '>' + esc(lvName(l)) + ' · ' + esc(l.title) + '</option>');
+  $("repLevel").innerHTML = opts.join(""); if (!lastPlayed) $("repLevel").selectedIndex = -1;
+  $("repTopic").value = "level"; $("repLvWrap").classList.remove("hid"); $("repErr").textContent = ""; $("repMsg").value = "";
+  if (signedIn() && session.user.email && !$("repMail").value) $("repMail").value = session.user.email;
+  openSheet("repSheet");
+}
+$("repLink").onclick = openReport;
+$("repTopic").onchange = () => $("repLvWrap").classList.toggle("hid", $("repTopic").value !== "level");
+$("repGo").onclick = async () => {
+  const msg = $("repMsg").value.trim(), mail = $("repMail").value.trim(), topic = $("repTopic").value;
+  if (msg.length < 3){ $("repErr").textContent = "Write what happened first."; return; }
+  if (mail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){ $("repErr").textContent = "That email doesn't look right (or leave it empty)."; return; }
+  $("repGo").disabled = true;
+  const res = await sendReport({ kind:"player", topic, level: topic === "level" ? $("repLevel").value || null : null, message:msg, contact:mail || null,
+    page:location.pathname, app:STANDALONE });
+  $("repGo").disabled = false;
+  if (res && res.error){ $("repErr").textContent = "That didn't send. Try again in a bit."; return; }
+  closeSheet("repSheet");
+  toast(res ? "Thanks - it's on its way to Lazy Jo." : "You're offline: it goes as soon as you're back online.", 4500);
+};
+// the creator's Reports
+const ago = ts => { const s = (Date.now() - new Date(ts)) / 1000; return s < 90 ? "just now" : s < 5400 ? Math.round(s / 60) + " min ago" : s < 129600 ? Math.round(s / 3600) + " h ago" : Math.round(s / 86400) + " days ago"; };
+async function countReports(){
+  if (!creator || !sb) return;
+  const { data } = await sb.rpc("javeda_reports_list", { p_done:false }).then(x => x, () => ({}));
+  reportsOpen = Array.isArray(data) ? data.length : 0; renderNow();
+}
+async function openReports(){
+  openSheet("reports"); $("rlErr").textContent = "";
+  document.querySelectorAll("[data-rp]").forEach(b => b.setAttribute("aria-pressed", b.dataset.rp === repTab));
+  const el = $("rlList"); el.innerHTML = "<li>Loading&hellip;</li>";
+  const { data, error } = await sb.rpc("javeda_reports_list", { p_done: repTab === "done" }).then(x => x, e => ({ error:e }));
+  if (error){ el.innerHTML = ""; $("rlErr").textContent = error.message.includes("javeda_reports_list") ? "Run the newest supabase-javeda-schema.sql in Supabase first (it adds the reports)." : error.message; return; }
+  if (repTab === "open"){ reportsOpen = data.length; renderNow(); }
+  if (!data.length){ el.innerHTML = "<li>" + (repTab === "open" ? "Nothing open. When something breaks, or a player reports a problem, it shows up here." : "Nothing ticked off yet.") + "</li>"; return; }
+  const TOPIC = { level:"a level", account:"account or points", privacy:"privacy", other:"something else" };
+  el.innerHTML = data.map(r => {
+    const lv = r.level && levelById(r.level), who = r.username ? esc(r.username) : r.user_id ? "a player" : "a guest";
+    const mail = r.contact && /^[^\s@<>"]+@[^\s@<>"]+$/.test(r.contact) ? ' &middot; <a href="mailto:' + esc(r.contact) + '?subject=' + encodeURIComponent("JAVEDA - your report") + '">' + esc(r.contact) + '</a>' : "";
+    return '<li><div class="rh"><span class="k-' + r.kind + '">' + (r.kind === "error" ? "&#128027; Crash" + (r.count > 1 ? " &times;" + r.count : "") : "&#128172; From a player" + (r.topic ? " &middot; " + TOPIC[r.topic] : "")) + '</span><span class="when">' + ago(r.last_at) + '</span></div>' +
+      '<div class="rm">' + esc(r.message) + '</div>' +
+      '<div class="rs">' + [lv ? esc(lvName(lv) + " · " + lv.title) : r.level ? esc(r.level) : "", esc(r.device || ""), (r.lang || "").toUpperCase(), r.app ? "the app" : "", who].filter(Boolean).join(" &middot; ") + mail + '</div>' +
+      (r.detail ? '<details><summary>Where in the code' + (r.page ? " &middot; " + esc(r.page) : "") + '</summary><pre>' + esc(r.detail) + '</pre></details>' : "") +
+      '<div class="rb"><button class="btn small" type="button" data-rdone="' + r.id + '">' + (r.done ? "Open again" : "Done") + '</button></div></li>';
+  }).join("");
+}
+$("reports").addEventListener("click", async e => {
+  const t = e.target.closest("[data-rp]"); if (t){ repTab = t.dataset.rp; openReports(); return; }
+  const d = e.target.closest("[data-rdone]"); if (!d) return;
+  d.disabled = true;
+  const { error } = await sb.rpc("javeda_report_done", { p_id: +d.dataset.rdone, p_done: repTab === "open" }).then(x => x, e => ({ error:e }));
+  if (error){ $("rlErr").textContent = error.message; d.disabled = false; return; }
+  d.closest("li").remove(); if (repTab === "open"){ reportsOpen = Math.max(0, reportsOpen - 1); renderNow(); }
+});
+
 async function openPlayers(){
   openSheet("players"); $("plFind").blur(); $("plErr").textContent = ""; $("plFind").value = ""; $("plTiles").innerHTML = "";
   $("plList").innerHTML = "<li><span></span><span>Loading&hellip;</span></li>";
@@ -2686,6 +2817,8 @@ addEventListener("message", e => {
 
 /* ---- boot ---- */
 renderAll();
+// /javeda/#report (from the privacy page): straight to Report a problem
+if (location.hash === "#report") setTimeout(openReport, 400);
 (async () => {
   try {
     // the settings are kept on the phone too, so the app starts offline (the address and the public key only)
@@ -2700,6 +2833,7 @@ renderAll();
     passCents = cfg.javedaPassCents || null;
   } catch(e){}
   if (!sb){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); return; }
+  window.JAVEDA_REPORT(); flushReports();
   // the live catalogue wins over the built-in copy, so prices can change without a deploy
   sb.from("javeda_avatars").select("*").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
   // the Pass switch and which levels need it (nothing, until it's switched on)

@@ -1459,3 +1459,103 @@ GRANT EXECUTE ON FUNCTION public.javeda_redeem(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_make_code(TEXT, TEXT, INT, INT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_codes_list() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_code_set(TEXT, BOOLEAN) TO authenticated;
+
+-- ============================================================================
+-- Reports: crashes the game catches by itself (kind 'error') and problems players send (kind 'player',
+-- from Report a problem on the JAVEDA page). Anyone can send one through javeda_report (logged in or not);
+-- only creators read them (javeda_reports_list) and tick them off (javeda_report_done).
+-- The same crash on the same level and kind of phone within a day is one row with a count, not a flood.
+-- Reports go after 180 days (the privacy page says so).
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS javeda_reports (
+  id        BIGSERIAL PRIMARY KEY,
+  kind      TEXT NOT NULL CHECK (kind IN ('error', 'player')),
+  topic     TEXT,                     -- player: 'level', 'account', 'privacy', 'other'
+  level     TEXT,                     -- the level it happened in, if any
+  message   TEXT NOT NULL,            -- the error, or what the player wrote
+  detail    TEXT,                     -- error: where in the code
+  page      TEXT,                     -- which page (and part)
+  device    TEXT,                     -- the kind of phone and browser, e.g. 'iPhone · iOS 17.4 · Safari'
+  lang      TEXT,
+  app       BOOLEAN NOT NULL DEFAULT false,   -- from the installed app
+  contact   TEXT,                     -- player: an email, only if they gave one for an answer
+  user_id   UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  count     INT NOT NULL DEFAULT 1,
+  first_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+  done      BOOLEAN NOT NULL DEFAULT false
+);
+CREATE INDEX IF NOT EXISTS javeda_reports_open ON javeda_reports (done, last_at DESC);
+ALTER TABLE javeda_reports ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_reports FROM anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_report(p_kind TEXT, p_topic TEXT, p_level TEXT, p_message TEXT, p_detail TEXT,
+  p_page TEXT, p_device TEXT, p_lang TEXT, p_app BOOLEAN, p_contact TEXT)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  msg TEXT := left(btrim(coalesce(p_message, '')), CASE WHEN p_kind = 'player' THEN 1500 ELSE 400 END);
+  dev TEXT := left(coalesce(p_device, ''), 120);
+  hit BIGINT;
+BEGIN
+  IF p_kind NOT IN ('error', 'player') OR msg = '' THEN RETURN; END IF;
+  -- a flood (a broken release, or someone spamming): stop taking new rows for a while
+  IF (SELECT count(*) FROM javeda_reports WHERE first_at > now() - interval '10 minutes') > 400 THEN RETURN; END IF;
+  DELETE FROM javeda_reports WHERE last_at < now() - interval '180 days';
+  IF p_kind = 'error' THEN
+    SELECT id INTO hit FROM javeda_reports
+      WHERE kind = 'error' AND NOT done AND message = msg AND coalesce(level, '') = coalesce(left(p_level, 40), '')
+        AND device = dev AND last_at > now() - interval '1 day'
+      ORDER BY last_at DESC LIMIT 1;
+    IF hit IS NOT NULL THEN
+      UPDATE javeda_reports SET count = count + 1, last_at = now(), detail = left(p_detail, 2000),
+        user_id = coalesce(auth.uid(), user_id) WHERE id = hit;
+      RETURN;
+    END IF;
+  END IF;
+  INSERT INTO javeda_reports (kind, topic, level, message, detail, page, device, lang, app, contact, user_id)
+  VALUES (p_kind,
+    CASE WHEN p_topic IN ('level', 'account', 'privacy', 'other') THEN p_topic END,
+    left(p_level, 40), msg, left(p_detail, 2000), left(p_page, 200), dev, left(p_lang, 5), coalesce(p_app, false),
+    CASE WHEN p_kind = 'player' THEN nullif(left(btrim(coalesce(p_contact, '')), 120), '') END,
+    auth.uid());
+END;
+$$;
+
+-- creators: the newest 300 (open or done), with the player's name when they were logged in
+CREATE OR REPLACE FUNCTION public.javeda_reports_list(p_done BOOLEAN)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'creators only' USING ERRCODE = '42501';
+  END IF;
+  RETURN coalesce((SELECT json_agg(r ORDER BY r.last_at DESC) FROM (
+    SELECT rp.*, pl.username,
+      (SELECT count(*) FROM javeda_reports o WHERE NOT o.done) AS open_total
+    FROM javeda_reports rp LEFT JOIN javeda_players pl ON pl.user_id = rp.user_id
+    WHERE rp.done = coalesce(p_done, false)
+    ORDER BY rp.last_at DESC LIMIT 300) r), '[]'::json);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.javeda_report_done(p_id BIGINT, p_done BOOLEAN)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'creators only' USING ERRCODE = '42501';
+  END IF;
+  UPDATE javeda_reports SET done = coalesce(p_done, true) WHERE id = p_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.javeda_report(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, BOOLEAN, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.javeda_reports_list(BOOLEAN) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.javeda_report_done(BIGINT, BOOLEAN) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_report(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, BOOLEAN, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_reports_list(BOOLEAN) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_report_done(BIGINT, BOOLEAN) TO authenticated;

@@ -5,7 +5,7 @@
    - The songs (Supabase Storage): saved the first time a level plays one (or all at once, from the page), then
      played from the phone - with the byte ranges an iPhone asks for, or it won't play them.
    - The scoreboard, log-in and saving runs (Supabase) always go to the network: never a stale copy. */
-const V = "javeda-v2";
+const V = "javeda-v3";
 const PAGES = V + "-pages", LIBS = "javeda-libs-v1", SONGS = "javeda-songs-v1";
 const SONG_RE = /\/storage\/v1\/object\/public\/media\/javeda\/[^/?]+\.mp3$/;
 const LIB_RE = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
@@ -16,7 +16,7 @@ const LEVELS = ["be-alright", "blind-love", "down-for-me", "fall-in-love-again",
   "no-rest-no-work", "oublie-moi", "peace-inside", "real-love", "rollercoaster", "somebody", "space-kid", "stay-up-2", "stay-up",
   "true-fighter", "you-ready", "zirkas-ride"];
 const AVATARS = ["saucer"];
-const SHELL = ["./", "i18n.js", "i18n-levels.js", "touch.js", "sound.js", "manifest.webmanifest", "icons/icon-any-192.png", "icons/apple-touch-icon.png",
+const SHELL = ["./", "i18n.js", "i18n-levels.js", "touch.js", "report.js", "privacy.html", "sound.js", "manifest.webmanifest", "icons/icon-any-192.png", "icons/apple-touch-icon.png",
   ...AVATARS.map(a => "avatars/" + a + ".svg"), ...LEVELS.map(l => "levels/" + l + ".html")];
 const LIBS_FIRST = ["https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"];

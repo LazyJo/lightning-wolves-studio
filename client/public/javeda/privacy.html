@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Privacy · JAVEDA</title>
+<meta name="description" content="What JAVEDA, Lazy Jo's playable album, keeps about you, where, for how long, and how to delete it.">
+<link rel="canonical" href="https://lightningwolves.studio/javeda/privacy.html">
+<meta name="theme-color" content="#050b1e">
+<link rel="icon" href="/javeda/avatars/saucer.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<style>
+:root{--navy:#050b1e; --panel:#0b1630; --line:#ffffff1f; --ink:#eaf4ff; --dim:#a9c3e3; --mute:#7f9cc0; --gold:#ffd60a; --beam:#67c8ff; --blue:#2f8fe0;
+  --display:"Bungee","Arial Black",sans-serif; --cond:"Barlow Condensed","Arial Narrow",sans-serif; --ui:"Barlow",system-ui,sans-serif}
+*{box-sizing:border-box}
+html{background:var(--navy)}
+body{margin:0; background:radial-gradient(120% 60% at 50% 0%,#0f2350 0%,var(--navy) 60%); color:var(--ink); font:400 16.5px/1.6 var(--ui); min-height:100vh}
+.wrap{max-width:760px; margin:0 auto; padding:max(18px, env(safe-area-inset-top)) 18px 60px}
+.top{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:26px}
+.logo{font:400 26px/1 var(--display); color:#fff; text-decoration:none; letter-spacing:.02em}
+.lang{display:flex; gap:2px; padding:3px; border:1px solid var(--line); border-radius:999px; background:var(--panel)}
+.lang button{border:0; background:none; border-radius:999px; padding:6px 9px; font:700 12px/1 var(--cond); letter-spacing:.12em; color:var(--dim); cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--blue); color:#041024}
+h1{font:400 clamp(30px,7vw,46px)/1.05 var(--display); margin:0 0 8px}
+.date{font:700 13px/1 var(--cond); letter-spacing:.2em; text-transform:uppercase; color:var(--mute); margin:0 0 18px}
+.lead{font-size:18px; color:var(--dim); margin:0 0 26px}
+.short{background:var(--panel); border:1px solid #ffd60a55; border-left:3px solid var(--gold); border-radius:10px; padding:14px 18px; margin:0 0 30px}
+.short h2{margin-top:0}
+.short ul{margin:0; padding-left:20px}
+h2{font:700 15px/1.2 var(--cond); letter-spacing:.2em; text-transform:uppercase; color:var(--gold); margin:30px 0 8px}
+p, li{color:var(--ink)}
+ul{padding-left:20px}
+li{margin:4px 0}
+a{color:var(--beam)}
+b{color:#fff}
+.small{color:var(--mute); font-size:14px}
+.back{display:inline-block; margin-top:34px; font:700 15px/1 var(--cond); letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#041024; background:var(--blue); padding:12px 18px; border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a class="logo" href="/javeda/">JAVEDA</a>
+    <div class="lang" role="group" aria-label="Language" id="lang"></div>
+  </div>
+  <main id="doc"></main>
+  <a class="back" href="/javeda/" id="back">&larr; JAVEDA</a>
+</div>
+<script>
+/* The same page in four languages. What it says has to stay true: when the game starts keeping something new,
+   this page changes with it (and the date at the top). */
+const DATE = { en:"Last updated 2 November 2026", nl:"Laatst bijgewerkt op 2 november 2026", fr:"Mis à jour le 2 novembre 2026", es:"Actualizado el 2 de noviembre de 2026" };
+const REPORT = '<a href="/javeda/#report">';
+const T = {
+en:{ title:"Privacy", back:"Back to JAVEDA",
+lead:"JAVEDA is Lazy Jo's playable album at lightningwolves.studio/javeda. This page says, in plain words, what the game keeps about you, where it is kept, for how long, and how to get it deleted.",
+short:["<b>Without an account</b>, your progress stays on your phone. Nothing about you is kept on our side, except crash reports (see below).",
+ "<b>With an account</b> we keep your email, your player name and picture, and your scores and progress. Your name, picture and scores are on the public scoreboard.",
+ "<b>No ads, no tracking, nothing sold.</b> We use your data only to run the game.",
+ "<b>Delete it any time:</b> Profile &rarr; Delete my account."],
+s:[
+["Who looks after your data", "JAVEDA is made by Lazy Jo (Lightning Wolves). For any question about your data, or to ask for a copy of it, use "+REPORT+"Report a problem</a> at the bottom of the JAVEDA page and choose <b>My data (privacy)</b>. Leave your email if you want an answer."],
+["Playing without an account", "You can play the whole album as a guest. Your progress, best scores, player name and picture are kept <b>on your phone only</b> (in the browser's storage). If you clear your browser's data, or switch phones or browsers, they are gone. On an iPhone, the app on your home screen keeps its own save, apart from Safari."],
+["With an account", "To save your progress everywhere and get on the scoreboard, you can make a free Lightning Wolves account (the same login as the Wolf Hub). We keep:<ul><li>your <b>email</b> and your <b>password</b> (the password is stored scrambled by our login service, so nobody can read it - not us either). If you log in with Google, we get your email and name from Google;</li><li>your <b>player name</b> and <b>picture</b>;</li><li>your <b>progress and scores</b>: which levels you cleared, your best score and stars, your runs (score, distance, time), daily challenge scores, online 1v1 results, the pictures you bought with points, and the levels a daily challenge kept open for you;</li><li>if you have one, your <b>JAVEDA Pass</b> (how you got it).</li></ul>Your player name, picture, points and scores are <b>public</b>: anyone can see them on the scoreboards. Your email is never shown to other players. Lazy Jo can see the email of each account, to help you with your account and - only if you asked for it - to send you JAVEDA news."],
+["News by email", "Only if you switch on <b>Email me JAVEDA news</b> in your profile. Switch it off there any time; every news email also says how."],
+["Online games", "When you play online (1v1, golf with friends, a private room), your player name, picture and what you do in the game are sent live to the other players in that game. Anyone with the link to a private room can join it."],
+["The JAVEDA Pass and payments", "If you buy the JAVEDA Pass, the payment is handled by <b>Stripe</b>. We never see your card. We only learn that the payment went through, and keep that your account has the Pass."],
+["The app", "If you put JAVEDA on your home screen, the game counts it: a random number for that phone (not your phone number or anything about you), whether it's an iPhone, Android or computer, and how often the app is opened - linked to your account if you are logged in. For playing offline, the app saves the game and the songs on your phone; that stays on your phone."],
+["Crash reports and Report a problem", "When something breaks in the game, it sends a <b>crash report</b> by itself, so it can be fixed. It holds: the error and where in the game's code it happened, the level and page, the kind of phone and browser (for example \"iPhone, iOS 17, Safari\"), the language, whether it's the app, and your account if you are logged in. Nothing else - no location, no contacts, nothing from other apps.<br>When <b>you</b> send "+REPORT+"Report a problem</a>, we get what you write, the level you choose, the same phone and browser info, your account if you are logged in, and your email only if you fill it in."],
+["What stays on your phone", "The game keeps these in your browser, on your phone or computer: your guest progress, the language you picked, your sound settings, your log-in (so you stay logged in), runs played offline that are waiting to be sent, and the offline copy of the game and its songs. There are <b>no advertising or tracking cookies</b>, and no analytics trackers."],
+["Services we use", "These companies run parts of JAVEDA for us and only handle your data for that:<ul><li><b>Supabase</b> - the database and the log-in (servers in the EU), and the songs;</li><li><b>Vercel</b> - hosts the website (like every website, its servers see your IP address when you visit);</li><li><b>Stripe</b> - payments for the Pass;</li><li><b>Google Fonts</b> - the letters the game uses are loaded from Google, which sees your IP address;</li><li><b>Cloudflare (cdnjs)</b> and <b>jsDelivr</b> - deliver two code libraries the game runs on (3D graphics and the log-in), which also see your IP address;</li><li><b>Google</b> - only if you choose to log in with Google.</li></ul>Some of these may handle data outside the EU; they do so under the EU's rules for that."],
+["How long", "Your account and everything in it: until you delete your account. Crash reports and problem reports: deleted after 180 days. The app count keeps its numbers, but the link to your account goes when you delete your account. A guest's progress stays on the phone until you clear it."],
+["Your rights", "You can see and change your player name and picture in your profile, and <b>delete your account</b> there (Profile &rarr; Delete my account): your player, scores, progress and runs are deleted straight away, and your login too unless you also use it for the Lightning Wolves Studio or the Wolf Hub. You can also ask for a copy of your data, or ask us to correct or delete something, through "+REPORT+"Report a problem</a> (choose My data). If you think we got something wrong, you can complain to the data protection authority in your country."],
+["Children", "Anyone can play as a guest, without an account. If you are under 16, ask a parent before you make an account."],
+["Changes", "When the game starts keeping something new, this page changes first, and the date at the top changes with it."] ] },
+
+nl:{ title:"Privacy", back:"Terug naar JAVEDA",
+lead:"JAVEDA is het speelbare album van Lazy Jo op lightningwolves.studio/javeda. Op deze pagina staat in gewone woorden wat de game over je bewaart, waar, hoe lang, en hoe je het laat verwijderen.",
+short:["<b>Zonder account</b> blijft je voortgang op je telefoon. Bij ons wordt niets over jou bewaard, behalve crashrapporten (zie hieronder).",
+ "<b>Met een account</b> bewaren we je e-mail, je spelersnaam en foto, en je scores en voortgang. Je naam, foto en scores staan op het openbare scorebord.",
+ "<b>Geen advertenties, geen tracking, niets verkocht.</b> We gebruiken je gegevens alleen om de game te laten werken.",
+ "<b>Altijd te verwijderen:</b> Profiel &rarr; Mijn account verwijderen."],
+s:[
+["Wie op je gegevens past", "JAVEDA is gemaakt door Lazy Jo (Lightning Wolves). Voor elke vraag over je gegevens, of om er een kopie van te vragen, gebruik je "+REPORT+"Meld een probleem</a> onderaan de JAVEDA-pagina en kies je <b>Mijn gegevens (privacy)</b>. Laat je e-mail achter als je een antwoord wilt."],
+["Spelen zonder account", "Je kunt het hele album als gast spelen. Je voortgang, beste scores, spelersnaam en foto worden <b>alleen op je telefoon</b> bewaard (in de opslag van je browser). Wis je de gegevens van je browser, of wissel je van telefoon of browser, dan zijn ze weg. Op een iPhone heeft de app op je beginscherm zijn eigen opslag, los van Safari."],
+["Met een account", "Om je voortgang overal te bewaren en op het scorebord te komen, kun je een gratis Lightning Wolves-account maken (dezelfde login als de Wolf Hub). We bewaren:<ul><li>je <b>e-mail</b> en je <b>wachtwoord</b> (het wachtwoord wordt versleuteld bewaard door onze inlogdienst, zodat niemand het kan lezen - wij ook niet). Log je in met Google, dan krijgen we je e-mail en naam van Google;</li><li>je <b>spelersnaam</b> en <b>foto</b>;</li><li>je <b>voortgang en scores</b>: welke levels je uitspeelde, je beste score en sterren, je runs (score, afstand, tijd), scores van de dagelijkse uitdaging, resultaten van online 1v1, de foto's die je met punten kocht, en de levels die een dagelijkse uitdaging voor je openhield;</li><li>als je er een hebt, je <b>JAVEDA Pass</b> (hoe je hem kreeg).</li></ul>Je spelersnaam, foto, punten en scores zijn <b>openbaar</b>: iedereen kan ze zien op de scoreborden. Je e-mail wordt nooit aan andere spelers getoond. Lazy Jo kan het e-mailadres van elk account zien, om je te helpen met je account en - alleen als je erom vroeg - om je JAVEDA-nieuws te sturen."],
+["Nieuws per e-mail", "Alleen als je <b>Mail me JAVEDA-nieuws</b> aanzet in je profiel. Je zet het daar altijd weer uit; in elke nieuwsmail staat ook hoe."],
+["Online spellen", "Als je online speelt (1v1, golf met vrienden, een privékamer), worden je spelersnaam, foto en wat je in het spel doet live naar de andere spelers in dat spel gestuurd. Iedereen met de link naar een privékamer kan erin."],
+["De JAVEDA Pass en betalingen", "Koop je de JAVEDA Pass, dan regelt <b>Stripe</b> de betaling. Wij zien je kaart nooit. We horen alleen dat de betaling gelukt is, en bewaren dat je account de Pass heeft."],
+["De app", "Zet je JAVEDA op je beginscherm, dan telt de game dat: een willekeurig nummer voor die telefoon (niet je telefoonnummer of iets over jou), of het een iPhone, Android of computer is, en hoe vaak de app wordt geopend - gekoppeld aan je account als je bent ingelogd. Om offline te spelen bewaart de app de game en de nummers op je telefoon; dat blijft op je telefoon."],
+["Crashrapporten en Meld een probleem", "Als er iets kapotgaat in de game, stuurt die vanzelf een <b>crashrapport</b>, zodat het gerepareerd kan worden. Daarin staat: de fout en waar in de code van de game die gebeurde, het level en de pagina, het soort telefoon en browser (bijvoorbeeld \"iPhone, iOS 17, Safari\"), de taal, of het de app is, en je account als je bent ingelogd. Verder niets - geen locatie, geen contacten, niets uit andere apps.<br>Stuur <b>jij</b> "+REPORT+"Meld een probleem</a>, dan krijgen we wat je schrijft, het level dat je kiest, dezelfde info over telefoon en browser, je account als je bent ingelogd, en je e-mail alleen als je die invult."],
+["Wat op je telefoon blijft", "De game bewaart dit in je browser, op je telefoon of computer: je gastvoortgang, de taal die je koos, je geluidsinstellingen, je login (zodat je ingelogd blijft), offline gespeelde runs die nog verstuurd moeten worden, en de offline kopie van de game en de nummers. Er zijn <b>geen advertentie- of trackingcookies</b>, en geen analytics-trackers."],
+["Diensten die we gebruiken", "Deze bedrijven draaien delen van JAVEDA voor ons en gebruiken je gegevens alleen daarvoor:<ul><li><b>Supabase</b> - de database en de login (servers in de EU), en de nummers;</li><li><b>Vercel</b> - host de website (zoals bij elke website zien de servers je IP-adres als je langskomt);</li><li><b>Stripe</b> - betalingen voor de Pass;</li><li><b>Google Fonts</b> - de letters van de game worden bij Google geladen, dat je IP-adres ziet;</li><li><b>Cloudflare (cdnjs)</b> en <b>jsDelivr</b> - leveren twee codebibliotheken waar de game op draait (3D-beelden en de login), die ook je IP-adres zien;</li><li><b>Google</b> - alleen als je kiest om met Google in te loggen.</li></ul>Sommige hiervan kunnen gegevens buiten de EU verwerken; ze doen dat volgens de EU-regels daarvoor."],
+["Hoe lang", "Je account en alles erin: tot je je account verwijdert. Crashrapporten en meldingen: verwijderd na 180 dagen. De app-telling houdt zijn aantallen, maar de koppeling met je account verdwijnt als je je account verwijdert. De voortgang van een gast blijft op de telefoon tot je die wist."],
+["Je rechten", "Je ziet en wijzigt je spelersnaam en foto in je profiel, en je <b>verwijdert je account</b> daar (Profiel &rarr; Mijn account verwijderen): je speler, scores, voortgang en runs worden meteen verwijderd, en je login ook, tenzij je die ook gebruikt voor de Lightning Wolves Studio of de Wolf Hub. Je kunt ook een kopie van je gegevens vragen, of vragen iets te verbeteren of te verwijderen, via "+REPORT+"Meld een probleem</a> (kies Mijn gegevens). Vind je dat we iets fout doen, dan kun je klagen bij de gegevensbeschermingsautoriteit in je land."],
+["Kinderen", "Iedereen kan als gast spelen, zonder account. Ben je jonger dan 16, vraag dan een ouder voor je een account maakt."],
+["Wijzigingen", "Als de game iets nieuws gaat bewaren, verandert deze pagina eerst, en de datum bovenaan verandert mee."] ] },
+
+fr:{ title:"Confidentialité", back:"Retour à JAVEDA",
+lead:"JAVEDA est l'album jouable de Lazy Jo, sur lightningwolves.studio/javeda. Cette page dit simplement ce que le jeu garde sur toi, où, combien de temps, et comment le faire supprimer.",
+short:["<b>Sans compte</b>, ta progression reste sur ton téléphone. Rien sur toi n'est gardé chez nous, sauf les rapports de plantage (voir plus bas).",
+ "<b>Avec un compte</b>, on garde ton e-mail, ton nom de joueur et ton image, et tes scores et ta progression. Ton nom, ton image et tes scores sont sur le classement public.",
+ "<b>Pas de pub, pas de pistage, rien n'est vendu.</b> On utilise tes données seulement pour faire tourner le jeu.",
+ "<b>Supprimable à tout moment :</b> Profil &rarr; Supprimer mon compte."],
+s:[
+["Qui s'occupe de tes données", "JAVEDA est fait par Lazy Jo (Lightning Wolves). Pour toute question sur tes données, ou pour en demander une copie, utilise "+REPORT+"Signaler un problème</a> en bas de la page JAVEDA et choisis <b>Mes données (confidentialité)</b>. Laisse ton e-mail si tu veux une réponse."],
+["Jouer sans compte", "Tu peux jouer tout l'album en invité. Ta progression, tes meilleurs scores, ton nom de joueur et ton image sont gardés <b>uniquement sur ton téléphone</b> (dans le stockage du navigateur). Si tu effaces les données de ton navigateur, ou changes de téléphone ou de navigateur, ils disparaissent. Sur iPhone, l'app de l'écran d'accueil a sa propre sauvegarde, séparée de Safari."],
+["Avec un compte", "Pour garder ta progression partout et entrer au classement, tu peux créer un compte Lightning Wolves gratuit (le même que pour le Wolf Hub). On garde :<ul><li>ton <b>e-mail</b> et ton <b>mot de passe</b> (le mot de passe est gardé brouillé par notre service de connexion, personne ne peut le lire - nous non plus). Si tu te connectes avec Google, on reçoit ton e-mail et ton nom de Google ;</li><li>ton <b>nom de joueur</b> et ton <b>image</b> ;</li><li>ta <b>progression et tes scores</b> : les niveaux finis, ton meilleur score et tes étoiles, tes parties (score, distance, temps), tes scores du défi du jour, tes résultats en 1v1 en ligne, les images achetées avec des points, et les niveaux qu'un défi du jour a gardés ouverts pour toi ;</li><li>si tu en as un, ton <b>JAVEDA Pass</b> (comment tu l'as eu).</li></ul>Ton nom de joueur, ton image, tes points et tes scores sont <b>publics</b> : tout le monde les voit sur les classements. Ton e-mail n'est jamais montré aux autres joueurs. Lazy Jo peut voir l'e-mail de chaque compte, pour t'aider avec ton compte et - seulement si tu l'as demandé - pour t'envoyer les nouvelles de JAVEDA."],
+["Les nouvelles par e-mail", "Seulement si tu actives <b>Envoie-moi les nouvelles de JAVEDA</b> dans ton profil. Tu peux le désactiver là à tout moment ; chaque e-mail de nouvelles dit aussi comment."],
+["Les jeux en ligne", "Quand tu joues en ligne (1v1, golf entre amis, une salle privée), ton nom de joueur, ton image et ce que tu fais dans le jeu sont envoyés en direct aux autres joueurs de la partie. Toute personne qui a le lien d'une salle privée peut la rejoindre."],
+["Le JAVEDA Pass et les paiements", "Si tu achètes le JAVEDA Pass, le paiement passe par <b>Stripe</b>. On ne voit jamais ta carte. On apprend seulement que le paiement est passé, et on garde que ton compte a le Pass."],
+["L'app", "Si tu mets JAVEDA sur ton écran d'accueil, le jeu le compte : un numéro au hasard pour ce téléphone (pas ton numéro ni rien sur toi), si c'est un iPhone, un Android ou un ordinateur, et combien de fois l'app est ouverte - lié à ton compte si tu es connecté. Pour jouer hors ligne, l'app garde le jeu et les morceaux sur ton téléphone ; ça reste sur ton téléphone."],
+["Rapports de plantage et Signaler un problème", "Quand quelque chose plante dans le jeu, il envoie tout seul un <b>rapport de plantage</b>, pour qu'on puisse le réparer. On y trouve : l'erreur et où elle s'est produite dans le code du jeu, le niveau et la page, le type de téléphone et de navigateur (par exemple « iPhone, iOS 17, Safari »), la langue, si c'est l'app, et ton compte si tu es connecté. Rien d'autre - pas de position, pas de contacts, rien d'autres apps.<br>Quand <b>tu</b> envoies "+REPORT+"Signaler un problème</a>, on reçoit ce que tu écris, le niveau choisi, les mêmes infos sur le téléphone et le navigateur, ton compte si tu es connecté, et ton e-mail seulement si tu le remplis."],
+["Ce qui reste sur ton téléphone", "Le jeu garde ceci dans ton navigateur, sur ton téléphone ou ton ordinateur : ta progression d'invité, la langue choisie, tes réglages de son, ta connexion (pour rester connecté), les parties jouées hors ligne qui attendent d'être envoyées, et la copie hors ligne du jeu et des morceaux. Il n'y a <b>aucun cookie de publicité ou de pistage</b>, et aucun outil de statistiques."],
+["Les services qu'on utilise", "Ces entreprises font tourner des parties de JAVEDA pour nous et ne traitent tes données que pour ça :<ul><li><b>Supabase</b> - la base de données et la connexion (serveurs dans l'UE), et les morceaux ;</li><li><b>Vercel</b> - héberge le site (comme pour tout site, ses serveurs voient ton adresse IP quand tu viens) ;</li><li><b>Stripe</b> - les paiements du Pass ;</li><li><b>Google Fonts</b> - les lettres du jeu sont chargées chez Google, qui voit ton adresse IP ;</li><li><b>Cloudflare (cdnjs)</b> et <b>jsDelivr</b> - fournissent deux bibliothèques de code du jeu (la 3D et la connexion), et voient aussi ton adresse IP ;</li><li><b>Google</b> - seulement si tu choisis de te connecter avec Google.</li></ul>Certains peuvent traiter des données hors de l'UE ; ils le font selon les règles de l'UE prévues pour ça."],
+["Combien de temps", "Ton compte et tout ce qu'il contient : jusqu'à ce que tu supprimes ton compte. Rapports de plantage et signalements : supprimés après 180 jours. Le comptage de l'app garde ses chiffres, mais le lien avec ton compte disparaît quand tu supprimes ton compte. La progression d'un invité reste sur le téléphone jusqu'à ce que tu l'effaces."],
+["Tes droits", "Tu vois et changes ton nom de joueur et ton image dans ton profil, et tu <b>supprimes ton compte</b> là (Profil &rarr; Supprimer mon compte) : ton joueur, tes scores, ta progression et tes parties sont supprimés tout de suite, et ta connexion aussi sauf si tu l'utilises aussi pour le Lightning Wolves Studio ou le Wolf Hub. Tu peux aussi demander une copie de tes données, ou demander de corriger ou supprimer quelque chose, via "+REPORT+"Signaler un problème</a> (choisis Mes données). Si tu penses qu'on a fait une erreur, tu peux te plaindre auprès de l'autorité de protection des données de ton pays."],
+["Les enfants", "Tout le monde peut jouer en invité, sans compte. Si tu as moins de 16 ans, demande à un parent avant de créer un compte."],
+["Les changements", "Quand le jeu commence à garder quelque chose de nouveau, cette page change d'abord, et la date en haut change avec elle."] ] },
+
+es:{ title:"Privacidad", back:"Volver a JAVEDA",
+lead:"JAVEDA es el álbum jugable de Lazy Jo, en lightningwolves.studio/javeda. Esta página explica con palabras sencillas qué guarda el juego sobre ti, dónde, cuánto tiempo y cómo hacer que se borre.",
+short:["<b>Sin cuenta</b>, tu progreso se queda en tu móvil. No guardamos nada sobre ti, salvo los informes de fallos (ver abajo).",
+ "<b>Con cuenta</b> guardamos tu email, tu nombre de jugador y tu imagen, y tus puntuaciones y progreso. Tu nombre, imagen y puntuaciones están en la clasificación pública.",
+ "<b>Sin anuncios, sin rastreo, nada se vende.</b> Usamos tus datos solo para que el juego funcione.",
+ "<b>Bórralo cuando quieras:</b> Perfil &rarr; Eliminar mi cuenta."],
+s:[
+["Quién cuida tus datos", "JAVEDA lo hace Lazy Jo (Lightning Wolves). Para cualquier pregunta sobre tus datos, o para pedir una copia, usa "+REPORT+"Informar de un problema</a> al final de la página de JAVEDA y elige <b>Mis datos (privacidad)</b>. Deja tu email si quieres respuesta."],
+["Jugar sin cuenta", "Puedes jugar todo el álbum como invitado. Tu progreso, mejores puntuaciones, nombre de jugador e imagen se guardan <b>solo en tu móvil</b> (en el almacenamiento del navegador). Si borras los datos del navegador, o cambias de móvil o de navegador, desaparecen. En iPhone, la app de la pantalla de inicio tiene su propio guardado, aparte de Safari."],
+["Con cuenta", "Para guardar tu progreso en todas partes y entrar en la clasificación, puedes crear una cuenta gratis de Lightning Wolves (el mismo acceso que el Wolf Hub). Guardamos:<ul><li>tu <b>email</b> y tu <b>contraseña</b> (nuestro servicio de acceso guarda la contraseña cifrada, nadie puede leerla, ni nosotros). Si entras con Google, recibimos tu email y tu nombre de Google;</li><li>tu <b>nombre de jugador</b> y tu <b>imagen</b>;</li><li>tu <b>progreso y puntuaciones</b>: los niveles superados, tu mejor puntuación y estrellas, tus partidas (puntuación, distancia, tiempo), las puntuaciones del reto diario, los resultados de 1v1 online, las imágenes compradas con puntos y los niveles que un reto diario te dejó abiertos;</li><li>si lo tienes, tu <b>JAVEDA Pass</b> (cómo lo conseguiste).</li></ul>Tu nombre de jugador, imagen, puntos y puntuaciones son <b>públicos</b>: cualquiera los ve en las clasificaciones. Tu email nunca se muestra a otros jugadores. Lazy Jo puede ver el email de cada cuenta, para ayudarte con tu cuenta y, solo si lo pediste, para enviarte noticias de JAVEDA."],
+["Noticias por email", "Solo si activas <b>Envíame noticias de JAVEDA</b> en tu perfil. Puedes desactivarlo ahí cuando quieras; cada email de noticias también explica cómo."],
+["Juegos online", "Cuando juegas online (1v1, golf con amigos, una sala privada), tu nombre de jugador, tu imagen y lo que haces en el juego se envían en directo a los demás jugadores de esa partida. Cualquiera con el enlace de una sala privada puede entrar."],
+["El JAVEDA Pass y los pagos", "Si compras el JAVEDA Pass, el pago lo gestiona <b>Stripe</b>. Nunca vemos tu tarjeta. Solo sabemos que el pago se hizo, y guardamos que tu cuenta tiene el Pass."],
+["La app", "Si pones JAVEDA en tu pantalla de inicio, el juego lo cuenta: un número al azar para ese móvil (no tu número de teléfono ni nada sobre ti), si es un iPhone, un Android o un ordenador, y cuántas veces se abre la app, unido a tu cuenta si has iniciado sesión. Para jugar sin conexión, la app guarda el juego y las canciones en tu móvil; eso se queda en tu móvil."],
+["Informes de fallos e Informar de un problema", "Cuando algo falla en el juego, este envía solo un <b>informe de fallo</b>, para poder arreglarlo. Incluye: el error y dónde ocurrió en el código del juego, el nivel y la página, el tipo de móvil y navegador (por ejemplo \"iPhone, iOS 17, Safari\"), el idioma, si es la app, y tu cuenta si has iniciado sesión. Nada más: ni ubicación, ni contactos, nada de otras apps.<br>Cuando <b>tú</b> envías "+REPORT+"Informar de un problema</a>, recibimos lo que escribes, el nivel que eliges, la misma información del móvil y el navegador, tu cuenta si has iniciado sesión, y tu email solo si lo rellenas."],
+["Lo que se queda en tu móvil", "El juego guarda esto en tu navegador, en tu móvil u ordenador: tu progreso de invitado, el idioma elegido, tus ajustes de sonido, tu sesión (para seguir conectado), las partidas jugadas sin conexión que esperan para enviarse, y la copia sin conexión del juego y las canciones. <b>No hay cookies de publicidad ni de rastreo</b>, ni herramientas de analítica."],
+["Servicios que usamos", "Estas empresas hacen funcionar partes de JAVEDA para nosotros y solo tratan tus datos para eso:<ul><li><b>Supabase</b>: la base de datos y el acceso (servidores en la UE), y las canciones;</li><li><b>Vercel</b>: aloja la web (como en cualquier web, sus servidores ven tu dirección IP al visitarla);</li><li><b>Stripe</b>: los pagos del Pass;</li><li><b>Google Fonts</b>: las letras del juego se cargan desde Google, que ve tu dirección IP;</li><li><b>Cloudflare (cdnjs)</b> y <b>jsDelivr</b>: sirven dos bibliotecas de código del juego (el 3D y el acceso), y también ven tu dirección IP;</li><li><b>Google</b>: solo si eliges entrar con Google.</li></ul>Algunos pueden tratar datos fuera de la UE; lo hacen según las normas de la UE para ello."],
+["Cuánto tiempo", "Tu cuenta y todo lo que contiene: hasta que borres tu cuenta. Informes de fallos y de problemas: se borran a los 180 días. El recuento de la app conserva sus cifras, pero el vínculo con tu cuenta desaparece cuando la borras. El progreso de un invitado se queda en el móvil hasta que lo borres."],
+["Tus derechos", "Puedes ver y cambiar tu nombre de jugador e imagen en tu perfil, y <b>borrar tu cuenta</b> ahí (Perfil &rarr; Eliminar mi cuenta): tu jugador, puntuaciones, progreso y partidas se borran al momento, y también tu acceso salvo que lo uses además para el Lightning Wolves Studio o el Wolf Hub. También puedes pedir una copia de tus datos, o pedir que corrijamos o borremos algo, con "+REPORT+"Informar de un problema</a> (elige Mis datos). Si crees que hemos hecho algo mal, puedes reclamar ante la autoridad de protección de datos de tu país."],
+["Menores", "Cualquiera puede jugar como invitado, sin cuenta. Si tienes menos de 16 años, pide permiso a un padre o madre antes de crear una cuenta."],
+["Cambios", "Cuando el juego empiece a guardar algo nuevo, esta página cambia primero, y la fecha de arriba cambia con ella."] ] }
+};
+const SHORT_H = { en:"In short", nl:"In het kort", fr:"En bref", es:"En resumen" };
+const LANGS = ["en", "nl", "fr", "es"];
+function pick(){
+  const q = new URLSearchParams(location.search).get("lang");
+  if (LANGS.includes(q)) return q;
+  try { const s = localStorage.getItem("javeda.lang"); if (LANGS.includes(s)) return s; } catch(e){}
+  const n = (navigator.language || "en").slice(0, 2).toLowerCase(); return LANGS.includes(n) ? n : "en";
+}
+function render(L){
+  const t = T[L]; document.documentElement.lang = L; document.title = t.title + " · JAVEDA";
+  document.getElementById("doc").innerHTML = "<h1>" + t.title + "</h1><p class='date'>" + DATE[L] + "</p><p class='lead'>" + t.lead + "</p>" +
+    "<div class='short'><h2>" + SHORT_H[L] + "</h2><ul>" + t.short.map(x => "<li>" + x + "</li>").join("") + "</ul></div>" +
+    t.s.map(([h, b]) => "<h2>" + h + "</h2><p>" + b + "</p>").join("").replace(/<p>([^]*?)<ul>/g, "<p>$1</p><ul>").replace(/<\/ul>([^<]+)<\/p>/g, "</ul><p>$1</p>");
+  document.getElementById("back").innerHTML = "&larr; " + t.back;
+  document.getElementById("lang").innerHTML = LANGS.map(k => "<button type='button' data-l='" + k + "' aria-pressed='" + (k === L) + "'>" + k.toUpperCase() + "</button>").join("");
+}
+document.getElementById("lang").addEventListener("click", e => { const b = e.target.closest("[data-l]"); if (!b) return; try { localStorage.setItem("javeda.lang", b.dataset.l); } catch(err){} render(b.dataset.l); });
+render(pick());
+</script>
+</body>
+</html>

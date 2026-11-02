@@ -554,8 +554,8 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <button class="x" type="button" data-close aria-label="Close">&times;</button>
     <h3 id="lgT">Log in</h3>
     <p>Your Lightning Wolves account: the same one as the Wolf Hub. Your guest progress comes with you.</p>
-    <button class="btn" id="lgGoogle" type="button">Continue with Google</button>
-    <div class="or">OR</div>
+    <button class="btn hid" id="lgGoogle" type="button">Continue with Google</button>
+    <div class="or hid" id="lgOr">OR</div>
     <label class="f">Email <input class="in" id="lgEmail" type="email" autocomplete="email"></label>
     <label class="f">Password <input class="in" id="lgPass" type="password" autocomplete="current-password" minlength="6"></label>
     <label class="chk hid" id="lgNewsRow"><input type="checkbox" id="lgNews"><span>Email me JAVEDA news: new levels and new songs. You can switch it off in your profile any time.</span></label>
@@ -2541,6 +2541,9 @@ renderAll();
     catch(err){ try { cfg = JSON.parse(localStorage.getItem("javeda.cfg")) || {}; } catch(e2){} }
     if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase)
       sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:true, autoRefreshToken:true } });
+    // "Continue with Google" only once Google log-in is switched on in Supabase (else the phone lands on its error page)
+    if (sb) fetch(cfg.supabaseUrl + "/auth/v1/settings", { headers:{ apikey:cfg.supabaseAnonKey } }).then(r => r.json())
+      .then(st => { const on = !!(st && st.external && st.external.google); $("lgGoogle").classList.toggle("hid", !on); $("lgOr").classList.toggle("hid", !on); }).catch(() => {});
     passCents = cfg.javedaPassCents || null;
   } catch(e){}
   if (!sb){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); return; }

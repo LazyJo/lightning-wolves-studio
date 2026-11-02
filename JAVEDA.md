@@ -49,6 +49,9 @@ supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabas
 2. **Log-in redirects.** In Supabase › Authentication › URL Configuration, add
    `https://lightningwolves.studio/javeda/` (and the Vercel preview domain while testing)
    to *Redirect URLs*, so Google log-in and email confirmation come back to JAVEDA.
+   **Google log-in** is off until Supabase › Authentication › Providers › Google is switched on (a Google Cloud OAuth
+   client: its ID + secret there, the Supabase callback URL in Google). The hub asks `/auth/v1/settings` and shows
+   "Continue with Google" only when it's on, so nobody lands on Supabase's "provider is not enabled" page.
 3. **Discord.** The invite used everywhere is `discord.gg/ngZ4MRjV6`. If that is not the
    live one, change `LINKS.discord` in `javeda/index.html` and `levels/im-lost.html`.
 

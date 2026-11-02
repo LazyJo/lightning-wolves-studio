@@ -207,6 +207,10 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
   profile to switch it on or off (`javeda_set_news`). `javeda_news` keeps who said yes and since when; a player
   reads only their own row. Players & downloads shows a **news** tag and a count, and **Copy news emails** copies
   only theirs (for Bcc). Every news email should say how to stop: profile > Email me JAVEDA news.
+- **Search engines.** The hub page has a canonical URL and JSON-LD (a VideoGame and a MusicAlbum, both by the
+  MusicGroup Lazy Jo with his Spotify artist page and Instagram @lazyjo_ as `sameAs`). The site root has a real
+  `robots.txt` and `sitemap.xml` (the home page and /javeda/) in `client/public`; before, both paths returned the
+  Studio's page. Google Search Console (Jo's account) is what gets it crawled quickly: submit the sitemap there.
 - **Delete my account** (the profile, logged-in players but creators): asked a second time, then
   `javeda_delete_account()`. A JAVEDA login is a Lightning Wolves login: when it's also used for the Studio or the
   Wolf Hub (a paid plan, or any row of theirs in those tables) only the JAVEDA player goes (everything JAVEDA hangs

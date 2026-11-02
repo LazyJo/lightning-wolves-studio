@@ -68,7 +68,7 @@ export const wolves: Wolf[] = [
       fullBio:
         "Born 1999 in Lome, Togo. Based in Brussels. Launched Feb 2018 with 'I'm Lost.' Known for melodic flows, emotionally driven delivery, and unforgettable hooks. Track 'Stay Up' surpassed 100K views. Co-signed by Timbaland, Symba, DDG & more.",
       spotify: "https://open.spotify.com/embed/artist/1gxwDVgOKYnTA3iq2CjLtM",
-      instagram: "https://instagram.com/lazyjoo_",
+      instagram: "https://instagram.com/lazyjo_",
       youtube: "https://youtube.com/@lightningwolves",
       booking: "https://www.gigstarter.be/artists/lazy-jo",
       merch: "https://www.even.biz/l/lightningwolves",

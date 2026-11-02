@@ -22,6 +22,13 @@
 <meta name="theme-color" content="#050b1e">
 <meta name="theme-color" content="#050c1e">
 <link rel="icon" href="avatars/saucer.svg" type="image/svg+xml">
+<!-- JAVEDA as an app on a phone or computer (sw.js keeps it playable offline) -->
+<link rel="manifest" href="/javeda/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/javeda/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JAVEDA">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <script src="i18n.js" defer></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -75,6 +82,14 @@ button:focus-visible, a:focus-visible, input:focus-visible{outline:2px solid var
 .hero{display:grid; gap:4px}
 .hero h1{margin:0; font:400 clamp(30px,7vw,52px)/1 var(--display); letter-spacing:.01em}
 .hero p{margin:0; color:var(--dim); max-width:56ch}
+.app{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px}
+.app #appNote{color:var(--mute); font-size:13.5px}
+.app .btn{border:1.5px solid #ffd60a99; background:#ffd60a14; color:var(--gold)}
+.card .small{font-size:13px; color:var(--mute); margin:0}
+#appHow{display:grid; gap:12px}
+.steps{margin:0; padding-left:22px; display:grid; gap:8px; color:var(--ink)}
+.steps b{color:var(--gold)}
+.ios-share{display:inline-block; width:18px; height:20px; vertical-align:-4px; margin:0 2px}
 .banner{background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--gold); border-radius:8px; padding:10px 14px; color:var(--dim); font-size:14.5px}
 .banner b{color:var(--ink)}
 
@@ -404,6 +419,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
   <section class="hero">
     <h1>The playable album</h1>
     <p>Every song is a level. Finish one to open the next, then come back and beat your score.</p>
+    <div class="app hid" id="appBox"><button class="btn" id="appBtn" type="button">&#128242; Get the app</button><span id="appNote">On your home screen, and it plays offline.</span></div>
   </section>
 
   <section aria-labelledby="hBoard">
@@ -528,6 +544,16 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <h3 id="stT">Where players get stuck</h3>
     <p>Every logged-in player but the creators. <b>Cleared</b> is how many of the players who tried a level cleared it; <b>stuck</b> tried and never did; <b>never tried</b> could play it and didn't. Guests aren't in here.</p>
     <div id="stBody"></div>
+  </div>
+</div>
+
+<!-- put JAVEDA on the phone: the steps for this phone or browser -->
+<div class="sheet hid" id="appSheet" role="dialog" aria-modal="true" aria-labelledby="apT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="apT">Put JAVEDA on your phone</h3>
+    <div id="appHow"></div>
+    <div id="appCarry"></div>
   </div>
 </div>
 
@@ -1432,6 +1458,10 @@ let current = null;
 function play(id, how){
   const lv = levelById(id);
   how = how || {};
+  if (lv && !navigator.onLine && !how.offlineOk){
+    if (lv.online){ toast("Online games need the internet."); return; }
+    if ("caches" in window){ caches.match(SONGS_URL + "lvl" + lv.num + ".mp3").then(hit => hit ? play(id, { ...how, offlineOk:true }) : toast("This song isn't saved on this phone yet. Play it once with internet, or save all the songs in the app.", 5000)); return; }
+  }
   if (lv && !how.daily && passReady(lv)) return openPass(lv);
   if (!lv || !(isOpen(lv) || how.daily)) return;
   if (lv.online && !signedIn()){ toast("Log in to play online - the result goes on your account."); openLogin(); return; }
@@ -1965,6 +1995,110 @@ async function shareCard(c){
 $("shLink").onclick = async () => { if (!shareNow) return; try { await navigator.share({ title:"JAVEDA · The playable album by Lazy Jo", text:shareNow.text, url:SHARE_URL }); } catch(e){} };
 $("shPic").onclick = async () => { if (!shareNow) return; try { await navigator.share({ files:[shareNow.file], text:shareNow.text + " " + SHARE_URL }); } catch(e){} };
 $("shCopy").onclick = async () => { try { await navigator.clipboard.writeText(SHARE_URL); toast("Link copied"); } catch(e){ toast(SHARE_URL); } };
+
+/* ---- the app: JAVEDA on the home screen, playable offline (sw.js) ---- */
+const UA = navigator.userAgent;
+const IOS = /iPhone|iPad|iPod/.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+const IN_APP = /Instagram|FBAN|FBAV|FB_IAB|Line\/|TikTok|Snapchat|musical_ly|Twitter/i.test(UA);
+const ANDROID = /Android/.test(UA);
+const MAC_SAFARI = !IOS && /Macintosh/.test(UA) && /Safari\//.test(UA) && !/Chrome|Chromium|Edg|Firefox|OPR/.test(UA);
+const CHROMIUM = /Chrome|Chromium|Edg|OPR/.test(UA) && !/Firefox/.test(UA);
+const STANDALONE = matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || navigator.standalone === true;
+const SONG_URLS = [...new Set(LEVELS.map(l => SONGS_URL + "lvl" + l.num + ".mp3"))];
+let installEvt = null, songsSaved = null, songsBusy = false;
+if ("serviceWorker" in navigator) addEventListener("load", () => { navigator.serviceWorker.register("/javeda/sw.js", { scope:"/javeda/" }).then(() => STANDALONE && countSongs()).catch(() => {}); });
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; renderApp(); });
+addEventListener("appinstalled", () => { installEvt = null; closeSheet("appSheet"); toast("JAVEDA is on your home screen. Open it from there."); renderApp(); });
+// ask the service worker something and get its answers
+function askSW(msg, onReply){
+  if (!("serviceWorker" in navigator)) return false;
+  navigator.serviceWorker.ready.then(reg => { const ch = new MessageChannel(); ch.port1.onmessage = e => onReply(e.data); (reg.active || navigator.serviceWorker.controller).postMessage(msg, [ch.port2]); });
+  return true;
+}
+function countSongs(){ askSW({ type:"songs:saved" }, d => { songsSaved = SONG_URLS.filter(u => d.saved.includes(u)).length; renderApp(); }); }
+function renderApp(){
+  const box = $("appBox"); if (!box) return;
+  if (!STANDALONE){
+    box.classList.remove("hid");
+    $("appBtn").innerHTML = "&#128242; Get the app";
+    $("appNote").textContent = "On your home screen, and it plays offline.";
+    return;
+  }
+  // in the app: save the songs, so every level plays without internet
+  const all = songsSaved != null && songsSaved >= SONG_URLS.length;
+  box.classList.toggle("hid", songsSaved == null || (all && !songsBusy));
+  if (!songsBusy){ $("appBtn").innerHTML = "&#11015; Save the songs for offline"; $("appNote").textContent = songsSaved ? songsSaved + " of " + SONG_URLS.length + " songs saved on this phone." : "Then every level plays without internet."; }
+}
+$("appBtn").onclick = async () => {
+  if (STANDALONE){
+    if (songsBusy) return;
+    if (!navigator.onLine){ toast("Connect to the internet to save the songs."); return; }
+    songsBusy = true; $("appBtn").disabled = true; $("appBtn").innerHTML = "Saving the songs&hellip;";
+    const ok = askSW({ type:"songs:save", urls:SONG_URLS }, d => {
+      $("appNote").textContent = "Song " + d.done + " of " + d.total + "…";
+      if (d.done < d.total) return;
+      songsBusy = false; $("appBtn").disabled = false;
+      toast(d.failed ? (d.total - d.failed) + " of " + d.total + " songs saved. Try again later for the rest." : "All the songs are saved. JAVEDA plays offline now.", 5000);
+      countSongs();
+    });
+    if (!ok){ songsBusy = false; $("appBtn").disabled = false; }
+    return;
+  }
+  if (installEvt){ installEvt.prompt(); const c = await installEvt.userChoice.catch(() => null); if (c && c.outcome === "accepted") installEvt = null; return; }
+  openAppSheet();
+};
+const SHARE_ICON = '<svg class="ios-share" viewBox="0 0 18 20" aria-label="Share" role="img"><path d="M9 1v11M5 5l4-4 4 4" fill="none" stroke="#4ea6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 8H3v11h12V8h-3" fill="none" stroke="#4ea6ff" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+// the steps, in the language picked (here, not in i18n.js: they hold the Share icon)
+const APP_TXT = {
+  en:{ iosInApp:'This page is open inside another app. Open it in <b>Safari</b> first: tap the <b>&middot;&middot;&middot;</b> menu and choose <b>Open in browser</b> (or Open in Safari). Then tap Get the app again.',
+    ios:['Tap <b>Share</b> # (in Safari at the bottom of the screen, in Chrome at the top).', 'Scroll down and tap <b>Add to Home Screen</b>.', 'Tap <b>Add</b>. JAVEDA is on your home screen.'],
+    andInApp:'This page is open inside another app. Tap the <b>&#8942;</b> menu, choose <b>Open in Chrome</b> (or Open in browser), then tap Get the app again.',
+    and:['Open your browser menu <b>&#8942;</b>.', 'Tap <b>Install app</b> or <b>Add to Home screen</b>.'],
+    mac:['In the menu bar, click <b>File</b>.', 'Click <b>Add to Dock</b>.'],
+    chr:['Click the <b>install</b> icon at the right of the address bar (a screen with an arrow), or open the menu <b>&#8942;</b>.', 'Click <b>Install JAVEDA</b>.'], chrNote:'Already installed? Open it from your apps.',
+    none:'This browser can\'t put JAVEDA on your computer as an app. <b>Chrome</b> or <b>Edge</b> can - or keep this page as a bookmark.',
+    foot:'The app plays offline too. Your progress keeps saving, and with an account it goes everywhere you log in.' },
+  nl:{ iosInApp:'Deze pagina is geopend in een andere app. Open hem eerst in <b>Safari</b>: tik op het menu <b>&middot;&middot;&middot;</b> en kies <b>Open in browser</b> (of Open in Safari). Tik daarna opnieuw op Download de app.',
+    ios:['Tik op <b>Deel</b> # (in Safari onderaan het scherm, in Chrome bovenaan).', 'Scroll naar beneden en tik op <b>Zet op beginscherm</b>.', 'Tik op <b>Voeg toe</b>. JAVEDA staat op je beginscherm.'],
+    andInApp:'Deze pagina is geopend in een andere app. Tik op het menu <b>&#8942;</b>, kies <b>Openen in Chrome</b> (of Openen in browser) en tik daarna opnieuw op Download de app.',
+    and:['Open het menu van je browser <b>&#8942;</b>.', 'Tik op <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.'],
+    mac:['Klik in de menubalk op <b>Archief</b>.', 'Klik op <b>Voeg toe aan Dock</b>.'],
+    chr:['Klik op het <b>installeer</b>-icoon rechts in de adresbalk (een scherm met een pijl), of open het menu <b>&#8942;</b>.', 'Klik op <b>JAVEDA installeren</b>.'], chrNote:'Al geïnstalleerd? Open hem bij je apps.',
+    none:'Deze browser kan JAVEDA niet als app op je computer zetten. <b>Chrome</b> of <b>Edge</b> kan dat wel - of bewaar deze pagina als bladwijzer.',
+    foot:'De app werkt ook offline. Je voortgang blijft bewaard, en met een account gaat hij mee naar elk apparaat waarop je inlogt.' },
+  fr:{ iosInApp:'Cette page est ouverte dans une autre app. Ouvre-la d\'abord dans <b>Safari</b> : touche le menu <b>&middot;&middot;&middot;</b> et choisis <b>Ouvrir dans le navigateur</b> (ou Ouvrir dans Safari). Puis touche à nouveau Télécharger l\'app.',
+    ios:['Touche <b>Partager</b> # (dans Safari en bas de l\'écran, dans Chrome en haut).', 'Fais défiler et touche <b>Sur l\'écran d\'accueil</b>.', 'Touche <b>Ajouter</b>. JAVEDA est sur ton écran d\'accueil.'],
+    andInApp:'Cette page est ouverte dans une autre app. Touche le menu <b>&#8942;</b>, choisis <b>Ouvrir dans Chrome</b> (ou Ouvrir dans le navigateur), puis touche à nouveau Télécharger l\'app.',
+    and:['Ouvre le menu de ton navigateur <b>&#8942;</b>.', 'Touche <b>Installer l\'application</b> ou <b>Ajouter à l\'écran d\'accueil</b>.'],
+    mac:['Dans la barre des menus, clique sur <b>Fichier</b>.', 'Clique sur <b>Ajouter au Dock</b>.'],
+    chr:['Clique sur l\'icône <b>installer</b> à droite de la barre d\'adresse (un écran avec une flèche), ou ouvre le menu <b>&#8942;</b>.', 'Clique sur <b>Installer JAVEDA</b>.'], chrNote:'Déjà installée ? Ouvre-la depuis tes applications.',
+    none:'Ce navigateur ne peut pas installer JAVEDA comme app sur ton ordinateur. <b>Chrome</b> ou <b>Edge</b> le peuvent - ou garde cette page en favori.',
+    foot:'L\'app marche aussi hors ligne. Ta progression reste sauvegardée, et avec un compte elle te suit partout où tu te connectes.' },
+  es:{ iosInApp:'Esta página está abierta dentro de otra app. Ábrela primero en <b>Safari</b>: toca el menú <b>&middot;&middot;&middot;</b> y elige <b>Abrir en el navegador</b> (o Abrir en Safari). Luego vuelve a tocar Descarga la app.',
+    ios:['Toca <b>Compartir</b> # (en Safari abajo de la pantalla, en Chrome arriba).', 'Desliza hacia abajo y toca <b>Añadir a pantalla de inicio</b>.', 'Toca <b>Añadir</b>. JAVEDA está en tu pantalla de inicio.'],
+    andInApp:'Esta página está abierta dentro de otra app. Toca el menú <b>&#8942;</b>, elige <b>Abrir en Chrome</b> (o Abrir en el navegador) y vuelve a tocar Descarga la app.',
+    and:['Abre el menú de tu navegador <b>&#8942;</b>.', 'Toca <b>Instalar aplicación</b> o <b>Añadir a pantalla de inicio</b>.'],
+    mac:['En la barra de menús, haz clic en <b>Archivo</b>.', 'Haz clic en <b>Añadir al Dock</b>.'],
+    chr:['Haz clic en el icono de <b>instalar</b> a la derecha de la barra de direcciones (una pantalla con una flecha), o abre el menú <b>&#8942;</b>.', 'Haz clic en <b>Instalar JAVEDA</b>.'], chrNote:'¿Ya instalada? Ábrela desde tus aplicaciones.',
+    none:'Este navegador no puede instalar JAVEDA como app en tu ordenador. <b>Chrome</b> o <b>Edge</b> sí pueden - o guarda esta página en marcadores.',
+    foot:'La app también funciona sin conexión. Tu progreso se sigue guardando, y con una cuenta te acompaña a todas partes donde inicies sesión.' } };
+function openAppSheet(){
+  const t = APP_TXT[window.JAVEDA_LANG] || APP_TXT.en;
+  const list = a => '<ol class="steps" data-i18n-skip>' + a.map(x => '<li>' + x.replace("#", SHARE_ICON) + '</li>').join("") + '</ol>';
+  const para = x => '<p data-i18n-skip>' + x + '</p>';
+  let how;
+  if (IOS && IN_APP) how = para(t.iosInApp);
+  else if (IOS) how = list(t.ios);
+  else if (ANDROID && IN_APP) how = para(t.andInApp);
+  else if (ANDROID) how = list(t.and);
+  else if (MAC_SAFARI) how = list(t.mac);
+  else if (CHROMIUM) how = list(t.chr) + '<p class="small" data-i18n-skip>' + t.chrNote + '</p>';
+  else how = para(t.none);
+  $("appHow").innerHTML = how + '<p class="small" data-i18n-skip>' + t.foot + '</p>';
+  $("appCarry").innerHTML = typeof carryHtml === "function" ? carryHtml() : "";
+  openSheet("appSheet");
+}
+renderApp();
 
 // an online 1v1 is over: report it. It counts once the other player's report says the same,
 // so if theirs isn't in yet, ask again a few times

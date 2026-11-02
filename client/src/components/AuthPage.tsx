@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Zap, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { useI18n } from "../lib/i18n";
-import { initSupabase } from "../lib/supabaseClient";
+import { initSupabase, isGoogleSignInEnabled } from "../lib/supabaseClient";
 
 interface Props {
   onBack: () => void;
@@ -23,6 +23,19 @@ export default function AuthPage({ onBack, onSuccess, nextLabel }: Props) {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  // Hidden until Supabase says Google log-in is on — appears by itself
+  // the day it's switched on.
+  const [googleOn, setGoogleOn] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    isGoogleSignInEnabled().then((on) => {
+      if (alive) setGoogleOn(on);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -203,8 +216,9 @@ export default function AuthPage({ onBack, onSuccess, nextLabel }: Props) {
             </div>
           )}
 
-          {/* Continue with Google (only in signin/signup, not forgot) */}
-          {mode !== "forgot" && (
+          {/* Continue with Google (only in signin/signup, not forgot, and
+              only once the provider is switched on in Supabase) */}
+          {mode !== "forgot" && googleOn && (
             <>
               <button
                 type="button"

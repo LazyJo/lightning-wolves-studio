@@ -1286,7 +1286,8 @@ function renderNow(){
 function dailyCard(){
   const lv = daily && levelById(daily.level);
   if (!lv) return "";
-  const day = new Date(daily.day + "T12:00:00").toLocaleDateString("en-GB", { weekday:"short", day:"numeric", month:"short" });
+  const lang = window.JAVEDA_LANG && window.JAVEDA_LANG !== "en" ? window.JAVEDA_LANG : "en-GB";   // the date in the language picked
+  const day = new Date(daily.day + "T12:00:00").toLocaleDateString(lang, { weekday:"short", day:"numeric", month:"short" });
   return '<article class="daily"><span class="dl">Today\'s challenge &middot; ' + esc(day) + '</span>' +
     '<span class="dt">Level ' + lv.num + ' &middot; ' + esc(lv.title) + '</span>' +
     '<p class="dd">The same song for everyone today, with its own scoreboard - empty again tomorrow.' +

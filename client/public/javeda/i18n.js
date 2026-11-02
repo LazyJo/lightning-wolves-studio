@@ -119,6 +119,10 @@ const S = [
   ["No matches yet", "Nog geen wedstrijden", "Pas encore de matchs", "Aún no hay partidas"],
   ["No 1v1 wins yet.", "Nog geen 1v1-overwinningen.", "Pas encore de victoire en 1v1.", "Aún no hay victorias 1v1."],
   ["Nobody has played today's challenge yet.", "Nog niemand heeft de uitdaging van vandaag gespeeld.", "Personne n'a encore joué le défi du jour.", "Nadie ha jugado aún el reto de hoy."],
+  ["Today's challenge", "De uitdaging van vandaag", "Le défi du jour", "El reto de hoy"],
+  ["The same song for everyone today, with its own scoreboard - empty again tomorrow.", "Vandaag hetzelfde nummer voor iedereen, met een eigen scorebord - morgen weer leeg.", "Le même morceau pour tout le monde aujourd'hui, avec son propre classement - vide à nouveau demain.", "La misma canción para todos hoy, con su propia clasificación - vacía otra vez mañana."],
+  ["Your best today #", "Je beste vandaag #", "Ton record du jour #", "Tu mejor marca de hoy #"],
+  ["Board", "Bord", "Classement", "Clasificación"],
   ["Nobody has run the album marathon yet.", "Nog niemand heeft de albummarathon gelopen.", "Personne n'a encore couru le marathon de l'album.", "Nadie ha corrido aún el maratón del álbum."],
   ["Log in for the board", "Log in voor het bord", "Connecte-toi pour le classement", "Inicia sesión para la tabla"],
   ["Not played yet today", "Vandaag nog niet gespeeld", "Pas encore joué aujourd'hui", "Aún no has jugado hoy"],
@@ -449,7 +453,8 @@ const HTML = [
   ['Quick match against real players. <b>Golf</b> for 2, 3 or 4: the same nine holes at the same time, the others as ghost balls - the fewest strokes takes the hole, the most holes wins. <b>Hockey:</b> one air hockey table, first to 3 rounds. A win is +25 points; with 3 or 4, 2nd place earns some too.',
    'Snelle match tegen echte spelers. <b>Golf</b> voor 2, 3 of 4: dezelfde negen holes tegelijk, de anderen als spookballen - de minste slagen wint de hole, de meeste holes wint. <b>Hockey:</b> één airhockeytafel, wie het eerst 3 rondes wint. Winnen is +25 punten; met 3 of 4 verdient de tweede plaats ook wat.',
    'Match rapide contre de vrais joueurs. <b>Golf</b> à 2, 3 ou 4 : les mêmes neuf trous en même temps, les autres en balles fantômes - le moins de coups gagne le trou, le plus de trous gagne. <b>Hockey :</b> une table de air hockey, le premier à 3 manches. Une victoire, c\'est +25 points ; à 3 ou 4, la 2e place rapporte aussi.',
-   'Partida rápida contra jugadores reales. <b>Golf</b> para 2, 3 o 4: los mismos nueve hoyos a la vez, los demás como bolas fantasma - menos golpes gana el hoyo, más hoyos gana. <b>Hockey:</b> una mesa de hockey de aire, el primero en ganar 3 rondas. Ganar son +25 puntos; con 3 o 4, el 2.º puesto también gana algo.']
+   'Partida rápida contra jugadores reales. <b>Golf</b> para 2, 3 o 4: los mismos nueve hoyos a la vez, los demás como bolas fantasma - menos golpes gana el hoyo, más hoyos gana. <b>Hockey:</b> una mesa de hockey de aire, el primero en ganar 3 rondas. Ganar son +25 puntos; con 3 o 4, el 2.º puesto también gana algo.'],
+  ["The same song for everyone today, with its own scoreboard - empty again tomorrow. You haven't got this far yet: <b>clear it and it stays open for you.</b>", "Vandaag hetzelfde nummer voor iedereen, met een eigen scorebord - morgen weer leeg. Zo ver ben je nog niet: <b>speel het uit en het blijft voor jou open.</b>", "Le même morceau pour tout le monde aujourd'hui, avec son propre classement - vide à nouveau demain. Tu n'es pas encore arrivé jusque-là : <b>termine-le et il reste ouvert pour toi.</b>", "La misma canción para todos hoy, con su propia clasificación - vacía otra vez mañana. Aún no has llegado hasta aquí: <b>supéralo y se queda abierto para ti.</b>"]
 ];
 // the same, with a number in them: [English as a pattern on the html, a function giving the translation]
 const HP = [

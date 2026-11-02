@@ -4,7 +4,8 @@
    - three.js, the Supabase library and the fonts: saved the first time, then from the phone.
    - The songs (Supabase Storage): saved the first time a level plays one (or all at once, from the page), then
      played from the phone - with the byte ranges an iPhone asks for, or it won't play them.
-   - The scoreboard, log-in and saving runs (Supabase) always go to the network: never a stale copy. */
+   - The scoreboard, log-in and saving runs (Supabase) always go to the network: never a stale copy.
+   - Notifications (today's challenge, someone beat your score) arrive here; a tap opens the board they're about. */
 const V = "javeda-v3";
 const PAGES = V + "-pages", LIBS = "javeda-libs-v1", SONGS = "javeda-songs-v1";
 const SONG_RE = /\/storage\/v1\/object\/public\/media\/javeda\/[^/?]+\.mp3$/;
@@ -103,6 +104,25 @@ async function ranged(res, range){
     "Content-Type": res.headers.get("Content-Type") || "audio/mpeg", "Content-Range":"bytes " + start + "-" + end + "/" + size,
     "Content-Length": String(end - start + 1), "Accept-Ranges":"bytes" } });
 }
+
+// a notification (from the javeda-push edge function): show it. A tap opens JAVEDA where it points - in the open
+// app or tab if there is one (the page goes there itself), else in a new one.
+self.addEventListener("push", e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch(err){ d = { body:e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.title || "JAVEDA", { body:d.body || "", tag:d.tag || "javeda", renotify:!!d.tag,
+    icon:"icons/icon-any-192.png", data:{ url:d.url || "./" } }));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || "./", self.registration.scope);
+  e.waitUntil((async () => {
+    const open = (await self.clients.matchAll({ type:"window", includeUncontrolled:true })).filter(c => c.url.startsWith(self.registration.scope));
+    const c = open.find(c => new URL(c.url).pathname === url.pathname) || open[0];
+    if (c){ await c.focus(); c.postMessage({ type:"javeda:goto", hash:url.hash }); return; }
+    await self.clients.openWindow(url.href);
+  })());
+});
 
 // from the page: save every song for playing offline (it reports each one as it goes), or say which are saved
 self.addEventListener("message", e => {

@@ -157,7 +157,7 @@ button:focus-visible, a:focus-visible, input:focus-visible{outline:2px solid var
 .hero h1{margin:0; font:400 clamp(30px,7vw,52px)/1 var(--display); letter-spacing:.01em}
 .hero p{margin:0; color:var(--dim); max-width:56ch}
 .app{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px}
-.app #appNote{color:var(--mute); font-size:13.5px}
+.app #appNote, .app #pushNote{color:var(--mute); font-size:13.5px}
 .app .btn{border:1.5px solid #ffd60a99; background:#ffd60a14; color:var(--gold)}
 .card .small{font-size:13px; color:var(--mute); margin:0}
 #appHow{display:grid; gap:12px}
@@ -528,6 +528,9 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 /* a yes/no box: JAVEDA news by email */
 .chk{display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.4; color:var(--dim); cursor:pointer}
 .chk input{width:18px; height:18px; margin:1px 0 0; flex:none; accent-color:var(--blue)}
+.pushset{display:grid; gap:8px}
+.pushset h2{margin:0}
+.pushset .note{font-size:13px; color:var(--mute); margin:0}
 .plbar{display:flex; gap:8px; flex-wrap:wrap}
 .plbar .in{flex:1 1 200px; min-width:0}
 .st.pll .tg.news{color:var(--good); border-color:#3ddc9759}
@@ -548,6 +551,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <h1>The playable album</h1>
     <p>Every song is a level. Finish one to open the next, then come back and beat your score.</p>
     <div class="app hid" id="appBox"><button class="btn" id="appBtn" type="button">&#128242; Get the app</button><span id="appNote">On your home screen, and it plays offline.</span></div>
+    <div class="app hid" id="pushBox"><button class="btn" id="pushBtn" type="button">&#128276; Turn on notifications</button><span id="pushNote">Today's challenge, and when someone beats your score.</span><button class="pfdel" id="pushNo" type="button">Not now</button></div>
     <div class="app hid" id="carryBox"><button class="btn small" id="carryPaste" type="button" data-i18n-skip>Paste my progress</button></div>
   </section>
 
@@ -613,6 +617,12 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     </div>
     <div class="rules" id="pfRules"></div>
     <label class="chk hid" id="pfNewsRow"><input type="checkbox" id="pfNews"><span>Email me JAVEDA news: new levels and new songs.</span></label>
+    <div class="pushset hid" id="pfPush">
+      <h2>Notifications</h2>
+      <label class="chk" id="pfPushDRow"><input type="checkbox" id="pfPushD"><span>Today's challenge is up (once a day, around noon)</span></label>
+      <label class="chk" id="pfPushBRow"><input type="checkbox" id="pfPushB"><span>Someone beats one of your scores<small class="hid" id="pfPushLogin"> &middot; log in for this one</small></span></label>
+      <p class="note hid" id="pfPushNote"></p>
+    </div>
     <div class="err" id="pfErr"></div>
     <div style="display:flex; gap:8px; flex-wrap:wrap">
       <button class="btn primary" id="pfSave" type="button">Save</button>
@@ -1148,6 +1158,9 @@ let record = null;          // your online 1v1 wins, losses, draws
 let boardTab = "points";
 let daily = null;           // today's challenge: { day, level } from javeda_daily
 let dailyBest = 0;          // your best in it today
+// notifications on this phone: what was asked for ({ daily, beaten }; null = never). "beaten" counts once logged in.
+const PUSH_OK = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && window.isSecureContext;
+let pushWish = (() => { try { return JSON.parse(localStorage.getItem("javeda.push.v1")); } catch(e){ return null; } })();
 let mode = {};              // how the level in the frame is played: { room }, { daily:true } or { marathon:true }
 let marathon = null;        // a marathon in progress: { i, songs, total, start }
 let unlocks = new Set();    // Part 1s kept open by a daily challenge cleared before you got there (javeda_unlocks)
@@ -1279,7 +1292,8 @@ function dailyCard(){
     '<p class="dd">The same song for everyone today, with its own scoreboard - empty again tomorrow.' +
       (isOpen(lv) ? '' : ' You haven\'t got this far yet: <b>clear it and it stays open for you.</b>') + '</p>' +
     '<div class="row">' + (dailyBest ? '<span class="best">Your best today ' + fmt(dailyBest) + '</span>' : '<span class="tag">' + (session ? 'Not played yet today' : 'Log in for the board') + '</span>') +
-      '<span class="btns"><button class="btn small" data-board="daily">Board</button><button class="btn hot small" data-daily="1">Play &#9654;</button></span></div></article>';
+      '<span class="btns">' + (PUSH_OK && !(pushWish && pushWish.daily) ? '<button class="btn small" data-bell="1" title="Tell me when the next challenge is up" aria-label="Tell me when the next challenge is up">&#128276;</button>' : '') +
+      '<button class="btn small" data-board="daily">Board</button><button class="btn hot small" data-daily="1">Play &#9654;</button></span></div></article>';
 }
 async function loadDaily(){
   if (!sb) return;
@@ -1578,7 +1592,7 @@ function openProfile(){
   $("pfOut").classList.toggle("hid", !session);
   $("pfDel").classList.toggle("hid", !signedIn() || !!session.offline || creator);
   $("pfNewsRow").classList.toggle("hid", !signedIn() || !!session.offline); $("pfNews").checked = news;
-  renderPics(); openSheet("profile");
+  renderPushSet(); renderPics(); openSheet("profile");
 }
 $("meBtn").onclick = openProfile;
 $("pics").addEventListener("click", async e => {
@@ -1605,7 +1619,7 @@ $("pfSave").onclick = async () => {
   const { data, error } = await sb.rpc("javeda_join", { p_username:name, p_avatar:pickAv });
   if (error){ $("pfErr").textContent = error.message; return; }
   const first = !player; player = data;
-  if (first){ await applyNewsWish(true); await importGuest(); }
+  if (first){ await applyNewsWish(true); await importGuest(); pushSync(); }
   closeSheet("profile"); renderAll(); toast("Saved");
 };
 $("pfLogin").onclick = () => { closeSheet("profile"); openLogin(); };
@@ -1839,6 +1853,7 @@ $("now").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   if (b.dataset.play || b.dataset.pass !== undefined) playOrPass(e);
   else if (b.dataset.daily) play(daily.level, { daily:true });
+  else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); renderPush(); } });
   else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (b.dataset.marathon) startMarathon();
   else if (b.dataset.credits) openCredits();
@@ -2815,6 +2830,81 @@ addEventListener("message", e => {
   }
 });
 
+/* ---- notifications: today's challenge (from noon) and someone beating your score, on a phone that said yes.
+   The phone's push address and what it wants go to javeda_push_set; the javeda-push edge function sends them
+   (supabase/functions/javeda-push/README.md) and sw.js shows them. Offered once in the installed app, with the bell
+   on the daily card, and in your player. An iPhone has them only in the installed app. ---- */
+const VAPID = "BL9N7yi4w4tZDtwBEKVUu5Bcxp702LmCFtf2bKHnlDjv6yZh-HgeEFzb7fnL0DNH7W1HDGCoB7yLslvLqlQPUyI";   // public; the private one is a Supabase secret
+const PUSH_ASKED = "javeda.push.asked";
+const b64u = s => Uint8Array.from(atob((s + "===".slice((s.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+// save what this phone wants (both off: the server forgets it). Asks for the permission first, straight from the tap
+// (an iPhone only asks from a tap). quiet: the re-save at start and after logging in or out - no asking, no messages.
+async function pushSave(want, quiet){
+  const on = !!(want.daily || want.beaten);
+  if (!PUSH_OK || !sb) return false;
+  if (on && Notification.permission !== "granted"){
+    const p = quiet ? Notification.permission : await Notification.requestPermission();
+    if (p !== "granted"){ if (!quiet) toast(p === "denied" ? "Notifications are blocked for JAVEDA in this phone's settings." : "No notifications, then."); return false; }
+  }
+  const was = !!(pushWish && (pushWish.daily || pushWish.beaten));
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let s = await reg.pushManager.getSubscription();
+    if (!s && on) s = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64u(VAPID) });
+    if (s){
+      const j = s.toJSON();
+      const { error } = await sb.rpc("javeda_push_set", { p_endpoint:j.endpoint, p_p256dh:j.keys.p256dh, p_auth:j.keys.auth,
+        p_lang:window.JAVEDA_LANG || "en", p_daily:!!want.daily, p_beaten:!!want.beaten });
+      if (error) throw error;
+      if (!on) s.unsubscribe().catch(() => {});
+      else if (!quiet && !was) sb.functions.invoke("javeda-push", { body:{ hello:j.endpoint } }).catch(() => {});   // a first one, to see it works
+    }
+    pushWish = { daily:!!want.daily, beaten:!!want.beaten };
+    try { localStorage.setItem("javeda.push.v1", JSON.stringify(pushWish)); localStorage.setItem(PUSH_ASKED, "1"); } catch(e){}
+    return true;
+  } catch(err){
+    if (!quiet) toast(netErr(err) ? "No internet. Try again when you're online." : "Notifications didn't turn on here.");
+    return false;
+  }
+}
+// at start and after logging in or out: this phone's choice again (the player, the language, a renewed address)
+function pushSync(){ if (PUSH_OK && sb && pushWish && (pushWish.daily || pushWish.beaten) && Notification.permission === "granted") pushSave(pushWish, true); }
+// the card in the installed app, until it's answered
+function renderPush(){
+  let asked = true; try { asked = !!localStorage.getItem(PUSH_ASKED); } catch(e){}
+  $("pushBox").classList.toggle("hid", !(STANDALONE && PUSH_OK && sb && !asked && !pushWish && Notification.permission === "default"));
+}
+$("pushBtn").onclick = () => pushSave({ daily:true, beaten:true }).then(ok => {
+  if (ok) toast(signedIn() ? "Notifications are on." : "Notifications are on. Log in and you'll also hear when someone beats your score.", 5000);
+  renderPush(); renderNow(); });
+$("pushNo").onclick = () => { try { localStorage.setItem(PUSH_ASKED, "1"); } catch(e){} renderPush(); };
+// in your player
+function renderPushSet(){
+  const w = pushWish || {}, iosTab = !PUSH_OK && IOS && !STANDALONE, blocked = PUSH_OK && Notification.permission === "denied", note = $("pfPushNote");
+  $("pfPush").classList.toggle("hid", !PUSH_OK && !iosTab);
+  $("pfPushDRow").classList.toggle("hid", iosTab); $("pfPushBRow").classList.toggle("hid", iosTab);
+  $("pfPushD").checked = !blocked && !!w.daily; $("pfPushB").checked = !blocked && !!w.beaten && signedIn();
+  $("pfPushD").disabled = blocked; $("pfPushB").disabled = blocked || !signedIn();
+  $("pfPushLogin").classList.toggle("hid", signedIn());
+  note.textContent = iosTab ? "On iPhone and iPad, notifications come with the app: tap Get the app first."
+    : blocked ? "Notifications are blocked for JAVEDA in this phone's settings." : "";
+  note.classList.toggle("hid", !note.textContent);
+}
+for (const id of ["pfPushD", "pfPushB"]) $(id).onchange = () => {
+  const want = { daily:$("pfPushD").checked, beaten:signedIn() ? $("pfPushB").checked : !!(pushWish && pushWish.beaten) };
+  $("pfPushD").disabled = $("pfPushB").disabled = true;
+  pushSave(want).then(ok => { renderPushSet(); renderPush(); renderNow(); if (ok) toast(want.daily || want.beaten ? "Notifications are on." : "Notifications are off."); });
+};
+// a notification's link: /javeda/#daily (the daily card) or #board=<level, or daily> (that scoreboard)
+function goTo(hash){
+  const m = /^#board=([a-z0-9]+)$/.exec(hash || "");
+  if (hash === "#daily"){ const d = document.querySelector("#now .daily"); if (!d) return; d.scrollIntoView({ behavior:"smooth", block:"center" }); }
+  else if (m && (m[1] === "daily" ? daily : levelById(m[1]))){ boardTab = m[1]; renderTabs(); renderBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
+  else return;
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+}
+if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.type === "javeda:goto") goTo(e.data.hash); });
+
 /* ---- boot ---- */
 renderAll();
 // /javeda/#report (from the privacy page): straight to Report a problem
@@ -2843,11 +2933,12 @@ if (location.hash === "#report") setTimeout(openReport, 400);
       if (lv.data && lv.data.length) passIds = new Set(lv.data.filter(r => r.pass).map(r => r.id));
     });
   const [{ data }] = await Promise.all([sb.auth.getSession(), passInfo]);
-  session = data.session; await loadAccount(); loadDaily(); passReturn();
+  session = data.session; await loadAccount(); loadDaily().then(() => goTo(location.hash)); passReturn();
   if (STANDALONE) appSeen("open");
+  pushSync(); renderPush();
   sb.auth.onAuthStateChange((_e, s) => {
     const changed = (s && s.user.id) !== (session && session.user.id);
-    session = s; if (changed) loadAccount().then(loadDaily);
+    session = s; if (changed) loadAccount().then(loadDaily).then(pushSync);
   });
 })();
 </script>

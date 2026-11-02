@@ -207,6 +207,16 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
   profile to switch it on or off (`javeda_set_news`). `javeda_news` keeps who said yes and since when; a player
   reads only their own row. Players & downloads shows a **news** tag and a count, and **Copy news emails** copies
   only theirs (for Bcc). Every news email should say how to stop: profile > Email me JAVEDA news.
+- **Notifications** (Web Push; an iPhone only has them in the installed app): "today's challenge is up" (once a day
+  from noon, Brussels) and "someone beat your score" (a level's board or today's; at most one every 6 hours a player,
+  "N more" when several). Offered once by a card in the installed app, with the 🔔 on the daily card, and as two
+  boxes in the profile ("beaten" needs a player). The phone's push address and what it wants go to
+  `javeda_push_set` (both off: `javeda_push` forgets the phone); the wish is kept in `localStorage` `javeda.push.v1`
+  and saved again at start and after logging in or out (the player, the language). Triggers on `javeda_progress`
+  and `javeda_daily_scores` queue the players a new best passes (`javeda_push_queue`); pg_cron calls the
+  `javeda-push` edge function every 5 minutes, which sends the queue and the daily one and forgets phones that are
+  gone. `sw.js` shows them; a tap opens `#board=<level>` / `#daily`. The VAPID public key is in index.html, the private
+  one a Supabase secret: setup in `supabase/functions/javeda-push/README.md`.
 - **Search engines.** The hub page has a canonical URL and JSON-LD (a VideoGame and a MusicAlbum, both by the
   MusicGroup Lazy Jo with his Spotify artist page and Instagram @lazyjo_ as `sameAs`). The site root has a real
   `robots.txt` and `sitemap.xml` (the home page and /javeda/) in `client/public`; before, both paths returned the

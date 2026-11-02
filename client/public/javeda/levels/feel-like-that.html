@@ -909,7 +909,7 @@ function frame(){
     const ls = lamps.map(l => l.lit ? (CFG.burn && l.burn < .3 ? "f" : "1") : "0").join("");
     if (ls !== lastLamps){ lastLamps = ls; DOTS.forEach((d, i) => { d.className = ls[i] === "1" ? "on" : ls[i] === "f" ? "on fading" : ""; }); }
     if (EMODE){ const s = Math.floor(Math.max(0, S.t)), txt = (REMIX ? "REMIX · LAP " + (S.lap + 1) : "ENDLESS") + " · ROUND " + (S.round + 1) + " · " + Math.floor(s/60) + ":" + String(s % 60).padStart(2, "0");
-      if (ll2El.textContent !== txt) ll2El.textContent = txt; }
+      if (ll2El._t !== txt){ ll2El._t = txt; ll2El.textContent = txt; } }   // not textContent: translated, it never matches
     const left = EMODE ? (S.next ? 1 : clamp((S.roundEnd - S.t) / S.roundLen, 0, 1)) : clamp((NIGHT_END - Math.max(0, S.t)) / NIGHT_END, 0, 1);
     nightEl.firstChild.style.width = (left*100).toFixed(1) + "%"; nightEl.classList.toggle("low", left < .15);
   } catch (e){ if (!crashed){ crashed = e; console.error(e); } }

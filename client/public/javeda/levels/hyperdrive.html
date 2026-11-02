@@ -1177,7 +1177,7 @@ function hud(){
   if (S.shield) p.push('<span class="shd">SHIELD</span>');
   if (S.revive) p.push('<span class="hrt">&#9829;</span>');
   if (S.char === "zirka") p.push('<span class="bl' + (S.blast >= 1 ? ' ready' : '') + '">BLASTER ' + (S.blast >= 1 ? 'READY' : Math.floor(S.blast*100) + '%') + '</span>');
-  const html = p.join(""); if ($("pow").innerHTML !== html) $("pow").innerHTML = html;
+  const html = p.join(""), pw = $("pow"); if (pw._html !== html){ pw._html = html; pw.innerHTML = html; }   // not innerHTML: translated, it never matches
 }
 function frame(){
   try {

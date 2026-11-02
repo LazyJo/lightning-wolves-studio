@@ -1178,7 +1178,43 @@ $$;
 REVOKE ALL ON FUNCTION public.javeda_delete_account() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_delete_account() TO authenticated;
 
--- The creator's overview: every player with an account (newest first) with their email, and the app downloads.
+-- JAVEDA news by email: only the players who said yes - a box when the account is made, and one in the profile to
+-- switch it on or off. since = when they said yes. A player sees only their own row; the creators see who in the
+-- overview. Deleting the player (or the whole account) deletes it too.
+CREATE TABLE IF NOT EXISTS javeda_news (
+  user_id UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  since   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE javeda_news ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS javeda_news_read ON javeda_news;
+CREATE POLICY javeda_news_read ON javeda_news FOR SELECT USING (auth.uid() = user_id);
+REVOKE ALL ON javeda_news FROM anon, authenticated;
+GRANT SELECT ON javeda_news TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_set_news(p_on BOOLEAN)
+RETURNS BOOLEAN
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'Log in first' USING ERRCODE = '42501'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN
+    RAISE EXCEPTION 'Make your player first' USING ERRCODE = 'P0002';
+  END IF;
+  IF COALESCE(p_on, false) THEN
+    INSERT INTO javeda_news (user_id) VALUES (uid) ON CONFLICT (user_id) DO NOTHING;   -- keeps the first yes
+  ELSE
+    DELETE FROM javeda_news WHERE user_id = uid;
+  END IF;
+  RETURN COALESCE(p_on, false);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_set_news(BOOLEAN) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_set_news(BOOLEAN) TO authenticated;
+
+-- The creator's overview: every player with an account (newest first) with their email and whether they want
+-- news, and the app downloads.
 CREATE OR REPLACE FUNCTION public.javeda_creator_overview()
 RETURNS JSON
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
@@ -1201,6 +1237,7 @@ BEGIN
                (SELECT count(*) FROM javeda_progress g JOIN javeda_levels l ON l.id = g.level
                  WHERE g.user_id = p.user_id AND g.cleared AND NOT l.endless)::INT AS parts,
                EXISTS (SELECT 1 FROM javeda_app_devices d WHERE d.user_id = p.user_id) AS app,
+               EXISTS (SELECT 1 FROM javeda_news n WHERE n.user_id = p.user_id) AS news,
                EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id) AS creator
         FROM javeda_players p LEFT JOIN auth.users u ON u.id = p.user_id) x)
   );

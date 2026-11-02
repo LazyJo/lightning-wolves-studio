@@ -430,6 +430,12 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 .st.pll .nm b{color:var(--ink)}
 .st.pll .em{display:block; overflow:hidden; text-overflow:ellipsis; color:var(--mute)}
 .st.pll .tg{font:700 10px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; color:var(--gold); border:1px solid #ffd60a55; border-radius:999px; padding:2px 6px; margin-left:4px; vertical-align:2px}
+/* a yes/no box: JAVEDA news by email */
+.chk{display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.4; color:var(--dim); cursor:pointer}
+.chk input{width:18px; height:18px; margin:1px 0 0; flex:none; accent-color:var(--blue)}
+.plbar{display:flex; gap:8px; flex-wrap:wrap}
+.plbar .in{flex:1 1 200px; min-width:0}
+.st.pll .tg.news{color:var(--good); border-color:#3ddc9759}
 @media (max-width:560px){ .st.pll li{grid-template-columns:36px minmax(0,1fr)} .st.pll .num{grid-column:2; text-align:left; white-space:normal} .st.pll li.hd span:last-child{display:none} }
 </style>
 </head>
@@ -510,6 +516,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <div class="pics" id="pics"></div>
     </div>
     <div class="rules" id="pfRules"></div>
+    <label class="chk hid" id="pfNewsRow"><input type="checkbox" id="pfNews"><span>Email me JAVEDA news: new levels and new songs.</span></label>
     <div class="err" id="pfErr"></div>
     <div style="display:flex; gap:8px; flex-wrap:wrap">
       <button class="btn primary" id="pfSave" type="button">Save</button>
@@ -551,6 +558,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <div class="or">OR</div>
     <label class="f">Email <input class="in" id="lgEmail" type="email" autocomplete="email"></label>
     <label class="f">Password <input class="in" id="lgPass" type="password" autocomplete="current-password" minlength="6"></label>
+    <label class="chk hid" id="lgNewsRow"><input type="checkbox" id="lgNews"><span>Email me JAVEDA news: new levels and new songs. You can switch it off in your profile any time.</span></label>
     <div class="err" id="lgErr"></div>
     <button class="btn primary" id="lgGo" type="button">Log in</button>
     <p><span id="lgSwitchTxt">New here?</span> <button class="switch" id="lgSwitch" type="button">Create an account</button></p>
@@ -671,10 +679,10 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <h3 id="plT">Players &amp; downloads</h3>
     <div class="ptiles" id="plTiles"></div>
     <p class="small">A download is a phone or computer with JAVEDA on its home screen, counted from 2 November 2026: when it's installed, or (iPhone) the first time it's opened from the home screen.</p>
-    <input class="in" id="plFind" type="search" placeholder="Find a name or email" autocomplete="off">
+    <div class="plbar"><input class="in" id="plFind" type="search" placeholder="Find a name or email" autocomplete="off"><button class="btn small" id="plCopy" type="button">Copy news emails</button></div>
     <div class="err" id="plErr"></div>
     <ol class="st pll" id="plList"></ol>
-    <p class="small">Their email is here to help them with their account. Emailing them news needs their OK first (EU privacy rules).</p>
+    <p class="small">Only the players with the <b>news</b> tag asked for emails, and <b>Copy news emails</b> copies just theirs. Put them in Bcc (so nobody sees the others) and end every email with how to stop: profile &gt; Email me JAVEDA news. The other emails are only for helping someone with their account.</p>
   </div>
 </div>
 
@@ -1005,6 +1013,7 @@ let sb = null, session = null;
 let player = null;          // javeda_players row when signed in and joined
 let progress = {};          // level id -> { cleared, best, metres, runs }
 let owned = new Set();      // bought pictures
+let news = false;           // asked for JAVEDA news by email (javeda_news)
 let creator = false;        // a creator account (javeda_creators) plays every level, cleared or not
 let record = null;          // your online 1v1 wins, losses, draws
 let boardTab = "points";
@@ -1405,6 +1414,7 @@ function openProfile(){
   $("pfLogin").classList.toggle("hid", !!session);
   $("pfOut").classList.toggle("hid", !session);
   $("pfDel").classList.toggle("hid", !signedIn() || !!session.offline || creator);
+  $("pfNewsRow").classList.toggle("hid", !signedIn() || !!session.offline); $("pfNews").checked = news;
   renderPics(); openSheet("profile");
 }
 $("meBtn").onclick = openProfile;
@@ -1432,10 +1442,17 @@ $("pfSave").onclick = async () => {
   const { data, error } = await sb.rpc("javeda_join", { p_username:name, p_avatar:pickAv });
   if (error){ $("pfErr").textContent = error.message; return; }
   const first = !player; player = data;
-  if (first) await importGuest();
+  if (first){ await applyNewsWish(true); await importGuest(); }
   closeSheet("profile"); renderAll(); toast("Saved");
 };
 $("pfLogin").onclick = () => { closeSheet("profile"); openLogin(); };
+$("pfNews").onchange = async () => {
+  const on = $("pfNews").checked; $("pfErr").textContent = ""; $("pfNews").disabled = true;
+  const { error } = await sb.rpc("javeda_set_news", { p_on:on }).then(r => r, e => ({ error:e }));
+  $("pfNews").disabled = false;
+  if (error){ $("pfNews").checked = !on; $("pfErr").textContent = netErr(error) ? "No internet. Try again when you're online." : error.message; return; }
+  news = on; toast(on ? "You'll get JAVEDA news by email." : "No more JAVEDA news emails.");
+};
 $("pfOut").onclick = async () => { await sb.auth.signOut(); closeSheet("profile"); };
 /* ---- delete my account: asked a second time, then javeda_delete_account. The whole login goes - or only the JAVEDA
    player, when the login is also used for the Studio or the Wolf Hub. Logged out here either way. ---- */
@@ -1462,7 +1479,7 @@ $("dlGo").onclick = async () => {
 let signUp = false;
 function openLogin(up){
   if (!sb){ toast("Log-in is offline right now. Your progress is saved on this phone."); return; }
-  $("lgErr").textContent = ""; setMode(!!up); openSheet("login");
+  $("lgErr").textContent = ""; $("lgNews").checked = false; setMode(!!up); openSheet("login");
 }
 function setMode(up){
   signUp = up;
@@ -1471,15 +1488,17 @@ function setMode(up){
   $("lgSwitchTxt").textContent = up ? "Have an account?" : "New here?";
   $("lgSwitch").textContent = up ? "Log in" : "Create an account";
   $("lgPass").autocomplete = up ? "new-password" : "current-password";
+  $("lgNewsRow").classList.toggle("hid", !up);
 }
 $("lgSwitch").onclick = () => setMode(!signUp);
 $("lgGo").onclick = async () => {
   const email = $("lgEmail").value.trim(), password = $("lgPass").value;
   $("lgErr").textContent = "";
   if (!email || password.length < 6){ $("lgErr").textContent = "Enter your email and a password of 6+ characters."; return; }
+  if (signUp) newsWish($("lgNews").checked);
   $("lgGo").disabled = true;
   const r = signUp
-    ? await sb.auth.signUp({ email, password, options:{ emailRedirectTo: location.origin + "/javeda/" } })
+    ? await sb.auth.signUp({ email, password, options:{ emailRedirectTo: location.origin + "/javeda/", data:{ javeda_news:$("lgNews").checked } } })
     : await sb.auth.signInWithPassword({ email, password });
   $("lgGo").disabled = false;
   if (r.error){ $("lgErr").textContent = r.error.message; return; }
@@ -1487,9 +1506,23 @@ $("lgGo").onclick = async () => {
   closeSheet("login");
 };
 $("lgGoogle").onclick = async () => {
+  if (signUp) newsWish($("lgNews").checked);
   const { error } = await sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo: location.origin + "/javeda/" } });
   if (error) $("lgErr").textContent = error.message.includes("not enabled") ? "Google log-in isn't switched on yet. Use email." : error.message;
 };
+
+// "Email me JAVEDA news" ticked when the account was made: kept on this phone for an hour (Google log-in leaves the
+// page) and in the account's sign-up data (an email can be confirmed on another phone), and said yes to once the
+// player exists. The sign-up data counts only for a new player, so switching news off later sticks.
+const NEWS_KEY = "javeda.newsWish";
+function newsWish(on){ try { on ? localStorage.setItem(NEWS_KEY, String(Date.now())) : localStorage.removeItem(NEWS_KEY); } catch(e){} }
+async function applyNewsWish(first){
+  let at = 0; try { at = +localStorage.getItem(NEWS_KEY) || 0; } catch(e){}
+  const meta = first && session && session.user.user_metadata && session.user.user_metadata.javeda_news === true;
+  if (!meta && !(Date.now() - at < 36e5)) return;
+  const { error } = await sb.rpc("javeda_set_news", { p_on:true }).then(r => r, e => ({ error:e }));
+  if (!error){ news = true; newsWish(false); }
+}
 
 /* ---- offline: an account keeps playing without internet ----
    The account's progress is kept on this phone too (ACCT_KEY), so the levels stay open offline. A level run made
@@ -1536,7 +1569,7 @@ addEventListener("online", () => { flushPending(); });
 
 /* ---- account ---- */
 async function loadAccount(){
-  player = null; owned = new Set(); creator = false; record = null; pass = null;
+  player = null; owned = new Set(); creator = false; record = null; pass = null; news = false;
   if (!session && !navigator.onLine){
     // offline, an expired log-in can't be renewed: keep playing as the account kept on this phone
     const x = loadSnap();
@@ -1544,14 +1577,15 @@ async function loadAccount(){
   }
   if (!session){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); showJoin(); return; }
   const uid = session.user.id;
-  const [p, g, o, c, v, u, ps] = await Promise.all([
+  const [p, g, o, c, v, u, ps, nw] = await Promise.all([
     sb.from("javeda_players").select("*").eq("user_id", uid).maybeSingle(),
     sb.from("javeda_progress").select("level, cleared, best_score, best_metres, runs").eq("user_id", uid),
     sb.from("javeda_owned").select("avatar").eq("user_id", uid),
     sb.from("javeda_creators").select("user_id").eq("user_id", uid).maybeSingle(),
     sb.from("javeda_1v1").select("wins, losses, draws").eq("user_id", uid).maybeSingle(),
     sb.from("javeda_unlocks").select("level").eq("user_id", uid),
-    sb.from("javeda_passes").select("source, merch").eq("user_id", uid).maybeSingle()
+    sb.from("javeda_passes").select("source, merch").eq("user_id", uid).maybeSingle(),
+    sb.from("javeda_news").select("user_id").eq("user_id", uid).maybeSingle()
   ]);
   // no internet: the account as this phone last saw it
   if ([p, g].some(r => r.error && netErr(r.error))){
@@ -1564,6 +1598,7 @@ async function loadAccount(){
   record = v.data || null;
   player = p.data || null;
   creator = !!c.data;
+  news = !!nw.data;
   progress = {};
   (g.data || []).forEach(r => { progress[r.level] = { cleared:r.cleared, best:r.best_score, metres:r.best_metres, runs:r.runs }; });
   (o.data || []).forEach(r => owned.add(r.avatar));
@@ -1578,9 +1613,11 @@ async function loadAccount(){
       return;
     }
     player = r.data;
+    await applyNewsWish(true);
     await importGuest();
     return loadAccount();
   }
+  if (news) newsWish(false); else applyNewsWish(false);
   saveSnap(); withPending(uid);
   renderAll(); showJoin();
   if (takePassNext()) openPass();
@@ -2074,6 +2111,7 @@ async function openPlayers(){
   $("plTiles").innerHTML =
     tile(plRows.length, "Accounts", "+" + fmt(plRows.filter(p => recent(p.joined)).length) + " this week") +
     tile(plRows.filter(p => recent(p.played)).length, "Played this week") +
+    tile(plRows.filter(p => p.news).length, "Want news by email") +
     tile(d.total, "App downloads", "+" + fmt(d.week) + " this week<br>" + fmt(d.ios) + " iPhone &middot; " + fmt(d.android) + " Android &middot; " + fmt(d.desktop) + " computer") +
     tile(d.active, "Opened the app this week");
   listPlayers();
@@ -2085,11 +2123,18 @@ function listPlayers(){
   const ago = t => { if (!t) return "never played"; const n = Math.floor((Date.now() - new Date(t).getTime()) / 864e5); return n < 1 ? "played today" : n < 2 ? "played yesterday" : "played " + n + " days ago"; };
   $("plList").innerHTML = '<li class="hd"><span></span><span>' + (q ? fmt(rows.length) + " of " + fmt(plRows.length) : "Player") + '</span><span>Joined</span></li>' + (rows.length ? rows.map(p =>
     '<li><img src="' + pic(p.avatar) + '" alt=""><span class="nm"><b>' + esc(p.name) + '</b>' + (p.creator ? '<span class="tg">creator</span>' : '') +
-      (p.app ? '<span class="tg" title="Has the app">app</span>' : '') + '<small class="em">' + esc(p.email || "") + '</small></span>' +
+      (p.app ? '<span class="tg" title="Has the app">app</span>' : '') + (p.news ? '<span class="tg news" title="Wants JAVEDA news by email">news</span>' : '') + '<small class="em">' + esc(p.email || "") + '</small></span>' +
     '<span class="num">' + day(p.joined) + ' &middot; ' + ago(p.played) + '<br>' + fmt(p.points) + ' points &middot; ' + fmt(p.parts) + (p.parts === 1 ? ' part' : ' parts') + ' cleared</span></li>').join("")
     : '<li><span></span><span>' + (q ? "Nobody matches." : "No players yet.") + '</span></li>');
 }
 $("plFind").oninput = listPlayers;
+// only the emails of the players who asked for news, ready for Bcc
+$("plCopy").onclick = async () => {
+  const list = plRows.filter(p => p.news && p.email).map(p => p.email);
+  if (!list.length){ toast("Nobody has asked for news yet."); return; }
+  try { await navigator.clipboard.writeText(list.join(", ")); toast("Copied " + list.length + (list.length === 1 ? " email" : " emails") + ". Paste them in Bcc.", 5000); }
+  catch(e){ toast(esc(list.join(", ")), 12000); }
+};
 
 /* ---- Pass codes (creators): make them, see who used them, switch them off ---- */
 let codeKind = "even";

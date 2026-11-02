@@ -198,6 +198,12 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
   computer, new this week and opened this week. The hub reports it with `javeda_app_seen` on the browser's
   `appinstalled` (Android, computers) and on every open from the home screen (an open counts once per half hour;
   an iPhone app has its own storage, so it counts from its first open). Counted from 2 November 2026.
+- **JAVEDA news by email** (opt-in, never ticked for them): a box when an account is made (kept for an hour on the
+  phone in `localStorage` `javeda.newsWish`, for Google log-in, and in the sign-up data `javeda_news`, for an email
+  confirmed elsewhere; applied once the player exists, the sign-up data only for a new player) and one in the
+  profile to switch it on or off (`javeda_set_news`). `javeda_news` keeps who said yes and since when; a player
+  reads only their own row. Players & downloads shows a **news** tag and a count, and **Copy news emails** copies
+  only theirs (for Bcc). Every news email should say how to stop: profile > Email me JAVEDA news.
 - **Delete my account** (the profile, logged-in players but creators): asked a second time, then
   `javeda_delete_account()`. A JAVEDA login is a Lightning Wolves login: when it's also used for the Studio or the
   Wolf Hub (a paid plan, or any row of theirs in those tables) only the JAVEDA player goes (everything JAVEDA hangs

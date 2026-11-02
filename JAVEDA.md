@@ -219,6 +219,10 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
 - **Share cards**: after a clear or a new best (and the marathon, the finale, a daily best) a Share button makes a
   1080x1920 picture in the browser (the level's colours, the score, your picture and name, the link) and shares it
   (phones) or shows it to save.
+  **Instagram Story** and **TikTok** buttons: a web page can't open those apps with a picture in it, so the link goes
+  on the clipboard first (for the story's Link sticker, or the caption) and the phone's share list opens with the
+  picture only (pick Instagram > Story, or TikTok); a hint under the buttons says so. On a computer the picture is
+  saved instead, to post from the phone.
 - **Sound.** Two round buttons beside the way out over every level: the song on/off and the game's own sounds
   on/off. The choice is kept for every level (`localStorage` `javeda.sound.v1`) and also mutes the credits song.
   `sound.js`, loaded by every level, does it without touching the levels: it mutes whatever `new Audio(...)` makes

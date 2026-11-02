@@ -425,6 +425,9 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .linkrow input{font:600 14px/1 var(--ui); min-width:0; flex:1}
 .ivacts{display:flex; gap:8px; flex-wrap:wrap}
 .btn.wa{background:#1fa855; border-color:#1fa855; color:#fff}
+/* a story: Instagram and TikTok */
+.btn.ig{background:linear-gradient(45deg,#f9a825,#e1306c 45%,#833ab4); border-color:#e1306c; color:#fff}
+.btn.tt{background:#000; border-color:#fe2c55; color:#fff; box-shadow:2px 2px 0 #25f4ee}
 /* where players get stuck */
 .st{list-style:none; margin:0; padding:0; display:grid; gap:2px}
 .st li{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto; gap:10px; align-items:center; padding:8px 4px; border-top:1px solid #ffffff0d; font-size:13.5px}
@@ -700,9 +703,12 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <button class="btn" id="shCopy" type="button">Copy the link</button>
     </div>
     <div style="display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn ig" id="shIg" type="button">Instagram Story</button>
+      <button class="btn tt" id="shTt" type="button">TikTok</button>
       <button class="btn" id="shPic" type="button">Share the picture</button>
       <a class="btn" id="shSave" download="javeda.png">Save picture</a>
     </div>
+    <p class="small hid" id="shHint"></p>
   </div>
 </div>
 
@@ -2330,10 +2336,31 @@ async function shareCard(c){
   $("shWa").href = "https://wa.me/?text=" + encodeURIComponent(shareNow.text + " " + SHARE_URL);
   $("shLink").classList.toggle("hid", !navigator.share);
   $("shPic").classList.toggle("hid", !(navigator.canShare && navigator.canShare({ files:[file] })));
+  $("shHint").classList.add("hid");
   openSheet("shareSheet");
 }
 $("shLink").onclick = async () => { if (!shareNow) return; try { await navigator.share({ title:"JAVEDA · The playable album by Lazy Jo", text:shareNow.text, url:SHARE_URL }); } catch(e){} };
 $("shPic").onclick = async () => { if (!shareNow) return; try { await navigator.share({ files:[shareNow.file], text:shareNow.text + " " + SHARE_URL }); } catch(e){} };
+// A web page can't open Instagram or TikTok with a picture in it; the phone's share list can (Instagram > Story, or
+// TikTok). So: the link goes on the clipboard (for the story's link sticker, or the caption), then the share list
+// opens with the picture only. Where pictures can't be shared (a computer) it's saved, to post from the phone.
+async function shareTo(app){
+  if (!shareNow) return;
+  const copy = navigator.clipboard ? navigator.clipboard.writeText(SHARE_URL).then(() => true, () => false) : Promise.resolve(false);
+  const copied = await Promise.race([copy, new Promise(ok => setTimeout(() => ok(null), 300))]);
+  const hint = t => { $("shHint").textContent = t; $("shHint").classList.remove("hid"); };
+  if (navigator.canShare && navigator.canShare({ files:[shareNow.file] })){
+    hint(app === "ig" ? "In the list, pick Instagram, then Story. The link is copied: add a Link sticker and paste it." : "In the list, pick TikTok. The link is copied: paste it in your caption.");
+    if (copied === false) toast(SHARE_URL, 9000);
+    try { await navigator.share({ files:[shareNow.file] }); } catch(e){}
+    return;
+  }
+  $("shSave").click();
+  hint("Picture saved and link copied. Post the picture from your phone and paste the link.");
+  if (!(await copy)) toast(SHARE_URL, 9000);
+}
+$("shIg").onclick = () => shareTo("ig");
+$("shTt").onclick = () => shareTo("tt");
 $("shCopy").onclick = async () => { try { await navigator.clipboard.writeText(SHARE_URL); toast("Link copied"); } catch(e){ toast(SHARE_URL); } };
 
 /* ---- the app: JAVEDA on the home screen, playable offline (sw.js) ---- */

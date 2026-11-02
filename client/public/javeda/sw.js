@@ -16,7 +16,7 @@ const LEVELS = ["be-alright", "blind-love", "down-for-me", "fall-in-love-again",
   "no-rest-no-work", "oublie-moi", "peace-inside", "real-love", "rollercoaster", "somebody", "space-kid", "stay-up-2", "stay-up",
   "true-fighter", "you-ready", "zirkas-ride"];
 const AVATARS = ["saucer"];
-const SHELL = ["./", "i18n.js", "i18n-levels.js", "touch.js", "manifest.webmanifest", "icons/icon-any-192.png", "icons/apple-touch-icon.png",
+const SHELL = ["./", "i18n.js", "i18n-levels.js", "touch.js", "sound.js", "manifest.webmanifest", "icons/icon-any-192.png", "icons/apple-touch-icon.png",
   ...AVATARS.map(a => "avatars/" + a + ".svg"), ...LEVELS.map(l => "levels/" + l + ".html")];
 const LIBS_FIRST = ["https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js",
   "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"];

@@ -194,6 +194,11 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
 - **Share cards**: after a clear or a new best (and the marathon, the finale, a daily best) a Share button makes a
   1080x1920 picture in the browser (the level's colours, the score, your picture and name, the link) and shares it
   (phones) or shows it to save.
+- **Sound.** Two round buttons beside the way out over every level: the song on/off and the game's own sounds
+  on/off. The choice is kept for every level (`localStorage` `javeda.sound.v1`) and also mutes the credits song.
+  `sound.js`, loaded by every level, does it without touching the levels: it mutes whatever `new Audio(...)` makes
+  (the song keeps playing, so the beat stays in time) and puts a gate between each Web Audio context and the
+  speakers; the hub tells an open level at once (a `javedaSound` message).
 - **Rides.** Clearing Level 2 Part 2 earns Zirka's bike: the hub opens Level 1 with `?rides=bike` and
   the level shows a Saucer / Zirka's bike picker. Creators always get it.
 - **Points** come from playing only (never from streaming): up to 40 per run for the
@@ -226,6 +231,8 @@ hub, the level posts to `window.parent` (same origin only):
 
 1. Put the level page in `levels/` and make it post `javeda:result` (and `javeda:next`)
    when `?hub=1` is set.
+   Load `../touch.js` and `../sound.js` before the level's own code, and play the song with
+   `new Audio(...)` and the sounds through an `AudioContext`, so the sound buttons reach both.
 2. Add it to `LEVELS` in `javeda/index.html` (id, number, title, `requires`, `src`, blurb, art).
 3. Add a row to `javeda_levels` in `supabase-javeda-schema.sql` (cap, points) and re-run it.
 4. Add a `<id>_best` column to the `javeda_board` view if it should get its own

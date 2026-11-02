@@ -296,6 +296,13 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
 html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .play iframe{position:absolute; inset:0; width:100%; height:100%; border:0; display:block}
 .play .close{position:absolute; top:max(8px, env(safe-area-inset-top)); left:8px; z-index:2; border:1px solid #ffffff30; background:#050c1ecc; border-radius:999px; padding:7px 12px; font:700 13px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase}
+/* the song and the game's own sounds, each on or off, next to the way out (levels obey through sound.js) */
+.play .ptop{position:absolute; top:max(8px, env(safe-area-inset-top)); left:8px; z-index:2; display:flex; align-items:center; gap:6px}
+.play .ptop .close{position:static}
+.play .snd{width:30px; height:30px; padding:0; display:grid; place-items:center; border:1px solid #ffffff30; background:#050c1ecc; border-radius:50%; color:inherit}
+.play .snd svg{width:15px; height:15px; overflow:visible}
+.play .snd .x{display:none; fill:none; stroke:#ff6b81; stroke-width:1.9; stroke-linecap:round}
+.play .snd.off{color:#ffffff66} .play .snd.off .x{display:inline}
 
 .toast{position:fixed; left:50%; bottom:max(18px, env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:40; background:var(--panel-2); border:1px solid var(--beam); color:var(--ink); border-radius:10px; padding:11px 16px; font-weight:600; max-width:calc(100vw - 32px); box-shadow:0 10px 30px #0008; text-align:center}
 .toast b{color:var(--gold)}
@@ -645,7 +652,11 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 
 <!-- the level -->
 <div class="play hid" id="play">
-  <button class="close" id="playClose" type="button">&#10005; JAVEDA</button>
+  <div class="ptop">
+    <button class="close" id="playClose" type="button">&#10005; JAVEDA</button>
+    <button class="snd" id="sndSong" type="button" aria-pressed="true" aria-label="Song" title="Song"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 12.6V3.2l7.2-1.6v9.3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><ellipse cx="4.1" cy="12.6" rx="2.3" ry="1.8" fill="currentColor"/><ellipse cx="11.1" cy="10.9" rx="2.3" ry="1.8" fill="currentColor"/><path class="x" d="M1.5 1.5l13 13"/></svg></button>
+    <button class="snd" id="sndSfx" type="button" aria-pressed="true" aria-label="Game sounds" title="Game sounds"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.8 5.8h2.9L8.6 2.5v11L4.7 10.2H1.8z" fill="currentColor"/><path d="M11 5.6a3.4 3.4 0 0 1 0 4.8M12.9 3.7a6 6 0 0 1 0 8.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path class="x" d="M1.5 1.5l13 13"/></svg></button>
+  </div>
   <iframe id="frame" title="JAVEDA level" allow="autoplay; fullscreen"></iframe>
 </div>
 
@@ -1572,6 +1583,37 @@ $("versus").addEventListener("click", e => {
 });
 $("endless").addEventListener("click", playOrPass);
 $("playClose").onclick = stopPlay;
+/* ---- sound: the song and the game's own sounds, each on or off - kept for every level (javeda.sound.v1, read
+   by sound.js in each level, which also hears a change made while it plays) ---- */
+const SND_KEY = "javeda.sound.v1";
+let snd = (() => { try { const x = JSON.parse(localStorage.getItem(SND_KEY)); return { song:!x || x.song !== false, sfx:!x || x.sfx !== false }; } catch(e){ return { song:true, sfx:true }; } })();
+function renderSnd(){
+  for (const [id, on] of [["sndSong", snd.song], ["sndSfx", snd.sfx]]){ $(id).classList.toggle("off", !on); $(id).setAttribute("aria-pressed", on); }
+}
+function flipSnd(k){
+  snd = { ...snd, [k]:!snd[k] };
+  try { localStorage.setItem(SND_KEY, JSON.stringify(snd)); } catch(e){}
+  try { $("frame").contentWindow.postMessage({ javedaSound:snd }, location.origin); } catch(e){}
+  if (crSong) crSong.muted = !snd.song;
+  renderSnd();
+  toast(k === "song" ? (snd.song ? "Song on" : "Song off") : (snd.sfx ? "Game sounds on" : "Game sounds off"), 1600);
+}
+// the way out and the sound buttons sit over the level's top-left corner, where every level keeps its score: move the
+// level's left HUD column (the first thing in its #hud) down under them, so the score shows
+$("frame").addEventListener("load", () => {
+  try {
+    const d = $("frame").contentDocument, hud = d && d.getElementById("hud");
+    if (!hud || d.getElementById("hubTop")) return;
+    const below = document.querySelector(".play .ptop").getBoundingClientRect().bottom + 6;
+    const pad = parseFloat(d.defaultView.getComputedStyle(hud).paddingTop) || 0;
+    const st = d.createElement("style"); st.id = "hubTop";
+    st.textContent = "#hud>:first-child{margin-top:" + Math.max(0, Math.ceil(below - pad)) + "px}";
+    d.head.appendChild(st);
+  } catch(e){}
+});
+$("sndSong").onclick = () => flipSnd("song");
+$("sndSfx").onclick = () => flipSnd("sfx");
+renderSnd();
 
 // An endless run starts with the database, which holds its score to the time played (the marathon too; a daily
 // run starts there as well, which fixes the day and the level it counts for). .then() sends it now: a supabase query only goes out when something awaits it, and awaited
@@ -1781,7 +1823,7 @@ function openCredits(){
     '<p class="end">Thank you for playing.</p>';
   const roll = $("crRoll"); roll.style.animation = "none"; void roll.offsetWidth; roll.style.animation = "";
   $("credits").classList.remove("hid"); document.body.style.overflow = "hidden";
-  try { crSong = new Audio(SONGS_URL + "lvl28.mp3"); crSong.volume = .8; crSong.play().catch(() => {}); } catch(e){}
+  try { crSong = new Audio(SONGS_URL + "lvl28.mp3"); crSong.volume = .8; crSong.muted = !snd.song; crSong.play().catch(() => {}); } catch(e){}
   $("crClose").focus();
 }
 function closeCredits(){

@@ -420,6 +420,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <h1>The playable album</h1>
     <p>Every song is a level. Finish one to open the next, then come back and beat your score.</p>
     <div class="app hid" id="appBox"><button class="btn" id="appBtn" type="button">&#128242; Get the app</button><span id="appNote">On your home screen, and it plays offline.</span></div>
+    <div class="app hid" id="carryBox"><button class="btn small" id="carryPaste" type="button" data-i18n-skip>Paste my progress from Safari</button></div>
   </section>
 
   <section aria-labelledby="hBoard">
@@ -1301,7 +1302,7 @@ function boardMoreBtn(){
 }
 $("boardMore").onclick = () => { boardAll = !boardAll; boardMoreBtn(); };
 $("boardJoin").addEventListener("click", e => { if (e.target.closest("[data-signup]")) openLogin(true); else if (e.target.closest("[data-login]")) openLogin(); });
-function renderAll(){ renderMe(); renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); }
+function renderAll(){ try { renderCarry(); } catch(e){} renderMe(); renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); }
 
 /* ---- profile sheet ---- */
 let pickAv = "saucer";
@@ -1402,9 +1403,57 @@ $("lgGoogle").onclick = async () => {
   if (error) $("lgErr").textContent = error.message.includes("not enabled") ? "Google log-in isn't switched on yet. Use email." : error.message;
 };
 
+/* ---- offline: an account keeps playing without internet ----
+   The account's progress is kept on this phone too (ACCT_KEY), so the levels stay open offline. A level run made
+   offline waits here (PEND_KEY) and goes to the account as soon as there's internet again. */
+const ACCT_KEY = "javeda.acct.v1", PEND_KEY = "javeda.pending.v1";
+const netErr = e => !!e && (!navigator.onLine || /fetch|network|load failed|timed? ?out|offline/i.test(e.message || String(e)));
+function saveSnap(){
+  if (!session || !player || session.offline) return;
+  try { localStorage.setItem(ACCT_KEY, JSON.stringify({ uid:session.user.id, player, progress, owned:[...owned], unlocks:[...unlocks], pass, creator, record })); } catch(e){}
+}
+function loadSnap(uid){ try { const x = JSON.parse(localStorage.getItem(ACCT_KEY)); if (x && x.player && (!uid || x.uid === uid)) return x; } catch(e){} return null; }
+function useSnap(x){ player = x.player; progress = x.progress || {}; owned = new Set(x.owned || []); unlocks = new Set(x.unlocks || []); pass = x.pass || null; creator = !!x.creator; record = x.record || null; }
+const pending = () => { try { const a = JSON.parse(localStorage.getItem(PEND_KEY)); return Array.isArray(a) ? a : []; } catch(e){ return []; } };
+const setPending = a => { try { a.length ? localStorage.setItem(PEND_KEY, JSON.stringify(a)) : localStorage.removeItem(PEND_KEY); } catch(e){} };
+// the runs still waiting count for this phone's view of the account
+function withPending(uid){
+  for (const x of pending()) if (x.uid === uid){
+    const w = progress[x.level] || { cleared:false, best:0, metres:0, runs:0 };
+    progress[x.level] = { cleared:w.cleared || x.cleared, best:Math.max(w.best || 0, x.score), metres:Math.max(w.metres || 0, x.metres), runs:(w.runs || 0) + 1 };
+  }
+}
+let flushing = false;
+async function flushPending(){
+  if (flushing || !sb || !navigator.onLine) return;
+  const { data } = await sb.auth.getSession().catch(() => ({ data:null }));
+  const live = data && data.session; if (!live) return;
+  const mine = pending().filter(x => x.uid === live.user.id); if (!mine.length) return;
+  flushing = true; let sent = 0, earned = 0;
+  for (const x of mine){
+    const send = () => sb.rpc("javeda_submit_run", { p_level:x.level, p_score:x.score, p_metres:x.metres, p_cleared:x.cleared }).then(r => r, e => ({ error:e }));
+    let res = await send();
+    if (res.error && /slow down/.test(res.error.message || "")){ await new Promise(ok => setTimeout(ok, 10500)); res = await send(); }
+    if (res.error && netErr(res.error)) break;                 // the internet went again: the rest wait
+    setPending(pending().filter(y => !(y.uid === x.uid && y.at === x.at && y.level === x.level)));
+    if (!res.error){ sent++; earned += (res.data && res.data.earned) || 0; }
+  }
+  flushing = false;
+  if (sent){
+    toast((sent === 1 ? "1 run you played offline is" : sent + " runs you played offline are") + " on your account now" + (earned ? " · <b>+" + fmt(earned) + (earned === 1 ? " point" : " points") + "</b>" : ""), 5000);
+    session = live; loadAccount();
+  }
+}
+addEventListener("online", () => { flushPending(); });
+
 /* ---- account ---- */
 async function loadAccount(){
   player = null; owned = new Set(); creator = false; record = null; pass = null;
+  if (!session && !navigator.onLine){
+    // offline, an expired log-in can't be renewed: keep playing as the account kept on this phone
+    const x = loadSnap();
+    if (x){ session = { user:{ id:x.uid }, offline:true }; useSnap(x); withPending(x.uid); renderAll(); return; }
+  }
   if (!session){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); showJoin(); return; }
   const uid = session.user.id;
   const [p, g, o, c, v, u, ps] = await Promise.all([
@@ -1416,6 +1465,12 @@ async function loadAccount(){
     sb.from("javeda_unlocks").select("level").eq("user_id", uid),
     sb.from("javeda_passes").select("source, merch").eq("user_id", uid).maybeSingle()
   ]);
+  // no internet: the account as this phone last saw it
+  if ([p, g].some(r => r.error && netErr(r.error))){
+    const x = loadSnap(uid);
+    if (x){ useSnap(x); withPending(uid); renderAll(); return; }
+    progress = { ...guest.progress }; renderAll(); toast("You're offline. Log-in needs the internet the first time."); return;
+  }
   unlocks = new Set((u.data || []).map(r => r.level));
   pass = ps.data || null;
   record = v.data || null;
@@ -1438,8 +1493,10 @@ async function loadAccount(){
     await importGuest();
     return loadAccount();
   }
+  saveSnap(); withPending(uid);
   renderAll(); showJoin();
   if (takePassNext()) openPass();
+  flushPending();
 }
 async function importGuest(){
   const has = Object.keys(guest.progress || {}).length;
@@ -1554,16 +1611,30 @@ async function saveRun(r, quiet){
     renderNow();
     return;
   }
-  let res = await sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:r.score | 0, p_metres:r.metres | 0, p_cleared:!!r.cleared });
-  if (res.error && /slow down/.test(res.error.message)){
+  const offline = () => {
+    // no internet: the run waits on this phone and goes to the account later; the levels it opens open now
+    setPending([...pending(), { uid:session.user.id, level:lv.id, score:r.score | 0, metres:r.metres | 0, cleared:!!r.cleared, at:Date.now() }]);
+    const w = progress[lv.id] || { cleared:false, best:0, metres:0, runs:0 };
+    progress[lv.id] = { cleared:w.cleared || !!r.cleared, best:Math.max(w.best || 0, r.score | 0), metres:Math.max(w.metres || 0, r.metres | 0), runs:(w.runs || 0) + 1 };
+    renderNow(); renderLevels(); renderEndless();
+    if (!before && albumDone()) finale();
+    else if (!quiet) toast((unlocks ? unlocks + " · " : "") + "You're offline: this run is saved on this phone. It goes to your account when you're back online.", 5500);
+    return null;
+  };
+  if (session.offline || !navigator.onLine) return offline();
+  const send = () => sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:r.score | 0, p_metres:r.metres | 0, p_cleared:!!r.cleared }).then(x => x, e => ({ error:e }));
+  let res = await send();
+  if (res.error && /slow down/.test(res.error.message || "")){
     await new Promise(ok => setTimeout(ok, 10500));
-    res = await sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:r.score | 0, p_metres:r.metres | 0, p_cleared:!!r.cleared });
+    res = await send();
   }
+  if (res.error && netErr(res.error)) return offline();
   if (res.error){ toast("That run didn't save: " + esc(res.error.message)); return; }
   const d = res.data;
   player = d.player;
   progress[lv.id] = { cleared:d.progress.cleared, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
   renderMe(); renderNow(); renderBoard();
+  saveSnap();
   if (d.album_complete) finale();
   else if (!quiet) toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), 4500);
   if (r.cleared && !quiet) offerShare({ kind:"level", lv, score:d.score, head:d.first_clear ? "First clear" : d.new_best ? "New best" : "Cleared" });
@@ -1579,6 +1650,7 @@ async function saveEndless(lv, r, quiet){
     if (score > was && score) offerShare({ kind:"level", lv, score, unit, head:"New best" });
     return;
   }
+  if (session.offline || !navigator.onLine){ runStart = null; if (!quiet) toast("You're offline: endless scores only count with internet.", 4500); return; }
   const started = runStart ? await runStart : null; runStart = null;
   if (!started || started.error){ if (!quiet) toast("That run didn't save: " + esc(started && started.error ? started.error.message : "it never started")); return; }
   let res = await sb.rpc("javeda_submit_run", { p_level:lv.id, p_score:score, p_metres:r.metres | 0, p_cleared:true });
@@ -1611,6 +1683,7 @@ async function saveDaily(r){
     if (nb && score) offerShare({ kind:"daily", lv, score, head:"Daily challenge" });
     return;
   }
+  if (session.offline || !navigator.onLine){ dailyStart = null; if (isOpen(lv)) await saveRun(r, true); toast("You're offline: the daily challenge only counts with internet.", 4500); return; }
   const started = dailyStart ? await dailyStart : null; dailyStart = null;
   if (!started || started.error){ toast("That daily run didn't save: " + esc(started && started.error ? started.error.message : "it never started")); return; }
   const res = await sb.rpc("javeda_submit_daily", { p_score:score, p_cleared:!!r.cleared });
@@ -2098,7 +2171,88 @@ function openAppSheet(){
   $("appCarry").innerHTML = typeof carryHtml === "function" ? carryHtml() : "";
   openSheet("appSheet");
 }
-renderApp();
+// on iPhone the home-screen app has its own storage, apart from Safari: a guest's progress goes along as a code
+const CARRY_TXT = {
+ "en": {
+  "acct": "On iPhone the app keeps its own save: log in inside the app and all your progress is there.",
+  "guest": "On iPhone the app keeps its own save. To take your progress along: copy it here, then in the app tap <b>Paste my progress</b>.",
+  "copy": "Copy my progress",
+  "copied": "Copied. Now open the app and tap Paste my progress.",
+  "paste": "Paste my progress from Safari",
+  "ask": "Paste your progress code here:",
+  "bad": "That is not a JAVEDA progress code. Copy it again in Safari (Get the app > Copy my progress).",
+  "done": "Your progress is here: # levels."
+ },
+ "nl": {
+  "acct": "Op een iPhone heeft de app zijn eigen opslag: log in in de app en al je voortgang staat erin.",
+  "guest": "Op een iPhone heeft de app zijn eigen opslag. Om je voortgang mee te nemen: kopieer hem hier, en tik in de app op <b>Plak mijn voortgang</b>.",
+  "copy": "Kopieer mijn voortgang",
+  "copied": "Gekopieerd. Open nu de app en tik op Plak mijn voortgang.",
+  "paste": "Plak mijn voortgang uit Safari",
+  "ask": "Plak hier je voortgangscode:",
+  "bad": "Dat is geen JAVEDA-voortgangscode. Kopieer hem opnieuw in Safari (Download de app > Kopieer mijn voortgang).",
+  "done": "Je voortgang staat erin: # levels."
+ },
+ "fr": {
+  "acct": "Sur iPhone, l'app a sa propre sauvegarde : connecte-toi dans l'app et toute ta progression y est.",
+  "guest": "Sur iPhone, l'app a sa propre sauvegarde. Pour emporter ta progression : copie-la ici, puis dans l'app touche <b>Coller ma progression</b>.",
+  "copy": "Copier ma progression",
+  "copied": "Copié. Ouvre maintenant l'app et touche Coller ma progression.",
+  "paste": "Coller ma progression depuis Safari",
+  "ask": "Colle ton code de progression ici :",
+  "bad": "Ce n'est pas un code de progression JAVEDA. Copie-le à nouveau dans Safari (Télécharger l'app > Copier ma progression).",
+  "done": "Ta progression est là : # niveaux."
+ },
+ "es": {
+  "acct": "En iPhone la app tiene su propio guardado: inicia sesión en la app y todo tu progreso estará ahí.",
+  "guest": "En iPhone la app tiene su propio guardado. Para llevarte tu progreso: cópialo aquí y luego en la app toca <b>Pegar mi progreso</b>.",
+  "copy": "Copiar mi progreso",
+  "copied": "Copiado. Ahora abre la app y toca Pegar mi progreso.",
+  "paste": "Pegar mi progreso desde Safari",
+  "ask": "Pega aquí tu código de progreso:",
+  "bad": "Eso no es un código de progreso de JAVEDA. Cópialo de nuevo en Safari (Descarga la app > Copiar mi progreso).",
+  "done": "Tu progreso está aquí: # niveles."
+ }
+};
+const ct = k => (CARRY_TXT[window.JAVEDA_LANG] || CARRY_TXT.en)[k];
+const guestHas = () => Object.keys(guest.progress || {}).length > 0;
+function carryHtml(){
+  if (!IOS || IN_APP) return "";
+  if (signedIn()) return '<p class="small" data-i18n-skip>' + ct("acct") + '</p>';
+  if (!guestHas()) return "";
+  return '<p class="small" data-i18n-skip>' + ct("guest") + '</p><button class="btn small" type="button" id="carryCopy" data-i18n-skip>' + ct("copy") + '</button>';
+}
+const carryCode = () => "JAVEDA1:" + btoa(unescape(encodeURIComponent(JSON.stringify({ p:guest.progress, u:guest.unlocks || [], n:guest.name || "", a:guest.avatar || "" }))));
+$("appCarry").addEventListener("click", async e => {
+  if (!e.target.closest("#carryCopy")) return;
+  const code = carryCode();
+  try { await navigator.clipboard.writeText(code); toast(ct("copied"), 6000); }
+  catch(err){ $("appCarry").insertAdjacentHTML("beforeend", '<textarea readonly rows="3" style="width:100%" data-i18n-skip>' + esc(code) + '</textarea>'); const t = $("appCarry").querySelector("textarea"); t.focus(); t.select(); }
+});
+// in the app, a guest with nothing yet: bring the progress from Safari
+function renderCarry(){ const b = $("carryBox"); if (b){ b.classList.toggle("hid", !(STANDALONE && IOS && !session && !guestHas())); $("carryPaste").textContent = ct("paste"); } }
+$("carryPaste").onclick = async () => {
+  let text = "";
+  try { text = await navigator.clipboard.readText(); } catch(e){}
+  if (!/^JAVEDA1:/.test((text || "").trim())) text = prompt(ct("ask")) || "";
+  text = text.trim(); if (!text) return;
+  let d = null;
+  try { if (text.startsWith("JAVEDA1:")) d = JSON.parse(decodeURIComponent(escape(atob(text.slice(8))))); } catch(e){}
+  if (!d || typeof d.p !== "object"){ toast(ct("bad"), 6000); return; }
+  let n = 0;
+  for (const [id, v] of Object.entries(d.p)){
+    if (!levelById(id) || !v || typeof v !== "object") continue;
+    const w = guest.progress[id] || { cleared:false, best:0, metres:0, runs:0 };
+    guest.progress[id] = { cleared:!!(w.cleared || v.cleared), best:Math.max(w.best || 0, +v.best || 0), metres:Math.max(w.metres || 0, +v.metres || 0), runs:Math.max(w.runs || 0, +v.runs || 0) };
+    if (guest.progress[id].cleared) n++;
+  }
+  guest.unlocks = [...new Set([...(guest.unlocks || []), ...(Array.isArray(d.u) ? d.u.filter(id => levelById(id)) : [])])];
+  if (!guest.name && typeof d.n === "string") guest.name = d.n.slice(0, 16);
+  if (typeof d.a === "string" && d.a && (!guest.avatar || guest.avatar === "saucer")) guest.avatar = d.a;
+  saveGuest(); progress = { ...guest.progress }; unlocks = new Set(guest.unlocks);
+  renderAll(); renderCarry(); toast(ct("done").replace("#", n), 5000);
+};
+renderApp(); renderCarry();
 
 // an online 1v1 is over: report it. It counts once the other player's report says the same,
 // so if theirs isn't in yet, ask again a few times
@@ -2155,8 +2309,10 @@ addEventListener("message", e => {
 renderAll();
 (async () => {
   try {
-    const r = await fetch("/api/config");
-    const cfg = r.ok ? await r.json() : {};
+    // the settings are kept on the phone too, so the app starts offline (the address and the public key only)
+    let cfg = {};
+    try { const r = await fetch("/api/config"); cfg = r.ok ? await r.json() : {}; if (cfg.supabaseUrl) localStorage.setItem("javeda.cfg", JSON.stringify({ supabaseUrl:cfg.supabaseUrl, supabaseAnonKey:cfg.supabaseAnonKey, javedaPassCents:cfg.javedaPassCents })); }
+    catch(err){ try { cfg = JSON.parse(localStorage.getItem("javeda.cfg")) || {}; } catch(e2){} }
     if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase)
       sb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:true, autoRefreshToken:true } });
     passCents = cfg.javedaPassCents || null;

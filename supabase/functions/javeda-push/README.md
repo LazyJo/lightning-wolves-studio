@@ -10,7 +10,7 @@ How it fits together:
 2. **The scores**: triggers on `javeda_progress` and `javeda_daily_scores` queue everyone a new best passes who asked
    for "beaten" (`javeda_push_queue`).
 3. **pg_cron** calls this function every 5 minutes with `{"run": true}` and the `x-javeda-key` header. It sends the
-   queue (`javeda_push_take`: one message a player, at most one every 6 hours) and, once a day at 8:00 on each phone's clock,
+   queue (`javeda_push_take`: one message a player, at most one every 6 hours, none during the phone's night) and, once a day at 8:00 on each phone's clock,
    today's challenge (`javeda_push_daily_due`).
 4. **The service worker** (`client/public/javeda/sw.js`) shows the message; a tap opens JAVEDA on that board.
 

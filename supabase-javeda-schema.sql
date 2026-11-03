@@ -1686,8 +1686,15 @@ DROP TRIGGER IF EXISTS javeda_daily_push ON javeda_daily_scores;
 CREATE TRIGGER javeda_daily_push AFTER INSERT OR UPDATE OF best_score ON javeda_daily_scores
   FOR EACH ROW EXECUTE FUNCTION public.javeda_push_beaten();
 
+-- night on a phone's clock, 22:00 to 8:00: "someone beat your score" waits for its morning
+CREATE OR REPLACE FUNCTION public.javeda_push_awake(p_tz TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SET search_path = public
+AS $$ SELECT extract(hour FROM now() AT TIME ZONE coalesce(p_tz, 'Europe/Brussels')) BETWEEN 8 AND 21 $$;
+
 -- the edge function: the queue, one message a player (the newest, and how many), at most one every 6 hours -
--- what comes in sooner waits, and goes with the next one
+-- what comes in sooner waits, and goes with the next one. So does what comes in while all their phones are asleep
+-- (a phone still asleep when another one is awake skips it). A player with no phone left: just emptied.
 CREATE OR REPLACE FUNCTION public.javeda_push_take()
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
@@ -1696,7 +1703,9 @@ DECLARE out JSON;
 BEGIN
   WITH due AS (
     SELECT DISTINCT q.user_id FROM javeda_push_queue q LEFT JOIN javeda_push_sent s ON s.user_id = q.user_id
-    WHERE s.beaten_at IS NULL OR s.beaten_at < now() - interval '6 hours'),
+    WHERE (s.beaten_at IS NULL OR s.beaten_at < now() - interval '6 hours')
+      AND (EXISTS (SELECT 1 FROM javeda_push p WHERE p.user_id = q.user_id AND p.beaten AND javeda_push_awake(p.tz))
+           OR NOT EXISTS (SELECT 1 FROM javeda_push p WHERE p.user_id = q.user_id AND p.beaten))),
   q AS (DELETE FROM javeda_push_queue WHERE user_id IN (SELECT user_id FROM due) RETURNING *),
   per AS (
     SELECT user_id, count(*)::INT AS n, count(DISTINCT by_user)::INT AS people,
@@ -1710,7 +1719,7 @@ BEGIN
       'n', per.n, 'people', per.people, 'level', per.level, 'num', l.num, 'title', l.title, 'endless', l.endless,
       'daily', per.daily, 'by', pl.username, 'score', per.score)), '[]'::json)
   INTO out
-  FROM per JOIN javeda_push p ON p.user_id = per.user_id AND p.beaten
+  FROM per JOIN javeda_push p ON p.user_id = per.user_id AND p.beaten AND javeda_push_awake(p.tz)
   JOIN javeda_levels l ON l.id = per.level
   LEFT JOIN javeda_players pl ON pl.user_id = per.by_user;
   RETURN out;
@@ -1746,6 +1755,7 @@ REVOKE ALL ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, B
 REVOKE ALL ON FUNCTION public.javeda_push_off(TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.javeda_push_beaten() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_push_take() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.javeda_push_awake(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_push_daily_due() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_off(TEXT) TO anon, authenticated;

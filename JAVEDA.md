@@ -208,7 +208,7 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
   reads only their own row. Players & downloads shows a **news** tag and a count, and **Copy news emails** copies
   only theirs (for Bcc). Every news email should say how to stop: profile > Email me JAVEDA news.
 - **Notifications** (Web Push; an iPhone only has them in the installed app): "today's challenge is up" (once a day
-  at 8:00 on the phone's own clock; the song is the one up then, as the challenge itself changes at midnight in Brussels) and "someone beat your score" (a level's board or today's; at most one every 6 hours a player,
+  at 8:00 on the phone's own clock; the song is the one up then, as the challenge itself changes at midnight in Brussels) and "someone beat your score" (a level's board or today's; at most one every 6 hours a player, none between 22:00 and 8:00 on the phone's clock,
   "N more" when several). They start on in the installed app: its first tap brings up the phone's own question, once
   (nothing can switch them on without it; a permission already given needs no question), and turned off stays off.
   Elsewhere the 🔔 on the daily card; on or off as two boxes in the profile ("beaten" needs a player). The phone's push address and what it wants go to

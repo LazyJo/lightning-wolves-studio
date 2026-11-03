@@ -209,8 +209,9 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
   only theirs (for Bcc). Every news email should say how to stop: profile > Email me JAVEDA news.
 - **Notifications** (Web Push; an iPhone only has them in the installed app): "today's challenge is up" (once a day
   from noon, Brussels) and "someone beat your score" (a level's board or today's; at most one every 6 hours a player,
-  "N more" when several). Offered once by a card in the installed app, with the 🔔 on the daily card, and as two
-  boxes in the profile ("beaten" needs a player). The phone's push address and what it wants go to
+  "N more" when several). They start on in the installed app: its first tap brings up the phone's own question, once
+  (nothing can switch them on without it; a permission already given needs no question), and turned off stays off.
+  Elsewhere the 🔔 on the daily card; on or off as two boxes in the profile ("beaten" needs a player). The phone's push address and what it wants go to
   `javeda_push_set` (both off: `javeda_push` forgets the phone); the wish is kept in `localStorage` `javeda.push.v1`
   and saved again at start and after logging in or out (the player, the language). Triggers on `javeda_progress`
   and `javeda_daily_scores` queue the players a new best passes (`javeda_push_queue`); pg_cron calls the

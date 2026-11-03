@@ -231,8 +231,6 @@ const S = [
   ["Email me JAVEDA news: new levels and new songs.", "Mail me JAVEDA-nieuws: nieuwe levels en nieuwe nummers.", "Envoie-moi les nouvelles de JAVEDA par e-mail : nouveaux niveaux et nouveaux morceaux.", "Envíame noticias de JAVEDA por correo: niveles nuevos y canciones nuevas."],
   ["You'll get JAVEDA news by email.", "Je krijgt JAVEDA-nieuws per mail.", "Tu recevras les nouvelles de JAVEDA par e-mail.", "Recibirás noticias de JAVEDA por correo."],
   // notifications
-  ["Turn on notifications", "Meldingen aanzetten", "Activer les notifications", "Activar notificaciones"],
-  ["Today's challenge, and when someone beats your score.", "De uitdaging van vandaag, en wanneer iemand je score verslaat.", "Le défi du jour, et quand quelqu'un bat ton score.", "El reto de hoy, y cuando alguien supera tu puntuación."],
   ["Notifications", "Meldingen", "Notifications", "Notificaciones"],
   ["Today's challenge is up (once a day, around noon)", "De uitdaging van vandaag staat klaar (één keer per dag, rond de middag)", "Le défi du jour est là (une fois par jour, vers midi)", "El reto de hoy ya está aquí (una vez al día, hacia mediodía)"],
   ["Someone beats one of your scores", "Iemand verslaat een van je scores", "Quelqu'un bat un de tes scores", "Alguien supera una de tus puntuaciones"],
@@ -245,6 +243,7 @@ const S = [
   ["Notifications didn't turn on here.", "De meldingen gingen hier niet aan.", "Les notifications ne se sont pas activées ici.", "Las notificaciones no se han activado aquí."],
   ["Notifications are on.", "Meldingen staan aan.", "Les notifications sont activées.", "Las notificaciones están activadas."],
   ["Notifications are off.", "Meldingen staan uit.", "Les notifications sont désactivées.", "Las notificaciones están desactivadas."],
+  ["Notifications are on. You can turn them off in your player.", "Meldingen staan aan. Je kunt ze uitzetten bij je speler.", "Les notifications sont activées. Tu peux les désactiver dans ton joueur.", "Las notificaciones están activadas. Puedes desactivarlas en tu jugador."],
   ["Notifications are on. Log in and you'll also hear when someone beats your score.", "Meldingen staan aan. Log in en je hoort ook wanneer iemand je score verslaat.", "Les notifications sont activées. Connecte-toi et tu sauras aussi quand quelqu'un bat ton score.", "Las notificaciones están activadas. Inicia sesión y también sabrás cuándo alguien supera tu puntuación."],
   ["No more JAVEDA news emails.", "Geen JAVEDA-nieuwsmails meer.", "Plus d'e-mails de nouvelles JAVEDA.", "No más correos de noticias de JAVEDA."],
   ["Log in first", "Log eerst in", "Connecte-toi d'abord", "Inicia sesión primero"],

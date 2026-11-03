@@ -157,7 +157,7 @@ button:focus-visible, a:focus-visible, input:focus-visible{outline:2px solid var
 .hero h1{margin:0; font:400 clamp(30px,7vw,52px)/1 var(--display); letter-spacing:.01em}
 .hero p{margin:0; color:var(--dim); max-width:56ch}
 .app{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px}
-.app #appNote, .app #pushNote{color:var(--mute); font-size:13.5px}
+.app #appNote{color:var(--mute); font-size:13.5px}
 .app .btn{border:1.5px solid #ffd60a99; background:#ffd60a14; color:var(--gold)}
 .card .small{font-size:13px; color:var(--mute); margin:0}
 #appHow{display:grid; gap:12px}
@@ -551,7 +551,6 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <h1>The playable album</h1>
     <p>Every song is a level. Finish one to open the next, then come back and beat your score.</p>
     <div class="app hid" id="appBox"><button class="btn" id="appBtn" type="button">&#128242; Get the app</button><span id="appNote">On your home screen, and it plays offline.</span></div>
-    <div class="app hid" id="pushBox"><button class="btn" id="pushBtn" type="button">&#128276; Turn on notifications</button><span id="pushNote">Today's challenge, and when someone beats your score.</span><button class="pfdel" id="pushNo" type="button">Not now</button></div>
     <div class="app hid" id="carryBox"><button class="btn small" id="carryPaste" type="button" data-i18n-skip>Paste my progress</button></div>
   </section>
 
@@ -1854,7 +1853,7 @@ $("now").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   if (b.dataset.play || b.dataset.pass !== undefined) playOrPass(e);
   else if (b.dataset.daily) play(daily.level, { daily:true });
-  else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); renderPush(); } });
+  else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); } });
   else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (b.dataset.marathon) startMarathon();
   else if (b.dataset.credits) openCredits();
@@ -2833,10 +2832,10 @@ addEventListener("message", e => {
 
 /* ---- notifications: today's challenge (from noon) and someone beating your score, on a phone that said yes.
    The phone's push address and what it wants go to javeda_push_set; the javeda-push edge function sends them
-   (supabase/functions/javeda-push/README.md) and sw.js shows them. Offered once in the installed app, with the bell
-   on the daily card, and in your player. An iPhone has them only in the installed app. ---- */
+   (supabase/functions/javeda-push/README.md) and sw.js shows them. They start on in the installed app (pushAuto), and
+   the bell on the daily card and your player turn them on or off. An iPhone has them only in the installed app. ---- */
 const VAPID = "BL9N7yi4w4tZDtwBEKVUu5Bcxp702LmCFtf2bKHnlDjv6yZh-HgeEFzb7fnL0DNH7W1HDGCoB7yLslvLqlQPUyI";   // public; the private one is a Supabase secret
-const PUSH_ASKED = "javeda.push.asked";
+const PUSH_AUTO = "javeda.push.auto";
 const b64u = s => Uint8Array.from(atob((s + "===".slice((s.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
 // save what this phone wants (both off: the server forgets it). Asks for the permission first, straight from the tap
 // (an iPhone only asks from a tap). quiet: the re-save at start and after logging in or out - no asking, no messages.
@@ -2861,7 +2860,7 @@ async function pushSave(want, quiet){
       else if (!quiet && !was) sb.functions.invoke("javeda-push", { body:{ hello:j.endpoint } }).catch(() => {});   // a first one, to see it works
     }
     pushWish = { daily:!!want.daily, beaten:!!want.beaten };
-    try { localStorage.setItem("javeda.push.v1", JSON.stringify(pushWish)); localStorage.setItem(PUSH_ASKED, "1"); } catch(e){}
+    try { localStorage.setItem("javeda.push.v1", JSON.stringify(pushWish)); } catch(e){}
     return true;
   } catch(err){
     if (!quiet) toast(netErr(err) ? "No internet. Try again when you're online." : "Notifications didn't turn on here.");
@@ -2870,15 +2869,24 @@ async function pushSave(want, quiet){
 }
 // at start and after logging in or out: this phone's choice again (the player, the language, a renewed address)
 function pushSync(){ if (PUSH_OK && sb && pushWish && (pushWish.daily || pushWish.beaten) && Notification.permission === "granted") pushSave(pushWish, true); }
-// the card in the installed app, until it's answered
-function renderPush(){
-  let asked = true; try { asked = !!localStorage.getItem(PUSH_ASKED); } catch(e){}
-  $("pushBox").classList.toggle("hid", !(STANDALONE && PUSH_OK && sb && !asked && !pushWish && Notification.permission === "default"));
+// the installed app starts with them on. Nothing can switch them on without the phone's own question, and an iPhone
+// only asks from a tap: so the first tap asks, once, and Allow turns on both kinds. A permission already given needs no
+// question. Turned off in your player stays off (pushWish remembers it).
+function pushAuto(){
+  if (!STANDALONE || !PUSH_OK || !sb || pushWish) return;
+  const on = () => pushSave({ daily:true, beaten:true }).then(ok => { if (!ok) return;
+    toast(signedIn() ? "Notifications are on. You can turn them off in your player." : "Notifications are on. Log in and you'll also hear when someone beats your score.", 5000);
+    renderPushSet(); renderNow(); });
+  if (Notification.permission === "granted") return void on();
+  if (Notification.permission !== "default") return;
+  let asked = true; try { asked = !!localStorage.getItem(PUSH_AUTO); } catch(e){}
+  if (asked) return;
+  document.addEventListener("click", e => {
+    if (pushWish || Notification.permission !== "default" || e.target.closest("#pfPush, [data-bell]")) return;   // the tap on a switch or the bell asks by itself
+    try { localStorage.setItem(PUSH_AUTO, "1"); } catch(e){}
+    Notification.requestPermission().then(p => { if (p === "granted") on(); });
+  }, { capture:true, once:true });
 }
-$("pushBtn").onclick = () => pushSave({ daily:true, beaten:true }).then(ok => {
-  if (ok) toast(signedIn() ? "Notifications are on." : "Notifications are on. Log in and you'll also hear when someone beats your score.", 5000);
-  renderPush(); renderNow(); });
-$("pushNo").onclick = () => { try { localStorage.setItem(PUSH_ASKED, "1"); } catch(e){} renderPush(); };
 // in your player
 function renderPushSet(){
   const w = pushWish || {}, iosTab = !PUSH_OK && IOS && !STANDALONE, blocked = PUSH_OK && Notification.permission === "denied", note = $("pfPushNote");
@@ -2894,7 +2902,7 @@ function renderPushSet(){
 for (const id of ["pfPushD", "pfPushB"]) $(id).onchange = () => {
   const want = { daily:$("pfPushD").checked, beaten:signedIn() ? $("pfPushB").checked : !!(pushWish && pushWish.beaten) };
   $("pfPushD").disabled = $("pfPushB").disabled = true;
-  pushSave(want).then(ok => { renderPushSet(); renderPush(); renderNow(); if (ok) toast(want.daily || want.beaten ? "Notifications are on." : "Notifications are off."); });
+  pushSave(want).then(ok => { renderPushSet(); renderNow(); if (ok) toast(want.daily || want.beaten ? "Notifications are on." : "Notifications are off."); });
 };
 // a notification's link: /javeda/#daily (the daily card) or #board=<level, or daily> (that scoreboard)
 function goTo(hash){
@@ -2936,7 +2944,7 @@ if (location.hash === "#report") setTimeout(openReport, 400);
   const [{ data }] = await Promise.all([sb.auth.getSession(), passInfo]);
   session = data.session; await loadAccount(); loadDaily().then(() => goTo(location.hash)); passReturn();
   if (STANDALONE) appSeen("open");
-  pushSync(); renderPush();
+  pushSync(); pushAuto();
   sb.auth.onAuthStateChange((_e, s) => {
     const changed = (s && s.user.id) !== (session && session.user.id);
     session = s; if (changed) loadAccount().then(loadDaily).then(pushSync);

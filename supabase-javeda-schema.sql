@@ -1561,8 +1561,8 @@ GRANT EXECUTE ON FUNCTION public.javeda_reports_list(BOOLEAN) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_report_done(BIGINT, BOOLEAN) TO authenticated;
 
 -- ============================================================================
--- Notifications, for the app on a phone (or a browser that can): "today's challenge is up" (once a day, at 8:00
--- Brussels time) and "someone beat your score" (a level's board or today's, at most one every 6 hours a player).
+-- Notifications, for the app on a phone (or a browser that can): "today's challenge is up" (once a day, at 8:00 on
+-- the phone's own clock) and "someone beat your score" (a level's board or today's, at most one every 6 hours a player).
 -- javeda_push: a row per phone or browser that said yes - the push address its browser gave, the language, what it
 -- wants, and the player when logged in ("beaten" only then; deleting the player deletes their rows).
 -- The page calls javeda_push_set / javeda_push_off.
@@ -1579,9 +1579,13 @@ CREATE TABLE IF NOT EXISTS javeda_push (
   daily      BOOLEAN NOT NULL DEFAULT false,
   beaten     BOOLEAN NOT NULL DEFAULT false,
   hello_at   TIMESTAMPTZ,                      -- the edge function's first message to this phone
+  tz         TEXT,                             -- the phone's time zone, for its 8:00 (none yet: Brussels)
+  daily_sent DATE,                             -- the day, on the phone's clock, it last got the daily one
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE javeda_push ADD COLUMN IF NOT EXISTS tz TEXT;
+ALTER TABLE javeda_push ADD COLUMN IF NOT EXISTS daily_sent DATE;
 CREATE INDEX IF NOT EXISTS javeda_push_user ON javeda_push (user_id) WHERE beaten;
 CREATE TABLE IF NOT EXISTS javeda_push_queue (
   id      BIGSERIAL PRIMARY KEY,
@@ -1596,20 +1600,16 @@ CREATE TABLE IF NOT EXISTS javeda_push_sent (
   user_id   UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
   beaten_at TIMESTAMPTZ NOT NULL
 );
-CREATE TABLE IF NOT EXISTS javeda_push_state (
-  id         BOOLEAN PRIMARY KEY DEFAULT true CHECK (id),
-  daily_sent DATE
-);
-INSERT INTO javeda_push_state (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
+DROP TABLE IF EXISTS javeda_push_state;   -- was one "sent" day for everyone; now each phone has its own
 ALTER TABLE javeda_push       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_push_queue ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_push_sent  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE javeda_push_state ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON javeda_push, javeda_push_queue, javeda_push_sent, javeda_push_state FROM anon, authenticated;
+REVOKE ALL ON javeda_push, javeda_push_queue, javeda_push_sent FROM anon, authenticated;
 GRANT SELECT, UPDATE, DELETE ON javeda_push TO service_role;
 
 -- from the page: what this phone wants (both off: it's forgotten). Only the push services browsers use are taken.
-CREATE OR REPLACE FUNCTION public.javeda_push_set(p_endpoint TEXT, p_p256dh TEXT, p_auth TEXT, p_lang TEXT, p_daily BOOLEAN, p_beaten BOOLEAN)
+DROP FUNCTION IF EXISTS public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN);
+CREATE OR REPLACE FUNCTION public.javeda_push_set(p_endpoint TEXT, p_p256dh TEXT, p_auth TEXT, p_lang TEXT, p_daily BOOLEAN, p_beaten BOOLEAN, p_tz TEXT DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
@@ -1617,6 +1617,7 @@ DECLARE
   uid UUID := (SELECT user_id FROM javeda_players WHERE user_id = auth.uid());   -- logged in with a player, or null
   d BOOLEAN := coalesce(p_daily, false);
   b BOOLEAN := coalesce(p_beaten, false) AND uid IS NOT NULL;
+  zone TEXT;
 BEGIN
   IF p_endpoint IS NULL OR length(p_endpoint) > 1000
      OR p_endpoint !~ '^https://([a-z0-9-]+\.)*(fcm\.googleapis\.com|push\.services\.mozilla\.com|push\.apple\.com|notify\.windows\.com)/' THEN
@@ -1629,15 +1630,19 @@ BEGIN
     DELETE FROM javeda_push WHERE endpoint = p_endpoint;
     RETURN json_build_object('daily', false, 'beaten', false);
   END IF;
+  -- the phone's time zone, if it's a real one (a wrong one is ignored, never a reason to refuse the phone)
+  IF p_tz ~ '^[A-Za-z0-9_+/-]{1,64}$' THEN
+    BEGIN PERFORM now() AT TIME ZONE p_tz; zone := p_tz; EXCEPTION WHEN OTHERS THEN zone := NULL; END;
+  END IF;
   -- a flood of made-up addresses: stop taking new ones for a while
   IF NOT EXISTS (SELECT 1 FROM javeda_push WHERE endpoint = p_endpoint)
      AND (SELECT count(*) FROM javeda_push WHERE created_at > now() - interval '10 minutes') > 300 THEN
     RAISE EXCEPTION 'slow down' USING ERRCODE = '54000';
   END IF;
-  INSERT INTO javeda_push (endpoint, p256dh, auth, user_id, lang, daily, beaten)
-  VALUES (p_endpoint, p_p256dh, p_auth, uid, CASE WHEN p_lang IN ('en', 'nl', 'fr', 'es') THEN p_lang ELSE 'en' END, d, b)
+  INSERT INTO javeda_push (endpoint, p256dh, auth, user_id, lang, daily, beaten, tz)
+  VALUES (p_endpoint, p_p256dh, p_auth, uid, CASE WHEN p_lang IN ('en', 'nl', 'fr', 'es') THEN p_lang ELSE 'en' END, d, b, zone)
   ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, user_id = EXCLUDED.user_id,
-    lang = EXCLUDED.lang, daily = EXCLUDED.daily, beaten = EXCLUDED.beaten, updated_at = now();
+    lang = EXCLUDED.lang, daily = EXCLUDED.daily, beaten = EXCLUDED.beaten, tz = coalesce(EXCLUDED.tz, javeda_push.tz), updated_at = now();
   RETURN json_build_object('daily', d, 'beaten', b);
 END;
 $$;
@@ -1712,34 +1717,37 @@ BEGIN
 END;
 $$;
 
--- the edge function: today's challenge, once a day from 8:00 Brussels time (null when it isn't due)
+-- the edge function: every phone whose own clock is in the 8 o'clock hour and hasn't had it on that day (null: none).
+-- The song is the one up right now, for everyone: the challenge itself changes at midnight in Brussels.
 CREATE OR REPLACE FUNCTION public.javeda_push_daily_due()
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE
-  today DATE := (now() AT TIME ZONE 'Europe/Brussels')::DATE;
-  lvl TEXT;
+  subs JSON;
   out JSON;
 BEGIN
-  IF extract(hour FROM now() AT TIME ZONE 'Europe/Brussels') < 8 THEN RETURN NULL; END IF;
-  UPDATE javeda_push_state SET daily_sent = today WHERE id AND (daily_sent IS NULL OR daily_sent < today);
-  IF NOT FOUND THEN RETURN NULL; END IF;
-  lvl := javeda_daily_level(today);
-  SELECT json_build_object('level', l.id, 'num', l.num, 'title', l.title,
-      'subs', coalesce((SELECT json_agg(json_build_object('endpoint', endpoint, 'p256dh', p256dh, 'auth', auth, 'lang', lang))
-                        FROM javeda_push WHERE daily), '[]'::json))
-  INTO out FROM javeda_levels l WHERE l.id = lvl;
+  WITH due AS (
+    UPDATE javeda_push s SET daily_sent = (now() AT TIME ZONE coalesce(s.tz, 'Europe/Brussels'))::DATE
+    WHERE s.daily
+      AND extract(hour FROM now() AT TIME ZONE coalesce(s.tz, 'Europe/Brussels')) = 8
+      AND (s.daily_sent IS NULL OR s.daily_sent < (now() AT TIME ZONE coalesce(s.tz, 'Europe/Brussels'))::DATE)
+    RETURNING s.endpoint, s.p256dh, s.auth, s.lang
+  )
+  SELECT json_agg(json_build_object('endpoint', endpoint, 'p256dh', p256dh, 'auth', auth, 'lang', lang)) INTO subs FROM due;
+  IF subs IS NULL THEN RETURN NULL; END IF;
+  SELECT json_build_object('level', l.id, 'num', l.num, 'title', l.title, 'subs', subs)
+  INTO out FROM javeda_levels l WHERE l.id = javeda_daily_level((now() AT TIME ZONE 'Europe/Brussels')::DATE);
   RETURN out;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.javeda_push_off(TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.javeda_push_beaten() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_push_take() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_push_daily_due() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_off(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_take() TO service_role;
 GRANT EXECUTE ON FUNCTION public.javeda_push_daily_due() TO service_role;

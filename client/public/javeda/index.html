@@ -618,7 +618,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <label class="chk hid" id="pfNewsRow"><input type="checkbox" id="pfNews"><span>Email me JAVEDA news: new levels and new songs.</span></label>
     <div class="pushset hid" id="pfPush">
       <h2>Notifications</h2>
-      <label class="chk" id="pfPushDRow"><input type="checkbox" id="pfPushD"><span>Today's challenge is up (every morning at 8, Brussels time)</span></label>
+      <label class="chk" id="pfPushDRow"><input type="checkbox" id="pfPushD"><span>Today's challenge is up (every morning at 8)</span></label>
       <label class="chk" id="pfPushBRow"><input type="checkbox" id="pfPushB"><span>Someone beats one of your scores<small class="hid" id="pfPushLogin"> &middot; log in for this one</small></span></label>
       <p class="note hid" id="pfPushNote"></p>
     </div>
@@ -2830,12 +2830,13 @@ addEventListener("message", e => {
   }
 });
 
-/* ---- notifications: today's challenge (at 8:00 Brussels time) and someone beating your score, on a phone that said yes.
+/* ---- notifications: today's challenge (at 8:00 on the phone's clock) and someone beating your score, on a phone that said yes.
    The phone's push address and what it wants go to javeda_push_set; the javeda-push edge function sends them
    (supabase/functions/javeda-push/README.md) and sw.js shows them. They start on in the installed app (pushAuto), and
    the bell on the daily card and your player turn them on or off. An iPhone has them only in the installed app. ---- */
 const VAPID = "BL9N7yi4w4tZDtwBEKVUu5Bcxp702LmCFtf2bKHnlDjv6yZh-HgeEFzb7fnL0DNH7W1HDGCoB7yLslvLqlQPUyI";   // public; the private one is a Supabase secret
 const PUSH_AUTO = "javeda.push.auto";
+const pushTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch(e){ return null; } };   // its 8:00 is on this clock
 const b64u = s => Uint8Array.from(atob((s + "===".slice((s.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
 // save what this phone wants (both off: the server forgets it). Asks for the permission first, straight from the tap
 // (an iPhone only asks from a tap). quiet: the re-save at start and after logging in or out - no asking, no messages.
@@ -2854,7 +2855,7 @@ async function pushSave(want, quiet){
     if (s){
       const j = s.toJSON();
       const { error } = await sb.rpc("javeda_push_set", { p_endpoint:j.endpoint, p_p256dh:j.keys.p256dh, p_auth:j.keys.auth,
-        p_lang:window.JAVEDA_LANG || "en", p_daily:!!want.daily, p_beaten:!!want.beaten });
+        p_lang:window.JAVEDA_LANG || "en", p_daily:!!want.daily, p_beaten:!!want.beaten, p_tz:pushTz() });
       if (error) throw error;
       if (!on) s.unsubscribe().catch(() => {});
       else if (!quiet && !was) sb.functions.invoke("javeda-push", { body:{ hello:j.endpoint } }).catch(() => {});   // a first one, to see it works

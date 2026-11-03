@@ -1761,3 +1761,15 @@ GRANT EXECUTE ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN
 GRANT EXECUTE ON FUNCTION public.javeda_push_off(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_take() TO service_role;
 GRANT EXECUTE ON FUNCTION public.javeda_push_daily_due() TO service_role;
+
+-- ============================================================================
+-- Lightning Bot (the Discord bot, lightning-bot.js): what it keeps - which channel is the JAVEDA feed, the last day it
+-- posted the daily challenge, who was #1 on each board. Only the server (service role) reads or writes it.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS lightning_bot_state (
+  key        TEXT PRIMARY KEY,
+  value      JSONB,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE lightning_bot_state ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON lightning_bot_state FROM anon, authenticated;

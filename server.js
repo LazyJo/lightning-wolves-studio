@@ -200,6 +200,10 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
   }
 });
 
+// Lightning Bot (Discord): slash commands, buttons and the JAVEDA feed. Its interactions need the raw body for
+// Discord's signature, so it goes before express.json(). See lightning-bot.js and LIGHTNING-BOT.md.
+require('./lightning-bot').mount(app, () => supabase);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));

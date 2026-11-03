@@ -8,27 +8,42 @@
    2. The start never hangs on one way of talking: the "go" and its "ack" go as messages AND in the room's
       presence (the part that already shows the names); and if the other player doesn't show in the room's
       presence after 2.5 s, the first player sends "go" anyway - the ack is the proof they're there.
-   3. Stuck anyway: a small line says what works and what doesn't (a screenshot tells where it hangs), and the
+   3. The lobby and the room run on a connection of their own, made with the public key only: the login's token
+      expires every hour, and the server closes a channel joined with an expired token for good (a phone that
+      slept past the refresh came back to a closed lobby). Who you are is still checked once, by the level.
+      Back from another app: a whole new connection, the old one shut down on its own; a dead one is noticed in 10 s.
+   4. Stuck anyway: a small line says what works and what doesn't (a screenshot tells where it hangs), and the
       second failed start sends a report to the creator's Reports.
    Loaded by the online levels; it only touches NET once it's there. */
 (function(){
   const BEAT = 4000, STALE = 11000, FORCE = 2500;
-  let beat = 0, away = false, patched = false, fails = 0, reported = false;
+  let beat = 0, away = false, patched = false, fails = 0, reported = false, lastFresh = 0;
   const seen = new Map();   // player id -> { beat, at }: when this phone last saw their beat change
   const diag = { lobby:"-", room:"-", sent:{}, heard:{}, them:false, via:"" };
   const net = () => (typeof NET !== "undefined" && NET && NET.sb) ? NET : null;
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
   const others = n => (Array.isArray(n.players) && n.players.length ? n.players : n.opp ? [n.opp] : []).filter(p => p && p.id !== n.me);
 
+  // a Supabase client for the lobby and the room only: no login (nothing to expire), a quick heartbeat
+  function makeRt(n){
+    try {
+      if (!n.sb.supabaseUrl || !window.supabase || !window.supabase.createClient) return n.sb;
+      return window.supabase.createClient(n.sb.supabaseUrl, n.sb.supabaseKey, {
+        auth:{ persistSession:false, autoRefreshToken:false, detectSessionInUrl:false, storageKey:"javeda-live" },
+        realtime:{ heartbeatIntervalMs:10000 } });
+    } catch(e){ return n.sb; }
+  }
+  function drop(c){ try { if (c.removeAllChannels) c.removeAllChannels().catch(() => {}); else if (c.realtime) c.realtime.disconnect(); } catch(e){} }
   function patch(n){
     if (patched) return; patched = true;
+    n.rt = makeRt(n);
     // the line: only players who are really there (their beat moved in the last 11 s), and always yourself
     const waiting = n.waiting.bind(n);
     n.waiting = function(){
       const now = Date.now();
       return waiting().filter(p => {
         if (p.id === n.me) return true;
-        const b = p.beat | 0, s = seen.get(p.id);
+        const metas = (n.lobby && n.lobby.presenceState()[p.id]) || [p], b = Math.max(0, ...metas.map(m => (m && m.beat) | 0)), s = seen.get(p.id);
         if (!s || s.beat !== b) seen.set(p.id, { beat:b, at:now });
         return now - seen.get(p.id).at < STALE;
       });
@@ -37,8 +52,18 @@
     let making = "lobby";
     const chan = n.chan.bind(n);
     n.chan = function(name){
-      const ch = chan(name), kind = making, sub = ch.subscribe.bind(ch);
-      ch.subscribe = (cb, t) => sub((s, err) => { diag[kind] = s + (err ? " (" + (err.message || err) + ")" : ""); show(n); if (cb) cb(s, err); }, t);
+      const kind = making, ch = n.rt && n.rt !== n.sb ? n.rt.channel(name, { config:{ presence:{ key:n.me }, broadcast:{ self:false } } }) : chan(name), sub = ch.subscribe.bind(ch);
+      ch.subscribe = (cb, t) => sub((s, err) => {
+        // an old channel closing (after a reconnect) is not news: only the one in use counts
+        if ((kind === "lobby" ? n.lobby : n.room) === ch){
+          diag[kind] = s + (err ? " (" + (err.message || err) + ")" : ""); show(n);
+          // a closed channel never comes back by itself: while waiting, reconnect (at most every 5 s)
+          if (s === "CLOSED" && (n.state === "seek" || n.state === "room") && Date.now() - lastFresh > 5000){
+            lastFresh = Date.now(); setTimeout(() => { if (n.state === "seek" || n.state === "room") fresh(n); }, 1200);
+          }
+        }
+        if (cb) cb(s, err);
+      }, t);
       return ch;
     };
     const seek = n.seek.bind(n);
@@ -113,7 +138,8 @@
       net.insertAdjacentElement("afterend", el); }
     const ok = s => /SUBSCRIBED/.test(s) ? "&#10003;" : esc(s);
     const sum = o => Object.entries(o).map(([k, v]) => k + " " + v).join(", ") || "nothing";
-    el.innerHTML = "check: lobby " + ok(diag.lobby) + " &middot; room " + ok(diag.room) + " &middot; them in room " + (diag.them ? "&#10003;" : "&#10007;") +
+    const live = n.rt && n.rt.realtime && n.rt.realtime.isConnected ? (n.rt.realtime.isConnected() ? "&#10003;" : "&#10007;") : "?";
+    el.innerHTML = "check: net " + live + " &middot; lobby " + ok(diag.lobby) + " &middot; room " + ok(diag.room) + " &middot; them in room " + (diag.them ? "&#10003;" : "&#10007;") +
       " &middot; sent " + sum(diag.sent) + " &middot; got " + sum(diag.heard) + (diag.via ? " &middot; " + diag.via : "") + (n.seat === 0 ? " &middot; first" : " &middot; second");
   }
   function report(n, what){
@@ -134,9 +160,9 @@
   // back from another app: a fresh connection and straight back in line
   function fresh(n){
     clearInterval(n.goT); clearInterval(n._forceT); clearTimeout(n.roomT); clearTimeout(n._waitT);
-    for (const c of [n.room, n.lobby]) if (c) try { n.sb.removeChannel(c); } catch(e){}
-    // the old connection may look open but be dead after the phone slept: close it, the next join opens a new one
-    try { n.sb.realtime.disconnect(); } catch(e){}
+    // the old connection may look open but be dead after the phone slept: a new one, and the old shut down apart
+    const old = n.rt; n.rt = makeRt(n); if (old && old !== n.sb && old !== n.rt) drop(old);
+    else for (const c of [n.room, n.lobby]) if (c) try { c.unsubscribe(); } catch(e){}
     n.room = null; n.lobby = null; n.opp = null; if (Array.isArray(n.players)) n.players = []; n.match = null;
     seen.clear(); diag.lobby = "-"; diag.room = "-";
     n.seek();

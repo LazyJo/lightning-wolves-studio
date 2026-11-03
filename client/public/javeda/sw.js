@@ -6,7 +6,7 @@
      played from the phone - with the byte ranges an iPhone asks for, or it won't play them.
    - The scoreboard, log-in and saving runs (Supabase) always go to the network: never a stale copy.
    - Notifications (today's challenge, someone beat your score) arrive here; a tap opens the board they're about. */
-const V = "javeda-v5";
+const V = "javeda-v6";
 const PAGES = V + "-pages", LIBS = "javeda-libs-v1", SONGS = "javeda-songs-v1";
 const SONG_RE = /\/storage\/v1\/object\/public\/media\/javeda\/[^/?]+\.mp3$/;
 const LIB_RE = /^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;

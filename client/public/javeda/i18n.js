@@ -232,7 +232,7 @@ const S = [
   ["You'll get JAVEDA news by email.", "Je krijgt JAVEDA-nieuws per mail.", "Tu recevras les nouvelles de JAVEDA par e-mail.", "Recibirás noticias de JAVEDA por correo."],
   // notifications
   ["Notifications", "Meldingen", "Notifications", "Notificaciones"],
-  ["Today's challenge is up (once a day, around noon)", "De uitdaging van vandaag staat klaar (één keer per dag, rond de middag)", "Le défi du jour est là (une fois par jour, vers midi)", "El reto de hoy ya está aquí (una vez al día, hacia mediodía)"],
+  ["Today's challenge is up (every morning at #, Brussels time)", "De uitdaging van vandaag staat klaar (elke ochtend om # uur, Brusselse tijd)", "Le défi du jour est là (chaque matin à # h, heure de Bruxelles)", "El reto de hoy ya está aquí (cada mañana a las #, hora de Bruselas)"],
   ["Someone beats one of your scores", "Iemand verslaat een van je scores", "Quelqu'un bat un de tes scores", "Alguien supera una de tus puntuaciones"],
   ["log in for this one", "log in voor deze", "connecte-toi pour celle-ci", "inicia sesión para esta"],
   ["On iPhone and iPad, notifications come with the app: tap Get the app first.", "Op iPhone en iPad krijg je meldingen in de app: tik eerst op Download de app.", "Sur iPhone et iPad, les notifications viennent avec l'app : touche d'abord Télécharger l'app.", "En iPhone y iPad, las notificaciones llegan con la app: toca primero Descarga la app."],

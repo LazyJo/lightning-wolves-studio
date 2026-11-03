@@ -1,6 +1,6 @@
 // JAVEDA - the notifications (Supabase Edge Function "javeda-push"). How it's set up: README.md next to this file.
 // - {"run": true} with the x-javeda-key header: what pg_cron sends every 5 minutes. Sends "someone beat your score"
-//   (javeda_push_take: the queue the score triggers fill, one message a player) and, once a day from noon in Brussels,
+//   (javeda_push_take: the queue the score triggers fill, one message a player) and, once a day at 8:00 in Brussels,
 //   "today's challenge is up" (javeda_push_daily_due).
 // - {"hello": "<push address>"}: from the page, right after a phone turns notifications on - a first message to that
 //   phone only, so the player sees it works. Only an address that is signed up gets one, at most every 10 minutes.

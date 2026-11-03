@@ -1561,7 +1561,7 @@ GRANT EXECUTE ON FUNCTION public.javeda_reports_list(BOOLEAN) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_report_done(BIGINT, BOOLEAN) TO authenticated;
 
 -- ============================================================================
--- Notifications, for the app on a phone (or a browser that can): "today's challenge is up" (once a day, from noon
+-- Notifications, for the app on a phone (or a browser that can): "today's challenge is up" (once a day, at 8:00
 -- Brussels time) and "someone beat your score" (a level's board or today's, at most one every 6 hours a player).
 -- javeda_push: a row per phone or browser that said yes - the push address its browser gave, the language, what it
 -- wants, and the player when logged in ("beaten" only then; deleting the player deletes their rows).
@@ -1712,7 +1712,7 @@ BEGIN
 END;
 $$;
 
--- the edge function: today's challenge, once a day from noon Brussels time (null when it isn't due)
+-- the edge function: today's challenge, once a day from 8:00 Brussels time (null when it isn't due)
 CREATE OR REPLACE FUNCTION public.javeda_push_daily_due()
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
@@ -1722,7 +1722,7 @@ DECLARE
   lvl TEXT;
   out JSON;
 BEGIN
-  IF extract(hour FROM now() AT TIME ZONE 'Europe/Brussels') < 12 THEN RETURN NULL; END IF;
+  IF extract(hour FROM now() AT TIME ZONE 'Europe/Brussels') < 8 THEN RETURN NULL; END IF;
   UPDATE javeda_push_state SET daily_sent = today WHERE id AND (daily_sent IS NULL OR daily_sent < today);
   IF NOT FOUND THEN RETURN NULL; END IF;
   lvl := javeda_daily_level(today);

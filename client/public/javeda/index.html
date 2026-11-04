@@ -130,7 +130,7 @@ a{color:inherit}
 button{font:inherit; color:inherit; cursor:pointer}
 button:focus-visible, a:focus-visible, input:focus-visible{outline:2px solid var(--beam); outline-offset:2px}
 .hid{display:none!important}
-.wrap{max-width:980px; margin:0 auto; padding:14px 16px 48px; display:grid; gap:22px}
+.wrap{max-width:980px; margin:0 auto; padding:14px 16px 48px; display:grid; grid-template-columns:minmax(0,1fr); gap:22px}
 
 /* top bar */
 .top{display:flex; align-items:center; justify-content:space-between; gap:12px}
@@ -292,19 +292,26 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 
 /* scoreboard: which board (points, online, a level, an endless, HYPERDRIVE), then for a level or an endless the
    number grid 01-28, then its parts */
-.seg{display:flex; gap:4px; flex-wrap:wrap; padding:4px; margin-bottom:10px; background:var(--panel); border:1px solid var(--line); border-radius:12px; width:fit-content; max-width:100%}
+.seg{display:flex; gap:4px; padding:4px; margin-bottom:10px; background:var(--panel); border:1px solid var(--line); border-radius:12px; width:fit-content; max-width:100%}
 .seg button{border:0; background:none; border-radius:8px; padding:9px 14px; font:700 14px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
 .seg button:hover{color:var(--ink); background:#ffffff0d}
 .seg button[aria-selected="true"]{background:var(--blue); color:#041024}
 .seg button.g{color:#ffe89a}
 .seg button.g[aria-selected="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
-.bpick{display:grid; gap:8px; margin-bottom:10px}
+/* a row that stays one line and slides: the soft edge says there's more that way */
+.hs{overflow:auto hidden; overscroll-behavior-x:contain; scrollbar-width:none; -webkit-overflow-scrolling:touch; user-select:none; -webkit-user-select:none}
+.hs::-webkit-scrollbar{display:none}
+.hs > *{flex:none; white-space:nowrap}
+.hs.mr{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent); mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
+.hs.ml{-webkit-mask-image:linear-gradient(270deg,#000 calc(100% - 40px),transparent); mask-image:linear-gradient(270deg,#000 calc(100% - 40px),transparent)}
+.hs.ml.mr{-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent); mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent)}
+.bpick{display:grid; grid-template-columns:minmax(0,1fr); gap:8px; margin-bottom:10px}
 .bpick:empty{display:none}
 .bpick .nums{display:grid; grid-template-columns:repeat(14,minmax(0,1fr)); gap:5px}
 .bpick .nums button{border:1px solid var(--line); background:#050c1ea8; border-radius:8px; padding:8px 0; font:400 14px/1 var(--display); color:var(--dim); font-variant-numeric:tabular-nums}
 .bpick .nums button:hover{color:var(--ink); border-color:#ffffff40}
 .bpick .nums button[aria-pressed="true"]{background:var(--blue); border-color:var(--blue); color:#041024}
-.bpick .pts{display:flex; gap:6px; flex-wrap:wrap; align-items:center}
+.bpick .pts{display:flex; gap:6px; align-items:center}
 .bpick .pts button{display:flex; align-items:baseline; gap:7px; border:1px solid var(--line); background:#050c1ea8; border-radius:999px; padding:7px 13px; font:700 12px/1 var(--cond); letter-spacing:.16em; text-transform:uppercase; color:var(--mute)}
 .bpick .pts button small{font:400 12px/1 var(--display); letter-spacing:0; text-transform:none; color:var(--ink)}
 .bpick .pts button[aria-pressed="true"]{border-color:var(--blue); background:#2f8fe02e; color:var(--beam)}
@@ -313,8 +320,8 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .bpick.gold .nums button[aria-pressed="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .bpick.gold .pts button[aria-pressed="true"]{border-color:#e0a41a; background:#ffd60a24; color:var(--gold)}
 .bpick.gold .pts button small, .bpick.gold .cap{color:#ffe89a}
-@media (max-width:760px){ .bpick .nums{grid-template-columns:repeat(7,minmax(0,1fr))}
-  .seg{width:auto; display:grid; grid-template-columns:repeat(6,minmax(0,1fr))} .seg button{grid-column:span 2; padding:9px 4px} .seg button:nth-child(n+4){grid-column:span 3} }
+@media (max-width:760px){ .bpick .nums{display:flex; gap:6px} .bpick .nums button{width:46px; padding:12px 0} .bpick .pts button{padding:10px 14px}
+  .seg button{padding:12px 14px} }
 .board{background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden}
 .board ol{list-style:none; margin:0; padding:0}
 .board li{display:grid; grid-template-columns:34px 36px 1fr auto; align-items:center; gap:10px; padding:8px 14px; border-top:1px solid #ffffff0d}
@@ -408,7 +415,7 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 
 /* where you are: songs cleared and the way back in (gold once the album is done), and today's challenge beside it */
 .now{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:12px}
-.cont, .daily{position:relative; overflow:hidden; border-radius:14px; border:1px solid var(--line); background:var(--panel); padding:16px; display:grid; gap:10px; align-content:start}
+.cont, .daily{position:relative; overflow:hidden; border-radius:14px; border:1px solid var(--line); background:var(--panel); padding:16px; display:grid; grid-template-columns:minmax(0,1fr); gap:10px; align-content:start}
 .cont::before{content:""; position:absolute; inset:0; background:var(--art); opacity:.55; pointer-events:none}
 .cont > *, .daily > *{position:relative; min-width:0}
 .cont .count{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
@@ -422,7 +429,9 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .cont .nt small{font:700 11px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase; color:var(--mute)}
 .cont .nt span{font:400 19px/1.1 var(--display); overflow-wrap:anywhere}
 .cont .acts{display:flex; gap:8px; flex-wrap:wrap}
-.cont .crt{display:flex; gap:6px; flex-wrap:wrap; align-items:center; font:700 11px/1 var(--cond); letter-spacing:.22em; text-transform:uppercase; color:var(--mute); border-top:1px solid #ffffff14; padding-top:10px}
+.cont .crt{font:700 11px/1 var(--cond); letter-spacing:.22em; text-transform:uppercase; color:var(--mute); border-top:1px solid #ffffff14; padding-top:10px}
+.cont .crt .hs{display:flex; gap:6px; align-items:center}
+.cont .crt .nb{display:inline-block; min-width:18px; margin-left:6px; padding:2px 5px; border-radius:999px; background:var(--gold); color:#2a1a02; font-size:11px; letter-spacing:0; text-align:center}
 .cont.complete{border-color:#ffd60a8c; box-shadow:0 0 26px #ffd60a24 inset}
 .cont.complete::before{background:radial-gradient(90% 120% at 100% 0%,#ffd60a40,transparent 60%),linear-gradient(160deg,#3a2808,#0e1d3f 70%); opacity:1}
 .cont.complete .count b{color:var(--gold)}
@@ -566,7 +575,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <div class="small">Playing as a guest, your progress stays on this phone only.</div>
       <div class="jbtn"><button class="btn primary" type="button" data-signup="1">Create a free account</button><button class="switch" type="button" data-login="1">Log in</button></div>
     </div>
-    <div class="seg" role="tablist" aria-label="Which scoreboard" id="tabs"></div>
+    <div class="seg hs" role="tablist" aria-label="Which scoreboard" id="tabs"></div>
     <div class="bpick" id="etabs"></div>
     <div class="board short" id="board"><p class="empty">Loading…</p></div>
     <button class="switch hid" id="boardMore" type="button">Show the top 25</button>
@@ -1340,6 +1349,24 @@ function toast(html, ms = 3600){
   clearTimeout(toastT); toastT = setTimeout(() => t.classList.add("hid"), ms);
 }
 
+/* ---- a row that slides ---- */
+function hsFit(el){ const max = el.scrollWidth - el.clientWidth; el.classList.toggle("ml", max > 1 && el.scrollLeft > 1); el.classList.toggle("mr", max > 1 && el.scrollLeft < max - 1); }
+function hsAll(){ document.querySelectorAll(".hs").forEach(hsFit); }
+// new words in a box: its rows stay where they were slid to
+function hsPut(box, html){
+  const was = [...box.querySelectorAll(".hs")].map(e => e.scrollLeft);
+  box.innerHTML = html;
+  box.querySelectorAll(".hs").forEach((e, i) => { if (was[i]) e.scrollLeft = was[i]; });
+  requestAnimationFrame(hsAll);
+}
+// the one that's on, in view
+function hsShow(el){
+  const on = el.querySelector('[aria-selected="true"], [aria-pressed="true"]'); if (!on) return;
+  const r = el.getBoundingClientRect(), o = on.getBoundingClientRect();
+  if (o.left < r.left + 40 || o.right > r.right - 40) el.scrollBy({ left:o.left - r.left - (r.width - o.width) / 2, behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+}
+function hsBoard(){ requestAnimationFrame(() => [$("tabs"), ...$("etabs").querySelectorAll(".hs")].forEach(hsShow)); }
+
 /* ---- render ---- */
 function renderMe(){
   const name = signedIn() ? player.username : (guest.name || "Guest");
@@ -1354,10 +1381,10 @@ function renderMe(){
 function renderNow(){
   const songs = SONGS_N.filter(songDone).length, parts = LEVELS.filter(l => cleared(l.id)).length, nx = continueLevel();
   const st = starTotal(), stars = st ? '<em class="stt">&#9733; ' + st + ' of ' + LEVELS.length * 3 + ' stars</em>' : '';
-  const crt = creator ? '<div class="crt">Creator <button class="btn small" data-reports="1">Reports' + (reportsOpen ? ' (' + reportsOpen + ')' : '') + '</button><button class="btn small" data-players="1">Players &amp; downloads</button><button class="btn small" data-stats="1">Where players get stuck</button>' +
+  const crt = creator ? '<div class="crt"><div class="hs"><span>Creator</span><button class="btn small" data-reports="1">Reports' + (reportsOpen ? '<span class="nb">' + reportsOpen + '</span>' : '') + '</button><button class="btn small" data-players="1">Players &amp; downloads</button><button class="btn small" data-stats="1">Where players get stuck</button>' +
     (albumDone() ? '' : '<button class="btn small" data-marathon="1">Marathon</button><button class="btn small" data-credits="1">Credits</button>') +
     '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
-    (freeView ? 'Free view: on' : 'See it free') + '</button></div>' : '';
+    (freeView ? 'Free view: on' : 'See it free') + '</button></div></div>' : '';
   // the Pass, for anyone who hasn't got it, once it's on
   const passrow = (passOn || freeView) && !hasPass() ? '<div class="passrow"><span><b>&#9889; JAVEDA Pass</b> &middot; every part, endless and remix' +
     (passCents ? ' &middot; ' + euro(passCents) + ' once' : '') + '</span><button class="btn gold small" data-pass="">Get it</button></div>' : '';
@@ -1382,7 +1409,7 @@ function renderNow(){
               (passReady(wait) ? '<button class="btn gold" data-pass="' + wait.id + '">&#9889; Unlock</button></div>'
                                : '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>') : '') + passrow + crt + '</article>';
   }
-  $("now").innerHTML = html + dailyCard();
+  hsPut($("now"), html + dailyCard());
 }
 // today's challenge: one song's Part 1 for everyone, a board of its own that starts empty every day
 function dailyCard(){
@@ -1590,6 +1617,7 @@ function renderTabs(){
   if (kind === "level" || kind === "endless") lastBoard[kind] = boardTab;
   $("tabs").innerHTML = [["points", "Points"], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["marathon", "Marathon", "g"]].map(([k, t, c]) =>
     '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
+  requestAnimationFrame(hsAll);
   const el = $("etabs"); el.classList.toggle("gold", kind === "endless" || kind === "marathon");
   if (kind === "daily"){ const lv = daily && levelById(daily.level);
     el.innerHTML = lv ? '<div class="pts"><span class="cap"><small>Today &middot; Level ' + lv.num + '</small>' + esc(lv.title) + '</span></div>' : ""; return; }
@@ -1597,12 +1625,12 @@ function renderTabs(){
   if (kind !== "level" && kind !== "endless"){ el.innerHTML = ""; return; }
   const list = kind === "level" ? boardLevels() : ENDLESS, cur = levelById(boardTab), here = list.filter(l => l.num === cur.num);
   const nums = [...new Set(list.map(l => l.num))], main = LEVELS.find(l => l.num === cur.num && !l.part) || cur;
-  el.innerHTML = '<div class="nums" role="group" aria-label="Level">' + nums.map(n =>
+  hsPut(el, '<div class="nums hs" role="group" aria-label="Level">' + nums.map(n =>
       '<button type="button" data-num="' + n + '" aria-pressed="' + (n === cur.num) + '" title="Level ' + n + '">' + pad(n) + '</button>').join("") + '</div>' +
     (here.length > 1
-      ? '<div class="pts" role="group" aria-label="Part">' + here.map(l => '<button type="button" data-tab="' + l.id + '" aria-pressed="' + (l.id === boardTab) + '">' +
+      ? '<div class="pts hs" role="group" aria-label="Part">' + here.map(l => '<button type="button" data-tab="' + l.id + '" aria-pressed="' + (l.id === boardTab) + '">' +
           (l.remix ? 'Remix' : 'Part ' + (l.part || 1)) + (l.remix ? '' : ' <small>' + esc(l.title) + '</small>') + '</button>').join("") + '</div>'
-      : '<div class="pts"><span class="cap"><small>Level ' + cur.num + (kind === "endless" ? ' &#8734;' : '') + '</small>' + esc(main.title) + '</span></div>');
+      : '<div class="pts"><span class="cap"><small>Level ' + cur.num + (kind === "endless" ? ' &#8734;' : '') + '</small>' + esc(main.title) + '</span></div>'));
 }
 
 // one board's rows: rank, picture, name (with the gold badge for everyone who finished the album), value
@@ -2008,7 +2036,7 @@ $("now").addEventListener("click", e => {
   if (b.dataset.play || b.dataset.pass !== undefined) playOrPass(e);
   else if (b.dataset.daily) play(daily.level, { daily:true });
   else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); } });
-  else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
+  else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (b.dataset.marathon) startMarathon();
   else if (b.dataset.credits) openCredits();
   else if (b.dataset.players) openPlayers();
@@ -2024,8 +2052,32 @@ for (const id of ["tabs", "etabs"]) $(id).addEventListener("click", e => {
   if (b.dataset.kind){ const k = b.dataset.kind; boardTab = k === "level" || k === "endless" ? lastBoard[k] : k === "ult" ? ULT.id : k; }
   else if (b.dataset.num){ const list = boardKind(boardTab) === "endless" ? ENDLESS : boardLevels(); boardTab = list.find(l => l.num === +b.dataset.num).id; }
   else boardTab = b.dataset.tab;
-  renderTabs(); renderBoard();
+  renderTabs(); renderBoard(); hsBoard();
 });
+// the rows: a phone swipes them. On a computer: roll the wheel over one, or drag it
+document.addEventListener("scroll", e => { if (e.target.classList && e.target.classList.contains("hs")) hsFit(e.target); }, { capture:true, passive:true });
+addEventListener("resize", hsAll);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(hsAll);
+let hsDrag = null, hsDragged = false;
+for (const id of ["tabs", "etabs", "now"]){
+  $(id).addEventListener("wheel", e => {
+    const el = e.target.closest(".hs"); if (!el || e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    const was = el.scrollLeft; el.scrollLeft = was + e.deltaY * (e.deltaMode ? 16 : 1);
+    if (el.scrollLeft !== was) e.preventDefault();   // at its end the page scrolls on as normal
+  }, { passive:false });
+  $(id).addEventListener("pointerdown", e => {
+    const el = e.target.closest(".hs");
+    if (el && e.pointerType === "mouse" && !e.button && el.scrollWidth > el.clientWidth + 1) hsDrag = { el, x:e.clientX, left:el.scrollLeft, moved:false };
+  });
+}
+addEventListener("pointermove", e => {
+  if (!hsDrag) return;
+  const d = e.clientX - hsDrag.x; if (Math.abs(d) > 5) hsDrag.moved = true;
+  if (hsDrag.moved) hsDrag.el.scrollLeft = hsDrag.left - d;
+});
+addEventListener("pointerup", () => { if (hsDrag && hsDrag.moved){ hsDragged = true; setTimeout(() => hsDragged = false); } hsDrag = null; });
+addEventListener("pointercancel", () => hsDrag = null);
+addEventListener("click", e => { if (hsDragged){ e.stopPropagation(); e.preventDefault(); } }, true);   // the end of a drag is not a tap
 $("ultimate").addEventListener("click", playOrPass);
 $("versus").addEventListener("click", e => {
   const b = e.target.closest("[data-play]"), iv = e.target.closest("[data-invite]");
@@ -3066,7 +3118,7 @@ for (const id of ["pfPushD", "pfPushB"]) $(id).onchange = () => {
 function goTo(hash){
   const m = /^#board=([a-z0-9]+)$/.exec(hash || "");
   if (hash === "#daily"){ const d = document.querySelector("#now .daily"); if (!d) return; d.scrollIntoView({ behavior:"smooth", block:"center" }); }
-  else if (m && (m[1] === "daily" ? daily : levelById(m[1]))){ boardTab = m[1]; renderTabs(); renderBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
+  else if (m && (m[1] === "daily" ? daily : levelById(m[1]))){ boardTab = m[1]; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else return;
   if (location.hash) history.replaceState(null, "", location.pathname + location.search);
 }

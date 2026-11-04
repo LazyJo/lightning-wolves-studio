@@ -25,6 +25,8 @@
   const NOISE = /^Script error\.?$|ResizeObserver loop|NotAllowedError|AbortError|The play\(\) request was interrupted|play\(\) failed|chrome-extension|moz-extension|safari-extension|Non-Error promise rejection/i;
   function report(message, detail){
     message = String(message || "").replace(/^Uncaught (?:exception: )?/, "").slice(0, 400); if (!message || NOISE.test(message) || NOISE.test(detail || "")) return;
+    // a stack that never passes through a file: code the browser put in the page itself (Chrome on iPhone does that), not JAVEDA's
+    if (/\n/.test(detail || "") && !/https?:|\.js|\.html|\/javeda\//.test(detail)) return;
     if (sent.has(message) || ++n > 5) return; sent.add(message);
     const r = { kind:"error", message, detail:String(detail || "").slice(0, 2000), page:location.pathname + location.search.replace(/[?&](room|rides)=[^&]*/g, ""),
       device:device(), lang:window.JAVEDA_LANG || "", app:matchMedia("(display-mode: standalone)").matches || navigator.standalone === true };

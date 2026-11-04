@@ -38,15 +38,24 @@
     if (patched) return; patched = true;
     n.rt = makeRt(n);
     // the line: only players who are really there (their beat moved in the last 11 s), and always yourself
+    // Each player is one entry, read the same way on every phone: a player can be listed twice for a while (the old
+    // page, after the phone reloaded it, stays listed until the server notices), and the level takes "the first" of
+    // the two - which isn't the same one on both phones. Then both name a different room (the name holds the
+    // first player's start time) or both take the same seat, and the start hangs. So: always the newest page
+    // (the highest start time), and for yourself, this page.
     const waiting = n.waiting.bind(n);
     n.waiting = function(){
-      const now = Date.now();
-      return waiting().filter(p => {
+      const now = Date.now(), st = n.lobby ? n.lobby.presenceState() : {};
+      return waiting().map(p => {
+        if (p.id === n.me) return Object.assign({}, p, { since:n.since });
+        const metas = (st[p.id] || [p]).filter(m => m && m.id), best = metas.reduce((a, m) => (+m.since > +a.since || (+m.since === +a.since && (m.beat | 0) > (a.beat | 0))) ? m : a, metas[0] || p);
+        return Object.assign({}, p, { since:best.since, name:best.name || p.name });
+      }).filter(p => {
         if (p.id === n.me) return true;
-        const metas = (n.lobby && n.lobby.presenceState()[p.id]) || [p], b = Math.max(0, ...metas.map(m => (m && m.beat) | 0)), s = seen.get(p.id);
+        const metas = st[p.id] || [p], b = Math.max(0, ...metas.map(m => (m && m.beat) | 0)), s = seen.get(p.id);
         if (!s || s.beat !== b) seen.set(p.id, { beat:b, at:now });
         return now - seen.get(p.id).at < STALE;
-      });
+      }).sort((a, b) => a.since - b.since || (a.id < b.id ? -1 : 1));
     };
     // which channel is being made, and how its connection goes (SUBSCRIBED, CHANNEL_ERROR, TIMED_OUT, CLOSED)
     let making = "lobby";

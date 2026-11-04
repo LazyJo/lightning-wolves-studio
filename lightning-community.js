@@ -111,7 +111,7 @@ module.exports = function community({ discord, GUILD, getState, setState, guildR
     const give = async (m, key) => { const r = await ensure(key); if (!r || m.roles.includes(r.id)) return; await discord('/guilds/' + GUILD() + '/members/' + m.user.id + '/roles/' + r.id, 'PUT'); m.roles.push(r.id); changes++; };
     const take = async (m, rid) => { if (!rid || !m.roles.includes(rid)) return; await discord('/guilds/' + GUILD() + '/members/' + m.user.id + '/roles/' + rid, 'DELETE'); m.roles = m.roles.filter(x => x !== rid); changes++; };
     for (const m of list){
-      if (m.user.bot || changes >= MAX_ROLE_CHANGES) continue;
+      if (m.user.bot || m.pending || changes >= MAX_ROLE_CHANGES) continue;   // pending: hasn't accepted the server rules yet (a role would let them skip that)
       const joined = Date.parse(m.joined_at), has = key => { const r = id(key); return !!r && m.roles.includes(r); };
       const ranked = ['pup', 'wolf', 'pack', 'alpha', 'staff'].some(has);
       try {

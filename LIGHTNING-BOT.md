@@ -13,6 +13,7 @@ What it does:
 | `/top` | Top 10 of a board: points, online 1v1, or today's challenge |
 | `/daily` | Today's challenge and its top 5 |
 | `/help` | What the bot does |
+| `/regions` | Where the members come from: each region role and how many have it (counted every 5 minutes) |
 | `/rank` · `/leaderboard` | Your level and XP · the 10 most active wolves |
 | `/warn` `/warnings` `/timeout` `/kick` `/ban` `/purge` | Mods only (Discord's own permissions decide who). Each one goes in the log channel |
 | `/setup welcome` · `rules` · `roles` · `feed` · `log` · `levels` · `intro` | Admins only. Posts the welcome card, the rules or the role picker in this channel, or makes this channel the JAVEDA feed / the log / the level-ups / the welcomes for new members |

@@ -102,7 +102,7 @@ function pickerMessages() {
 }
 const chunk = (a, n) => a.reduce((o, x, i) => (i % n ? o[o.length - 1].push(x) : o.push([x]), o), []);
 const help = () => ({ embeds: [{ color: BLUE, title: '⚡ Lightning Bot', description:
-  '`/javeda` JAVEDA, the playable album\n`/top` the top 10 of a board\n`/daily` today\'s challenge\n`/rank` your level · `/leaderboard` the most active wolves\n\n' +
+  '`/javeda` JAVEDA, the playable album\n`/top` the top 10 of a board\n`/daily` today\'s challenge\n`/rank` your level · `/leaderboard` the most active wolves\n`/regions` where the members come from\n\n' +
   'Mods: `/warn` `/warnings` `/timeout` `/kick` `/ban` `/purge`\nAdmins: `/setup welcome | rules | roles | feed | log | levels | intro`' }], flags: EPHEMERAL });
 
 // ── JAVEDA, from the database ──
@@ -166,6 +166,7 @@ const COMMANDS = [
     choices: [{ name: 'Points', value: 'points' }, { name: 'Online 1v1', value: 'online' }, { name: 'Today\'s challenge', value: 'daily' }] }] },
   { name: 'daily', description: 'Today\'s JAVEDA challenge' },
   { name: 'help', description: 'What Lightning Bot does' },
+  { name: 'regions', description: 'Where the members of this server come from' },
   { name: 'setup', description: 'Admins: post the welcome, rules or role picker here, or make this channel the JAVEDA feed',
     default_member_permissions: '8', dm_permission: false,
     options: ['welcome', 'rules', 'roles', 'feed', ...Object.keys(C.SETUP)].map(n => ({ type: 1, name: n, description: { welcome: 'Post the welcome card in this channel', rules: 'Post the rules in this channel',
@@ -177,6 +178,7 @@ async function command(i, sb) {
   const name = i.data.name;
   if (name === 'javeda') return javedaCard();
   if (name === 'help') return help();
+  if (name === 'regions') { if (!sb) return offline(); return regionsCard(await getState(sb, 'role_counts')); }
   if (name === 'top') { if (!sb) return offline(); const opt = (i.data.options || []).find(o => o.name === 'board'); return boardCard(await board(sb, opt ? opt.value : 'points')); }
   if (name === 'daily') {
     if (!sb) return offline();
@@ -197,6 +199,17 @@ async function command(i, sb) {
   return { content: 'I don\'t know that one.', flags: EPHEMERAL };
 }
 const done = text => ({ content: '✅ ' + text, flags: EPHEMERAL });
+// /regions: the region roles from the picker, with how many members have each (counted every 5 minutes)
+async function regionsCard(rc) {
+  if (!rc || !rc.counts) return { content: 'Still counting. Try again in 5 minutes.', flags: EPHEMERAL };
+  const roles = await guildRoles(), rows = PICKER[0].roles.map(([, e, n, re]) => {
+    const r = roles.find(x => re.test(x.name) && !x.managed); return { e, n, c: r ? rc.counts[r.id] || 0 : 0 }; }).sort((a, b) => b.c - a.c);
+  const max = Math.max(1, ...rows.map(r => r.c)), picked = rows.reduce((t, r) => t + r.c, 0);
+  return { embeds: [{ color: BLUE, title: '🌍 Where the wolves come from', description: rows.map(r => r.e + ' **' + r.n + '** · ' + r.c.toLocaleString('en-US') + '\n' +
+      '▰'.repeat(Math.round(10 * r.c / max)) + '▱'.repeat(10 - Math.round(10 * r.c / max))).join('\n') +
+    '\n\n' + picked.toLocaleString('en-US') + ' of ' + Number(rc.humans || 0).toLocaleString('en-US') + ' members picked a region. Pick yours in the role picker.',
+    timestamp: rc.at }] };
+}
 const offline = () => ({ content: 'JAVEDA\'s database can\'t be reached right now. Try again in a bit.', flags: EPHEMERAL });
 
 // ── the feed: today's challenge (from noon, Brussels) and a new #1 ──

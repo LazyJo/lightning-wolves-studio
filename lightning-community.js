@@ -139,6 +139,9 @@ module.exports = function community({ discord, GUILD, getState, setState, guildR
       } catch (e){ if (e.code === 50013) out.push('cant:' + m.user.id); else throw e; }  // a member above the bot: leave them
     }
     await setState(sb, 'welcomed', [...welcomed].slice(-2000));
+    // how many members have each role (for /regions), counted from the same member list
+    const counts = {}; for (const m of list) if (!m.user.bot) for (const r of m.roles) counts[r] = (counts[r] || 0) + 1;
+    await setState(sb, 'role_counts', { at:new Date().toISOString(), humans, counts });
   }
 
   async function tick(sb){

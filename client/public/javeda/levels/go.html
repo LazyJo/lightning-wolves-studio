@@ -131,7 +131,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Mode">
-    <button type="button" data-mode="1">Rooftop Golf</button><button type="button" data-mode="2">Sky Hockey</button><button type="button" data-mode="1x" class="gold">Rooftop Golf &#8734;</button><button type="button" data-mode="2x" class="gold">Sky Hockey &#8734;</button>
+    <button type="button" data-mode="1">Rooftop Golf</button><button type="button" data-mode="2">Sky Hockey</button><button type="button" data-mode="1x" class="gold">Rooftop Golf &#8734;</button><button type="button" data-mode="2x" class="gold">Sky Hockey &#8734;</button><button type="button" data-mode="r" class="gold">Remix &#8734;</button>
   </div>
   <div id="sizes" class="hid" role="group" aria-label="Golf: alone or online">
     <button type="button" data-size="">Play alone</button><button type="button" data-size="golf">Online 1v1</button><button type="button" data-size="golf3">Online &middot; 3 players</button><button type="button" data-size="golf4">Online &middot; 4 players</button>
@@ -163,6 +163,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
      two pucks, bumpers, the golden puck, the wind, portal walls, the split, and the final with everything.
    Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
    ENDLESS for each (?endless=1) once both are cleared.
+   REMIX (?remix=1), also once both are cleared: the two games in turn, on one score and one set of hearts. Not online.
    ONLINE (?online=golf|golf3|golf4|hockey, from the JAVEDA page, logged in): Golf for 2, 3 or 4 - the same nine holes
    at the same time, the others' balls ghosts on yours, the fewest strokes takes the hole; Hockey 1v1 - one table, each
    of you at your own end, the rounds the same as against the shadow. A quick match against real players - never
@@ -185,6 +186,7 @@ function section(t){
 }
 const hookAt = t => section(t) === "hook";
 const STINT = BAR * 8;                        // endless: one window
+const TURN = BAR * 16;                        // remix: one game's turn
 const HEARTS = 3;
 
 const Q = new URLSearchParams(location.search);
@@ -194,10 +196,12 @@ const PRACTICE = !ONLINE && OMODES[Q.get("practice")] || null;
 const GOLF_N = { golf:2, golf3:3, golf4:4 }[ONLINE] || 0;      // online golf: 2, 3 or 4 players
 const MODE_NAME = m => m === "hockey" ? "HOCKEY 1v1" : m === "golf" ? "GOLF 1v1" : "GOLF · " + m.slice(4) + " PLAYERS";
 const PART = ONLINE === "hockey" || PRACTICE === "hockey" ? 2 : ONLINE || PRACTICE ? 1 : { "2":2 }[Q.get("part")] || 1;
-const ENDLESS = !ONLINE && !PRACTICE && Q.get("endless") === "1";
+const REMIX = !ONLINE && !PRACTICE && Q.get("remix") === "1";
+const ENDLESS = !ONLINE && !PRACTICE && !REMIX && Q.get("endless") === "1";
 const NAMES = ["", "Rooftop Golf", "Sky Hockey"], IDS = ["", "lvl28", "lvl28b"];
 const CFG = ONLINE ? { id:"lvl28" + ONLINE, title:NAMES[PART] + (GOLF_N > 2 ? " · " + GOLF_N + " players" : " 1v1"), by:"LEVEL 28 · ONLINE " + (GOLF_N > 2 ? GOLF_N + " PLAYERS" : "1v1"), online:ONLINE }
   : PRACTICE ? { id:"lvl28" + PRACTICE, title:NAMES[PART], by:"LEVEL 28 · WARM UP", practice:PRACTICE }
+  : REMIX ? { id:"lvl28r", title:"Remix", by:"LEVEL 28 · REMIX", endless:true, board:"Level 28 Remix" }
   : ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 28" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 28" + (PART > 1 ? " Part " + PART : "") + " ∞" }
   : { id:IDS[PART], title:NAMES[PART], by:"LEVEL 28" + (PART > 1 ? " PART " + PART : "") };
 
@@ -1484,6 +1488,7 @@ function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas")
 // the renderer: film-like colour (ACES), the glow (bloom), smooth edges; the sky and its reflections; the sunset light
 // yaw turns the sky round (the sunset off to one side), for a game that mustn't look into the sun
 function boot(fov, fogDensity, yaw){
+  if (ren) return;
   ren = new THREE.WebGLRenderer({ antialias:false, powerPreference:"high-performance" }); ren.setPixelRatio(Math.min(1.5, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight);
   ren.toneMapping = THREE.ACESFilmicToneMapping; ren.toneMappingExposure = .9; ren.outputEncoding = THREE.sRGBEncoding; $("cab").appendChild(ren.domElement);
   scene = new THREE.Scene(); cam = new THREE.PerspectiveCamera(fov, innerWidth/innerHeight, .1, 5000);
@@ -1610,9 +1615,10 @@ const STAGE_Y = 150, STAGE_Z = -34, SUN_YAW = .95;
 // the cloth of a table: a colour, a fine weave, lighter in the middle
 function feltTex(col){ return canvasTex(256, 256, (x, w) => { const g = x.createRadialGradient(w/2, w/2, 10, w/2, w/2, w*.75); g.addColorStop(0, col); g.addColorStop(1, "#0a0612"); x.fillStyle = g; x.fillRect(0, 0, w, w);
   for (let i = 0; i < 2500; i++){ x.fillStyle = "rgba(255,255,255," + rnd(i)*.05 + ")"; x.fillRect(rnd(i*1.7)*w, rnd(i*2.3)*w, 1.5, 1.5); } }); }
+let CITY = null;      // the remix has two tables, on the one city
 // flat: the board lies on a roof like a table and you look down at it
 function stage(bw, bh, flat){ boot(36, .0006, SUN_YAW); const root = new THREE.Group(); scene.add(root);
-  const city = makeCity({ clear:(x, z) => Math.abs(x) < 50 && z > -90 }); root.add(city);
+  const city = CITY = CITY || makeCity({ clear:(x, z) => Math.abs(x) < 50 && z > -90 }); root.add(city);
   const B = new THREE.Group(); B.position.set(0, STAGE_Y, STAGE_Z); root.add(B);
   let roof = null; if (flat){ B.rotation.x = -Math.PI/2; roof = tower(bw + 2.4, 160, bh + 2.4, 4, STAGE_Y - 160.6, .25); roof.position.set(0, STAGE_Y - 80.6, STAGE_Z); root.add(roof); }
   // a pane of dark glass behind the board, a gold edge round it
@@ -1787,7 +1793,8 @@ const GOLF = {
     if (g.moving) this.step(dt, t);
     if (!g.holed && (t - g.at > this.clock() || g.strokes >= 8)){ const why = g.strokes >= 8 ? "PICKED UP" : "OUT OF TIME";
       if (ONLINE){ say(why, "it counts 9 strokes", 1.2, "x"); this.finishHole(true); }
-      else { if (hurt(why, g.strokes >= 8 ? "Eight strokes is the most on a hole - look at the line the dots show, and pull back less near the cup." : "A hole has 8 bars - putt sooner.")) return; this.finishHole(true); this.next = t + .8; } }
+      else { const up = REMIX && why === "OUT OF TIME" && t >= S.turnAt + TURN;     // the remix: the turn's up, so the clock costs no heart: the other game comes in
+        if (!up && hurt(why, g.strokes >= 8 ? "Eight strokes is the most on a hole - look at the line the dots show, and pull back less near the cup." : "A hole has 8 bars - putt sooner.")) return; this.finishHole(true); this.next = t + .8; } }
     if (!ONLINE && g.holed && this.next && t >= this.next){ this.next = 0; this.load(this.n + 1); }
     if (ONLINE) GV.tick(t); },
   render(t){ const dt = dtOf(t), g = this.g, H = this.H; fitCam(this.st, t); this.fx.tick(dt); tickCity(this.st.city, t);
@@ -2163,7 +2170,7 @@ function vsHud(){
 /* ---------------- state, HUD ---------------- */
 let S = null, G = null, crashed = null;
 const keys = {};
-function say(a, b, t, kind){ const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
+function say(a, b, t, kind){ say.last = [a, b, t, kind]; const m = $("msg"); m.innerHTML = a + (b ? "<small>" + b + "</small>" : ""); m.className = "on" + (kind ? " " + kind : ""); S.msgT = t || 1.2; }
 let lastH = "";
 const clock = t => Math.floor(t/60) + ":" + String(Math.floor(t) % 60).padStart(2, "0");
 const fmt = n => Math.round(n).toLocaleString("en"), fmt0 = n => Math.max(0, Math.round(n)).toLocaleString("en");
@@ -2178,7 +2185,8 @@ function hud(){
   if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
     lastH = h; $("hearts").textContent = h; }
   const t = Math.max(0, S.t);
-  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  if (REMIX){ $("bl").textContent = "REMIX · LAP " + (S.lap + 1) + " · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.turnAt)/TURN, 0, 1)*100).toFixed(1) + "%"; }
+  else if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
   else if (ONLINE){ $("bl").textContent = GOLF_N ? "HOLE " + (GOLF.n + 1) + " OF 9" : "ROUND " + (S.rd + 1) + " · FIRST TO 3"; $("songbar").firstChild.style.width = (GOLF_N ? (GOLF.n + (GOLF.g.holed ? 1 : 0))/9 : Math.max(S.rounds[0], S.rounds[1])/3)*100 + "%"; }
   else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
   $("info").textContent = G.info();
@@ -2204,13 +2212,19 @@ const LV = () => S ? LVb.L0 + (LVb.L1 - LVb.L0)*clamp((S.t - LVb.t0)/(LVb.t1 - L
 const LVL = LV;
 Object.assign(GOLF, { name:"ROOFTOP GOLF", tag:"ROOFTOP GOLF", hint:"pull back and let go to putt" });
 Object.assign(HOCKEY, { name:"SKY HOCKEY", tag:"SKY HOCKEY", hint:"move your striker · hit the puck into the far goal" });
+// the remix: a game that comes back goes on to its next hole or round, keeping what it has counted. A turn that's up
+// waits for the break: the hole or the round over. wait is how many bars it waits at most: a hole has 8 at most on its
+// own clock; a round has 10 and then the next goal, so 12 - still level by then, it just stops, nobody's round
+Object.assign(GOLF, { wait:8, breakAt(){ return this.next; }, begin(){ this.next = 0; this.fx.tick(2); this.load(this.n + 1); } });
+Object.assign(HOCKEY, { wait:12, breakAt(){ return this.nextAt; }, begin(){ this.nextAt = 0; this.fx.tick(2); Object.assign(this.h, { mx:0, my:-3, tx:0, ty:-3, mvx:0, mvy:0, ax:0, ay:3, avx:0, avy:0, back:0 }); this.newRound(S.rd + 1); this.h.pause = 1.8; } });
 
 /* ---------------- the run ---------------- */
 function reset(){
-  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0 };
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0, turn:0, lap:0, turnAt:0 };
   lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0; lastT = 0;
+  if (REMIX){ G = GOLF; GOLF.next = HOCKEY.nextAt = 0; HOCKEY.st.B.visible = HOCKEY.st.roof.visible = false; HOCKEY.reset(); S.rd = -1; }      // hockey ready, its first round for its first turn
   camInit = false; G.st.B.visible = true; if (G.st.roof) G.st.roof.visible = true; END.root.visible = false; END.on = false; CAM.init = false;
-  LVb = CFG.endless ? { t0:0, t1:STINT, L0:.3, L1:.4 } : ONLINE ? { t0:0, t1:1, L0:.4, L1:.4 } : { t0:0, t1:END_AT, L0:0, L1:1 };
+  LVb = REMIX ? { t0:0, t1:TURN, L0:.3, L1:.4 } : CFG.endless ? { t0:0, t1:STINT, L0:.3, L1:.4 } : ONLINE ? { t0:0, t1:1, L0:.4, L1:.4 } : { t0:0, t1:END_AT, L0:0, L1:1 };
   G.reset();
   $("msg").className = "";
 }
@@ -2222,6 +2236,20 @@ function startStint(n, t){
   const L0 = .3 + n*.1; LVb = { t0:n*STINT, t1:(n + 1)*STINT, L0, L1:L0 + .1 };
   if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
 }
+// the remix: when a game's turn is up it plays out the hole or round you're on (see wait), then the other game comes in.
+// Round both is a lap: +2,000, a heart back, and the next one is harder. Changing game never costs a heart
+function nextGame(t){
+  S.turn++; S.turnAt = t; const first = S.turn % 2 === 0;
+  let back = false;
+  if (first){ S.lap++; S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  G.st.B.visible = G.st.roof.visible = false; G = first ? GOLF : HOCKEY; G.st.B.visible = G.st.roof.visible = true; down = false; GOLF.pull = null;
+  const L0 = Math.min(6, .3 + S.lap*.3); LVb = { t0:t, t1:t + TURN, L0, L1:L0 + .1 };      // held at 6 (lap 20): much past that the wind beats the green's friction and a ball never stops
+  G.begin();
+  $("flash").style.background = "#ffc83a"; S.flashT = .4; sfx.whoosh();
+  sayThen(first ? "LAP " + (S.lap + 1) : G.name, first ? G.name + " · +2,000" + (back ? " · a heart back" : "") : G.hint, 1.6);
+}
+// the remix's message, then the one the game has just said (the hole, the round), if nothing else has come up by then
+function sayThen(a, b, secs){ const own = say.last; say(a, b, secs, "g"); S.then = { at:Math.max(0, S.t) + secs, own, mine:say.last }; }
 const LOOPS = CFG.endless || ONLINE;
 function songT(){
   if (LOOPS && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
@@ -2237,7 +2265,9 @@ function update(dt){
   if (S.done) return;
   const t = Math.max(0, S.t);
   if (S.inv > 0) S.inv -= dt;
-  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  if (REMIX){ if (t >= S.turnAt + TURN && (G.breakAt() ? t >= G.breakAt() : t >= S.turnAt + TURN + BAR*G.wait)) nextGame(t);
+    if (S.then && t >= S.then.at){ if (say.last === S.then.mine) say(...S.then.own); S.then = null; } }
+  else if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
   G.update(dt, t);
   if (!CFG.endless && !ONLINE && t >= END_AT && !S.done && S.end < 0) win();
 }
@@ -2266,7 +2296,7 @@ function lose(why, tip){
 function over(why){
   if (S.done) return;
   S.done = true; S.why = why;
-  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  say(REMIX ? "REMIX OVER" : "RUN OVER", why, 2, "g"); $("phase").className = "off";
   setTimeout(finish, 1500);
 }
 
@@ -2332,12 +2362,12 @@ function finish(){
   }
   if (HUB && !PRACTICE) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:S.got });
   if (PRACTICE){ $("practice").textContent = "Back online"; $("practice").classList.remove("hid"); }
-  const stat = PART === 1 ? S.holes + (S.holes === 1 ? " hole" : " holes") + " in " + S.strokes + " strokes" + (S.aces ? " · " + S.aces + " in one" : "") + (S.under ? " · " + S.under + " under par" : "")
+  const stat = REMIX ? "holes <b>" + S.holes + "</b> · rounds <b>" + S.rounds[0] + "</b>" : PART === 1 ? S.holes + (S.holes === 1 ? " hole" : " holes") + " in " + S.strokes + " strokes" + (S.aces ? " · " + S.aces + " in one" : "") + (S.under ? " · " + S.under + " under par" : "")
     : S.goals + (S.goals === 1 ? " goal" : " goals") + " · " + S.rounds[0] + " of " + (S.rounds[0] + S.rounds[1]) + " rounds won";
   if (CFG.endless){
-    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector(".by").textContent = (REMIX ? "REMIX · " : "ENDLESS · ") + S.why;
     v.querySelector("h1").textContent = fmt(score());
-    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> on the roofs &middot; " + stat;
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> on the roofs &middot; " + (REMIX ? "lap <b>" + (S.lap + 1) + "</b> &middot; " : "") + stat;
     ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
     return;
   }
@@ -2351,7 +2381,7 @@ function finish(){
   v.querySelector(".by").textContent = (PRACTICE ? "WARM-UP" : CFG.by) + " COMPLETE";
   v.querySelector("h1").textContent = "GO!";
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
-  ps[1].innerHTML = PRACTICE ? "Warmed up. Now go and find someone." : (PART === 2 ? "The shadow's beaten." + "<br>Level 28 cleared: <b>Rooftop Golf &#8734;</b> and <b>Sky Hockey &#8734;</b> are open in the gold Endless list." : "Every hole on the roofs." + "<br>Part 2, <b>Sky Hockey</b>, is open.");
+  ps[1].innerHTML = PRACTICE ? "Warmed up. Now go and find someone." : (PART === 2 ? "The shadow's beaten." + "<br>Level 28 cleared: <b>Rooftop Golf &#8734;</b>, <b>Sky Hockey &#8734;</b> and the <b>Remix &#8734;</b> are open in the gold Endless list." : "Every hole on the roofs." + "<br>Part 2, <b>Sky Hockey</b>, is open.");
 }
 
 /* ---------------- input ---------------- */
@@ -2377,6 +2407,7 @@ function startGame(){
   if (HUB && !PRACTICE && !ONLINE) toHub({ type:"javeda:start", level:CFG.id });
   if (GOLF_N) say(MODE_NAME(ONLINE), "the same holes at the same time - the fewest strokes takes the hole", 2.6, "g");
   else if (ONLINE) say("HOCKEY 1v1", "first to 3 rounds - you're at the near end", 2.6, "g");
+  else if (REMIX) sayThen("REMIX", "both games, till the hearts run out", 2.6);
   else if (CFG.endless) say("ENDLESS", PART === 1 ? "the holes never stop" : "the rounds never stop", 2.5, "g");
 }
 $("go").addEventListener("click", () => {
@@ -2390,28 +2421,30 @@ $("practice").addEventListener("click", () => {
   location.search = q.toString();
 });
 $("by").textContent = ONLINE ? CFG.by : "LAZY JO · " + (PRACTICE ? "WARM-UP" : CFG.by);
-$("title").textContent = ONLINE ? MODE_NAME(ONLINE) : "GO!" + (ENDLESS ? " ∞" : "");
+$("title").textContent = ONLINE ? MODE_NAME(ONLINE) : REMIX ? "REMIX" : "GO!" + (ENDLESS ? " ∞" : "");
 $("intro").innerHTML = ONLINE === "golf" ? "<b>GOLF 1v1:</b> you and a real player, found by quick match, on the same nine holes over the city at the same time - their ball is the pink ghost on yours. The fewer strokes takes the hole; after nine, the most holes wins (level: the fewest strokes)."
   : GOLF_N ? "<b>GOLF · " + GOLF_N + " PLAYERS:</b> you and " + (GOLF_N - 1) + " real players, found by quick match, on the same nine holes over the city at the same time - theirs are the coloured ghost balls on yours. The fewest strokes takes the hole (a tie for the fewest is nobody's); after nine, the most holes wins, then the fewest strokes. It starts when there are " + GOLF_N + " - nobody is made up."
   : ONLINE === "hockey" ? "<b>HOCKEY 1v1:</b> you and a real player, found by quick match, one air hockey table on a roof - you at the near end, them at the far end. First to 3 goals takes a round, and every round has something new; first to 3 rounds wins."
   : "The city at sunset from the cover, high over the towers - the sky going from purple to fire, the towers lit." +
-    [" <b>Part 1 · Rooftop Golf:</b> nine holes on the roofs, every one with something new.", " <b>Part 2 · Sky Hockey:</b> air hockey on a roof against the shadow, round after round."][PART - 1] +
+    (REMIX ? " <b>The remix:</b> Rooftop Golf and Sky Hockey, 16 bars each, and round again, harder every lap. A finished lap gives a heart back."
+      : [" <b>Part 1 · Rooftop Golf:</b> nine holes on the roofs, every one with something new.", " <b>Part 2 · Sky Hockey:</b> air hockey on a roof against the shadow, round after round."][PART - 1]) +
     (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
-$("how").innerHTML = PART === 1
+$("how").innerHTML = REMIX ? "<b>Rooftop Golf:</b> put a finger down anywhere, pull back and let go to putt - fewer strokes, more points; out of time on a hole, or 8 strokes, costs a heart. <b>Sky Hockey:</b> move your golden striker and hit the puck into the far goal - first to 3 takes a round; losing a round costs a heart. When a game's turn is up you finish the hole or round you're on, then the other one comes in."
+  : PART === 1
   ? "<b>Put a finger down anywhere, pull back and let go</b> to putt the ball of light - the further you pull, the harder; the dots show the line. Each hole has something new: ledges, the sliding air-con, gold boost pads, portals, the gap, the wind, the windmill, and the spire where the cup won't keep still. Fewer strokes, more points. A hole has 8 bars: out of time, or 8 strokes, costs a heart (3)."
   : "<b>Move your golden striker</b> (drag, the mouse, or the arrow keys) and hit the puck of light into the far goal. First to 3 takes a round - and every round has something new: two pucks, bumpers, the golden puck, the wind, portal walls, the split, the final. The shadow gets quicker every round. Losing a round costs a heart (3).";
 if (!HUB && !ONLINE && !PRACTICE){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
     const m = b.dataset.mode;
-    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
-      if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+    b.setAttribute("aria-pressed", String(m === (REMIX ? "r" : String(PART) + (ENDLESS ? "x" : ""))));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part"); q.delete("remix");
+      if (m === "r") q.set("remix", "1"); else { if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); } location.search = q.toString(); });
   });
 }
 if (PRACTICE){ $("practice").textContent = "Back online"; $("practice").classList.remove("hid"); }
 // golf: alone, or online with 1, 2 or 3 others
-if (PART === 1 && !ENDLESS && !PRACTICE){
+if (PART === 1 && !ENDLESS && !PRACTICE && !REMIX){
   $("sizes").classList.remove("hid");
   document.querySelectorAll("#sizes button").forEach(b => {
     b.setAttribute("aria-pressed", String(b.dataset.size === (ONLINE || "")));
@@ -2422,7 +2455,8 @@ if (PART === 1 && !ENDLESS && !PRACTICE){
       if (b.dataset.size) q.set("online", b.dataset.size); location.search = q.toString(); });
   });
 }
-G = PART === 2 ? HOCKEY : GOLF; G.setup(); ME = buildSaucer(); buildEnd();
+if (REMIX){ HOCKEY.setup(); GOLF.setup(); G = GOLF; } else { G = PART === 2 ? HOCKEY : GOLF; G.setup(); }
+ME = buildSaucer(); buildEnd();
 reset();
 if (ONLINE) NET.init();
 requestAnimationFrame(frame);

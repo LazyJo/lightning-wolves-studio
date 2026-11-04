@@ -97,7 +97,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Mode">
-    <button type="button" data-mode="1">Part 1 &middot; Unblock</button><button type="button" data-mode="2">Part 2 &middot; Light Link</button><button type="button" data-mode="1x" class="gold">Unblock &#8734;</button><button type="button" data-mode="2x" class="gold">Light Link &#8734;</button>
+    <button type="button" data-mode="1">Part 1 &middot; Unblock</button><button type="button" data-mode="2">Part 2 &middot; Light Link</button><button type="button" data-mode="1x" class="gold">Unblock &#8734;</button><button type="button" data-mode="2x" class="gold">Light Link &#8734;</button><button type="button" data-mode="r" class="gold">Remix &#8734;</button>
   </div>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
@@ -124,7 +124,8 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    saucer's beam reaches the car's headlights, round the umbrellas. Street after street.
    The song sets the clock on each one; out of time costs a heart (3). At the end of the song: the
    cover. Each part has an ENDLESS (?endless=1): it never stops, the clock gets shorter every 8 bars,
-   a heart back every 24. */
+   a heart back every 24.
+   REMIX (?remix=1), once both are cleared: the two games in turn, on one score and one set of hearts. */
 
 // the song's grid, measured from lvl18.mp3: 100 BPM, the first beat at 0.392 s (see SONG.md)
 const GRID = { bpm:100, t0:.392 };
@@ -141,12 +142,15 @@ function section(t){
   return "calm";                                // the outro
 }
 const STINT = BAR * 8;                        // endless: one window
+const TURN = BAR * 20;                        // remix: one game's turn
 const HEARTS = 3;
 
 const Q = new URLSearchParams(location.search);
-const ENDLESS = Q.get("endless") === "1";
-const PART = Q.get("part") === "2" ? 2 : 1;
-const CFG = PART === 2
+const REMIX = Q.get("remix") === "1";
+const ENDLESS = !REMIX && Q.get("endless") === "1";
+const PART = !REMIX && Q.get("part") === "2" ? 2 : 1;
+const CFG = REMIX ? { id:"lvl18r", title:"Remix", by:"LEVEL 18 · REMIX", endless:true, board:"Level 18 Remix" }
+  : PART === 2
   ? (ENDLESS ? { id:"lvl18bx", title:"Light Link", by:"LEVEL 18 · PART 2 · ENDLESS", endless:true, board:"Level 18 Part 2 ∞" } : { id:"lvl18b", title:"Light Link", by:"LEVEL 18 · PART 2" })
   : (ENDLESS ? { id:"lvl18x", title:"Unblock", by:"LEVEL 18 · ENDLESS", endless:true, board:"Level 18 ∞" } : { id:"lvl18", title:"Unblock", by:"LEVEL 18" });
 
@@ -297,7 +301,8 @@ function hud(){
   if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
     lastH = h; $("hearts").textContent = h; }
   const t = Math.max(0, S.t);
-  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  if (REMIX){ $("bl").textContent = "REMIX · LAP " + (S.lap + 1) + " · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.turnAt)/TURN, 0, 1)*100).toFixed(1) + "%"; }
+  else if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
   else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
   $("info").textContent = G.info();
   const p = $("phase");
@@ -340,13 +345,15 @@ const UB = {
     Object.assign(this, { t0, t1, L0, L1 });
     if (cont) return;
     this.start = t0;
-    this.st = { lot:-1, n:0, cars:[], moves:0, beatMoves:0, solved:0, missed:0, deadline:0, sel:-1, out:-1, k:0 };
+    const o = REMIX && this.st || {};   // in a remix the game comes back: what counts up over the run stays
+    this.st = { lot:-1, n:o.n || 0, cars:[], moves:0, beatMoves:o.beatMoves || 0, solved:o.solved || 0, missed:o.missed || 0, deadline:0, sel:-1, out:-1, k:0 };
     this.next(t0 + BEAT*2);
   },
   info(){ const st = this.st; return "CAR PARK " + st.n + " · " + st.solved + " OUT · " + Math.max(0, Math.ceil((st.deadline - S.t)/BAR)) + " BARS"; },
-  // the next car park: in order through the song; endless goes on with the hard ones, in a shuffled order
+  // the next car park: in order through the song; endless goes on with the hard ones, in a shuffled order;
+  // the remix goes round a band of sixteen that moves up the list every lap (7 steps round 16: none twice in the band)
   next(t){ const st = this.st; st.n++;
-    st.lot = CFG.endless ? (st.n <= 10 ? 9 + st.n : 20 + Math.floor(rnd(st.n*7.3)*40)) : Math.min(LOTS.length - 1, st.n - 1);
+    st.lot = REMIX ? Math.min(44, 10 + S.lap*8) + st.n*7 % 16 : CFG.endless ? (st.n <= 10 ? 9 + st.n : 20 + Math.floor(rnd(st.n*7.3)*40)) : Math.min(LOTS.length - 1, st.n - 1);
     st.cars = LOTS[st.lot].map(([r, c, len, d]) => ({ r, c, len, d })); st.out = -1; st.sel = -1; st.moves = 0;
     // the clock: more bars for a car park that takes more moves, fewer as the song (or the endless run) goes on
     st.deadline = t + BAR*Math.max(2.5, clamp(2 + MOVES[st.lot]*.5, 3, 9)*(1.15 - .35*clamp(this.L(t), 0, 1.25)));
@@ -371,6 +378,8 @@ const UB = {
   // keys: Space picks the next car, the arrows slide it
   key(k){ const st = this.st; if (k === "pick"){ st.sel = (st.sel + 1) % st.cars.length; return; } if (st.sel < 0) return; const v = st.cars[st.sel];
     if (v.d === "h" && (k === "left" || k === "right")) this.slide(st.sel, k === "left" ? -1 : 1); if (v.d === "v" && (k === "up" || k === "down")) this.slide(st.sel, k === "up" ? -1 : 1); },
+  // once a turn is up, the remix changes game here: the car has gone, or the clock on it has run out
+  rest(t){ const st = this.st; return st.out >= 0 ? t > st.out + 1.1 : t > st.deadline; },
   update(dt, t){ const st = this.st;
     if (st.out >= 0 && t > st.out + 1.1){ this.next(t); say("CAR PARK " + st.n, "", .7); }
     if (st.out < 0 && t > st.deadline){ st.missed++; S.combo = 0; this.drag = null; if (S.inv <= 0 && hurt("STILL STUCK", "Move the cars that block the blue one's row - sometimes another car has to go first.")) return; this.next(t); }
@@ -412,7 +421,8 @@ const LK = {
     Object.assign(this, { t0, t1, L0, L1 });
     if (cont) return;
     this.start = t0;
-    this.st = { k:0, solved:0, missed:0, turns:0, beatTurns:0, lit:-1, deadline:0, P:null };
+    const o = REMIX && this.st || {};   // in a remix the game comes back: what counts up stays, and no street repeats
+    this.st = { k:o.k || 0, solved:o.solved || 0, missed:o.missed || 0, turns:o.turns || 0, beatTurns:o.beatTurns || 0, lit:-1, deadline:0, P:null };
     this.make(t0 + BEAT*2);
   },
   info(){ const st = this.st; return "STREET " + st.k + " · " + st.solved + " LIT · " + Math.max(0, Math.ceil((st.deadline - S.t)/BAR)) + " BARS"; },
@@ -451,6 +461,8 @@ const LK = {
     if (this.trace(st.P).hit){ st.lit = S.t; st.solved++; S.combo++; S.best = Math.max(S.best, S.combo);
       const hook = section(S.t) === "hook", pts = Math.round((800 + Math.max(0, st.deadline - S.t)*150)*(hook ? 2 : 1)*Math.min(3, 1 + Math.floor((S.combo - 1)/4)*.5));
       S.score += pts; sfx.big(); say("LIGHTS ON", "+" + fmt(pts) + (hook ? " · hook x2" : ""), 1, "g"); } },
+  // once a turn is up, the remix changes game here: the car's lights are on, or the clock on it has run out
+  rest(t){ const st = this.st; return st.lit >= 0 ? t > st.lit + 1.1 : t > st.deadline; },
   update(dt, t){ const st = this.st;
     if (st.lit >= 0 && t > st.lit + 1.1) this.make(t);
     else if (st.lit < 0 && t > st.deadline){ st.missed++; S.combo = 0; if (S.inv <= 0 && hurt("THE LIGHT DIDN'T GET THERE", "Follow the beam from the saucer: turn the mirror where it should bend, keep it off the umbrellas.")) return; this.make(t); }
@@ -471,10 +483,11 @@ const LK = {
 /* ---------------- the run ---------------- */
 let ME = null;
 function reset(){
-  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0, turn:0, lap:0, turnAt:0 };
   lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  if (REMIX){ UB.st = LK.st = null; LK.root.visible = false; }
   G = PART === 2 ? LK : UB; camInit = false; G.root.visible = true; END.root.visible = false; END.on = false; ME.visible = true; G.up();
-  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+  if (REMIX) G.begin(0, TURN, .3, .4); else if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
 }
 // endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
 function startStint(n, t){
@@ -482,6 +495,18 @@ function startStint(n, t){
   if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
   const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
   if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+// the remix: when a game's turn is up you finish the car park or street you're on (8 bars at most; if its clock runs
+// out the change comes instead of the heart), then the other game comes in. Round both is a lap: +2,000, a heart back,
+// and the next one is harder
+function nextGame(t){
+  S.turn++; S.turnAt = t; const first = S.turn % 2 === 0;
+  let back = false;
+  if (first){ S.lap++; S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  G.up(); pressing = false; G.root.visible = false; G = first ? UB : LK; G.root.visible = true;
+  const L0 = .3 + S.lap*.3; G.begin(t, t + TURN, L0, L0 + .1);
+  $("flash").style.background = "#ffc83a"; S.flashT = .4; sfx.whoosh();
+  say(first ? "LAP " + (S.lap + 1) : G.tag, first ? G.tag + " · +2,000" + (back ? " · a heart back" : "") : G.hint, 2, "g");
 }
 function songT(){
   if (CFG.endless && song.currentTime >= LOOP[1]){ try { song.currentTime -= LOOP[1] - LOOP[0]; S.loops++; } catch(e){} }
@@ -497,7 +522,8 @@ function update(dt){
   if (S.done) return;
   const t = Math.max(0, S.t);
   if (S.inv > 0) S.inv -= dt;
-  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  if (REMIX){ if (t >= S.turnAt + TURN && (G.rest(t) || t >= S.turnAt + TURN + BAR*8)) nextGame(t); }
+  else if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
   G.update(dt, t);
   if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
 }
@@ -530,7 +556,7 @@ function lose(why, tip){
 function over(why){
   if (S.done) return;
   S.done = true; S.why = why;
-  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  say(REMIX ? "REMIX OVER" : "RUN OVER", why, 2, "g"); $("phase").className = "off";
   setTimeout(finish, 1500);
 }
 
@@ -576,14 +602,14 @@ function finish(){
   go.textContent = "Play again"; go.classList.toggle("alt", !S.fail && !CFG.endless);
   for (const id of ["outs", "home"]) $(id).classList.remove("hid");
   $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
-  const st = G.st;
-  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:st.solved });
-  const stat = PART === 2 ? st.solved + " streets lit" + (st.beatTurns ? " · " + st.beatTurns + " turns on the beat" : "")
+  const st = G.st, lit = LK.st ? LK.st.solved : 0;   // a remix that ends in its first turn hasn't met Light Link yet
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:REMIX ? UB.st.solved + lit : st.solved });
+  const stat = REMIX ? "car parks <b>" + UB.st.solved + "</b> &middot; streets <b>" + lit + "</b>" : PART === 2 ? st.solved + " streets lit" + (st.beatTurns ? " · " + st.beatTurns + " turns on the beat" : "")
                           : st.solved + " car parks cleared" + (st.beatMoves ? " · " + st.beatMoves + " moves on the beat" : "");
   if (CFG.endless){
-    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector(".by").textContent = (REMIX ? "REMIX · " : "ENDLESS · ") + S.why;
     v.querySelector("h1").textContent = fmt(score());
-    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the rain &middot; " + stat;
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the rain &middot; " + (REMIX ? "lap <b>" + (S.lap + 1) + "</b> &middot; " : "") + stat;
     ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
     return;
   }
@@ -597,7 +623,7 @@ function finish(){
   v.querySelector(".by").textContent = CFG.by + " COMPLETE";
   v.querySelector("h1").textContent = "ISSUES";
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
-  ps[1].innerHTML = PART === 2 ? "Every light on." + "<br>Level 18 cleared: <b>Unblock &#8734;</b> and <b>Light Link &#8734;</b> are open in the gold Endless list."
+  ps[1].innerHTML = PART === 2 ? "Every light on." + "<br>Level 18 cleared: <b>Unblock &#8734;</b>, <b>Light Link &#8734;</b> and the <b>Remix &#8734;</b> are open in the gold Endless list."
                                : "The car's out." + "<br><b>Part 2 &middot; Light Link</b> is open.";
 }
 let RAIN = null;
@@ -609,7 +635,8 @@ function boot(){
   const key = new THREE.DirectionalLight(0xc8dcff, 1.1); key.position.set(-10, 30, 20); scene.add(key);
   skyDome(); street(-.02); bokeh(60, [80, 4, 70], .2, -8); RAIN = rain(400, [30, 20, 30]);
   ME = buildSaucer(); scene.add(ME);
-  (PART === 2 ? LK : UB).setup(); buildEnd();
+  if (REMIX) UB.setup(), LK.setup(); else (PART === 2 ? LK : UB).setup();
+  buildEnd();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }
@@ -634,22 +661,25 @@ $("go").addEventListener("click", () => {
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
   S.started = true; S.t = 0;
   if (HUB) toHub({ type:"javeda:start", level:CFG.id });
-  say(CFG.endless ? "ENDLESS" : G.tag, CFG.endless ? "it never stops" : G.hint, 3, CFG.endless ? "g" : "");
+  if (REMIX) say("REMIX", "both games, till the hearts run out", 3, "g");
+  else say(CFG.endless ? "ENDLESS" : G.tag, CFG.endless ? "it never stops" : G.hint, 3, CFG.endless ? "g" : "");
 });
 $("by").textContent = "LAZY JO FT ZIRKA · " + CFG.by;
-$("title").textContent = (PART === 2 ? "LIGHT LINK" : "ISSUES") + (ENDLESS ? " ∞" : "");
-$("intro").innerHTML = (PART === 2 ? "The wet street from the cover at night, in the rain. The saucer's beam goes flat across it - bend it with the mirrors so it reaches the car's headlights."
+$("title").textContent = REMIX ? "REMIX" : (PART === 2 ? "LIGHT LINK" : "ISSUES") + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = (REMIX ? "The wet street from the cover at night, in the rain. <b>The remix:</b> Unblock and Light Link, 20 bars each, and round again, harder every lap. A finished lap gives a heart back."
+  : PART === 2 ? "The wet street from the cover at night, in the rain. The saucer's beam goes flat across it - bend it with the mirrors so it reaches the car's headlights."
   : "A car park on the wet street from the cover, at night, in the rain. The blue car is boxed in - slide the others out of its way so it can drive out.") +
   (ENDLESS ? " <b>Endless:</b> it never stops - the clock gets shorter every 8 bars, a heart back every 24." : "");
-$("how").innerHTML = PART === 2 ? "<b>Tap</b> a mirror to turn it. Umbrellas block the light. Each street has a few bars on the clock - out of time costs a heart (3). Turns <b>on the beat</b> and streets lit in the <b>hooks</b> are worth more."
+$("how").innerHTML = REMIX ? "<b>Unblock:</b> drag the cars along their lines until the blue one can drive out on the right. <b>Light Link:</b> tap the mirrors to turn them and bend the beam to the car - umbrellas block the light. When a game's turn is up you finish what you're on, then the other one comes in."
+  : PART === 2 ? "<b>Tap</b> a mirror to turn it. Umbrellas block the light. Each street has a few bars on the clock - out of time costs a heart (3). Turns <b>on the beat</b> and streets lit in the <b>hooks</b> are worth more."
   : "<b>Drag</b> a car along its line - they only go the way they point. The way out is on the right. Each car park has a few bars on the clock - out of time costs a heart (3). Moves <b>on the beat</b> and cars out in the <b>hooks</b> are worth more.";
 if (!HUB){
   $("parts").classList.remove("hid");
-  const now = PART + (ENDLESS ? "x" : "");
+  const now = REMIX ? "r" : PART + (ENDLESS ? "x" : "");
   document.querySelectorAll("#parts button").forEach(b => {
     const m = b.dataset.mode;
     b.setAttribute("aria-pressed", String(m === now));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part"); if (m[0] === "2") q.set("part", "2"); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part"); q.delete("remix"); if (m === "r") q.set("remix", "1"); else { if (m[0] === "2") q.set("part", "2"); if (m.endsWith("x")) q.set("endless", "1"); } location.search = q.toString(); });
   });
 }
 boot();

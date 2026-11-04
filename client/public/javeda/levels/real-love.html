@@ -120,7 +120,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Mode">
-    <button type="button" data-mode="1">Heart Flow</button><button type="button" data-mode="2">Crab Sweeper</button><button type="button" data-mode="3">Starlight</button><button type="button" data-mode="4">Shell Sudoku</button><button type="button" data-mode="1x" class="gold">Heart Flow &#8734;</button><button type="button" data-mode="2x" class="gold">Crab Sweeper &#8734;</button><button type="button" data-mode="3x" class="gold">Starlight &#8734;</button><button type="button" data-mode="4x" class="gold">Shell Sudoku &#8734;</button>
+    <button type="button" data-mode="1">Heart Flow</button><button type="button" data-mode="2">Crab Sweeper</button><button type="button" data-mode="3">Starlight</button><button type="button" data-mode="4">Shell Sudoku</button><button type="button" data-mode="1x" class="gold">Heart Flow &#8734;</button><button type="button" data-mode="2x" class="gold">Crab Sweeper &#8734;</button><button type="button" data-mode="3x" class="gold">Starlight &#8734;</button><button type="button" data-mode="4x" class="gold">Shell Sudoku &#8734;</button><button type="button" data-mode="r" class="gold">Remix &#8734;</button>
   </div>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
@@ -146,7 +146,8 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    PART 3 · STARLIGHT (?part=3): a star and the four next to it change when you tap it; light them all.
    PART 4 · SHELL SUDOKU (?part=4): each picture once in every row, column and box.
    Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
-   ENDLESS for each (?endless=1) once all four are cleared. */
+   ENDLESS for each (?endless=1) once all four are cleared.
+   REMIX (?remix=1), also once all four are cleared: the four games in turn, on one score and one set of hearts. */
 
 // the song's grid, measured from the mp3 (SONG.md): 67 BPM (a 134 beat in half time), bar 0 at -0.01 s
 const GRID = { bpm:67, t0:-.0095 };
@@ -163,14 +164,17 @@ function section(t){
   return "calm";                                // the outro
 }
 const STINT = BAR * 8;                        // endless: one window
+const TURN = BAR * 16;                        // remix: one game's turn
 const HEARTS = 3;
 
 const Q = new URLSearchParams(location.search);
 
-const PART = { "2":2, "3":3, "4":4 }[Q.get("part")] || 1;
-const ENDLESS = Q.get("endless") === "1";
+const REMIX = Q.get("remix") === "1";
+const PART = (!REMIX && { "2":2, "3":3, "4":4 }[Q.get("part")]) || 1;
+const ENDLESS = !REMIX && Q.get("endless") === "1";
 const NAMES = ["", "Heart Flow", "Crab Sweeper", "Starlight", "Shell Sudoku"], IDS = ["", "lvl25", "lvl25b", "lvl25c", "lvl25d"];
-const CFG = ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 25" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 25" + (PART > 1 ? " Part " + PART : "") + " ∞" }
+const CFG = REMIX ? { id:"lvl25r", title:"Remix", by:"LEVEL 25 · REMIX", endless:true, board:"Level 25 Remix" }
+  : ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 25" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 25" + (PART > 1 ? " Part " + PART : "") + " ∞" }
   : { id:IDS[PART], title:NAMES[PART], by:"LEVEL 25" + (PART > 1 ? " PART " + PART : "") };
 
 const LINKS = {
@@ -319,7 +323,8 @@ function pickup(){ const g = new THREE.Group(), red = new THREE.MeshStandardMate
 // the waves: long white lines of foam rolling in to the shore and fading
 const FOAM = canvasTex(256, 32, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.5, "rgba(230,240,255,.9)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
   for (let i = 0; i < 60; i++){ x.clearRect(rnd(i*3)*w, h*.5 + (rnd(i*7) - .5)*h*.4, 3 + rnd(i)*8, 3); } });
-function beach(){ const g = new THREE.Group(); scene.add(g);
+let BEACH = null;
+function beach(){ if (BEACH) return BEACH; const g = BEACH = new THREE.Group(); scene.add(g);
   // the sand up to the water's edge (the sea and the sky beyond are far away, painted); a spit of sand out to the palms on the right
   const sand = new THREE.Mesh(new THREE.PlaneGeometry(70, 28), new THREE.MeshStandardMaterial({ map:SAND, roughness:1 })); sand.rotation.x = -Math.PI/2; sand.position.set(0, -.02, 7.5); g.add(sand);
   const spit = new THREE.Mesh(new THREE.CircleGeometry(9, 24), new THREE.MeshStandardMaterial({ map:SAND, roughness:1 })); spit.rotation.x = -Math.PI/2; spit.position.set(16, -.03, -9); spit.scale.set(1.4, .7, 1); g.add(spit);
@@ -358,6 +363,7 @@ function buildSaucer(dc, gc, letter, rim){
 }
 function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .22 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
 function boot(fov){
+  if (ren) return;
   ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
   scene = new THREE.Scene(); scene.background = BACK; fitBack();
   cam = new THREE.PerspectiveCamera(fov, innerWidth/innerHeight, .1, 500);
@@ -382,7 +388,8 @@ function hud(){
   if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
     lastH = h; $("hearts").textContent = h; }
   const t = Math.max(0, S.t);
-  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  if (REMIX){ $("bl").textContent = "REMIX · LAP " + (S.lap + 1) + " · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.turnAt)/TURN, 0, 1)*100).toFixed(1) + "%"; }
+  else if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
   else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
   $("info").textContent = G.info();
   const p = $("phase");
@@ -413,6 +420,10 @@ const dtOf = t => { const d = clamp(t - lastT, 0, .05); lastT = t; return d; };
 const fmt0 = n => Math.max(0, Math.round(n)).toLocaleString("en");
 // on the beat double, in the hooks double again
 const mult = t => (onBeat(t) ? 2 : 1)*(hookAt(t) ? 2 : 1);
+// a game's reset() in a remix: it can come back, so what counts up over the run goes on (the seed too, so no beach
+// comes back the same) and its clock runs on the real time. Every other mode starts clean, at 0, as it always did
+const kept = (v, d) => (REMIX && v) || d || 0;
+const startT = () => REMIX ? Math.max(0, S.t) : 0;
 // every game is played on the sand in front of the sea, the pickup on the right
 function sandCam(){ if (cam.aspect < .8){ cam.position.set(0, 8.2, 9.8); cam.lookAt(0, .9, -2.6); } else { cam.position.set(0, 4.6, 8.6); cam.lookAt(0, -1, -1.6); } }
 // the saucer hovers over what you're doing, its white beam on it
@@ -438,8 +449,8 @@ const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
 const adj = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) === 1;
 const FLOW = {
   setup(){ boot(48); this.w = beach(); this.root = new THREE.Group(); scene.add(this.root); this.tiles = []; this.ends = []; this.pipes = new THREE.Group(); this.root.add(this.pipes);
-    ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); },
-  reset(){ Object.assign(S, { board:0, boards:0, links:0, k:1, nextAt:0, last:null, deadline:0 }); lastT = 0; this.drag = null; this.make(0); say("HEART FLOW", "drag from a heart to its partner", 2.4); },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
+  reset(){ Object.assign(S, { board:S.lap, boards:kept(S.boards), links:kept(S.links), k:kept(S.k, 1), nextAt:0, last:null, deadline:0 }); lastT = 0; this.drag = null; this.make(startT()); say("HEART FLOW", "drag from a heart to its partner", 2.4); },
   info(){ return this.pairs.filter((_, i) => this.linked(i)).length + "/" + this.pairs.length + " LINKED · BEACH " + (S.board + 1); }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
   // a way through every stone (the backbite walk mixes it up), cut into pieces: each piece is a pair and its line
   make(t){ for (const m of this.tiles.concat(this.ends)) this.root.remove(m); const n = this.n = S.board < 1 ? 5 : S.board < 3 ? 6 : 7;
@@ -517,8 +528,8 @@ function flagMesh(){ const g = new THREE.Group(); const st = new THREE.Mesh(new 
 const CRABS = {
   act:"FLAG",
   setup(){ boot(48); this.w = beach(); this.root = new THREE.Group(); scene.add(this.root); this.cells = [];
-    ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); },
-  reset(){ Object.assign(S, { board:0, boards:0, dug:0, found:0, k:1, nextAt:0, last:null, deadline:0, flagMode:false }); lastT = 0; this.make(0); say("CRAB SWEEPER", "tap to dig - the numbers count the crabs around", 2.4); },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
+  reset(){ Object.assign(S, { board:S.lap, boards:kept(S.boards), dug:kept(S.dug), found:kept(S.found), k:kept(S.k, 1), nextAt:0, last:null, deadline:0, flagMode:false }); lastT = 0; this.hold = null; this.make(startT()); say("CRAB SWEEPER", "tap to dig - the numbers count the crabs around", 2.4); },
   info(){ const left = this.cells.filter(x => !x.crab && !x.open).length; return left + " TO DIG · " + this.crabs + " CRABS"; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR*.6; },
   make(t){ for (const x of this.cells){ this.root.remove(x.m); if (x.num) this.root.remove(x.num); if (x.flag) this.root.remove(x.flag); if (x.crabM) this.root.remove(x.crabM); }
     const n = this.n = S.board < 1 ? 7 : 8; this.crabs = S.board < 1 ? 7 : Math.min(14, 10 + (S.board - 1)*2); this.armed = false; this.cells = [];
@@ -567,8 +578,8 @@ const STAR_SHAPE = (() => { const s = new THREE.Shape(); for (let i = 0; i < 10;
 const STAR_GEO = new THREE.ExtrudeGeometry(STAR_SHAPE, { depth:.1, bevelEnabled:true, bevelThickness:.04, bevelSize:.03, bevelSegments:2 }); STAR_GEO.center();
 const STARS = {
   setup(){ boot(48); this.w = beach(); this.root = new THREE.Group(); scene.add(this.root); this.cells = [];
-    ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); },
-  reset(){ Object.assign(S, { board:0, boards:0, moves:0, k:1, nextAt:0, last:null, deadline:0 }); lastT = 0; this.make(0); say("STARLIGHT", "tap a star: it and its neighbours change", 2.4); },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
+  reset(){ Object.assign(S, { board:S.lap, boards:kept(S.boards), moves:kept(S.moves), k:kept(S.k, 1), nextAt:0, last:null, deadline:0 }); lastT = 0; this.make(startT()); say("STARLIGHT", "tap a star: it and its neighbours change", 2.4); },
   info(){ return this.cells.filter(x => x.on).length + "/" + this.cells.length + " LIT · MADE IN " + this.made + " TAPS"; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
   make(t){ for (const x of this.cells){ this.root.remove(x.pad); this.root.remove(x.m); this.root.remove(x.g); } const n = this.n = S.board < 1 ? 3 : S.board < 3 ? 4 : 5; this.cells = [];
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++){ const p = cellPos(n, c, r, 0), pad = new THREE.Mesh(new THREE.CylinderGeometry(cellW(n)*.42, cellW(n)*.46, .08, 20), STONE); pad.position.copy(p).setY(.04); this.root.add(pad);
@@ -614,8 +625,8 @@ const SYM = [
 const SYM_TEX = SYM.map(f => iconTex(128, 128, f));
 const SDK = {
   setup(){ boot(48); this.w = beach(); this.root = new THREE.Group(); scene.add(this.root); this.cells = []; this.tray = []; this.lines = [];
-    ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); },
-  reset(){ Object.assign(S, { board:0, boards:0, placed:0, wrong:0, k:1, nextAt:0, last:null, deadline:0, pick:0 }); lastT = 0; this.make(0); say("SHELL SUDOKU", "each picture once in every row, column and box", 2.4); },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
+  reset(){ Object.assign(S, { board:S.lap, boards:kept(S.boards), placed:kept(S.placed), wrong:kept(S.wrong), k:kept(S.k, 1), nextAt:0, last:null, deadline:0, pick:0 }); lastT = 0; this.make(startT()); say("SHELL SUDOKU", "each picture once in every row, column and box", 2.4); },
   info(){ return this.cells.filter(x => x.v < 0).length + " TO FILL · " + this.n + "x" + this.n; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
   // a solved grid from the pattern, mixed up (pictures, rows in a band, bands, columns in a stack, stacks)
   solved(n, br, bc){ const base = (r, c) => (bc*(r % br) + Math.floor(r/br) + c) % n, k = S.k++*13;
@@ -683,10 +694,11 @@ const PARTS = [null, FLOW, CRABS, STARS, SDK];
 
 /* ---------------- the run ---------------- */
 function reset(){
-  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0 };
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0, turn:0, lap:0, turnAt:0 };
   lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  if (REMIX) for (const P of PARTS) if (P) P.root.visible = false;
   G = PARTS[PART]; camInit = false; G.root.visible = true; showSetting(true); END.root.visible = false; END.on = false; ME.visible = true; ME.scale.setScalar(G.meScale);
-  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+  if (REMIX) G.begin(0, TURN, .3, .4); else if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
   $("msg").className = "";
 }
 // endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
@@ -695,6 +707,18 @@ function startStint(n, t){
   if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
   const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
   if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+// the remix: when a game's turn is up it finishes the beach, sky or grid you're on (8 bars at most), then the next game
+// comes in. Round all four is a lap: +2,000, a heart back, and the next one is harder
+function nextGame(t){
+  S.turn++; S.turnAt = t; const first = S.turn % 4 === 0;
+  let back = false;
+  if (first){ S.lap++; S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  G.root.visible = false; G = PARTS[S.turn % 4 + 1]; G.root.visible = true; down = false;
+  const L0 = .3 + S.lap*.3; G.begin(t, t + TURN, L0, L0 + .1);
+  $("act").classList.toggle("hid", G !== CRABS);
+  $("flash").style.background = "#ffc83a"; S.flashT = .4; sfx.whoosh();
+  say(first ? "LAP " + (S.lap + 1) : G.name, first ? G.name + " · +2,000" + (back ? " · a heart back" : "") : G.hint, 2, "g");
 }
 const LOOPS = CFG.endless;
 function songT(){
@@ -711,7 +735,8 @@ function update(dt){
   if (S.done) return;
   const t = Math.max(0, S.t);
   if (S.inv > 0) S.inv -= dt;
-  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  if (REMIX){ if (t >= S.turnAt + TURN && (S.nextAt ? t > S.nextAt : t > S.deadline || t >= S.turnAt + TURN + BAR*8)) nextGame(t); }
+  else if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
   G.update(dt, t);
   if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
 }
@@ -738,7 +763,7 @@ function lose(why, tip){
 function over(why){
   if (S.done) return;
   S.done = true; S.why = why;
-  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  say(REMIX ? "REMIX OVER" : "RUN OVER", why, 2, "g"); $("phase").className = "off";
   setTimeout(finish, 1500);
 }
 
@@ -787,11 +812,11 @@ function finish(){
   $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
   const got = S.got;
   if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:got });
-  const stat = PART === 1 ? S.links + " pairs linked · " + S.boards + " beaches" : PART === 2 ? S.dug + " mounds dug · " + S.boards + " beaches cleared" : PART === 3 ? S.boards + " skies lit in " + S.moves + " taps" : S.placed + " pictures placed · " + S.boards + " grids solved";
+  const stat = REMIX ? "pairs <b>" + (S.links || 0) + "</b> &middot; mounds <b>" + (S.dug || 0) + "</b> &middot; taps <b>" + (S.moves || 0) + "</b> &middot; pictures <b>" + (S.placed || 0) + "</b>" : PART === 1 ? S.links + " pairs linked · " + S.boards + " beaches" : PART === 2 ? S.dug + " mounds dug · " + S.boards + " beaches cleared" : PART === 3 ? S.boards + " skies lit in " + S.moves + " taps" : S.placed + " pictures placed · " + S.boards + " grids solved";
   if (CFG.endless){
-    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector(".by").textContent = (REMIX ? "REMIX · " : "ENDLESS · ") + S.why;
     v.querySelector("h1").textContent = fmt(score());
-    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> on the beach &middot; " + stat;
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> on the beach &middot; " + (REMIX ? "lap <b>" + (S.lap + 1) + "</b> &middot; " : "") + stat;
     ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
     return;
   }
@@ -806,7 +831,7 @@ function finish(){
   v.querySelector("h1").textContent = "REAL LOVE";
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
   ps[1].innerHTML = ["", "Every heart found its pair.<br>Part 2, <b>Crab Sweeper</b>, is open.", "Not one crab too many.<br>Part 3, <b>Starlight</b>, is open.", "Every star lit.<br>Part 4, <b>Shell Sudoku</b>, is open.",
-    "That's real love.<br>Level 25 cleared: <b>Heart Flow &#8734;</b>, <b>Crab Sweeper &#8734;</b>, <b>Starlight &#8734;</b> and <b>Shell Sudoku &#8734;</b> are open in the gold Endless list."][PART];
+    "That's real love.<br>Level 25 cleared: <b>Heart Flow &#8734;</b>, <b>Crab Sweeper &#8734;</b>, <b>Starlight &#8734;</b>, <b>Shell Sudoku &#8734;</b> and the <b>Remix &#8734;</b> are open in the gold Endless list."][PART];
 }
 
 /* ---------------- input ---------------- */
@@ -827,17 +852,20 @@ function startGame(){
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
   S.started = true; S.t = 0;
   if (HUB) toHub({ type:"javeda:start", level:CFG.id });
-  say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? "the beaches never stop" : G.hint, 3, CFG.endless ? "g" : ""); $("act").classList.toggle("hid", PART !== 2);
+  if (REMIX) say("REMIX", "all four games, till the hearts run out", 3, "g");
+  else say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? "the beaches never stop" : G.hint, 3, CFG.endless ? "g" : "");
+  $("act").classList.toggle("hid", G !== CRABS);
 }
 $("go").addEventListener("click", () => {
   startGame();
 });
 $("by").textContent = "LAZY JO · " + CFG.by;
-$("title").textContent = "REAL LOVE" + (ENDLESS ? " ∞" : "");
+$("title").textContent = REMIX ? "REMIX" : "REAL LOVE" + (ENDLESS ? " ∞" : "");
 $("intro").innerHTML = "The beach from the cover at night - the glowing heart over the sea, the crescent moon, the waves, the red pickup with its headlights on - and Jo's saucer." +
-  [" <b>Part 1 · Heart Flow:</b> pairs of hearts on stones in the sand.", " <b>Part 2 · Crab Sweeper:</b> mounds of sand, crabs hiding under some.", " <b>Part 3 · Starlight:</b> stars lying in the sand, some lit, some dark.", " <b>Part 4 · Shell Sudoku:</b> a sudoku with pictures from the beach."][PART - 1] +
+  (REMIX ? " <b>The remix:</b> Heart Flow, Crab Sweeper, Starlight and Shell Sudoku, 16 bars each, and round again, harder every lap. A finished lap gives a heart back."
+    : [" <b>Part 1 · Heart Flow:</b> pairs of hearts on stones in the sand.", " <b>Part 2 · Crab Sweeper:</b> mounds of sand, crabs hiding under some.", " <b>Part 3 · Starlight:</b> stars lying in the sand, some lit, some dark.", " <b>Part 4 · Shell Sudoku:</b> a sudoku with pictures from the beach."][PART - 1]) +
   (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
-$("how").innerHTML = [
+$("how").innerHTML = REMIX ? "<b>Heart Flow:</b> drag from a heart to the heart of the same colour; lines can't cross. <b>Crab Sweeper:</b> tap a mound to dig it, the number counts the crabs around; hold it, or turn on <b>FLAG</b>, to mark a crab - and keep digging, or the tide takes a heart. <b>Starlight:</b> tap a star and it changes, with the four next to it; light them all. <b>Shell Sudoku:</b> tap a picture on the tray, then a stone; each one once in every row, column and box. When a game's turn is up you finish what you're on, then the next one comes in." : [
   "<b>Drag</b> from a heart to the heart of the same colour to draw a line of light - lines can't cross, and drawing over one cuts it. Link every pair for the next beach; fill every stone too for a bonus. Out of time costs a heart (3). Linked <b>on the beat</b> it counts double; double again in the hooks.",
   "<b>Tap</b> a mound to dig it: the number says how many crabs are in the 8 around it (an empty one digs its neighbours too; the first dig is never a crab). <b>Hold</b> a mound, or turn on <b>FLAG</b>, to mark a crab. Dig up a crab and it bites - a heart (3) - and keep digging: 2 bars without a dig and the tide takes a heart. Dug <b>on the beat</b> it counts double; double again in the hooks.",
   "<b>Tap</b> a star: it changes, and so do the four next to it - lit goes dark, dark lights up. Light every star for the next sky (each one says how many taps it was made with). Out of time costs a heart (3). Lit <b>on the beat</b> it counts double; double again in the hooks.",
@@ -846,12 +874,13 @@ if (!HUB){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
     const m = b.dataset.mode;
-    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
-      if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+    b.setAttribute("aria-pressed", String(m === (REMIX ? "r" : String(PART) + (ENDLESS ? "x" : ""))));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part"); q.delete("remix");
+      if (m === "r") q.set("remix", "1"); else { if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); } location.search = q.toString(); });
   });
 }
-PARTS[PART].setup(); buildEnd();
+if (REMIX) FLOW.setup(), CRABS.setup(), STARS.setup(), SDK.setup(); else PARTS[PART].setup();
+buildEnd();
 reset();
 requestAnimationFrame(frame);
 </script>

@@ -171,6 +171,15 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl27bx', 27, 'BIRD CODE', 'lvl27b', 0, 50000000, 1300, 0, 0, 160, true, 210),  -- ~107/s
   ('lvl28x', 28, 'ROOFTOP GOLF', 'lvl28',  0, 50000000, 11400, 0, 0, 161, true, 1900),  -- ~950/s
   ('lvl28bx', 28, 'SKY HOCKEY', 'lvl28b', 0, 50000000, 28400, 0, 0, 162, true, 4800),  -- ~2370/s
+  ('lvl2r', 2, 'REMIX', 'lvl2b', 0, 50000000, 3400, 0, 0, 163, true, 1300),  -- Somebody and Zirka's Ride in turn, ~285/s
+  ('lvl18r', 18, 'REMIX', 'lvl18b', 0, 50000000, 21000, 0, 0, 164, true, 3500),  -- both, ~1,760/s
+  ('lvl21r', 21, 'REMIX', 'lvl21b', 0, 50000000, 3800, 0, 0, 165, true, 640),  -- both, ~320/s
+  ('lvl22r', 22, 'REMIX', 'lvl22c', 0, 50000000, 4300, 0, 0, 166, true, 800),  -- all three, ~360/s
+  ('lvl23r', 23, 'REMIX', 'lvl23c', 0, 50000000, 4800, 0, 0, 167, true, 1100),  -- all three, ~400/s
+  ('lvl25r', 25, 'REMIX', 'lvl25d', 0, 50000000, 3400, 0, 0, 168, true, 700),  -- all four, ~280/s
+  ('lvl26r', 26, 'REMIX', 'lvl26b', 0, 50000000, 12000, 0, 0, 169, true, 2000),  -- both, ~980/s
+  ('lvl27r', 27, 'REMIX', 'lvl27b', 0, 50000000, 4200, 0, 0, 170, true, 920),  -- both, ~350/s
+  ('lvl28r', 28, 'REMIX', 'lvl28b', 0, 50000000, 18500, 0, 0, 171, true, 3600),  -- both, ~1,540/s
   -- JAVEDA: HYPERDRIVE, the ultimate one: its own game, open after Level 9 Part 3.
   -- Score = metres (8 to 24 m/s, about 44 in HYPERDRIVE for a few seconds); 50 m past your best = a point
   ('hyperdrive', 9, 'JAVEDA: HYPERDRIVE', 'lvl9c', 0, 50000000, 50, 0, 0, 200, true, 40),

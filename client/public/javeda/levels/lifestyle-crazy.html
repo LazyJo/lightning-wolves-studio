@@ -133,7 +133,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Mode">
-    <button type="button" data-mode="1">Neon Pinball</button><button type="button" data-mode="2">Speaker Push</button><button type="button" data-mode="1x" class="gold">Neon Pinball &#8734;</button><button type="button" data-mode="2x" class="gold">Speaker Push &#8734;</button>
+    <button type="button" data-mode="1">Neon Pinball</button><button type="button" data-mode="2">Speaker Push</button><button type="button" data-mode="1x" class="gold">Neon Pinball &#8734;</button><button type="button" data-mode="2x" class="gold">Speaker Push &#8734;</button><button type="button" data-mode="r" class="gold">Remix &#8734;</button>
   </div>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
@@ -158,7 +158,8 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    comes in, harder - and so on.
    PART 2 · SPEAKER PUSH (?part=2): push the speakers onto the glowing pads; the saucer can push but never pull.
    Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
-   ENDLESS for each (?endless=1) once both are cleared. */
+   ENDLESS for each (?endless=1) once both are cleared.
+   REMIX (?remix=1), also once both are cleared: the two games in turn, on one score and one set of hearts. */
 
 // the song's grid, measured from the mp3 (SONG.md): 70 BPM (a 140 beat in half time), bar 0 at 0.422 s
 const GRID = { bpm:70, t0:0.422 };
@@ -175,14 +176,17 @@ function section(t){
   return "calm";                                // the outro
 }
 const STINT = BAR * 8;                        // endless: one window
+const TURN = BAR * 16;                        // remix: one game's turn
 const HEARTS = 3;
 
 const Q = new URLSearchParams(location.search);
 
 const PART = { "2":2 }[Q.get("part")] || 1;
-const ENDLESS = Q.get("endless") === "1";
+const REMIX = Q.get("remix") === "1";
+const ENDLESS = !REMIX && Q.get("endless") === "1";
 const NAMES = ["", "Neon Pinball", "Speaker Push"], IDS = ["", "lvl26", "lvl26b"];
-const CFG = ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 26" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 26" + (PART > 1 ? " Part " + PART : "") + " ∞" }
+const CFG = REMIX ? { id:"lvl26r", title:"Remix", by:"LEVEL 26 · REMIX", endless:true, board:"Level 26 Remix" }
+  : ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 26" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 26" + (PART > 1 ? " Part " + PART : "") + " ∞" }
   : { id:IDS[PART], title:NAMES[PART], by:"LEVEL 26" + (PART > 1 ? " PART " + PART : "") };
 
 const LINKS = {
@@ -312,7 +316,8 @@ function car(){ const g = new THREE.Group(), black = new THREE.MeshStandardMater
   const visor = new THREE.Mesh(new THREE.SphereGeometry(.3, 16, 8, -Math.PI*.4, Math.PI*.8, Math.PI*.38, Math.PI*.22), new THREE.MeshBasicMaterial({ color:0xff6ad8 })); visor.position.copy(head.position); visor.scale.setScalar(1.04); g.add(visor);
   for (const s of [-1, 1]){ const leg = new THREE.Mesh(new THREE.BoxGeometry(.24, .22, .9), hoodie); leg.position.set(s*.18, 1.7, -.25); leg.rotation.x = .5; g.add(leg); }
   g.userData = { rings, visor }; return g; }
-function club(){ const g = new THREE.Group(); scene.add(g);
+let CLUB = null;
+function club(){ if (CLUB) return CLUB; const g = CLUB = new THREE.Group(); scene.add(g);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ map:GRIDTEX, roughness:.55, metalness:.35 })); floor.rotation.x = -Math.PI/2; floor.position.set(0, -.01, -10); g.add(floor);
   const c = car(); c.position.set(0, 0, -7.2); g.add(c);
   // the lasers, from high up at the back, crossing over the car
@@ -343,6 +348,7 @@ function buildSaucer(dc, gc, letter, rim){
 }
 function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .22 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
 function boot(fov){
+  if (ren) return;
   ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
   scene = new THREE.Scene(); scene.background = BACK; fitBack(); scene.fog = new THREE.Fog(0x070a22, 30, 70);
   cam = new THREE.PerspectiveCamera(fov, innerWidth/innerHeight, .1, 500);
@@ -367,7 +373,8 @@ function hud(){
   if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
     lastH = h; $("hearts").textContent = h; }
   const t = Math.max(0, S.t);
-  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  if (REMIX){ $("bl").textContent = "REMIX · LAP " + (S.lap + 1) + " · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.turnAt)/TURN, 0, 1)*100).toFixed(1) + "%"; }
+  else if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
   else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
   $("info").textContent = G.info();
   const p = $("phase");
@@ -421,8 +428,7 @@ const PB = {
   R:.15, CX:-.22, PZ:2.85,
   setup(){ boot(48); this.w = club(); this.root = new THREE.Group(); scene.add(this.root);
     this.T = new THREE.Group(); this.T.rotation.x = .09; this.T.position.set(0, .62, -.4); this.root.add(this.T); this.fx = fx(this.T);
-    this.w.userData.car.position.z = -10.2;                                    // the car parks behind the table's top end
-    ME = buildSaucer(); ME.scale.setScalar(.36); scene.add(ME); },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.36); scene.add(ME); } },
   // the table for its number n: the walls, the toys, the art, all in its colour
   build(n){ if (this.board) this.T.remove(this.board); const B = this.board = new THREE.Group(); this.T.add(B);
     const hue = (.88 + n*.17) % 1, C = l => new THREE.Color().setHSL(hue, 1, l), C2 = l => new THREE.Color().setHSL((hue + .45) % 1, 1, l), cx = this.CX;
@@ -492,10 +498,15 @@ const PB = {
     for (const p of this.ballMs || []) this.T.remove(p.m), this.T.remove(p.glow);
     this.ballMs = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.SphereGeometry(this.R, 20, 14), new THREE.MeshStandardMaterial({ color:0xf4f4ff, roughness:.12, metalness:.55, emissive:0x6a6aa0, emissiveIntensity:.45 })); const glow = sprite(0xd8d0ff, .8, .5); this.T.add(m); this.T.add(glow); return { m, glow }; });
   },
-  reset(){ Object.assign(S, { table:0, base:0, balls:0, hits:0, lifes:0, locks:0, tables:0, k:1, last:null, saveT:0, saveArm:true, multi:false });
-    lastT = 0; this.balls = []; this.build(0); this.load(); this.locked = null; DMD.set("0", "TABLE 1 · " + fmt0(PB_TARGETS[0]) + " FOR THE NEXT"); },
+  // (the remix comes back here every lap: on the table it left and what it had scored on it, or on the lap's, if that's further on)
+  reset(){ const was = REMIX ? S : {}, n = Math.max(was.table || 0, was.lap || 0), kept = n === was.table ? was.pbDone || 0 : 0;
+    Object.assign(S, { table:n, base:(was.score || 0) - kept, balls:was.balls || 0, hits:was.hits || 0, lifes:was.lifes || 0, locks:was.locks || 0, tables:was.tables || 0, k:was.k || 1, last:null, saveT:0, saveArm:true, multi:false, lastBall:false });
+    lastT = 0; this.w.userData.car.position.z = -10.2;                         // the car parks behind the table's top end
+    this.balls = []; this.build(n); this.load(); this.locked = null; DMD.set("0", "TABLE " + (n + 1) + " · " + fmt0(this.target(n)) + " FOR THE NEXT"); },
   target(n){ return PB_TARGETS[Math.min(n, PB_TARGETS.length - 1)] + Math.max(0, n - PB_TARGETS.length + 1)*60000; },
   info(){ return "TABLE " + (S.table + 1) + " · " + fmt0(S.score - S.base) + " / " + fmt0(this.target(S.table)); }, warn(){ return this.balls.some(b => b.p.y > 2.4); },
+  // the remix: a turn that's up ends when no ball's in play (one waiting in the plunger lane isn't)
+  atBreak(){ return !this.balls.some(b => !b.ready); },
   // a ball in the plunger lane, waiting for the launch
   load(){ this.balls.push({ p:new THREE.Vector2(2.38, 3.9), v:new THREE.Vector2(), lane:true, ready:true, wait:0, still:0 }); },
   launch(){ const b = this.balls.find(x => x.ready); if (!b) return false; const skill = onBeat(S.t); b.ready = false; b.v.set(0, -(13.5 + (skill ? 1.5 : rnd(S.k++)*1.2))); b.skill = skill; if (S.saveArm){ S.saveArm = false; S.saveT = S.t + 6; } sfx.launch();
@@ -540,6 +551,7 @@ const PB = {
   nextTable(){ S.tables++; S.table++; S.base = S.score; this.balls = []; this.locked = null; this.build(S.table); this.load(); S.saveArm = true;
     if (S.hearts < HEARTS){ S.hearts++; } sfx.big(); say("TABLE " + (S.table + 1), "harder - and a ball back", 1.6, "g"); DMD.msg("TABLE " + (S.table + 1), fmt0(this.target(S.table)) + " FOR THE NEXT", 2.2); },
   update(dt, t){
+    if (REMIX && t >= S.turnAt + TURN && !S.lastBall){ S.lastBall = true; DMD.msg("LAST BALL", "IT'S FREE", 3); }
     for (const f of this.flips){ const want = (f.s < 0 ? keys.left : keys.right) || f.up || f.hold > 0; if (f.hold > 0){ f.hold -= dt; if (f.hold <= 0) f.up = false; } f.target = want ? -.48 : .5; }
     if (this.locked){ this.locked.t -= dt; const b = this.locked.b; b.p.set(this.lock.x, this.lock.z); if (this.locked.t <= 0){ b.v.set(-4.2, 3.2); b.p.x -= .4; b.p.y += .2; this.locked = null; this.lockCool = S.t + 4; } }
     const n = 10; for (let i = 0; i < n; i++){ for (const f of this.flips){ f.prev = f.a; f.a += clamp(f.target - f.a, -26*dt/n, 26*dt/n); }
@@ -551,6 +563,7 @@ const PB = {
     // a ball down the middle (or an outlane)
     for (const b of this.balls.slice()) if (b.p.y > 4.45 && b.p.x < 2.15){ this.balls.splice(this.balls.indexOf(b), 1); this.fx.burst(new THREE.Vector3(b.p.x, 0, 4.3), 0xff3a5a, 12);
       if (this.balls.length) { DMD.msg("BALL LOST", "keep the other one up"); continue; }
+      if (REMIX && t >= S.turnAt + TURN) continue;                             // the remix, the turn's up: that was the last ball and it costs nothing (update() changes game)
       if (S.t < S.saveT){ say("BALL SAVED", "", 1, "g"); DMD.msg("BALL SAVED", ""); this.load(); continue; }
       S.balls++; S.combo = 0; S.saveArm = true; if (hurt("DRAINED", "Hold the left or the right of the screen to flip - flip just before the ball reaches the flipper's tip. Each table gets harder.")) return; this.load(); }
     if (S.score - S.base >= this.target(S.table)) this.nextTable();
@@ -602,12 +615,17 @@ const ARROW_GO = ARROW_TEX("#ffffff"), ARROW_PUSH = ARROW_TEX("#ffa02a");
 const PUSH = {
   setup(){ boot(48); this.w = club(); this.root = new THREE.Group(); scene.add(this.root); this.meshes = []; this.fx = fx(this.root);
     this.arrows = [0, 1, 2, 3].map(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map:ARROW_GO, transparent:true, depthWrite:false })); m.rotation.x = -Math.PI/2; this.root.add(m); return m; });
-    ME = buildSaucer(); ME.scale.setScalar(.36); scene.add(ME); },
-  reset(){ Object.assign(S, { lv:0, floors:0, moves:0, pushes:0, k:1, nextAt:0, last:null, deadline:0, lvMoves:0 }); lastT = 0; this.make(0); },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.36); scene.add(ME); } },
+  // (the remix comes back here every lap: on the floor it left, or further on if the laps have run ahead of it)
+  reset(){ const was = REMIX ? S : {}; Object.assign(S, { lv:Math.max(was.lv || 0, (was.lap || 0)*2), floors:was.floors || 0, moves:was.moves || 0, pushes:was.pushes || 0, k:was.k || 1, nextAt:0, last:null, deadline:0, lvMoves:0 }); lastT = 0;
+    this.w.userData.car.position.z = -7.2; this.make(REMIX ? Math.max(0, S.t) : 0); },
+  // the remix: a turn that's up ends when the next floor would come in, or when this floor's clock runs out (no heart then)
+  atBreak(t){ return S.nextAt ? t > S.nextAt : t > S.deadline; },
   info(){ return "FLOOR " + (S.lv + 1) + " · MOVES " + S.lvMoves + " · BEST " + this.par; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
   // the floors go round again mirrored once they're all done
   floor(i){ const F = FLOORS[i % FLOORS.length], flip = Math.floor(i/FLOORS.length) % 2; const W = Math.max(...F.rows.map(r => r.length)); return { rows:F.rows.map(r => { r = r.padEnd(W, " "); return flip ? [...r].reverse().join("") : r; }), moves:F.moves }; },
   make(t, again){ for (const m of this.meshes) this.root.remove(m); this.meshes = [];
+    if (REMIX && S.lv >= FLOORS.length && S.lv % FLOORS.length < FLOORS.length/2) S.lv += FLOORS.length/2;   // the remix only gets harder: round again, it skips the easy half
     const F = this.floor(S.lv), L = F.rows, H = L.length, W = L[0].length; this.par = F.moves; this.W = W; this.H = H; this.walls = new Set(); this.goals = new Set(); this.boxes = []; this.hist = [];
     L.forEach((row, y) => [...row].forEach((ch, x) => { const k = y*W + x; if (ch === "#") this.walls.add(k); if (".*+".includes(ch)) this.goals.add(k); if ("$*".includes(ch)) this.boxes.push(k); if ("@+".includes(ch)) this.p = k; }));
     this.cell = Math.min(5.6/W, 5.0/H);
@@ -698,10 +716,11 @@ const PARTS = [null, PB, PUSH];
 
 /* ---------------- the run ---------------- */
 function reset(){
-  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0 };
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0, turn:0, lap:0, turnAt:0 };
   lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  if (REMIX) PUSH.root.visible = false;
   G = PARTS[PART]; camInit = false; G.root.visible = true; showSetting(true); END.root.visible = false; END.on = false; ME.visible = true; ME.scale.setScalar(G.meScale);
-  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+  if (REMIX) G.begin(0, TURN, .3, .4); else if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
   $("msg").className = "";
 }
 // endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
@@ -710,6 +729,20 @@ function startStint(n, t){
   if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
   const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
   if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+// the remix: when a game's turn is up you finish what you're on - the floor, or the ball in play, and neither can cost
+// a heart then - 8 bars at most, and the other game comes in. Round both is a lap: +2,000, a heart back, and the next
+// one is harder (a table further on, a floor further on, a shorter clock)
+function nextGame(t){
+  S.turn++; S.turnAt = t; const first = S.turn % 2 === 0;
+  let back = false;
+  if (G === PB){ S.pbDone = S.score - S.base; PB.balls = []; PB.locked = null; DMD.mt = 0; }
+  if (first){ S.lap++; S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  G.root.visible = false; G = first ? PB : PUSH; G.root.visible = true;
+  fingers.clear(); keys.left = keys.right = false; PUSH.sw = null;             // nothing held carries over
+  const L0 = .3 + S.lap*.3; G.begin(t, t + TURN, L0, L0 + .1); showControls();
+  $("flash").style.background = "#ffc83a"; S.flashT = .4; sfx.whoosh();
+  say(first ? "LAP " + (S.lap + 1) : G.name, first ? G.name + " · +2,000" + (back ? " · a heart back" : "") : G.hint, 2, "g");
 }
 const LOOPS = CFG.endless;
 function songT(){
@@ -726,7 +759,8 @@ function update(dt){
   if (S.done) return;
   const t = Math.max(0, S.t);
   if (S.inv > 0) S.inv -= dt;
-  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  if (REMIX){ if (t >= S.turnAt + TURN && (G.atBreak(t) || t >= S.turnAt + TURN + BAR*8)) nextGame(t); }
+  else if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
   G.update(dt, t);
   if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
 }
@@ -753,7 +787,7 @@ function lose(why, tip){
 function over(why){
   if (S.done) return;
   S.done = true; S.why = why;
-  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  say(REMIX ? "REMIX OVER" : "RUN OVER", why, 2, "g"); $("phase").className = "off";
   setTimeout(finish, 1500);
 }
 
@@ -802,11 +836,11 @@ function finish(){
   $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off"; for (const id of ["dmd", "pad", "pad2"]) $(id).classList.add("hid");
   const got = S.got;
   if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:got });
-  const stat = PART === 1 ? "table " + (S.table + 1) + " · " + S.hits + " hits · " + S.locks + " beam locks" : S.floors + " floors partying · " + S.moves + " moves";
+  const stat = REMIX ? "hits <b>" + (S.hits || 0) + "</b> &middot; floors <b>" + (S.floors || 0) + "</b>" : PART === 1 ? "table " + (S.table + 1) + " · " + S.hits + " hits · " + S.locks + " beam locks" : S.floors + " floors partying · " + S.moves + " moves";
   if (CFG.endless){
-    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector(".by").textContent = (REMIX ? "REMIX · " : "ENDLESS · ") + S.why;
     v.querySelector("h1").textContent = fmt(score());
-    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> under the lasers &middot; " + stat;
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> under the lasers &middot; " + (REMIX ? "lap <b>" + (S.lap + 1) + "</b> &middot; " : "") + stat;
     ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
     return;
   }
@@ -820,7 +854,7 @@ function finish(){
   v.querySelector(".by").textContent = CFG.by + " COMPLETE";
   v.querySelector("h1").textContent = "LIFESTYLE CRAZY";
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
-  ps[1].innerHTML = ["", "Tables down.<br>Part 2, <b>Speaker Push</b>, is open.", "Every speaker on its pad.<br>Level 26 cleared: <b>Neon Pinball &#8734;</b> and <b>Speaker Push &#8734;</b> are open in the gold Endless list."][PART];
+  ps[1].innerHTML = ["", "Tables down.<br>Part 2, <b>Speaker Push</b>, is open.", "Every speaker on its pad.<br>Level 26 cleared: <b>Neon Pinball &#8734;</b>, <b>Speaker Push &#8734;</b> and the <b>Remix &#8734;</b> are open in the gold Endless list."][PART];
 }
 
 /* ---------------- input ---------------- */
@@ -844,6 +878,8 @@ addEventListener("keydown", e => { if (veilUp() || !live()) return; if (e.key ==
   if (G === PB){ const k = KEYMAP[e.key]; if (k){ e.preventDefault(); if (!keys[k]) PB.flip(k === "left" ? -1 : 1, true); keys[k] = true; } } });
 addEventListener("keyup", e => { const k = KEYMAP[e.key]; if (k && G === PB){ keys[k] = false; PB.flip(k === "left" ? -1 : 1, false); } });
 
+// what's on the screen for one game only
+function showControls(){ $("dmd").classList.toggle("hid", G !== PB); $("pad").classList.toggle("hid", G !== PUSH); $("pad2").classList.toggle("hid", G !== PUSH); document.body.classList.toggle("push", G === PUSH); }
 function startGame(){
   reset();
   $("veil").classList.add("hid"); $("hud").classList.remove("off");
@@ -852,29 +888,33 @@ function startGame(){
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
   S.started = true; S.t = 0;
   if (HUB) toHub({ type:"javeda:start", level:CFG.id });
-  say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? (PART === 1 ? "the tables never stop" : "the floors never stop") : G.hint, 3, CFG.endless ? "g" : ""); $("dmd").classList.toggle("hid", PART !== 1); $("pad").classList.toggle("hid", PART !== 2); $("pad2").classList.toggle("hid", PART !== 2); document.body.classList.toggle("push", PART === 2); document.body.classList.toggle("push", PART === 2);
+  if (REMIX) say("REMIX", "both games, till the hearts run out", 3, "g");
+  else say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? (PART === 1 ? "the tables never stop" : "the floors never stop") : G.hint, 3, CFG.endless ? "g" : "");
+  showControls();
 }
 $("go").addEventListener("click", () => {
   startGame();
 });
 $("by").textContent = "LAZY JO · " + CFG.by;
-$("title").textContent = "LIFESTYLE CRAZY" + (ENDLESS ? " ∞" : "");
+$("title").textContent = REMIX ? "REMIX" : "LIFESTYLE CRAZY" + (ENDLESS ? " ∞" : "");
 $("intro").innerHTML = "The night from the cover - the stars, the lasers crossing over the black car with the glowing pink hood and the rider on its roof - and Jo's saucer." +
-  [" <b>Part 1 · Neon Pinball:</b> a real pinball table on the floor in front of the car.", " <b>Part 2 · Speaker Push:</b> the dance floor, the speakers off, the pads where they belong."][PART - 1] +
+  (REMIX ? " <b>The remix:</b> Neon Pinball and Speaker Push, 16 bars each, and round again, harder every lap. A finished lap gives a heart back."
+    : [" <b>Part 1 · Neon Pinball:</b> a real pinball table on the floor in front of the car.", " <b>Part 2 · Speaker Push:</b> the dance floor, the speakers off, the pads where they belong."][PART - 1]) +
   (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
-$("how").innerHTML = [
+$("how").innerHTML = REMIX ? "<b>Neon Pinball:</b> tap to launch, then hold the left or the right of the screen for each flipper (or the arrows). <b>Speaker Push:</b> push every speaker onto a glowing pad with the arrows, a swipe or a tap - the saucer can push but never pull. When a game's turn is up you finish the floor or the ball you're on - losing that ball costs nothing - then the other one comes in." : [
   "<b>Tap</b> to launch (on the beat: a skill shot), then <b>hold the left or the right</b> of the screen for each flipper (or the arrows). Bumpers, slingshots, the drop targets, the L-I-F-E lanes (the flippers turn the lit ones), and the lock under Jo's saucer - three locks for multiball. Score enough and the <b>next table</b> comes in, harder every time. A lost ball costs a heart (3); a new table gives one back.",
   "Push every speaker onto a glowing pad - the saucer can <b>push</b> but never pull, one speaker at a time. <b>Tap</b> next to it, swipe, or use the <b>arrows</b>; white arrows show where it can go, orange ones where it'll push. A speaker stuck in a corner can't come out: <b>UNDO</b> or <b>RESTART</b>. Out of time costs a heart (3)."][PART - 1];
 if (!HUB){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
     const m = b.dataset.mode;
-    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
-      if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+    b.setAttribute("aria-pressed", String(m === (REMIX ? "r" : String(PART) + (ENDLESS ? "x" : ""))));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part"); q.delete("remix");
+      if (m === "r") q.set("remix", "1"); else { if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); } location.search = q.toString(); });
   });
 }
-PARTS[PART].setup(); buildEnd();
+if (REMIX) PB.setup(), PUSH.setup(); else PARTS[PART].setup();
+buildEnd();
 reset();
 requestAnimationFrame(frame);
 </script>

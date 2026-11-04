@@ -122,7 +122,7 @@ body.gold #m{color:#8a5a00}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Mode">
-    <button type="button" data-mode="1">Heart Pop</button><button type="button" data-mode="2">Love Words</button><button type="button" data-mode="3">Heart Merge</button><button type="button" data-mode="1x" class="gold">Heart Pop &#8734;</button><button type="button" data-mode="2x" class="gold">Love Words &#8734;</button><button type="button" data-mode="3x" class="gold">Heart Merge &#8734;</button>
+    <button type="button" data-mode="1">Heart Pop</button><button type="button" data-mode="2">Love Words</button><button type="button" data-mode="3">Heart Merge</button><button type="button" data-mode="1x" class="gold">Heart Pop &#8734;</button><button type="button" data-mode="2x" class="gold">Love Words &#8734;</button><button type="button" data-mode="3x" class="gold">Heart Merge &#8734;</button><button type="button" data-mode="r" class="gold">Remix &#8734;</button>
   </div>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
@@ -151,7 +151,8 @@ body.gold #m{color:#8a5a00}
    PART 3 · HEART MERGE (?part=3): 2048 with hearts. Swipe, two the same become one. Stop for a bar and
    hearts drop in, one a beat; full with no move left costs a heart.
    Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
-   ENDLESS for each (?endless=1) once all three are cleared. */
+   ENDLESS for each (?endless=1) once all three are cleared.
+   REMIX (?remix=1), also once all three are cleared: the three games in turn, on one score and one set of hearts. */
 
 // the song's grid, measured from the mp3 (SONG.md): 71.5 BPM (a 143 beat in half time), bar 0 at 0.018 s
 const GRID = { bpm:71.5, t0:.018 };
@@ -168,14 +169,17 @@ function section(t){
   return "calm";                                // the outro
 }
 const STINT = BAR * 8;                        // endless: one window
+const TURN = BAR * 16;                        // remix: one game's turn
 const HEARTS = 3;
 
 const Q = new URLSearchParams(location.search);
 
 const PART = { "2":2, "3":3 }[Q.get("part")] || 1;
-const ENDLESS = Q.get("endless") === "1";
+const REMIX = Q.get("remix") === "1";
+const ENDLESS = !REMIX && Q.get("endless") === "1";
 const NAMES = ["", "Heart Pop", "Love Words", "Heart Merge"], IDS = ["", "lvl23", "lvl23b", "lvl23c"];
-const CFG = ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 23" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 23" + (PART > 1 ? " Part " + PART : "") + " ∞" }
+const CFG = REMIX ? { id:"lvl23r", title:"Remix", by:"LEVEL 23 · REMIX", endless:true, board:"Level 23 Remix" }
+  : ENDLESS ? { id:IDS[PART] + "x", title:NAMES[PART], by:"LEVEL 23" + (PART > 1 ? " PART " + PART : "") + " · ENDLESS", endless:true, board:"Level 23" + (PART > 1 ? " Part " + PART : "") + " ∞" }
   : { id:IDS[PART], title:NAMES[PART], by:"LEVEL 23" + (PART > 1 ? " PART " + PART : "") };
 
 const LINKS = {
@@ -319,6 +323,7 @@ function buildSaucer(dc, gc, letter, rim){
 }
 function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .22 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
 function boot(fov, fogNear, fogFar){
+  if (ren) return;
   ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
   scene = new THREE.Scene(); scene.background = new THREE.Color(0x8ad0f4); scene.fog = new THREE.Fog(0xf0d0e4, fogNear, fogFar);
   cam = new THREE.PerspectiveCamera(fov, innerWidth/innerHeight, .1, 1500);
@@ -342,7 +347,8 @@ function hud(){
   if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
     lastH = h; $("hearts").textContent = h; }
   const t = Math.max(0, S.t);
-  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  if (REMIX){ $("bl").textContent = "REMIX · LAP " + (S.lap + 1) + " · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.turnAt)/TURN, 0, 1)*100).toFixed(1) + "%"; }
+  else if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
   else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
   $("info").textContent = G.info();
   const p = $("phase");
@@ -371,11 +377,14 @@ const onPage = (cx, cy, z) => { pickRay.setFromCamera({ x:cx/innerWidth*2 - 1, y
 let lastT = 0;
 const dtOf = t => { const d = clamp(t - lastT, 0, .05); lastT = t; return d; };
 const fmt0 = n => Math.max(0, Math.round(n)).toLocaleString("en");
-// the setting every game shares: the sky, the clouds, the open book low behind, the smoke heart drifting over it, a page to play on
-function setting(w, h, y){ const g = skyWorld(); const b = book(); b.position.set(0, -8.5, -9); b.rotation.x = .35; scene.add(b);
-  const sh = smokeHeart(4); sh.position.set(0, -3.6, -11.5); scene.add(sh);
+// the setting every game shares: the sky, the clouds, the open book low behind, the smoke heart drifting over it, a page to play on.
+// In the remix the three games have the one sky, book and heart; the page is each game's own and swaps with it (showGame)
+let BACKDROP = null;
+function setting(w, h, y){
+  if (!BACKDROP){ const g = skyWorld(); const b = book(); b.position.set(0, -8.5, -9); b.rotation.x = .35; scene.add(b);
+    const sh = smokeHeart(4); sh.position.set(0, -3.6, -11.5); scene.add(sh); BACKDROP = { sky:g, book:b, heart:sh }; }
   const page = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map:PAGE, roughness:.9, emissive:0xffffff, emissiveIntensity:.35, transparent:true, opacity:.94 })); page.position.set(0, y || 0, -.15); scene.add(page);
-  return { sky:g, book:b, heart:sh, page }; }
+  return Object.assign({ page }, BACKDROP); }
 function heartBeat(sh, t, beat){ sh.scale.setScalar(beat ? 1.05 : 1); sh.userData.pts.forEach((p, i) => { p.position.y += Math.sin(t*1.3 + i)*.0015; }); }
 
 /* =============== 1. HEART POP: the bubble shooter on the page =============== */
@@ -383,20 +392,24 @@ function heartBeat(sh, t, beat){ sh.scale.setScalar(beat ? 1.05 : 1); sh.userDat
 // aim (drag, or the arrows) and let go (or Space). Three or more of a colour touching burst, and what's
 // left hanging from nothing falls. Every 2 bars the hearts come down a row; reaching the line costs a heart. Clear the page for a big bonus. Shot on the beat it counts double; in the hooks again.
 const POP = {
-  COLS:8, D:.8, TOP:4.2, ROWS:13, LINE:-1.9,
-  setup(){ boot(48, 60, 420); this.w = setting(7.4, 9.6, .7);
+  COLS:8, D:.8, TOP:4.2, ROWS:13, LINE:-1.9, WAIT:4,
+  setup(){ boot(this.fov = 48, 60, 420); this.w = setting(7.4, 9.6, .7);
     this.root = new THREE.Group(); scene.add(this.root);
     const line = new THREE.Mesh(new THREE.PlaneGeometry(6.8, .05), new THREE.MeshBasicMaterial({ color:0xff6a9a, transparent:true, opacity:.6 })); line.position.set(0, this.LINE - .35, 0); this.root.add(line);
     this.aimDots = []; for (let i = 0; i < 14; i++){ const d = new THREE.Mesh(new THREE.CircleGeometry(.05, 8), new THREE.MeshBasicMaterial({ color:0x8a5ae8, transparent:true, opacity:.6 })); this.root.add(d); this.aimDots.push(d); }
     this.burst = []; for (let i = 0; i < 20; i++){ const s = sprite(0xffffff, 1.2, 0); this.root.add(s); this.burst.push(s); }
-    ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
   reset(){ for (const m of this.root.children.slice()) if (m.geometry === HEART_GEO) this.root.remove(m);   // a replay: the old hearts go
-    Object.assign(S, { ang:0, shots:0, popped:0, boards:0, fly:null, k:1, colors:4, falling:[], last:null }); lastT = 0; this.newBoard(); say("HEART POP", "aim, let go - three of a colour burst", 2.4); },
+    Object.assign(S, { ang:0, shots:0, popped:S.popped || 0, boards:S.boards || 0, fly:null, k:REMIX && S.k || 1, colors:4, falling:[], last:null, bar4:0 }); lastT = 0; this.aiming = false; this.burst.forEach(b => { b.material.opacity = 0; }); this.newBoard(); say("HEART POP", "aim, let go - three of a colour burst", 2.4); },
   info(){ return "SHOTS " + S.shots + " · PAGE " + (S.boards + 1); }, warn(){ return this.lowest() >= this.ROWS - 6; },
+  // how often they come down a row. The remix: a little quicker every lap, every bar and a quarter at the most
+  every(){ return BAR*(REMIX ? Math.max(1.25, 2 - S.lap*.25) : LV() > 1 ? 1.5 : 2); },
+  // the remix, a turn that's up (at time up): a new page is the break, once its message has been seen; 4 bars at most (no new shot after that), and never with a heart in the air
+  turnOver(t, up){ return !S.fly && (t >= up + BAR*this.WAIT || (S.pageAt >= up && t > S.pageAt + BEAT*2)); },
   cellPos(r, c){ const odd = (r + S.par) % 2; return new THREE.Vector3((c + (odd ? .5 : 0) - (this.COLS - 1)/2)*this.D, this.TOP - r*this.D*.866, 0); },
   cols(r){ return (r + S.par) % 2 ? this.COLS - 1 : this.COLS; },
   newBoard(){ if (this.grid) for (const row of this.grid) for (const b of row) if (b) this.root.remove(b.m);
-    S.par = 0; S.colors = Math.min(5, 4 + Math.floor(S.boards/2)); this.grid = [];
+    S.par = 0; S.pageAt = Math.max(0, S.t); S.colors = Math.min(5, 4 + Math.floor(Math.max(S.boards, S.lap*2)/2)); this.grid = [];
     for (let r = 0; r < this.ROWS; r++){ this.grid.push([]); for (let c = 0; c < this.COLS; c++) this.grid[r].push(null); }
     for (let r = 0; r < 7; r++) for (let c = 0; c < this.cols(r); c++) this.put(r, c, Math.floor(rnd(S.k++*2.9)*S.colors));
     this.load(); this.load(); },
@@ -410,7 +423,7 @@ const POP = {
   point(cx, cy){ if (!down || S.fly) return; this.aim(cx, cy); this.aiming = true; },
   release(){ if (!this.aiming) return; this.aiming = false; this.shoot(); },
   press(){ this.shoot(); },
-  shoot(){ if (S.fly || S.done) return; S.fly = { p:new THREE.Vector3(0, -3.4, .1), v:new THREE.Vector3(Math.sin(S.ang), Math.cos(S.ang), 0).multiplyScalar(15), k:S.cur, m:this.curM, beat:onBeat(S.t) }; this.curM = null; sfx.jump(); },
+  shoot(){ if (S.fly || S.done || (REMIX && S.t >= S.turnAt + TURN + BAR*this.WAIT)) return; S.fly = { p:new THREE.Vector3(0, -3.4, .1), v:new THREE.Vector3(Math.sin(S.ang), Math.cos(S.ang), 0).multiplyScalar(15), k:S.cur, m:this.curM, beat:onBeat(S.t) }; this.curM = null; sfx.jump(); },
   // where a flying heart would end up: walk it along, bouncing off the sides, until it touches one or the top
   land(p, v){ const half = this.COLS*this.D/2 - this.D/2 + .05;
     for (let i = 0; i < 2000; i++){ p.addScaledVector(v, 1/240); if (p.x < -half){ p.x = -half; v.x = Math.abs(v.x); } if (p.x > half){ p.x = half; v.x = -Math.abs(v.x); }
@@ -445,7 +458,7 @@ const POP = {
   drop(){ for (let r = this.ROWS - 1; r > 0; r--) this.grid[r] = this.grid[r - 1]; this.grid[0] = Array(this.COLS).fill(null); S.par = 1 - S.par;
     for (let c = 0; c < this.cols(0); c++) this.put(0, c, Math.floor(rnd(S.k++*2.9)*S.colors)); sfx.bad(); say("DOWN A ROW", "", .6, "warn"); },
   update(dt, t){
-    const bar4 = Math.floor(t/(BAR*(LV() > 1 ? 1.5 : 2))); if (bar4 > (S.bar4 || 0)){ S.bar4 = bar4; if (!S.fly){ this.drop(); if (this.lowest() >= this.ROWS - 4){ if (hurt("TOO LOW", "Aim so three or more of a colour touch - they burst, and what hangs from nothing falls. Every 2 bars they come down a row.")) return; this.newBoard(); S.shots = 0; } } }
+    const bar4 = Math.floor((t - this.start)/this.every()); if (bar4 > (S.bar4 || 0)){ S.bar4 = bar4; if (!S.fly){ this.drop(); if (this.lowest() >= this.ROWS - 4){ if (hurt("TOO LOW", "Aim so three or more of a colour touch - they burst, and what hangs from nothing falls. Every 2 bars they come down a row.")) return; this.newBoard(); S.shots = 0; } } }
     if (keys.left) S.ang = clamp(S.ang - dt*1.6, -1.35, 1.35); if (keys.right) S.ang = clamp(S.ang + dt*1.6, -1.35, 1.35);
     if (S.fly){ const f = S.fly, half = this.COLS*this.D/2 - this.D/2 + .05;
       for (let i = 0; i < 6 && S.fly; i++){ f.p.addScaledVector(f.v, dt/6); if (f.p.x < -half){ f.p.x = -half; f.v.x = Math.abs(f.v.x); } if (f.p.x > half){ f.p.x = half; f.v.x = -Math.abs(f.v.x); }
@@ -473,12 +486,14 @@ const POP = {
 const WORDS = ["LOVE", "HEART", "AGAIN", "CLOUD", "DREAM", "KISS", "SKY", "JUICE", "PAGE", "BOOK", "FALL", "STAR", "SMILE", "HUG", "ROSE", "MOON", "SOUL", "TRUE", "ANGEL", "SWEET", "HOLD", "WINGS", "SOFT", "BLUE"];
 const WORDS_SEARCH = {
   N:8, CELL:.72,
-  setup(){ boot(46, 60, 420); this.w = setting(11.6, 7.2, .4);
+  setup(){ boot(this.fov = 46, 60, 420); this.w = setting(11.6, 7.2, .4);
     this.root = new THREE.Group(); scene.add(this.root); this.cells = []; this.listM = null; this.marks = [];
     this.tex = [...Array(26)].map((_, i) => canvasTex(64, 64, (x, w, h) => { x.fillStyle = "#2a2440"; x.font = "bold 44px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(String.fromCharCode(65 + i), 32, 35); }));
-    ME = buildSaucer(); ME.scale.setScalar(.4); scene.add(ME); },
-  reset(){ Object.assign(S, { page:0, found:[], words:[], deadline:0, nextAt:0, k:1, pages:0, last:null }); lastT = 0; this.make(0); say("LOVE WORDS", "drag across a word, first letter to last", 2.4); },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.4); scene.add(ME); } },
+  reset(){ Object.assign(S, { page:S.lap || 0, found:[], words:[], deadline:0, nextAt:0, k:REMIX && S.k || 1, pages:S.pages || 0, last:null }); lastT = 0; this.drag = null; this.make(this.start); say("LOVE WORDS", "drag across a word, first letter to last", 2.4); },
   info(){ return "FOUND " + S.found.length + "/" + S.words.length + " · PAGE " + (S.pages + 1); }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
+  // the remix, a turn that's up: you finish the page you're on (one lost to the clock counts too), 8 bars at most
+  turnOver(t, up){ return S.nextAt ? t > S.nextAt : t >= up + BAR*8 || (S.pageAt >= up && t > S.pageAt + BEAT*2); },
   make(t){ const N = this.N; for (const c of this.cells) this.root.remove(c.m); for (const m of this.marks) this.root.remove(m); this.cells = []; this.marks = [];
     const n = Math.min(7, 5 + S.page), words = shuffle(WORDS.slice(), S.k++*41 + 3).filter(w => w.length <= N).slice(0, n), grid = [...Array(N*N)].fill(""), place = [];
     const dirs = [[1, 0], [0, 1], [1, 1], [1, -1], [-1, 0], [0, -1], [-1, -1], [-1, 1]];
@@ -492,7 +507,7 @@ const WORDS_SEARCH = {
     this.origin = new THREE.Vector3(ox - (N - 1)/2*this.CELL, oy + (N - 1)/2*this.CELL, 0);
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(this.CELL*.96, this.CELL*.96), new THREE.MeshBasicMaterial({ map:this.tex[grid[y*N + x].charCodeAt(0) - 65], transparent:true, color:0xffffff }));
       m.position.copy(this.at(x, y)); this.root.add(m); this.cells.push({ m, x, y }); }
-    this.drawList(); S.nextAt = 0; S.allow = BAR*(2 + n*1.1)*(1.15 - .25*clamp(LV(), 0, 1.4)); S.deadline = t + S.allow; },
+    this.drawList(); S.nextAt = 0; S.pageAt = t; S.allow = BAR*(2 + n*1.1)*(1.15 - .25*clamp(LV(), 0, 1.4)); S.deadline = t + S.allow; },
   at(x, y){ return this.origin.clone().add(new THREE.Vector3(x*this.CELL, -y*this.CELL, .01)); },
   drawList(){ if (this.listM) this.root.remove(this.listM); const portrait = cam.aspect < .8;
     const tex = canvasTex(256, 320, (x, w, h) => { x.font = "bold 30px Bungee, Impact, sans-serif"; x.textBaseline = "middle";
@@ -508,7 +523,7 @@ const WORDS_SEARCH = {
   pick(cells){ if (cells.length < 2) return; const s = cells.map(([x, y]) => this.grid[y*this.N + x]).join(""), r = [...s].reverse().join("");
     const p = S.words.find(p => !S.found.includes(p.w) && (p.w === s || p.w === r) && p.cells.length === cells.length);
     if (!p){ sfx.bad(); S.combo = 0; return; }
-    S.found.push(p.w); S.got++; S.combo++; const beat = onBeat(S.t), n = p.w.length*60*(beat ? 2 : 1)*(hookAt(S.t) ? 2 : 1); S.score += n; sfx.good(S.combo); say(p.w, "+" + n, .7);
+    S.found.push(p.w); S.got++; S.wordsFound = (S.wordsFound || 0) + 1; S.combo++; const beat = onBeat(S.t), n = p.w.length*60*(beat ? 2 : 1)*(hookAt(S.t) ? 2 : 1); S.score += n; sfx.good(S.combo); say(p.w, "+" + n, .7);
     const a = this.at(...p.cells[0]), b = this.at(...p.cells[p.cells.length - 1]), mid = a.clone().add(b).multiplyScalar(.5), len = a.distanceTo(b) + this.CELL*.8;
     const m = new THREE.Mesh(new THREE.PlaneGeometry(len, this.CELL*.7), new THREE.MeshBasicMaterial({ color:HEART_COLS[S.found.length % 6], transparent:true, opacity:.45 })); m.position.copy(mid).setZ(.005); m.rotation.z = Math.atan2(b.y - a.y, b.x - a.x); this.root.add(m); this.marks.push(m);
     S.last = mid; this.drawList();
@@ -536,11 +551,13 @@ const NUM_TEX = {};
 const numTex = v => NUM_TEX[v] || (NUM_TEX[v] = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#2a2440"; x.font = "bold " + (v < 100 ? 64 : v < 1000 ? 48 : 38) + "px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText(v, 64, 70); }));
 const MERGE = {
   N:4, CELL:1.5,
-  setup(){ boot(46, 60, 420); this.w = setting(6.8, 6.8, .2); this.root = new THREE.Group(); scene.add(this.root);
+  setup(){ boot(this.fov = 46, 60, 420); this.w = setting(6.8, 6.8, .2); this.root = new THREE.Group(); scene.add(this.root);
     for (let i = 0; i < 16; i++){ const s = new THREE.Mesh(new THREE.PlaneGeometry(1.36, 1.36), new THREE.MeshBasicMaterial({ color:0xe8e0f0 })); s.position.copy(this.at(i % 4, Math.floor(i/4))).setZ(-.05); this.root.add(s); }
-    this.tiles = []; ME = buildSaucer(); ME.scale.setScalar(.45); scene.add(ME); },
-  reset(){ Object.assign(S, { moves:0, merges:0, best:0, boards:0, k:1, lastMoveBar:-1, lastDropBar:-1, last:null }); lastT = 0; this.fresh(); say("HEART MERGE", "swipe - two the same become one", 2.4); },
+    this.tiles = []; if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.45); scene.add(ME); } },
+  reset(){ Object.assign(S, { moves:S.moves || 0, merges:S.merges || 0, best:S.best || 0, fulls:S.fulls || 0, k:REMIX && S.k || 1, lastMoveBar:-1, lastDropBar:-1, last:null, lastMoveT:this.start, saidDrop:false }); lastT = 0; this.sw = null; this.fresh(); say("HEART MERGE", "swipe - two the same become one", 2.4); },
   info(){ return "BEST " + S.best + " · MOVES " + S.moves; }, warn(){ return this.tiles.length >= 13; },
+  // the remix, a turn that's up: the page never ends here, so the next merge is the break, 2 bars at most
+  turnOver(t, up){ return S.mergeAt >= up || t >= up + BAR*2; },
   at(x, y){ return new THREE.Vector3((x - 1.5)*this.CELL, (1.5 - y)*this.CELL + .2, 0); },
   fresh(){ for (const t of this.tiles) this.root.remove(t.g); this.tiles = []; this.spawn(); this.spawn(); },
   tile(v, x, y){ const g = new THREE.Group(); const h = heartMesh(0, 1.15); h.material.color.setHex(MERGE_COLS[v] || 0xff6a3a); h.material.emissive.setHex(MERGE_COLS[v] || 0xff6a3a); g.add(h);
@@ -564,18 +581,18 @@ const MERGE = {
     return moved ? gained : -1; },
   move(dx, dy){ if (S.done) return; const g = this.slide(dx, dy); if (g < 0) return;
     S.moves++; S.lastMoveT = S.t; S.saidDrop = false; sfx.jump(); const beat = onBeat(S.t);
-    if (g){ const n = g*4*(beat ? 2 : 1)*(hookAt(S.t) ? 2 : 1); S.score += n; S.merges++; S.got++; sfx.good(Math.log2(g)); }
+    if (g){ const n = g*4*(beat ? 2 : 1)*(hookAt(S.t) ? 2 : 1); S.score += n; S.merges++; S.got++; S.mergeAt = S.t; sfx.good(Math.log2(g)); }
     S.best = Math.max(S.best, ...this.tiles.map(t => t.v)); if (S.best >= 256 && !S.said256){ S.said256 = true; say("256!", "keep going", .8); }
     this.spawn(); this.check(); },
   check(){ if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => this.slide(dx, dy, true) >= 0)) return;
-    if (hurt("NO MOVES", "Swipe so two hearts with the same number meet - and keep moving: a whole bar without a move drops one in anyway.")) return; S.boards++; this.fresh(); },
+    if (hurt("NO MOVES", "Swipe so two hearts with the same number meet - and keep moving: a whole bar without a move drops one in anyway.")) return; S.fulls++; this.fresh(); },
   point(cx, cy){ if (!down) return; if (!this.sw) this.sw = { x:cx, y:cy }; this.sw.ex = cx; this.sw.ey = cy; },
   release(){ const s = this.sw; this.sw = null; if (!s || s.ex == null) return; const dx = s.ex - s.x, dy = s.ey - s.y; if (Math.max(Math.abs(dx), Math.abs(dy)) < 30) return;
     if (Math.abs(dx) > Math.abs(dy)) this.move(Math.sign(dx), 0); else this.move(0, Math.sign(dy)); },
   update(dt, t){
     // the song keeps you going: a bar with no move drops a heart in
     const beatN = Math.floor(t/BEAT); if (t - (S.lastMoveT || 0) > BAR*(1 - .25*clamp(LV(), 0, 1.4)) && beatN > (S.lastDropBeat || 0)){ S.lastDropBeat = beatN;
-      if (!this.spawn()){ if (hurt("FULL", "Keep swiping so two hearts with the same number meet - stop moving and they drop in, one a beat.")) return; S.boards++; this.fresh(); S.lastMoveT = t; }
+      if (!this.spawn()){ if (hurt("FULL", "Keep swiping so two hearts with the same number meet - stop moving and they drop in, one a beat.")) return; S.fulls++; this.fresh(); S.lastMoveT = t; }
       else { this.check(); if (!S.saidDrop){ S.saidDrop = true; say("KEEP MOVING", "they drop in, one a beat", .9, "warn"); } } }
   },
   render(t){ const dt = dtOf(t), beat = onBeat(t), portrait = cam.aspect < .8;
@@ -608,10 +625,10 @@ const PARTS = [null, POP, WORDS_SEARCH, MERGE];
 
 /* ---------------- the run ---------------- */
 function reset(){
-  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0 };
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, got:0, onBeat:0, stint:-1, loops:0, turn:0, lap:0, turnAt:0 };
   lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
-  G = PARTS[PART]; camInit = false; G.root.visible = true; showSetting(true); END.root.visible = false; END.on = false; ME.visible = true; ME.scale.setScalar(G.meScale);
-  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+  G = REMIX ? PARTS[1] : PARTS[PART]; if (REMIX) showGame(G); camInit = false; G.root.visible = true; showSetting(true); END.root.visible = false; END.on = false; ME.visible = true; ME.scale.setScalar(G.meScale);
+  if (REMIX) G.begin(0, TURN, .3, .4); else if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
   $("msg").className = "";
 }
 // endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
@@ -620,6 +637,19 @@ function startStint(n, t){
   if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
   const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
   if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+// the remix: one game on show, with its own page, lens and saucer size
+function showGame(g){ G = g; for (const o of PARTS) if (o){ o.root.visible = o === g; o.w.page.visible = o === g; } cam.fov = g.fov; cam.updateProjectionMatrix(); ME.scale.setScalar(g.meScale); }
+// when a game's turn is up you finish what you're on (its turnOver says when), then the next game comes in. Round
+// all three is a lap: +2,000, a heart back, and the next one is harder
+function nextGame(t){
+  S.turn++; S.turnAt = t; const first = S.turn % 3 === 0;
+  let back = false;
+  if (first){ S.lap++; S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  showGame(PARTS[1 + S.turn % 3]); down = false;
+  const L0 = .3 + S.lap*.3; G.begin(t, t + TURN, L0, L0 + .1);
+  $("flash").style.background = "#ffc83a"; S.flashT = .4; sfx.whoosh();
+  say(first ? "LAP " + (S.lap + 1) : G.name, first ? G.name + " · +2,000" + (back ? " · a heart back" : "") : G.hint, 2, "g");
 }
 const LOOPS = CFG.endless;
 function songT(){
@@ -636,7 +666,8 @@ function update(dt){
   if (S.done) return;
   const t = Math.max(0, S.t);
   if (S.inv > 0) S.inv -= dt;
-  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  if (REMIX){ const up = S.turnAt + TURN; if (t >= up && G.turnOver(t, up)) nextGame(t); }
+  else if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
   G.update(dt, t);
   if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
 }
@@ -672,7 +703,7 @@ function lose(why, tip){
 function over(why){
   if (S.done) return;
   S.done = true; S.why = why;
-  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  say(REMIX ? "REMIX OVER" : "RUN OVER", why, 2, "g"); $("phase").className = "off";
   setTimeout(finish, 1500);
 }
 
@@ -735,13 +766,13 @@ function finish(){
   go.textContent = "Play again"; go.disabled = false; go.classList.toggle("alt", !S.fail && !CFG.endless);
   for (const id of ["outs", "home"]) $(id).classList.remove("hid");
   $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
-  const got = PART === 1 ? S.popped : PART === 2 ? S.got : S.merges;
+  const got = REMIX ? S.got : PART === 1 ? S.popped : PART === 2 ? S.got : S.merges;
   if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:got });
-  const stat = PART === 1 ? S.popped + " hearts popped · " + S.boards + " pages cleared" : PART === 2 ? S.got + " words found · " + S.pages + " pages turned" : S.merges + " merges · up to " + S.best;
+  const stat = REMIX ? "popped <b>" + (S.popped || 0) + "</b> · words <b>" + (S.wordsFound || 0) + "</b> · merges <b>" + (S.merges || 0) + "</b>" : PART === 1 ? S.popped + " hearts popped · " + S.boards + " pages cleared" : PART === 2 ? S.got + " words found · " + S.pages + " pages turned" : S.merges + " merges · up to " + S.best;
   if (CFG.endless){
-    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector(".by").textContent = (REMIX ? "REMIX · " : "ENDLESS · ") + S.why;
     v.querySelector("h1").textContent = fmt(score());
-    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the clouds &middot; " + stat;
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the clouds &middot; " + (REMIX ? "lap <b>" + (S.lap + 1) + "</b> &middot; " : "") + stat;
     ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
     return;
   }
@@ -755,7 +786,7 @@ function finish(){
   v.querySelector(".by").textContent = CFG.by + " COMPLETE";
   v.querySelector("h1").textContent = "FALL IN LOVE AGAIN";
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
-  ps[1].innerHTML = (PART === 3 ? "Juice was right." + "<br>Level 23 cleared: <b>Heart Pop &#8734;</b>, <b>Love Words &#8734;</b> and <b>Heart Merge &#8734;</b> are open in the gold Endless list." : PART === 2 ? "Every word on the page." + "<br>Part 3, <b>Heart Merge</b>, is open." : "Hearts everywhere." + "<br>Part 2, <b>Love Words</b>, is open.");
+  ps[1].innerHTML = (PART === 3 ? "Juice was right." + "<br>Level 23 cleared: <b>Heart Pop &#8734;</b>, <b>Love Words &#8734;</b>, <b>Heart Merge &#8734;</b> and the <b>Remix &#8734;</b> are open in the gold Endless list." : PART === 2 ? "Every word on the page." + "<br>Part 3, <b>Heart Merge</b>, is open." : "Hearts everywhere." + "<br>Part 2, <b>Love Words</b>, is open.");
 }
 
 /* ---------------- input ---------------- */
@@ -778,17 +809,19 @@ function startGame(){
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
   S.started = true; S.t = 0;
   if (HUB) toHub({ type:"javeda:start", level:CFG.id });
-  say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? ["", "the hearts never stop", "the pages never stop", "the hearts never stop"][PART] : G.hint, 3, CFG.endless ? "g" : "");
+  if (REMIX) say("REMIX", "all three games, till the hearts run out", 3, "g");
+  else say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? ["", "the hearts never stop", "the pages never stop", "the hearts never stop"][PART] : G.hint, 3, CFG.endless ? "g" : "");
 }
 $("go").addEventListener("click", () => {
   startGame();
 });
 $("by").textContent = "LAZY JO · " + CFG.by;
-$("title").textContent = "FALL IN LOVE AGAIN" + (ENDLESS ? " ∞" : "");
+$("title").textContent = REMIX ? "REMIX" : "FALL IN LOVE AGAIN" + (ENDLESS ? " ∞" : "");
 $("intro").innerHTML = "The sky from the cover - pink and white clouds, the open book floating on them with the lavender smoke heart - and Jo's saucer." +
-  [" <b>Part 1 · Heart Pop:</b> hearts in five colours hanging from the top of the page.", " <b>Part 2 · Love Words:</b> a page of letters in the book.", " <b>Part 3 · Heart Merge:</b> hearts with numbers on a 4x4 page."][PART - 1] +
+  (REMIX ? " <b>The remix:</b> Heart Pop, Love Words and Heart Merge, 16 bars each, and round again, harder every lap. A finished lap gives a heart back."
+    : [" <b>Part 1 · Heart Pop:</b> hearts in five colours hanging from the top of the page.", " <b>Part 2 · Love Words:</b> a page of letters in the book.", " <b>Part 3 · Heart Merge:</b> hearts with numbers on a 4x4 page."][PART - 1]) +
   (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
-$("how").innerHTML = [
+$("how").innerHTML = REMIX ? "<b>Heart Pop:</b> drag to aim, let go to shoot - three or more of a colour touching burst. <b>Love Words:</b> drag from a word's first letter to its last. <b>Heart Merge:</b> swipe - two the same become one. When a game's turn is up you finish what you're on, then the next one comes in." : [
   "<b>Drag</b> to aim (or the arrows), <b>let go</b> to shoot (or Space). Three or more of a colour touching burst, and whatever's left hanging from nothing falls. Every 2 bars they all come down a row - reaching the line costs a heart (3). Clear the page for a big bonus. Shot <b>on the beat</b> it counts double; double again in the hooks.",
   "<b>Drag</b> from a word's first letter to its last - across, down or on the slant, either way round. Find every word on the list and the page turns. Out of time costs a heart (3). Found <b>on the beat</b> it counts double; double again in the hooks.",
   "<b>Swipe</b> (or the arrows): every heart slides that way, and two the same that meet become one, twice the number. Keep moving - stop for a bar and hearts drop in, one a beat. Full with no move left costs a heart (3). Merged <b>on the beat</b> it counts double; double again in the hooks."][PART - 1];
@@ -796,12 +829,13 @@ if (!HUB){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
     const m = b.dataset.mode;
-    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
-      if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+    b.setAttribute("aria-pressed", String(m === (REMIX ? "r" : String(PART) + (ENDLESS ? "x" : ""))));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part"); q.delete("remix");
+      if (m === "r") q.set("remix", "1"); else { if (m[0] !== "1") q.set("part", m[0]); if (m.endsWith("x")) q.set("endless", "1"); } location.search = q.toString(); });
   });
 }
-PARTS[PART].setup(); buildEnd();
+if (REMIX) POP.setup(), WORDS_SEARCH.setup(), MERGE.setup(); else PARTS[PART].setup();
+buildEnd();
 reset();
 requestAnimationFrame(frame);
 </script>

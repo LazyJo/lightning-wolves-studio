@@ -85,11 +85,17 @@ body.gold #veil h1{background:linear-gradient(172deg,#fff6d8 18%,#ffd65a 62%,#e0
 body.gold #veil .by{color:#e0a41a}
 body.gold #veil b{color:#ffe08a}
 body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
-/* on its own (not in the hub) the start card has the way into endless, and back */
-#endl{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em;
+/* on its own (not in the hub) the start card has the way into endless, and back, and the remix */
+#endl,#rmx{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em;
   text-transform:uppercase; text-decoration:none; color:#ffe08a; padding:8px 18px; border-radius:4px;
   border:1.5px solid #e0a41a99; background:#e0a41a14; margin-top:-4px}
 body.gold #endl{color:#d8b4fe; border-color:#8b5cf699; background:#8b5cf614}
+/* the remix: this page in a frame on SOMEBODY's page, with that page's HUD: gold, and the song bar is the turn */
+#el{font-family:Bungee,sans-serif; font-size:12px; letter-spacing:.12em; color:#ffe08a; margin-top:6px;
+  text-shadow:0 0 10px #e0a41a88}
+body.remix #m{text-shadow:0 0 14px #e0a41a88}
+body.remix #pips i{background:#ffffff30}
+body.remix #pips i.on{background:#ffd65a}
 /* a sideways phone: last, so it wins over the rules above */
 @media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px}
   #veil h1{font-size:44px} #outs{max-width:none} #next{padding:10px 30px 8px} }
@@ -97,7 +103,7 @@ body.gold #endl{color:#d8b4fe; border-color:#8b5cf699; background:#8b5cf614}
 </style>
 
 <div id="cab"></div>
-<div id="hud"><div id="m">0</div><div id="ml">METRES</div><div id="pips"></div><div id="hearts"></div></div>
+<div id="hud"><div id="m">0</div><div id="ml">METRES</div><div id="pips"></div><div id="el" class="hid"></div><div id="hearts"></div></div>
 <div id="msg"></div>
 <div id="flash"></div>
 <div id="veil">
@@ -109,6 +115,7 @@ body.gold #endl{color:#d8b4fe; border-color:#8b5cf699; background:#8b5cf614}
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
   <button id="go" type="button">Start</button>
   <a id="endl" class="hid">Endless &#8734;</a>
+  <a id="rmx" class="hid">Remix &#8734;</a>
   <div id="outs" class="hid">
     <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
     <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
@@ -177,7 +184,13 @@ if (HUB) document.getElementById("home").addEventListener("click", e => {
    always out on the horizon, until the hearts run out. Score is the metres
    ridden, so it can never come in faster than the top speed (SPEED_X m/s).
    Hub id "lvl2bx", and it is all gold. */
-const ENDLESS = new URLSearchParams(location.search).get("endless") === "1";
+const Q = new URLSearchParams(location.search);
+/* The REMIX (?remix=1&guest=1): SOMEBODY's page is the host and runs the remix (see THE REMIX over there); this page
+   sits in a frame on it and plays the road when it's Zirka's turn. It runs on endless's rules, with the host's song,
+   score, hearts and lap, and it never talks to the hub. Opened any other way, nothing here changes. */
+const HOST = (() => { try { return Q.get("remix") === "1" && Q.get("guest") === "1" && window.parent !== window && window.parent.JAVEDA_REMIX || null; } catch(e){ return null; } })();
+const GUEST = !!HOST;
+const ENDLESS = GUEST || Q.get("endless") === "1";
 const LEVEL_ID = ENDLESS ? "lvl2bx" : "lvl2b";
 const SPEED_X = 30;                   // endless top speed, reached ~6.5 min in
 const HARD_KM = 8;                    // endless: the mix is at its meanest this many km past the line
@@ -192,10 +205,14 @@ const LOOP = [barT(16), barT(64)], HEART_BARS = 24;
 const speedEndless = d => Math.min(SPEED_X, speedAt(d) + Math.max(0, d - CP_TOTAL * CP_EVERY) / 700);
 const mmss = t => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
 if (ENDLESS) document.body.classList.add("gold");
+if (GUEST) document.body.classList.add("remix");
+const RIDE_PTS = 10;                  // remix: points a metre, so a turn on the road counts about as much as one in the sand
+const RIDE_LAP = 1.5, ROW_LAP = .12;  // remix: every lap this much faster (m/s, up to SPEED_X) and meaner (of the mix's way to its worst)
 
 // metres flown, and on a clear a bonus for getting there, for every heart left
 // and for not being hit at all - so ~3500 is a perfect run. Endless: the metres.
 function score(){
+  if (GUEST) return S.base + Math.floor(S.far - S.d0)*RIDE_PTS;   // the run's score; a hit that throws him back doesn't take any off
   const m = Math.floor(S.dist);
   if (ENDLESS) return Math.min(SCORE_CAP, m);
   return S.fail ? m : m + 1000 + S.hearts*150 + (S.hits === 0 ? 500 : 0);
@@ -373,7 +390,7 @@ function buildRow(i, e){
   let gap = Math.floor(rnd(k * 9.1) * 3) - 1;
   if (gap === last && i > 1) gap = gap === 1 ? -1 : gap + 1;
   last = gap;
-  const h = e ? clamp01((-z - CP_TOTAL * CP_EVERY) / (HARD_KM * 1000)) : 0, rest = e && lifts >= 1;
+  const h = e ? clamp01((-z - CP_TOTAL * CP_EVERY) / (HARD_KM * 1000) + (GUEST ? S.lap*ROW_LAP : 0)) : 0, rest = e && lifts >= 1;
   if (r < .20 + .06*h && !rest){        // a low one, spanning everything: lift over it
     const w = makeWall(-1, 1, true);
     w.position.z = z; scene.add(w); walls.push(w); lifts++;
@@ -544,7 +561,8 @@ function reset(){
         up:false, lastDown:0, bufAt:-9, started:false, done:false, cp:0, hits:0,
         speed:SPEED0, camX:0, camV:0, crash:-1, msgT:0, spin:0, tilt:0, inv:0,
         hearts:HEARTS, fail:false, end:-1, e0:null,
-        loops:0, heartAt:HEART_BARS, over:-1, km:0 };     // endless: song loops, next heart bar, time out, km said
+        loops:0, heartAt:HEART_BARS, over:-1, km:0,       // endless: song loops, next heart bar, time out, km said
+        base:0, d0:0, far:0, lap:0, from:0, until:Infinity };   // remix: score so far, metres counted from, furthest, lap, this turn
   // reset() runs once at module scope, before boot() has built anything, so all
   // of these have to tolerate a world that does not exist yet
   // endless: the road it grew last run is thrown away and the part's rows built again
@@ -565,6 +583,7 @@ reset();
 // his ride is the first half of SOMEBODY: Part 1 hears him arrive at 1:12
 const SONGS = "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/";   // the level songs live in Supabase Storage (bucket media), not in the deploy
 const song = new Audio(SONGS + "lvl2.mp3"); song.preload = "auto";
+if (GUEST) song.preload = "none";     // remix: the host plays the song, this page never fetches it
 // endless: round and round in whole bars (with song.loop as the fallback)
 if (ENDLESS) song.loop = true;
 function loopSong(){
@@ -628,12 +647,15 @@ addEventListener("pointerup", e => {
   pd = null;
 });
 addEventListener("pointercancel", () => { pd = null; });
-addEventListener("keydown", e => {
+function onKey(e){
   if (["ArrowLeft","ArrowRight","ArrowUp"," "].includes(e.key)) e.preventDefault();
   if (e.key === "ArrowLeft") act(-1);
   if (e.key === "ArrowRight") act(1);
   if (e.key === "ArrowUp" || e.key === " ") act(0);
-});
+}
+// remix: keys go to whichever window has the focus; if that's this one when it isn't his turn, they're the host's
+addEventListener("keydown", e => { if (GUEST && !S.started) HOST.key(e); else onKey(e); });
+if (GUEST) addEventListener("keyup", e => HOST.key(e));
 
 const msgEl = document.getElementById("msg");
 function say(a, b, t){ msgEl.innerHTML = a + (b ? "<small>"+b+"</small>" : ""); msgEl.classList.add("on"); S.msgT = t; }
@@ -678,12 +700,13 @@ function update(dt){
     return;
   }
 
-  S.speed = ENDLESS ? speedEndless(S.dist) : speedAt(S.dist);
+  S.speed = GUEST ? rideSpeed() : ENDLESS ? speedEndless(S.dist) : speedAt(S.dist);
   S.dist += S.speed * dt;
+  if (GUEST) S.far = Math.max(S.far, S.dist);
   if (ENDLESS){
     growRoad();
-    // a heart back every 24 bars of the song, never over the top
-    if (S.t >= S.heartAt * BAR){ S.heartAt += HEART_BARS;
+    // a heart back every 24 bars of the song, never over the top (the remix: a finished lap, the host's to give)
+    if (!GUEST && S.t >= S.heartAt * BAR){ S.heartAt += HEART_BARS;
       if (S.hearts < HEARTS){ S.hearts++; chime(); say("+1 HEART", "24 bars", 1.2); } }
   }
 
@@ -768,6 +791,8 @@ function update(dt){
   }
 
   if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) msgEl.classList.remove("on"); }
+  // remix: the turn's up. He hands back on the ground and not mid-swerve, 8 bars later at the very most
+  if (GUEST && S.t >= S.until && ((!S.up && S.laneT >= LANE_MS/1000) || S.t >= S.until + BAR*8)) guestLeave(false);
 }
 
 function render(dt){
@@ -807,8 +832,9 @@ function render(dt){
     // and canyon rocks he has passed go round to the far end
     for (const m of strips) m.position.z = m.userData.z0 - S.dist;
     for (const m of loops) while (m.position.z > -S.dist + 30) m.position.z -= m.userData.loop;
-    document.getElementById("ml").textContent = "ENDLESS \u00b7 " + mmss(S.over >= 0 ? S.over : S.t);
+    if (!GUEST) document.getElementById("ml").textContent = "ENDLESS \u00b7 " + mmss(S.over >= 0 ? S.over : S.t);
   }
+  if (GUEST){ const fo = +flashEl.style.opacity || 0; if (fo > 0) flashEl.style.opacity = Math.max(0, fo - dt*1.6); }
 
   const back = S.crash >= 0 ? 8.5 + S.crash*2.2 : 7.4;
   cam.position.set(S.camX, 3.9 + y*.30 + (S.crash >= 0 ? S.crash*.7 : 0), -S.dist + back);
@@ -981,27 +1007,36 @@ for (let i = 0; i < HEARTS; i++){
   h.innerHTML = '<svg viewBox="0 0 12 11" aria-hidden="true"><path d="M6 10.6 1.1 5.6A2.9 2.9 0 0 1 6 1.9a2.9 2.9 0 0 1 4.9 3.7Z"/></svg>';
   hearts.appendChild(h);
 }
-let lastPip = 0, lastHeart = HEARTS, crashed = null;
+let lastPip = 0, lastHeart = HEARTS, crashed = null, lastEl = "";
+function hudFrame(){
+  // remix: the song bar is the turn, and the line under it the lap and the run's clock, as on the host's HUD
+  const pip = GUEST ? Math.max(0, Math.min(10, Math.floor((S.t - S.from) / (S.until - S.from) * 10))) : S.cp;
+  if (pip !== lastPip){ lastPip = pip;
+    [...pips.children].forEach((e,i) => e.classList.toggle("on", i < pip)); }
+  if (GUEST){ const tx = "REMIX \u00b7 LAP " + (S.lap + 1) + " \u00b7 " + mmss(S.over >= 0 ? S.over : S.t);
+    if (tx !== lastEl){ lastEl = tx; document.getElementById("el").textContent = tx; } }
+  // lost hearts go out from the right; adding .out is what plays the pop
+  // and a heart picked up off the road comes back in with .gain
+  if (S.hearts !== lastHeart){
+    [...hearts.children].forEach((e,i) => {
+      if (e.classList.contains("out") !== (i >= S.hearts)) e.style.animation = "";   // (a remix change holds it still: see setHearts)
+      e.classList.toggle("out", i >= S.hearts);
+      if (i >= lastHeart && i < S.hearts){ e.classList.remove("gain"); void e.offsetWidth; e.classList.add("gain"); }
+    });
+    lastHeart = S.hearts; }
+}
 function frame(){
   try {
     const dt = Math.min(.05, clock ? clock.getDelta() : .016);
     if (S.started && !S.done) update(dt);
     render(dt);
-    if (S.cp !== lastPip){ lastPip = S.cp;
-      [...pips.children].forEach((e,i) => e.classList.toggle("on", i < S.cp)); }
-    // lost hearts go out from the right; adding .out is what plays the pop
-    // and a heart picked up off the road comes back in with .gain
-    if (S.hearts !== lastHeart){
-      [...hearts.children].forEach((e,i) => {
-        e.classList.toggle("out", i >= S.hearts);
-        if (i >= lastHeart && i < S.hearts){ e.classList.remove("gain"); void e.offsetWidth; e.classList.add("gain"); }
-      });
-      lastHeart = S.hearts; }
+    hudFrame();
   } catch (e){ if (!crashed){ crashed = e; console.error(e); } }
   requestAnimationFrame(frame);
 }
 
 function finish(){
+  if (GUEST){ guestLeave(true); return; }   // the host has the card
   song.pause();
   const v = document.getElementById("veil");
   v.classList.remove("hid");
@@ -1060,6 +1095,7 @@ document.getElementById("go").addEventListener("click", () => {
   S.started = true;
   if (HUB && ENDLESS) toHub({ type:"javeda:start", level:LEVEL_ID });
   document.getElementById("endl").classList.add("hid");
+  document.getElementById("rmx").classList.add("hid");
   if (ENDLESS) say("ENDLESS", "his light, and no end to the canyon", 3);
   else say("GO", "follow the blue light", 3);
 });
@@ -1067,7 +1103,7 @@ document.getElementById("go").addEventListener("click", () => {
 /* Endless start card: gold, no checkpoints on the HUD. On its own (not in the
    hub) the card links into endless and back out again; in the hub the hub's own
    level list is the way in, so the link stays hidden. */
-if (ENDLESS){
+if (ENDLESS && !GUEST){
   document.querySelector("#veil .by").textContent = "LEVEL 2 \u00b7 PART 2 \u00b7 ENDLESS";
   document.querySelector("#veil h1").innerHTML = "ZIRKA'S RIDE &#8734;";
   document.querySelector("#veil p:not(.by)").innerHTML = "No crest, no basin. The canyon goes on, faster and meaner, till the hearts run out. " +
@@ -1075,16 +1111,64 @@ if (ENDLESS){
   document.getElementById("pips").classList.add("hid");
   document.getElementById("ml").textContent = "ENDLESS \u00b7 0:00";
 }
-if (!HUB){
+if (!HUB && !GUEST){
   const q = new URLSearchParams(location.search), el = document.getElementById("endl");
   if (ENDLESS) q.delete("endless"); else q.set("endless", "1");
   el.href = location.pathname + (String(q) ? "?" + q : "");
   el.innerHTML = ENDLESS ? "&#9666; The song, with its ending" : "Endless &#8734;";
   el.classList.remove("hid");
+  // the remix is on SOMEBODY's page (the hub keeps the levels flat in levels/, this repo has a folder for each)
+  const rx = document.getElementById("rmx"); rx.classList.remove("hid");
+  rx.href = (/\/zirkas-ride\/(index\.html)?$/.test(location.pathname) ? "../somebody/index.html" : "somebody.html") + "?remix=1";
+}
+
+/* ================= THE REMIX =================
+   The guest's side (the whole story is in SOMEBODY's page, under the same heading). No frame loop of its own and no
+   card: the host runs it a frame at a time when it's his turn and doesn't touch it otherwise, so nothing moves or draws
+   here between turns. The road stays where he left it and carries on, so the speed and the mix build over the run. */
+const rideSpeed = () => Math.min(SPEED_X, speedEndless(S.dist) + S.lap*RIDE_LAP);
+// the HUD takes the count from the other game without a pop: nothing was lost just now
+function setHearts(n){
+  [...hearts.children].forEach((e, i) => { e.style.animation = "none"; e.classList.remove("gain"); e.classList.toggle("out", i >= n); });
+  lastHeart = n;
+}
+function guestEnter(o){
+  S.started = true; S.t = S.from = o.t; S.until = o.until; S.lap = o.lap; S.base = o.score; S.hearts = o.hearts; S.hits = 0;
+  S.d0 = S.far = Math.max(S.far, S.dist);
+  ac = o.ac; bus = o.bus;               // his sounds go out through the host's speakers: one context, already unlocked by Start
+  pd = null; S.y = S.vy = 0; S.up = false; S.bufAt = -9; S.lastDown = S.t; S.inv = 0;
+  S.laneX = S.laneFrom = S.lane; S.laneT = 9; S.speed = rideSpeed(); S.camX = S.laneX*LANE*.38; S.camV = 0;
+  // the road opens up: about 5 s with nothing on it at this speed, to find your feet in (a change never costs a heart)
+  const open = S.dist + S.speed*5 + 10;
+  while (rowN * 11 + 24 < open + 100) buildRow(rowN + 1, true);
+  for (let i = walls.length - 1; i >= 0; i--){ const d = -walls[i].position.z;
+    if (d > S.dist && d < open){ dropWall(walls[i]); walls.splice(i, 1); } }
+  setHearts(S.hearts);
+  flashEl.style.background = "#ffc83a"; flashEl.style.opacity = .5;
+  sweep("sawtooth", 90, 320, .9, .14, 1400);
+  say("ZIRKA'S RIDE", "tap a side to swerve - tap the middle to jump", 2);
+  render(0); hudFrame();                // his first frame is on the canvas before the host shows the frame
+}
+function guestLeave(over){
+  S.started = false; pd = null;
+  HOST.back({ score:score(), hearts:S.hearts, hits:S.hits, metres:Math.floor(S.far), over, why:"OUT OF HEARTS", down:S.over });
 }
 
 boot();
-requestAnimationFrame(frame);
+if (GUEST){
+  document.getElementById("veil").classList.add("hid");
+  document.getElementById("ml").textContent = "SCORE";
+  document.getElementById("el").classList.remove("hid");
+  // every shader now, hidden, so the first change doesn't stall on them
+  ren.compile(scene, cam); render(0);
+  HOST.ready({
+    fresh(){ reset(); lastPip = -1; setHearts(HEARTS); },
+    enter:guestEnter,
+    update(dt, t){ if (S.started && !S.done){ S.t = t - dt; update(dt); } },
+    render(dt){ render(dt); hudFrame(); },
+    key:onKey
+  });
+} else requestAnimationFrame(frame);
 </script>
 </body>
 </html>

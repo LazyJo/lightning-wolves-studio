@@ -1064,9 +1064,10 @@ const endlessOf = (num, file, last, parts, remix) => parts.map(([id, title], i) 
   .concat(remix ? [{ id:"lvl" + num + "r", num, remix:true, endless:true, title:"Remix", requires:last, src:"levels/" + file + "?hub=1&remix=1" }] : []);
 const ENDLESS = [
   ...endlessOf(1, "im-lost.html", "lvl1", [["lvl1", "I'm Lost"]], false),
-  // Level 2's two parts are two pages: no remix
+  // Level 2's two parts are two pages: Somebody's page runs the remix and has Zirka's Ride in a frame
   { id:"lvl2x", num:2, part:1, endless:true, title:"Somebody", requires:"lvl2", src:"levels/somebody.html?hub=1&endless=1" },
   { id:"lvl2bx", num:2, part:2, endless:true, title:"Zirka's Ride", requires:"lvl2b", src:"levels/zirkas-ride.html?hub=1&endless=1" },
+  { id:"lvl2r", num:2, remix:true, endless:true, title:"Remix", requires:"lvl2b", src:"levels/somebody.html?hub=1&remix=1" },
   ...endlessOf(3, "my-heart.html", "lvl3c", [["lvl3", "My Heart"], ["lvl3b", "Lights Out"], ["lvl3c", "Heartbreak"]], true),
   ...endlessOf(4, "rollercoaster.html", "lvl4c", [["lvl4", "Rollercoaster"], ["lvl4b", "Full Speed"], ["lvl4c", "No Brakes"]], true),
   ...endlessOf(5, "feel-like-that.html", "lvl5c", [["lvl5", "Feel Like That"], ["lvl5b", "Moth Night"], ["lvl5c", "Stay Lit"]], true),
@@ -1082,17 +1083,17 @@ const ENDLESS = [
   ...endlessOf(15, "ghost.html", "lvl15", [["lvl15", "Haunted Windows"]], false),
   ...endlessOf(16, "peace-inside.html", "lvl16", [["lvl16", "Hoops"]], false),
   ...endlessOf(17, "true-fighter.html", "lvl17", [["lvl17", "Island Blocks"]], false),
-  ...endlessOf(18, "issues.html", "lvl18b", [["lvl18", "Unblock"], ["lvl18b", "Light Link"]], false),
+  ...endlessOf(18, "issues.html", "lvl18b", [["lvl18", "Unblock"], ["lvl18b", "Light Link"]], true),
   ...endlessOf(19, "stay-up.html", "lvl19", [["lvl19", "Pad Memory"]], false),
   ...endlessOf(20, "stay-up-2.html", "lvl20", [["lvl20", "Pass It On"]], false),
-  ...endlessOf(21, "blind-love.html", "lvl21b", [["lvl21", "Love Cards"], ["lvl21b", "Snap"]], false),
-  ...endlessOf(22, "space-kid.html", "lvl22c", [["lvl22", "Planet Match"], ["lvl22b", "Rainbow Sort"], ["lvl22c", "Star Peaks"]], false),
-  ...endlessOf(23, "fall-in-love-again.html", "lvl23c", [["lvl23", "Heart Pop"], ["lvl23b", "Love Words"], ["lvl23c", "Heart Merge"]], false),
+  ...endlessOf(21, "blind-love.html", "lvl21b", [["lvl21", "Love Cards"], ["lvl21b", "Snap"]], true),
+  ...endlessOf(22, "space-kid.html", "lvl22c", [["lvl22", "Planet Match"], ["lvl22b", "Rainbow Sort"], ["lvl22c", "Star Peaks"]], true),
+  ...endlessOf(23, "fall-in-love-again.html", "lvl23c", [["lvl23", "Heart Pop"], ["lvl23b", "Love Words"], ["lvl23c", "Heart Merge"]], true),
   ...endlessOf(24, "down-for-me.html", "lvl24", [["lvl24", "Sunset Swap"]], false),
-  ...endlessOf(25, "real-love.html", "lvl25d", [["lvl25", "Heart Flow"], ["lvl25b", "Crab Sweeper"], ["lvl25c", "Starlight"], ["lvl25d", "Shell Sudoku"]], false),
-  ...endlessOf(26, "lifestyle-crazy.html", "lvl26b", [["lvl26", "Neon Pinball"], ["lvl26b", "Speaker Push"]], false),
-  ...endlessOf(27, "be-alright.html", "lvl27b", [["lvl27", "Untangle"], ["lvl27b", "Bird Code"]], false),
-  ...endlessOf(28, "go.html", "lvl28b", [["lvl28", "Rooftop Golf"], ["lvl28b", "Sky Hockey"]], false)
+  ...endlessOf(25, "real-love.html", "lvl25d", [["lvl25", "Heart Flow"], ["lvl25b", "Crab Sweeper"], ["lvl25c", "Starlight"], ["lvl25d", "Shell Sudoku"]], true),
+  ...endlessOf(26, "lifestyle-crazy.html", "lvl26b", [["lvl26", "Neon Pinball"], ["lvl26b", "Speaker Push"]], true),
+  ...endlessOf(27, "be-alright.html", "lvl27b", [["lvl27", "Untangle"], ["lvl27b", "Bird Code"]], true),
+  ...endlessOf(28, "go.html", "lvl28b", [["lvl28", "Rooftop Golf"], ["lvl28b", "Sky Hockey"]], true)
 ];
 // JAVEDA: HYPERDRIVE: not a level and not a part - the ultimate one, its own game. Scored like an endless
 // (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.

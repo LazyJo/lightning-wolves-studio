@@ -117,7 +117,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Mode">
-    <button type="button" data-mode="1">Love Cards</button><button type="button" data-mode="2">Snap</button><button type="button" data-mode="1x" class="gold">Love Cards &#8734;</button><button type="button" data-mode="2x" class="gold">Snap &#8734;</button>
+    <button type="button" data-mode="1">Love Cards</button><button type="button" data-mode="2">Snap</button><button type="button" data-mode="1x" class="gold">Love Cards &#8734;</button><button type="button" data-mode="2x" class="gold">Snap &#8734;</button><button type="button" data-mode="r" class="gold">Remix &#8734;</button>
   </div>
   <p id="net" class="hid" role="status" aria-live="polite"></p>
   <button id="go" type="button">Start</button>
@@ -147,6 +147,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    a card - the same picture on both: SNAP. A heart and a broken heart aren't the same. A snap on no pair
    or a pair let go by costs a heart. On the 8ths in the hooks.
    At the end of the song: the cover. ENDLESS for each (?endless=1) once it's cleared.
+   REMIX (?remix=1), once both are cleared: the two games in turn, on one score and one set of hearts.
    And ONLINE (?online=cards|snap, from the JAVEDA page, logged in): Love Cards 1v1 - take turns, a
    pair and you go again, the most pairs wins; Snap 1v1 - the same cards for both at the same time,
    the quicker snap takes the pair. Nobody is ever made up: if no one's there, nobody is. */
@@ -166,15 +167,18 @@ function section(t){
   return "calm";                                // the outro
 }
 const STINT = BAR * 8;                        // endless: one window
+const TURN = BAR * 16;                        // remix: one game's turn
 const HEARTS = 3;
 
 const Q = new URLSearchParams(location.search);
 const ONLINE = { cards:"cards", snap:"snap" }[Q.get("online")] || null;
 const PRACTICE = !ONLINE && { cards:"cards", snap:"snap" }[Q.get("practice")] || null;
-const PART = ONLINE ? (ONLINE === "snap" ? 2 : 1) : PRACTICE ? (PRACTICE === "snap" ? 2 : 1) : Q.get("part") === "2" ? 2 : 1;
-const ENDLESS = !ONLINE && !PRACTICE && Q.get("endless") === "1";
+const REMIX = !ONLINE && !PRACTICE && Q.get("remix") === "1";
+const PART = ONLINE ? (ONLINE === "snap" ? 2 : 1) : PRACTICE ? (PRACTICE === "snap" ? 2 : 1) : !REMIX && Q.get("part") === "2" ? 2 : 1;
+const ENDLESS = !ONLINE && !PRACTICE && !REMIX && Q.get("endless") === "1";
 const NAMES = ["", "Love Cards", "Snap"];
 const CFG = ONLINE ? { id:"lvl21" + ONLINE, title:NAMES[PART] + " 1v1", by:"LEVEL 21 · ONLINE 1v1", online:ONLINE }
+  : REMIX ? { id:"lvl21r", title:"Remix", by:"LEVEL 21 · REMIX", endless:true, board:"Level 21 Remix" }
   : ENDLESS ? { id:PART === 2 ? "lvl21bx" : "lvl21x", title:NAMES[PART], by:"LEVEL 21" + (PART === 2 ? " PART 2" : "") + " · ENDLESS", endless:true, board:"Level 21" + (PART === 2 ? " Part 2" : "") + " ∞" }
   : { id:PART === 2 ? "lvl21b" : "lvl21", title:NAMES[PART], by:"LEVEL 21" + (PART === 2 ? " PART 2" : "") };
 
@@ -389,6 +393,7 @@ function hud(){
     lastH = h; $("hearts").textContent = h; }
   const t = Math.max(0, S.t);
   if (ONLINE){ $("bl").textContent = G.clockName; $("songbar").firstChild.style.width = (clamp(G.clock(t), 0, 1)*100).toFixed(1) + "%"; }
+  else if (REMIX){ $("bl").textContent = "REMIX · LAP " + (S.lap + 1) + " · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.turnAt)/TURN, 0, 1)*100).toFixed(1) + "%"; }
   else if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
   else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
   $("info").textContent = G.info();
@@ -431,7 +436,8 @@ const LC = {
     this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1;
     if (cont) return;
     this.start = t0;
-    this.st = { board:CFG.endless ? 1 : 0, k:CFG.endless ? 50 : 1, open:[], pairs:0, need:0, deadline:0, wait:0, boards:0, beatPairs:0, got:0, nextDeal:0, last:null, combo:0, peek:0, peekBar:-1 };
+    const o = REMIX && this.st || {};             // the remix: a game that comes back keeps what counts up over the run
+    this.st = { board:REMIX ? S.lap : CFG.endless ? 1 : 0, k:o.k || (CFG.endless ? 50 : 1), open:[], pairs:0, need:0, deadline:0, wait:0, boards:o.boards || 0, beatPairs:o.beatPairs || 0, got:o.got || 0, nextDeal:0, last:null, combo:o.combo || 0, peek:0, peekBar:-1 };
     if (ONLINE){ V1.reset(); this.deal(t0, V1.deck()); } else this.deal(t0 + BAR);
   },
   L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
@@ -466,10 +472,11 @@ const LC = {
           const n = Math.round(100*(beat ? 2 : 1)*(section(t) === "hook" ? 2 : 1)*Math.min(2, 1 + s.combo*.15)); S.score += n; sfx.good(s.combo);
           say(beat ? "A PAIR ON THE BEAT" : "A PAIR", "+" + n, .7);
           if (s.pairs === s.need){ const left = Math.max(0, s.deadline - t), bonus = 500 + Math.round(left*60); S.score += bonus; s.boards++; s.board++; sfx.big();
-            say("BED CLEARED", "+" + fmt(bonus) + " · a bigger one", 1.2, "g"); s.nextDeal = t + BEAT*3; } }
+            say("BED CLEARED", "+" + fmt(bonus) + (turnUp(t) ? "" : " · a bigger one"), 1.2, "g"); s.nextDeal = t + BEAT*3; } }
         else { a.state = b.state = "down"; s.combo = 0; } } }
     if (s.nextDeal && t > s.nextDeal) this.deal(t);
     if (!s.nextDeal && t > s.deadline){ s.combo = 0;
+      if (turnUp(t)){ s.nextDeal = t + BEAT*2; return; }     // the remix: the turn's up, so no heart and no new bed: the other game comes in
       if (hurt("OUT OF TIME", "Turn two cards: the same picture is a pair. Remember where the others were - and clear the bed before the time's up.")) return;
       this.deal(t); }
   },
@@ -552,7 +559,8 @@ const SN = {
     if (cont) return;
     this.start = t0;
     for (const p of this.pool){ p.on = false; p.m.visible = false; p.m.scale.setScalar(1); }
-    this.st = { n:0, next:t0 + BAR, cur:null, piles:[[], []], since:0, snaps:0, fly:[], combo:0, flips:[], seed:ONLINE ? (NET.seed || 1) : CFG.endless ? 900 : 1 };
+    const o = REMIX && this.st || {};             // the remix: as in Love Cards, and it comes in anywhere, so its first card waits for the beat
+    this.st = { n:o.n || 0, next:REMIX ? GRID.t0 + Math.ceil((t0 + BAR - GRID.t0)/BEAT)*BEAT : t0 + BAR, cur:null, piles:[[], []], since:0, snaps:o.snaps || 0, fly:[], combo:o.combo || 0, flips:[], seed:ONLINE ? (NET.seed || 1) : CFG.endless ? 900 : 1 };
     if (ONLINE) W2.reset();
   },
   L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
@@ -581,7 +589,8 @@ const SN = {
     if (!c.match){ s.combo = 0; hurt("NOT A PAIR", "Only snap when both piles show the same picture. A heart and a broken heart aren't the same, nor the sun and the moon."); return; }
     s.snaps++; s.combo++; S.combo = s.combo; const beat = onBeat(S.t), n = Math.round(100*(beat ? 2 : 1)*(section(S.t) === "hook" ? 2 : 1)*Math.min(2.5, 1 + s.combo*.2)) + (s.piles[0].length + s.piles[1].length)*10;
     S.score += n; sfx.good(s.combo); sfx.clap(); say(beat ? "SNAP! ON THE BEAT" : "SNAP!", "+" + n + " · both piles", .8);
-    this.collect(); },
+    this.collect();
+    if (turnUp(S.t)){ s.nextDeal = S.t + BEAT; s.next = Infinity; } },    // the remix: a turn that's up ends on a snap: no more cards, the other game comes in
   collect(){ const s = this.st; for (const side of [0, 1]){ for (const p of s.piles[side]){ p.flyT = S.t; s.fly.push(p); } s.piles[side] = []; } },
   update(dt, t){ const s = this.st;
     s.fly = s.fly.filter(p => { if (t - p.flyT < .7) return true; p.m.visible = false; p.on = false; p.m.scale.setScalar(1); return false; });
@@ -778,10 +787,12 @@ function vsHud(){
 let ME = null, OPP = null;
 const OV = ONLINE === "snap" ? W2 : V1;       // the online rules for this part
 function reset(){
-  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0, turn:0, lap:0, turnAt:0 };
   lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
+  if (REMIX){ LC.st = SN.st = null; SN.root.visible = false; }
   G = PART === 2 ? SN : LC; camInit = false; G.root.visible = true; END.root.visible = false; END.on = false; ME.visible = true;
   if (ONLINE) G.begin(0, END_AT, .4, .4);
+  else if (REMIX) G.begin(0, TURN, .3, .4);
   else if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
 }
 // endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
@@ -790,6 +801,18 @@ function startStint(n, t){
   if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
   const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
   if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+}
+// the remix: when a game's turn is up you finish the bed you're on, or play up to the next snap (8 bars at most), then the
+// other game comes in. Round both is a lap: +2,000, a heart back, and the next one is harder
+const turnUp = t => REMIX && t >= S.turnAt + TURN;
+function nextGame(t){
+  S.turn++; S.turnAt = t; const first = S.turn % 2 === 0;
+  let back = false;
+  if (first){ S.lap++; S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  G.root.visible = false; G = first ? LC : SN; G.root.visible = true;
+  const L0 = .3 + S.lap*.3; G.begin(t, t + TURN, L0, L0 + .1);
+  $("flash").style.background = "#ffc83a"; S.flashT = .4; sfx.whoosh();
+  say(first ? "LAP " + (S.lap + 1) : G.name, first ? G.name + " · +2,000" + (back ? " · a heart back" : "") : G.hint, 2, "g");
 }
 const LOOPS = CFG.endless || ONLINE;
 function songT(){
@@ -806,7 +829,8 @@ function update(dt){
   if (S.done) return;
   const t = Math.max(0, S.t);
   if (S.inv > 0) S.inv -= dt;
-  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  if (REMIX){ if (turnUp(t) && (G.st.nextDeal ? t > G.st.nextDeal : t >= S.turnAt + TURN + BAR*8 && !G.st.wait)) nextGame(t); }
+  else if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
   G.update(dt, t);
   if (!ONLINE && !CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
 }
@@ -843,7 +867,7 @@ function lose(why, tip){
 function over(why){
   if (S.done) return;
   S.done = true; S.why = why;
-  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  say(REMIX ? "REMIX OVER" : "RUN OVER", why, 2, "g"); $("phase").className = "off";
   setTimeout(finish, 1500);
 }
 
@@ -888,7 +912,7 @@ function finish(){
   go.textContent = "Play again"; go.disabled = false; go.classList.toggle("alt", !S.fail && !CFG.endless && !ONLINE);
   for (const id of ["outs", "home"]) $(id).classList.remove("hid");
   $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off"; $("vs").classList.add("hid"); $("net").classList.add("hid");
-  const st = G.st, got = PART === 2 ? st.snaps : st.got;
+  const st = G.st, snaps = REMIX && SN.st ? SN.st.snaps : 0, got = REMIX ? LC.st.got + snaps : PART === 2 ? st.snaps : st.got;
   if (ONLINE){
     go.textContent = "Find another match"; $("practice").classList.remove("hid");
     const them = esc(NET.oppName()), mode = ONLINE === "snap" ? "SNAP 1v1" : "LOVE CARDS 1v1";
@@ -909,11 +933,11 @@ function finish(){
   }
   if (HUB && !PRACTICE) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:got });
   if (PRACTICE){ $("practice").textContent = "Back to the 1v1"; $("practice").classList.remove("hid"); }
-  const stat = PART === 2 ? st.snaps + " snaps of " + st.n + " cards" : st.got + " pairs · " + st.boards + " beds cleared" + (st.beatPairs ? " · " + st.beatPairs + " on the beat" : "");
+  const stat = REMIX ? "pairs <b>" + LC.st.got + "</b> · snaps <b>" + snaps + "</b>" : PART === 2 ? st.snaps + " snaps of " + st.n + " cards" : st.got + " pairs · " + st.boards + " beds cleared" + (st.beatPairs ? " · " + st.beatPairs + " on the beat" : "");
   if (CFG.endless){
-    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector(".by").textContent = (REMIX ? "REMIX · " : "ENDLESS · ") + S.why;
     v.querySelector("h1").textContent = fmt(score());
-    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in their rooms &middot; " + stat;
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in their rooms &middot; " + (REMIX ? "lap <b>" + (S.lap + 1) + "</b> &middot; " : "") + stat;
     ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
     return;
   }
@@ -927,7 +951,7 @@ function finish(){
   v.querySelector(".by").textContent = (PRACTICE ? "WARM-UP" : CFG.by) + " COMPLETE";
   v.querySelector("h1").textContent = "BLIND LOVE";
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
-  ps[1].innerHTML = PRACTICE ? "Warmed up. Now go and find someone." : (PART === 2 ? "Snap. Blind love." + "<br>Level 21 cleared: <b>Love Cards &#8734;</b> and <b>Snap &#8734;</b> are open in the gold Endless list." : "Every pair found." + "<br>Part 2, <b>Snap</b>, is open.");
+  ps[1].innerHTML = PRACTICE ? "Warmed up. Now go and find someone." : (PART === 2 ? "Snap. Blind love." + "<br>Level 21 cleared: <b>Love Cards &#8734;</b>, <b>Snap &#8734;</b> and the <b>Remix &#8734;</b> are open in the gold Endless list." : "Every pair found." + "<br>Part 2, <b>Snap</b>, is open.");
 }
 function boot(){
   ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
@@ -936,7 +960,7 @@ function boot(){
   scene.add(new THREE.HemisphereLight(0xfff0ff, 0x6a4ab8, .75));
   const key = new THREE.DirectionalLight(0xfff4f8, .55); key.position.set(-6, 20, 14); scene.add(key);
   ME = buildSaucer(); scene.add(ME);
-  G = PART === 2 ? SN : LC; G.setup(); buildEnd();
+  G = PART === 2 ? SN : LC; G.setup(); if (REMIX) SN.setup(); buildEnd();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }
@@ -945,8 +969,8 @@ function boot(){
 // Love Cards: tap a card. Snap: tap anywhere, or Space / Enter
 const veilUp = () => !$("veil").classList.contains("hid");
 const live = () => S.started && !S.done && S.end < 0;
-addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); if (PART === 2) SN.press(); else LC.down(e.clientX, e.clientY); }, { passive:false });
-addEventListener("keydown", e => { if (veilUp() || e.repeat || PART !== 2) return; if (e.key === " " || e.key === "Enter"){ e.preventDefault(); if (live()) SN.press(); } });
+addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preventDefault(); if (G === SN) SN.press(); else LC.down(e.clientX, e.clientY); }, { passive:false });
+addEventListener("keydown", e => { if (veilUp() || e.repeat || G !== SN) return; if (e.key === " " || e.key === "Enter"){ e.preventDefault(); if (live()) SN.press(); } });
 
 function startGame(){
   if (ONLINE && !OPP){ OPP = buildSaucer(0xff5ac0, 0xc83a9a, (NET.oppName()[0] || "?").toUpperCase(), 0xff8ad0); scene.add(OPP); }
@@ -960,6 +984,7 @@ function startGame(){
   if (HUB && !PRACTICE) toHub({ type:"javeda:start", level:CFG.id });
   if (ONLINE === "cards") say("LOVE CARDS 1v1", NET.seat === 0 ? "you start" : esc(NET.oppName()) + " starts", 2.5, "g");
   else if (ONLINE) say("SNAP 1v1", "the quicker snap takes the pair", 2.5, "g");
+  else if (REMIX) say("REMIX", "both games, till the hearts run out", 3, "g");
   else say(CFG.endless ? "ENDLESS" : G.name, CFG.endless ? (PART === 2 ? "the cards never stop" : "the beds never stop") : G.hint, 3, CFG.endless ? "g" : "");
 }
 $("go").addEventListener("click", () => {
@@ -973,14 +998,16 @@ $("practice").addEventListener("click", () => {
   location.search = q.toString();
 });
 $("by").textContent = ONLINE ? CFG.by : "LAZY JO · " + (PRACTICE ? "WARM-UP" : CFG.by);
-$("title").textContent = ONLINE ? (ONLINE === "snap" ? "SNAP 1v1" : "LOVE CARDS 1v1") : "BLIND LOVE" + (ENDLESS ? " ∞" : "");
+$("title").textContent = ONLINE ? (ONLINE === "snap" ? "SNAP 1v1" : "LOVE CARDS 1v1") : REMIX ? "REMIX" : "BLIND LOVE" + (ENDLESS ? " ∞" : "");
 $("intro").innerHTML = ONLINE === "cards" ? "<b>LOVE CARDS 1v1:</b> you and a real player, found by quick match, one bed of cards between you. Take turns turning two: a pair is yours and you go again; not a pair and it's their turn - watch where everything is. All ten pairs found: the most wins."
   : ONLINE === "snap" ? "<b>SNAP 1v1:</b> you and a real player, found by quick match - the same cards on both piles at the same time, on the beat. The same picture on both: snap. The quicker snap takes the pair; a snap on no pair gives them a point. 48 cards, the most points wins."
   : "The two rooms from the cover, split on the diagonal - hers pink, his purple; her reading with the long red hair, him on his phone in the headphones - and Jo's saucer." +
-    (PART === 2 ? " <b>Part 2 · Snap:</b> her pile and his on the floor between them." : " <b>Part 1 · Love Cards:</b> the cards face down on her bed.") +
+    (REMIX ? " <b>The remix:</b> Love Cards and Snap, 16 bars each, and round again, harder every lap. A finished lap gives a heart back."
+      : PART === 2 ? " <b>Part 2 · Snap:</b> her pile and his on the floor between them." : " <b>Part 1 · Love Cards:</b> the cards face down on her bed.") +
     (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
 $("how").innerHTML = ONLINE === "cards" ? "<b>Tap</b> a card to turn it. Ten seconds a card on the clock."
   : ONLINE === "snap" ? "<b>Tap anywhere</b> (or Space) when both piles show the same picture. A heart and a broken heart aren't the same, nor the sun and the moon."
+  : REMIX ? "<b>Love Cards:</b> tap two cards to turn them - the same picture is a pair and the saucer beams them up; clear the bed before the time's up. <b>Snap:</b> on every beat both piles turn a card - the same picture on both: <b>tap anywhere</b> (or Space). A heart and a broken heart aren't the same. A snap on no pair, a pair let by, or running out of time costs a heart (3). When a game's turn is up you finish what you're on, then the other one comes in."
   : PART === 2 ? "On every beat both piles turn a card. The same picture on both: <b>tap anywhere</b> (or Space) - SNAP, and the saucer beams both piles up. A heart and a broken heart aren't the same, nor the sun and the moon. A snap on no pair, or a pair let by, costs a heart (3). On the 8ths in the hooks, for <b>double points</b>."
   : "<b>Tap</b> two cards to turn them: the same picture is a pair and the saucer beams them up; not the same, they turn back. Clear the bed and a bigger one is dealt. A pair turned <b>on the beat</b> counts double; in the hooks the cards <b>peek</b> on every bar's 1, for <b>double points</b>. Out of time costs a heart (3).";
 if (ONLINE){ $("go").textContent = "Find a match"; $("practice").classList.remove("hid"); $("snd").classList.add("hid"); NET.init(); }
@@ -989,9 +1016,9 @@ else if (!HUB){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
     const m = b.dataset.mode;
-    b.setAttribute("aria-pressed", String(m === String(PART) + (ENDLESS ? "x" : "")));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
-      if (m[0] === "2") q.set("part", "2"); if (m.endsWith("x")) q.set("endless", "1"); location.search = q.toString(); });
+    b.setAttribute("aria-pressed", String(m === (REMIX ? "r" : String(PART) + (ENDLESS ? "x" : ""))));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part"); q.delete("remix");
+      if (m === "r") q.set("remix", "1"); else { if (m[0] === "2") q.set("part", "2"); if (m.endsWith("x")) q.set("endless", "1"); } location.search = q.toString(); });
   });
 }
 boot();

@@ -103,9 +103,15 @@ body.gold #veil .by{color:#ffd65a; max-width:none}
 body.gold #veil b{color:#ffe08a}
 body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
 body.gold #home{color:#ffe08a; border-color:#e0a41a99; background:#e0a41a14}
-#inf{font-family:Bungee,sans-serif; font-size:13px; background:none; color:#ffd65a; border:1.5px solid #e0a41a;
+#inf,#rmx{font-family:Bungee,sans-serif; font-size:13px; background:none; color:#ffd65a; border:1.5px solid #e0a41a;
   border-radius:4px; padding:8px 18px; cursor:pointer; margin-top:-6px}
-#inf:hover{color:#ffe08a; border-color:#ffd65a; background:#e0a41a1c}
+#inf:hover,#rmx:hover{color:#ffe08a; border-color:#ffd65a; background:#e0a41a1c}
+/* REMIX (?remix=1): gold like endless, the song bar is the turn, and Zirka's Ride waits in a frame over everything but
+   the card: hidden till its turn, and not display:none, because it has to keep its size */
+body.remix #pips{display:flex}
+body.remix #pips i.on{background:#ffd65a}
+#go:disabled{opacity:.45; cursor:default}
+#guest{position:fixed; inset:0; width:100%; height:100%; border:0; display:block; z-index:8; visibility:hidden; touch-action:none}
 .hid{display:none!important}
 </style>
 
@@ -123,6 +129,7 @@ body.gold #home{color:#ffe08a; border-color:#e0a41a99; background:#e0a41a14}
   <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
   <button id="go" type="button">Start</button>
   <button id="inf" class="hid" type="button">Endless &infin;</button>
+  <button id="rmx" class="hid" type="button">Remix &infin;</button>
   <div id="outs" class="hid">
     <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
     <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
@@ -166,12 +173,21 @@ const SCORE_CAP = 90000;                // the hub's database refuses more than 
    the first downbeat at 0.16 s), and the waves keep coming and keep getting worse
    until the hearts run out. Its own scoreboard: "lvl2x". Without the flag nothing
    below changes. */
-const ENDLESS = new URLSearchParams(location.search).get("endless") === "1";
+/* REMIX: ?remix=1 (the hub opens it once both parts are cleared). Somebody and Zirka's Ride in turn on one score and
+   one set of hearts, the song looping as in endless, till the hearts run out. Its own scoreboard: "lvl2r". It runs on
+   endless's rules, so ENDLESS is on too; the turns are under THE REMIX, near the end of this script. */
+const REMIX = new URLSearchParams(location.search).get("remix") === "1";
+const ENDLESS = REMIX || new URLSearchParams(location.search).get("endless") === "1";
 const BAR = 3, BAR0 = .16;
 const LOOP = [BAR0 + 32*BAR, BAR0 + 48*BAR];
 const HEAL_BARS = 24;                   // endless: a heart back every 24 bars
 const RAMP = 300;                       // endless: seconds past 2:22 to the hardest it gets
+const TURN = BAR*16;                    // remix: one game's turn, 48 s (32 bars of 160 BPM, the count in Zirka's Ride)
+const TURN_MORE = BAR*4;                // remix: 12 s more at the very most, to finish what you're on
+const LAP_RAMP = .25, LAP_BONUS = 2000; // remix: every lap this much of the way to endless's hardest; a finished lap's points
+const RX = REMIX ? { frame:null, api:null, away:false } : null;   // remix: Zirka's Ride in its frame, and whether it's his turn
 if (ENDLESS) document.body.classList.add("gold");
+if (REMIX) document.body.classList.add("remix");
 
 /* Every outbound link lives here: elements carry data-link="merch" etc and get
    their href on boot. On its own, Next level and Home both go to the JAVEDA hub,
@@ -193,10 +209,17 @@ document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset
 const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
 // on its own, the start card offers the endless run: the same page with ?endless=1
-if (!HUB && !ENDLESS){
+if (!HUB && (!ENDLESS || REMIX)){
   const inf = document.getElementById("inf"); inf.classList.remove("hid");
   inf.addEventListener("click", () => {
-    const q = new URLSearchParams(location.search); q.set("endless", "1"); location.search = q.toString();
+    const q = new URLSearchParams(location.search); q.delete("remix"); q.set("endless", "1"); location.search = q.toString();
+  });
+}
+// and the remix, both parts in turn: ?remix=1
+if (!HUB && !REMIX){
+  const rmx = document.getElementById("rmx"); rmx.classList.remove("hid");
+  rmx.addEventListener("click", () => {
+    const q = new URLSearchParams(location.search); q.delete("endless"); q.set("remix", "1"); location.search = q.toString();
   });
 }
 if (HUB){
@@ -496,6 +519,7 @@ function reset(){
         score:0, kills:0, assists:0, streak:0, best:0, fireT:0, zFireT:0, line:0, shots:0, y:0, vy:0,
         waveT:WAVES.map(w => w[0]), heartIdx:0, heartT:-1, heartAt:null,
         crash:-1, fail:false, end:-1, e0:null, shake:0, msgT:0, loops:0, healT:BAR0 + HEAL_BARS*BAR, down:0,
+        turn:0, lap:0, turnAt:0, metres:0, why:"",     // remix: which turn, which lap, when this turn began, Zirka's metres, how it ended
         zirka:{ on:false, x:-8, z:-70, a:0, cx:0, cz:0, heading:0 } };
   seed = 20261018;
   for (const e of enemies) scene && scene.remove(e);
@@ -530,6 +554,7 @@ const sfx = {
   hit:   () => tone("sawtooth", 160, 40, .7, .3, 900),
   spit:  () => tone("sine", 300, 620, .25, .05, 2000),
   chime: () => { tone("triangle", 880, 900, .3, .13, 6000); tone("triangle", 1320, 1340, .3, .12, 6000, .09); },
+  whoosh:() => tone("sawtooth", 180, 720, .4, .07, 1800),
   rev:   () => { tone("sawtooth", 70, 260, 1.6, .16, 900); tone("sawtooth", 105, 390, 1.6, .08, 1400, .1); }
 };
 
@@ -555,8 +580,10 @@ addEventListener("pointermove", e => {
 const endDrag = e => { if (drag && e.pointerId === drag.id){ drag = null; stickEl.style.display = "none"; } };
 addEventListener("pointerup", endDrag); addEventListener("pointercancel", endDrag);
 const KEYMAP = { ArrowLeft:"l", a:"l", A:"l", ArrowRight:"r", d:"r", D:"r", ArrowUp:"u", w:"u", W:"u", ArrowDown:"dn", s:"dn", S:"dn" };
-addEventListener("keydown", e => { if (KEYMAP[e.key]){ e.preventDefault(); keys[KEYMAP[e.key]] = true; } });
-addEventListener("keyup", e => { if (KEYMAP[e.key]) keys[KEYMAP[e.key]] = false; });
+function keyEvent(e){ if (!KEYMAP[e.key]) return; if (e.type === "keydown") e.preventDefault(); keys[KEYMAP[e.key]] = e.type === "keydown"; }
+// remix: keys go to whichever window has the focus; if that's this one on Zirka's turn, they're his
+addEventListener("keydown", e => { if (REMIX && RX.away) RX.api.key(e); else keyEvent(e); });
+addEventListener("keyup", keyEvent);
 function inputDir(){
   let x = (keys.r ? 1 : 0) - (keys.l ? 1 : 0), z = (keys.dn ? 1 : 0) - (keys.u ? 1 : 0);
   if (drag){ x += drag.dx; z += drag.dy; }
@@ -604,7 +631,8 @@ function spawnWave(type, pack){
 }
 const mult = () => Math.min(COMBO_MAX, 1 + Math.floor(S.streak / COMBO_STEP));
 // endless: 0 through the song, then up to 1 over RAMP seconds, and it stays there
-const ramp = () => ENDLESS ? Math.min(1, Math.max(0, (S.t - T.end) / RAMP)) : 0;
+// remix: by the lap, not the clock (half the clock is Zirka's)
+const ramp = () => REMIX ? Math.min(1, S.lap*LAP_RAMP) : ENDLESS ? Math.min(1, Math.max(0, (S.t - T.end) / RAMP)) : 0;
 // who: "jo" scores with the combo, "zirka" scores it plain, null scores nothing
 function kill(e, who){
   const u = e.userData; if (u.dying >= 0) return;
@@ -641,6 +669,7 @@ function hurt(){
   S.hits++; S.hearts = Math.max(0, S.hearts - 1); S.inv = GRACE; S.streak = 0; S.shake = .45;
   sfx.hit(); burst(S.x, FLY_Y, S.z, 12, true);
   document.getElementById("flash").style.opacity = .35;
+  if (REMIX) document.getElementById("flash").style.background = "";     // (a change left it gold)
   // shove everything close away, so a hit is a reset and not a pile-on
   for (const e of enemies){
     const dx = e.position.x - S.x, dz = e.position.z - S.z, d = Math.hypot(dx, dz);
@@ -648,7 +677,8 @@ function hurt(){
   }
   if (!S.hearts){
     S.fail = true; S.crash = 0; S.vy = 1.2; S.down = S.t;
-    say("OUT OF HEARTS", "", 1.8);
+    S.why = "OUT OF HEARTS";
+    if (REMIX) say("REMIX OVER", S.why, 1.8); else say("OUT OF HEARTS", "", 1.8);
   }
 }
 
@@ -690,7 +720,9 @@ function update(dt){
   /* ---- waves ---- */
   // endless: the last hook's waves never stop, and come faster and bigger past 2:22
   const rp = ramp();
-  for (let i = 0; i < WAVES.length; i++){
+  // remix: once the turn is up nothing new comes in: what's here is what you finish
+  const closing = REMIX && S.t >= S.turnAt + TURN;
+  for (let i = 0; i < WAVES.length && !closing; i++){
     let [from, to, type, every, pack] = WAVES[i];
     if (ENDLESS && to === T.end - 2){ to = Infinity; every *= 1 - rp*.45; if (type === "swarm") pack += Math.round(rp*2); }
     if (S.t < from || S.t > to) continue;
@@ -734,7 +766,9 @@ function update(dt){
     } else if (S.heartT <= 0) S.heartAt = null;
   }
 
-  if (ENDLESS){
+  if (REMIX){
+    if (closing && S.crash < 0 && (fieldClear() || S.t >= S.turnAt + TURN + TURN_MORE)) nextGame(S.t);
+  } else if (ENDLESS){
     if (S.t >= S.healT){ S.healT += HEAL_BARS*BAR;
       if (S.hearts < HEARTS){ S.hearts++; sfx.chime(); say("+1 HEART", "every 24 bars", 1.2); } }
   } else if (S.t >= T.end && !S.fail) startEnd();
@@ -1002,7 +1036,7 @@ function render(dt){
 const pips = document.getElementById("pips");
 for (let i = 0; i < 10; i++){
   const p = document.createElement("i");
-  if (i === Math.floor(T.zirka / T.end * 10)) p.className = "z";
+  if (!REMIX && i === Math.floor(T.zirka / T.end * 10)) p.className = "z";
   pips.appendChild(p);
 }
 document.getElementById("hn").textContent = HEARTS + " hearts";
@@ -1034,26 +1068,33 @@ if (ENDLESS){
     try { song.currentTime = LOOP[0] + Math.max(0, (song.duration || LOOP[1]) - LOOP[1]); S.loops++; } catch(e){}
     const p = song.play(); if (p && p.catch) p.catch(()=>{}); });
 }
+function hudFrame(){
+  const pip = Math.min(10, Math.floor((REMIX ? (S.t - S.turnAt) / TURN : S.t / T.end) * 10));
+  if (pip !== lastPip){ lastPip = pip; [...pips.children].forEach((e,i) => e.classList.toggle("on", i < pip)); }
+  if (ENDLESS){ const tx = (REMIX ? "REMIX &middot; LAP " + (S.lap + 1) : "ENDLESS") + " &middot; " + fmtT(S.fail ? S.down : S.t);
+    if (tx !== lastEl){ lastEl = tx; elEl.innerHTML = tx; } }
+  const sc = Math.max(0, S.score), m = mult();
+  if (sc * 10 + m !== lastScore){ lastScore = sc * 10 + m; mEl.innerHTML = sc + (m > 1 ? "<b>x" + m + "</b>" : ""); }
+  if (S.hearts !== lastHeart){
+    [...hearts.children].forEach((e,i) => {
+      if (e.classList.contains("out") !== (i >= S.hearts)) e.style.animation = "";   // (a remix change holds it still: see setHearts)
+      e.classList.toggle("out", i >= S.hearts);
+      if (i >= lastHeart && i < S.hearts){ e.classList.remove("gain"); void e.offsetWidth; e.classList.add("gain"); }
+    });
+    lastHeart = S.hearts; }
+}
 function frame(){
   try {
     const dt = Math.min(.05, clock ? clock.getDelta() : .016);
     // the song is the clock: if the music drifts from the game, the game follows it
     if (S.started && !S.done && S.end < 0 && S.crash < 0 && !song.paused && song.currentTime > 0){
       const st = songT(); if (Math.abs(st - S.t) > .25) S.t = st; }
-    if (S.started && !S.done) update(dt);
-    render(dt);
-    const pip = Math.min(10, Math.floor(S.t / T.end * 10));
-    if (pip !== lastPip){ lastPip = pip; [...pips.children].forEach((e,i) => e.classList.toggle("on", i < pip)); }
-    if (ENDLESS){ const tx = "ENDLESS &middot; " + fmtT(S.fail ? S.down : S.t);
-      if (tx !== lastEl){ lastEl = tx; elEl.innerHTML = tx; } }
-    const sc = Math.max(0, S.score), m = mult();
-    if (sc * 10 + m !== lastScore){ lastScore = sc * 10 + m; mEl.innerHTML = sc + (m > 1 ? "<b>x" + m + "</b>" : ""); }
-    if (S.hearts !== lastHeart){
-      [...hearts.children].forEach((e,i) => {
-        e.classList.toggle("out", i >= S.hearts);
-        if (i >= lastHeart && i < S.hearts){ e.classList.remove("gain"); void e.offsetWidth; e.classList.add("gain"); }
-      });
-      lastHeart = S.hearts; }
+    // remix, Zirka's turn: the song's clock runs on here, and the frame moves and draws; this page does neither
+    if (REMIX && RX.away){ S.t += dt; RX.api.update(dt, S.t); if (RX.away) RX.api.render(dt); }
+    else {
+      if (S.started && !S.done) update(dt);
+      if (!REMIX || !RX.away){ render(dt); hudFrame(); }   // (if the turn just went over to him, he's drawn already)
+    }
   } catch (e){ if (!crashed){ crashed = e; console.error(e); } }
   requestAnimationFrame(frame);
 }
@@ -1071,6 +1112,7 @@ function finish(){
   for (const id of ["outs", "home"]) document.getElementById(id).classList.remove("hid");
   document.getElementById("snd").classList.add("hid");
   document.getElementById("inf").classList.add("hid");
+  document.getElementById("rmx").classList.add("hid");
   if (ENDLESS){ endlessCard(v, ps); return; }
   if (HUB) toHub({ type:"javeda:result", level:"lvl2", cleared:!S.fail, score:score(),
     metres:0, kills:S.kills, assists:S.assists, hits:S.hits, hearts:S.hearts });
@@ -1094,23 +1136,40 @@ function endlessCard(v, ps){
   const secs = Math.floor(S.down || S.t);
   document.getElementById("go").textContent = "Play again";
   document.getElementById("next").classList.add("hid");
-  if (HUB) toHub({ type:"javeda:result", level:"lvl2x", cleared:true, score:score(),
+  if (HUB) toHub({ type:"javeda:result", level:REMIX ? "lvl2r" : "lvl2x", cleared:true, score:score(),
     metres:secs, kills:S.kills, assists:S.assists, hits:S.hits, hearts:0 });
+  if (REMIX){
+    v.querySelector(".by").textContent = "REMIX \u00b7 " + S.why;
+    v.querySelector("h1").textContent = score();
+    ps[0].innerHTML = "<b>" + fmtT(secs) + "</b> in the Dust Sea &middot; lap <b>" + (S.lap + 1) + "</b> &middot; monsters <b>" +
+      (S.kills + S.assists) + "</b> &middot; metres <b>" + S.metres + "</b>";
+    ps[1].innerHTML = "Your best counts on the <b>Level 2 Remix</b> scoreboard. <b>Go again.</b>";
+    return;
+  }
   v.querySelector(".by").textContent = "ENDLESS \u00b7 OUT OF HEARTS";
   v.querySelector("h1").textContent = score();
   ps[0].innerHTML = "Held the Dust Sea for <b>" + fmtT(secs) + "</b> &middot; <b>" + S.kills + "</b> yours, <b class=\"z\">" +
     S.assists + "</b> Zirka's";
   ps[1].innerHTML = "Your best counts on the <b>Level 2 &infin;</b> scoreboard.";
 }
-if (ENDLESS){
+if (REMIX){
+  const ps = document.getElementById("veil").querySelectorAll("p:not(.by)");
+  document.querySelector("#veil .by").textContent = "LAZY JO \u00b7 LEVEL 2 \u00b7 REMIX";
+  document.querySelector("#veil h1").textContent = "REMIX";
+  ps[0].innerHTML = "The Dust Sea. <b>The remix:</b> Somebody and Zirka's Ride, 32 bars each, and round again, harder every lap. A finished lap gives a heart back.";
+  ps[1].innerHTML = "<b>Somebody:</b> drag to fly, the beam fires on its own. <b>Zirka's Ride:</b> tap a side to swerve, tap the middle to jump. <b>" + HEARTS +
+    " hearts</b> and one score for both. When a game's turn is up you finish what you're on, then the other one comes in.";
+} else if (ENDLESS){
   document.querySelector("#veil .by").textContent = "LEVEL 2 \u00b7 ENDLESS";
   document.querySelector("#veil h1").innerHTML = "SOMEBODY &infin;";
   document.getElementById("veil").querySelectorAll("p:not(.by)")[0].innerHTML =
     "The song doesn't end and neither do they. <b>" + HEARTS + " hearts</b> &middot; one back every 24 bars.";
 }
 document.getElementById("go").addEventListener("click", () => {
+  if (REMIX && !RX.api){ location.reload(); return; }     // the frame never came (see the end of this script)
   reset();
-  if (HUB && ENDLESS) toHub({ type:"javeda:start", level:"lvl2x" });
+  if (REMIX){ RX.away = false; RX.frame.style.visibility = "hidden"; RX.api.fresh(); }
+  if (HUB && ENDLESS) toHub({ type:"javeda:start", level:REMIX ? "lvl2r" : "lvl2x" });
   document.getElementById("veil").classList.add("hid");
   try {
     if (!ac){ ac = new (window.AudioContext||window.webkitAudioContext)();
@@ -1120,11 +1179,87 @@ document.getElementById("go").addEventListener("click", () => {
   try { song.currentTime = 0; } catch(e){}
   const p = song.play(); if (p && p.catch) p.catch(()=>{});
   S.started = true;
-  say(ENDLESS ? "ENDLESS" : "GO", ENDLESS ? "till the hearts run out" : "drag to fly - the beam fires on its own", 2.2);
-  S.line = 0;
+  if (REMIX) say("REMIX", "both games, till the hearts run out", 3);
+  else say(ENDLESS ? "ENDLESS" : "GO", ENDLESS ? "till the hearts run out" : "drag to fly - the beam fires on its own", 2.2);
+  S.line = REMIX ? LINES.length : 0;                      // the story lines belong to the song; the remix goes without
 });
 
+/* ================= THE REMIX =================
+   Level 2's parts are two pages with their own engines, so the remix is two pages as well. This one is the host: it owns
+   the run (score, hearts, lap, the song, the hub, the end card). Zirka's Ride is in a frame on top of it, loaded and
+   drawn once before Start, hidden till its turn. The side that isn't in play doesn't move or draw, and a finger or a key
+   can only reach the one in play. A change is one task: the other side takes the score and the hearts, draws its first
+   frame, and only then swaps places, so nothing blank can reach the screen. The song isn't touched at all.
+
+   Song time runs through both games, so the first turn here is the song's first 48 s, Zirka's turn is the build to the
+   last hook, and when the sand comes back he has arrived and it's the last hook's waves, looping from there as in endless.
+   There's nothing here to finish the way a puzzle ends, so when the turn is up the waves stop and you clear what's left:
+   the change comes when nothing is close and no orb is in the air, 12 s later at the very most (what's still out there
+   then goes without points). The field is empty when the sand comes back, and the first of them are 5 s away. */
+function clearField(){
+  for (const e of enemies) scene.remove(e);
+  for (const b of bolts) scene.remove(b);
+  for (const o of orbs) scene.remove(o);
+  enemies.length = bolts.length = orbs.length = 0;
+  spark.children.forEach(s => s.visible = false);
+}
+const fieldClear = () => !orbs.length && !enemies.some(e => e.userData.dying < 0 && Math.hypot(e.position.x - S.x, e.position.z - S.z) < 8);
+// the HUD takes the count from the other game without a pop: nothing was lost just now
+function setHearts(n){
+  [...hearts.children].forEach((e, i) => { e.style.animation = "none"; e.classList.remove("gain"); e.classList.toggle("out", i >= n); });
+  lastHeart = n;
+}
+function dropInput(){ drag = null; stickEl.style.display = "none"; for (const k in keys) keys[k] = false; }
+function nextGame(t){
+  S.turn++; S.turnAt = t; S.vx = S.vz = 0; S.inv = 0; S.shake = 0;
+  clearField(); dropInput();
+  RX.away = true;
+  RX.api.enter({ t, until:t + TURN, lap:S.lap, score:S.score, hearts:S.hearts, ac, bus });
+  RX.frame.style.visibility = "visible";
+  try { RX.frame.contentWindow.focus(); } catch(e){}
+}
+// Zirka's turn is over, or the run is. A lap is both games, so every hand-back here finishes one
+function guestBack(o){
+  S.score = o.score; S.hearts = o.hearts; S.hits += o.hits; S.metres = o.metres;
+  RX.away = false;
+  if (o.over){ S.fail = true; S.done = true; S.down = o.down; S.why = o.why; }
+  else {
+    const t = S.t;
+    S.turn++; S.turnAt = t; S.lap++; S.score += LAP_BONUS;
+    setHearts(S.hearts);
+    const back = S.hearts < HEARTS;
+    if (back){ S.hearts++; sfx.chime(); }
+    // his time passed here too: the waves pick up from now, not with all they owe
+    WAVES.forEach((w, i) => { S.waveT[i] = Math.max(S.waveT[i], t + 1 + w[3]*.5); });
+    const fl = document.getElementById("flash"); fl.style.background = "#ffc83a"; fl.style.opacity = .5;
+    sfx.whoosh();
+    say("LAP " + (S.lap + 1), "SOMEBODY \u00b7 +2,000" + (back ? " \u00b7 a heart back" : ""), 2);
+    render(0); hudFrame();
+  }
+  RX.frame.style.visibility = "hidden";
+  try { window.focus(); } catch(e){}
+  if (o.over) finish();
+}
+
 boot();
+if (REMIX){
+  const go = document.getElementById("go"); go.disabled = true;
+  window.JAVEDA_REMIX = {
+    ready(api){ RX.api = api; if (go.disabled) go.disabled = false; else go.textContent = "Start"; },
+    back:o => guestBack(o),
+    key:keyEvent
+  };
+  // every shader now, so Zirka's bike doesn't stall his arrival
+  ren.compile(scene, cam);
+  // the hub keeps the levels flat in levels/, this repo has a folder for each
+  const f = RX.frame = document.createElement("iframe"); f.id = "guest"; f.title = "Zirka's Ride"; f.tabIndex = -1;
+  f.src = (/\/somebody\/(index\.html)?$/.test(location.pathname) ? "../zirkas-ride/index.html" : "zirkas-ride.html") + "?remix=1&guest=1";
+  document.body.appendChild(f);
+  // it never came (no connection, or a phone that won't give it a second 3D scene): don't leave a dead button
+  setTimeout(() => { if (!RX.api){ go.disabled = false; go.textContent = "Try again"; } }, 20000);
+  // a crash in the frame reaches Jo like one here: report.js there posts to this page, and only this page talks to the hub
+  if (HUB) addEventListener("message", e => { if (e.origin === location.origin && e.source === f.contentWindow && e.data && e.data.type === "javeda:report") toHub(e.data); });
+}
 requestAnimationFrame(frame);
 </script>
 </body>

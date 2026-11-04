@@ -27,17 +27,17 @@ client/public/javeda/
     ├── ghost.html          # Level 15: Haunted Windows - tap the ghosts in the windows of the old street (+ endless)
     ├── peace-inside.html   # Level 16: Hoops in the white sky (+ endless) - and the Online 1v1 (Live, H-O-R-S-E) over Supabase Realtime
     ├── true-fighter.html   # Level 17: Island Blocks - the falling pieces in a frame in the sea, the saucer carries them (+ endless)
-    ├── issues.html         # Level 18: Unblock (the parking puzzle) and Part 2 Light Link (?part=2, the beam puzzle) (+ endless each)
+    ├── issues.html         # Level 18: Unblock (the parking puzzle) and Part 2 Light Link (?part=2, the beam puzzle) (+ endless each, and the remix)
     ├── stay-up.html        # Level 19: Pad Memory - the drum machine in Jo's studio plays a pattern, play it back (+ endless)
     ├── stay-up-2.html      # Level 20: Pass It On - nine lights over the crowd, play it back and add one (+ endless) - and Pass It On 1v1 online (?online=pass)
-    ├── blind-love.html     # Level 21: Love Cards (memory cards on her bed) and Part 2 Snap (?part=2) (+ endless each) - and Love Cards 1v1 / Snap 1v1 online (?online=cards|snap)
-    ├── space-kid.html      # Level 22: Planet Match (match three), Part 2 Rainbow Sort (?part=2), Part 3 Star Peaks (?part=3, the solitaire) (+ endless each)
-    ├── fall-in-love-again.html # Level 23: Heart Pop (bubble shooter), Part 2 Love Words (?part=2, word search), Part 3 Heart Merge (?part=3, 2048) (+ endless each)
+    ├── blind-love.html     # Level 21: Love Cards (memory cards on her bed) and Part 2 Snap (?part=2) (+ endless each, and the remix) - and Love Cards 1v1 / Snap 1v1 online (?online=cards|snap)
+    ├── space-kid.html      # Level 22: Planet Match (match three), Part 2 Rainbow Sort (?part=2), Part 3 Star Peaks (?part=3, the solitaire) (+ endless each, and the remix)
+    ├── fall-in-love-again.html # Level 23: Heart Pop (bubble shooter), Part 2 Love Words (?part=2, word search), Part 3 Heart Merge (?part=3, 2048) (+ endless each, and the remix)
     ├── down-for-me.html    # Level 24: Sunset Swap - pictures from the cover cut into squares, swap them back (+ endless)
-    ├── real-love.html      # Level 25: Heart Flow (link the pairs), Part 2 Crab Sweeper (?part=2), Part 3 Starlight (?part=3, lights out), Part 4 Shell Sudoku (?part=4) (+ endless each)
-    ├── lifestyle-crazy.html # Level 26: Neon Pinball (a new, harder table each time you hit the target), Part 2 Speaker Push (?part=2, Sokoban) (+ endless each)
-    ├── be-alright.html     # Level 27: Untangle (drag the birds until no strings cross), Part 2 Bird Code (?part=2, a code breaker) (+ endless each)
-    ├── go.html             # Level 28: Rooftop Golf (nine holes, each with something new), Part 2 Sky Hockey (?part=2, round after round against the shadow) (+ endless each) - and online Golf for 2, 3 or 4 (?online=golf|golf3|golf4) and Hockey 1v1 (?online=hockey)
+    ├── real-love.html      # Level 25: Heart Flow (link the pairs), Part 2 Crab Sweeper (?part=2), Part 3 Starlight (?part=3, lights out), Part 4 Shell Sudoku (?part=4) (+ endless each, and the remix)
+    ├── lifestyle-crazy.html # Level 26: Neon Pinball (a new, harder table each time you hit the target), Part 2 Speaker Push (?part=2, Sokoban) (+ endless each, and the remix)
+    ├── be-alright.html     # Level 27: Untangle (drag the birds until no strings cross), Part 2 Bird Code (?part=2, a code breaker) (+ endless each, and the remix)
+    ├── go.html             # Level 28: Rooftop Golf (nine holes, each with something new), Part 2 Sky Hockey (?part=2, round after round against the shadow) (+ endless each, and the remix) - and online Golf for 2, 3 or 4 (?online=golf|golf3|golf4) and Hockey 1v1 (?online=hockey)
     └── hyperdrive.html # JAVEDA: HYPERDRIVE, the ultimate one: Jo's saucer or Zirka's flying bike, a run with no end (plays lvl1-9.mp3 as its radio)
 supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabase
 ```
@@ -97,7 +97,10 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
   `javeda_levels`): for every song, each part with no end (`?endless=1`, id = the part's id + `x`,
   e.g. `lvl8bx`) and the song's **remix**, all its parts in turn (`?remix=1`, id `lvlNr`). A part's
   endless opens once that part is cleared (`requires` = the part); the remix once all the song's parts are
-  (`requires` = its last part). Their scoreboards (the
+  (`requires` = its last part). Every song with more than one part has a remix. Level 2's two parts are two pages, so
+  Somebody's page runs the remix and has Zirka's Ride in a same-origin frame (`?remix=1&guest=1`, it never talks to the hub).
+  In the songs from Level 18 on, a game's turn is about 50 s; when it's up you finish what you're on, and its clock
+  can't cost a heart any more (a mistake still can). Their scoreboards (the
   Endless ∞ choice of the scoreboard picker: Points / Online / Levels / Endless / HYPERDRIVE, then the
   level number, then the part) read from the `javeda_scores` view (per level), so a new one needs no new
   column. Endless levels follow their own rules:

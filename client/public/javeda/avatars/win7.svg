@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="win7-bg" cx="0.5" cy="0.55" r="0.72"><stop offset="0" stop-color="#3a4ea0"/><stop offset="0.6" stop-color="#161e58"/><stop offset="1" stop-color="#080c24"/></radialGradient>
+<radialGradient id="win7-gl" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffb020" stop-opacity="0.45"/><stop offset="1" stop-color="#ffb020" stop-opacity="0"/></radialGradient>
+<linearGradient id="win7-m" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b07400"/><stop offset="0.28" stop-color="#ffd60a"/><stop offset="0.48" stop-color="#fff6c8"/><stop offset="0.7" stop-color="#ffd60a"/><stop offset="1" stop-color="#a86d00"/></linearGradient>
+<linearGradient id="win7-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="1" stop-color="#ffc800"/></linearGradient>
+<path id="win7-st" d="M0 -10L2.5 -3.5L9.5 -3.1L4.1 1.3L5.9 8.1L0 4.3L-5.9 8.1L-4.1 1.3L-9.5 -3.1L-2.5 -3.5Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#win7-bg)"/>
+<circle cx="128" cy="124" r="78" fill="url(#win7-gl)"/>
+<g fill="url(#win7-s)" stroke="#3a1e00" stroke-width="1" stroke-linejoin="round"><use href="#win7-st" transform="translate(31 100.5) scale(1.6)"/><use href="#win7-st" transform="translate(52.2 63.7) scale(1.6)"/><use href="#win7-st" transform="translate(86.5 38.8) scale(1.6)"/><use href="#win7-st" transform="translate(128 30) scale(1.9)"/><use href="#win7-st" transform="translate(169.5 38.8) scale(1.6)"/><use href="#win7-st" transform="translate(203.8 63.7) scale(1.6)"/><use href="#win7-st" transform="translate(225 100.5) scale(1.6)"/></g>
+<g transform="translate(128 78) scale(.84)"><g fill="none" stroke-linecap="round"><path d="M-42 8C-86 2-86 60-26 62M42 8C86 2 86 60 26 62" stroke="#4a2800" stroke-width="15"/><path d="M-42 8C-86 2-86 60-26 62M42 8C86 2 86 60 26 62" stroke="#ffd60a" stroke-width="9"/></g><g fill="url(#win7-m)" stroke="#4a2800" stroke-width="3" stroke-linejoin="round"><path d="M-12 96H12C18 100 30 102 32 112H-32C-30 102-18 100-12 96Z"/><path d="M-9 70H9L12 96H-12Z"/><rect x="-38" y="110" width="76" height="12" rx="4"/><rect x="-15" y="78" width="30" height="8" rx="4"/><path d="M-46 0H46C46 38 30 64 9 72H-9C-30 64-46 38-46 0Z"/><rect x="-52" y="-7" width="104" height="13" rx="6.5"/></g><path d="M-33 13C-32 30-25 45-14 56" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" opacity=".75"/></g>
+<g text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="60"><text x="128" y="238" fill="#1a0e02" stroke="#1a0e02" stroke-width="11" stroke-linejoin="round">7</text><text x="128" y="238" fill="#ffd60a">7</text></g>
+</svg>

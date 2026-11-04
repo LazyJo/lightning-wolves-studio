@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="streak14-bg" cx=".5" cy=".5" r=".75"><stop offset="0" stop-color="#8a2208"/><stop offset=".55" stop-color="#2a0c10"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<radialGradient id="streak14-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff8a1a" stop-opacity=".8"/><stop offset="1" stop-color="#ff4a0a" stop-opacity="0"/></radialGradient>
+<linearGradient id="streak14-o" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a1a"/><stop offset=".6" stop-color="#ff4a0a"/><stop offset="1" stop-color="#d81e0a"/></linearGradient>
+<linearGradient id="streak14-m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd92e"/><stop offset="1" stop-color="#ff8a12"/></linearGradient>
+<path id="streak14-f" d="M6-182C12-150 34-134 42-108C48-122 46-136 42-146C66-126 84-92 82-58C80-22 46 0 0 0C-46 0-84-24-84-62C-84-86-70-104-62-124C-56-108-50-100-42-96C-44-128-26-160 6-182Z"/>
+<path id="streak14-k" d="M0-8L3-3L8 0L3 3L0 8L-3 3L-8 0L-3-3Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#streak14-bg)"/>
+<circle cx="128" cy="108" r="124" fill="url(#streak14-gl)"/>
+<g transform="translate(128 190)">
+<path d="M-84-30C-104-56-104-92-112-116C-92-104-78-90-70-70ZM84-30C104-56 106-84 116-108C94-98 80-88 70-70Z" fill="#d81e0a"/>
+<use href="#streak14-f" fill="url(#streak14-o)"/>
+<use href="#streak14-f" transform="translate(0 -5) scale(.7)" fill="url(#streak14-m)"/>
+<use href="#streak14-f" transform="translate(0 -9) scale(.38)" fill="#fff3c4"/>
+</g>
+<g fill="#ffd92e"><use href="#streak14-k" x="52" y="44"/><use href="#streak14-k" x="206" y="40"/><use href="#streak14-k" transform="translate(186 18) scale(.6)"/><use href="#streak14-k" transform="translate(84 20) scale(.7)"/></g>
+<g fill="#ff8a1a"><circle cx="30" cy="84" r="3"/><circle cx="228" cy="74" r="3"/><circle cx="66" cy="24" r="2.4"/><circle cx="160" cy="14" r="2.4"/></g>
+<text x="128" y="234" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="54" fill="#fff" stroke="#1a0802" stroke-width="8" stroke-linejoin="round" paint-order="stroke">14</text>
+</svg>

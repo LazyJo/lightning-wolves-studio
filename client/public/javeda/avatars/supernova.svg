@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="supernova-bg" cx=".5" cy=".5" r=".72"><stop offset="0" stop-color="#3a0f6a"/><stop offset=".55" stop-color="#0f0c3c"/><stop offset="1" stop-color="#02030f"/></radialGradient>
+<linearGradient id="supernova-gd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".35" stop-color="#ffd60a"/><stop offset=".65" stop-color="#c98a00"/><stop offset="1" stop-color="#ffd60a"/></linearGradient>
+<radialGradient id="supernova-c" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff"/><stop offset=".72" stop-color="#fff6a8" stop-opacity=".9"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></radialGradient>
+<linearGradient id="supernova-cy" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9ff3ff"/><stop offset="1" stop-color="#27c3e8"/></linearGradient>
+<linearGradient id="supernova-pk" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9ae0"/><stop offset="1" stop-color="#ff2f96"/></linearGradient>
+<linearGradient id="supernova-gg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3a8"/><stop offset="1" stop-color="#ffb800"/></linearGradient>
+<path id="supernova-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#supernova-bg)"/>
+<circle cx="128" cy="128" r="112" fill="#7b5cff" opacity=".16"/>
+<path d="M178 121L200 133L205 129L236 143L175 145L185 163L190 161L209 185L162 165L166 191L172 192L178 226L141 176L132 193L136 196L127 225L117 177L97 197L99 203L74 228L95 166L73 171L72 177L41 186L82 146L58 141L54 146L21 140L78 123L62 107L57 110L32 90L86 100L78 77L72 77L58 47L104 84L109 65L104 63L106 32L127 78L142 53L138 48L157 17L151 83L169 76L168 71L194 55L169 99L195 98L197 92L232 90Z" fill="url(#supernova-cy)" stroke-linejoin="round"/>
+<circle cx="128" cy="128" r="79" fill="none" stroke="#e8fbff" stroke-width="3"/>
+<path d="M164 130L179 144L183 141L203 158L157 149L160 166L165 166L171 189L141 162L135 181L139 184L132 209L121 163L106 174L108 178L90 194L103 154L79 158L79 163L51 167L93 136L81 127L78 131L58 121L94 116L82 97L77 99L62 76L106 99L110 86L105 85L106 63L125 92L136 76L133 73L147 52L145 96L162 90L161 85L183 75L159 110L179 114L180 110L205 113Z" fill="url(#supernova-pk)"/>
+<circle cx="128" cy="128" r="52" fill="none" stroke="#fff" stroke-width="3" opacity=".85"/>
+<path d="M149 121L164 127L166 124L182 132L148 136L152 148L155 147L162 161L138 147L135 165L139 166L134 184L123 150L113 156L114 159L101 168L111 142L93 142L92 146L72 144L106 127L96 117L93 119L82 107L112 113L109 97L106 97L105 79L125 106L133 95L130 93L140 80L140 109L155 105L154 101L172 97Z" fill="url(#supernova-gg)"/>
+<circle cx="128" cy="128" r="36" fill="url(#supernova-c)"/>
+<g fill="#fff"><circle cx="48" cy="56" r="3"/><circle cx="212" cy="66" r="2.5"/><circle cx="218" cy="190" r="3"/><circle cx="44" cy="196" r="2.5"/></g>
+<circle cx="128" cy="128" r="118" fill="none" stroke="#ffd60a" stroke-width="15" opacity=".22"/>
+<circle cx="128" cy="128" r="118" fill="none" stroke="url(#supernova-gd)" stroke-width="8"/>
+<use href="#supernova-sp" transform="translate(46 84) scale(0.6)" fill="#ffd60a"/>
+<use href="#supernova-sp" transform="translate(210 44) scale(0.75)" fill="#fff"/>
+<use href="#supernova-sp" transform="translate(214 214) scale(0.75)" fill="#ff9ae0"/>
+<use href="#supernova-sp" transform="translate(40 216) scale(0.75)" fill="#9ff3ff"/>
+<use href="#supernova-sp" transform="translate(40 40) scale(0.75)" fill="#fff"/>
+</svg>

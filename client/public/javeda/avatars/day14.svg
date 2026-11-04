@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="day14-bg" cx=".5" cy=".3" r=".85"><stop offset="0" stop-color="#c46a14"/><stop offset=".5" stop-color="#4a2020"/><stop offset="1" stop-color="#0e0f2c"/></radialGradient>
+<radialGradient id="day14-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe45c" stop-opacity=".7"/><stop offset="1" stop-color="#ffb020" stop-opacity="0"/></radialGradient>
+<radialGradient id="day14-sun" cx=".5" cy=".4" r=".65"><stop offset="0" stop-color="#fffbe0"/><stop offset=".55" stop-color="#ffd84a"/><stop offset="1" stop-color="#ff9a2a"/></radialGradient>
+<linearGradient id="day14-w" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffe6b0"/></linearGradient>
+<linearGradient id="day14-h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a2a"/><stop offset="1" stop-color="#e0401a"/></linearGradient>
+<radialGradient id="day14-g" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#ffe45c"/><stop offset="1" stop-color="#f09a00"/></radialGradient>
+<g id="day14-d"><circle r="9.5" fill="url(#day14-g)" stroke="#9a5a00" stroke-width="2"/><path d="M-4.4 0L-1.4 3.6L5-3.6" fill="none" stroke="#6a3a00" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></g>
+<g id="day14-p"><rect x="-55" y="-51" width="110" height="112" rx="11" fill="#5a2406"/><rect x="-55" y="-56" width="110" height="112" rx="11" fill="url(#day14-w)"/><path d="M-55-34V-45A11 11 0 0 1-44-56H44A11 11 0 0 1 55-45V-34Z" fill="url(#day14-h)"/><g fill="#fff6c8" stroke="#5a2406" stroke-width="1.6"><rect x="-32" y="-64" width="8" height="18" rx="4"/><rect x="24" y="-64" width="8" height="18" rx="4"/></g><use href="#day14-d" x="-36" y="-13"/><use href="#day14-d" x="-12" y="-13"/><use href="#day14-d" x="12" y="-13"/><use href="#day14-d" x="36" y="-13"/><use href="#day14-d" x="-24" y="22"/><use href="#day14-d" y="22"/><use href="#day14-d" x="24" y="22"/></g>
+<path id="day14-r" d="M-6-50L0-70L6-50Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#day14-bg)"/>
+<circle cx="128" cy="62" r="100" fill="url(#day14-gl)"/>
+<g transform="translate(128 62)" fill="#ffc83a"><use href="#day14-r" transform="rotate(-60)"/><use href="#day14-r" transform="rotate(-30)"/><use href="#day14-r"/><use href="#day14-r" transform="rotate(30)"/><use href="#day14-r" transform="rotate(60)"/><circle r="44" fill="url(#day14-sun)"/></g>
+<use href="#day14-p" transform="translate(84 124) rotate(-9)"/>
+<use href="#day14-p" transform="translate(172 122) rotate(8)"/>
+<text x="128" y="232" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="54" fill="#ffd60a" stroke="#1a0e02" stroke-width="8" stroke-linejoin="round" paint-order="stroke">14</text>
+</svg>

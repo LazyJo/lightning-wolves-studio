@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="streak30-bg" cx=".5" cy=".55" r=".72"><stop offset="0" stop-color="#a02a08"/><stop offset=".6" stop-color="#2a0a10"/><stop offset="1" stop-color="#060814"/></radialGradient>
+<linearGradient id="streak30-o" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff5a0a"/><stop offset=".6" stop-color="#f0300a"/><stop offset="1" stop-color="#a81408"/></linearGradient>
+<linearGradient id="streak30-m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffa81a"/><stop offset="1" stop-color="#ff6a0a"/></linearGradient>
+<linearGradient id="streak30-y" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe45c"/><stop offset="1" stop-color="#ffc21a"/></linearGradient>
+<radialGradient id="streak30-w" cx=".5" cy=".62" r=".6"><stop offset=".3" stop-color="#fff"/><stop offset="1" stop-color="#fff3c4"/></radialGradient>
+<linearGradient id="streak30-gd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".35" stop-color="#ffd60a"/><stop offset=".65" stop-color="#c98a00"/><stop offset="1" stop-color="#ffd60a"/></linearGradient>
+<clipPath id="streak30-c"><circle cx="128" cy="128" r="117"/></clipPath>
+<path id="streak30-f" d="M6-182C12-150 34-134 42-108C48-122 46-136 42-146C66-126 84-92 82-58C80-22 46 0 0 0C-46 0-84-24-84-62C-84-86-70-104-62-124C-56-108-50-100-42-96C-44-128-26-160 6-182Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#streak30-bg)"/>
+<g clip-path="url(#streak30-c)">
+<use href="#streak30-f" transform="translate(128 246) scale(1.3)" fill="url(#streak30-o)"/>
+<use href="#streak30-f" transform="translate(128 226) scale(.98)" fill="url(#streak30-m)"/>
+<use href="#streak30-f" transform="translate(128 210) scale(.68)" fill="url(#streak30-y)"/>
+<use href="#streak30-f" transform="translate(128 198) scale(.42)" fill="url(#streak30-w)"/>
+</g>
+<circle cx="128" cy="128" r="119" fill="none" stroke="url(#streak30-gd)" stroke-width="6"/>
+<text x="128" y="232" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="54" fill="#fff" stroke="#1a0802" stroke-width="8" stroke-linejoin="round" paint-order="stroke">30</text>
+</svg>

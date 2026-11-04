@@ -373,6 +373,11 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
 .pic .pn{font:700 11.5px/1.1 var(--cond); letter-spacing:.06em; color:var(--dim)}
 .pic.on{border-color:var(--beam)}
 .pic.locked img{filter:grayscale(.7) brightness(.55)}
+.pictabs{display:flex; gap:6px; margin-bottom:10px}
+.pictabs button{flex:1 1 0; min-width:0; border:1px solid var(--line); background:var(--panel); color:var(--dim); border-radius:999px; padding:8px 4px; font:700 12px/1 var(--cond); letter-spacing:.06em; white-space:nowrap}
+.pictabs small{font:inherit; font-size:10.5px; opacity:.8}
+.pictabs button[aria-pressed="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
+.toast img.tp{width:30px; height:30px; border-radius:8px; vertical-align:middle; margin-right:4px}
 .pic .cost{position:absolute; top:10px; left:50%; transform:translateX(-50%); font:700 12px/1 var(--cond); letter-spacing:.06em; color:#041024; background:var(--gold); border-radius:999px; padding:4px 8px; white-space:nowrap}
 .pic.owned .cost{display:none}
 .rules{font-size:13.5px; color:var(--dim); background:var(--panel); border-radius:8px; padding:10px 12px}
@@ -612,6 +617,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <label class="f">Name <input class="in" id="pfName" maxlength="16" autocomplete="nickname" placeholder="3-16 letters or numbers"></label>
     <div>
       <h2 style="margin-bottom:8px">Profile picture</h2>
+      <div class="pictabs" id="picTabs" role="group" aria-label="Pictures"></div>
       <div class="pics" id="pics"></div>
     </div>
     <div class="rules" id="pfRules"></div>
@@ -1125,14 +1131,106 @@ function nextMain(id){
 // rides a player has earned, passed to the levels that offer them
 const rides = () => (creator || (progress.lvl2b && progress.lvl2b.cleared)) ? ["bike"] : [];
 let AVATARS = [
-  { id:"saucer", name:"Blue Saucer", cost:0 }, { id:"bike", name:"Zirka's Bike", cost:0 },
-  { id:"wolf", name:"Wolf", cost:0 }, { id:"planet", name:"Planet Javeda", cost:0 },
-  { id:"vortex", name:"Vortex", cost:250 }, { id:"moon", name:"Night Moon", cost:300 },
-  { id:"earth", name:"Earth", cost:400 }, { id:"redufo", name:"Red Saucer", cost:500 },
-  { id:"comet", name:"Re-entry", cost:600 }, { id:"headphones", name:"Stay Up", cost:800 },
-  { id:"goldwolf", name:"Gold Wolf", cost:1200 }, { id:"crown", name:"Crowned Saucer", cost:2000 },
-  // earned, never bought: every part of all 28 songs cleared
-  { id:"complete", name:"JAVEDA Complete", cost:0, unlock:"album" }
+  { id:"saucer", name:"Blue Saucer", cost:0 },
+  { id:"bike", name:"Zirka's Bike", cost:0 },
+  { id:"wolf", name:"Wolf", cost:0 },
+  { id:"planet", name:"Planet Javeda", cost:0 },
+  { id:"vortex", name:"Vortex", cost:1000 },
+  { id:"moon", name:"Night Moon", cost:1250 },
+  { id:"earth", name:"Earth", cost:1500 },
+  { id:"greenufo", name:"Green Saucer", cost:1750 },
+  { id:"redufo", name:"Red Saucer", cost:2000 },
+  { id:"orangeufo", name:"Orange Saucer", cost:2250 },
+  { id:"comet", name:"Re-entry", cost:2500 },
+  { id:"shootingstar", name:"Shooting Star", cost:2750 },
+  { id:"purpleufo", name:"Purple Saucer", cost:3000 },
+  { id:"satellite", name:"Satellite", cost:3250 },
+  { id:"headphones", name:"Stay Up", cost:3500 },
+  { id:"neonbike", name:"Neon Bike", cost:3750 },
+  { id:"ringed", name:"Ringed Giant", cost:4000 },
+  { id:"rocket", name:"Rocket", cost:4500 },
+  { id:"lightning", name:"Lightning", cost:5000 },
+  { id:"astronaut", name:"Astronaut", cost:5500 },
+  { id:"meteors", name:"Meteor Storm", cost:6000 },
+  { id:"station", name:"Space Station", cost:6500 },
+  { id:"aurora", name:"Aurora", cost:7000 },
+  { id:"goldwolf", name:"Gold Wolf", cost:7500 },
+  { id:"blackhole", name:"Black Hole", cost:8000 },
+  { id:"galaxy", name:"Galaxy", cost:9000 },
+  { id:"supernova", name:"Supernova", cost:10000 },
+  { id:"mothership", name:"Mothership", cost:11000 },
+  { id:"chromeufo", name:"Chrome Saucer", cost:12000 },
+  { id:"diamondufo", name:"Diamond Saucer", cost:13500 },
+  { id:"crown", name:"Crowned Saucer", cost:15000 },
+  { id:"goldplanet", name:"Golden Planet", cost:17500 },
+  { id:"stormcrown", name:"Storm Crown", cost:20000 },
+  { id:"legend", name:"Legend", cost:25000 },
+  { id:"song01", name:"Lost Saucer", cost:0, unlock:"song:1" },
+  { id:"song02", name:"Dust Sea", cost:0, unlock:"song:2" },
+  { id:"song03", name:"Broken Heart", cost:0, unlock:"song:3" },
+  { id:"song04", name:"Neon Coaster", cost:0, unlock:"song:4" },
+  { id:"song05", name:"Firefly Park", cost:0, unlock:"song:5" },
+  { id:"song06", name:"Palm Rock", cost:0, unlock:"song:6" },
+  { id:"song07", name:"Earth in Hand", cost:0, unlock:"song:7" },
+  { id:"song08", name:"Giant Rose", cost:0, unlock:"song:8" },
+  { id:"song09", name:"District 9", cost:0, unlock:"song:9" },
+  { id:"song10", name:"Orange Drop", cost:0, unlock:"song:10" },
+  { id:"song11", name:"Moon Race", cost:0, unlock:"song:11" },
+  { id:"song12", name:"Clockwork", cost:0, unlock:"song:12" },
+  { id:"song13", name:"Rug Lights", cost:0, unlock:"song:13" },
+  { id:"song14", name:"Neon Cup", cost:0, unlock:"song:14" },
+  { id:"song15", name:"Window Ghost", cost:0, unlock:"song:15" },
+  { id:"song16", name:"White Sky", cost:0, unlock:"song:16" },
+  { id:"song17", name:"Sky Islands", cost:0, unlock:"song:17" },
+  { id:"song18", name:"Rainy Night", cost:0, unlock:"song:18" },
+  { id:"song19", name:"Night Studio", cost:0, unlock:"song:19" },
+  { id:"song20", name:"Blue Crowd", cost:0, unlock:"song:20" },
+  { id:"song21", name:"Two Rooms", cost:0, unlock:"song:21" },
+  { id:"song22", name:"Red Flying Car", cost:0, unlock:"song:22" },
+  { id:"song23", name:"Smoke Heart", cost:0, unlock:"song:23" },
+  { id:"song24", name:"Sunset Table", cost:0, unlock:"song:24" },
+  { id:"song25", name:"Heart Over the Sea", cost:0, unlock:"song:25" },
+  { id:"song26", name:"Pink Hood", cost:0, unlock:"song:26" },
+  { id:"song27", name:"Cloud Car", cost:0, unlock:"song:27" },
+  { id:"song28", name:"Sunset Roof", cost:0, unlock:"song:28" },
+  { id:"cadet", name:"Cadet", cost:0, unlock:"parts:5" },
+  { id:"pilot", name:"Pilot", cost:0, unlock:"parts:10" },
+  { id:"captain", name:"Captain", cost:0, unlock:"parts:20" },
+  { id:"commander", name:"Commander", cost:0, unlock:"parts:30" },
+  { id:"admiral", name:"Admiral", cost:0, unlock:"parts:40" },
+  { id:"remix1", name:"First Remix", cost:0, unlock:"remix:1" },
+  { id:"remix8", name:"Turntable", cost:0, unlock:"remix:8" },
+  { id:"remix16", name:"Remix Master", cost:0, unlock:"remix:16" },
+  { id:"endless10", name:"No End in Sight", cost:0, unlock:"endless:10" },
+  { id:"endless55", name:"Infinity", cost:0, unlock:"endless:55" },
+  { id:"complete", name:"JAVEDA Complete", cost:0, unlock:"album" },
+  { id:"day1", name:"First Light", cost:0, unlock:"days:1" },
+  { id:"day3", name:"Three Suns", cost:0, unlock:"days:3" },
+  { id:"day7", name:"Full Week", cost:0, unlock:"days:7" },
+  { id:"day14", name:"Two Weeks", cost:0, unlock:"days:14" },
+  { id:"day30", name:"Full Month", cost:0, unlock:"days:30" },
+  { id:"day60", name:"Two Months", cost:0, unlock:"days:60" },
+  { id:"day100", name:"Hundred Suns", cost:0, unlock:"days:100" },
+  { id:"day200", name:"Long Road", cost:0, unlock:"days:200" },
+  { id:"day365", name:"Around the Sun", cost:0, unlock:"days:365" },
+  { id:"streak3", name:"Spark", cost:0, unlock:"streak:3" },
+  { id:"streak5", name:"Ember", cost:0, unlock:"streak:5" },
+  { id:"streak7", name:"Flame", cost:0, unlock:"streak:7" },
+  { id:"streak14", name:"Blaze", cost:0, unlock:"streak:14" },
+  { id:"streak21", name:"Wildfire", cost:0, unlock:"streak:21" },
+  { id:"streak30", name:"Inferno", cost:0, unlock:"streak:30" },
+  { id:"streak60", name:"Solar Flare", cost:0, unlock:"streak:60" },
+  { id:"streak100", name:"Eternal Flame", cost:0, unlock:"streak:100" },
+  { id:"win1", name:"Day Winner", cost:0, unlock:"wins:1" },
+  { id:"win3", name:"Hat-Trick", cost:0, unlock:"wins:3" },
+  { id:"win7", name:"Lucky Seven", cost:0, unlock:"wins:7" },
+  { id:"win14", name:"Silver Cup", cost:0, unlock:"wins:14" },
+  { id:"win30", name:"Champion", cost:0, unlock:"wins:30" },
+  { id:"win60", name:"Grand Champion", cost:0, unlock:"wins:60" },
+  { id:"win100", name:"Hall of Fame", cost:0, unlock:"wins:100" },
+  { id:"podium1", name:"Bronze Podium", cost:0, unlock:"podium:1" },
+  { id:"podium5", name:"Silver Podium", cost:0, unlock:"podium:5" },
+  { id:"podium25", name:"Gold Podium", cost:0, unlock:"podium:25" }
 ];
 const pic = id => "avatars/" + (AVATARS.some(a => a.id === id) ? id : "saucer") + ".svg";
 
@@ -1152,6 +1250,9 @@ let sb = null, session = null;
 let player = null;          // javeda_players row when signed in and joined
 let progress = {};          // level id -> { cleared, best, metres, runs }
 let owned = new Set();      // bought pictures
+let stats = null;           // what the database counts for the earned pictures (javeda_my_stats)
+let picTab = "mine";
+const PIC_TABS = [["mine", "Yours"], ["points", "Points"], ["levels", "Levels"], ["daily", "Daily"]];
 let news = false;           // asked for JAVEDA news by email (javeda_news)
 let creator = false;        // a creator account (javeda_creators) plays every level, cleared or not
 let record = null;          // your online 1v1 wins, losses, draws
@@ -1567,23 +1668,68 @@ document.querySelectorAll(".sheet").forEach(s => {
 });
 addEventListener("keydown", e => { if (e.key === "Escape") document.querySelectorAll(".sheet:not(.hid)").forEach(s => closeSheet(s.id)); });
 
-// an earned picture (unlock: "album") is yours once the album is done - for an account, once the database says so
+// a picture you earn: "song:12" every part of Level 12, "days:30" 30 daily challenges... The database has the last word (javeda_unlock_met):
+// this only shows it, from its numbers (javeda_my_stats). The album's also works for a guest
+const picKind = a => (a.unlock || "").split(":")[0];
+const picN = a => +(a.unlock || "").split(":")[1] || 0;
+const picGroup = a => !a.unlock ? (a.cost ? "points" : "free") : /^(days|streak|wins|podium)$/.test(picKind(a)) ? "daily" : "levels";
 function ownsPic(a){
-  if (a.unlock) return a.unlock === "album" && (signedIn() ? !!player.album_completed_at : albumDone());
-  return a.cost === 0 || owned.has(a.id);
+  if (!a.unlock) return a.cost === 0 || owned.has(a.id);
+  const k = picKind(a);
+  if (k === "album") return signedIn() ? !!player.album_completed_at : albumDone();
+  if (!signedIn() || !stats) return false;
+  return k === "song" ? (stats.songs || []).includes(picN(a)) : (stats[k] || 0) >= picN(a);
 }
+// the pill on a locked one
+function picChip(a){
+  const k = picKind(a), n = picN(a), one = n === 1;
+  return k === "album" ? "28/28" : k === "song" ? "Level " + n : k === "parts" ? n + " parts" : k === "remix" ? n + (one ? " Remix" : " Remixes") :
+    k === "endless" ? n + " Endless" : k === "days" ? n + (one ? " day" : " days") : k === "streak" ? n + " in a row" : k === "wins" ? n + (one ? " win" : " wins") : "Top 3 x" + n;
+}
+// what it takes and how far you are, each its own sentence
+function picNeed(a){
+  const k = picKind(a), n = picN(a), one = n === 1, x = stats && !Array.isArray(stats[k]) ? stats[k] || 0 : 0;
+  if (k === "album") return ["Clear every part of all 28 songs."];
+  if (k === "song"){
+    const ps = LEVELS.filter(l => l.num === n && !l.endless), got = ps.filter(l => cleared(l.id)).length;
+    return ps.length > 1 ? ["Clear every part of Level " + n + ".", "You've cleared " + got + " of " + ps.length + "."] : ["Clear Level " + n + "."];
+  }
+  if (!signedIn()) return [k === "parts" ? "Clear " + n + " parts of the album." : k === "remix" ? (one ? "Play a Remix." : "Play " + n + " different Remixes.") : k === "endless" ? "Play " + n + " different Endless modes." : "Play the daily challenge.", "Log in to earn it."];
+  if (k === "parts") return ["Clear " + n + " parts of the album.", "You've cleared " + x + "."];
+  if (k === "remix") return [one ? "Play a Remix." : "Play " + n + " different Remixes.", "You've played " + x + "."];
+  if (k === "endless") return ["Play " + n + " different Endless modes.", "You've played " + x + "."];
+  if (k === "days") return [one ? "Play the daily challenge." : "Play the daily challenge on " + n + " days.", "You're at " + x + "."];
+  if (k === "streak") return ["Play the daily challenge " + n + " days in a row.", "Your best is " + x + "."];
+  if (k === "wins") return [one ? "Finish a day first on the daily board." : "Finish " + n + " days first on the daily board.", "At least 2 players that day.", "You have " + x + "."];
+  return [one ? "Finish a day in the top 3 of the daily board." : "Finish " + n + " days in the top 3 of the daily board.", "At least 4 players that day.", "You have " + x + "."];
+}
+const picSay = (a, words) => '<b>' + esc(a.name) + '</b> ' + words.map(t => '<span>' + esc(t) + '</span>').join(" ");
 function renderPics(){
-  const pts = signedIn() ? player.points : 0;
-  $("pics").innerHTML = AVATARS.map(a => {
-    const have = ownsPic(a);
-    return '<button type="button" class="pic' + (a.id === pickAv ? ' on' : '') + (have ? ' owned' : ' locked') + '" data-pic="' + a.id + '"' +
-      ' aria-label="' + esc(a.name) + (have ? '' : a.unlock ? ', earned by finishing the album' : ', ' + a.cost + ' points') + '">' +
-      '<img src="' + pic(a.id) + '" alt="">' + (a.unlock ? '<span class="cost earn">28/28</span>' : '<span class="cost">' + fmt(a.cost) + ' pts</span>') +
+  const pts = signedIn() ? player.points : 0, have = AVATARS.filter(ownsPic);
+  const of = g => { const all = AVATARS.filter(a => picGroup(a) === g); return all.filter(ownsPic).length + "/" + all.length; };
+  $("picTabs").innerHTML = PIC_TABS.map(([t, n]) => '<button type="button" data-pt="' + t + '" aria-pressed="' + (t === picTab) + '">' + n + ' <small>' + (t === "mine" ? have.length : of(t)) + '</small></button>').join("");
+  $("pics").innerHTML = (picTab === "mine" ? have : AVATARS.filter(a => picGroup(a) === picTab)).map(a => {
+    const got = ownsPic(a), chip = a.unlock ? picChip(a) : fmt(a.cost) + ' pts';
+    return '<button type="button" class="pic' + (a.id === pickAv ? ' on' : '') + (got ? ' owned' : ' locked') + '" data-pic="' + a.id + '"' +
+      ' aria-label="' + esc(a.name) + (got ? '' : ', ' + chip) + '">' +
+      '<img src="' + pic(a.id) + '" alt="" loading="lazy" decoding="async"><span class="cost' + (a.unlock ? ' earn' : '') + '">' + chip + '</span>' +
       '<span class="pn">' + esc(a.name) + '</span></button>';
   }).join("");
-  $("pfRules").innerHTML = signedIn()
-    ? 'You have <b>' + fmt(pts) + ' points</b>. You earn them by playing: up to <b>40</b> a run for your score, <b>+50</b> for every clear and a big bonus the first time you clear a level. Tap a locked picture to unlock it.'
-    : 'The first four pictures are free. <b>Log in</b> to earn points by playing and unlock the rest.';
+  $("pfRules").innerHTML = !signedIn() ? 'The first four pictures are free. <b>Log in</b> to earn points by playing and unlock the rest.'
+    : picTab === "levels" ? "You get these by clearing levels. They can't be bought. Tap one to see what it takes."
+    : picTab === "daily" ? "You get these by playing the daily challenge. They can't be bought. Tap one to see what it takes."
+    : 'You have <b>' + fmt(pts) + ' points</b>. You earn them by playing: up to <b>40</b> a run for your score, <b>+50</b> to <b>+100</b> for every clear, <b>+300</b> to <b>+600</b> the first time you clear a part, <b>+25</b> for an online win. Endless and Remix pay only when you beat your best. Buying a picture spends points but keeps your place on the Points board.';
+}
+// the numbers behind the earned pictures. say: and tell the player about any that just became theirs
+async function refreshStats(say){
+  if (!signedIn() || session.offline || !sb || !navigator.onLine) return;
+  const had = stats ? AVATARS.filter(a => a.unlock && ownsPic(a)).map(a => a.id) : null;
+  const { data, error } = await sb.rpc("javeda_my_stats");
+  if (error || !data) return;
+  stats = data; saveSnap();
+  if (!say || !had) return;
+  const fresh = AVATARS.filter(a => a.unlock && ownsPic(a) && !had.includes(a.id));
+  if (fresh.length) setTimeout(() => toast('<img class="tp" src="' + pic(fresh[0].id) + '" alt=""> <span>New picture</span> <b>' + esc(fresh[0].name) + '</b>' + (fresh.length > 1 ? ' <span>+' + (fresh.length - 1) + ' more</span>' : ''), 6000), 6000);
 }
 function openProfile(){
   pickAv = signedIn() ? player.avatar : guest.avatar;
@@ -1593,18 +1739,22 @@ function openProfile(){
   $("pfOut").classList.toggle("hid", !session);
   $("pfDel").classList.toggle("hid", !signedIn() || !!session.offline || creator);
   $("pfNewsRow").classList.toggle("hid", !signedIn() || !!session.offline); $("pfNews").checked = news;
-  renderPushSet(); renderPics(); openSheet("profile");
+  picTab = "mine"; renderPushSet(); renderPics(); openSheet("profile");
+  refreshStats().then(renderPics);
 }
 $("meBtn").onclick = openProfile;
+$("picTabs").addEventListener("click", e => { const b = e.target.closest("[data-pt]"); if (b){ picTab = b.dataset.pt; renderPics(); } });
 $("pics").addEventListener("click", async e => {
   const b = e.target.closest("[data-pic]"); if (!b) return;
   const a = AVATARS.find(x => x.id === b.dataset.pic);
   $("pfErr").textContent = "";
   if (ownsPic(a)){ pickAv = a.id; renderPics(); return; }
-  if (a.unlock){ $("pfErr").textContent = a.name + " can't be bought: clear every part of all 28 songs and it's yours."; return; }
-  if (!signedIn()){ $("pfErr").textContent = "Log in to earn points and unlock " + a.name + "."; return; }
-  if (player.points < a.cost){ $("pfErr").textContent = a.name + " costs " + fmt(a.cost) + " points. You have " + fmt(player.points) + "."; return; }
-  if (!confirm("Unlock " + a.name + " for " + fmt(a.cost) + " points?")) return;
+  // (a toast: with this many pictures the player can be a long way down the sheet)
+  if (a.unlock){ toast(picSay(a, picNeed(a)), 6000); return; }
+  if (!signedIn()){ toast(picSay(a, ["Costs " + fmt(a.cost) + " points.", "Log in to earn points."]), 5000); return; }
+  if (player.points < a.cost){ toast(picSay(a, ["Costs " + fmt(a.cost) + " points.", "You have " + fmt(player.points) + "."]), 5000); return; }
+  const T = t => window.JAVEDA_T ? window.JAVEDA_T(t) : t;
+  if (!confirm(T(a.name) + ": " + T("Unlock for " + fmt(a.cost) + " points?"))) return;
   const { data, error } = await sb.rpc("javeda_buy_avatar", { p_avatar:a.id });
   if (error){ $("pfErr").textContent = error.message; return; }
   player = data; owned.add(a.id); pickAv = a.id; renderPics(); renderMe(); renderBoard();
@@ -1709,10 +1859,10 @@ const ACCT_KEY = "javeda.acct.v1", PEND_KEY = "javeda.pending.v1";
 const netErr = e => !!e && (!navigator.onLine || /fetch|network|load failed|timed? ?out|offline/i.test(e.message || String(e)));
 function saveSnap(){
   if (!session || !player || session.offline) return;
-  try { localStorage.setItem(ACCT_KEY, JSON.stringify({ uid:session.user.id, player, progress, owned:[...owned], unlocks:[...unlocks], pass, creator, record })); } catch(e){}
+  try { localStorage.setItem(ACCT_KEY, JSON.stringify({ uid:session.user.id, player, progress, owned:[...owned], unlocks:[...unlocks], pass, creator, record, stats })); } catch(e){}
 }
 function loadSnap(uid){ try { const x = JSON.parse(localStorage.getItem(ACCT_KEY)); if (x && x.player && (!uid || x.uid === uid)) return x; } catch(e){} return null; }
-function useSnap(x){ player = x.player; progress = x.progress || {}; owned = new Set(x.owned || []); unlocks = new Set(x.unlocks || []); pass = x.pass || null; creator = !!x.creator; record = x.record || null; }
+function useSnap(x){ player = x.player; progress = x.progress || {}; owned = new Set(x.owned || []); unlocks = new Set(x.unlocks || []); pass = x.pass || null; creator = !!x.creator; record = x.record || null; stats = x.stats || null; }
 const pending = () => { try { const a = JSON.parse(localStorage.getItem(PEND_KEY)); return Array.isArray(a) ? a : []; } catch(e){ return []; } };
 const setPending = a => { try { a.length ? localStorage.setItem(PEND_KEY, JSON.stringify(a)) : localStorage.removeItem(PEND_KEY); } catch(e){} };
 // the runs still waiting count for this phone's view of the account
@@ -1753,8 +1903,9 @@ async function loadAccount(){
     const x = loadSnap();
     if (x){ session = { user:{ id:x.uid }, offline:true }; useSnap(x); withPending(x.uid); renderAll(); return; }
   }
-  if (!session){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); showJoin(); return; }
+  if (!session){ stats = null; progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); showJoin(); return; }
   const uid = session.user.id;
+  if (!stats){ const x = loadSnap(uid); stats = x && x.stats || null; }
   const [p, g, o, c, v, u, ps, nw] = await Promise.all([
     sb.from("javeda_players").select("*").eq("user_id", uid).maybeSingle(),
     sb.from("javeda_progress").select("level, cleared, best_score, best_metres, runs").eq("user_id", uid),
@@ -1798,6 +1949,7 @@ async function loadAccount(){
   if (news) newsWish(false); else applyNewsWish(false);
   saveSnap(); withPending(uid);
   renderAll(); showJoin();
+  refreshStats(true);
   if (takePassNext()) openPass();
   flushPending();
   countReports();
@@ -1977,6 +2129,7 @@ async function saveRun(r, quiet){
   progress[lv.id] = { cleared:d.progress.cleared, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
   renderMe(); renderNow(); renderBoard();
   saveSnap();
+  refreshStats(true);
   if (d.album_complete) finale();
   else if (!quiet) toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (r.cleared ? " &middot; " + starNote(lv.id) : "") +
     (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), r.cleared ? 5500 : 4500);
@@ -2007,6 +2160,7 @@ async function saveEndless(lv, r, quiet){
   player = d.player;
   progress[lv.id] = { cleared:true, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
   renderMe(); renderBoard();
+  refreshStats(true);
   if (quiet) return;
   toast(d.new_best ? "<b>New best! " + fmt(d.score) + unit + "</b>" + (d.earned ? " · +" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") : "")
                    : "Your best is still <b>" + fmt(d.progress.best_score) + unit + "</b> · beat it for points", 4500);
@@ -2036,6 +2190,7 @@ async function saveDaily(r){
   if (d.kept) unlocks.add(d.level);
   if (daily && d.day === daily.day) dailyBest = d.best;
   const run = isOpen(lv) ? await saveRun(r, true) : null;
+  if (!run) refreshStats(true);
   renderNow(); if (boardTab === "daily") renderBoard();
   toast((d.new_best ? "<b>New best today! " + fmt(d.score) + "</b>" : "Today's best is still <b>" + fmt(d.best) + "</b>") + " · <b>#" + d.rank + "</b> on today's board" +
         (run && run.earned ? " · +" + fmt(run.earned) + (run.earned === 1 ? " point" : " points") : "") + kept, 6000);

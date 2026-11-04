@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="commander-bg" cx="0.5" cy="0.5" r="0.72"><stop offset="0" stop-color="#8a5608"/><stop offset="0.55" stop-color="#2e1806"/><stop offset="1" stop-color="#070b1c"/></radialGradient>
+<radialGradient id="commander-gl" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd60a" stop-opacity="0.42"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></radialGradient>
+<linearGradient id="commander-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="0.3" stop-color="#ffd60a"/><stop offset="0.6" stop-color="#c98a00"/><stop offset="1" stop-color="#ffe56a"/></linearGradient>
+<linearGradient id="commander-fld" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a86d00"/><stop offset="1" stop-color="#6a3e00"/></linearGradient>
+<linearGradient id="commander-chv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="1" stop-color="#ffc800"/></linearGradient>
+<linearGradient id="commander-wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset="0.6" stop-color="#ffd60a"/><stop offset="1" stop-color="#c98a00"/></linearGradient>
+<linearGradient id="commander-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b9bf0"/><stop offset="0.5" stop-color="#2f6fc9"/><stop offset="1" stop-color="#1d4f9a"/></linearGradient>
+<linearGradient id="commander-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="0.55" stop-color="#bfe9ff"/><stop offset="1" stop-color="#7cc4ec"/></linearGradient>
+<path id="commander-s" d="M0-84C20-72 44-68 66-70V0C66 44 34 72 0 88C-34 72-66 44-66 0V-70C-44-68-20-72 0-84Z"/>
+<path id="commander-c" d="M-42 0L0 13L42 0V11L0 24L-42 11Z"/>
+<path id="commander-st" d="M0 -10L2.5 -3.5L9.5 -3.1L4.1 1.3L5.9 8.1L0 4.3L-5.9 8.1L-4.1 1.3L-9.5 -3.1L-2.5 -3.5Z"/>
+<path id="commander-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+<g id="commander-w"><path d="M0-6C18-30 56-48 104-50C102-38 96-30 88-26C92-20 86-12 76-10C78-3 70 4 60 5C60 12 50 17 40 17C36 23 20 25 0 18Z" fill="url(#commander-wg)" stroke="#3a1e00" stroke-width="3" stroke-linejoin="round"/><path d="M0-6C12-22 34-34 62-38C52-24 30-8 0 6Z" fill="#fff6c8"/><path d="M26-6C44-18 66-24 88-26M22 5C38-1 56-7 76-10M18 13C30 11 46 9 60 5" fill="none" stroke="#3a1e00" stroke-width="3" stroke-linecap="round" opacity=".6"/></g>
+</defs>
+<rect width="256" height="256" fill="url(#commander-bg)"/>
+<circle cx="128" cy="124" r="122" fill="url(#commander-gl)"/>
+<use href="#commander-w" transform="translate(156 128) scale(0.9)"/><use href="#commander-w" transform="translate(100 128) scale(-0.9 0.9)"/>
+<g transform="translate(128 152) scale(0.9)">
+<use href="#commander-s" fill="#3a1e00" stroke="#3a1e00" stroke-width="7" stroke-linejoin="round"/>
+<use href="#commander-s" fill="url(#commander-rim)"/>
+<use href="#commander-s" transform="translate(0 1) scale(.84)" fill="url(#commander-fld)" stroke="#3a1e00" stroke-width="2.5"/>
+<path d="M0-84C20-72 44-68 66-70V0C66 44 34 72 0 88Z" transform="translate(0 1) scale(.84)" fill="#000" opacity=".14"/>
+<g fill="url(#commander-chv)" stroke="#3a1e00" stroke-width="2" stroke-linejoin="round"><use href="#commander-c" y="-24"/><use href="#commander-c" y="-6"/><use href="#commander-c" y="12"/><use href="#commander-c" y="30"/></g>
+<g transform="translate(0 -50) scale(.4)"><ellipse cy="34" rx="34" ry="10" fill="#12356b"/><ellipse cy="8" rx="88" ry="26" fill="#12356b"/><ellipse rx="88" ry="26" fill="url(#commander-hull)"/><ellipse cy="-6" rx="62" ry="14" fill="#7fb4f5" opacity=".45"/><path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#commander-dome)"/><path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/><g fill="#67e8f9"><circle cy="30" r="7"/><circle cx="-32" cy="28" r="7"/><circle cx="32" cy="28" r="7"/><circle cx="-62" cy="22" r="7"/><circle cx="62" cy="22" r="7"/></g></g>
+</g>
+<g fill="url(#commander-rim)" stroke="#3a1e00" stroke-width=".9" stroke-linejoin="round"><use href="#commander-st" transform="translate(128 40) scale(3)"/></g>
+<use href="#commander-sp" transform="translate(56 44) scale(0.9)" fill="#fff6c8"/><use href="#commander-sp" transform="translate(204 44) scale(0.9)" fill="#fff6c8"/><use href="#commander-sp" transform="translate(30 176) scale(0.55)" fill="#ffd60a"/><use href="#commander-sp" transform="translate(226 176) scale(0.55)" fill="#ffd60a"/>
+</svg>

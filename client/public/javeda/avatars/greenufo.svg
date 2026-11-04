@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="greenufo-bg" cx=".5" cy=".4" r=".75"><stop offset="0" stop-color="#17604a"/><stop offset=".55" stop-color="#0a2438"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<linearGradient id="greenufo-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8cf5a4"/><stop offset=".5" stop-color="#25c45f"/><stop offset="1" stop-color="#0f7a3c"/></linearGradient>
+<linearGradient id="greenufo-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#d4ffdf"/><stop offset="1" stop-color="#8cecab"/></linearGradient>
+<linearGradient id="greenufo-tr" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7dffa0" stop-opacity="0"/><stop offset="1" stop-color="#7dffa0" stop-opacity=".9"/></linearGradient>
+<radialGradient id="greenufo-lp" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".85"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient>
+<radialGradient id="greenufo-ff" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#e6ff7a" stop-opacity=".7"/><stop offset="1" stop-color="#e6ff7a" stop-opacity="0"/></radialGradient>
+<path id="greenufo-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#greenufo-bg)"/>
+<g fill="#bfe9ff"><circle cx="58" cy="44" r="1.6"/><circle cx="196" cy="40" r="1.4"/><circle cx="150" cy="26" r="1.2"/><circle cx="226" cy="84" r="1.3"/><circle cx="32" cy="88" r="1.3"/></g>
+<g fill="#0f4a39"><circle cx="30" cy="182" r="28"/><circle cx="66" cy="192" r="20"/><circle cx="218" cy="178" r="30"/><circle cx="182" cy="192" r="18"/><circle cx="246" cy="190" r="20"/></g>
+<path d="M0 256V204C44 192 88 196 128 200C172 204 216 190 256 198V256Z" fill="#051c17"/>
+<path d="M112 256C116 234 150 226 138 201" fill="none" stroke="#d8b95e" stroke-width="5" stroke-linecap="round" opacity=".5"/>
+<g fill="url(#greenufo-lp)"><circle cx="88" cy="186" r="20"/><circle cx="166" cy="188" r="20"/><circle cx="56" cy="214" r="22"/><circle cx="204" cy="218" r="22"/></g>
+<g fill="#fff3c4"><circle cx="88" cy="186" r="3.5"/><circle cx="166" cy="188" r="3.5"/><circle cx="56" cy="214" r="4"/><circle cx="204" cy="218" r="4"/></g>
+<g fill="url(#greenufo-tr)"><path d="M22 86L60 82V92Z"/><path d="M18 106L54 103V112Z"/><path d="M28 126L60 122V131Z"/></g>
+<g transform="translate(134 104) rotate(-8) scale(.86)">
+<ellipse cy="34" rx="34" ry="10" fill="#0a4a26"/>
+<ellipse cy="8" rx="88" ry="26" fill="#0a4a26"/>
+<ellipse rx="88" ry="26" fill="url(#greenufo-hull)"/>
+<ellipse cy="-6" rx="62" ry="14" fill="#c4ffd2" opacity=".45"/>
+<path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#greenufo-dome)"/>
+<path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+<g fill="#eaff6a" opacity=".3"><circle cy="30" r="9"/><circle cx="-32" cy="28" r="9"/><circle cx="32" cy="28" r="9"/><circle cx="-62" cy="22" r="9"/><circle cx="62" cy="22" r="9"/></g>
+<g fill="#eaff6a"><circle cy="30" r="4.5"/><circle cx="-32" cy="28" r="4.5"/><circle cx="32" cy="28" r="4.5"/><circle cx="-62" cy="22" r="4.5"/><circle cx="62" cy="22" r="4.5"/></g>
+</g>
+<g fill="url(#greenufo-ff)"><circle cx="40" cy="150" r="9"/><circle cx="72" cy="170" r="9"/><circle cx="108" cy="176" r="9"/><circle cx="150" cy="168" r="9"/><circle cx="192" cy="154" r="9"/><circle cx="222" cy="136" r="9"/><circle cx="128" cy="222" r="9"/></g>
+<g fill="#eaff6a"><circle cx="40" cy="150" r="2.8"/><circle cx="72" cy="170" r="2.8"/><circle cx="108" cy="176" r="2.8"/><circle cx="150" cy="168" r="2.8"/><circle cx="192" cy="154" r="2.8"/><circle cx="222" cy="136" r="2.8"/><circle cx="128" cy="222" r="2.8"/></g>
+<circle cx="128" cy="128" r="120" fill="none" stroke="#3fb8c4" stroke-width="3"/>
+<use href="#greenufo-sp" transform="translate(202 66) scale(0.7)" fill="#fff"/>
+<use href="#greenufo-sp" transform="translate(52 58) scale(0.55)" fill="#9fffc0"/>
+</svg>

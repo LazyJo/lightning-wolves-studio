@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<linearGradient id="song11-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#07051a"/><stop offset=".3" stop-color="#26125c"/><stop offset=".56" stop-color="#7a3ed0"/></linearGradient>
+<radialGradient id="song11-gl" cx=".5" cy=".5" r=".5"><stop offset=".6" stop-color="#c8a8ff" stop-opacity=".6"/><stop offset="1" stop-color="#9a5aff" stop-opacity="0"/></radialGradient>
+<radialGradient id="song11-m" cx=".4" cy=".35" r=".75"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#eadcff"/><stop offset="1" stop-color="#b08cf0"/></radialGradient>
+<linearGradient id="song11-rd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1a58"/><stop offset="1" stop-color="#0c0824"/></linearGradient>
+<linearGradient id="song11-tr" gradientUnits="userSpaceOnUse" x1="110" y1="190" x2="20" y2="256"><stop offset="0" stop-color="#ff3a5a"/><stop offset="1" stop-color="#ff3a5a" stop-opacity="0"/></linearGradient>
+<linearGradient id="song11-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f0ff"/><stop offset=".55" stop-color="#b8a0e8"/><stop offset="1" stop-color="#5a3a9a"/></linearGradient>
+<path id="song11-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#song11-bg)"/>
+<g fill="#eadcff"><circle cx="28" cy="30" r="1.6"/><circle cx="228" cy="26" r="1.6"/><circle cx="22" cy="92" r="1.2"/><circle cx="236" cy="90" r="1.3"/></g>
+<circle cx="128" cy="78" r="100" fill="url(#song11-gl)"/>
+<circle cx="128" cy="78" r="66" fill="url(#song11-m)"/>
+<g fill="#b8a0e8" opacity=".55"><circle cx="102" cy="58" r="11"/><circle cx="150" cy="96" r="15"/><circle cx="160" cy="50" r="7"/><circle cx="104" cy="106" r="6"/></g>
+<path d="M0 140V126H16V114H34V128H52V118H72V134H184V116H204V128H224V110H242V124H256V140Z" fill="#150a38"/>
+<rect y="138" width="256" height="118" fill="#0c0824"/>
+<path d="M112 138H144C146 176 208 196 300 256H-60C10 208 118 186 112 138Z" fill="url(#song11-rd)"/>
+<path d="M112 138C118 186 10 208 -60 256M144 138C146 176 208 196 300 256" fill="none" stroke="#c8a8ff" stroke-width="3.5"/>
+<path d="M128 142C132 164 110 186 60 224" fill="none" stroke="#eadcff" stroke-width="4" stroke-dasharray="11 11" opacity=".7"/>
+<path d="M96 190C60 206 26 226 -4 256H34C60 232 86 214 112 200Z" fill="url(#song11-tr)"/>
+<path d="M150 190C124 210 104 232 88 256H128C138 234 150 216 168 200Z" fill="url(#song11-tr)" opacity=".85"/>
+<ellipse cx="124" cy="218" rx="66" ry="9" fill="#050312" opacity=".8"/>
+<g transform="translate(128 186) rotate(-7) scale(1.08)">
+<rect x="-56" y="16" width="20" height="18" rx="5" fill="#0a0620"/>
+<rect x="36" y="16" width="20" height="18" rx="5" fill="#0a0620"/>
+<path d="M-60 6C-60-6-52-10-42-13L-30-34C-26-38 26-38 30-34L42-13C52-10 60-6 60 6L57 22C57 25-57 25-57 22Z" fill="url(#song11-c)"/>
+<path d="M-27-13L-20-30H20L27-13Z" fill="#150a38"/>
+<path d="M-19-16L-14-27H-4L-10-16Z" fill="#9a5aff" opacity=".7"/>
+<rect x="-64" y="-20" width="128" height="6" rx="3" fill="#2a1a58"/>
+<path d="M-46-14V-6M46-14V-6" stroke="#2a1a58" stroke-width="4"/>
+<ellipse cx="-38" cy="3" rx="24" ry="13" fill="#ff3a5a" opacity=".35"/>
+<ellipse cx="38" cy="3" rx="24" ry="13" fill="#ff3a5a" opacity=".35"/>
+<rect x="-53" y="-3" width="32" height="10" rx="4" fill="#ff3a5a"/>
+<rect x="21" y="-3" width="32" height="10" rx="4" fill="#ff3a5a"/>
+<rect x="-47" y="-1" width="20" height="4" rx="2" fill="#ffd0d8"/>
+<rect x="27" y="-1" width="20" height="4" rx="2" fill="#ffd0d8"/>
+<rect x="-14" y="8" width="28" height="9" rx="2" fill="#2a1a58"/>
+</g>
+<use href="#song11-sp" transform="translate(212 56) scale(.8)" fill="#fff"/>
+<use href="#song11-sp" transform="translate(46 58) scale(.55)" fill="#c8a8ff"/>
+<path fill-rule="evenodd" d="M0 0H256V256H0ZM25 5A20 20 0 0 0 5 25V231A20 20 0 0 0 25 251H231A20 20 0 0 0 251 231V25A20 20 0 0 0 231 5Z" fill="#070c1f"/>
+<rect x="5" y="5" width="246" height="246" rx="20" fill="none" stroke="#c8a8ff" stroke-width="4"/>
+</svg>

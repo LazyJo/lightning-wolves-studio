@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<linearGradient id="song16-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6f8fc"/><stop offset=".6" stop-color="#dce5f0"/><stop offset="1" stop-color="#bfcfe2"/></linearGradient>
+<radialGradient id="song16-gl"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+<radialGradient id="song16-ball" cx=".36" cy=".32" r=".8"><stop offset="0" stop-color="#ffc24a"/><stop offset=".6" stop-color="#f08020"/><stop offset="1" stop-color="#b8500e"/></radialGradient>
+<linearGradient id="song16-bd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ece4ff"/></linearGradient>
+<g id="song16-c"><ellipse rx="50" ry="17"/><circle cx="-20" cy="-11" r="17"/><circle cx="8" cy="-18" r="23"/><circle cx="30" cy="-7" r="14"/></g>
+<path id="song16-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+<clipPath id="song16-cb"><circle cx="78" cy="96" r="27"/></clipPath>
+</defs>
+<rect width="256" height="256" fill="url(#song16-bg)"/>
+<circle cx="150" cy="96" r="110" fill="url(#song16-gl)"/>
+<use href="#song16-c" transform="translate(48 58) scale(.7)" fill="#fff" opacity=".8"/>
+<use href="#song16-c" transform="translate(226 176) scale(.9)" fill="#fff" opacity=".8"/>
+<use href="#song16-c" transform="translate(40 234) scale(1.5)" fill="#c9d8ea"/>
+<use href="#song16-c" transform="translate(216 244) scale(1.5)" fill="#c9d8ea"/>
+<use href="#song16-c" transform="translate(40 242) scale(1.35)" fill="#fff"/>
+<use href="#song16-c" transform="translate(130 250) scale(1.2)" fill="#f4f7fc"/>
+<use href="#song16-c" transform="translate(218 252) scale(1.35)" fill="#fff"/>
+<path d="M12 222Q88 -12 170 118" fill="none" stroke="#8a78b8" stroke-width="6" stroke-linecap="round" stroke-dasharray=".5 14" opacity=".8"/>
+<rect x="164" y="102" width="12" height="14" fill="#3a1a6a"/>
+<rect x="116" y="34" width="108" height="74" rx="9" fill="#552583"/>
+<rect x="122" y="40" width="96" height="62" rx="5" fill="url(#song16-bd)"/>
+<rect x="148" y="58" width="44" height="34" rx="2" fill="none" stroke="#fdb927" stroke-width="5"/>
+<path d="M136 122Q170 134 204 122" fill="none" stroke="#a8740a" stroke-width="6"/>
+<g fill="none" stroke="#552583" stroke-width="3" stroke-linecap="round" opacity=".85">
+<path d="M136 122L150 168M204 122L190 168M150 124L160 170H180L190 124M170 126V170"/>
+<path d="M139 134Q170 146 201 134M144 150Q170 160 196 150M150 168H190"/>
+</g>
+<path d="M136 122Q170 110 204 122" fill="none" stroke="#c0601a" stroke-width="5" opacity=".7"/>
+<path d="M134 121Q170 136 206 121" fill="none" stroke="#f07a1a" stroke-width="7" stroke-linecap="round"/>
+<circle cx="78" cy="96" r="42" fill="url(#song16-gl)"/>
+<circle cx="78" cy="96" r="27" fill="url(#song16-ball)"/>
+<g clip-path="url(#song16-cb)" fill="none" stroke="#6e2c08" stroke-width="3.6">
+<path d="M46 82Q78 104 110 110"/>
+<path d="M92 66Q70 96 64 128"/>
+<path d="M58 72Q72 86 60 110"/>
+<path d="M104 86Q88 100 96 122"/>
+</g>
+<ellipse cx="68" cy="84" rx="9" ry="6" fill="#fff" opacity=".45" transform="rotate(-30 68 84)"/>
+<use href="#song16-sp" transform="translate(120 148) scale(.9)" fill="#fdb927"/>
+<use href="#song16-sp" transform="translate(30 150) scale(.6)" fill="#a99ad0"/>
+<use href="#song16-sp" transform="translate(232 54) scale(.6)" fill="#fdb927"/>
+<path fill-rule="evenodd" d="M0 0H256V256H0ZM25 5A20 20 0 0 0 5 25V231A20 20 0 0 0 25 251H231A20 20 0 0 0 251 231V25A20 20 0 0 0 231 5Z" fill="#070c1f"/>
+<rect x="5" y="5" width="246" height="246" rx="20" fill="none" stroke="#9c8ccb" stroke-width="4"/>
+</svg>

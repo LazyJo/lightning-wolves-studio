@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="streak5-bg" cx=".5" cy=".55" r=".75"><stop offset="0" stop-color="#6a1e0a"/><stop offset=".55" stop-color="#1e0c10"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<radialGradient id="streak5-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff6a1a" stop-opacity=".75"/><stop offset="1" stop-color="#ff3a0a" stop-opacity="0"/></radialGradient>
+<linearGradient id="streak5-o" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff4a0a"/><stop offset="1" stop-color="#ff8a1a"/></linearGradient>
+<linearGradient id="streak5-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a3414"/><stop offset=".5" stop-color="#3a1610"/><stop offset="1" stop-color="#1a0a0c"/></linearGradient>
+<path id="streak5-f" d="M-58 0C-62-22-46-30-40-48C-34-36-28-32-20-32C-22-50-8-66 8-78C10-56 26-50 32-32C38-36 42-42 44-50C56-36 62-20 58 0Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#streak5-bg)"/>
+<circle cx="128" cy="130" r="104" fill="url(#streak5-gl)"/>
+<g transform="translate(128 132)">
+<use href="#streak5-f" fill="url(#streak5-o)"/>
+<use href="#streak5-f" transform="translate(0 4) scale(.62)" fill="#ffc83a"/>
+<path d="M-76 12L-60-14L-26-24L16-22L54-16L78 10L66 40L26 54L-32 54L-66 40Z" fill="url(#streak5-c)" stroke="#ff6a1a" stroke-width="3" stroke-linejoin="round"/>
+<g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M-48-6L-26 10L-34 30M-26 10L8 2L24 18L14 40M8 2L4-14M24 18L54 6" stroke="#ff5a0a" stroke-width="10" opacity=".4"/><path d="M-48-6L-26 10L-34 30M-26 10L8 2L24 18L14 40M8 2L4-14M24 18L54 6" stroke="#ffb020" stroke-width="4.5"/></g>
+</g>
+<g fill="#ff8a1a"><circle cx="58" cy="84" r="3"/><circle cx="202" cy="72" r="3"/><circle cx="176" cy="36" r="2.2"/></g>
+<text x="128" y="234" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="54" fill="#fff" stroke="#1a0802" stroke-width="8" stroke-linejoin="round" paint-order="stroke">5</text>
+</svg>

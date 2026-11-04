@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="legend-bg" cx=".5" cy=".54" r=".74"><stop offset="0" stop-color="#b87a10"/><stop offset=".42" stop-color="#6a3408"/><stop offset="1" stop-color="#150a18"/></radialGradient>
+<linearGradient id="legend-gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".3" stop-color="#ffd60a"/><stop offset=".55" stop-color="#a86d00"/><stop offset=".8" stop-color="#ffd60a"/><stop offset="1" stop-color="#fff6c8"/></linearGradient>
+<radialGradient id="legend-ry" gradientUnits="userSpaceOnUse" cx="128" cy="146" r="190"><stop offset="0" stop-color="#fff6c8" stop-opacity=".95"/><stop offset=".55" stop-color="#ffd60a" stop-opacity=".6"/><stop offset="1" stop-color="#ffb800" stop-opacity=".15"/></radialGradient>
+<radialGradient id="legend-ry2" gradientUnits="userSpaceOnUse" cx="128" cy="146" r="130"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".6" stop-color="#fff1a8" stop-opacity=".35"/><stop offset="1" stop-color="#fff1a8" stop-opacity="0"/></radialGradient>
+<radialGradient id="legend-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".45" stop-color="#fff1a8" stop-opacity=".55"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></radialGradient>
+<linearGradient id="legend-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".42" stop-color="#fff3bc"/><stop offset=".75" stop-color="#ffd60a"/><stop offset="1" stop-color="#c98a00"/></linearGradient>
+<linearGradient id="legend-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#fff9e0"/><stop offset="1" stop-color="#ffdf70"/></linearGradient>
+<linearGradient id="legend-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fffbe0"/><stop offset=".5" stop-color="#ffe04a"/><stop offset="1" stop-color="#ffb000"/></linearGradient>
+<linearGradient id="legend-h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff6c8"/><stop offset=".5" stop-color="#ffd60a"/><stop offset="1" stop-color="#c98a00"/></linearGradient>
+<path id="legend-st" d="M0 -10L2.7 -3.7L9.5 -3.1L4.4 1.4L5.9 8.1L0 4.6L-5.9 8.1L-4.4 1.4L-9.5 -3.1L-2.7 -3.7Z" fill="url(#legend-s)" stroke="#6a3408" stroke-width="1.6" stroke-linejoin="round"/>
+<path id="legend-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+<path id="legend-sx" d="M0-14L1.8-1.8L14 0L1.8 1.8L0 14L-1.8 1.8L-14 0L-1.8-1.8Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#legend-bg)"/>
+<path d="M128 146L328 144L326 174ZM128 146L322 196L312 224ZM128 146L302 245L286 269ZM128 146L271 286L249 306ZM128 146L229 318L203 331ZM128 146L181 339L153 344ZM128 146L130 346L100 344ZM128 146L78 340L50 330ZM128 146L29 320L5 304ZM128 146L-12 289L-32 267ZM128 146L-44 247L-57 221ZM128 146L-65 199L-70 171ZM128 146L-72 148L-70 118ZM128 146L-66 96L-56 68ZM128 146L-46 47L-30 23ZM128 146L-15 6L7 -14ZM128 146L27 -26L53 -39ZM128 146L75 -47L103 -52ZM128 146L126 -54L156 -52ZM128 146L178 -48L206 -38ZM128 146L227 -28L251 -12ZM128 146L268 3L288 25ZM128 146L300 45L313 71ZM128 146L321 93L326 121Z" fill="url(#legend-ry)"/>
+<path d="M128 146L252 184L250 191ZM128 146L238 215L234 221ZM128 146L216 241L211 246ZM128 146L189 261L182 264ZM128 146L157 273L150 274ZM128 146L123 276L116 275ZM128 146L90 270L83 268ZM128 146L59 256L53 252ZM128 146L33 234L28 229ZM128 146L13 207L10 200ZM128 146L1 175L0 168ZM128 146L-2 141L-1 134ZM128 146L4 108L6 101ZM128 146L18 77L22 71ZM128 146L40 51L45 46ZM128 146L67 31L74 28ZM128 146L99 19L106 18ZM128 146L133 16L140 17ZM128 146L166 22L173 24ZM128 146L197 36L203 40ZM128 146L223 58L228 63ZM128 146L243 85L246 92ZM128 146L255 117L256 124ZM128 146L258 151L257 158Z" fill="url(#legend-ry2)"/>
+<circle cx="128" cy="146" r="84" fill="url(#legend-gl)"/>
+<g transform="translate(128 158) scale(.96)">
+<ellipse cy="34" rx="34" ry="10" fill="#8a5200"/>
+<ellipse cy="8" rx="88" ry="26" fill="#a86d00"/>
+<ellipse rx="88" ry="26" fill="url(#legend-hull)"/>
+<ellipse cy="-6" rx="62" ry="14" fill="#fff" opacity=".55"/>
+<path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#legend-dome)"/>
+<path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+<g fill="#fff" stroke="#c98a00" stroke-width="1.5"><circle cy="30" r="5.5"/><circle cx="-32" cy="28" r="5.5"/><circle cx="32" cy="28" r="5.5"/><circle cx="-62" cy="22" r="5.5"/><circle cx="62" cy="22" r="5.5"/></g>
+</g>
+<ellipse cx="128" cy="96" rx="50" ry="13" fill="none" stroke="#6a3408" stroke-width="10" opacity=".55"/>
+<ellipse cx="128" cy="95" rx="50" ry="13" fill="none" stroke="url(#legend-h)" stroke-width="7"/>
+<path d="M92 88A50 13 0 0 1 164 88" fill="none" stroke="#fff" stroke-width="2.5" opacity=".9"/>
+<use href="#legend-st" transform="translate(128 44) scale(1.8) rotate(0)"/><use href="#legend-st" transform="translate(85.7 54.5) scale(1.25) rotate(-28)"/><use href="#legend-st" transform="translate(170.3 54.5) scale(1.25) rotate(28)"/><use href="#legend-st" transform="translate(55 84.8) scale(.85) rotate(-56)"/><use href="#legend-st" transform="translate(201 84.8) scale(.85) rotate(56)"/>
+<circle cx="128" cy="128" r="116" fill="none" stroke="#ffd60a" stroke-width="20" opacity=".3"/>
+<circle cx="128" cy="128" r="118" fill="none" stroke="url(#legend-gr)" stroke-width="11"/>
+<circle cx="128" cy="128" r="103" fill="none" stroke="url(#legend-gr)" stroke-width="3"/>
+<path d="M238.5 128h0M235.7 152.6h0M227.6 175.9h0M214.4 196.9h0M196.9 214.4h0M175.9 227.6h0M152.6 235.7h0M128 238.5h0M103.4 235.7h0M80.1 227.6h0M59.1 214.4h0M41.6 196.9h0M28.4 175.9h0M20.3 152.6h0M17.5 128h0M20.3 103.4h0M28.4 80.1h0M41.6 59.1h0M59.1 41.6h0M80.1 28.4h0M103.4 20.3h0M128 17.5h0M152.6 20.3h0M175.9 28.4h0M196.9 41.6h0M214.4 59.1h0M227.6 80.1h0M235.7 103.4h0" stroke="#fff6c8" stroke-width="4.5" stroke-linecap="round"/>
+<use href="#legend-sx" transform="translate(202 88) scale(1.6)" fill="#fff"/>
+<use href="#legend-sx" transform="translate(52 90) scale(1.3)" fill="#fff"/>
+<use href="#legend-sx" transform="translate(62 206) scale(1.4)" fill="#fff"/>
+<use href="#legend-sx" transform="translate(194 206) scale(1.7)" fill="#fff"/>
+<use href="#legend-sp" transform="translate(128 218) scale(0.85)" fill="#fff6c8"/>
+<use href="#legend-sp" transform="translate(214 148) scale(0.6)" fill="#fff"/>
+<use href="#legend-sp" transform="translate(42 150) scale(0.6)" fill="#fff"/>
+<use href="#legend-sp" transform="translate(18 18) scale(1)" fill="#ffd60a"/>
+<use href="#legend-sp" transform="translate(238 18) scale(1)" fill="#ffd60a"/>
+<use href="#legend-sp" transform="translate(18 238) scale(1)" fill="#ffd60a"/>
+<use href="#legend-sp" transform="translate(238 238) scale(1)" fill="#ffd60a"/>
+</svg>

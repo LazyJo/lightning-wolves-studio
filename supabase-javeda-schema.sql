@@ -216,25 +216,112 @@ CREATE TABLE IF NOT EXISTS javeda_avatars (
   cost INT  NOT NULL CHECK (cost >= 0),
   sort INT  NOT NULL
 );
--- unlock: a picture you can't buy, only earn ('album': finish the whole album). Its cost is 0 but it is not free.
+-- unlock: a picture you can't buy, only earn. Its cost is 0 but it is not free. 'album' finish the whole album, 'song:N' every part of
+-- song N, 'parts:N' any N parts, 'remix:N' 'endless:N' played N of them, 'days:N' daily challenges played, 'streak:N' days in a row,
+-- 'wins:N' days finished first, 'podium:N' days finished in the top 3 (javeda_stats_of counts them).
 ALTER TABLE javeda_avatars ADD COLUMN IF NOT EXISTS unlock TEXT;
 
-INSERT INTO javeda_avatars (id, name, cost, sort) VALUES
-  ('saucer',     'Blue Saucer',     0,    1),
-  ('bike',       'Zirka''s Bike',   0,    2),
-  ('wolf',       'Wolf',            0,    3),
-  ('planet',     'Planet Javeda',   0,    4),
-  ('vortex',     'Vortex',          250,  5),
-  ('moon',       'Night Moon',      300,  6),
-  ('earth',      'Earth',           400,  7),
-  ('redufo',     'Red Saucer',      500,  8),
-  ('comet',      'Re-entry',        600,  9),
-  ('headphones', 'Stay Up',         800,  10),
-  ('goldwolf',   'Gold Wolf',       1200, 11),
-  ('crown',      'Crowned Saucer',  2000, 12)
-ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, cost = EXCLUDED.cost, sort = EXCLUDED.sort;
 INSERT INTO javeda_avatars (id, name, cost, sort, unlock) VALUES
-  ('complete',   'JAVEDA Complete', 0,    13, 'album')
+  ('saucer', 'Blue Saucer', 0, 1, NULL),
+  ('bike', 'Zirka''s Bike', 0, 2, NULL),
+  ('wolf', 'Wolf', 0, 3, NULL),
+  ('planet', 'Planet Javeda', 0, 4, NULL),
+  ('vortex', 'Vortex', 1000, 5, NULL),
+  ('moon', 'Night Moon', 1250, 6, NULL),
+  ('earth', 'Earth', 1500, 7, NULL),
+  ('greenufo', 'Green Saucer', 1750, 8, NULL),
+  ('redufo', 'Red Saucer', 2000, 9, NULL),
+  ('orangeufo', 'Orange Saucer', 2250, 10, NULL),
+  ('comet', 'Re-entry', 2500, 11, NULL),
+  ('shootingstar', 'Shooting Star', 2750, 12, NULL),
+  ('purpleufo', 'Purple Saucer', 3000, 13, NULL),
+  ('satellite', 'Satellite', 3250, 14, NULL),
+  ('headphones', 'Stay Up', 3500, 15, NULL),
+  ('neonbike', 'Neon Bike', 3750, 16, NULL),
+  ('ringed', 'Ringed Giant', 4000, 17, NULL),
+  ('rocket', 'Rocket', 4500, 18, NULL),
+  ('lightning', 'Lightning', 5000, 19, NULL),
+  ('astronaut', 'Astronaut', 5500, 20, NULL),
+  ('meteors', 'Meteor Storm', 6000, 21, NULL),
+  ('station', 'Space Station', 6500, 22, NULL),
+  ('aurora', 'Aurora', 7000, 23, NULL),
+  ('goldwolf', 'Gold Wolf', 7500, 24, NULL),
+  ('blackhole', 'Black Hole', 8000, 25, NULL),
+  ('galaxy', 'Galaxy', 9000, 26, NULL),
+  ('supernova', 'Supernova', 10000, 27, NULL),
+  ('mothership', 'Mothership', 11000, 28, NULL),
+  ('chromeufo', 'Chrome Saucer', 12000, 29, NULL),
+  ('diamondufo', 'Diamond Saucer', 13500, 30, NULL),
+  ('crown', 'Crowned Saucer', 15000, 31, NULL),
+  ('goldplanet', 'Golden Planet', 17500, 32, NULL),
+  ('stormcrown', 'Storm Crown', 20000, 33, NULL),
+  ('legend', 'Legend', 25000, 34, NULL),
+  ('song01', 'Lost Saucer', 0, 35, 'song:1'),
+  ('song02', 'Dust Sea', 0, 36, 'song:2'),
+  ('song03', 'Broken Heart', 0, 37, 'song:3'),
+  ('song04', 'Neon Coaster', 0, 38, 'song:4'),
+  ('song05', 'Firefly Park', 0, 39, 'song:5'),
+  ('song06', 'Palm Rock', 0, 40, 'song:6'),
+  ('song07', 'Earth in Hand', 0, 41, 'song:7'),
+  ('song08', 'Giant Rose', 0, 42, 'song:8'),
+  ('song09', 'District 9', 0, 43, 'song:9'),
+  ('song10', 'Orange Drop', 0, 44, 'song:10'),
+  ('song11', 'Moon Race', 0, 45, 'song:11'),
+  ('song12', 'Clockwork', 0, 46, 'song:12'),
+  ('song13', 'Rug Lights', 0, 47, 'song:13'),
+  ('song14', 'Neon Cup', 0, 48, 'song:14'),
+  ('song15', 'Window Ghost', 0, 49, 'song:15'),
+  ('song16', 'White Sky', 0, 50, 'song:16'),
+  ('song17', 'Sky Islands', 0, 51, 'song:17'),
+  ('song18', 'Rainy Night', 0, 52, 'song:18'),
+  ('song19', 'Night Studio', 0, 53, 'song:19'),
+  ('song20', 'Blue Crowd', 0, 54, 'song:20'),
+  ('song21', 'Two Rooms', 0, 55, 'song:21'),
+  ('song22', 'Red Flying Car', 0, 56, 'song:22'),
+  ('song23', 'Smoke Heart', 0, 57, 'song:23'),
+  ('song24', 'Sunset Table', 0, 58, 'song:24'),
+  ('song25', 'Heart Over the Sea', 0, 59, 'song:25'),
+  ('song26', 'Pink Hood', 0, 60, 'song:26'),
+  ('song27', 'Cloud Car', 0, 61, 'song:27'),
+  ('song28', 'Sunset Roof', 0, 62, 'song:28'),
+  ('cadet', 'Cadet', 0, 63, 'parts:5'),
+  ('pilot', 'Pilot', 0, 64, 'parts:10'),
+  ('captain', 'Captain', 0, 65, 'parts:20'),
+  ('commander', 'Commander', 0, 66, 'parts:30'),
+  ('admiral', 'Admiral', 0, 67, 'parts:40'),
+  ('remix1', 'First Remix', 0, 68, 'remix:1'),
+  ('remix8', 'Turntable', 0, 69, 'remix:8'),
+  ('remix16', 'Remix Master', 0, 70, 'remix:16'),
+  ('endless10', 'No End in Sight', 0, 71, 'endless:10'),
+  ('endless55', 'Infinity', 0, 72, 'endless:55'),
+  ('complete', 'JAVEDA Complete', 0, 73, 'album'),
+  ('day1', 'First Light', 0, 74, 'days:1'),
+  ('day3', 'Three Suns', 0, 75, 'days:3'),
+  ('day7', 'Full Week', 0, 76, 'days:7'),
+  ('day14', 'Two Weeks', 0, 77, 'days:14'),
+  ('day30', 'Full Month', 0, 78, 'days:30'),
+  ('day60', 'Two Months', 0, 79, 'days:60'),
+  ('day100', 'Hundred Suns', 0, 80, 'days:100'),
+  ('day200', 'Long Road', 0, 81, 'days:200'),
+  ('day365', 'Around the Sun', 0, 82, 'days:365'),
+  ('streak3', 'Spark', 0, 83, 'streak:3'),
+  ('streak5', 'Ember', 0, 84, 'streak:5'),
+  ('streak7', 'Flame', 0, 85, 'streak:7'),
+  ('streak14', 'Blaze', 0, 86, 'streak:14'),
+  ('streak21', 'Wildfire', 0, 87, 'streak:21'),
+  ('streak30', 'Inferno', 0, 88, 'streak:30'),
+  ('streak60', 'Solar Flare', 0, 89, 'streak:60'),
+  ('streak100', 'Eternal Flame', 0, 90, 'streak:100'),
+  ('win1', 'Day Winner', 0, 91, 'wins:1'),
+  ('win3', 'Hat-Trick', 0, 92, 'wins:3'),
+  ('win7', 'Lucky Seven', 0, 93, 'wins:7'),
+  ('win14', 'Silver Cup', 0, 94, 'wins:14'),
+  ('win30', 'Champion', 0, 95, 'wins:30'),
+  ('win60', 'Grand Champion', 0, 96, 'wins:60'),
+  ('win100', 'Hall of Fame', 0, 97, 'wins:100'),
+  ('podium1', 'Bronze Podium', 0, 98, 'podium:1'),
+  ('podium5', 'Silver Podium', 0, 99, 'podium:5'),
+  ('podium25', 'Gold Podium', 0, 100, 'podium:25')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, cost = EXCLUDED.cost, sort = EXCLUDED.sort, unlock = EXCLUDED.unlock;
 
 -- ── Players ────────────────────────────────────────────────────────────────
@@ -330,9 +417,31 @@ GRANT SELECT ON javeda_creators TO authenticated;
 -- The scoreboard: one row per player. security_invoker so it reads through
 -- the same public SELECT policies as everything else. Dropped and made again on
 -- every run, so its columns can change.
+-- points_earned: every point a player ever got. points is what's left to spend and points_earned is what the Points board shows, so buying a
+-- picture doesn't cost you your place on it. The prices here are the ones players paid until 2026-11-04.
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'javeda_players' AND column_name = 'points_earned') THEN
+    ALTER TABLE javeda_players ADD COLUMN points_earned INT NOT NULL DEFAULT 0;
+    UPDATE javeda_players p SET points_earned = p.points + COALESCE((SELECT sum(CASE o.avatar WHEN 'vortex' THEN 250 WHEN 'moon' THEN 300 WHEN 'earth' THEN 400 WHEN 'redufo' THEN 500
+      WHEN 'comet' THEN 600 WHEN 'headphones' THEN 800 WHEN 'goldwolf' THEN 1200 WHEN 'crown' THEN 2000 ELSE 0 END) FROM javeda_owned o WHERE o.user_id = p.user_id), 0);
+  END IF;
+END $$;
+CREATE OR REPLACE FUNCTION public.javeda_players_earned()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.points > OLD.points THEN NEW.points_earned := OLD.points_earned + NEW.points - OLD.points; END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS javeda_players_earned ON javeda_players;
+CREATE TRIGGER javeda_players_earned BEFORE UPDATE OF points ON javeda_players
+  FOR EACH ROW EXECUTE FUNCTION public.javeda_players_earned();
 DROP VIEW IF EXISTS javeda_board;
 CREATE VIEW javeda_board WITH (security_invoker = true) AS
-SELECT p.username, p.avatar, p.points, (p.album_completed_at IS NOT NULL) AS album_complete,
+SELECT p.username, p.avatar, p.points_earned AS points, (p.album_completed_at IS NOT NULL) AS album_complete,
        COALESCE(SUM(CASE WHEN g.cleared THEN 1 ELSE 0 END), 0)::INT AS levels_cleared,
        COALESCE(MAX(CASE WHEN g.level = 'lvl1' THEN g.best_score END), 0)::INT AS lvl1_best,
        COALESCE(MAX(CASE WHEN g.level = 'lvl2' THEN g.best_score END), 0)::INT AS lvl2_best,
@@ -391,7 +500,7 @@ SELECT p.username, p.avatar, p.points, (p.album_completed_at IS NOT NULL) AS alb
        COALESCE(MAX(CASE WHEN g.level = 'lvl28b' THEN g.best_score END), 0)::INT AS lvl28b_best
 FROM javeda_players p
 LEFT JOIN javeda_progress g ON g.user_id = p.user_id
-GROUP BY p.user_id, p.username, p.avatar, p.points, p.album_completed_at;
+GROUP BY p.user_id, p.username, p.avatar, p.points_earned, p.album_completed_at;
 GRANT SELECT ON javeda_board TO anon, authenticated;
 
 -- Per-level scores, one row per player and level: the endless scoreboards read this
@@ -404,14 +513,62 @@ WHERE g.best_score > 0;
 GRANT SELECT ON javeda_scores TO anon, authenticated;
 
 -- ── Functions ──────────────────────────────────────────────────────────────
+-- What a player has done, for the pictures you earn instead of buy. Nothing is stored: it's worked out from what's already
+-- there, and all of it only goes up. A win is a finished day (not today's) at the top of the daily board with at least 2 players
+-- on it, the top 3 needs at least 4; a score of 0 doesn't count for either. (plpgsql, so it can stand here before the daily tables.)
+CREATE OR REPLACE FUNCTION public.javeda_stats_of(p_user UUID)
+RETURNS JSON
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  today DATE := (now() AT TIME ZONE 'Europe/Brussels')::DATE;
+  res JSON;
+BEGIN
+  SELECT json_build_object(
+    'parts',   (SELECT count(*) FROM javeda_progress g JOIN javeda_levels l ON l.id = g.level WHERE g.user_id = p_user AND g.cleared AND NOT l.endless),
+    'songs',   (SELECT COALESCE(json_agg(n.num ORDER BY n.num), '[]'::JSON) FROM (SELECT DISTINCT num FROM javeda_levels WHERE NOT endless) n
+                WHERE NOT EXISTS (SELECT 1 FROM javeda_levels l WHERE l.num = n.num AND NOT l.endless AND NOT EXISTS (
+                  SELECT 1 FROM javeda_progress g WHERE g.user_id = p_user AND g.level = l.id AND g.cleared))),
+    'remix',   (SELECT count(*) FROM javeda_progress WHERE user_id = p_user AND level ~ '^lvl[0-9]+r$'),
+    'endless', (SELECT count(*) FROM javeda_progress WHERE user_id = p_user AND level ~ '^lvl[0-9]+[a-z]*x$'),
+    'days',    (SELECT count(*) FROM javeda_daily_scores WHERE user_id = p_user),
+    'streak',  (SELECT COALESCE(max(r.n), 0) FROM (SELECT count(*) AS n FROM (
+                  SELECT d.day - (row_number() OVER (ORDER BY d.day))::INT AS island FROM javeda_daily_scores d WHERE d.user_id = p_user) i GROUP BY i.island) r),
+    'wins',    (SELECT count(*) FILTER (WHERE t.rk = 1 AND t.n >= 2) FROM (
+                  SELECT d.user_id, rank() OVER (PARTITION BY d.day ORDER BY d.best_score DESC) AS rk, count(*) OVER (PARTITION BY d.day) AS n
+                  FROM javeda_daily_scores d WHERE d.best_score > 0 AND d.day < today
+                    AND d.day IN (SELECT m.day FROM javeda_daily_scores m WHERE m.user_id = p_user)) t WHERE t.user_id = p_user),
+    'podium',  (SELECT count(*) FILTER (WHERE t.rk <= 3 AND t.n >= 4) FROM (
+                  SELECT d.user_id, rank() OVER (PARTITION BY d.day ORDER BY d.best_score DESC) AS rk, count(*) OVER (PARTITION BY d.day) AS n
+                  FROM javeda_daily_scores d WHERE d.best_score > 0 AND d.day < today
+                    AND d.day IN (SELECT m.day FROM javeda_daily_scores m WHERE m.user_id = p_user)) t WHERE t.user_id = p_user)
+  ) INTO res;
+  RETURN res;
+END;
+$$;
+CREATE OR REPLACE FUNCTION public.javeda_unlock_met(p_user UUID, p_unlock TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  kind TEXT := split_part(p_unlock, ':', 1);
+  n INT := NULLIF(split_part(p_unlock, ':', 2), '')::INT;
+  st JSON;
+BEGIN
+  IF kind = 'album' THEN RETURN EXISTS (SELECT 1 FROM javeda_players WHERE user_id = p_user AND album_completed_at IS NOT NULL); END IF;
+  st := javeda_stats_of(p_user);
+  IF kind = 'song' THEN RETURN EXISTS (SELECT 1 FROM json_array_elements_text(st -> 'songs') x WHERE x::INT = n); END IF;
+  RETURN COALESCE((st ->> kind)::INT, 0) >= n;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION public.javeda_owns(p_user UUID, p_avatar TEXT)
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
   SELECT EXISTS (SELECT 1 FROM javeda_avatars WHERE id = p_avatar AND cost = 0 AND unlock IS NULL)
       OR EXISTS (SELECT 1 FROM javeda_owned WHERE user_id = p_user AND avatar = p_avatar)
-      OR EXISTS (SELECT 1 FROM javeda_avatars a JOIN javeda_players p ON p.user_id = p_user
-                 WHERE a.id = p_avatar AND a.unlock = 'album' AND p.album_completed_at IS NOT NULL);
+      OR EXISTS (SELECT 1 FROM javeda_avatars a WHERE a.id = p_avatar AND a.unlock IS NOT NULL AND javeda_unlock_met(p_user, a.unlock));
 $$;
 
 -- Has this player just finished the album? Every level that isn't endless cleared: then the badge goes on, once.
@@ -491,7 +648,7 @@ BEGIN
   IF price IS NULL THEN RAISE EXCEPTION 'no such picture' USING ERRCODE = 'P0002'; END IF;
   IF javeda_owns(uid, p_avatar) THEN RAISE EXCEPTION 'you already have it' USING ERRCODE = '23505'; END IF;
   IF EXISTS (SELECT 1 FROM javeda_avatars WHERE id = p_avatar AND unlock IS NOT NULL) THEN
-    RAISE EXCEPTION 'that one is earned, not bought: finish the album' USING ERRCODE = '42501';
+    RAISE EXCEPTION 'that one is earned, not bought' USING ERRCODE = '42501';
   END IF;
   -- the row lock makes two quick taps spend the points only once
   SELECT * INTO row FROM javeda_players WHERE user_id = uid FOR UPDATE;
@@ -678,6 +835,16 @@ BEGIN
   RETURN json_build_object('player', row_to_json(me), 'imported', imported, 'earned', earned);
 END;
 $$;
+
+-- a player's own numbers, for the picture sheet (the rule itself is javeda_unlock_met: the page only shows it)
+CREATE OR REPLACE FUNCTION public.javeda_my_stats()
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT javeda_stats_of(auth.uid()); $$;
+REVOKE ALL ON FUNCTION public.javeda_stats_of(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.javeda_unlock_met(UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.javeda_my_stats() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_my_stats() TO authenticated;
 
 REVOKE ALL ON FUNCTION public.javeda_owns(UUID, TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_join(TEXT, TEXT) FROM PUBLIC, anon;

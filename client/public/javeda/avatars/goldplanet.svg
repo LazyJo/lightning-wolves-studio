@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="goldplanet-bg" cx=".5" cy=".5" r=".72"><stop offset="0" stop-color="#6a4208"/><stop offset=".55" stop-color="#241404"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<linearGradient id="goldplanet-gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".3" stop-color="#ffd60a"/><stop offset=".55" stop-color="#a86d00"/><stop offset=".8" stop-color="#ffd60a"/><stop offset="1" stop-color="#fff6c8"/></linearGradient>
+<radialGradient id="goldplanet-ry" gradientUnits="userSpaceOnUse" cx="128" cy="130" r="116"><stop offset="0" stop-color="#fff1a8" stop-opacity=".8"/><stop offset=".6" stop-color="#ffd60a" stop-opacity=".3"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></radialGradient>
+<radialGradient id="goldplanet-p" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#fffbe0"/><stop offset=".3" stop-color="#ffe04a"/><stop offset=".68" stop-color="#e3a000"/><stop offset="1" stop-color="#7a4a00"/></radialGradient>
+<linearGradient id="goldplanet-rg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#b87a00"/><stop offset=".35" stop-color="#fff6c8"/><stop offset=".6" stop-color="#ffd60a"/><stop offset="1" stop-color="#b87a00"/></linearGradient>
+<linearGradient id="goldplanet-bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="1" stop-color="#e3a000"/></linearGradient>
+<clipPath id="goldplanet-c"><circle cx="128" cy="134" r="64"/></clipPath>
+<path id="goldplanet-h" d="M-10 4V-8h6V4zM-3 4V-17h6V4zM4 4V-10h6V4z" fill="url(#goldplanet-bd)" stroke="#7a4a00" stroke-width="1"/>
+<path id="goldplanet-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+<path id="goldplanet-sx" d="M0-14L1.8-1.8L14 0L1.8 1.8L0 14L-1.8 1.8L-14 0L-1.8-1.8Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#goldplanet-bg)"/>
+<path d="M128 130L244 131L242 149ZM128 130L237 171L229 187ZM128 130L216 205L203 218ZM128 130L185 231L169 239ZM128 130L147 244L129 246ZM128 130L107 244L89 239ZM128 130L69 230L54 220ZM128 130L38 204L28 189ZM128 130L19 169L14 151ZM128 130L12 129L14 111ZM128 130L19 89L27 73ZM128 130L40 55L53 42ZM128 130L71 29L87 21ZM128 130L109 16L127 14ZM128 130L149 16L167 21ZM128 130L187 30L202 40ZM128 130L218 56L228 71ZM128 130L237 91L242 109Z" fill="url(#goldplanet-ry)"/>
+<circle cx="128" cy="134" r="86" fill="#ffd60a" opacity=".2"/>
+<path d="M30 132A98 26 0 0 1 226 132" transform="rotate(-16 128 134)" fill="none" stroke="url(#goldplanet-rg)" stroke-width="8" opacity=".75"/>
+<g transform="translate(76 96) rotate(-55) scale(1.05)"><circle cy="-6" r="15" fill="#fff1a8" opacity=".4"/><use href="#goldplanet-h"/></g>
+<g transform="translate(110 70) rotate(-15) scale(1.05)"><circle cy="-6" r="15" fill="#fff1a8" opacity=".4"/><use href="#goldplanet-h"/></g>
+<g transform="translate(153 74) rotate(25) scale(1.05)"><circle cy="-6" r="15" fill="#fff1a8" opacity=".4"/><use href="#goldplanet-h"/></g>
+<g transform="translate(186 104) rotate(62) scale(1.05)"><circle cy="-6" r="15" fill="#fff1a8" opacity=".4"/><use href="#goldplanet-h"/></g>
+<circle cx="128" cy="134" r="64" fill="url(#goldplanet-p)"/>
+<g clip-path="url(#goldplanet-c)"><g fill="#8a5200" opacity=".32"><ellipse cx="128" cy="152" rx="80" ry="7" transform="rotate(-16 128 134)"/><ellipse cx="128" cy="174" rx="80" ry="5" transform="rotate(-16 128 134)"/><circle cx="102" cy="124" r="7"/><circle cx="150" cy="106" r="5"/></g>
+<path d="M78 120C84 98 102 84 122 80" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" opacity=".85"/></g>
+<path d="M30 132A98 26 0 0 0 226 132" transform="rotate(-16 128 134)" fill="none" stroke="url(#goldplanet-rg)" stroke-width="8"/>
+<circle cx="128" cy="128" r="116" fill="none" stroke="#ffd60a" stroke-width="18" opacity=".25"/>
+<circle cx="128" cy="128" r="117" fill="none" stroke="url(#goldplanet-gr)" stroke-width="10"/>
+<circle cx="128" cy="128" r="105" fill="none" stroke="#ffd60a" stroke-width="2.5"/>
+<use href="#goldplanet-sx" transform="translate(204 66) scale(1.5)" fill="#fff"/>
+<use href="#goldplanet-sp" transform="translate(52 74) scale(1)" fill="#fff6c8"/>
+<use href="#goldplanet-sp" transform="translate(212 192) scale(0.9)" fill="#ffd60a"/>
+<use href="#goldplanet-sp" transform="translate(50 186) scale(0.8)" fill="#fff"/>
+<use href="#goldplanet-sp" transform="translate(128 216) scale(0.8)" fill="#fff6c8"/>
+<use href="#goldplanet-sp" transform="translate(170 44) scale(0.55)" fill="#fff"/>
+</svg>

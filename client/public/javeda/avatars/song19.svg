@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="song19-bg" cx=".5" cy=".55" r=".75"><stop offset="0" stop-color="#3a1272"/><stop offset=".6" stop-color="#110c30"/><stop offset="1" stop-color="#020a0c"/></radialGradient>
+<linearGradient id="song19-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3454"/><stop offset="1" stop-color="#16131f"/></linearGradient>
+<radialGradient id="song19-pk" cx=".5" cy=".42" r=".7"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#ff9af0"/><stop offset="1" stop-color="#ff4ad8"/></radialGradient>
+<radialGradient id="song19-cy" cx=".5" cy=".42" r=".7"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#8af2ff"/><stop offset="1" stop-color="#24c8f0"/></radialGradient>
+<radialGradient id="song19-gp"><stop offset="0" stop-color="#ff6ae8" stop-opacity=".75"/><stop offset="1" stop-color="#ff6ae8" stop-opacity="0"/></radialGradient>
+<radialGradient id="song19-gc"><stop offset="0" stop-color="#3ae8ff" stop-opacity=".7"/><stop offset="1" stop-color="#3ae8ff" stop-opacity="0"/></radialGradient>
+<radialGradient id="song19-la"><stop offset="0" stop-color="#ffd27a" stop-opacity=".85"/><stop offset="1" stop-color="#ffb000" stop-opacity="0"/></radialGradient>
+<path id="song19-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#song19-bg)"/>
+<circle cx="46" cy="44" r="52" fill="url(#song19-la)"/>
+<path d="M18 62H52M36 62L30 34L54 16" fill="none" stroke="#6a6288" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M44 12L68 22L58 44L30 32Z" fill="#7a2fd0" stroke="#a46bff" stroke-width="2" stroke-linejoin="round"/>
+<path d="M30 32L58 44" stroke="#fff4c8" stroke-width="6" stroke-linecap="round"/>
+<g fill="#ffd60a"><circle cx="228" cy="34" r="0"/></g>
+<path d="M56 62H200C204 62 206 64 207 67L240 232C241 238 238 240 233 240H23C18 240 15 238 16 232L49 67C50 64 52 62 56 62Z" fill="#0b0912"/>
+<path d="M56 60H200C204 60 206 62 207 65L238 222C239 228 236 232 231 232H25C20 232 17 228 18 222L49 65C50 62 52 60 56 60Z" fill="url(#song19-body)" stroke="#6a5f92" stroke-width="2"/>
+<path d="M84 70H172L174 86H82Z" fill="#061a24" stroke="#3ae8ff" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M90 78H100L104 73L110 83L116 75L122 81L128 72L134 84L140 76L146 80L152 74L158 82L166 78" fill="none" stroke="#3ae8ff" stroke-width="2.5" stroke-linejoin="round"/>
+<g fill="#ffe0fa" stroke="#15121c" stroke-width="3"><circle cx="64" cy="78" r="8"/><circle cx="192" cy="78" r="8"/></g>
+<g fill="url(#song19-gp)"><circle cx="108" cy="109" r="40"/><circle cx="193" cy="139" r="40"/><circle cx="60" cy="171" r="44"/><circle cx="153" cy="205" r="44"/></g>
+<g fill="url(#song19-gc)"><circle cx="190" cy="109" r="38"/><circle cx="107" cy="139" r="40"/><circle cx="151" cy="171" r="42"/><circle cx="55" cy="205" r="44"/></g>
+<g fill="#3e3760" stroke="#3e3760" stroke-width="4" stroke-linejoin="round">
+<path d="M52 98H84L82 120H49Z"/><path d="M132 98H164L166 120H132Z"/>
+<path d="M47 127H82L79 151H44Z"/><path d="M132 127H166L168 151H132Z"/>
+<path d="M88 158H124L123 184H86Z"/><path d="M177 158H213L217 184H180Z"/>
+<path d="M85 191H123L123 219H83Z"/><path d="M180 191H219L223 219H183Z"/>
+</g>
+<g fill="url(#song19-pk)" stroke="#ff4ad8" stroke-width="4" stroke-linejoin="round">
+<path d="M92 98H124L124 120H90Z"/><path d="M174 127H209L212 151H177Z"/><path d="M43 158H79L76 184H39Z"/><path d="M133 191H171L173 219H133Z"/>
+</g>
+<g fill="url(#song19-cy)" stroke="#24c8f0" stroke-width="4" stroke-linejoin="round">
+<path d="M172 98H204L207 120H174Z"/><path d="M90 127H124L124 151H88Z"/><path d="M132 158H168L170 184H133Z"/><path d="M37 191H76L73 219H33Z"/>
+</g>
+<use href="#song19-sp" transform="translate(226 34) scale(.9)" fill="#ff6ae8"/>
+<use href="#song19-sp" transform="translate(120 34) scale(.6)" fill="#3ae8ff"/>
+<path fill-rule="evenodd" d="M0 0H256V256H0ZM25 5A20 20 0 0 0 5 25V231A20 20 0 0 0 25 251H231A20 20 0 0 0 251 231V25A20 20 0 0 0 231 5Z" fill="#070c1f"/>
+<rect x="5" y="5" width="246" height="246" rx="20" fill="none" stroke="#ff6ae8" stroke-width="4"/>
+</svg>

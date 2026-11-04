@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="rocket-bg" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#1c3a80"/><stop offset=".55" stop-color="#0a1836"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<linearGradient id="rocket-w" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff"/><stop offset=".6" stop-color="#eef2f8"/><stop offset="1" stop-color="#aab6ca"/></linearGradient>
+<linearGradient id="rocket-r" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff7a6a"/><stop offset=".5" stop-color="#ee2e3a"/><stop offset="1" stop-color="#a81420"/></linearGradient>
+<linearGradient id="rocket-fa" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd60a"/><stop offset=".5" stop-color="#ff8a1a"/><stop offset="1" stop-color="#ff3d2e" stop-opacity=".9"/></linearGradient>
+<radialGradient id="rocket-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb020" stop-opacity=".7"/><stop offset="1" stop-color="#ffb020" stop-opacity="0"/></radialGradient>
+<linearGradient id="rocket-pf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#8e9bb4"/></linearGradient>
+<radialGradient id="rocket-wn" cx=".38" cy=".34" r=".8"><stop offset="0" stop-color="#bfe9ff"/><stop offset="1" stop-color="#1d4f9a"/></radialGradient>
+<clipPath id="rocket-c"><circle cx="128" cy="128" r="119"/></clipPath>
+<path id="rocket-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#rocket-bg)"/>
+<g fill="#bfe9ff"><circle cx="46" cy="66" r="1.6"/><circle cx="214" cy="52" r="1.5"/><circle cx="62" cy="124" r="1.3"/><circle cx="208" cy="130" r="1.3"/><circle cx="90" cy="30" r="1.2"/><circle cx="226" cy="92" r="1.2"/></g>
+<circle cx="126" cy="184" r="58" fill="url(#rocket-gl)"/>
+<g transform="translate(130 92) rotate(9) scale(.88)">
+<path d="M-23 44C-34 78-16 96 0 132C16 96 34 78 23 44Z" fill="url(#rocket-fa)"/>
+<path d="M-13 44C-18 68-8 80 0 102C8 80 18 68 13 44Z" fill="#fff3a0"/>
+<path d="M-38 2C-64 16-68 46-66 62L-30 40Z" fill="url(#rocket-r)"/><path d="M38 2C64 16 68 46 66 62L30 40Z" fill="url(#rocket-r)"/>
+<rect x="-20" y="36" width="40" height="14" rx="3" fill="#59657d"/>
+<path d="M0-96C34-66 42-24 36 40H-36C-42-24-34-66 0-96Z" fill="url(#rocket-w)"/>
+<path d="M0-96C17-81 28-62 33-42C12-36-12-36-33-42C-28-62-17-81 0-96Z" fill="url(#rocket-r)"/>
+<path d="M-36 40C-37 33-37 26-37 20C-14 26 14 26 37 20C37 26 37 33 36 40C14 44-14 44-36 40Z" fill="url(#rocket-r)"/>
+<circle cy="-8" r="21" fill="#59657d"/><circle cy="-8" r="16" fill="url(#rocket-wn)"/>
+<path d="M-9-14A11 11 0 0 1-1-19" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"/>
+</g>
+<g clip-path="url(#rocket-c)" fill="url(#rocket-pf)">
+<circle cx="62" cy="222" r="24"/><circle cx="196" cy="218" r="26"/><circle cx="96" cy="234" r="28"/><circle cx="160" cy="236" r="28"/><circle cx="128" cy="240" r="24"/><circle cx="34" cy="238" r="18"/><circle cx="224" cy="240" r="18"/>
+</g>
+<circle cx="128" cy="128" r="120" fill="none" stroke="#3fb8c4" stroke-width="3"/>
+<use href="#rocket-sp" transform="translate(56 96) scale(0.7)" fill="#fff"/>
+<use href="#rocket-sp" transform="translate(204 92) scale(0.55)" fill="#ffd60a"/>
+</svg>

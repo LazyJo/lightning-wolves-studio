@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="streak60-bg" cx=".5" cy=".75" r=".85"><stop offset="0" stop-color="#6a1e12"/><stop offset=".5" stop-color="#1e0c28"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<linearGradient id="streak60-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".12" stop-color="#ffc21a"/><stop offset=".4" stop-color="#ff5a0a"/><stop offset="1" stop-color="#a81408"/></linearGradient>
+<linearGradient id="streak60-a" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffd92e"/><stop offset=".6" stop-color="#ff7a0a"/><stop offset="1" stop-color="#f0300a"/></linearGradient>
+<linearGradient id="streak60-gd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".35" stop-color="#ffd60a"/><stop offset=".65" stop-color="#c98a00"/><stop offset="1" stop-color="#ffd60a"/></linearGradient>
+<path id="streak60-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#streak60-bg)"/>
+<g fill="#bfe9ff"><circle cx="52" cy="60" r="1.6"/><circle cx="206" cy="58" r="1.6"/><circle cx="128" cy="108" r="1.3"/><circle cx="38" cy="120" r="1.3"/></g>
+<circle cx="128" cy="330" r="172" fill="#ff5a0a" opacity=".22"/>
+<circle cx="128" cy="330" r="160" fill="#ff8a12" opacity=".35"/>
+<path d="M50 212C22 124 66 34 130 34C192 34 232 120 204 206L176 194C196 128 170 72 130 70C92 70 62 130 80 202Z" fill="url(#streak60-a)"/>
+<path d="M66 204C44 128 82 52 130 52C180 52 212 128 190 200" fill="none" stroke="#fff3c4" stroke-width="7" stroke-linecap="round"/>
+<path d="M18 214C12 190 20 172 34 168C28 182 36 196 42 208ZM232 210C242 196 240 176 226 166C228 182 222 194 214 202Z" fill="#ff7a0a"/>
+<circle cx="128" cy="330" r="150" fill="url(#streak60-s)"/>
+<g fill="#ffd92e"><circle cx="196" cy="56" r="3"/><circle cx="58" cy="44" r="2.4"/></g>
+<use href="#streak60-sp" transform="translate(40 92) scale(.6)" fill="#fff6c8"/><use href="#streak60-sp" transform="translate(128 112) scale(.6)" fill="#ffd60a"/>
+<circle cx="128" cy="128" r="119" fill="none" stroke="url(#streak60-gd)" stroke-width="6"/>
+<text x="128" y="232" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="54" fill="#fff" stroke="#1a0802" stroke-width="8" stroke-linejoin="round" paint-order="stroke">60</text>
+</svg>

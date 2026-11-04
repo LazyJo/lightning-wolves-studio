@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<linearGradient id="streak21-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a0a14"/><stop offset=".5" stop-color="#7a1a08"/><stop offset="1" stop-color="#e03a0a"/></linearGradient>
+<linearGradient id="streak21-o" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8320a"/><stop offset="1" stop-color="#ff6a0a"/></linearGradient>
+<linearGradient id="streak21-m" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8a12"/><stop offset="1" stop-color="#ffc21a"/></linearGradient>
+<linearGradient id="streak21-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd92e"/><stop offset="1" stop-color="#fff3c4"/></linearGradient>
+<path id="streak21-w" d="M0 200V96C10 80 12 62 8 44C26 58 36 76 40 92C46 70 56 48 52 18C76 40 88 70 90 96C98 80 104 66 102 48C122 66 128 84 130 100C138 72 150 44 146 8C172 36 186 70 186 98C194 84 200 68 198 52C216 70 222 88 222 104C230 90 240 76 256 60V200Z"/>
+<path id="streak21-t" d="M0-82L17-48H8L25-16H11L32 20H-32L-11-16H-25L-8-48H-17Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#streak21-bg)"/>
+<use href="#streak21-w" fill="url(#streak21-o)"/>
+<use href="#streak21-w" transform="translate(256 62) scale(-1 .7)" fill="url(#streak21-m)"/>
+<use href="#streak21-w" transform="translate(-14 118) scale(1.1 .42)" fill="url(#streak21-g)"/>
+<g fill="#ffd92e"><circle cx="30" cy="20" r="2.6"/><circle cx="94" cy="26" r="2.2"/><circle cx="214" cy="26" r="2.6"/><circle cx="178" cy="14" r="2"/></g>
+<g fill="#0e0408"><path d="M0 186C60 176 196 176 256 186V256H0Z"/><use href="#streak21-t" x="42" y="170"/><use href="#streak21-t" transform="translate(214 172) scale(1.05)"/><use href="#streak21-t" transform="translate(96 174) scale(.68)"/><use href="#streak21-t" transform="translate(164 176) scale(.6)"/><rect x="38" y="186" width="8" height="10"/><rect x="210" y="188" width="8" height="10"/></g>
+<text x="128" y="234" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="54" fill="#fff" stroke="#1a0802" stroke-width="8" stroke-linejoin="round" paint-order="stroke">21</text>
+</svg>

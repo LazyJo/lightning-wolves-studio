@@ -1,15 +1,568 @@
 [
-  { "id": "saucer", "name": "Blue Saucer", "cost": 0 },
-  { "id": "bike", "name": "Zirka's Bike", "cost": 0 },
-  { "id": "wolf", "name": "Wolf", "cost": 0 },
-  { "id": "planet", "name": "Planet Javeda", "cost": 0 },
-  { "id": "vortex", "name": "Vortex", "cost": 250 },
-  { "id": "moon", "name": "Night Moon", "cost": 300 },
-  { "id": "earth", "name": "Earth", "cost": 400 },
-  { "id": "redufo", "name": "Red Saucer", "cost": 500 },
-  { "id": "comet", "name": "Re-entry", "cost": 600 },
-  { "id": "headphones", "name": "Stay Up", "cost": 800 },
-  { "id": "goldwolf", "name": "Gold Wolf", "cost": 1200 },
-  { "id": "crown", "name": "Crowned Saucer", "cost": 2000 },
-  { "id": "complete", "name": "JAVEDA Complete", "cost": 0, "unlock": "album" }
+{
+"id": "saucer",
+"name": "Blue Saucer",
+"cost": 0
+},
+{
+"id": "bike",
+"name": "Zirka's Bike",
+"cost": 0
+},
+{
+"id": "wolf",
+"name": "Wolf",
+"cost": 0
+},
+{
+"id": "planet",
+"name": "Planet Javeda",
+"cost": 0
+},
+{
+"id": "vortex",
+"name": "Vortex",
+"cost": 1000
+},
+{
+"id": "moon",
+"name": "Night Moon",
+"cost": 1250
+},
+{
+"id": "earth",
+"name": "Earth",
+"cost": 1500
+},
+{
+"id": "greenufo",
+"name": "Green Saucer",
+"cost": 1750
+},
+{
+"id": "redufo",
+"name": "Red Saucer",
+"cost": 2000
+},
+{
+"id": "orangeufo",
+"name": "Orange Saucer",
+"cost": 2250
+},
+{
+"id": "comet",
+"name": "Re-entry",
+"cost": 2500
+},
+{
+"id": "shootingstar",
+"name": "Shooting Star",
+"cost": 2750
+},
+{
+"id": "purpleufo",
+"name": "Purple Saucer",
+"cost": 3000
+},
+{
+"id": "satellite",
+"name": "Satellite",
+"cost": 3250
+},
+{
+"id": "headphones",
+"name": "Stay Up",
+"cost": 3500
+},
+{
+"id": "neonbike",
+"name": "Neon Bike",
+"cost": 3750
+},
+{
+"id": "ringed",
+"name": "Ringed Giant",
+"cost": 4000
+},
+{
+"id": "rocket",
+"name": "Rocket",
+"cost": 4500
+},
+{
+"id": "lightning",
+"name": "Lightning",
+"cost": 5000
+},
+{
+"id": "astronaut",
+"name": "Astronaut",
+"cost": 5500
+},
+{
+"id": "meteors",
+"name": "Meteor Storm",
+"cost": 6000
+},
+{
+"id": "station",
+"name": "Space Station",
+"cost": 6500
+},
+{
+"id": "aurora",
+"name": "Aurora",
+"cost": 7000
+},
+{
+"id": "goldwolf",
+"name": "Gold Wolf",
+"cost": 7500
+},
+{
+"id": "blackhole",
+"name": "Black Hole",
+"cost": 8000
+},
+{
+"id": "galaxy",
+"name": "Galaxy",
+"cost": 9000
+},
+{
+"id": "supernova",
+"name": "Supernova",
+"cost": 10000
+},
+{
+"id": "mothership",
+"name": "Mothership",
+"cost": 11000
+},
+{
+"id": "chromeufo",
+"name": "Chrome Saucer",
+"cost": 12000
+},
+{
+"id": "diamondufo",
+"name": "Diamond Saucer",
+"cost": 13500
+},
+{
+"id": "crown",
+"name": "Crowned Saucer",
+"cost": 15000
+},
+{
+"id": "goldplanet",
+"name": "Golden Planet",
+"cost": 17500
+},
+{
+"id": "stormcrown",
+"name": "Storm Crown",
+"cost": 20000
+},
+{
+"id": "legend",
+"name": "Legend",
+"cost": 25000
+},
+{
+"id": "song01",
+"name": "Lost Saucer",
+"cost": 0,
+"unlock": "song:1"
+},
+{
+"id": "song02",
+"name": "Dust Sea",
+"cost": 0,
+"unlock": "song:2"
+},
+{
+"id": "song03",
+"name": "Broken Heart",
+"cost": 0,
+"unlock": "song:3"
+},
+{
+"id": "song04",
+"name": "Neon Coaster",
+"cost": 0,
+"unlock": "song:4"
+},
+{
+"id": "song05",
+"name": "Firefly Park",
+"cost": 0,
+"unlock": "song:5"
+},
+{
+"id": "song06",
+"name": "Palm Rock",
+"cost": 0,
+"unlock": "song:6"
+},
+{
+"id": "song07",
+"name": "Earth in Hand",
+"cost": 0,
+"unlock": "song:7"
+},
+{
+"id": "song08",
+"name": "Giant Rose",
+"cost": 0,
+"unlock": "song:8"
+},
+{
+"id": "song09",
+"name": "District 9",
+"cost": 0,
+"unlock": "song:9"
+},
+{
+"id": "song10",
+"name": "Orange Drop",
+"cost": 0,
+"unlock": "song:10"
+},
+{
+"id": "song11",
+"name": "Moon Race",
+"cost": 0,
+"unlock": "song:11"
+},
+{
+"id": "song12",
+"name": "Clockwork",
+"cost": 0,
+"unlock": "song:12"
+},
+{
+"id": "song13",
+"name": "Rug Lights",
+"cost": 0,
+"unlock": "song:13"
+},
+{
+"id": "song14",
+"name": "Neon Cup",
+"cost": 0,
+"unlock": "song:14"
+},
+{
+"id": "song15",
+"name": "Window Ghost",
+"cost": 0,
+"unlock": "song:15"
+},
+{
+"id": "song16",
+"name": "White Sky",
+"cost": 0,
+"unlock": "song:16"
+},
+{
+"id": "song17",
+"name": "Sky Islands",
+"cost": 0,
+"unlock": "song:17"
+},
+{
+"id": "song18",
+"name": "Rainy Night",
+"cost": 0,
+"unlock": "song:18"
+},
+{
+"id": "song19",
+"name": "Night Studio",
+"cost": 0,
+"unlock": "song:19"
+},
+{
+"id": "song20",
+"name": "Blue Crowd",
+"cost": 0,
+"unlock": "song:20"
+},
+{
+"id": "song21",
+"name": "Two Rooms",
+"cost": 0,
+"unlock": "song:21"
+},
+{
+"id": "song22",
+"name": "Red Flying Car",
+"cost": 0,
+"unlock": "song:22"
+},
+{
+"id": "song23",
+"name": "Smoke Heart",
+"cost": 0,
+"unlock": "song:23"
+},
+{
+"id": "song24",
+"name": "Sunset Table",
+"cost": 0,
+"unlock": "song:24"
+},
+{
+"id": "song25",
+"name": "Heart Over the Sea",
+"cost": 0,
+"unlock": "song:25"
+},
+{
+"id": "song26",
+"name": "Pink Hood",
+"cost": 0,
+"unlock": "song:26"
+},
+{
+"id": "song27",
+"name": "Cloud Car",
+"cost": 0,
+"unlock": "song:27"
+},
+{
+"id": "song28",
+"name": "Sunset Roof",
+"cost": 0,
+"unlock": "song:28"
+},
+{
+"id": "cadet",
+"name": "Cadet",
+"cost": 0,
+"unlock": "parts:5"
+},
+{
+"id": "pilot",
+"name": "Pilot",
+"cost": 0,
+"unlock": "parts:10"
+},
+{
+"id": "captain",
+"name": "Captain",
+"cost": 0,
+"unlock": "parts:20"
+},
+{
+"id": "commander",
+"name": "Commander",
+"cost": 0,
+"unlock": "parts:30"
+},
+{
+"id": "admiral",
+"name": "Admiral",
+"cost": 0,
+"unlock": "parts:40"
+},
+{
+"id": "remix1",
+"name": "First Remix",
+"cost": 0,
+"unlock": "remix:1"
+},
+{
+"id": "remix8",
+"name": "Turntable",
+"cost": 0,
+"unlock": "remix:8"
+},
+{
+"id": "remix16",
+"name": "Remix Master",
+"cost": 0,
+"unlock": "remix:16"
+},
+{
+"id": "endless10",
+"name": "No End in Sight",
+"cost": 0,
+"unlock": "endless:10"
+},
+{
+"id": "endless55",
+"name": "Infinity",
+"cost": 0,
+"unlock": "endless:55"
+},
+{
+"id": "complete",
+"name": "JAVEDA Complete",
+"cost": 0,
+"unlock": "album"
+},
+{
+"id": "day1",
+"name": "First Light",
+"cost": 0,
+"unlock": "days:1"
+},
+{
+"id": "day3",
+"name": "Three Suns",
+"cost": 0,
+"unlock": "days:3"
+},
+{
+"id": "day7",
+"name": "Full Week",
+"cost": 0,
+"unlock": "days:7"
+},
+{
+"id": "day14",
+"name": "Two Weeks",
+"cost": 0,
+"unlock": "days:14"
+},
+{
+"id": "day30",
+"name": "Full Month",
+"cost": 0,
+"unlock": "days:30"
+},
+{
+"id": "day60",
+"name": "Two Months",
+"cost": 0,
+"unlock": "days:60"
+},
+{
+"id": "day100",
+"name": "Hundred Suns",
+"cost": 0,
+"unlock": "days:100"
+},
+{
+"id": "day200",
+"name": "Long Road",
+"cost": 0,
+"unlock": "days:200"
+},
+{
+"id": "day365",
+"name": "Around the Sun",
+"cost": 0,
+"unlock": "days:365"
+},
+{
+"id": "streak3",
+"name": "Spark",
+"cost": 0,
+"unlock": "streak:3"
+},
+{
+"id": "streak5",
+"name": "Ember",
+"cost": 0,
+"unlock": "streak:5"
+},
+{
+"id": "streak7",
+"name": "Flame",
+"cost": 0,
+"unlock": "streak:7"
+},
+{
+"id": "streak14",
+"name": "Blaze",
+"cost": 0,
+"unlock": "streak:14"
+},
+{
+"id": "streak21",
+"name": "Wildfire",
+"cost": 0,
+"unlock": "streak:21"
+},
+{
+"id": "streak30",
+"name": "Inferno",
+"cost": 0,
+"unlock": "streak:30"
+},
+{
+"id": "streak60",
+"name": "Solar Flare",
+"cost": 0,
+"unlock": "streak:60"
+},
+{
+"id": "streak100",
+"name": "Eternal Flame",
+"cost": 0,
+"unlock": "streak:100"
+},
+{
+"id": "win1",
+"name": "Day Winner",
+"cost": 0,
+"unlock": "wins:1"
+},
+{
+"id": "win3",
+"name": "Hat-Trick",
+"cost": 0,
+"unlock": "wins:3"
+},
+{
+"id": "win7",
+"name": "Lucky Seven",
+"cost": 0,
+"unlock": "wins:7"
+},
+{
+"id": "win14",
+"name": "Silver Cup",
+"cost": 0,
+"unlock": "wins:14"
+},
+{
+"id": "win30",
+"name": "Champion",
+"cost": 0,
+"unlock": "wins:30"
+},
+{
+"id": "win60",
+"name": "Grand Champion",
+"cost": 0,
+"unlock": "wins:60"
+},
+{
+"id": "win100",
+"name": "Hall of Fame",
+"cost": 0,
+"unlock": "wins:100"
+},
+{
+"id": "podium1",
+"name": "Bronze Podium",
+"cost": 0,
+"unlock": "podium:1"
+},
+{
+"id": "podium5",
+"name": "Silver Podium",
+"cost": 0,
+"unlock": "podium:5"
+},
+{
+"id": "podium25",
+"name": "Gold Podium",
+"cost": 0,
+"unlock": "podium:25"
+}
 ]

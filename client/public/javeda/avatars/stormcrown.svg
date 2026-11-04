@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="stormcrown-bg" cx=".5" cy=".46" r=".72"><stop offset="0" stop-color="#5a22c8"/><stop offset=".5" stop-color="#1f0d68"/><stop offset="1" stop-color="#04031a"/></radialGradient>
+<linearGradient id="stormcrown-gr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset=".3" stop-color="#ffd60a"/><stop offset=".55" stop-color="#a86d00"/><stop offset=".8" stop-color="#ffd60a"/><stop offset="1" stop-color="#fff6c8"/></linearGradient>
+<radialGradient id="stormcrown-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#c9a6ff" stop-opacity=".75"/><stop offset="1" stop-color="#8a4dff" stop-opacity="0"/></radialGradient>
+<linearGradient id="stormcrown-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".3" stop-color="#e4d0ff"/><stop offset=".65" stop-color="#a46bff"/><stop offset="1" stop-color="#5a1fd0"/></linearGradient>
+<linearGradient id="stormcrown-bn" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#c9a6ff"/><stop offset="1" stop-color="#7b2ff7"/></linearGradient>
+<g id="stormcrown-s" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M-6-11L4-3L-4 2L6 11"/></g>
+<path id="stormcrown-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+<path id="stormcrown-sx" d="M0-14L1.8-1.8L14 0L1.8 1.8L0 14L-1.8 1.8L-14 0L-1.8-1.8Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#stormcrown-bg)"/>
+<g fill="#bfe9ff"><circle cx="40" cy="66" r="1.3"/><circle cx="216" cy="60" r="1.3"/><circle cx="38" cy="190" r="1.3"/><circle cx="216" cy="192" r="1.3"/></g>
+<circle cx="128" cy="124" r="100" fill="url(#stormcrown-gl)"/>
+<ellipse cx="128" cy="214" rx="56" ry="9" fill="#c9a6ff" opacity=".45"/>
+<ellipse cx="128" cy="214" rx="30" ry="4.5" fill="#fff" opacity=".6"/>
+<path d="M60 188L44 128L54 130L38 74L74 118L66 122L84 92L92 68L100 92L108 122L100 118L120 66L128 38L136 66L156 118L148 122L156 92L164 68L172 92L190 122L182 118L218 74L202 130L212 128L196 188Z" fill="#a46bff" stroke="#a46bff" stroke-width="16" stroke-linejoin="round" opacity=".32"/>
+<path d="M60 188L44 128L54 130L38 74L74 118L66 122L84 92L92 68L100 92L108 122L100 118L120 66L128 38L136 66L156 118L148 122L156 92L164 68L172 92L190 122L182 118L218 74L202 130L212 128L196 188Z" fill="url(#stormcrown-c)" stroke="#fff" stroke-width="3.5" stroke-linejoin="miter"/>
+<g fill="none" stroke="#5a1fd0" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><path d="M128 66L120 104H136L126 156"/><path d="M92 92L86 122H98L90 158"/><path d="M164 92L158 122H170L164 158"/></g>
+<path d="M56 172Q128 158 200 172L196 200Q128 186 60 200Z" fill="url(#stormcrown-bn)" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+<path d="M72 184L92 176L100 186L120 174L136 186L156 174L164 186L184 180" fill="none" stroke="#5a1fd0" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+<g fill="#fff"><circle cx="128" cy="38" r="7"/><circle cx="38" cy="74" r="6"/><circle cx="218" cy="74" r="6"/><circle cx="92" cy="68" r="5"/><circle cx="164" cy="68" r="5"/></g>
+<g fill="#c9a6ff" opacity=".5"><circle cx="128" cy="38" r="13"/><circle cx="38" cy="74" r="11"/><circle cx="218" cy="74" r="11"/><circle cx="92" cy="68" r="9"/><circle cx="164" cy="68" r="9"/></g>
+<g stroke="#fff"><use href="#stormcrown-s" transform="translate(58 44) rotate(20)" stroke-width="3.5"/><use href="#stormcrown-s" transform="translate(200 42) rotate(-20)" stroke-width="3.5"/><use href="#stormcrown-s" transform="translate(38 154) rotate(-10) scale(.85)" stroke-width="3.5"/><use href="#stormcrown-s" transform="translate(220 156) rotate(15) scale(.85)" stroke-width="3.5"/><use href="#stormcrown-s" transform="translate(84 216) rotate(30) scale(.75)" stroke-width="3.5"/><use href="#stormcrown-s" transform="translate(174 216) rotate(-25) scale(.75)" stroke-width="3.5"/></g>
+<circle cx="128" cy="128" r="116" fill="none" stroke="#ffd60a" stroke-width="18" opacity=".25"/>
+<circle cx="128" cy="128" r="117" fill="none" stroke="url(#stormcrown-gr)" stroke-width="10"/>
+<circle cx="128" cy="128" r="105" fill="none" stroke="#ffd60a" stroke-width="2.5"/>
+<use href="#stormcrown-sp" transform="translate(162 32) scale(0.8)" fill="#fff6c8"/>
+<use href="#stormcrown-sp" transform="translate(92 32) scale(0.7)" fill="#ffd60a"/>
+</svg>

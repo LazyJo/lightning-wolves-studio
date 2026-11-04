@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<linearGradient id="song23-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1458"/><stop offset=".5" stop-color="#7a2a80"/><stop offset=".85" stop-color="#e0589a"/></linearGradient>
+<radialGradient id="song23-gl"><stop offset="0" stop-color="#d8c0ff" stop-opacity=".75"/><stop offset="1" stop-color="#b88aff" stop-opacity="0"/></radialGradient>
+<linearGradient id="song23-h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4eaff"/><stop offset=".55" stop-color="#cdb0ff"/><stop offset="1" stop-color="#a878ff"/></linearGradient>
+<linearGradient id="song23-sm" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#f4eaff"/><stop offset="1" stop-color="#b88aff"/></linearGradient>
+<linearGradient id="song23-pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#ffe8d8"/></linearGradient>
+<g id="song23-c"><ellipse rx="54" ry="18"/><circle cx="-24" cy="-12" r="18"/><circle cx="6" cy="-20" r="24"/><circle cx="32" cy="-9" r="15"/></g>
+<path id="song23-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#song23-bg)"/>
+<g fill="#ffe0f4"><circle cx="30" cy="34" r="1.7"/><circle cx="226" cy="30" r="1.7"/><circle cx="212" cy="86" r="1.4"/><circle cx="44" cy="96" r="1.4"/></g>
+<circle cx="128" cy="76" r="104" fill="url(#song23-gl)"/>
+<use href="#song23-c" transform="translate(30 180) scale(1.1)" fill="#ff7aa8"/>
+<use href="#song23-c" transform="translate(226 176) scale(1.15)" fill="#ff7aa8"/>
+<use href="#song23-c" transform="translate(28 206) scale(1.15)" fill="#ffb0cc"/>
+<use href="#song23-c" transform="translate(232 204) scale(1.15)" fill="#ffb0cc"/>
+<use href="#song23-c" transform="translate(128 238) scale(1.9)" fill="#fff0f8"/>
+<use href="#song23-c" transform="translate(30 250) scale(1.2)" fill="#fff"/>
+<use href="#song23-c" transform="translate(226 252) scale(1.2)" fill="#fff"/>
+<g fill="none" stroke="url(#song23-sm)" stroke-linecap="round">
+<path d="M128 178C108 164 150 146 128 112" stroke-width="16"/>
+<path d="M106 172C88 158 92 138 84 122" stroke-width="7" opacity=".85"/>
+<path d="M150 170C168 156 164 138 172 122" stroke-width="7" opacity=".85"/>
+</g>
+<g fill="#d8c0ff" opacity=".7"><circle cx="72" cy="48" r="11"/><circle cx="184" cy="48" r="11"/><circle cx="66" cy="80" r="9"/><circle cx="190" cy="82" r="9"/><circle cx="128" cy="34" r="8"/></g>
+<path d="M0 30C-12 20-40 2-40-14C-40-28-28-36-18-36C-9-36-3-30 0-22C3-30 9-36 18-36C28-36 40-28 40-14C40 2 12 20 0 30Z" fill="url(#song23-h)" transform="translate(128 84) scale(1.5)"/>
+<g fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".75">
+<path d="M96 72C100 56 120 58 118 72C116 82 104 80 106 72"/>
+<path d="M144 84C148 68 168 68 166 82C164 92 152 90 154 82"/>
+<path d="M118 106C122 98 134 98 136 106"/>
+</g>
+<path d="M44 176C70 166 108 168 128 182C148 168 186 166 212 176L216 214C190 204 150 206 128 222C106 206 66 204 40 214Z" fill="#c02a6a" stroke="#7a1248" stroke-width="3" stroke-linejoin="round"/>
+<path d="M50 170C76 160 110 162 128 176V212C110 198 74 196 48 204Z" fill="url(#song23-pg)"/>
+<path d="M206 170C180 160 146 162 128 176V212C146 198 182 196 208 204Z" fill="url(#song23-pg)"/>
+<path d="M128 176V212" stroke="#d8b8c8" stroke-width="3"/>
+<g fill="none" stroke="#c8a8ff" stroke-width="3" stroke-linecap="round"><path d="M62 178C78 174 98 176 114 184M60 190C76 186 98 188 114 196M194 178C178 174 158 176 142 184M196 190C180 186 158 188 142 196"/></g>
+<use href="#song23-sp" transform="translate(206 124) scale(.9)" fill="#fff"/>
+<use href="#song23-sp" transform="translate(46 128) scale(.7)" fill="#ffe08a"/>
+<use href="#song23-sp" transform="translate(222 58) scale(.55)" fill="#ffb0cc"/>
+<path fill-rule="evenodd" d="M0 0H256V256H0ZM25 5A20 20 0 0 0 5 25V231A20 20 0 0 0 25 251H231A20 20 0 0 0 251 231V25A20 20 0 0 0 231 5Z" fill="#070c1f"/>
+<rect x="5" y="5" width="246" height="246" rx="20" fill="none" stroke="#ffb0d0" stroke-width="4"/>
+</svg>

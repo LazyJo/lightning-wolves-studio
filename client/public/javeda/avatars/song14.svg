@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="song14-bg" gradientUnits="userSpaceOnUse" cx="128" cy="140" r="190"><stop offset="0" stop-color="#3a1466"/><stop offset=".55" stop-color="#160834"/><stop offset="1" stop-color="#05030c"/></radialGradient>
+<radialGradient id="song14-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff4fd8" stop-opacity=".45"/><stop offset="1" stop-color="#b04aff" stop-opacity="0"/></radialGradient>
+<linearGradient id="song14-dr" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d070ff"/><stop offset=".5" stop-color="#8a2ff0"/><stop offset="1" stop-color="#3f0f96"/></linearGradient>
+<linearGradient id="song14-ice" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#9af0ff"/></linearGradient>
+<linearGradient id="song14-d" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8b0ff"/><stop offset="1" stop-color="#8a2ff0"/></linearGradient>
+<clipPath id="song14-c"><path d="M66 74H190L172 228Q171 236 162 236H94Q85 236 84 228Z"/></clipPath>
+<path id="song14-cup" d="M60 72H196L177 229Q176 240 164 240H92Q80 240 79 229Z" fill="none" stroke-linejoin="round"/>
+<path id="song14-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#song14-bg)"/>
+<g fill="#e8e0ff"><circle cx="32" cy="42" r="1.6"/><circle cx="84" cy="26" r="1.3"/><circle cx="228" cy="110" r="1.4"/><circle cx="24" cy="146" r="1.4"/></g>
+<circle cx="128" cy="150" r="124" fill="url(#song14-gl)"/>
+<g clip-path="url(#song14-c)">
+<rect x="50" y="112" width="156" height="130" fill="url(#song14-dr)"/>
+<ellipse cx="128" cy="112" rx="66" ry="6" fill="#efc8ff"/>
+<g fill="url(#song14-ice)" stroke="#fff" stroke-width="2" stroke-linejoin="round">
+<path d="M84 110L114 100L124 132L92 140Z"/>
+<path d="M144 118L170 106L182 134L154 146Z" opacity=".95"/>
+<path d="M112 148L134 140L142 164L118 172Z" opacity=".85"/>
+</g>
+<g fill="none" stroke="#7a3ed0" stroke-width="3" stroke-linejoin="round">
+<path d="M98 104L106 118L100 128M106 118L118 120"/>
+<path d="M156 112L162 126L156 140M162 126L176 124"/>
+<path d="M122 144L128 156L124 168"/>
+</g>
+</g>
+<g fill="url(#song14-ice)"><path d="M112 88L122 84L124 96L114 98Z"/><path d="M144 92L152 96L146 104L140 100Z"/></g>
+<use href="#song14-cup" stroke="#9af0ff" stroke-width="16" opacity=".22"/>
+<use href="#song14-cup" stroke="#ff4fd8" stroke-width="9"/>
+<use href="#song14-cup" stroke="#ffe0f8" stroke-width="3.5"/>
+<path d="M172 60C178 50 184 44 190 40" fill="none" stroke="#c88aff" stroke-width="4.5" stroke-dasharray="1 9" stroke-linecap="round"/>
+<circle cx="204" cy="28" r="26" fill="#b04aff" opacity=".22"/>
+<path d="M216 4C217 22 222 30 216 38C210 46 196 44 192 34C188 24 200 14 216 4Z" fill="url(#song14-d)" stroke="#fff" stroke-width="2" transform="translate(-4 8)"/>
+<use href="#song14-sp" transform="translate(44 88) scale(.9)" fill="#9af0ff"/>
+<use href="#song14-sp" transform="translate(222 170) scale(.6)" fill="#fff"/>
+<use href="#song14-sp" transform="translate(36 200) scale(.5)" fill="#ff4fd8"/>
+<path fill-rule="evenodd" d="M0 0H256V256H0ZM25 5A20 20 0 0 0 5 25V231A20 20 0 0 0 25 251H231A20 20 0 0 0 251 231V25A20 20 0 0 0 231 5Z" fill="#070c1f"/>
+<rect x="5" y="5" width="246" height="246" rx="20" fill="none" stroke="#9af0ff" stroke-width="4"/>
+</svg>

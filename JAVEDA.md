@@ -7,7 +7,7 @@ app. The only React change is the 🛸 JAVEDA link in `Navbar.tsx`.
 ```
 client/public/javeda/
 ├── index.html          # the hub: player, levels, scoreboard, profile pictures, links
-├── avatars/<id>.svg    # 13 profile pictures (+ catalog.json); prices live in the database
+├── avatars/<id>.svg    # 100 profile pictures (+ catalog.json); prices and what earns them live in the database
 └── levels/
     ├── im-lost.html    # Level 1, 3D saucer runner (three.js r128 from cdnjs) + lvl1.mp3
     ├── somebody.html   # Level 2, 3D desert arena with Zirka (three.js r128) + lvl2.mp3
@@ -244,9 +244,15 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
   speakers; the hub tells an open level at once (a `javedaSound` message).
 - **Rides.** Clearing Level 2 Part 2 earns Zirka's bike: the hub opens Level 1 with `?rides=bike` and
   the level shows a Saucer / Zirka's bike picker. Creators always get it.
-- **Points** come from playing only (never from streaming): up to 40 per run for the
-  score, +50 per clear, plus a first-clear bonus (300, Level 9 500). Points buy profile
-  pictures (`javeda_buy_avatar`). The first four pictures are free.
+- **Points** come from playing only (never from streaming): up to 40 per run for the score, +50 to +100 per clear, plus
+  a first-clear bonus (300 to 600), +25 for an online win; Endless and Remix only for a new best. Clearing the whole album once
+  is about 27,000. `points` is what's left to spend, `points_earned` is everything ever earned and is what the Points board shows,
+  so buying a picture doesn't cost you your place.
+- **Profile pictures** (100, sheet tabs Yours / Points / Levels / Daily): 4 free, 30 bought with points (`javeda_buy_avatar`, 1,000 to 25,000:
+  215,500 for all, so the album pays for about the first 12), 39 earned by levels (`unlock`: `song:N` every part of a song, `parts:N`, `remix:N`, `endless:N`, `album`),
+  27 earned by the daily challenge (`days:N`, `streak:N` in a row, `wins:N` a finished day first with at least 2 players, `podium:N` top 3 with at least 4).
+  `javeda_unlock_met` is the rule, worked out each time from progress and the daily scores (`javeda_stats_of`); the page only shows it, from `javeda_my_stats`.
+  A new picture: a row in `javeda_avatars` and a file in `avatars/`.
 - **Stars** (only in the hub, nothing in the database): every scoring game counts differently, so a score alone
   says little. A cleared part gets 1 star, 2 at half a great run and 3 for a great run (`GREAT` in the hub, one
   number per part: a bit under the best a person was measured at; from Level 15 on, about three quarters of what a

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="admiral-bg" cx="0.5" cy="0.5" r="0.72"><stop offset="0" stop-color="#3058e0"/><stop offset="0.5" stop-color="#10207a"/><stop offset="1" stop-color="#050a2c"/></radialGradient>
+<radialGradient id="admiral-gl" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff2a8" stop-opacity="0.6"/><stop offset="0.6" stop-color="#ffd60a" stop-opacity="0.2"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></radialGradient>
+<linearGradient id="admiral-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="0.25" stop-color="#ffe24a"/><stop offset="0.55" stop-color="#e6a800"/><stop offset="0.8" stop-color="#ffd60a"/><stop offset="1" stop-color="#fff6c8"/></linearGradient>
+<linearGradient id="admiral-fld" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a58e8"/><stop offset="1" stop-color="#12288c"/></linearGradient>
+<linearGradient id="admiral-chv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="1" stop-color="#ffc800"/></linearGradient>
+<linearGradient id="admiral-wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="0.5" stop-color="#ffd60a"/><stop offset="1" stop-color="#d89a00"/></linearGradient>
+<linearGradient id="admiral-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="0.35" stop-color="#ffd60a"/><stop offset="0.75" stop-color="#d89a00"/><stop offset="1" stop-color="#8a5200"/></linearGradient>
+<linearGradient id="admiral-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="0.6" stop-color="#fff2b8"/><stop offset="1" stop-color="#e8b830"/></linearGradient>
+<path id="admiral-s" d="M0-84C20-72 44-68 66-70V0C66 44 34 72 0 88C-34 72-66 44-66 0V-70C-44-68-20-72 0-84Z"/>
+<path id="admiral-c" d="M-44 0L0 16L44 0V12L0 28L-44 12Z"/>
+<path id="admiral-st" d="M0 -10L2.5 -3.5L9.5 -3.1L4.1 1.3L5.9 8.1L0 4.3L-5.9 8.1L-4.1 1.3L-9.5 -3.1L-2.5 -3.5Z"/>
+<path id="admiral-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+<path id="admiral-lf" d="M0 0C6-6 16-6 24 0C16 6 6 6 0 0Z"/>
+<g id="admiral-w"><path d="M0-6C18-30 56-48 104-50C102-38 96-30 88-26C92-20 86-12 76-10C78-3 70 4 60 5C60 12 50 17 40 17C36 23 20 25 0 18Z" fill="url(#admiral-wg)" stroke="#2a1600" stroke-width="3" stroke-linejoin="round"/><path d="M0-6C12-22 34-34 62-38C52-24 30-8 0 6Z" fill="#fff"/><path d="M26-6C44-18 66-24 88-26M22 5C38-1 56-7 76-10M18 13C30 11 46 9 60 5" fill="none" stroke="#2a1600" stroke-width="3" stroke-linecap="round" opacity=".6"/></g>
+<linearGradient id="admiral-lg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset="1" stop-color="#e6a800"/></linearGradient>
+</defs>
+<rect width="256" height="256" fill="url(#admiral-bg)"/>
+<circle cx="128" cy="124" r="124" fill="url(#admiral-gl)"/>
+<path d="M157.6 132.7L277.4 141.1L274.2 161.7ZM154.7 141.6L266.1 186.6L256.6 205.3ZM149.2 149.2L241.2 226.4L226.4 241.2ZM141.6 154.7L205.3 256.6L186.6 266.1ZM132.7 157.6L161.7 274.2L141.1 277.4ZM123.3 157.6L114.9 277.4L94.3 274.2ZM114.4 154.7L69.4 266.1L50.7 256.6ZM106.8 149.2L29.6 241.2L14.8 226.4ZM101.3 141.6L-.6 205.3L-10.1 186.6ZM98.4 132.7L-18.2 161.7L-21.4 141.1ZM98.4 123.3L-21.4 114.9L-18.2 94.3ZM101.3 114.4L-10.1 69.4L-.6 50.7ZM106.8 106.8L14.8 29.6L29.6 14.8ZM114.4 101.3L50.7 -.6L69.4 -10.1ZM123.3 98.4L94.3 -18.2L114.9 -21.4ZM132.7 98.4L141.1 -21.4L161.7 -18.2ZM141.6 101.3L186.6 -10.1L205.3 -.6ZM149.2 106.8L226.4 14.8L241.2 29.6ZM154.7 114.4L256.6 50.7L266.1 69.4ZM157.6 123.3L274.2 94.3L277.4 114.9Z" fill="#ffd60a" opacity=".2"/>
+<g fill="url(#admiral-lg)" stroke="#2a1600" stroke-width="1.5"><use href="#admiral-lf" transform="translate(140.8 247.1) rotate(-22) scale(1.05)"/><use href="#admiral-lf" transform="translate(115.2 247.1) rotate(202) scale(1.05)"/><use href="#admiral-lf" transform="translate(157.6 243.1) rotate(-4.8) scale(1.05)"/><use href="#admiral-lf" transform="translate(98.4 243.1) rotate(184.8) scale(1.05)"/><use href="#admiral-lf" transform="translate(173.4 236) rotate(-43.6) scale(1.05)"/><use href="#admiral-lf" transform="translate(82.6 236) rotate(223.6) scale(1.05)"/><use href="#admiral-lf" transform="translate(187.6 226.1) rotate(-26.4) scale(1.05)"/><use href="#admiral-lf" transform="translate(68.4 226.1) rotate(206.4) scale(1.05)"/><use href="#admiral-lf" transform="translate(199.7 213.6) rotate(-65.2) scale(1.05)"/><use href="#admiral-lf" transform="translate(56.3 213.6) rotate(245.2) scale(1.05)"/><use href="#admiral-lf" transform="translate(209.2 199.2) rotate(-48) scale(1.05)"/><use href="#admiral-lf" transform="translate(46.8 199.2) rotate(228) scale(1.05)"/></g>
+<use href="#admiral-w" transform="translate(154 130) scale(0.96)"/><use href="#admiral-w" transform="translate(102 130) scale(-0.96 0.96)"/>
+<g transform="translate(128 154) scale(0.84)">
+<use href="#admiral-s" fill="#2a1600" stroke="#2a1600" stroke-width="7" stroke-linejoin="round"/>
+<use href="#admiral-s" fill="url(#admiral-rim)"/>
+<use href="#admiral-s" transform="translate(0 1) scale(.84)" fill="url(#admiral-fld)" stroke="#2a1600" stroke-width="2.5"/>
+<path d="M0-84C20-72 44-68 66-70V0C66 44 34 72 0 88Z" transform="translate(0 1) scale(.84)" fill="#000" opacity=".14"/>
+<g fill="url(#admiral-chv)" stroke="#2a1600" stroke-width="2" stroke-linejoin="round"><use href="#admiral-c" y="20"/><use href="#admiral-c" y="40"/></g>
+<g transform="translate(0 -28) scale(.58)"><ellipse cy="34" rx="34" ry="10" fill="#8a5200"/><ellipse cy="8" rx="88" ry="26" fill="#8a5200"/><ellipse rx="88" ry="26" fill="url(#admiral-hull)"/><ellipse cy="-6" rx="62" ry="14" fill="#fff6c8" opacity=".45"/><path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#admiral-dome)"/><path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/><g fill="#fff"><circle cy="30" r="7"/><circle cx="-32" cy="28" r="7"/><circle cx="32" cy="28" r="7"/><circle cx="-62" cy="22" r="7"/><circle cx="62" cy="22" r="7"/></g></g>
+</g>
+<g fill="url(#admiral-rim)" stroke="#2a1600" stroke-width=".9" stroke-linejoin="round"><use href="#admiral-st" transform="translate(128 40) scale(2.5)"/><use href="#admiral-st" transform="translate(80 56) scale(1.9)"/><use href="#admiral-st" transform="translate(176 56) scale(1.9)"/></g>
+<use href="#admiral-sp" transform="translate(30 36) scale(1)" fill="#fff"/><use href="#admiral-sp" transform="translate(226 36) scale(1)" fill="#fff"/><use href="#admiral-sp" transform="translate(128 8) scale(0.5)" fill="#fff6c8"/><use href="#admiral-sp" transform="translate(24 170) scale(0.7)" fill="#fff6c8"/><use href="#admiral-sp" transform="translate(232 170) scale(0.7)" fill="#fff6c8"/>
+</svg>

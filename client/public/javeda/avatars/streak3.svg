@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="streak3-bg" cx=".5" cy=".4" r=".75"><stop offset="0" stop-color="#3a1608"/><stop offset=".55" stop-color="#140a12"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<radialGradient id="streak3-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff8a1a" stop-opacity=".7"/><stop offset="1" stop-color="#ff5a0a" stop-opacity="0"/></radialGradient>
+<radialGradient id="streak3-s" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="46"><stop offset="0" stop-color="#fff3c4"/><stop offset=".35" stop-color="#ffb020"/><stop offset="1" stop-color="#ff5a0a"/></radialGradient>
+</defs>
+<rect width="256" height="256" fill="url(#streak3-bg)"/>
+<circle cx="128" cy="104" r="78" fill="url(#streak3-gl)"/>
+<g transform="translate(128 104) rotate(14)"><path d="M0-50L4-10L19-19L10-4L50 0L10 4L19 19L4 10L0 50L-4 10L-19 19L-10 4L-50 0L-10-4L-19-19L-4-10Z" fill="url(#streak3-s)"/><circle r="9" fill="#fff3c4"/></g>
+<g fill="#ff8a1a"><circle cx="70" cy="66" r="3.6"/><circle cx="192" cy="60" r="3"/><circle cx="60" cy="146" r="2.6"/><circle cx="198" cy="140" r="3.6"/></g>
+<g fill="#ffc83a"><circle cx="164" cy="34" r="2.6"/><circle cx="96" cy="36" r="2.2"/><circle cx="214" cy="100" r="2"/><circle cx="42" cy="104" r="2"/></g>
+<text x="128" y="232" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="54" fill="#fff" stroke="#1a0802" stroke-width="8" stroke-linejoin="round" paint-order="stroke">3</text>
+</svg>

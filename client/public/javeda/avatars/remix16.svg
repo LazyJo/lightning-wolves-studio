@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="remix16-bg" cx="0.5" cy="0.5" r="0.72"><stop offset="0" stop-color="#7a2a60"/><stop offset="0.55" stop-color="#280c44"/><stop offset="1" stop-color="#080820"/></radialGradient>
+<radialGradient id="remix16-gl" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#ffd60a" stop-opacity="0.55"/><stop offset="1" stop-color="#ffd60a" stop-opacity="0"/></radialGradient>
+<linearGradient id="remix16-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="0.3" stop-color="#ffd60a"/><stop offset="0.55" stop-color="#b87a00"/><stop offset="0.8" stop-color="#ffd60a"/><stop offset="1" stop-color="#fff1a8"/></linearGradient>
+<linearGradient id="remix16-cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="0.45" stop-color="#ffd60a"/><stop offset="1" stop-color="#c98a00"/></linearGradient>
+<path id="remix16-st" d="M0 -10L2.5 -3.5L9.5 -3.1L4.1 1.3L5.9 8.1L0 4.3L-5.9 8.1L-4.1 1.3L-9.5 -3.1L-2.5 -3.5Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#remix16-bg)"/>
+<path d="M188.8 140.1L225.4 138.7L222.1 155.4ZM179.6 162.4L213.9 175.1L204.4 189.3ZM162.4 179.6L189.3 204.4L175.1 213.9ZM140.1 188.8L155.4 222.1L138.7 225.4ZM115.9 188.8L117.3 225.4L100.6 222.1ZM93.6 179.6L80.9 213.9L66.7 204.4ZM76.4 162.4L51.6 189.3L42.1 175.1ZM67.2 140.1L33.9 155.4L30.6 138.7ZM67.2 115.9L30.6 117.3L33.9 100.6ZM76.4 93.6L42.1 80.9L51.6 66.7ZM93.6 76.4L66.7 51.6L80.9 42.1ZM115.9 67.2L100.6 33.9L117.3 30.6ZM140.1 67.2L138.7 30.6L155.4 33.9ZM162.4 76.4L175.1 42.1L189.3 51.6ZM179.6 93.6L204.4 66.7L213.9 80.9ZM188.8 115.9L222.1 100.6L225.4 117.3Z" fill="#ffd60a" opacity=".5"/>
+<circle cx="128" cy="128" r="104" fill="url(#remix16-gl)"/>
+<g fill="#ffd60a" opacity=".35"><circle cx="128" cy="20" r="11"/><circle cx="169.3" cy="28.2" r="11"/><circle cx="204.4" cy="51.6" r="11"/><circle cx="227.8" cy="86.7" r="11"/><circle cx="236" cy="128" r="11"/><circle cx="227.8" cy="169.3" r="11"/><circle cx="204.4" cy="204.4" r="11"/><circle cx="169.3" cy="227.8" r="11"/><circle cx="128" cy="236" r="11"/><circle cx="86.7" cy="227.8" r="11"/><circle cx="51.6" cy="204.4" r="11"/><circle cx="28.2" cy="169.3" r="11"/><circle cx="20" cy="128" r="11"/><circle cx="28.2" cy="86.7" r="11"/><circle cx="51.6" cy="51.6" r="11"/><circle cx="86.7" cy="28.2" r="11"/></g>
+<g fill="#fff6c8"><circle cx="128" cy="20" r="6"/><circle cx="169.3" cy="28.2" r="6"/><circle cx="204.4" cy="51.6" r="6"/><circle cx="227.8" cy="86.7" r="6"/><circle cx="236" cy="128" r="6"/><circle cx="227.8" cy="169.3" r="6"/><circle cx="204.4" cy="204.4" r="6"/><circle cx="169.3" cy="227.8" r="6"/><circle cx="128" cy="236" r="6"/><circle cx="86.7" cy="227.8" r="6"/><circle cx="51.6" cy="204.4" r="6"/><circle cx="28.2" cy="169.3" r="6"/><circle cx="20" cy="128" r="6"/><circle cx="28.2" cy="86.7" r="6"/><circle cx="51.6" cy="51.6" r="6"/><circle cx="86.7" cy="28.2" r="6"/></g>
+<circle cx="128" cy="148" r="68" fill="url(#remix16-g)" stroke="#6a3e00" stroke-width="3.5"/>
+<g fill="none" stroke="#8a5200" stroke-width="2.5" opacity=".65"><circle cx="128" cy="148" r="56"/><circle cx="128" cy="148" r="44"/></g>
+<path d="M128 148L187.8 175.9A66 66 0 0 1 161 205.2ZM128 148L68.2 120.1A66 66 0 0 1 95 90.8Z" fill="#fff" opacity=".35"/>
+<circle cx="128" cy="148" r="25" fill="#2a0c44" stroke="#6a3e00" stroke-width="3"/>
+<use href="#remix16-st" transform="translate(128 148) scale(1.75)" fill="#ffd60a"/>
+<g transform="translate(128 94) scale(1.3)"><path d="M-30 0L-36-36L-17-20L0-46L17-20L36-36L30 0Z" fill="url(#remix16-cg)" stroke="#5a3200" stroke-width="2.5" stroke-linejoin="round"/><rect x="-30" y="-8" width="60" height="9" rx="2" fill="#c98a00" stroke="#5a3200" stroke-width="1.5"/><circle cy="-17" r="5" fill="#ff3d8b"/><g fill="#67e8f9"><circle cx="-18" cy="-14" r="3"/><circle cx="18" cy="-14" r="3"/></g><g fill="#fff6c8"><circle cx="-36" cy="-37" r="3.5"/><circle cy="-47" r="4"/><circle cx="36" cy="-37" r="3.5"/></g></g>
+</svg>

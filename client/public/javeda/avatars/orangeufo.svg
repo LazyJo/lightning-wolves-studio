@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<linearGradient id="orangeufo-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050c1e"/><stop offset=".5" stop-color="#12103a"/><stop offset=".82" stop-color="#4a1a34"/><stop offset="1" stop-color="#b0501c"/></linearGradient>
+<radialGradient id="orangeufo-cg" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffb04a" stop-opacity=".9"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient>
+<linearGradient id="orangeufo-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffc98a"/><stop offset=".5" stop-color="#ff7a1a"/><stop offset="1" stop-color="#b84a00"/></linearGradient>
+<linearGradient id="orangeufo-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#ffe6cc"/><stop offset="1" stop-color="#ffb070"/></linearGradient>
+<linearGradient id="orangeufo-st" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffd08a" stop-opacity="0"/><stop offset="1" stop-color="#fff0d0" stop-opacity=".95"/></linearGradient>
+<path id="orangeufo-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#orangeufo-bg)"/>
+<g fill="#bfe9ff"><circle cx="196" cy="40" r="1.6"/><circle cx="226" cy="96" r="1.3"/><circle cx="44" cy="150" r="1.3"/><circle cx="216" cy="160" r="1.3"/><circle cx="150" cy="26" r="1.2"/></g>
+<ellipse cx="128" cy="250" rx="130" ry="44" fill="url(#orangeufo-cg)"/>
+<path d="M0 256V238H14V230H26V240H40V226H50V234H66V242H82V230H96V236H110V222H120V234H138V242H152V228H166V238H182V232H196V224H206V236H222V242H238V232H256V256Z" fill="#090818"/>
+<g fill="#ffd60a"><rect x="17" y="234" width="3" height="4"/><rect x="43" y="231" width="3" height="4"/><rect x="99" y="240" width="3" height="4"/><rect x="113" y="228" width="3" height="4"/><rect x="155" y="233" width="3" height="4"/><rect x="199" y="230" width="3" height="4"/><rect x="243" y="237" width="3" height="4"/></g>
+<g transform="translate(150 118) rotate(44) scale(.84)">
+<g fill="url(#orangeufo-st)"><path d="M-150-34L-90-38V-30Z"/><path d="M-176-14L-96-19V-9Z"/><path d="M-160 8L-96 3V13Z"/><path d="M-136 28L-82 24V32Z"/><path d="M-120-52L-66-55V-49Z"/></g>
+<ellipse cy="34" rx="34" ry="10" fill="#6b2a00"/>
+<ellipse cy="8" rx="88" ry="26" fill="#6b2a00"/>
+<ellipse rx="88" ry="26" fill="url(#orangeufo-hull)"/>
+<ellipse cy="-6" rx="62" ry="14" fill="#ffe0b8" opacity=".45"/>
+<path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#orangeufo-dome)"/>
+<path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/>
+<g fill="#ffd60a" opacity=".3"><circle cy="30" r="9"/><circle cx="-32" cy="28" r="9"/><circle cx="32" cy="28" r="9"/><circle cx="-62" cy="22" r="9"/><circle cx="62" cy="22" r="9"/></g>
+<g fill="#fff3c4"><circle cy="30" r="4.5"/><circle cx="-32" cy="28" r="4.5"/><circle cx="32" cy="28" r="4.5"/><circle cx="-62" cy="22" r="4.5"/><circle cx="62" cy="22" r="4.5"/></g>
+</g>
+<circle cx="128" cy="128" r="120" fill="none" stroke="#3fb8c4" stroke-width="3"/>
+<use href="#orangeufo-sp" transform="translate(70 196) scale(0.7)" fill="#ffd60a"/>
+<use href="#orangeufo-sp" transform="translate(208 62) scale(0.55)" fill="#fff"/>
+</svg>

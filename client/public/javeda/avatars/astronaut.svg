@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="astronaut-bg" cx=".5" cy=".45" r=".75"><stop offset="0" stop-color="#2c2a80"/><stop offset=".55" stop-color="#0d1644"/><stop offset="1" stop-color="#050c1e"/></radialGradient>
+<linearGradient id="astronaut-gd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".35" stop-color="#ffd60a"/><stop offset=".65" stop-color="#c98a00"/><stop offset="1" stop-color="#ffd60a"/></linearGradient>
+<linearGradient id="astronaut-h" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#e4eaf3"/><stop offset="1" stop-color="#98a6bf"/></linearGradient>
+<linearGradient id="astronaut-v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".28" stop-color="#ffd60a"/><stop offset=".56" stop-color="#e09a00"/><stop offset=".8" stop-color="#7a4a00"/><stop offset="1" stop-color="#ffbf2e"/></linearGradient>
+<linearGradient id="astronaut-c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c7d2e2"/><stop offset="1" stop-color="#6f7f9a"/></linearGradient>
+<clipPath id="astronaut-cp"><path id="astronaut-vs" d="M68 112C68 76 94 58 128 58C162 58 188 76 188 112C188 150 162 168 128 168C94 168 68 150 68 112Z"/></clipPath>
+<path id="astronaut-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#astronaut-bg)"/>
+<g fill="#bfe9ff"><circle cx="40" cy="62" r="1.5"/><circle cx="216" cy="48" r="1.5"/><circle cx="30" cy="150" r="1.3"/><circle cx="226" cy="152" r="1.3"/></g>
+<circle cx="128" cy="116" r="104" fill="#7f8cff" opacity=".14"/>
+<path d="M56 238C60 206 90 190 128 190C166 190 196 206 200 238Z" fill="url(#astronaut-h)"/>
+<ellipse cx="128" cy="196" rx="62" ry="17" fill="url(#astronaut-c)"/>
+<rect x="30" y="92" width="24" height="52" rx="10" fill="#8e9bb4"/><rect x="202" y="92" width="24" height="52" rx="10" fill="#8e9bb4"/>
+<circle cx="128" cy="114" r="86" fill="url(#astronaut-h)"/>
+<rect x="112" y="24" width="32" height="12" rx="5" fill="#8e9bb4"/>
+<use href="#astronaut-vs" fill="#2a3448" stroke="#2a3448" stroke-width="12" stroke-linejoin="round"/>
+<use href="#astronaut-vs" fill="url(#astronaut-v)"/>
+<g clip-path="url(#astronaut-cp)">
+<path d="M56 156Q128 118 200 156V180H56Z" fill="#3a2200" opacity=".55"/>
+<g fill="#fff"><circle cx="100" cy="124" r="2"/><circle cx="170" cy="130" r="1.8"/><circle cx="162" cy="72" r="2"/></g>
+<g transform="translate(144 104) rotate(-10) scale(.38)"><ellipse cy="8" rx="88" ry="26" fill="#2a1600"/><ellipse rx="88" ry="26" fill="#3a2200"/><path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="#fff6c8"/><g fill="#fff"><circle cy="24" r="6"/><circle cx="-44" cy="20" r="6"/><circle cx="44" cy="20" r="6"/></g></g>
+<use href="#astronaut-sp" transform="translate(106 92) scale(0.55)" fill="#fff"/>
+<use href="#astronaut-sp" transform="translate(176 104) scale(0.4)" fill="#fff"/>
+
+<path d="M80 110C82 90 96 76 118 70" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" opacity=".85"/>
+<circle cx="86" cy="126" r="4" fill="#fff" opacity=".8"/>
+</g>
+<circle cx="128" cy="128" r="119" fill="none" stroke="url(#astronaut-gd)" stroke-width="6"/>
+<use href="#astronaut-sp" transform="translate(44 92) scale(0.7)" fill="#fff"/>
+<use href="#astronaut-sp" transform="translate(214 88) scale(0.6)" fill="#ffd60a"/>
+<use href="#astronaut-sp" transform="translate(208 206) scale(0.6)" fill="#fff"/>
+<use href="#astronaut-sp" transform="translate(48 204) scale(0.5)" fill="#9fd8ff"/>
+</svg>

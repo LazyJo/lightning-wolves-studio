@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="cadet-bg" cx="0.5" cy="0.5" r="0.72"><stop offset="0" stop-color="#40301f"/><stop offset="0.6" stop-color="#151420"/><stop offset="1" stop-color="#070b18"/></radialGradient>
+<linearGradient id="cadet-rim" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cda37b"/><stop offset="0.4" stop-color="#9c7049"/><stop offset="0.7" stop-color="#71492c"/><stop offset="1" stop-color="#a37a53"/></linearGradient>
+<linearGradient id="cadet-fld" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6e4b2f"/><stop offset="1" stop-color="#452b19"/></linearGradient>
+<linearGradient id="cadet-chv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#dcb48c"/><stop offset="1" stop-color="#a97d55"/></linearGradient>
+<linearGradient id="cadet-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b9bf0"/><stop offset="0.5" stop-color="#2f6fc9"/><stop offset="1" stop-color="#1d4f9a"/></linearGradient>
+<linearGradient id="cadet-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="0.55" stop-color="#bfe9ff"/><stop offset="1" stop-color="#7cc4ec"/></linearGradient>
+<path id="cadet-s" d="M0-84C20-72 44-68 66-70V0C66 44 34 72 0 88C-34 72-66 44-66 0V-70C-44-68-20-72 0-84Z"/>
+<path id="cadet-c" d="M-42 0L0 20L42 0V16L0 36L-42 16Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#cadet-bg)"/>
+<g transform="translate(128 128) scale(1.2)">
+<use href="#cadet-s" fill="#23130a" stroke="#23130a" stroke-width="7" stroke-linejoin="round"/>
+<use href="#cadet-s" fill="url(#cadet-rim)"/>
+<use href="#cadet-s" transform="translate(0 1) scale(.84)" fill="url(#cadet-fld)" stroke="#23130a" stroke-width="2.5"/>
+<path d="M0-84C20-72 44-68 66-70V0C66 44 34 72 0 88Z" transform="translate(0 1) scale(.84)" fill="#000" opacity=".14"/>
+<g fill="url(#cadet-chv)" stroke="#23130a" stroke-width="2" stroke-linejoin="round"><use href="#cadet-c" y="14"/></g>
+<g transform="translate(0 -28) scale(.46)"><ellipse cy="34" rx="34" ry="10" fill="#12356b"/><ellipse cy="8" rx="88" ry="26" fill="#12356b"/><ellipse rx="88" ry="26" fill="url(#cadet-hull)"/><ellipse cy="-6" rx="62" ry="14" fill="#7fb4f5" opacity=".45"/><path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#cadet-dome)"/><path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/><g fill="#a9dff0"><circle cy="30" r="7"/><circle cx="-32" cy="28" r="7"/><circle cx="32" cy="28" r="7"/><circle cx="-62" cy="22" r="7"/><circle cx="62" cy="22" r="7"/></g></g>
+</g>
+</svg>

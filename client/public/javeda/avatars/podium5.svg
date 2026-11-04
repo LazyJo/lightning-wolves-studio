@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="podium5-bg" cx="0.5" cy="0.35" r="0.72"><stop offset="0" stop-color="#3c5aa0"/><stop offset="0.6" stop-color="#141c50"/><stop offset="1" stop-color="#080a24"/></radialGradient>
+<linearGradient id="podium5-b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef6ff" stop-opacity="0.68"/><stop offset="1" stop-color="#eef6ff" stop-opacity="0.1"/></linearGradient>
+<linearGradient id="podium5-md" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="0.5" stop-color="#c8d2de"/><stop offset="1" stop-color="#76869c"/></linearGradient>
+<linearGradient id="podium5-mi" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#93a3b8"/><stop offset="1" stop-color="#d8e0ea"/></linearGradient>
+<linearGradient id="podium5-f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6c50c4"/><stop offset="1" stop-color="#2c1e70"/></linearGradient>
+<linearGradient id="podium5-f2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a3498"/><stop offset="1" stop-color="#1e1450"/></linearGradient>
+<linearGradient id="podium5-t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d8ccff"/><stop offset="1" stop-color="#9c88ea"/></linearGradient>
+<path id="podium5-st" d="M0 -10L2.5 -3.5L9.5 -3.1L4.1 1.3L5.9 8.1L0 4.3L-5.9 8.1L-4.1 1.3L-9.5 -3.1L-2.5 -3.5Z"/>
+<path id="podium5-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#podium5-bg)"/>
+<g fill="#dfeaff"><circle cx="30" cy="96" r="1.5"/><circle cx="228" cy="104" r="1.5"/></g>
+<path d="M6 -6H46L146 128H84Z" fill="url(#podium5-b)"/>
+<path d="M210 -6H250L172 128H110Z" fill="url(#podium5-b)"/>
+<path d="M20 170H82V256H20ZM174 190H236V256H174Z" fill="url(#podium5-f2)"/><path d="M82 136H174V256H82Z" fill="url(#podium5-f)"/><path d="M20 170L32 158H82V170ZM174 190V178H224L236 190ZM82 136L94 122H162L174 136Z" fill="url(#podium5-t)"/><path d="M20 170H82M174 190H236M82 136H174" stroke="#fff" stroke-width="2.5" opacity=".6"/><path d="M82 136V256M174 136V256" stroke="#120a3a" stroke-width="3"/>
+<ellipse cx="128" cy="129" rx="36" ry="7" fill="#fff" opacity=".55"/>
+<path d="M91 26H116.9L140.9 67.8L116.9 62.3Z" fill="#5b9bf0" stroke="#141e30" stroke-width="2.5" stroke-linejoin="round"/><path d="M165 26H139.1L115 67.8L139.1 62.3Z" fill="#2f6fc9" stroke="#141e30" stroke-width="2.5" stroke-linejoin="round"/><circle cx="128" cy="90" r="37" fill="url(#podium5-md)" stroke="#141e30" stroke-width="3"/><circle cx="128" cy="90" r="27.4" fill="url(#podium5-mi)"/><use href="#podium5-st" transform="translate(128 91) scale(2.1)" fill="#fff" stroke="#141e30" stroke-width=".5" stroke-linejoin="round"/><path d="M101.4 82.6A27.8 27.8 0 0 1 120.6 63.4" fill="none" stroke="#fff" stroke-width="4.1" stroke-linecap="round" opacity=".85"/>
+<g text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="60"><text x="128" y="240" fill="#1a0e02" stroke="#1a0e02" stroke-width="11" stroke-linejoin="round">5</text><text x="128" y="240" fill="#ffd60a">5</text></g>
+<use href="#podium5-sp" transform="translate(56 96) scale(0.7)" fill="#fff"/>
+<use href="#podium5-sp" transform="translate(204 96) scale(0.6)" fill="#bfe9ff"/>
+</svg>

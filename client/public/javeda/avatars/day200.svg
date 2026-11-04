@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="day200-bg" cx=".5" cy=".42" r=".75"><stop offset="0" stop-color="#ff9a2a"/><stop offset=".45" stop-color="#a03a2a"/><stop offset="1" stop-color="#1c1038"/></radialGradient>
+<radialGradient id="day200-gl" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff2a8" stop-opacity=".9"/><stop offset="1" stop-color="#ffc83a" stop-opacity="0"/></radialGradient>
+<linearGradient id="day200-sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd84a"/><stop offset=".6" stop-color="#fff2a8"/><stop offset="1" stop-color="#fff"/></linearGradient>
+<linearGradient id="day200-l" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b85a1a"/><stop offset=".45" stop-color="#5a2420"/><stop offset="1" stop-color="#1a0a1e"/></linearGradient>
+<linearGradient id="day200-gd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".35" stop-color="#ffd60a"/><stop offset=".65" stop-color="#c98a00"/><stop offset="1" stop-color="#ffd60a"/></linearGradient>
+<path id="day200-r" d="M-7-76L0-122L7-76Z"/>
+<clipPath id="day200-c"><circle cx="128" cy="128" r="116"/></clipPath>
+</defs>
+<rect width="256" height="256" fill="url(#day200-bg)"/>
+<circle cx="128" cy="108" r="116" fill="url(#day200-gl)"/>
+<g transform="translate(128 112)" fill="#fff2a8" opacity=".85"><use href="#day200-r" transform="rotate(-70)"/><use href="#day200-r" transform="rotate(-47)"/><use href="#day200-r" transform="rotate(-24)"/><use href="#day200-r"/><use href="#day200-r" transform="rotate(24)"/><use href="#day200-r" transform="rotate(47)"/><use href="#day200-r" transform="rotate(70)"/></g>
+<circle cx="128" cy="112" r="70" fill="url(#day200-sun)"/>
+<path d="M0 118C40 102 84 106 128 110C172 106 216 102 256 118V256H0Z" fill="url(#day200-l)"/>
+<path clip-path="url(#day200-c)" d="M92 256C100 226 112 208 96 190C76 170 64 158 90 146C116 134 150 134 150 124C150 118 138 112 126 110H130C146 113 172 118 170 128C166 144 122 146 108 158C100 166 112 172 130 184C156 202 170 226 172 256Z" fill="#150a1c" stroke="#ffc83a" stroke-width="1.5"/>
+<g fill="#fff2a8"><circle cx="148" cy="118" r="1.8"/><circle cx="160" cy="127" r="2.4"/><circle cx="134" cy="139" r="3"/><circle cx="104" cy="148" r="3.6"/><circle cx="84" cy="161" r="4.2"/><circle cx="102" cy="177" r="5"/><circle cx="128" cy="195" r="5.5"/></g>
+<circle cx="128" cy="128" r="119" fill="none" stroke="url(#day200-gd)" stroke-width="6"/>
+<text x="128" y="228" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-weight="900" font-size="46" fill="#ffd60a" stroke="#1a0e02" stroke-width="8" stroke-linejoin="round" paint-order="stroke">200</text>
+</svg>

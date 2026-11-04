@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="remix1-bg" cx="0.5" cy="0.5" r="0.72"><stop offset="0" stop-color="#5a1a6e"/><stop offset="0.55" stop-color="#1c0e4a"/><stop offset="1" stop-color="#060a20"/></radialGradient>
+<radialGradient id="remix1-gl" cx="0.5" cy="0.5" r="0.5"><stop offset="0.6" stop-color="#ff74d4" stop-opacity="0.55"/><stop offset="1" stop-color="#ff74d4" stop-opacity="0"/></radialGradient>
+<radialGradient id="remix1-v" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#2e2a48"/><stop offset="0.75" stop-color="#14122a"/><stop offset="1" stop-color="#1f1c38"/></radialGradient>
+<linearGradient id="remix1-lb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff6c8"/><stop offset="0.45" stop-color="#ffd60a"/><stop offset="1" stop-color="#c98a00"/></linearGradient>
+<linearGradient id="remix1-hull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b9bf0"/><stop offset="0.5" stop-color="#2f6fc9"/><stop offset="1" stop-color="#1d4f9a"/></linearGradient>
+<linearGradient id="remix1-dome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="0.55" stop-color="#bfe9ff"/><stop offset="1" stop-color="#7cc4ec"/></linearGradient>
+<path id="remix1-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#remix1-bg)"/>
+<g fill="#bfe9ff"><circle cx="220" cy="110" r="1.6"/><circle cx="34" cy="34" r="1.6"/><circle cx="90" cy="24" r="1.3"/><circle cx="238" cy="200" r="1.4"/></g>
+<circle cx="118" cy="138" r="118" fill="url(#remix1-gl)"/>
+<circle cx="118" cy="138" r="98" fill="url(#remix1-v)" stroke="#a48ae0" stroke-width="3"/>
+<g fill="none" stroke="#fff" stroke-width="2" opacity=".12"><circle cx="118" cy="138" r="86"/><circle cx="118" cy="138" r="74"/><circle cx="118" cy="138" r="62"/><circle cx="118" cy="138" r="50"/></g>
+<path d="M118 138L27.8 105.2A96 96 0 0 1 62.9 59.4ZM118 138L208.2 170.8A96 96 0 0 1 173.1 216.6Z" fill="#fff" opacity=".13"/>
+<circle cx="118" cy="138" r="39" fill="url(#remix1-lb)" stroke="#8a5200" stroke-width="3"/>
+<g transform="translate(118 137) scale(.34)"><ellipse cy="34" rx="34" ry="10" fill="#12356b"/><ellipse cy="8" rx="88" ry="26" fill="#12356b"/><ellipse rx="88" ry="26" fill="url(#remix1-hull)"/><ellipse cy="-6" rx="62" ry="14" fill="#7fb4f5" opacity=".45"/><path d="M-40-12A40 40 0 0 1 40-12A40 9 0 0 1-40-12Z" fill="url(#remix1-dome)"/><path d="M-27-24A28 28 0 0 1-8-41" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".9"/><g fill="#67e8f9"><circle cy="30" r="7"/><circle cx="-32" cy="28" r="7"/><circle cx="32" cy="28" r="7"/><circle cx="-62" cy="22" r="7"/><circle cx="62" cy="22" r="7"/></g></g>
+<circle cx="228" cy="38" r="20" fill="#2a1038" stroke="#ff74d4" stroke-width="3"/>
+<g fill="none" stroke-linejoin="round" stroke-linecap="round"><path d="M228 38L214 92L176 122" stroke="#2a0a22" stroke-width="15"/><path d="M228 38L214 92L176 122" stroke="#ff3d8b" stroke-width="10"/><path d="M226 46L213 90L190 109" stroke="#ffb0d4" stroke-width="3"/></g>
+<circle cx="228" cy="38" r="9" fill="#ff74d4"/>
+<circle cx="172" cy="126" r="13" fill="#ff74d4" opacity=".45"/><circle cx="172" cy="126" r="5.5" fill="#fff"/>
+<use href="#remix1-sp" transform="translate(44 44) scale(0.8)" fill="#ffd60a"/>
+<use href="#remix1-sp" transform="translate(232 150) scale(0.6)" fill="#ff74d4"/>
+</svg>

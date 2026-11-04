@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<radialGradient id="mothership-bg" cx=".5" cy=".3" r=".8"><stop offset="0" stop-color="#2a3f8c"/><stop offset=".5" stop-color="#10183f"/><stop offset="1" stop-color="#050817"/></radialGradient>
+<linearGradient id="mothership-gd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff1a8"/><stop offset=".35" stop-color="#ffd60a"/><stop offset=".65" stop-color="#c98a00"/><stop offset="1" stop-color="#ffd60a"/></linearGradient>
+<linearGradient id="mothership-t" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6eef8"/><stop offset=".6" stop-color="#8096bb"/><stop offset="1" stop-color="#42557c"/></linearGradient>
+<linearGradient id="mothership-h" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8d6ea"/><stop offset=".55" stop-color="#7088ae"/><stop offset="1" stop-color="#39496c"/></linearGradient>
+<linearGradient id="mothership-u" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#101a38"/><stop offset="1" stop-color="#050a1c"/></linearGradient>
+<linearGradient id="mothership-bm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".45" stop-color="#bff3ff" stop-opacity=".65"/><stop offset="1" stop-color="#67e8f9" stop-opacity=".08"/></linearGradient>
+<radialGradient id="mothership-p" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#bff3ff"/><stop offset="1" stop-color="#67e8f9" stop-opacity="0"/></radialGradient>
+<linearGradient id="mothership-dm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#67e8f9"/></linearGradient>
+<path id="mothership-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#mothership-bg)"/>
+<g fill="#bfe9ff"><circle cx="34" cy="150" r="1.4"/><circle cx="222" cy="150" r="1.4"/><circle cx="56" cy="180" r="1.2"/><circle cx="200" cy="186" r="1.2"/><circle cx="128" cy="20" r="1.2"/></g>
+<path d="M0 256V232H16V222H28V234H44V216H56V228H72V236H88V220H100V230H116V238H140V226H154V234H168V218H182V230H198V224H212V236H232V228H256V256Z" fill="#010208"/>
+<g fill="#ffd60a"><rect x="19" y="227" width="3" height="4"/><rect x="48" y="221" width="3" height="4"/><rect x="92" y="226" width="3" height="4"/><rect x="172" y="224" width="3" height="4"/><rect x="202" y="229" width="3" height="4"/><rect x="238" y="233" width="3" height="4"/></g>
+<path d="M112 110H144L174 238H82Z" fill="url(#mothership-bm)"/>
+<ellipse cx="128" cy="238" rx="48" ry="9" fill="#bff3ff" opacity=".7"/>
+<ellipse cx="128" cy="90" rx="108" ry="42" fill="url(#mothership-u)"/>
+<path d="M58 62C70 40 98 30 128 30C158 30 186 40 198 62Z" fill="url(#mothership-t)"/>
+<path d="M104 32A24 18 0 0 1 152 32A24 5 0 0 1 104 32Z" fill="url(#mothership-dm)"/>
+<ellipse cx="128" cy="70" rx="110" ry="24" fill="url(#mothership-h)"/>
+<ellipse cx="128" cy="62" rx="78" ry="12" fill="#dfe9f6" opacity=".5"/>
+<g fill="none" stroke-linecap="round">
+<path d="M223.5 91.3h0M220.2 97.2h0M213.7 102.9h0M204.3 108h0M192.4 112.5h0M178.3 116.1h0M162.5 118.8h0M145.6 120.4h0M128 121h0M110.4 120.4h0M93.5 118.8h0M77.7 116.1h0M63.6 112.5h0M51.7 108h0M42.3 102.9h0M35.8 97.2h0M32.5 91.3h0" stroke="#ffe37a" stroke-width="7"/>
+<path d="M197.1 92h0M192.6 97.6h0M184.6 102.7h0M173.4 107h0M159.7 110.3h0M144.3 112.3h0M128 113h0M111.7 112.3h0M96.3 110.3h0M82.6 107h0M71.4 102.7h0M63.4 97.6h0M58.9 92h0" stroke="#bff3ff" stroke-width="6"/>
+<path d="M169.2 93.4h0M164 98.8h0M154.6 103.2h0M142.1 106h0M128 107h0M113.9 106h0M101.4 103.2h0M92 98.8h0M86.8 93.4h0" stroke="#ffe37a" stroke-width="5"/>
+<path d="M235.9 73.3h0M233.8 77.2h0M229.3 81h0M222.5 84.6h0M213.4 87.9h0M202.4 90.8h0M189.7 93.3h0M175.6 95.3h0M160.3 96.8h0M144.4 97.7h0M128 98h0M111.6 97.7h0M95.7 96.8h0M80.4 95.3h0M66.3 93.3h0M53.6 90.8h0M42.6 87.9h0M33.5 84.6h0M26.7 81h0M22.2 77.2h0M20.1 73.3h0" stroke="#fff" stroke-width="3.5"/>
+</g>
+<ellipse cx="128" cy="112" rx="24" ry="9" fill="url(#mothership-p)"/>
+<circle cx="128" cy="128" r="118" fill="none" stroke="#ffd60a" stroke-width="15" opacity=".22"/>
+<circle cx="128" cy="128" r="118" fill="none" stroke="url(#mothership-gd)" stroke-width="8"/>
+<use href="#mothership-sp" transform="translate(46 146) scale(0.7)" fill="#fff"/>
+<use href="#mothership-sp" transform="translate(210 134) scale(0.7)" fill="#ffd60a"/>
+<use href="#mothership-sp" transform="translate(66 196) scale(0.6)" fill="#9fe8ff"/>
+<use href="#mothership-sp" transform="translate(190 196) scale(0.55)" fill="#fff"/>
+</svg>

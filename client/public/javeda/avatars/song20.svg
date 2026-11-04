@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<linearGradient id="song20-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#04051a"/><stop offset=".7" stop-color="#14186a"/><stop offset="1" stop-color="#2a2aa8"/></linearGradient>
+<linearGradient id="song20-bm" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e8eeff" stop-opacity=".95"/><stop offset=".6" stop-color="#6a8aff" stop-opacity=".55"/><stop offset="1" stop-color="#6a8aff" stop-opacity=".2"/></linearGradient>
+<linearGradient id="song20-b2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#c8d4ff" stop-opacity=".1"/></linearGradient>
+<radialGradient id="song20-gl"><stop offset="0" stop-color="#a8b8ff" stop-opacity=".7"/><stop offset="1" stop-color="#3a2aff" stop-opacity="0"/></radialGradient>
+<radialGradient id="song20-tp"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#c8d4ff" stop-opacity="0"/></radialGradient>
+<g id="song20-h" fill="none" stroke-linecap="round" stroke-linejoin="round">
+<path d="M0 150V22" stroke-width="18"/>
+<path d="M0 18V8" stroke-width="30"/>
+<path d="M-11 4L-17-27M-4 0L-6-37M5 0L7-37M12 4L19-26" stroke-width="8"/>
+<path d="M12 20L28 4" stroke-width="9"/>
+</g>
+<path id="song20-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#song20-bg)"/>
+<circle cx="128" cy="150" r="130" fill="url(#song20-gl)"/>
+<path d="M92 0H164L256 220H0Z" fill="url(#song20-bm)"/>
+<path d="M112 0H144L186 220H70Z" fill="url(#song20-b2)"/>
+<circle cx="128" cy="0" r="56" fill="url(#song20-tp)"/>
+<g fill="#fff"><circle cx="110" cy="62" r="1.8"/><circle cx="150" cy="84" r="2"/><circle cx="92" cy="104" r="1.6"/><circle cx="168" cy="50" r="1.5"/><circle cx="136" cy="44" r="1.7"/><circle cx="64" cy="132" r="1.6"/><circle cx="196" cy="116" r="1.8"/></g>
+<g stroke="#232a92" fill="#232a92">
+<use href="#song20-h" transform="translate(38 168) rotate(-10) scale(.72)"/>
+<use href="#song20-h" transform="translate(104 158) rotate(6) scale(.72)"/>
+<use href="#song20-h" transform="translate(168 150) rotate(-6) scale(.72)"/>
+<use href="#song20-h" transform="translate(226 166) rotate(10) scale(.72)"/>
+<circle cx="70" cy="214" r="17"/><circle cx="130" cy="210" r="17"/><circle cx="196" cy="214" r="17"/>
+<path d="M0 256V232Q70 212 128 228Q186 212 256 232V256Z"/>
+</g>
+<g stroke="#04051a" fill="#04051a">
+<use href="#song20-h" transform="translate(70 142) rotate(-8) scale(1.1)"/>
+<use href="#song20-h" transform="translate(186 122) rotate(9) scale(1.1)"/>
+<circle cx="26" cy="232" r="24"/><circle cx="124" cy="226" r="27"/><circle cx="232" cy="234" r="24"/>
+<path d="M0 256V246Q60 236 90 248Q124 240 160 248Q200 236 256 246V256Z" stroke="none"/>
+</g>
+<use href="#song20-sp" transform="translate(128 96) scale(.9)" fill="#fff"/>
+<use href="#song20-sp" transform="translate(32 96) scale(.55)" fill="#c8d4ff"/>
+<use href="#song20-sp" transform="translate(228 76) scale(.6)" fill="#c8d4ff"/>
+<path fill-rule="evenodd" d="M0 0H256V256H0ZM25 5A20 20 0 0 0 5 25V231A20 20 0 0 0 25 251H231A20 20 0 0 0 251 231V25A20 20 0 0 0 231 5Z" fill="#070c1f"/>
+<rect x="5" y="5" width="246" height="246" rx="20" fill="none" stroke="#7f9bff" stroke-width="4"/>
+</svg>

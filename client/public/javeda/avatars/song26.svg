@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+<defs>
+<linearGradient id="song26-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#060a18"/><stop offset=".78" stop-color="#3a0a4a"/><stop offset=".79" stop-color="#120618"/><stop offset="1" stop-color="#060a18"/></linearGradient>
+<linearGradient id="song26-gn" gradientUnits="userSpaceOnUse" x1="0" y1="200" x2="0" y2="-40"><stop offset="0" stop-color="#b0ffd0"/><stop offset=".4" stop-color="#2aff8a"/><stop offset="1" stop-color="#2aff8a" stop-opacity=".25"/></linearGradient>
+<linearGradient id="song26-pk" gradientUnits="userSpaceOnUse" x1="0" y1="200" x2="0" y2="-40"><stop offset="0" stop-color="#ffd0f0"/><stop offset=".4" stop-color="#ff40c0"/><stop offset="1" stop-color="#ff40c0" stop-opacity=".25"/></linearGradient>
+<radialGradient id="song26-gl"><stop offset="0" stop-color="#ff74d4" stop-opacity=".85"/><stop offset="1" stop-color="#b040ff" stop-opacity="0"/></radialGradient>
+<linearGradient id="song26-hd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8ad8"/><stop offset=".5" stop-color="#ff40c0"/><stop offset="1" stop-color="#d8109a"/></linearGradient>
+<linearGradient id="song26-bd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#23233a"/><stop offset="1" stop-color="#05050c"/></linearGradient>
+<g id="song26-b"><path d="M128 196L114-60H142Z" opacity=".32"/><path d="M128 196L123-60H133Z"/></g>
+<path id="song26-sp" d="M0-10C1-3 3-1 10 0C3 1 1 3 0 10C-1 3-3 1-10 0C-3-1-1-3 0-10Z"/>
+</defs>
+<rect width="256" height="256" fill="url(#song26-bg)"/>
+<g fill="#fff"><circle cx="30" cy="20" r="1.5"/><circle cx="226" cy="24" r="1.5"/></g>
+<circle cx="128" cy="184" r="110" fill="url(#song26-gl)"/>
+<use href="#song26-b" transform="rotate(-72 128 196)" fill="url(#song26-gn)"/>
+<use href="#song26-b" transform="rotate(-54 128 196)" fill="url(#song26-pk)"/>
+<use href="#song26-b" transform="rotate(-36 128 196)" fill="url(#song26-gn)"/>
+<use href="#song26-b" transform="rotate(-18 128 196)" fill="url(#song26-pk)"/>
+<use href="#song26-b" fill="url(#song26-gn)"/>
+<use href="#song26-b" transform="rotate(18 128 196)" fill="url(#song26-pk)"/>
+<use href="#song26-b" transform="rotate(36 128 196)" fill="url(#song26-gn)"/>
+<use href="#song26-b" transform="rotate(54 128 196)" fill="url(#song26-pk)"/>
+<use href="#song26-b" transform="rotate(72 128 196)" fill="url(#song26-gn)"/>
+<ellipse cx="128" cy="214" rx="118" ry="11" fill="#ff40c0" opacity=".42"/>
+<path d="M36 228H220M56 238H200" stroke="#2aff8a" stroke-width="3" stroke-linecap="round" opacity=".35"/>
+<g transform="translate(128 212)">
+<path d="M-104-12C-106-26-100-34-84-38L-50-44C-36-62-20-69 0-69C14-69 25-61 36-47L88-37C100-35 106-26 106-16V-10C106-6 104-4 100-4H-100C-104-4-104-8-104-12Z" fill="url(#song26-bd)" stroke="#fff" stroke-opacity=".75" stroke-width="2.5" stroke-linejoin="round"/>
+<path d="M36-47L88-37C100-35 106-26 106-21L34-25C32-33 34-41 36-47Z" fill="url(#song26-hd)" stroke="#ffc0ec" stroke-width="2" stroke-linejoin="round"/>
+<path d="M44-41L88-32" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+<path d="M-38-45C-28-58-14-64-3-64V-45ZM3-64C14-64 22-57 29-47L3-45Z" fill="#4a1a8a"/>
+<path d="M-28-47C-22-54-16-58-10-60L-16-47Z" fill="#ff74d4" opacity=".75"/>
+<path d="M-96-24H26" stroke="#b040ff" stroke-width="2.5" stroke-linecap="round"/>
+<circle cx="-64" cy="-11" r="19" fill="#030308"/><circle cx="68" cy="-11" r="19" fill="#030308"/>
+<g fill="none" stroke="#ff40c0" stroke-width="4"><circle cx="-64" cy="-11" r="10"/><circle cx="68" cy="-11" r="10"/></g>
+<circle cx="-64" cy="-11" r="3.5" fill="#2aff8a"/><circle cx="68" cy="-11" r="3.5" fill="#2aff8a"/>
+<rect x="97" y="-20" width="9" height="7" rx="3" fill="#fff6c8"/>
+<rect x="-105" y="-26" width="8" height="7" rx="3" fill="#ff2a4a"/>
+</g>
+<use href="#song26-sp" transform="translate(50 70) scale(.9)" fill="#2aff8a"/>
+<use href="#song26-sp" transform="translate(206 76) scale(.8)" fill="#ff74d4"/>
+<path fill-rule="evenodd" d="M0 0H256V256H0ZM25 5A20 20 0 0 0 5 25V231A20 20 0 0 0 25 251H231A20 20 0 0 0 251 231V25A20 20 0 0 0 231 5Z" fill="#070c1f"/>
+<rect x="5" y="5" width="246" height="246" rx="20" fill="none" stroke="#ff40c0" stroke-width="4"/>
+</svg>

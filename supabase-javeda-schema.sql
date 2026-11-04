@@ -1773,3 +1773,28 @@ CREATE TABLE IF NOT EXISTS lightning_bot_state (
 );
 ALTER TABLE lightning_bot_state ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON lightning_bot_state FROM anon, authenticated;
+
+-- Lightning Bot, the community part (lightning-community.js): XP for chatting (MEE6's rules) and the mods' warnings.
+-- Discord user ids, not JAVEDA players. Only the server (service role) reads or writes them.
+CREATE TABLE IF NOT EXISTS lightning_xp (
+  user_id    TEXT PRIMARY KEY,                -- the Discord user id
+  name       TEXT,
+  xp         INT NOT NULL DEFAULT 0,
+  level      INT NOT NULL DEFAULT 0,
+  messages   INT NOT NULL DEFAULT 0,
+  last_xp_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS lightning_xp_top ON lightning_xp (xp DESC);
+ALTER TABLE lightning_xp ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON lightning_xp FROM anon, authenticated;
+CREATE TABLE IF NOT EXISTS lightning_warns (
+  id         BIGSERIAL PRIMARY KEY,
+  user_id    TEXT NOT NULL,
+  mod_id     TEXT NOT NULL,
+  reason     TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS lightning_warns_user ON lightning_warns (user_id, created_at DESC);
+ALTER TABLE lightning_warns ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON lightning_warns FROM anon, authenticated;

@@ -1344,6 +1344,7 @@ function toast(html, ms = 3600){
 function renderMe(){
   const name = signedIn() ? player.username : (guest.name || "Guest");
   const av = signedIn() ? player.avatar : guest.avatar;
+  $("meName").toggleAttribute("data-i18n-skip", !!(signedIn() || guest.name));   // "Guest" is a word, a player's name isn't
   $("meName").textContent = name;
   $("meImg").src = pic(av);
   $("mePts").textContent = signedIn() ? fmt(player.points) + " points" + (pass ? " \u00b7 \u26A1 Pass" : "") + (creator ? " · creator, every level open" : "") : "Guest · not saved";
@@ -1609,7 +1610,7 @@ function boardRows(data, val){
   const mine = signedIn() ? player.username.toLowerCase() : null;
   return '<ol>' + data.map((r, i) =>
     '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '"><span class="rk">' + (i + 1) + '</span>' +
-    '<img src="' + pic(r.avatar) + '" alt=""><span class="un">' + esc(r.username) +
+    '<img src="' + pic(r.avatar) + '" alt=""><span class="un"><span data-i18n-skip>' + esc(r.username) + '</span>' +
       (r.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + '</span>' +
     '<span class="val">' + val(r) + '</span></li>').join("") + '</ol>';
 }

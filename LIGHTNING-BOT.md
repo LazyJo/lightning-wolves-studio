@@ -36,7 +36,7 @@ What it does:
 
 The keys stay with you. They go into Vercel and Supabase, **never into a chat**.
 
-1. **Make the bot:** https://discord.com/developers/applications → **New Application** → "Lightning Bot".
+1. **Make the bot:** https://discord.com/developers/applications → **New Application** → "Lightning Bot". (If you already have a "Lightning Bot" application, use that one: Reset Token stops the old code, and step 5 removes its old commands.)
    - Upload `discord/lightning-bot-avatar.png` as the app icon.
    - In **Bot**, upload the same avatar, and `discord/lightning-bot-banner.png` as the banner.
    - In **Bot** → **Reset Token**: copy the token straight into Vercel (step 2).
@@ -54,7 +54,7 @@ The keys stay with you. They go into Vercel and Supabase, **never into a chat**.
    - Scopes: `bot` + `applications.commands`.
    - Bot permissions: View Channels, Send Messages, Embed Links, Read Message History, Manage Roles, Manage Messages, Kick Members, Ban Members, Moderate Members.
    - Open the link and choose the server.
-5. **Put the commands in:** open `https://lightningwolves.studio/api/discord/register?key=<your LIGHTNING_BOT_KEY>`. It shows `/javeda /top /daily /help /setup`. Do it again whenever the commands change.
+5. **Put the commands in:** open `https://lightningwolves.studio/api/discord/register?key=<your LIGHTNING_BOT_KEY>`. It shows the commands, and under `removed_old` any old global commands it took out. Do it again whenever the commands change.
 6. **Roles:** Server Settings → Roles → drag **Lightning Bot** above the roles it hands out (regions, Artist, Producer…, ⚡ OG Wolf) and below the staff roles. A role above it can't be given; the bot then tells you which one.
    - **Channels it must see:** the bot only reads and posts where its role can see. In every channel that is read-only or hidden for @everyone (welcome, rules, roles, wolf-den, creators-lounge, log), add the **Lightning Bot** role with View Channel, Send Messages, Embed Links and Read Message History on "allow". Without this, `/setup` fails there and chat in hidden channels gets no XP. The private Money Corner can stay closed to it.
 7. **Database:** in the Supabase SQL editor, run the newest `supabase-javeda-schema.sql`. It adds the `lightning_bot_state` table.
@@ -87,7 +87,7 @@ $$);
    Is it running? `SELECT status_code, content FROM net._http_response ORDER BY created DESC LIMIT 5;`
    - 200: it's running.
    - `{"posted":[],"note":"no feed channel yet..."}`: do `/setup feed`.
-10. **The old bots:** once the new role picker, the levels and the welcomes work and you've checked them, remove the old Lightning Bot, MEE6, ProBot and carl-bot (Server Settings → Integrations), and hide the old `#region` / `#roles` channels.
+10. **The old bots:** once the new role picker, the levels and the welcomes work and you've checked them, remove MEE6, ProBot and carl-bot (and an old Lightning Bot if it was a separate application) (Server Settings → Integrations), and hide the old `#region` / `#roles` channels.
     - Before removing MEE6/ProBot: did they give new members a role automatically? Lightning Bot does that now.
     - Did they filter spam? Switch on AutoMod first (Server Settings → AutoMod → "Block spam" and "Block words").
     - Green-bot (music) can stay until there's a 24/7 music bot.

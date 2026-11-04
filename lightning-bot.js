@@ -251,8 +251,12 @@ function mount(app, getSb) {
   // once (and after a change to the commands): put the slash commands in the server
   app.get('/api/discord/register', async (req, res) => {
     if (!keyOk(req)) return res.status(401).json({ error: 'key' });
-    try { const r = await discord('/applications/' + process.env.DISCORD_APP_ID + '/guilds/' + GUILD() + '/commands', 'PUT', COMMANDS);
-      res.json({ ok: true, commands: r.map(c => '/' + c.name) }); }
+    try { const app = '/applications/' + process.env.DISCORD_APP_ID;
+      const r = await discord(app + '/guilds/' + GUILD() + '/commands', 'PUT', COMMANDS);
+      // the old Lightning Bot's global commands would show up next to these twice: take them out
+      const old = (await discord(app + '/commands')) || [];
+      if (old.length) await discord(app + '/commands', 'PUT', []);
+      res.json({ ok: true, commands: r.map(c => '/' + c.name), removed_old: old.map(c => '/' + c.name) }); }
     catch (e) { res.status(500).json({ error: e.message }); }
   });
   // every 5 minutes, from pg_cron: the feed

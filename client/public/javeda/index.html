@@ -2786,7 +2786,7 @@ const STANDALONE = matchMedia("(display-mode: standalone)").matches || matchMedi
 const SONG_URLS = [...new Set(LEVELS.map(l => SONGS_URL + "lvl" + l.num + ".mp3"))];
 let installEvt = null, songsSaved = null, songsBusy = false;
 if ("serviceWorker" in navigator) addEventListener("load", () => { navigator.serviceWorker.register("/javeda/sw.js", { scope:"/javeda/" }).then(() => STANDALONE && countSongs()).catch(() => {}); });
-addEventListener("beforeinstallprompt", e => { e.preventDefault(); if (!SAMSUNG) installEvt = e; renderApp(); });
+addEventListener("beforeinstallprompt", e => { e.preventDefault(); if (!SAMSUNG) installEvt = e; renderApp(); if (!$("appSheet").classList.contains("hid")) openAppSheet(); });
 addEventListener("appinstalled", () => { installEvt = null; appSeen("install"); closeSheet("appSheet"); toast("JAVEDA is on your home screen. Open it from there."); renderApp(); });
 // ask the service worker something and get its answers
 function askSW(msg, onReply){
@@ -2838,13 +2838,13 @@ $("appBtn").onclick = async () => {
     if (!ok){ songsBusy = false; $("appBtn").disabled = false; }
     return;
   }
-  if (installEvt){ installEvt.prompt(); const c = await installEvt.userChoice.catch(() => null); if (c && c.outcome === "accepted") installEvt = null; return; }
+  if (installEvt){ installNow(); return; }
   openAppSheet();
 };
 const SHARE_ICON = '<svg class="ios-share" viewBox="0 0 18 20" aria-label="Share" role="img"><path d="M9 1v11M5 5l4-4 4 4" fill="none" stroke="#4ea6ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 8H3v11h12V8h-3" fill="none" stroke="#4ea6ff" stroke-width="1.8" stroke-linejoin="round"/></svg>';
 // the steps, in the language picked (here, not in i18n.js: they hold the Share icon)
 const APP_TXT = {
-  en:{ samsung:'Samsung Internet\'s own install gets blocked by Google Play Protect on newer phones. Install JAVEDA from <b>Chrome</b> instead: tap <b>Open in Chrome</b>, then <b>Get the app</b> there.', chromeBtn:'Open in Chrome',
+  en:{ install:'Install JAVEDA', samsung:'Samsung Internet\'s own install gets blocked by Google Play Protect on newer phones. Install JAVEDA from <b>Chrome</b> instead: tap <b>Open in Chrome</b>, then <b>Get the app</b> there.', chromeBtn:'Open in Chrome',
     iosInApp:'This page is open inside another app. Open it in <b>Safari</b> first: tap the <b>&middot;&middot;&middot;</b> menu and choose <b>Open in browser</b> (or Open in Safari). Then tap Get the app again.',
     ios:['Tap <b>Share</b> # (in Safari at the bottom of the screen, in Chrome at the top).', 'Scroll down and tap <b>Add to Home Screen</b>.', 'Tap <b>Add</b>. JAVEDA is on your home screen.'],
     andInApp:'This page is open inside another app. Tap the <b>&vellip;</b> menu, choose <b>Open in Chrome</b> (or Open in browser), then tap Get the app again.',
@@ -2853,7 +2853,7 @@ const APP_TXT = {
     chr:['Click the <b>install</b> icon at the right of the address bar (a screen with an arrow), or open the menu <b>&vellip;</b>.', 'Click <b>Install JAVEDA</b>.'], chrNote:'Already installed? Open it from your apps.',
     none:'This browser can\'t put JAVEDA on your computer as an app. <b>Chrome</b> or <b>Edge</b> can - or keep this page as a bookmark.',
     foot:'The app plays offline too. Your progress keeps saving, and with an account it goes everywhere you log in.' },
-  nl:{ samsung:'De eigen installatie van Samsung Internet wordt op nieuwere telefoons geblokkeerd door Google Play Protect. Installeer JAVEDA daarom via <b>Chrome</b>: tik op <b>Open in Chrome</b> en daar op <b>Download de app</b>.', chromeBtn:'Open in Chrome',
+  nl:{ install:'JAVEDA installeren', samsung:'De eigen installatie van Samsung Internet wordt op nieuwere telefoons geblokkeerd door Google Play Protect. Installeer JAVEDA daarom via <b>Chrome</b>: tik op <b>Open in Chrome</b> en daar op <b>Download de app</b>.', chromeBtn:'Open in Chrome',
     iosInApp:'Deze pagina is geopend in een andere app. Open hem eerst in <b>Safari</b>: tik op het menu <b>&middot;&middot;&middot;</b> en kies <b>Open in browser</b> (of Open in Safari). Tik daarna opnieuw op Download de app.',
     ios:['Tik op <b>Deel</b> # (in Safari onderaan het scherm, in Chrome bovenaan).', 'Scroll naar beneden en tik op <b>Zet op beginscherm</b>.', 'Tik op <b>Voeg toe</b>. JAVEDA staat op je beginscherm.'],
     andInApp:'Deze pagina is geopend in een andere app. Tik op het menu <b>&vellip;</b>, kies <b>Openen in Chrome</b> (of Openen in browser) en tik daarna opnieuw op Download de app.',
@@ -2862,7 +2862,7 @@ const APP_TXT = {
     chr:['Klik op het <b>installeer</b>-icoon rechts in de adresbalk (een scherm met een pijl), of open het menu <b>&vellip;</b>.', 'Klik op <b>JAVEDA installeren</b>.'], chrNote:'Al geïnstalleerd? Open hem bij je apps.',
     none:'Deze browser kan JAVEDA niet als app op je computer zetten. <b>Chrome</b> of <b>Edge</b> kan dat wel - of bewaar deze pagina als bladwijzer.',
     foot:'De app werkt ook offline. Je voortgang blijft bewaard, en met een account gaat hij mee naar elk apparaat waarop je inlogt.' },
-  fr:{ samsung:'L\'installation de Samsung Internet est bloquée par Google Play Protect sur les téléphones récents. Installe JAVEDA depuis <b>Chrome</b> : touche <b>Ouvrir dans Chrome</b>, puis <b>Télécharger l\'app</b> là-bas.', chromeBtn:'Ouvrir dans Chrome',
+  fr:{ install:'Installer JAVEDA', samsung:'L\'installation de Samsung Internet est bloquée par Google Play Protect sur les téléphones récents. Installe JAVEDA depuis <b>Chrome</b> : touche <b>Ouvrir dans Chrome</b>, puis <b>Télécharger l\'app</b> là-bas.', chromeBtn:'Ouvrir dans Chrome',
     iosInApp:'Cette page est ouverte dans une autre app. Ouvre-la d\'abord dans <b>Safari</b> : touche le menu <b>&middot;&middot;&middot;</b> et choisis <b>Ouvrir dans le navigateur</b> (ou Ouvrir dans Safari). Puis touche à nouveau Télécharger l\'app.',
     ios:['Touche <b>Partager</b> # (dans Safari en bas de l\'écran, dans Chrome en haut).', 'Fais défiler et touche <b>Sur l\'écran d\'accueil</b>.', 'Touche <b>Ajouter</b>. JAVEDA est sur ton écran d\'accueil.'],
     andInApp:'Cette page est ouverte dans une autre app. Touche le menu <b>&vellip;</b>, choisis <b>Ouvrir dans Chrome</b> (ou Ouvrir dans le navigateur), puis touche à nouveau Télécharger l\'app.',
@@ -2871,7 +2871,7 @@ const APP_TXT = {
     chr:['Clique sur l\'icône <b>installer</b> à droite de la barre d\'adresse (un écran avec une flèche), ou ouvre le menu <b>&vellip;</b>.', 'Clique sur <b>Installer JAVEDA</b>.'], chrNote:'Déjà installée ? Ouvre-la depuis tes applications.',
     none:'Ce navigateur ne peut pas installer JAVEDA comme app sur ton ordinateur. <b>Chrome</b> ou <b>Edge</b> le peuvent - ou garde cette page en favori.',
     foot:'L\'app marche aussi hors ligne. Ta progression reste sauvegardée, et avec un compte elle te suit partout où tu te connectes.' },
-  es:{ samsung:'La instalación propia de Samsung Internet la bloquea Google Play Protect en los móviles nuevos. Instala JAVEDA desde <b>Chrome</b>: toca <b>Abrir en Chrome</b> y luego <b>Descarga la app</b> allí.', chromeBtn:'Abrir en Chrome',
+  es:{ install:'Instalar JAVEDA', samsung:'La instalación propia de Samsung Internet la bloquea Google Play Protect en los móviles nuevos. Instala JAVEDA desde <b>Chrome</b>: toca <b>Abrir en Chrome</b> y luego <b>Descarga la app</b> allí.', chromeBtn:'Abrir en Chrome',
     iosInApp:'Esta página está abierta dentro de otra app. Ábrela primero en <b>Safari</b>: toca el menú <b>&middot;&middot;&middot;</b> y elige <b>Abrir en el navegador</b> (o Abrir en Safari). Luego vuelve a tocar Descarga la app.',
     ios:['Toca <b>Compartir</b> # (en Safari abajo de la pantalla, en Chrome arriba).', 'Desliza hacia abajo y toca <b>Añadir a pantalla de inicio</b>.', 'Toca <b>Añadir</b>. JAVEDA está en tu pantalla de inicio.'],
     andInApp:'Esta página está abierta dentro de otra app. Toca el menú <b>&vellip;</b>, elige <b>Abrir en Chrome</b> (o Abrir en el navegador) y vuelve a tocar Descarga la app.',
@@ -2880,12 +2880,21 @@ const APP_TXT = {
     chr:['Haz clic en el icono de <b>instalar</b> a la derecha de la barra de direcciones (una pantalla con una flecha), o abre el menú <b>&vellip;</b>.', 'Haz clic en <b>Instalar JAVEDA</b>.'], chrNote:'¿Ya instalada? Ábrela desde tus aplicaciones.',
     none:'Este navegador no puede instalar JAVEDA como app en tu ordenador. <b>Chrome</b> o <b>Edge</b> sí pueden - o guarda esta página en marcadores.',
     foot:'La app también funciona sin conexión. Tu progreso se sigue guardando, y con una cuenta te acompaña a todas partes donde inicies sesión.' } };
+// the phone's own install box. It only opens once: after a no, the steps in the sheet are what's left
+async function installNow(){
+  const ev = installEvt; if (!ev) return;
+  installEvt = null; ev.prompt();
+  const c = await ev.userChoice.catch(() => null);
+  if (c && c.outcome === "accepted") closeSheet("appSheet");
+  else if (!$("appSheet").classList.contains("hid")) openAppSheet();
+}
 function openAppSheet(){
   const t = APP_TXT[window.JAVEDA_LANG] || APP_TXT.en;
   const list = a => '<ol class="steps" data-i18n-skip>' + a.map(x => '<li>' + x.replace("#", SHARE_ICON) + '</li>').join("") + '</ol>';
   const para = x => '<p data-i18n-skip>' + x + '</p>';
   let how;
-  if (IOS && IN_APP) how = para(t.iosInApp);
+  if (installEvt) how = '<button class="btn primary" type="button" id="appGo" data-i18n-skip>' + t.install + '</button>';
+  else if (IOS && IN_APP) how = para(t.iosInApp);
   else if (IOS) how = list(t.ios);
   else if (ANDROID && SAMSUNG) how = para(t.samsung) + '<a class="btn primary" data-i18n-skip href="intent://' + location.host + '/javeda/#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent("https://play.google.com/store/apps/details?id=com.android.chrome") + ';end">' + t.chromeBtn + '</a>';
   else if (ANDROID && IN_APP) how = para(t.andInApp);
@@ -2894,6 +2903,7 @@ function openAppSheet(){
   else if (CHROMIUM) how = list(t.chr) + '<p class="small" data-i18n-skip>' + t.chrNote + '</p>';
   else how = para(t.none);
   $("appHow").innerHTML = how + '<p class="small" data-i18n-skip>' + t.foot + '</p>';
+  if (installEvt) $("appGo").onclick = installNow;
   $("appCarry").innerHTML = typeof carryHtml === "function" ? carryHtml() : "";
   openSheet("appSheet");
 }
@@ -3128,6 +3138,8 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("mess
 renderAll();
 // /javeda/#report (from the privacy page): straight to Report a problem
 if (location.hash === "#report") setTimeout(openReport, 400);
+// /javeda/#app (the QR code): straight to putting it on your phone
+if (location.hash === "#app"){ history.replaceState(null, "", location.pathname + location.search); if (!STANDALONE) setTimeout(openAppSheet, 400); }
 (async () => {
   try {
     // the settings are kept on the phone too, so the app starts offline (the address and the public key only)

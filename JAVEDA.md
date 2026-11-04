@@ -253,6 +253,7 @@ Built and switched **off**: until it's on, nothing needs it and the hub looks as
   27 earned by the daily challenge (`days:N`, `streak:N` in a row, `wins:N` a finished day first with at least 2 players, `podium:N` top 3 with at least 4).
   `javeda_unlock_met` is the rule, worked out each time from progress and the daily scores (`javeda_stats_of`); the page only shows it, from `javeda_my_stats`.
   A new picture: a row in `javeda_avatars` and a file in `avatars/`.
+- **The QR code** points at `/javeda/#app`, which opens the "Put JAVEDA on your phone" sheet at once. Keep that address working: the code is printed on things. An Android phone that can install gets a one-tap button in the sheet, the moment it says so.
 - **Rows that slide** (`class="hs"`: the scoreboard tabs, its level numbers on a phone and parts, the creator row): one line, soft edge where there is more; a phone swipes, a computer rolls the wheel or drags. Fill a box holding them with `hsPut`, so they stay where they were slid to.
 - **Stars** (only in the hub, nothing in the database): every scoring game counts differently, so a score alone
   says little. A cleared part gets 1 star, 2 at half a great run and 3 for a great run (`GREAT` in the hub, one

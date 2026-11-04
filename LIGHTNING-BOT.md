@@ -17,7 +17,7 @@ What it does:
 | `/warn` `/warnings` `/timeout` `/kick` `/ban` `/purge` | Mods only (Discord's own permissions decide who). Each one goes in the log channel |
 | `/setup welcome` · `rules` · `roles` · `feed` · `log` · `levels` · `intro` | Admins only. Posts the welcome card, the rules or the role picker in this channel, or makes this channel the JAVEDA feed / the log / the level-ups / the welcomes for new members |
 
-- **Role picker:** buttons for region, what you do, and notifications (🎮 Player, 🔔 JAVEDA News, 🎧 New Music). A tap gives the role, a second tap takes it off.
+- **Role picker:** buttons for region, what you do, notifications (🎮 Player, 🔔 JAVEDA News, 🎧 New Music) and what you play on (🕹️ PlayStation, 💻 PC, 🟩 Xbox). A tap gives the role, a second tap takes it off.
   - The bot finds a role that already exists by its name (any emoji around it), so the old ones are kept.
   - A role that doesn't exist yet is made at the first tap.
 - **Community** (`lightning-community.js`), what MEE6, ProBot and carl-bot did. Every 5 minutes it reads what's new:

@@ -24,7 +24,7 @@ const GUILD = () => process.env.DISCORD_GUILD_ID || '490308164739399681';
 const SITE = 'https://lightningwolves.studio';
 const JAVEDA = SITE + '/javeda/';
 const LINKS = { spotify: 'https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7', merch: 'https://www.even.biz/l/lightningwolves', even: 'https://www.even.biz/l/lazyjomusic' };
-const GOLD = 0xffd60a, BLUE = 0x2f8fe0, PINK = 0xe040fb;
+const GOLD = 0xffd60a, BLUE = 0x2f8fe0, PINK = 0xe040fb, GREEN = 0x69f0ae;
 const EPHEMERAL = 64;
 
 // the roles people pick themselves: [key, emoji, name, what finds an existing role of that kind]
@@ -38,6 +38,8 @@ const PICKER = [
     ['girl', '🎀', 'Girl', /\bgirl\b/i]] },
   { title: '🔔 What do you want to hear about?', color: GOLD, roles: [
     ['player', '🎮', 'Player', /\bplayer\b/i], ['news', '🔔', 'JAVEDA News', /javeda news/i], ['music', '🎧', 'New Music', /new music/i]] },
+  { title: '🕹️ What do you play on?', color: GREEN, roles: [
+    ['ps', '🕹️', 'PlayStation', /playstation/i], ['pc', '💻', 'PC', /^\W*pc\W*$|pc gam/i], ['xbox', '🟩', 'Xbox', /xbox/i]] },
 ];
 const ROLE = Object.fromEntries(PICKER.flatMap(g => g.roles.map(([k, e, n, re]) => [k, { emoji: e, name: n, re }])));
 

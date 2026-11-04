@@ -55,7 +55,8 @@ The keys stay with you. They go into Vercel and Supabase, **never into a chat**.
    - Bot permissions: View Channels, Send Messages, Embed Links, Read Message History, Manage Roles, Manage Messages, Kick Members, Ban Members, Moderate Members.
    - Open the link and choose the server.
 5. **Put the commands in:** open `https://lightningwolves.studio/api/discord/register?key=<your LIGHTNING_BOT_KEY>`. It shows `/javeda /top /daily /help /setup`. Do it again whenever the commands change.
-6. **Roles:** Server Settings → Roles → drag **Lightning Bot** above the roles it hands out (regions, Artist, Producer…) and below the staff roles. A role above it can't be given; the bot then tells you which one.
+6. **Roles:** Server Settings → Roles → drag **Lightning Bot** above the roles it hands out (regions, Artist, Producer…, ⚡ OG Wolf) and below the staff roles. A role above it can't be given; the bot then tells you which one.
+   - **Channels it must see:** the bot only reads and posts where its role can see. In every channel that is read-only or hidden for @everyone (welcome, rules, roles, wolf-den, creators-lounge, log), add the **Lightning Bot** role with View Channel, Send Messages, Embed Links and Read Message History on "allow". Without this, `/setup` fails there and chat in hidden channels gets no XP. The private Money Corner can stay closed to it.
 7. **Database:** in the Supabase SQL editor, run the newest `supabase-javeda-schema.sql`. It adds the `lightning_bot_state` table.
 8. **In Discord:**
    - `/setup welcome` in #👋・welcome

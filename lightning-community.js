@@ -34,12 +34,12 @@ module.exports = function community({ discord, GUILD, getState, setState, guildR
   const mention = id => '<@' + id + '>';
   const fmt = n => Number(n || 0).toLocaleString('en-US');
   // the cards: a banner (client/public/discord/) and the member's own Discord picture
-  const CARD = n => 'https://lightningwolves.studio/discord/' + n + '.jpg?v=1';
+  const CARD = n => 'https://lightningwolves.studio/discord/' + n + '.jpg?v=2';
   const face = u => u && u.avatar ? 'https://cdn.discordapp.com/avatars/' + u.id + '/' + u.avatar + '.png?size=256'
     : 'https://cdn.discordapp.com/embed/avatars/' + (u && /^\d+$/.test(u.id) ? Number((BigInt(u.id) >> 22n) % 6n) : 0) + '.png';
   const nameOf = u => (u && (u.global_name || u.username)) || 'someone';
   const wolfCard = (u, how) => ({ content:mention(u.id), allowed_mentions:{ users:[u.id] }, embeds:[{ color:GOLD,
-    title:'🐺 ' + (how ? how + 'you\'re' : 'You\'re') + ' a Wolf now!', description:'**' + nameOf(u) + '** is a 🐺 **Wolf** now. Pup no more.',
+    title:'🐺 ' + (how ? how + 'you\'re' : 'You\'re') + ' a Wolf now!', description:'**' + nameOf(u) + '** is a 🐺 **Wolf** now. Fangs earned. ⚡',
     thumbnail:{ url:face(u) }, image:{ url:CARD('wolf') } }] });
   const bar = (a, b) => { const n = Math.round(10 * a / b); return '▰'.repeat(n) + '▱'.repeat(10 - n); };
 

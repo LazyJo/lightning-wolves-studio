@@ -35,7 +35,7 @@ const PICKER = [
   { title: '🎨 What do you do?', color: PINK, roles: [
     ['twitch', '👾', 'Twitch Streamer', /twitch/i], ['yt', '🔴', 'YouTuber', /youtube/i], ['artist', '🎤', 'Artist', /\bartist\b/i],
     ['producer', '🎛️', 'Producer', /producer/i], ['designer', '🎨', 'Designer', /designer/i], ['hustle', '💵', 'Hustle', /hustle/i],
-    ['girl', '🎀', 'Girl', /\bgirl\b/i]] },
+    ['girl', '🎀', 'Girl', /\bgirl\b/i], ['gamer', '⚔️', 'Gamer', /\bgamers?\b/i], ['fan', '💛', 'Fan', /\bfans?\b/i]] },
   { title: '🔔 What do you want to hear about?', color: GOLD, roles: [
     ['player', '🎮', 'Player', /\bplayer\b/i], ['news', '🔔', 'JAVEDA News', /javeda news/i], ['music', '🎧', 'New Music', /new music/i]] },
   { title: '🕹️ What do you play on?', color: GREEN, roles: [

@@ -33,6 +33,14 @@ module.exports = function community({ discord, GUILD, getState, setState, guildR
   const big = s => BigInt(s);
   const mention = id => '<@' + id + '>';
   const fmt = n => Number(n || 0).toLocaleString('en-US');
+  // the cards: a banner (client/public/discord/) and the member's own Discord picture
+  const CARD = n => 'https://lightningwolves.studio/discord/' + n + '.jpg?v=1';
+  const face = u => u && u.avatar ? 'https://cdn.discordapp.com/avatars/' + u.id + '/' + u.avatar + '.png?size=256'
+    : 'https://cdn.discordapp.com/embed/avatars/' + (u && /^\d+$/.test(u.id) ? Number((BigInt(u.id) >> 22n) % 6n) : 0) + '.png';
+  const nameOf = u => (u && (u.global_name || u.username)) || 'someone';
+  const wolfCard = (u, how) => ({ content:mention(u.id), allowed_mentions:{ users:[u.id] }, embeds:[{ color:GOLD,
+    title:'🐺 ' + (how ? how + 'you\'re' : 'You\'re') + ' a Wolf now!', description:'**' + nameOf(u) + '** is a 🐺 **Wolf** now. Pup no more.',
+    thumbnail:{ url:face(u) }, image:{ url:CARD('wolf') } }] });
   const bar = (a, b) => { const n = Math.round(10 * a / b); return '▰'.repeat(n) + '▱'.repeat(10 - n); };
 
   // ── every 5 minutes: new messages → XP and levels ──
@@ -57,10 +65,10 @@ module.exports = function community({ discord, GUILD, getState, setState, guildR
     msgs.sort((a, b) => a.at - b.at);
     const ids = [...new Set(msgs.map(m => m.user.id))];
     const { data } = await sb.from('lightning_xp').select('*').in('user_id', ids);
-    const rows = Object.fromEntries((data || []).map(r => [r.user_id, r])), ups = [];
+    const rows = Object.fromEntries((data || []).map(r => [r.user_id, r])), ups = [], who = {};
     for (const m of msgs){
       const r = rows[m.user.id] || (rows[m.user.id] = { user_id:m.user.id, xp:0, level:0, messages:0, last_xp_at:null });
-      r.name = m.user.global_name || m.user.username; r.messages++;
+      r.name = m.user.global_name || m.user.username; r.messages++; who[m.user.id] = m.user;
       if (!r.last_xp_at || m.at - Date.parse(r.last_xp_at) >= XP_GAP){
         r.xp += 15 + Math.floor(Math.random() * 11); r.last_xp_at = new Date(m.at).toISOString();
         const L = levelOf(r.xp).level;
@@ -71,8 +79,12 @@ module.exports = function community({ discord, GUILD, getState, setState, guildR
     await sb.from('lightning_xp').upsert(Object.values(rows));
     const ch = await getState(sb, 'levels_channel');
     for (const u of ups) if (ch){
-      await discord('/channels/' + ch + '/messages', 'POST', { content:'🎉 ' + mention(u.id) + ' reached **level ' + u.level + '**!' + (u.level === WOLF_LEVEL ? ' 🐺 Welcome to the pack.' : ''),
-        allowed_mentions:{ users:[u.id] } }).catch(() => {});
+      const user = who[u.id] || { id:u.id }, next = levelOf(rows[u.id].xp);
+      const card = u.level === WOLF_LEVEL ? wolfCard(user, 'Level ' + WOLF_LEVEL + ': ') : { content:mention(u.id), allowed_mentions:{ users:[u.id] }, embeds:[{ color:BLUE,
+        title:'⚡ Level ' + u.level, description:'**' + nameOf(user) + '** reached level ' + u.level + '.' +
+          (next.level === u.level ? '\n' + bar(next.into, next.need) + ' ' + fmt(next.into) + ' / ' + fmt(next.need) + ' XP to level ' + (u.level + 1) : ''),
+        thumbnail:{ url:face(user) }, image:{ url:CARD('levelup') } }] };
+      await discord('/channels/' + ch + '/messages', 'POST', card).catch(() => {});
       out.push('level:' + u.id + ':' + u.level);
     }
   }
@@ -89,7 +101,12 @@ module.exports = function community({ discord, GUILD, getState, setState, guildR
     const roles = await guildRoles(true), id = key => (find(roles, key) || {}).id;
     const { data:xp } = await sb.from('lightning_xp').select('user_id, level');
     const lvl = Object.fromEntries((xp || []).map(r => [r.user_id, r.level]));
-    const welcomed = new Set((await getState(sb, 'welcomed')) || []), intro = await getState(sb, 'intro_channel');
+    const welcomed = new Set((await getState(sb, 'welcomed')) || []), intro = await getState(sb, 'intro_channel'), lvCh = await getState(sb, 'levels_channel');
+    const humans = list.filter(m => !m.user.bot).length;
+    let chans = null; const chan = async re => {                     // #📜・rules / #🎭・roles, for the welcome (the new "・" ones first)
+      chans = chans || await discord('/guilds/' + GUILD() + '/channels').catch(() => []);
+      const c = chans.filter(c => c.type === 0 && re.test(norm(c.name))).sort((a, b) => /・/.test(b.name) - /・/.test(a.name))[0];
+      return c ? '<#' + c.id + '>' : null; };
     let changes = 0; const now = Date.now();
     const give = async (m, key) => { const r = await ensure(key); if (!r || m.roles.includes(r.id)) return; await discord('/guilds/' + GUILD() + '/members/' + m.user.id + '/roles/' + r.id, 'PUT'); m.roles.push(r.id); changes++; };
     const take = async (m, rid) => { if (!rid || !m.roles.includes(rid)) return; await discord('/guilds/' + GUILD() + '/members/' + m.user.id + '/roles/' + rid, 'DELETE'); m.roles = m.roles.filter(x => x !== rid); changes++; };
@@ -102,12 +119,18 @@ module.exports = function community({ discord, GUILD, getState, setState, guildR
         if (joined >= Date.parse(since) && !ranked){ await give(m, 'pup'); out.push('pup:' + m.user.id); }
         if (joined >= Date.parse(since) && !welcomed.has(m.user.id) && intro){
           welcomed.add(m.user.id);
-          await discord('/channels/' + intro + '/messages', 'POST', { content:'🐾 Welcome to the pack, ' + mention(m.user.id) + '! Tell us who you are and what you do. ' +
-            'Chat, play JAVEDA and you\'re a 🐺 **Wolf** at level ' + WOLF_LEVEL + ' (or in ' + WOLF_DAYS + ' days).', allowed_mentions:{ users:[m.user.id] } });
+          const rules = await chan(/(^| )rules$/), picks = await chan(/(^| )roles$/);
+          await discord('/channels/' + intro + '/messages', 'POST', { content:mention(m.user.id), allowed_mentions:{ users:[m.user.id] }, embeds:[{ color:GOLD,
+            title:'🐾 Welcome to the pack, ' + nameOf(m.user) + '!', description:'Tell us who you are and what you do.\n' +
+              'Chat, play JAVEDA and you\'re a 🐺 **Wolf** at level ' + WOLF_LEVEL + ' (or in ' + WOLF_DAYS + ' days).\n\n' +
+              [rules && '📜 ' + rules, picks && '🎭 ' + picks, '🎮 [Play JAVEDA](https://lightningwolves.studio/javeda/)'].filter(Boolean).join(' · '),
+            thumbnail:{ url:face(m.user) }, image:{ url:CARD('welcome') }, footer:{ text:'Lightning Wolves Games X TML · ' + fmt(humans) + ' members' } }] });
         }
         // 🐾 → 🐺: level 5, or 3 days (the 3 days only for who joined since the bot started)
         if (has('pup') && !has('wolf') && ((lvl[m.user.id] || 0) >= WOLF_LEVEL || (joined >= Date.parse(since) && now - joined >= WOLF_DAYS * DAY))){
           await give(m, 'wolf'); await take(m, id('pup')); out.push('wolf:' + m.user.id);
+          // by level, the level-up already said so; by the 3 days, say it here
+          if ((lvl[m.user.id] || 0) < WOLF_LEVEL && lvCh) await discord('/channels/' + lvCh + '/messages', 'POST', wolfCard(m.user, '')).catch(() => {});
         }
         // time badges: only the highest
         const days = (now - joined) / DAY, badge = days >= 365 ? 'og' : days >= 182 ? 'full' : days >= 30 ? 'moon' : null;

@@ -52,8 +52,9 @@ supabase-javeda-schema.sql   # tables, rules and functions - run once in Supabas
    **Google log-in** is off until Supabase › Authentication › Providers › Google is switched on (a Google Cloud OAuth
    client: its ID + secret there, the Supabase callback URL in Google). The hub asks `/auth/v1/settings` and shows
    "Continue with Google" only when it's on, so nobody lands on Supabase's "provider is not enabled" page.
-3. **Discord.** The invite used everywhere is `discord.gg/ngZ4MRjV6`. If that is not the
-   live one, change `LINKS.discord` in `javeda/index.html` and `levels/im-lost.html`.
+3. **Discord.** The invite used everywhere is `discord.gg/SES7XPJvBH` (Expire After: Never). Discord invites
+   stop working after 7 days unless made that way: the one before this ran out and left the button dead. To change it,
+   replace it in `javeda/index.html` and every `levels/*.html` (each page has its own `LINKS.discord`).
 
 Without step 1 the hub still works for guests (progress on the phone only), and the
 scoreboard shows as offline.

@@ -237,7 +237,7 @@ const Q = new URLSearchParams(location.search);
 const HUB = window.parent !== window && Q.has("hub");
 const ID = "hyperdrive";
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
-const LINKS = { spotify:"https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7", merch:"https://www.even.biz/l/lightningwolves", discord:"https://discord.gg/ngZ4MRjV6", home:"https://lightningwolves.studio/javeda/" };
+const LINKS = { spotify:"https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7", merch:"https://www.even.biz/l/lightningwolves", discord:"https://discord.gg/SES7XPJvBH", home:"https://lightningwolves.studio/javeda/" };
 const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const $ = id => document.getElementById(id);

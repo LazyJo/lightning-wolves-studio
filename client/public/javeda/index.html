@@ -477,7 +477,14 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .st li.hot .nm{color:#ffb0c8} .st li.hot .rate i b{background:var(--magenta)}
 .card.wide{width:min(760px,100%)}
 /* the share picture */
-.shot{width:100%; max-width:300px; justify-self:center; border-radius:12px; border:1px solid var(--line); display:block}
+.shot{position:absolute; top:0; left:50%; transform:translateX(-50%); height:100%; width:auto; max-width:100%; aspect-ratio:9/16; border-radius:12px; border:1px solid var(--line); display:block}
+/* the share sheet opens with every button on the screen: they keep their size, the picture takes the room that's left */
+#shareSheet .card{display:flex; flex-direction:column; max-height:calc(100vh - 32px); max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+#shareSheet .card > *{flex:none}
+#shareSheet .card > .shotbox{position:relative; flex:0 1 533px; min-height:120px}
+.shbtns{display:flex; gap:8px; flex-wrap:wrap}
+.shbtns .btn{flex:1 1 auto; padding:11px 12px; text-align:center}
+@media (max-height:680px){ #shareSheet .card{padding:14px; gap:10px} #shareSheet .card p{font-size:13.5px; line-height:1.3} .shbtns{gap:6px} .shbtns .btn{padding:9px 8px; font-size:14px; letter-spacing:.08em} }
 .sharechip{position:fixed; z-index:41; top:max(8px, env(safe-area-inset-top)); left:118px; border:1px solid #ffd60a99; background:#2a1a02e6; color:var(--gold); border-radius:999px; padding:7px 13px; font:700 13px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; box-shadow:0 6px 20px #0008}
 body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, calc(env(safe-area-inset-bottom) + 70px))}
 /* the credits: the songs roll up the screen to the album's last song */
@@ -741,18 +748,16 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
   <div class="card">
     <button class="x" type="button" data-close aria-label="Close">&times;</button>
     <h3 id="shT">Share it</h3>
-    <img class="shot" id="shImg" alt="Your JAVEDA score card">
+    <div class="shotbox"><img class="shot" id="shImg" alt="Your JAVEDA score card"></div>
     <p>Send the link - it shows the JAVEDA preview in the chat. Or put the picture in your story.</p>
-    <div style="display:flex; gap:8px; flex-wrap:wrap">
+    <div class="shbtns">
       <button class="btn primary" id="shLink" type="button">Share the link</button>
       <a class="btn wa" id="shWa" target="_blank" rel="noopener">WhatsApp</a>
-      <button class="btn" id="shCopy" type="button">Copy the link</button>
-    </div>
-    <div style="display:flex; gap:8px; flex-wrap:wrap">
       <button class="btn ig" id="shIg" type="button">Instagram Story</button>
       <button class="btn tt" id="shTt" type="button">TikTok</button>
-      <button class="btn" id="shPic" type="button">Share the picture</button>
+      <button class="btn" id="shCopy" type="button">Copy the link</button>
       <a class="btn" id="shSave" download="javeda.png">Save picture</a>
+      <button class="btn" id="shPic" type="button">Share the picture</button>
     </div>
     <p class="small hid" id="shHint"></p>
   </div>

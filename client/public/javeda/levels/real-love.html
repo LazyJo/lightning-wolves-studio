@@ -142,7 +142,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    palms dark on the right, the red pickup on the sand with its headlights on - and Jo's saucer as it is on this
    cover (the gold dome with the "L", the white beam). Jo picked all four, so the song has four parts:
    PART 1 · HEART FLOW: link the pairs of hearts with lines of light; lines can't cross.
-   PART 2 · CRAB SWEEPER (?part=2): dig the mounds; the numbers count the crabs around. Keep digging - the tide.
+   PART 2 · CRAB SWEEPER (?part=2): dig the mounds; the numbers count the crabs around. Only a crab costs a heart; dig a whole beach to clear it.
    PART 3 · STARLIGHT (?part=3): a star and the four next to it change when you tap it; light them all.
    PART 4 · SHELL SUDOKU (?part=4): each picture once in every row, column and box.
    Hearts: 3. On the beat it counts double, in the hooks double again. At the end of the song: the cover.
@@ -511,8 +511,9 @@ const FLOW = {
 /* =============== 2. CRAB SWEEPER: the crabs hiding in the sand =============== */
 // Mounds of sand, crabs hidden under some. Tap a mound to dig it: the number says how many crabs are
 // in the 8 around it (0 digs its neighbours too). Hold (or turn on FLAG) to mark a crab with a heart flag.
-// Dig up a crab and it bites - a heart. Dig every crab-free mound for the next beach. The tide's coming
-// in: no dig for 2 bars costs a heart.
+// Dig up a crab and it bites - a heart. Dig every crab-free mound for the next beach. No hurry: waiting costs nothing
+// (the tide used to take a heart after 2 bars without a dig; Jo took it out). A whole beach dug before the song
+// ends clears the part, so doing nothing doesn't.
 const NUM_CSS = ["", "#3ab8ff", "#3ad88a", "#ff5a5a", "#c86aff", "#ff9a3a", "#3af0f0", "#ffffff", "#ffc83a"];
 const NUM_TEX = NUM_CSS.map((c, i) => i ? iconTex(64, 64, (x, w, h) => { x.fillStyle = c; x.strokeStyle = "#1a1410"; x.lineWidth = 6; x.font = "bold 46px Bungee, Impact, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.strokeText(i, 32, 35); x.fillText(i, 32, 35); }) : null);
 const MOUND = new THREE.MeshStandardMaterial({ color:0xd8c8a8, roughness:1, emissive:0x4a3a28, emissiveIntensity:.5 });
@@ -530,7 +531,7 @@ const CRABS = {
   setup(){ boot(48); this.w = beach(); this.root = new THREE.Group(); scene.add(this.root); this.cells = [];
     if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
   reset(){ Object.assign(S, { board:S.lap, boards:kept(S.boards), dug:kept(S.dug), found:kept(S.found), k:kept(S.k, 1), nextAt:0, last:null, deadline:0, flagMode:false }); lastT = 0; this.hold = null; this.make(startT()); say("CRAB SWEEPER", "tap to dig - the numbers count the crabs around", 2.4); },
-  info(){ const left = this.cells.filter(x => !x.crab && !x.open).length; return left + " TO DIG · " + this.crabs + " CRABS"; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR*.6; },
+  info(){ const left = this.cells.filter(x => !x.crab && !x.open).length; return left + " TO DIG · " + this.crabs + " CRABS"; }, warn(){ return false; },
   make(t){ for (const x of this.cells){ this.root.remove(x.m); if (x.num) this.root.remove(x.num); if (x.flag) this.root.remove(x.flag); if (x.crabM) this.root.remove(x.crabM); }
     const n = this.n = S.board < 1 ? 7 : 8; this.crabs = S.board < 1 ? 7 : Math.min(14, 10 + (S.board - 1)*2); this.armed = false; this.cells = [];
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++){ const m = new THREE.Mesh(new THREE.SphereGeometry(cellW(n)*.48, 14, 8, 0, Math.PI*2, 0, Math.PI/2), MOUND); m.scale.y = .45; m.position.copy(cellPos(n, c, r, 0)); this.root.add(m); this.cells.push({ c, r, m, crab:false, open:false, flag:null, n:0 }); }
@@ -558,7 +559,7 @@ const CRABS = {
   release(){ const h = this.hold; this.hold = null; if (!h || !h.x) return; const long = performance.now() - h.t > 380; if (long !== S.flagMode) this.flagIt(h.x); else this.dig(h.x); },
   update(dt, t){
     if (S.nextAt && t > S.nextAt) this.make(t);
-    if (!S.nextAt && t > S.deadline){ if (hurt("THE TIDE", "Keep digging - every 2 bars without a dig, the tide comes in.")) return; this.fuse(t); }
+    if (!S.nextAt && t > S.deadline) this.fuse(t);     // take your time: only a crab costs a heart (the clock is only the remix's turn)
   },
   render(t){ const dt = dtOf(t), beat = onBeat(t);
     for (const x of this.cells){ if (x.crabM){ const m = x.crabM; m.userData.run += dt; if (m.userData.run > .6){ m.position.z -= dt*3; m.position.x += Math.sin(t*20)*.01; m.rotation.y = Math.PI; } if (m.position.z < -9) m.visible = false; }
@@ -704,9 +705,12 @@ function reset(){
 // endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
 function startStint(n, t){
   S.stint = n; let back = false;
-  if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  // Crab Sweeper has no clock any more (waiting costs nothing), so its 24-bar bonus needs a beach dug in those 24 bars
+  const earned = n > 0 && n % 3 === 0 && (G !== CRABS || S.boards > (S.bonusAt || 0));
+  if (n > 0 && n % 3 === 0) S.bonusAt = S.boards;
+  if (earned){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
   const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
-  if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
+  if (earned) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
 }
 // the remix: when a game's turn is up it finishes the beach, sky or grid you're on (8 bars at most), then the next game
 // comes in. Round all four is a lap: +2,000, a heart back, and the next one is harder
@@ -751,6 +755,7 @@ function showSetting(on){}
 function buildEnd(){ END.root = new THREE.Group(); scene.add(END.root); END.glow = sprite(0xfff4d0, 2.6, 0); END.glow.position.set(-.6, .1, 2.6); END.root.add(END.glow); }
 function win(){
   if (S.end >= 0 || S.done) return;
+  if (PART === 2 && !CFG.endless && !REMIX && S.boards < 1){ lose("THE SONG'S OVER", "Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart."); return; }
   S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
   $("hud").classList.add("off"); $("phase").className = "off";
 }
@@ -865,9 +870,9 @@ $("intro").innerHTML = "The beach from the cover at night - the glowing heart ov
   (REMIX ? " <b>The remix:</b> Heart Flow, Crab Sweeper, Starlight and Shell Sudoku, 16 bars each, and round again, harder every lap. A finished lap gives a heart back."
     : [" <b>Part 1 · Heart Flow:</b> pairs of hearts on stones in the sand.", " <b>Part 2 · Crab Sweeper:</b> mounds of sand, crabs hiding under some.", " <b>Part 3 · Starlight:</b> stars lying in the sand, some lit, some dark.", " <b>Part 4 · Shell Sudoku:</b> a sudoku with pictures from the beach."][PART - 1]) +
   (ENDLESS ? " <b>Endless:</b> it never stops - harder every 8 bars, a heart back every 24." : "");
-$("how").innerHTML = REMIX ? "<b>Heart Flow:</b> drag from a heart to the heart of the same colour; lines can't cross. <b>Crab Sweeper:</b> tap a mound to dig it, the number counts the crabs around; hold it, or turn on <b>FLAG</b>, to mark a crab - and keep digging, or the tide takes a heart. <b>Starlight:</b> tap a star and it changes, with the four next to it; light them all. <b>Shell Sudoku:</b> tap a picture on the tray, then a stone; each one once in every row, column and box. When a game's turn is up you finish what you're on, then the next one comes in." : [
+$("how").innerHTML = REMIX ? "<b>Heart Flow:</b> drag from a heart to the heart of the same colour; lines can't cross. <b>Crab Sweeper:</b> tap a mound to dig it, the number counts the crabs around; hold it, or turn on <b>FLAG</b>, to mark a crab - only a crab costs a heart. <b>Starlight:</b> tap a star and it changes, with the four next to it; light them all. <b>Shell Sudoku:</b> tap a picture on the tray, then a stone; each one once in every row, column and box. When a game's turn is up you finish what you're on, then the next one comes in." : [
   "<b>Drag</b> from a heart to the heart of the same colour to draw a line of light - lines can't cross, and drawing over one cuts it. Link every pair for the next beach; fill every stone too for a bonus. Out of time costs a heart (3). Linked <b>on the beat</b> it counts double; double again in the hooks.",
-  "<b>Tap</b> a mound to dig it: the number says how many crabs are in the 8 around it (an empty one digs its neighbours too; the first dig is never a crab). <b>Hold</b> a mound, or turn on <b>FLAG</b>, to mark a crab. Dig up a crab and it bites - a heart (3) - and keep digging: 2 bars without a dig and the tide takes a heart. Dug <b>on the beat</b> it counts double; double again in the hooks.",
+  "<b>Tap</b> a mound to dig it: the number says how many crabs are in the 8 around it (an empty one digs its neighbours too; the first dig is never a crab). <b>Hold</b> a mound, or turn on <b>FLAG</b>, to mark a crab. Dig up a crab and it bites - a heart (3). Take your time: only a crab costs a heart. Dig a whole beach to clear the part. Dug <b>on the beat</b> it counts double; double again in the hooks.",
   "<b>Tap</b> a star: it changes, and so do the four next to it - lit goes dark, dark lights up. Light every star for the next sky (each one says how many taps it was made with). Out of time costs a heart (3). Lit <b>on the beat</b> it counts double; double again in the hooks.",
   "Each picture once in every row, every column and every box: <b>tap</b> a picture on the tray, then <b>tap</b> a stone. A wrong one doesn't stay. 4x4, then 6x6. Out of time costs a heart (3). Placed <b>on the beat</b> it counts double; double again in the hooks."][PART - 1];
 if (!HUB){

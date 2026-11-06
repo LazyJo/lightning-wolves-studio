@@ -183,6 +183,9 @@ const BAR = 3.0, LOOP = [108, 180], LOOP_LEN = LOOP[1] - LOOP[0];
 const MAXH = 3, EXTRA = EX ? 8 : 0, STINT = 8*BAR;   // hearts, extra wanderers, a remix part
 const WORLD = 62;                       // how far from the middle the forest goes
 const FLY_Y = 8.5, SPEED = 6.6;         // just over the treetops; the beam reaches down through them
+// how far (m) the camera sits ahead of the saucer: a little down the screen at rest (it used to show almost no
+// ground below the saucer), more going down, back to the old view going up (it already looks ahead that way)
+const LEAD = { rest:4, down:11, up:4, side:2 };
 let FOG = CFG.fog; const FOG_STAR = .011;   // fog density, and how far a shooting star thins it
 /* Where the hook lands in lvl3.mp3: the first chorus downbeat at 0:24.0, read
    off the song's loudness (the pickup is at 0:23.25). The ending starts the song
@@ -426,7 +429,7 @@ function boot(){
 /* ---- state ---- */
 let S;
 function reset(){
-  S = { t:0, started:false, done:false, x:0, z:4, vx:0, vz:0, got:0, petals:0, chills:0,
+  S = { t:0, started:false, done:false, x:0, z:4, vx:0, vz:0, lx:0, lz:LEAD.rest, got:0, petals:0, chills:0,
         cpx:0, cpz:4, chill:-1, grace:0, beatT:0, beatI:1.4, starT:6, star:-1, msgT:0, end:-1, e0:null,
         lives:CFG.lives, fail:false };
   shards.forEach(s => { s.userData.got = false; s.userData.fly = -1; s.visible = true; s.position.set(SHARD_AT[s.userData.i][0], 1.2, SHARD_AT[s.userData.i][1]);
@@ -534,7 +537,7 @@ function update(dt){
   /* ---- a ghost got you: a white chill, and back to the last piece ---- */
   if (S.chill >= 0){
     S.chill += dt;
-    if (S.chill > .45 && !S.moved){ S.moved = true; S.x = S.cpx; S.z = S.cpz; S.vx = S.vz = 0; }
+    if (S.chill > .45 && !S.moved){ S.moved = true; S.x = S.cpx; S.z = S.cpz; S.vx = S.vz = 0; S.lx = 0; S.lz = LEAD.rest; }
     if (S.chill > 1){ S.chill = -1; S.grace = 1.6; if (EX) S.pc = Math.max(S.pc, 4 + trip()); }
     return;
   }
@@ -545,6 +548,10 @@ function update(dt){
   const k = 1 - Math.exp(-dt * 6);
   S.vx += (ix*SPEED - S.vx) * k; S.vz += (iz*SPEED - S.vz) * k;
   S.x += S.vx * dt; S.z += S.vz * dt;
+  // the camera leans the way you fly, so you see where you're going - most of all going down the screen,
+  // where it saw least (it looks ahead, up the screen): the saucer slides up and the trees below come into view
+  const kl = 1 - Math.exp(-dt * 1.8);
+  S.lx += (S.vx/SPEED*LEAD.side - S.lx) * kl; S.lz += (LEAD.rest + S.vz/SPEED*(S.vz > 0 ? LEAD.down : LEAD.up) - S.lz) * kl;
   const r = Math.hypot(S.x, S.z);
   if (r > WORLD){ S.x *= WORLD/r; S.z *= WORLD/r; if (S.msgT <= 0) say("TOO FAR", "the pieces are back in the trees", 1.4); }
 
@@ -733,6 +740,7 @@ function startEnd(){
   try { song.loop = false; song.currentTime = Math.max(0, HOOK - END.whole); const p = song.play(); if (p && p.catch) p.catch(()=>{}); } catch(e){}
 }
 function updateEnd(dt){
+  S.lx *= Math.exp(-dt*2); S.lz *= Math.exp(-dt*2);     // the camera settles back over the saucer for the ending
   const t0 = S.end, t = S.end += dt;
   if (t0 < END.whole && t >= END.whole){
     sfx.chime();
@@ -808,7 +816,8 @@ function render(dt){
   }
 
   // camera: behind and above; in the ending it turns up to the sky
-  camRig(S.x, S.z);
+  const tall = cam.aspect < 1 ? 1 + (1 - cam.aspect)*.6 : 1;     // a phone held upright sees less ground: lean a bit more
+  camRig(S.x + S.lx, S.z + S.lz*tall);
   // the heart sits just under the top of the frame whatever the screen's shape:
   // its height comes from the camera's tilt and field of view
   const pitch = Math.atan2(V.y - LOOK.y, Math.hypot(V.z - LOOK.z, V.x - LOOK.x));

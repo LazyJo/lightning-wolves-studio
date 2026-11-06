@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>JAVEDA · Lazy Jo</title>
-<meta name="description" content="JAVEDA, the playable album by Lazy Jo. Every song is a level.">
+<title>JAVEDA by Lazy Jo · The playable album</title>
+<meta name="description" content="JAVEDA by Lazy Jo: a free game where every song on the album is a level. 28 songs, 28 levels. Play it in your browser or put it on your phone.">
 <link rel="canonical" href="https://lightningwolves.studio/javeda/">
 <!-- for search engines: JAVEDA is a game and an album by Lazy Jo (his verified Spotify and Instagram) -->
 <script type="application/ld+json">
@@ -516,6 +516,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 .passcard .fine{font-size:13px; color:var(--mute)}
 .passcard .fine a{color:var(--dim)}
 .passcard .have{border:1px solid #3ddc9759; border-radius:10px; padding:10px 12px; color:var(--good); font-weight:600}
+@media (max-height:600px){ .passcard{padding:14px; gap:8px} .passcard p, .passcard .incl, .passcard .chk{font-size:13px; line-height:1.3} .passcard .incl{gap:3px} .passcard .fine{font-size:12px} .passcard h3{font-size:19px} }
 .btn.big{padding:15px 20px; font-size:17px}
 .mk{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; align-items:end}
 .newcode{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; border:1px dashed #ffd60a88; border-radius:10px; padding:12px 14px}
@@ -791,6 +792,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     </ul>
     <p class="fine">Part 1 of every song, the daily challenge and the online games stay free. With the Pass you still open each part by clearing the one before it.</p>
     <div class="have hid" id="psHave"></div>
+    <label class="chk hid" id="psOkRow"><input type="checkbox" id="psOk"><span>Start my Pass right away. I understand I then lose my 14-day right to cancel.</span></label>
     <button class="btn gold big" id="psBuy" type="button">Get the Pass</button>
     <div class="or">OR</div>
     <label class="f">A code from EVEN or your merch
@@ -2439,7 +2441,10 @@ function openPass(lv){
   $("psHave").classList.toggle("hid", !pass);
   $("psHave").innerHTML = pass ? "&#10003; You have the JAVEDA Pass" + (pass.merch ? " and every remix." : ". A merch code still opens every remix straight away.") : "";
   $("psBuy").classList.toggle("hid", !!pass);
-  $("psBuy").disabled = !passCents;
+  // the tick is for buying, so only once you're logged in: a guest goes to the log-in first and comes back here
+  $("psOk").checked = false;
+  $("psOkRow").classList.toggle("hid", !!pass || !passCents || !signedIn());
+  $("psBuy").disabled = !passCents || signedIn();
   $("psBuy").textContent = passCents ? "Get the Pass \u00b7 " + euro(passCents) : "Payments open soon \u00b7 a code works now";
   openSheet("pass");
 }
@@ -2453,6 +2458,7 @@ function passWelcome(merch){
   renderAll();
   toast("<b>&#9889; The JAVEDA Pass is yours</b>" + (merch ? " &middot; every remix is open" : "") + ". Every part opens as you clear the one before it.", 7000);
 }
+$("psOk").onchange = () => { $("psBuy").disabled = !$("psOk").checked; };
 $("psBuy").onclick = async () => {
   if (!signedIn()) return passLogin();
   $("psBuy").disabled = true; $("psErr").textContent = "";

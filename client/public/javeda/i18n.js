@@ -526,6 +526,7 @@ const S = [
   ["Silver Podium","Zilveren podium","Podium d'argent","Podio de plata"],
   ["Gold Podium","Gouden podium","Podium d'or","Podio de oro"],
   ["Yours","Van jou","À toi","Tuyo"],
+  ["Start my Pass right away. I understand I then lose my 14-day right to cancel.", "Start mijn Pass meteen. Ik begrijp dat ik dan mijn herroepingsrecht van 14 dagen verlies.", "Activer mon Pass tout de suite. Je comprends que je perds alors mon droit de rétractation de 14 jours.", "Activar mi Pase ahora mismo. Entiendo que entonces pierdo mi derecho de desistimiento de 14 días."],
 ];
 
 /* ---- text with numbers in it: [the English as a pattern, nl, fr, es]; $1 $2 are the numbers or names in it,

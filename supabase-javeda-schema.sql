@@ -40,8 +40,6 @@ ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS requires_score INT NOT NULL D
 -- second of real time since then. Only a new best earns points (see javeda_submit_run).
 ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS endless  BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS max_rate INT NOT NULL DEFAULT 0;
--- pass: the level needs the JAVEDA Pass (once it's switched on, see the bottom). Everything but a song's Part 1.
-ALTER TABLE javeda_levels ADD COLUMN IF NOT EXISTS pass BOOLEAN NOT NULL DEFAULT false;
 
 INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, score_per_point, clear_points, first_clear_points, sort) VALUES
   ('lvl1', 1, 'I''M LOST',   NULL,   0, 4000,   100, 50, 300, 1),
@@ -204,8 +202,6 @@ UPDATE javeda_progress p SET level = 'hyperdrive' WHERE level = 'jumpride'
 DELETE FROM javeda_progress WHERE level = 'jumpride';
 DELETE FROM javeda_runs WHERE level = 'jumpride';
 DELETE FROM javeda_levels WHERE id = 'jumpride';
--- free: Part 1 of every song (lvlN). The Pass: every other part, endless and remix, HYPERDRIVE and the marathon.
-UPDATE javeda_levels SET pass = (id !~ '^lvl[0-9]+$') WHERE pass IS DISTINCT FROM (id !~ '^lvl[0-9]+$');
 
 -- ── Profile pictures ───────────────────────────────────────────────────────
 -- Cost 0 = free to pick from the start. The pictures themselves are static
@@ -675,15 +671,15 @@ BEGIN
   SELECT * INTO lv FROM javeda_levels WHERE id = p_level;
   IF lv IS NULL OR NOT lv.endless THEN RAISE EXCEPTION 'no such endless level' USING ERRCODE = 'P0002'; END IF;
   IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
-  IF javeda_needs_pass(uid, p_level) THEN RAISE EXCEPTION 'JAVEDA Pass needed' USING ERRCODE = '42501'; END IF;
   IF lv.requires IS NOT NULL AND NOT EXISTS (
        SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared
                                        AND best_score >= lv.requires_score)
-     AND NOT (lv.id ~ '^lvl[0-9]+r$' AND EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = uid AND merch))
+     AND NOT EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = uid)
      AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
     RAISE EXCEPTION 'level locked' USING ERRCODE = '42501';
   END IF;
   IF lv.id = 'marathon' AND NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid AND album_completed_at IS NOT NULL)
+     AND NOT EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = uid)
      AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
     RAISE EXCEPTION 'finish the album to open the marathon' USING ERRCODE = '42501';
   END IF;
@@ -694,7 +690,7 @@ END;
 $$;
 
 -- Report a finished run. The client says what happened; this decides what it
--- is worth. Locked levels are refused (and ones that need the JAVEDA Pass, without it), scores are clamped to the
+-- is worth. Locked levels are refused (a JAVEDA Pass opens them all), scores are clamped to the
 -- level's cap, runs closer than 10 s apart are refused, and a run's score is worth at most
 -- 40 points before the clear bonuses. An endless run must have been started
 -- (javeda_start_run), its score is held to max_rate a second since then, and it
@@ -720,13 +716,11 @@ BEGIN
   IF lv IS NULL THEN RAISE EXCEPTION 'no such level' USING ERRCODE = 'P0002'; END IF;
   SELECT * INTO me FROM javeda_players WHERE user_id = uid FOR UPDATE;
   IF me IS NULL THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
-  IF javeda_needs_pass(uid, p_level) THEN RAISE EXCEPTION 'JAVEDA Pass needed' USING ERRCODE = '42501'; END IF;
   IF lv.requires IS NOT NULL AND NOT EXISTS (
        SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared
                                        AND best_score >= lv.requires_score)
      AND NOT EXISTS (SELECT 1 FROM javeda_unlocks WHERE user_id = uid AND level = p_level)
-     AND NOT EXISTS (SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = javeda_free_gate(p_level) AND cleared)
-     AND NOT (lv.id ~ '^lvl[0-9]+r$' AND EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = uid AND merch))
+     AND NOT EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = uid)
      AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
     RAISE EXCEPTION 'level locked' USING ERRCODE = '42501';
   END IF;
@@ -810,14 +804,12 @@ BEGIN
     item := p_progress -> lv.id;
     CONTINUE WHEN item IS NULL OR jsonb_typeof(item) <> 'object';
     CONTINUE WHEN lv.endless;              -- a guest's endless score can't be checked: it stays on the phone
-    CONTINUE WHEN javeda_needs_pass(uid, lv.id);
     CONTINUE WHEN EXISTS (SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.id);
     -- a guest clear only counts if the level before it is cleared too (or a daily kept it open)
     CONTINUE WHEN lv.requires IS NOT NULL AND NOT EXISTS (
       SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared
                                       AND best_score >= lv.requires_score)
-      AND NOT EXISTS (SELECT 1 FROM javeda_unlocks WHERE user_id = uid AND level = lv.id)
-      AND NOT EXISTS (SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = javeda_free_gate(lv.id) AND cleared);
+      AND NOT EXISTS (SELECT 1 FROM javeda_unlocks WHERE user_id = uid AND level = lv.id);
     INSERT INTO javeda_progress (user_id, level, cleared, best_score, best_metres, runs, clears, first_cleared_at)
     VALUES (uid, lv.id,
             COALESCE((item ->> 'cleared')::BOOLEAN, false),
@@ -1257,9 +1249,7 @@ BEGIN
                       SELECT g.user_id FROM g WHERE g.level = l.requires AND g.cleared AND g.best_score >= l.requires_score
                       UNION
                       SELECT u.user_id FROM javeda_unlocks u WHERE u.level = l.id
-                        AND NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = u.user_id)
-                      UNION
-                      SELECT g.user_id FROM g WHERE g.level = javeda_free_gate(l.id) AND g.cleared) w) END,
+                        AND NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = u.user_id)) w) END,
          (SELECT count(*)::INT FROM g WHERE g.level = l.id AND g.runs > 0),
          (SELECT count(*)::INT FROM g WHERE g.level = l.id AND g.cleared),
          (SELECT count(*)::INT FROM g WHERE g.level = l.id AND g.runs > 0 AND NOT g.cleared),
@@ -1423,13 +1413,11 @@ REVOKE ALL ON FUNCTION public.javeda_creator_overview() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_creator_overview() TO authenticated;
 
 -- ── The JAVEDA Pass ─────────────────────────────────────────────────────────
--- Free: an account, Part 1 of every song (so the daily challenge too) and its boards, the online games, points and
--- pictures. The JAVEDA Pass opens the rest - every Part 2-4, every endless and remix, HYPERDRIVE and the album
--- marathon (javeda_levels.pass) - for EUR 5.99 once through Stripe (the server's /api/javeda/pass/*, which call
--- javeda_grant_pass), or with a code: an EVEN code gives the Pass, a merch code the Pass and every remix open straight
--- away. The way in stays the same with the Pass: a part still needs the one before it cleared, a remix all its
--- song's parts (but for a merch code) - only a song's Part 1 may open from the song before's Part 1 (javeda_free_gate).
--- Creators need no Pass. Nothing needs it until it's switched on:
+-- The whole game is free if you can finish it: clearing a part opens the next one, for everyone. The JAVEDA Pass only
+-- skips the wait: every part, endless and remix, HYPERDRIVE and the album marathon open straight away. EUR 5.99 once
+-- through Stripe (the server's /api/javeda/pass/*, which call javeda_grant_pass), or an EVEN or merch code. Points,
+-- pictures and the album badge still come from playing. Creators need no Pass.
+-- pass_on only says the Pass is on sale in the hub: a Pass or a code works either way.
 --   UPDATE javeda_settings SET pass_on = true;
 
 -- one row: the switches for the whole game (re-running this file never flips them)
@@ -1442,7 +1430,7 @@ INSERT INTO javeda_settings (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
 CREATE TABLE IF NOT EXISTS javeda_passes (
   user_id    UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   source     TEXT NOT NULL CHECK (source IN ('stripe', 'even', 'merch', 'gift')),
-  merch      BOOLEAN NOT NULL DEFAULT false,   -- every remix open straight away
+  merch      BOOLEAN NOT NULL DEFAULT false,   -- came with a merch code (a record: it opens the same as any Pass)
   ref        TEXT,                             -- the Stripe checkout session, or the code
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -1483,29 +1471,6 @@ CREATE POLICY javeda_passes_read ON javeda_passes FOR SELECT USING (auth.uid() =
 REVOKE ALL ON javeda_settings, javeda_passes, javeda_codes, javeda_redemptions, javeda_code_tries FROM anon, authenticated;
 GRANT SELECT ON javeda_settings TO anon, authenticated;
 GRANT SELECT ON javeda_passes TO authenticated;
-
--- does this level need a Pass this player hasn't got?
-CREATE OR REPLACE FUNCTION public.javeda_needs_pass(p_user UUID, p_level TEXT)
-RETURNS BOOLEAN
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-  SELECT COALESCE((SELECT pass_on FROM javeda_settings), false)
-     AND COALESCE((SELECT pass FROM javeda_levels WHERE id = p_level), false)
-     AND NOT EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = p_user)
-     AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = p_user);
-$$;
-
--- Every song's Part 1 is free, but from Level 19 on a song's Part 1 waits on the last part of the song before, which
--- needs the Pass. So while the Pass is on, such a Part 1 opens with the song before's Part 1 too - for everyone,
--- Pass or not, so buying it never makes a song harder to reach. Gives that Part 1's id, or NULL.
-CREATE OR REPLACE FUNCTION public.javeda_free_gate(p_level TEXT)
-RETURNS TEXT
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-  SELECT 'lvl' || g.num FROM javeda_levels l JOIN javeda_levels g ON g.id = l.requires
-  WHERE l.id = p_level AND l.id ~ '^lvl[0-9]+$' AND g.pass AND g.num <> l.num
-    AND COALESCE((SELECT pass_on FROM javeda_settings), false);
-$$;
 
 -- the server, once Stripe says a Pass is paid: from the webhook, and again when the player comes back from the
 -- checkout - whichever is first; twice changes nothing
@@ -1549,8 +1514,8 @@ BEGIN
     RETURN json_build_object('error', 'You already used that code.');
   END IF;
   -- a code someone else could use isn't spent on a player it gives nothing new
-  IF EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = uid AND (merch OR c.kind = 'even')) THEN
-    RETURN json_build_object('error', 'You already have the JAVEDA Pass' || CASE WHEN c.kind = 'merch' THEN ' and every remix.' ELSE '.' END);
+  IF EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = uid) THEN
+    RETURN json_build_object('error', 'You already have the JAVEDA Pass.');
   END IF;
   IF c.max_uses IS NOT NULL AND c.uses >= c.max_uses THEN RETURN json_build_object('error', 'That code is used up.'); END IF;
   INSERT INTO javeda_redemptions (code, user_id) VALUES (c.code, uid);
@@ -1623,8 +1588,11 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.javeda_needs_pass(UUID, TEXT) FROM PUBLIC, anon, authenticated;
-REVOKE ALL ON FUNCTION public.javeda_free_gate(TEXT) FROM PUBLIC, anon, authenticated;
+-- what the Pass was before it became a skip
+DROP FUNCTION IF EXISTS public.javeda_needs_pass(UUID, TEXT);
+DROP FUNCTION IF EXISTS public.javeda_free_gate(TEXT);
+ALTER TABLE javeda_levels DROP COLUMN IF EXISTS pass;
+
 REVOKE ALL ON FUNCTION public.javeda_grant_pass(UUID, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_redeem(TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_make_code(TEXT, TEXT, INT, INT) FROM PUBLIC, anon;

@@ -89,10 +89,10 @@ const TIER_CREDITS = {
 };
 
 // ─── JAVEDA Pass ─────────────────────────────────────────────────────────────
-// One payment opens the rest of JAVEDA (lightningwolves.studio/javeda) for a player: every part after Part 1, the
+// One payment opens all of JAVEDA (lightningwolves.studio/javeda) for a player straight away: every part, the
 // endless and the remixes. The Pass is a row in javeda_passes that only javeda_grant_pass (service role) writes -
 // from the webhook and from /api/javeda/pass/confirm when the player comes back, whichever is first. What a level
-// needs is the database's business (supabase-javeda-schema.sql), not this file's.
+// opens is the database's business (supabase-javeda-schema.sql), not this file's.
 const JAVEDA_PASS_CENTS = parseInt(process.env.JAVEDA_PASS_CENTS || '599', 10);
 // where a checkout may send the player back to: the site, its previews, local dev
 const JAVEDA_ORIGINS = /^https:\/\/((www\.)?lightningwolves\.studio|lightning-wolves-studio-[a-z0-9-]+-lazyjos-projects\.vercel\.app)$|^http:\/\/localhost(:\d+)?$/;
@@ -342,7 +342,7 @@ app.post('/api/javeda/pass/checkout', async (req, res) => {
           tax_behavior: 'inclusive',
           product_data: {
             name: 'JAVEDA Pass',
-            description: 'Every part, endless and remix of JAVEDA by Lazy Jo. One payment, yours for good.',
+            description: 'Every part, endless and remix of JAVEDA by Lazy Jo, open right away. One payment, yours for good.',
           },
         },
       }],

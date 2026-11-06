@@ -543,6 +543,7 @@ const S = [
   ["You already used that code.", "Je hebt die code al gebruikt.", "Tu as déjà utilisé ce code.", "Ya usaste ese código."],
   ["That code is used up.", "Die code is op.", "Ce code est épuisé.", "Ese código está agotado."],
   ["Type your code first.", "Typ eerst je code.", "Tape d'abord ton code.", "Escribe primero tu código."],
+  ["That payment was refunded, so there's no Pass on it.", "Die betaling is terugbetaald, dus er staat geen Pass op.", "Ce paiement a été remboursé, il n'y a donc pas de Pass dessus.", "Ese pago se devolvió, así que no tiene Pase."],
 ];
 
 /* ---- text with numbers in it: [the English as a pattern, nl, fr, es]; $1 $2 are the numbers or names in it,

@@ -65,8 +65,12 @@ Built and **not on sale** yet: until it is, the hub offers it to nobody (a code 
 
 1. **Rotate the Stripe secret key first** (it's been flagged), then make sure Vercel has `STRIPE_SECRET_KEY`
    and `STRIPE_WEBHOOK_SECRET` (the studio subscriptions use the same ones).
-2. **Webhook events.** The existing endpoint `https://lightningwolves.studio/api/stripe-webhook` already gets
-   `checkout.session.completed`. Add `checkout.session.async_payment_succeeded` too (payments that settle later).
+2. **Webhook events.** The existing endpoint `https://lightningwolves.studio/api/stripe-webhook` needs
+   `checkout.session.completed`, `checkout.session.async_payment_succeeded` (payments that settle later) and
+   `charge.refunded` (a full refund takes the Pass away).
+   **Bank statement:** Stripe > Settings > Business: shortened descriptor `LAZY JO`. The Pass adds its own suffix, so
+   it reads `LAZY JO* JAVEDA PASS`. Without that field Stripe cuts the long descriptor to 10 letters, which makes it
+   23 of the 22 allowed.
 3. **Price / VAT (optional).** `JAVEDA_PASS_CENTS` (default `599` = EUR 5.99, VAT included). With Stripe Tax set
    up in the Stripe dashboard, `JAVEDA_STRIPE_TAX=1` turns on automatic tax for the Pass checkout.
 4. **Codes.** On the hub, as a creator: Continue card > **Pass codes**: make EVEN and merch codes (they already
@@ -186,6 +190,9 @@ Built and **not on sale** yet: until it is, the hub offers it to nobody (a code 
     switched off; one use per account, 10 tries an hour. Creators make and manage them (`javeda_make_code`,
     `javeda_codes_list`, `javeda_code_set`; the hub's **Pass codes**). The Pass itself is a row in `javeda_passes`
     (source `stripe` / `even` / `merch` / `gift`).
+  - **A full refund takes it away** (`charge.refunded` in the webhook, that checkout's row only, what was played
+    stays); the old return link and webhook retries don't bring it back, because the charge is asked first. A partial
+    refund keeps it. A Pass from a code isn't touched. Chargebacks aren't handled: remove the row by hand.
   - **Enforced** in `javeda_submit_run` and `javeda_start_run`: "level locked" unless you cleared the level before
     it, or have a Pass, or are a creator. `javeda_import_guest` keeps the chain (a guest has no Pass).
   - **The hub**: while it's on sale, a locked part keeps its lock text and gets a small lightning button; the Continue

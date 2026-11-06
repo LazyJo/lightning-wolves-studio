@@ -91,17 +91,38 @@ const TIER_CREDITS = {
 // ─── JAVEDA Pass ─────────────────────────────────────────────────────────────
 // One payment opens all of JAVEDA (lightningwolves.studio/javeda) for a player straight away: every part, the
 // endless and the remixes. The Pass is a row in javeda_passes that only javeda_grant_pass (service role) writes -
-// from the webhook and from /api/javeda/pass/confirm when the player comes back, whichever is first. What a level
+// from the webhook and from /api/javeda/pass/confirm when the player comes back, whichever is first. A full refund
+// takes it away again (revokeJavedaPass), and a refunded payment never grants it twice. What a level
 // opens is the database's business (supabase-javeda-schema.sql), not this file's.
 const JAVEDA_PASS_CENTS = parseInt(process.env.JAVEDA_PASS_CENTS || '599', 10);
 // where a checkout may send the player back to: the site, its previews, local dev
 const JAVEDA_ORIGINS = /^https:\/\/((www\.)?lightningwolves\.studio|lightning-wolves-studio-[a-z0-9-]+-lazyjos-projects\.vercel\.app)$|^http:\/\/localhost(:\d+)?$/;
 
+// A checkout stays "paid" after a refund, so ask the charge: the old "thank you" link or a webhook retry must not bring the Pass back.
+async function javedaPaymentRefunded(session) {
+  const id = session.payment_intent?.id || session.payment_intent;
+  if (!id) return false;
+  const intent = await stripe.paymentIntents.retrieve(id, { expand: ['latest_charge'] });
+  return !!intent.latest_charge?.refunded;
+}
+
 async function grantJavedaPass(session) {
   const userId = session.client_reference_id || session.metadata?.userId;
-  if (!userId || session.metadata?.kind !== 'javeda_pass' || session.payment_status !== 'paid') return false;
+  if (!userId || session.metadata?.kind !== 'javeda_pass' || session.payment_status !== 'paid') return { pass: false };
+  if (await javedaPaymentRefunded(session)) return { pass: false, refunded: true };
   const { error } = await supabase.rpc('javeda_grant_pass', { p_user: userId, p_source: 'stripe', p_ref: session.id });
   if (error) throw new Error(`javeda_grant_pass: ${error.message}`);
+  return { pass: true };
+}
+
+// A payment refunded in full: the Pass it paid for goes (that one only, by its checkout). Anything else has no such
+// checkout, a studio subscription for one, and is left alone.
+async function revokeJavedaPass(paymentIntent) {
+  const { data } = await stripe.checkout.sessions.list({ payment_intent: paymentIntent, limit: 1 });
+  const session = data[0];
+  if (session?.metadata?.kind !== 'javeda_pass') return false;
+  const { error } = await supabase.from('javeda_passes').delete().eq('source', 'stripe').eq('ref', session.id);
+  if (error) throw new Error(`javeda_passes: ${error.message}`);
   return true;
 }
 
@@ -149,6 +170,12 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       // a JAVEDA Pass paid with a method that settles later (SEPA and the like)
       case 'checkout.session.async_payment_succeeded': {
         await grantJavedaPass(event.data.object);
+        break;
+      }
+      // a partial refund (a goodwill gesture) keeps the Pass
+      case 'charge.refunded': {
+        const charge = event.data.object;
+        if (charge.refunded && charge.payment_intent) await revokeJavedaPass(charge.payment_intent);
         break;
       }
       case 'customer.subscription.updated': {
@@ -349,7 +376,8 @@ app.post('/api/javeda/pass/checkout', async (req, res) => {
       customer_email: user.email,
       client_reference_id: user.id,
       metadata: { kind: 'javeda_pass', userId: user.id },
-      payment_intent_data: { metadata: { kind: 'javeda_pass', userId: user.id } },
+      // on the bank statement: the account's shortened descriptor, then this. "LAZY JO* JAVEDA PASS" is 20 of the 22 allowed
+      payment_intent_data: { metadata: { kind: 'javeda_pass', userId: user.id }, statement_descriptor_suffix: 'JAVEDA PASS' },
       ...(process.env.JAVEDA_STRIPE_TAX === '1' ? { automatic_tax: { enabled: true } } : {}),
       success_url: `${origin}/javeda/?pass=done&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${origin}/javeda/?pass=cancelled`,
@@ -375,8 +403,9 @@ app.post('/api/javeda/pass/confirm', async (req, res) => {
     if ((session.client_reference_id || session.metadata?.userId) !== user.id) {
       return res.status(403).json({ error: "That checkout isn't yours" });
     }
-    if (await grantJavedaPass(session)) return res.json({ pass: true });
-    res.json({ pass: false, status: session.payment_status });
+    const got = await grantJavedaPass(session);
+    if (got.pass) return res.json({ pass: true });
+    res.json({ ...got, status: session.payment_status });
   } catch (err) {
     console.error('JAVEDA Pass confirm error:', err);
     res.status(500).json({ error: "Couldn't check the payment" });

@@ -2469,6 +2469,7 @@ async function passReturn(){
       const r = await fetch("/api/javeda/pass/confirm", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ token:session.access_token, session_id:sid }) });
       const d = await r.json().catch(() => ({}));
       if (d.pass){ await loadAccount(); return passWelcome(); }
+      if (d.refunded){ toast("That payment was refunded, so there's no Pass on it."); return; }
       if (!r.ok && r.status !== 500) break;
     } catch(e){}
     await new Promise(ok => setTimeout(ok, 2500));

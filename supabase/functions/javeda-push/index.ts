@@ -17,45 +17,61 @@ const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers
   "Access-Control-Allow-Methods": "POST, OPTIONS" };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
-type Lang = "en" | "nl" | "fr" | "es";
+type Lang = "en" | "nl" | "fr" | "es" | "ja" | "zh" | "tw";
 type Sub = { endpoint: string; p256dh: string; auth: string; lang: Lang };
 type Beaten = Sub & { n: number; people: number; level: string; num: number; title: string; endless: boolean; daily: boolean; by: string | null; score: number };
 
 // the words, in the phone's language
 const W = {
-  daily: { en: "Today's challenge is up", nl: "De uitdaging van vandaag staat klaar", fr: "Le défi du jour est là", es: "El reto de hoy ya está aquí" },
+  daily: { en: "Today's challenge is up", nl: "De uitdaging van vandaag staat klaar", fr: "Le défi du jour est là", es: "El reto de hoy ya está aquí",
+    ja: "今日のチャレンジが始まったよ", zh: "今日挑战来了", tw: "今日挑戰來了" },
   dailyBody: {
     en: (lv: string) => lv + ". The same song for everyone today, with a board of its own.",
     nl: (lv: string) => lv + ". Vandaag hetzelfde nummer voor iedereen, met een eigen scorebord.",
     fr: (lv: string) => lv + ". Le même morceau pour tout le monde aujourd'hui, avec son propre classement.",
     es: (lv: string) => lv + ". La misma canción para todos hoy, con su propia clasificación.",
+    ja: (lv: string) => lv + "。今日はみんな同じ曲、専用のランキング付き。",
+    zh: (lv: string) => lv + "。今天大家玩同一首歌，有专属排行榜。",
+    tw: (lv: string) => lv + "。今天大家玩同一首歌，有專屬排行榜。",
   },
-  level: { en: "Level", nl: "Level", fr: "Niveau", es: "Nivel" },
-  today: { en: "Today's challenge", nl: "De uitdaging van vandaag", fr: "Le défi du jour", es: "El reto de hoy" },
-  someone: { en: "Someone", nl: "Iemand", fr: "Quelqu'un", es: "Alguien" },
+  level: { en: "Level", nl: "Level", fr: "Niveau", es: "Nivel", ja: "レベル", zh: "第", tw: "第" },
+  today: { en: "Today's challenge", nl: "De uitdaging van vandaag", fr: "Le défi du jour", es: "El reto de hoy", ja: "今日のチャレンジ", zh: "今日挑战", tw: "今日挑戰" },
+  someone: { en: "Someone", nl: "Iemand", fr: "Quelqu'un", es: "Alguien", ja: "だれか", zh: "有人", tw: "有人" },
   beat: {
     en: (by: string, more: number) => by + (more ? " and " + more + " more" : "") + " beat your score",
     nl: (by: string, more: number) => by + (more ? " en nog " + more : "") + (more ? " hebben" : " heeft") + " je score verslagen",
     fr: (by: string, more: number) => by + (more ? " et " + more + (more > 1 ? " autres ont" : " autre ont") : " a") + " battu ton score",
     es: (by: string, more: number) => by + (more ? " y " + more + " más han" : " ha") + " superado tu puntuación",
+    ja: (by: string, more: number) => by + (more ? "とほか" + more + "人" : "") + "があなたのスコアを抜いた",
+    zh: (by: string, more: number) => by + (more ? "和另外" + more + "人" : "") + "超过了你的分数",
+    tw: (by: string, more: number) => by + (more ? "和另外" + more + "人" : "") + "超越了你的分數",
   },
   back: {
     en: (board: string, s: string) => board + ": " + s + ". Take your place back?",
     nl: (board: string, s: string) => board + ": " + s + ". Pak je plek terug?",
     fr: (board: string, s: string) => board + " : " + s + ". Tu reprends ta place ?",
     es: (board: string, s: string) => board + ": " + s + ". ¿Recuperas tu puesto?",
+    ja: (board: string, s: string) => board + "：" + s + "。順位を取り戻す？",
+    zh: (board: string, s: string) => board + "：" + s + "。要夺回你的名次吗？",
+    tw: (board: string, s: string) => board + "：" + s + "。要奪回你的名次嗎？",
   },
-  hello: { en: "JAVEDA notifications are on", nl: "JAVEDA-meldingen staan aan", fr: "Les notifications JAVEDA sont activées", es: "Las notificaciones de JAVEDA están activadas" },
+  hello: { en: "JAVEDA notifications are on", nl: "JAVEDA-meldingen staan aan", fr: "Les notifications JAVEDA sont activées", es: "Las notificaciones de JAVEDA están activadas",
+    ja: "JAVEDAの通知がオンになったよ", zh: "JAVEDA 通知已开启", tw: "JAVEDA 通知已開啟" },
   helloBody: {
     en: "This is how they look. You can turn them off in your player, any time.",
     nl: "Zo zien ze eruit. Je zet ze uit bij je speler, wanneer je wil.",
     fr: "Voilà à quoi elles ressemblent. Tu peux les couper dans ton joueur, quand tu veux.",
     es: "Así se ven. Puedes desactivarlas en tu jugador cuando quieras.",
+    ja: "通知はこんな感じで届きます。プレイヤー画面でいつでもオフにできます。",
+    zh: "通知就是这样的。你随时可以在玩家页面关闭。",
+    tw: "通知就是這樣的。你隨時可以在玩家頁面關閉。",
   },
 };
-const L = (s: Sub): Lang => (["en", "nl", "fr", "es"].includes(s.lang) ? s.lang : "en");
-const LOCALE = { en: "en-GB", nl: "nl-BE", fr: "fr-BE", es: "es-ES" };
-const levelName = (l: Lang, num: number, title: string, endless = false) => W.level[l] + " " + num + " · " + title + (endless ? " ∞" : "");
+const L = (s: Sub): Lang => (["en", "nl", "fr", "es", "ja", "zh", "tw"].includes(s.lang) ? s.lang : "en");
+const LOCALE = { en: "en-GB", nl: "nl-BE", fr: "fr-BE", es: "es-ES", ja: "ja-JP", zh: "zh-CN", tw: "zh-TW" };
+// "Level 3" - in Chinese "第3关" / "第3關"
+const levelName = (l: Lang, num: number, title: string, endless = false) =>
+  (l === "zh" ? "第" + num + "关" : l === "tw" ? "第" + num + "關" : W.level[l] + (l === "ja" ? "" : " ") + num) + " · " + title + (endless ? " ∞" : "");
 
 // one message to one phone: true when it went, "gone" when the phone isn't there any more
 async function send(s: Sub, msg: { title: string; body: string; url: string; tag: string }, ttl: number): Promise<true | false | "gone"> {

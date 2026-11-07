@@ -1407,7 +1407,7 @@ function renderNow(){
 function dailyCard(){
   const lv = daily && levelById(daily.level);
   if (!lv) return "";
-  const lang = window.JAVEDA_LANG && window.JAVEDA_LANG !== "en" ? window.JAVEDA_LANG : "en-GB";   // the date in the language picked
+  const lang = window.JAVEDA_LOCALE || "en-GB";   // the date in the language picked
   const day = new Date(daily.day + "T12:00:00").toLocaleDateString(lang, { weekday:"short", day:"numeric", month:"short" });
   return '<article class="daily"><span class="dl">Today\'s challenge &middot; ' + esc(day) + '</span>' +
     '<span class="dt">Level ' + lv.num + ' &middot; ' + esc(lv.title) + '</span>' +
@@ -2863,7 +2863,10 @@ const APP_TXT = {
     mac:['En la barra de menús, haz clic en <b>Archivo</b>.', 'Haz clic en <b>Añadir al Dock</b>.'],
     chr:['Haz clic en el icono de <b>instalar</b> a la derecha de la barra de direcciones (una pantalla con una flecha), o abre el menú <b>&vellip;</b>.', 'Haz clic en <b>Instalar JAVEDA</b>.'], chrNote:'¿Ya instalada? Ábrela desde tus aplicaciones.',
     none:'Este navegador no puede instalar JAVEDA como app en tu ordenador. <b>Chrome</b> o <b>Edge</b> sí pueden - o guarda esta página en marcadores.',
-    foot:'La app también funciona sin conexión. Tu progreso se sigue guardando, y con una cuenta te acompaña a todas partes donde inicies sesión.' } };
+    foot:'La app también funciona sin conexión. Tu progreso se sigue guardando, y con una cuenta te acompaña a todas partes donde inicies sesión.' },
+  ja:{"install":"JAVEDAをインストール","samsung":"新しいスマホでは、Samsung Internet独自のインストールがGoogle Play プロテクトにブロックされます。代わりに<b>Chrome</b>からJAVEDAをインストールしよう：<b>Chromeで開く</b>をタップして、そこで<b>アプリを入手</b>をタップ。","chromeBtn":"Chromeで開く","iosInApp":"このページは別のアプリの中で開いています。まず<b>Safari</b>で開こう：<b>&middot;&middot;&middot;</b>メニューをタップして<b>ブラウザで開く</b>（またはSafariで開く）を選びます。それからもう一度「アプリを入手」をタップ。","ios":["<b>共有</b> # をタップ（Safariでは画面の下、Chromeでは上にあります）。","下にスクロールして<b>ホーム画面に追加</b>をタップ。","<b>追加</b>をタップ。JAVEDAがホーム画面に追加されます。"],"andInApp":"このページは別のアプリの中で開いています。<b>&vellip;</b>メニューをタップして<b>Chromeで開く</b>（またはブラウザで開く）を選び、もう一度「アプリを入手」をタップ。","and":["ブラウザのメニュー<b>&vellip;</b>を開きます。","<b>アプリをインストール</b>または<b>ホーム画面に追加</b>をタップ。"],"mac":["メニューバーの<b>ファイル</b>をクリック。","<b>Dockに追加</b>をクリック。"],"chr":["アドレスバーの右にある<b>インストール</b>アイコン（矢印付きの画面）をクリックするか、メニュー<b>&vellip;</b>を開きます。","<b>JAVEDAをインストール</b>をクリック。"],"chrNote":"インストール済み？アプリ一覧から開こう。","none":"このブラウザではJAVEDAをアプリとしてパソコンに入れられません。<b>Chrome</b>か<b>Edge</b>ならできます。または、このページをブックマークしておこう。","foot":"アプリはオフラインでも遊べます。進行状況は保存され続け、アカウントがあればログインしたどこでも引き継がれます。"},
+  zh:{"install":"安装 JAVEDA","samsung":"在较新的手机上，Samsung Internet 自带的安装会被 Google Play 保护机制拦截。请改用 <b>Chrome</b> 安装 JAVEDA：点击<b>在 Chrome 中打开</b>，然后在那里点击<b>获取应用</b>。","chromeBtn":"在 Chrome 中打开","iosInApp":"此页面是在另一个应用内打开的。请先在 <b>Safari</b> 中打开：点击 <b>&middot;&middot;&middot;</b> 菜单，选择<b>在浏览器中打开</b>（或在 Safari 中打开）。然后再点一次“获取应用”。","ios":["点击<b>分享</b> #（Safari 在屏幕底部，Chrome 在顶部）。","向下滚动，点击<b>添加到主屏幕</b>。","点击<b>添加</b>。JAVEDA 就在你的主屏幕上了。"],"andInApp":"此页面是在另一个应用内打开的。点击 <b>&vellip;</b> 菜单，选择<b>在 Chrome 中打开</b>（或在浏览器中打开），然后再点一次“获取应用”。","and":["打开浏览器菜单 <b>&vellip;</b>。","点击<b>安装应用</b>或<b>添加到主屏幕</b>。"],"mac":["在菜单栏中点击<b>文件</b>。","点击<b>添加到程序坞</b>。"],"chr":["点击地址栏右侧的<b>安装</b>图标（一个带箭头的屏幕），或打开菜单 <b>&vellip;</b>。","点击<b>安装 JAVEDA</b>。"],"chrNote":"已经安装了？从你的应用里打开它。","none":"这个浏览器无法把 JAVEDA 作为应用安装到你的电脑上。<b>Chrome</b> 或 <b>Edge</b> 可以——或者把这个页面加入书签。","foot":"应用也能离线玩。你的进度会持续保存，有账号的话，在任何你登录的地方都能接着玩。"},
+  tw:{"install":"安裝 JAVEDA","samsung":"在較新的手機上，Samsung Internet 內建的安裝會被 Google Play 安全防護封鎖。請改用 <b>Chrome</b> 安裝 JAVEDA：點擊<b>在 Chrome 中開啟</b>，再到那裡點擊<b>下載 App</b>。","chromeBtn":"在 Chrome 中開啟","iosInApp":"這個頁面是在其他 App 裡開啟的。請先用 <b>Safari</b> 開啟：點擊 <b>&middot;&middot;&middot;</b> 選單，選擇<b>在瀏覽器中開啟</b>（或在 Safari 中開啟）。然後再點一次「下載 App」。","ios":["點擊<b>分享</b> #（Safari 在螢幕底部，Chrome 在頂端）。","往下捲動，點擊<b>加入主畫面</b>。","點擊<b>加入</b>。JAVEDA 就會出現在你的主畫面上。"],"andInApp":"這個頁面是在其他 App 裡開啟的。點擊 <b>&vellip;</b> 選單，選擇<b>在 Chrome 中開啟</b>（或在瀏覽器中開啟），再點一次「下載 App」。","and":["開啟瀏覽器選單 <b>&vellip;</b>。","點擊<b>安裝應用程式</b>或<b>加到主畫面</b>。"],"mac":["在選單列中按一下<b>檔案</b>。","按一下<b>加入 Dock</b>。"],"chr":["按一下網址列右側的<b>安裝</b>圖示（一個帶箭頭的螢幕），或開啟選單 <b>&vellip;</b>。","按一下<b>安裝 JAVEDA</b>。"],"chrNote":"已經安裝了？從你的應用程式中開啟。","none":"這個瀏覽器無法把 JAVEDA 以 App 形式安裝到你的電腦上。<b>Chrome</b> 或 <b>Edge</b> 可以——或者把這個頁面加入書籤。","foot":"App 也能離線玩。你的進度會持續儲存，有帳號的話，在任何你登入的地方都能接著玩。"} };
 // the phone's own install box. It only opens once: after a no, the steps in the sheet are what's left
 async function installNow(){
   const ev = installEvt; if (!ev) return;
@@ -2940,6 +2943,42 @@ const CARRY_TXT = {
   "done": "Tu progreso está aquí: # niveles.",
   "acctChrome": "Chrome tiene su propio guardado: inicia sesión allí y todo tu progreso estará ahí.",
   "guestChrome": "Chrome tiene su propio guardado. Para llevarte tu progreso: cópialo aquí y luego en la app toca <b>Pegar mi progreso</b>."
+ },
+ "ja": {
+  "acct": "iPhoneではアプリが独自のセーブを持っています。アプリ内でログインすれば、進行状況がすべてそこにあります。",
+  "guest": "iPhoneではアプリが独自のセーブを持っています。進行状況を引き継ぐには：ここでコピーして、アプリで<b>進行状況を貼り付け</b>をタップ。",
+  "copy": "進行状況をコピー",
+  "copied": "コピーしました。アプリを開いて「進行状況を貼り付け」をタップしてね。",
+  "paste": "進行状況を貼り付け",
+  "ask": "進行状況コードをここに貼り付けてね：",
+  "bad": "JAVEDAの進行状況コードではありません。プレイした場所でもう一度コピーしてね（アプリを入手 > 進行状況をコピー）。",
+  "done": "進行状況を読み込みました：#レベル。",
+  "acctChrome": "Chromeは独自のセーブを持っています。そこでログインすれば、進行状況がすべてそこにあります。",
+  "guestChrome": "Chromeは独自のセーブを持っています。進行状況を引き継ぐには：ここでコピーして、アプリで<b>進行状況を貼り付け</b>をタップ。"
+ },
+ "zh": {
+  "acct": "在 iPhone 上，应用有自己独立的存档：在应用里登录，你的所有进度都在那里。",
+  "guest": "在 iPhone 上，应用有自己独立的存档。要带上你的进度：先在这里复制，然后在应用里点击<b>粘贴我的进度</b>。",
+  "copy": "复制我的进度",
+  "copied": "已复制。现在打开应用，点击“粘贴我的进度”。",
+  "paste": "粘贴我的进度",
+  "ask": "在这里粘贴你的进度代码：",
+  "bad": "这不是 JAVEDA 进度代码。请在你玩过的地方重新复制（获取应用 > 复制我的进度）。",
+  "done": "你的进度已导入：# 个关卡。",
+  "acctChrome": "Chrome 有自己独立的存档：在那里登录，你的所有进度都在那里。",
+  "guestChrome": "Chrome 有自己独立的存档。要带上你的进度：先在这里复制，然后在应用里点击<b>粘贴我的进度</b>。"
+ },
+ "tw": {
+  "acct": "在 iPhone 上，App 有自己獨立的存檔：在 App 裡登入，你的所有進度都在那裡。",
+  "guest": "在 iPhone 上，App 有自己獨立的存檔。要帶走你的進度：先在這裡複製，然後在 App 裡點擊<b>貼上我的進度</b>。",
+  "copy": "複製我的進度",
+  "copied": "已複製。現在開啟 App，點擊「貼上我的進度」。",
+  "paste": "貼上我的進度",
+  "ask": "在這裡貼上你的進度代碼：",
+  "bad": "這不是 JAVEDA 進度代碼。請在你玩過的地方重新複製（下載 App > 複製我的進度）。",
+  "done": "你的進度已匯入：# 個關卡。",
+  "acctChrome": "Chrome 有自己獨立的存檔：在那裡登入，你的所有進度都在那裡。",
+  "guestChrome": "Chrome 有自己獨立的存檔。要帶走你的進度：先在這裡複製，然後在 App 裡點擊<b>貼上我的進度</b>。"
  }
 };
 const ct = k => (CARRY_TXT[window.JAVEDA_LANG] || CARRY_TXT.en)[k];

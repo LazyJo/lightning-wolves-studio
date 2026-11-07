@@ -1,4 +1,6 @@
-/* JAVEDA in four languages: English, Nederlands, Français, Español.
+/* JAVEDA in seven languages: English, Nederlands, Français, Español, 日本語, 简体中文 and 繁體中文 (Taiwan).
+   English, Dutch, French and Spanish are the rows below; Japanese and the two Chinese come in a pack of their own
+   (lang/ja.js, lang/zh.js, lang/tw.js: the same English sentences as keys), loaded only when one is picked.
    The page is written in English. This file changes the words the player sees - text, placeholders, titles,
    labels - into the chosen language as the page draws them (a MutationObserver), so the page's own code stays as
    it is. Song titles and the names of the games stay as they are, like names. Exact sentences come from S; text
@@ -7,12 +9,19 @@
    else English. The picker sits in the top bar; a new pick reloads the page. */
 (function(){
 "use strict";
-const LANGS = [["en", "EN"], ["nl", "NL"], ["fr", "FR"], ["es", "ES"]];
-const pick = () => { try { const s = localStorage.getItem("javeda.lang"); if (LANGS.some(l => l[0] === s)) return s; } catch(e){}
-  const n = String(navigator.language || "en").slice(0, 2).toLowerCase(); return LANGS.some(l => l[0] === n) ? n : "en"; };
-const LANG = pick(), I = { nl:0, fr:1, es:2 }[LANG];
+const LANGS = [["en", "English"], ["nl", "Nederlands"], ["fr", "Français"], ["es", "Español"], ["ja", "日本語"], ["zh", "简体中文"], ["tw", "繁體中文"]];
+// the phone's language: zh-TW / zh-HK / zh-Hant read Traditional, other Chinese Simplified
+const fromPhone = () => { for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"])){
+    const x = String(l).toLowerCase(); if (x.startsWith("zh")) return /hant|tw|hk|mo/.test(x) ? "tw" : "zh";
+    const n = x.slice(0, 2); if (LANGS.some(k => k[0] === n)) return n; } return "en"; };
+const pick = () => { try { const s = localStorage.getItem("javeda.lang"); if (LANGS.some(l => l[0] === s)) return s; } catch(e){} return fromPhone(); };
+const LANG = pick(), I = { nl:0, fr:1, es:2 }[LANG], PACKED = ["ja", "zh", "tw"].includes(LANG);
 window.JAVEDA_LANG = LANG;
-document.documentElement.lang = LANG;
+// for dates and numbers in the language picked
+window.JAVEDA_LOCALE = { en:"en-GB", nl:"nl-BE", fr:"fr-BE", es:"es-ES", ja:"ja-JP", zh:"zh-CN", tw:"zh-TW" }[LANG];
+document.documentElement.lang = { zh:"zh-Hans", tw:"zh-Hant" }[LANG] || LANG;
+// where lang/<code>.js is: next to this file
+const BASE = (document.currentScript && document.currentScript.src || location.href).replace(/[^/]*([?#].*)?$/, "");
 
 /* ---- the words: [English, Nederlands, Français, Español] ---- */
 const S = [
@@ -662,20 +671,22 @@ const X = window.JAVEDA_I18N || {};
 if (X.S) S.push(...X.S); if (X.P) P.unshift(...X.P); if (X.HTML) HTML.push(...X.HTML); if (X.HP) HP.push(...X.HP);
 
 /* ---- the machinery ---- */
+// ON: a language other than English. Its words come from the rows (I) or from the pack (PK, filled by lang/<code>.js)
+let ON = I != null, PK = null, PAT = P, HPAT = HP;
 const EX = new Map(), TPL = new Map(); if (I != null) for (const r of S) (r[0].includes("#") ? TPL : EX).set(r[0], r[I + 1]);
 const norm = s => s.replace(/\s+/g, " ").trim();
 // a sentence with numbers in it, written once with # for each number: the numbers go back in, in order
 const NUM = /\d+(?:[.,:]\d+)*/g;
 const byTemplate = (k, map) => { if (!/\d/.test(k)) return null; const nums = k.match(NUM), t = map.get(k.replace(NUM, "#")); if (t == null) return null; let i = 0; return t.replace(/#/g, () => nums[i++] != null ? nums[i - 1] : "#"); };
 // for the page's own code: a sentence in the language picked (the words that go with a shared link)
-window.JAVEDA_T = t => (I == null ? t : tr(t) || t);
+window.JAVEDA_T = t => (!ON ? t : tr(t) || t);
 function tr(s){
-  const k = norm(s); if (!k || I == null) return null;
+  const k = norm(s); if (!k || !ON) return null;
   if (EX.has(k)) return EX.get(k);
   const bt = byTemplate(k, TPL); if (bt != null) return bt;
-  for (const p of P){ const m = k.match(p[0]); if (!m) continue;
+  for (const p of PAT){ const m = k.match(p[0]); if (!m) continue;
     const r = p[1]; if (typeof r === "function") return r(m, x => tr(x) || x);
-    return k.replace(p[0], p[I + 1]); }
+    return k.replace(p[0], PK ? r : p[I + 1]); }
   // a message in parts: each part on its own
   if (k.includes(" · ")){ const parts = k.split(" · "), out = parts.map(x => tr(x)); if (out.some(x => x)) return parts.map((x, i) => out[i] || x).join(" · "); }
   // an emoji or a sign in front: the words after it
@@ -698,6 +709,14 @@ function doAttrs(e){
 }
 // a sentence with bold words or links inside: the whole of it at once (H), else its pieces one by one
 const H = new Map(), HT = new Map(); if (I != null) for (const r of HTML) (r[0].includes("#") ? HT : H).set(norm(r[0]), r[I + 1]);
+// Japanese / Chinese: the pack's words into the same maps, and its own patterns (keyed by the English pattern)
+function usePack(pk){
+  PK = pk; ON = true;
+  for (const k in pk.S || {}) (k.includes("#") ? TPL : EX).set(k, pk.S[k]);
+  for (const k in pk.HTML || {}) (k.includes("#") ? HT : H).set(norm(k), pk.HTML[k]);
+  PAT = P.map(p => [p[0], (pk.P || {})[p[0].source]]).filter(p => p[1] != null);
+  HPAT = HP.map(p => [p[0], (pk.HP || {})[p[0].source]]).filter(p => p[1] != null);
+}
 // put a translated sentence into its element in place: the same bold words and links stay the same elements (a level
 // may hold on to one, like a counter it updates), only their words change; if the shapes differ, the html goes in
 function put(e, html){
@@ -712,13 +731,13 @@ function doBlock(e){
   let inl = false; for (const k of kids){ if (k.nodeType === 1){ if (!INLINE.has(k.tagName)) return false; inl = true; } }
   if (!inl) return false;
   const k = norm(e.innerHTML); if (done.get(e) === k) return true;
-  for (const [re, f] of HP){ const m = k.match(re); if (m){ put(e, f(m)); done.set(e, norm(e.innerHTML)); return true; } }
+  for (const [re, f] of HPAT){ const m = k.match(re); if (m){ put(e, f(m)); done.set(e, norm(e.innerHTML)); return true; } }
   if (H.has(k)){ put(e, H.get(k)); done.set(e, norm(e.innerHTML)); return true; }
   const bt = byTemplate(k, HT); if (bt != null){ put(e, bt); done.set(e, norm(e.innerHTML)); return true; }
   return false;
 }
 function walk(root){
-  if (I == null || !root) return;
+  if (!ON || !root) return;
   if (root.nodeType === 3){ if (root.parentElement && !root.parentElement.closest("script,style,[data-i18n-skip],#stats,#codes,.crt")) doText(root); return; }
   if (root.nodeType !== 1 || root.closest("script,style,[data-i18n-skip],#stats,#codes,.crt")) return;
   const els = [root, ...root.querySelectorAll("*")];
@@ -728,27 +747,28 @@ function walk(root){
     for (const c of e.childNodes) if (c.nodeType === 3) doText(c); }
 }
 
-/* ---- the picker: EN NL FR ES, in the top bar ---- */
+/* ---- the picker: a list of the seven languages, in the top bar ---- */
 function picker(){
   // only on the JAVEDA page: a level follows the language picked there
   if (document.getElementById("langPick") || !document.getElementById("meBtn")) return;
   const top = document.querySelector(".top") || document.body;
   const st = document.createElement("style");
-  st.textContent = "#langPick{display:flex;gap:2px;padding:3px;border:1px solid var(--line,#ffffff26);border-radius:999px;background:var(--panel,#0b1630);margin-left:auto;margin-right:8px}" +
-    "#langPick button{border:0;background:none;border-radius:999px;padding:5px 8px;font:700 12px/1 var(--cond,'Arial Narrow',sans-serif);letter-spacing:.12em;color:var(--dim,#8fb4dd);cursor:pointer}" +
-    "#langPick button[aria-pressed=\"true\"]{background:var(--blue,#2f8fe0);color:#041024}" +
-    "@media (max-width:520px){#langPick button{padding:5px 6px;letter-spacing:.06em}}";
+  st.textContent = "#langPick{position:relative;display:flex;align-items:center;margin-left:auto;margin-right:8px;border:1px solid var(--line,#ffffff26);border-radius:999px;background:var(--panel,#0b1630)}" +
+    "#langPick select{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:var(--dim,#8fb4dd);font:700 12px/1 var(--cond,'Arial Narrow',sans-serif);letter-spacing:.06em;padding:7px 24px 7px 11px;cursor:pointer;max-width:120px}" +
+    "#langPick select:focus-visible{outline:2px solid var(--blue,#2f8fe0);border-radius:999px}" +
+    "#langPick option{color:#041024;background:#fff}" +
+    "#langPick::after{content:'';position:absolute;right:10px;top:50%;width:6px;height:6px;margin-top:-5px;border:solid var(--dim,#8fb4dd);border-width:0 2px 2px 0;transform:rotate(45deg);pointer-events:none}";
   document.head.appendChild(st);
-  const p = document.createElement("div"); p.id = "langPick"; p.setAttribute("role", "group"); p.setAttribute("aria-label", "Language"); p.setAttribute("data-i18n-skip", "");
-  p.innerHTML = LANGS.map(([k, t]) => '<button type="button" lang="' + k + '" data-lang="' + k + '" aria-pressed="' + (k === LANG) + '">' + t + '</button>').join("");
-  p.addEventListener("click", ev => { const b = ev.target.closest("[data-lang]"); if (!b || b.dataset.lang === LANG) return;
-    try { localStorage.setItem("javeda.lang", b.dataset.lang); } catch(e){} location.reload(); });
+  const p = document.createElement("label"); p.id = "langPick"; p.setAttribute("data-i18n-skip", "");
+  p.innerHTML = '<select aria-label="Language">' + LANGS.map(([k, t]) => '<option value="' + k + '" lang="' + ({ zh:"zh-Hans", tw:"zh-Hant" }[k] || k) + '"' + (k === LANG ? " selected" : "") + '>' + t + '</option>').join("") + '</select>';
+  p.querySelector("select").addEventListener("change", ev => { const v = ev.target.value; if (v === LANG) return;
+    try { localStorage.setItem("javeda.lang", v); } catch(e){} location.reload(); });
   const me = top.querySelector("#meBtn"); if (me) top.insertBefore(p, me); else top.appendChild(p);
 }
 
 function start(){
   picker();
-  if (I == null) return;
+  if (!ON) return;
   walk(document.body);
   if (document.title) { const t = tr(document.title); if (t) document.title = t; }
   new MutationObserver(list => { for (const m of list){
@@ -759,5 +779,11 @@ function start(){
       for (const n of m.addedNodes) walk(n); } } })
     .observe(document.body, { childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:ATTRS });
 }
-if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+// Japanese / Chinese: the pack first (from the network, or the phone's copy offline); without it the page stays English
+function go(){ if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start(); }
+if (PACKED){
+  const sc = document.createElement("script"); sc.src = BASE + "lang/" + LANG + ".js?v=1";
+  sc.onload = () => { if (window.JAVEDA_PACK) usePack(window.JAVEDA_PACK); go(); }; sc.onerror = go;
+  document.head.appendChild(sc);
+} else go();
 })();

@@ -260,6 +260,8 @@ function mount(app, getSb) {
       return res.json({ type: 4, data: { content: '⚠️ Something went wrong: ' + String(e.message || e).slice(0, 300), flags: EPHEMERAL } });
     }
   });
+  // the database alarm (lightning-health.js), called every 5 minutes from outside
+  app.get('/api/health', require('./lightning-health')({ discord, GUILD }));
   const keyOk = req => !!process.env.LIGHTNING_BOT_KEY && (req.get('x-lightning-key') || req.query.key) === process.env.LIGHTNING_BOT_KEY;
   // once (and after a change to the commands): put the slash commands in the server
   app.get('/api/discord/register', async (req, res) => {

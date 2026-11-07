@@ -97,3 +97,14 @@ $$);
 - Commands: `COMMANDS` in `lightning-bot.js`, then step 5 again.
 - The roles in the picker: `PICKER` in `lightning-bot.js`. Each one has a pattern that finds an existing role by name.
 - Links (Spotify, Merch, EVEN): `LINKS` in `lightning-bot.js` (the same as in `client/public/javeda/index.html`).
+
+## The database alarm
+`lightning-health.js`, at `https://lightningwolves.studio/api/health`. It checks that JAVEDA's Supabase answers (a
+database read and the log-in service, 8 s each, again 5 s later before it calls it down). When it doesn't, Lightning
+Bot DMs the server's owner and posts in the log channel, with the fix (Supabase → Project Settings → General →
+Restart project); at most once an hour, and one "it's back" when it is. It has to be called from outside Supabase
+(the 5-minute pg_cron timer runs in the same database and stops with it):
+
+- **cron-job.org** (free): Create cronjob → URL `https://lightningwolves.studio/api/health`, every 5 minutes,
+  timeout 30 s. Under Notifications, tick "on failure" too, for an email as well (the address answers 503 when down).
+- Needs no key. The bot needs nothing new (it already has the DISCORD_BOT_TOKEN); Discord allows DMs from server members by default.

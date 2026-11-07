@@ -686,12 +686,13 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <p>Your Lightning Wolves account: the same one as the Wolf Hub. Your guest progress comes with you.</p>
     <button class="btn hid" id="lgGoogle" type="button">Continue with Google</button>
     <div class="or hid" id="lgOr">OR</div>
-    <label class="f">Email <input class="in" id="lgEmail" type="email" autocomplete="email"></label>
+    <label class="f" id="lgEmailRow">Email <input class="in" id="lgEmail" type="email" autocomplete="email"></label>
     <label class="f">Password <input class="in" id="lgPass" type="password" autocomplete="current-password" minlength="6"></label>
     <label class="chk hid" id="lgNewsRow"><input type="checkbox" id="lgNews"><span>Email me JAVEDA news: new levels and new songs. You can switch it off in your profile any time.</span></label>
     <div class="err" id="lgErr"></div>
     <button class="btn primary" id="lgGo" type="button">Log in</button>
-    <p><span id="lgSwitchTxt">New here?</span> <button class="switch" id="lgSwitch" type="button">Create an account</button></p>
+    <p class="small" id="lgForgotRow"><button class="switch" id="lgForgot" type="button">Forgot your password?</button></p>
+    <p id="lgSwitchRow"><span id="lgSwitchTxt">New here?</span> <button class="switch" id="lgSwitch" type="button">Create an account</button></p>
     <p class="small"><a href="/javeda/privacy.html" target="_blank" rel="noopener">How JAVEDA keeps your data</a></p>
   </div>
 </div>
@@ -1832,29 +1833,56 @@ function openLogin(up){
   if (!sb){ toast("Log-in is offline right now. Your progress is saved on this phone."); return; }
   $("lgErr").textContent = ""; $("lgNews").checked = false; setMode(!!up); openSheet("login");
 }
-function setMode(up){
-  signUp = up;
-  $("lgT").textContent = up ? "Create an account" : "Log in";
-  $("lgGo").textContent = up ? "Create account" : "Log in";
+// the sheet's three uses: log in, create an account, and a new password (from the link in a reset email)
+let newPass = false;
+function setMode(up, fresh){
+  signUp = up; newPass = !!fresh;
+  $("lgT").textContent = fresh ? "Choose a new password" : up ? "Create an account" : "Log in";
+  $("lgGo").textContent = fresh ? "Save password" : up ? "Create account" : "Log in";
   $("lgSwitchTxt").textContent = up ? "Have an account?" : "New here?";
   $("lgSwitch").textContent = up ? "Log in" : "Create an account";
-  $("lgPass").autocomplete = up ? "new-password" : "current-password";
-  $("lgNewsRow").classList.toggle("hid", !up);
+  $("lgPass").autocomplete = up || fresh ? "new-password" : "current-password";
+  $("lgNewsRow").classList.toggle("hid", !up || fresh);
+  for (const id of ["lgEmailRow", "lgSwitchRow"]) $(id).classList.toggle("hid", !!fresh);
+  $("lgForgotRow").classList.toggle("hid", up || !!fresh);
+  if (fresh){ $("lgGoogle").classList.add("hid"); $("lgOr").classList.add("hid"); }
 }
+// the log-in server's words, said plainly (and translated); an answer that never comes ends after 20 s with a message
+const authMsg = e => { const m = String(e && e.message || e || "");
+  return /invalid login/i.test(m) ? "Wrong email or password." : /not confirmed/i.test(m) ? "Confirm your email first: the link is in your inbox (or spam)." :
+    /rate limit|too many/i.test(m) ? "Too many tries. Wait a minute and try again." : /timeout|failed to fetch|network/i.test(m) ? "No answer from the log-in server. Check your internet and try again." : m; };
+const inTime = p => Promise.race([p.then(r => r, e => ({ error:e })), new Promise(ok => setTimeout(() => ok({ error:{ message:"timeout" } }), 20000))]);
+function openNewPassword(){ $("lgErr").textContent = ""; $("lgPass").value = ""; setMode(false, true); openSheet("login"); }
 $("lgSwitch").onclick = () => setMode(!signUp);
 $("lgGo").onclick = async () => {
   const email = $("lgEmail").value.trim(), password = $("lgPass").value;
   $("lgErr").textContent = "";
+  if (newPass){
+    if (password.length < 6){ $("lgErr").textContent = "Choose a password of 6+ characters."; return; }
+    $("lgGo").disabled = true; const r = await inTime(sb.auth.updateUser({ password })); $("lgGo").disabled = false;
+    if (r.error){ $("lgErr").textContent = authMsg(r.error); return; }
+    closeSheet("login"); setMode(false); toast("Your new password is saved."); return;
+  }
   if (!email || password.length < 6){ $("lgErr").textContent = "Enter your email and a password of 6+ characters."; return; }
   if (signUp) newsWish($("lgNews").checked);
   $("lgGo").disabled = true;
-  const r = signUp
-    ? await sb.auth.signUp({ email, password, options:{ emailRedirectTo: location.origin + "/javeda/", data:{ javeda_news:$("lgNews").checked } } })
-    : await sb.auth.signInWithPassword({ email, password });
+  const r = await inTime(signUp
+    ? sb.auth.signUp({ email, password, options:{ emailRedirectTo: location.origin + "/javeda/", data:{ javeda_news:$("lgNews").checked } } })
+    : sb.auth.signInWithPassword({ email, password }));
   $("lgGo").disabled = false;
-  if (r.error){ $("lgErr").textContent = r.error.message; return; }
+  if (r.error){ $("lgErr").textContent = authMsg(r.error); return; }
   if (signUp && !r.data.session){ $("lgErr").innerHTML = '<span class="ok-msg">Check your email to confirm, then come back and log in.</span>'; return; }
   closeSheet("login");
+};
+// forgot the password: a link by email, back here to choose a new one
+$("lgForgot").onclick = async () => {
+  const email = $("lgEmail").value.trim(); $("lgErr").textContent = "";
+  if (!email){ $("lgErr").textContent = "Type your email above first."; $("lgEmail").focus(); return; }
+  $("lgForgot").disabled = true;
+  const r = await inTime(sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + "/javeda/" }));
+  $("lgForgot").disabled = false;
+  if (r.error){ $("lgErr").textContent = authMsg(r.error); return; }
+  $("lgErr").innerHTML = '<span class="ok-msg">Check your email: we sent you a link to choose a new password.</span>';
 };
 $("lgGoogle").onclick = async () => {
   if (signUp) newsWish($("lgNews").checked);
@@ -3174,6 +3202,8 @@ function goTo(hash){
 if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.type === "javeda:goto") goTo(e.data.hash); });
 
 /* ---- boot ---- */
+// back from a reset email: the link carries type=recovery (read now, before the log-in library tidies the address)
+const RECOVERY = /type=recovery/.test(location.hash);
 renderAll();
 // /javeda/#report (from the privacy page): straight to Report a problem
 if (location.hash === "#report") setTimeout(openReport, 400);
@@ -3200,9 +3230,11 @@ if (location.hash === "#app"){ history.replaceState(null, "", location.pathname 
   const passInfo = sb.from("javeda_settings").select("pass_on").maybeSingle().then(st => { passOn = !!(st.data && st.data.pass_on); });
   const [{ data }] = await Promise.all([sb.auth.getSession(), passInfo]);
   session = data.session; await loadAccount(); loadDaily().then(() => goTo(location.hash)); passReturn();
+  if (RECOVERY && session) openNewPassword();
   if (STANDALONE) appSeen("open");
   pushSync(); pushAuto();
   sb.auth.onAuthStateChange((_e, s) => {
+    if (_e === "PASSWORD_RECOVERY" && !newPass) setTimeout(openNewPassword, 0);
     const changed = (s && s.user.id) !== (session && session.user.id);
     session = s; if (changed) loadAccount().then(loadDaily).then(pushSync);
   });

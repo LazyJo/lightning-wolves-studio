@@ -1333,7 +1333,18 @@ S: {
 "IT'S FREE":"免费球",
 "FLAG ON":"插旗模式",
 "Try again":"再试一次",
-"THE SONG'S OVER":"歌曲结束了"
+"THE SONG'S OVER":"歌曲结束了",
+"Forgot your password?":"忘记密码？",
+"Type your email above first.":"请先在上面填写你的邮箱。",
+"Check your email: we sent you a link to choose a new password.":"请查看邮箱：我们已发送设置新密码的链接。",
+"Choose a new password":"设置新密码",
+"Save password":"保存密码",
+"Your new password is saved.":"新密码已保存。",
+"No answer from the log-in server. Check your internet and try again.":"登录服务器没有响应。请检查网络后再试一次。",
+"Wrong email or password.":"邮箱或密码错误。",
+"Confirm your email first: the link is in your inbox (or spam).":"请先确认你的邮箱：链接在收件箱（或垃圾邮件）里。",
+"Too many tries. Wait a minute and try again.":"尝试次数太多。请等一分钟再试。",
+"Choose a password of 6+ characters.":"请设置至少6个字符的密码。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",

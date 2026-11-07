@@ -1333,7 +1333,18 @@ S: {
 "IT'S FREE":"È GRATIS",
 "FLAG ON":"BANDIERA ATTIVA",
 "Try again":"Riprova",
-"THE SONG'S OVER":"LA CANZONE È FINITA"
+"THE SONG'S OVER":"LA CANZONE È FINITA",
+"Forgot your password?":"Password dimenticata?",
+"Type your email above first.":"Prima scrivi la tua email qui sopra.",
+"Check your email: we sent you a link to choose a new password.":"Controlla la tua email: ti abbiamo mandato un link per scegliere una nuova password.",
+"Choose a new password":"Scegli una nuova password",
+"Save password":"Salva password",
+"Your new password is saved.":"La tua nuova password è salvata.",
+"No answer from the log-in server. Check your internet and try again.":"Il server di accesso non risponde. Controlla la connessione e riprova.",
+"Wrong email or password.":"Email o password sbagliate.",
+"Confirm your email first: the link is in your inbox (or spam).":"Prima conferma la tua email: il link è nella posta in arrivo (o nello spam).",
+"Too many tries. Wait a minute and try again.":"Troppi tentativi. Aspetta un minuto e riprova.",
+"Choose a password of 6+ characters.":"Scegli una password di almeno 6 caratteri."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",

@@ -1333,7 +1333,18 @@ S: {
 "IT'S FREE":"フリーボール",
 "FLAG ON":"旗モードON",
 "Try again":"もう一回",
-"THE SONG'S OVER":"曲が終わった"
+"THE SONG'S OVER":"曲が終わった",
+"Forgot your password?":"パスワードを忘れた？",
+"Type your email above first.":"先に上でメールアドレスを入力してね。",
+"Check your email: we sent you a link to choose a new password.":"メールを確認してね：新しいパスワードを決めるリンクを送りました。",
+"Choose a new password":"新しいパスワードを決めよう",
+"Save password":"パスワードを保存",
+"Your new password is saved.":"新しいパスワードを保存しました。",
+"No answer from the log-in server. Check your internet and try again.":"ログインサーバーから応答がありません。ネット接続を確認して、もう一度試してね。",
+"Wrong email or password.":"メールアドレスかパスワードが違います。",
+"Confirm your email first: the link is in your inbox (or spam).":"先にメールアドレスを確認してね：リンクは受信トレイ（または迷惑メール）にあります。",
+"Too many tries. Wait a minute and try again.":"試行回数が多すぎます。1分待ってからもう一度試してね。",
+"Choose a password of 6+ characters.":"6文字以上のパスワードにしてね。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",

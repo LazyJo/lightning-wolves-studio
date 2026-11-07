@@ -97,6 +97,7 @@ button:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
 #outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
 #outs .merch{color:var(--gold); border-color:#ffd60a80; background:#ffd60a14}
 #outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#outs .yt{color:#ff9a9a; border-color:#ff4d4d80; background:#ff000014}
 /* the garage */
 #ward .tabs{display:flex; gap:6px; flex-wrap:wrap; justify-content:center}
 #ward .tabs button{border:1.5px solid #ffffff33; background:var(--card); color:var(--ink); border-radius:999px; padding:8px 14px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:13px}
@@ -184,6 +185,7 @@ button:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
     <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
     <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
     <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+    <a class="yt" data-link="youtube" target="_blank" rel="noopener">&#9654;&#65039; YouTube</a>
     <a class="alt" id="home" data-link="home" target="_blank" rel="noopener">&#8962; The album</a>
   </div>
   </div>
@@ -237,7 +239,7 @@ const Q = new URLSearchParams(location.search);
 const HUB = window.parent !== window && Q.has("hub");
 const ID = "hyperdrive";
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
-const LINKS = { spotify:"https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7", merch:"https://www.even.biz/l/lightningwolves", discord:"https://discord.gg/SES7XPJvBH", home:"https://lightningwolves.studio/javeda/" };
+const LINKS = { spotify:"https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7", merch:"https://www.even.biz/l/lightningwolves", discord:"https://discord.gg/SES7XPJvBH", youtube:"https://www.youtube.com/@lazyjo_?sub_confirmation=1", home:"https://lightningwolves.studio/javeda/" };
 const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const $ = id => document.getElementById(id);

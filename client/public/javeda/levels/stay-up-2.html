@@ -92,6 +92,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
 #outs .merch{color:#ffd60a; border-color:#ffd60a80; background:#ffd60a14}
 #outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
 #outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
+#outs .yt{color:#ff9a9a; border-color:#ff4d4d80; background:#ff000014}
 #home{font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:15px; letter-spacing:.16em; text-transform:uppercase; text-decoration:none; color:#a8b8ff; padding:9px 22px;
   border-radius:4px; border:1.5px solid #a8b8ff99; background:#a8b8ff14}
 #veil a:focus-visible, #veil button:focus-visible{outline:2px solid #ffe08a; outline-offset:3px}
@@ -127,6 +128,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
     <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
     <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
     <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
+    <a class="yt" data-link="youtube" target="_blank" rel="noopener">&#9654;&#65039; YouTube</a>
   </div>
   <a id="home" class="hid" data-link="home" target="_blank" rel="noopener">&#8962; Home</a>
   <small id="snd">sound on</small>
@@ -176,7 +178,7 @@ const LINKS = {
   spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
   merch:   "https://www.even.biz/l/lightningwolves",
   even:    "https://www.even.biz/l/lazyjomusic",
-  discord: "https://discord.gg/SES7XPJvBH",
+  discord: "https://discord.gg/SES7XPJvBH", youtube: "https://www.youtube.com/@lazyjo_?sub_confirmation=1",
   home:    "https://lightningwolves.studio/javeda/"
 };
 document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset.link]; });

@@ -1,6 +1,6 @@
-/* JAVEDA in seven languages: English, Nederlands, Français, Español, 日本語, 简体中文 and 繁體中文 (Taiwan).
-   English, Dutch, French and Spanish are the rows below; Japanese and the two Chinese come in a pack of their own
-   (lang/ja.js, lang/zh.js, lang/tw.js: the same English sentences as keys), loaded only when one is picked.
+/* JAVEDA in eight languages: English, Nederlands, Français, Español, Italiano, 日本語, 简体中文 and 繁體中文 (Taiwan).
+   English, Dutch, French and Spanish are the rows below; Italian, Japanese and the two Chinese come in a pack of their
+   own (lang/it.js, ja.js, zh.js, tw.js: the same English sentences as keys), loaded only when one is picked.
    The page is written in English. This file changes the words the player sees - text, placeholders, titles,
    labels - into the chosen language as the page draws them (a MutationObserver), so the page's own code stays as
    it is. Song titles and the names of the games stay as they are, like names. Exact sentences come from S; text
@@ -9,16 +9,16 @@
    else English. The picker sits in the top bar; a new pick reloads the page. */
 (function(){
 "use strict";
-const LANGS = [["en", "English"], ["nl", "Nederlands"], ["fr", "Français"], ["es", "Español"], ["ja", "日本語"], ["zh", "简体中文"], ["tw", "繁體中文"]];
+const LANGS = [["en", "English"], ["nl", "Nederlands"], ["fr", "Français"], ["es", "Español"], ["it", "Italiano"], ["ja", "日本語"], ["zh", "简体中文"], ["tw", "繁體中文"]];
 // the phone's language: zh-TW / zh-HK / zh-Hant read Traditional, other Chinese Simplified
 const fromPhone = () => { for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"])){
     const x = String(l).toLowerCase(); if (x.startsWith("zh")) return /hant|tw|hk|mo/.test(x) ? "tw" : "zh";
     const n = x.slice(0, 2); if (LANGS.some(k => k[0] === n)) return n; } return "en"; };
 const pick = () => { try { const s = localStorage.getItem("javeda.lang"); if (LANGS.some(l => l[0] === s)) return s; } catch(e){} return fromPhone(); };
-const LANG = pick(), I = { nl:0, fr:1, es:2 }[LANG], PACKED = ["ja", "zh", "tw"].includes(LANG);
+const LANG = pick(), I = { nl:0, fr:1, es:2 }[LANG], PACKED = ["it", "ja", "zh", "tw"].includes(LANG);
 window.JAVEDA_LANG = LANG;
 // for dates and numbers in the language picked
-window.JAVEDA_LOCALE = { en:"en-GB", nl:"nl-BE", fr:"fr-BE", es:"es-ES", ja:"ja-JP", zh:"zh-CN", tw:"zh-TW" }[LANG];
+window.JAVEDA_LOCALE = { en:"en-GB", nl:"nl-BE", fr:"fr-BE", es:"es-ES", it:"it-IT", ja:"ja-JP", zh:"zh-CN", tw:"zh-TW" }[LANG];
 document.documentElement.lang = { zh:"zh-Hans", tw:"zh-Hant" }[LANG] || LANG;
 // where lang/<code>.js is: next to this file
 const BASE = (document.currentScript && document.currentScript.src || location.href).replace(/[^/]*([?#].*)?$/, "");
@@ -709,7 +709,7 @@ function doAttrs(e){
 }
 // a sentence with bold words or links inside: the whole of it at once (H), else its pieces one by one
 const H = new Map(), HT = new Map(); if (I != null) for (const r of HTML) (r[0].includes("#") ? HT : H).set(norm(r[0]), r[I + 1]);
-// Japanese / Chinese: the pack's words into the same maps, and its own patterns (keyed by the English pattern)
+// Italian / Japanese / Chinese: the pack's words into the same maps, and its own patterns (keyed by the English pattern)
 function usePack(pk){
   PK = pk; ON = true;
   for (const k in pk.S || {}) (k.includes("#") ? TPL : EX).set(k, pk.S[k]);
@@ -747,7 +747,7 @@ function walk(root){
     for (const c of e.childNodes) if (c.nodeType === 3) doText(c); }
 }
 
-/* ---- the picker: a list of the seven languages, in the top bar ---- */
+/* ---- the picker: a list of the languages, in the top bar ---- */
 function picker(){
   // only on the JAVEDA page: a level follows the language picked there
   if (document.getElementById("langPick") || !document.getElementById("meBtn")) return;
@@ -779,7 +779,7 @@ function start(){
       for (const n of m.addedNodes) walk(n); } } })
     .observe(document.body, { childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:ATTRS });
 }
-// Japanese / Chinese: the pack first (from the network, or the phone's copy offline); without it the page stays English
+// Italian / Japanese / Chinese: the pack first (from the network, or the phone's copy offline); without it the page stays English
 function go(){ if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start(); }
 if (PACKED){
   const sc = document.createElement("script"); sc.src = BASE + "lang/" + LANG + ".js?v=1";

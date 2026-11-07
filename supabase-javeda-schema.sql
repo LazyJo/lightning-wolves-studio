@@ -1784,7 +1784,7 @@ BEGIN
     RAISE EXCEPTION 'slow down' USING ERRCODE = '54000';
   END IF;
   INSERT INTO javeda_push (endpoint, p256dh, auth, user_id, lang, daily, beaten, tz)
-  VALUES (p_endpoint, p_p256dh, p_auth, uid, CASE WHEN p_lang IN ('en', 'nl', 'fr', 'es', 'ja', 'zh', 'tw') THEN p_lang ELSE 'en' END, d, b, zone)
+  VALUES (p_endpoint, p_p256dh, p_auth, uid, CASE WHEN p_lang IN ('en', 'nl', 'fr', 'es', 'it', 'ja', 'zh', 'tw') THEN p_lang ELSE 'en' END, d, b, zone)
   ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, user_id = EXCLUDED.user_id,
     lang = EXCLUDED.lang, daily = EXCLUDED.daily, beaten = EXCLUDED.beaten, tz = coalesce(EXCLUDED.tz, javeda_push.tz), updated_at = now();
   RETURN json_build_object('daily', d, 'beaten', b);

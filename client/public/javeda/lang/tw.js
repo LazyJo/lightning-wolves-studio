@@ -1330,7 +1330,7 @@ S: {
 "the ghosts never stop":"鬼魂沒完沒了",
 "LAZY JO FT ZIRKA · LEVEL # · REMIX":"LAZY JO FT ZIRKA · 關卡# · 混音模式",
 "LAST BALL":"最後一球",
-"IT'S FREE":"脫身了！",
+"IT'S FREE":"免費球",
 "FLAG ON":"插旗模式",
 "Try again":"再試一次",
 "THE SONG'S OVER":"歌曲結束了"

@@ -1330,7 +1330,7 @@ S: {
 "the ghosts never stop":"おばけは止まらない",
 "LAZY JO FT ZIRKA · LEVEL # · REMIX":"LAZY JO FT ZIRKA · レベル# · リミックス",
 "LAST BALL":"ラストボール",
-"IT'S FREE":"抜け出した！",
+"IT'S FREE":"フリーボール",
 "FLAG ON":"旗モードON",
 "Try again":"もう一回",
 "THE SONG'S OVER":"曲が終わった"

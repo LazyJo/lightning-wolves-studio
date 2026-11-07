@@ -1942,3 +1942,107 @@ CREATE TABLE IF NOT EXISTS lightning_warns (
 CREATE INDEX IF NOT EXISTS lightning_warns_user ON lightning_warns (user_id, created_at DESC);
 ALTER TABLE lightning_warns ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON lightning_warns FROM anon, authenticated;
+
+-- ============================================================================
+-- The chat (on the JAVEDA page, a tab of the scoreboard): one room for every player with an account.
+-- Read by anyone through javeda_chat_list (names, pictures, words - never who's behind them); written only through
+-- javeda_chat_send: a player, not muted, 1-200 characters, no links, not too fast, the worst words starred out.
+-- Messages go after 30 days. Delete: your own, or any if you're a creator; creators can also mute someone.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS javeda_chat (
+  id         BIGSERIAL PRIMARY KEY,
+  user_id    UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  username   TEXT NOT NULL,
+  avatar     TEXT,
+  body       TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS javeda_chat_time ON javeda_chat (created_at DESC);
+CREATE INDEX IF NOT EXISTS javeda_chat_user ON javeda_chat (user_id, created_at DESC);
+ALTER TABLE javeda_chat ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_chat FROM anon, authenticated;
+CREATE TABLE IF NOT EXISTS javeda_chat_mutes (
+  user_id    UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  until      TIMESTAMPTZ NOT NULL,
+  by_user    UUID,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE javeda_chat_mutes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_chat_mutes FROM anon, authenticated;
+
+-- the newest 60, or what came after p_after (the page asks every few seconds while the chat is open)
+CREATE OR REPLACE FUNCTION public.javeda_chat_list(p_after BIGINT DEFAULT 0)
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT coalesce(json_agg(x ORDER BY x.id), '[]'::json) FROM (
+    SELECT c.id, c.username, c.avatar, c.body, c.created_at, (c.user_id = auth.uid()) AS mine,
+           (p.album_completed_at IS NOT NULL) AS album_complete
+    FROM javeda_chat c LEFT JOIN javeda_players p ON p.user_id = c.user_id
+    WHERE c.id > coalesce(p_after, 0) AND c.created_at > now() - interval '30 days'
+    ORDER BY c.id DESC LIMIT 60) x;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_chat_list(BIGINT) TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_chat_send(p_body TEXT)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+  pl  javeda_players%ROWTYPE;
+  msg TEXT := btrim(regexp_replace(coalesce(p_body, ''), '\s+', ' ', 'g'));
+  row javeda_chat%ROWTYPE;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'login'; END IF;
+  SELECT * INTO pl FROM javeda_players WHERE user_id = uid;
+  IF pl.user_id IS NULL THEN RAISE EXCEPTION 'player'; END IF;
+  IF EXISTS (SELECT 1 FROM javeda_chat_mutes WHERE user_id = uid AND until > now()) THEN RAISE EXCEPTION 'muted'; END IF;
+  IF msg = '' THEN RAISE EXCEPTION 'empty'; END IF;
+  IF length(msg) > 200 THEN RAISE EXCEPTION 'long'; END IF;
+  -- no links (spam and scams): a web address, or something.com / .gg / .be ...
+  IF msg ~* '(https?://|www\.|[a-z0-9-]+\.(com|net|org|gg|io|be|nl|fr|es|it|de|co|me|ly|tv|xyz|app|link|shop|ru|cn)(\M|/))' THEN RAISE EXCEPTION 'link'; END IF;
+  -- not too fast: one every 3 s, 8 a minute, and not the same words twice in 30 s
+  IF EXISTS (SELECT 1 FROM javeda_chat WHERE user_id = uid AND created_at > now() - interval '3 seconds')
+     OR (SELECT count(*) FROM javeda_chat WHERE user_id = uid AND created_at > now() - interval '1 minute') >= 8 THEN RAISE EXCEPTION 'slow'; END IF;
+  IF EXISTS (SELECT 1 FROM javeda_chat WHERE user_id = uid AND body = msg AND created_at > now() - interval '30 seconds') THEN RAISE EXCEPTION 'same'; END IF;
+  -- the worst words starred out (the players are young; Discord's AutoMod does the same on the server)
+  msg := regexp_replace(msg, '\m(n[i1]gg\w*|f[a4]gg?[o0]t\w*|c[u\*]nt\w*|fuck\w*|motherf\w*|kanker\w*|hoer\w*|tering\w*|salope\w*|encul\w*|pute|puta\w*|put[o0]|maric[oó]n\w*|cabr[oó]n\w*|fdp|stfu|kys)\M', '***', 'gi');
+  INSERT INTO javeda_chat (user_id, username, avatar, body) VALUES (uid, pl.username, pl.avatar, msg) RETURNING * INTO row;
+  DELETE FROM javeda_chat WHERE created_at < now() - interval '30 days';
+  RETURN json_build_object('id', row.id, 'username', row.username, 'avatar', row.avatar, 'body', row.body, 'created_at', row.created_at, 'mine', true,
+    'album_complete', pl.album_completed_at IS NOT NULL);
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_chat_send(TEXT) TO authenticated;
+
+-- delete a message: your own, or any if you're a creator
+CREATE OR REPLACE FUNCTION public.javeda_chat_delete(p_id BIGINT)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  DELETE FROM javeda_chat WHERE id = p_id
+    AND (user_id = auth.uid() OR EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()));
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_chat_delete(BIGINT) TO authenticated;
+
+-- creators: mute the player behind a message for p_hours (0 = unmute); their last day of messages goes too
+CREATE OR REPLACE FUNCTION public.javeda_chat_mute(p_id BIGINT, p_hours INT)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE who UUID; nm TEXT;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()) THEN RAISE EXCEPTION 'creators only'; END IF;
+  SELECT user_id, username INTO who, nm FROM javeda_chat WHERE id = p_id;
+  IF who IS NULL THEN RAISE EXCEPTION 'gone'; END IF;
+  IF coalesce(p_hours, 0) <= 0 THEN DELETE FROM javeda_chat_mutes WHERE user_id = who; RETURN json_build_object('username', nm, 'muted', false); END IF;
+  INSERT INTO javeda_chat_mutes (user_id, until, by_user) VALUES (who, now() + make_interval(hours => least(p_hours, 24 * 365)), auth.uid())
+    ON CONFLICT (user_id) DO UPDATE SET until = EXCLUDED.until, by_user = EXCLUDED.by_user;
+  DELETE FROM javeda_chat WHERE user_id = who AND created_at > now() - interval '1 day';
+  RETURN json_build_object('username', nm, 'muted', true);
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_chat_mute(BIGINT, INT) TO authenticated;

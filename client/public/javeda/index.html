@@ -450,6 +450,25 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .btn.hot:hover{background:#ff5a9e}
 @media (max-width:760px){ .now{grid-template-columns:minmax(0,1fr)} }
 /* the gold badge beside a name on the boards: everyone who finished the album */
+/* the chat: a tab of the scoreboard */
+.board.chatbox{display:flex; flex-direction:column}
+.chatlog{list-style:none; margin:0; padding:8px 0; height:min(52vh,420px); overflow-y:auto; overscroll-behavior:contain}
+.chatlog li{display:grid; grid-template-columns:32px 1fr; gap:10px; padding:6px 14px; align-items:start}
+.chatlog li.you{background:#2f8fe014}
+.chatlog li.empty{display:block; color:var(--mute); text-align:center; padding:34px 14px}
+.board .chatlog img{width:32px; height:32px; border-radius:50%}
+.chatlog .ch{display:flex; align-items:baseline; gap:8px; min-width:0}
+.chatlog .ch b{font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0}
+.chatlog .ch .gb{flex:none; font:700 10px/1 var(--cond); letter-spacing:.1em; color:#2a1a02; background:linear-gradient(180deg,#ffe08a,#e0a41a); border-radius:999px; padding:3px 6px}
+.chatlog time{flex:none; font:600 12px/1 var(--cond); color:var(--mute); letter-spacing:.04em}
+.chatlog .acts{margin-left:auto; display:flex; gap:2px; flex:none}
+.chatlog .acts button{border:0; background:none; color:var(--mute); cursor:pointer; font-size:14px; line-height:1; padding:3px 5px; border-radius:6px; opacity:.6}
+.chatlog .acts button:hover{opacity:1; background:#ffffff12; color:var(--ink)}
+.chatlog p{margin:2px 0 0; overflow-wrap:anywhere; white-space:pre-wrap; color:var(--ink)}
+.chatform{display:flex; gap:8px; padding:10px 12px 6px; border-top:1px solid #ffffff14}
+.chatform .in{flex:1; min-width:0}
+.chatnote{margin:0; padding:2px 14px 12px; font-size:13px; color:var(--mute)}
+.chatnote .err{display:block; margin-top:4px}
 .board .un .gb{display:inline-block; margin-left:7px; font:700 10px/1 var(--cond); letter-spacing:.1em; color:#2a1a02; background:linear-gradient(180deg,#ffe08a,#e0a41a); border-radius:999px; padding:3px 6px; vertical-align:2px}
 .pic .cost.earn{background:#2a1a02; color:var(--gold); border:1px solid #e0a41a; font-size:10.5px}
 /* invite a friend */
@@ -1604,19 +1623,20 @@ function renderUltimate(){
 }
 const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"],["lvl28","Level 28"],["lvl28b","Level 28 Part 2"]];
 /// the scoreboard picker: which kind of board, then (a level or an endless) the level, then its part
-const boardKind = id => id === "points" || id === "1v1" || id === "daily" || id === "marathon" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
+const boardKind = id => id === "points" || id === "chat" || id === "1v1" || id === "daily" || id === "marathon" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
 const boardLevels = () => TABS.filter(([k]) => k !== "points" && k !== "1v1").map(([k]) => levelById(k)).filter(Boolean);
 let lastBoard = { level:"lvl28", endless:"lvl28x" };
 function renderTabs(){
   const kind = boardKind(boardTab), pad = n => String(n).padStart(2, "0");
   if (kind === "level" || kind === "endless") lastBoard[kind] = boardTab;
-  $("tabs").innerHTML = [["points", "Points"], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["marathon", "Marathon", "g"]].map(([k, t, c]) =>
+  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat"], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["marathon", "Marathon", "g"]].map(([k, t, c]) =>
     '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
   requestAnimationFrame(hsAll);
   const el = $("etabs"); el.classList.toggle("gold", kind === "endless" || kind === "marathon");
   if (kind === "daily"){ const lv = daily && levelById(daily.level);
     el.innerHTML = lv ? '<div class="pts"><span class="cap"><small>Today &middot; Level ' + lv.num + '</small>' + esc(lv.title) + '</span></div>' : ""; return; }
   if (kind === "marathon"){ el.innerHTML = '<div class="pts"><span class="cap"><small>Album marathon</small>songs cleared in one run</span></div>'; return; }
+  if (kind === "chat"){ el.innerHTML = ""; return; }
   if (kind !== "level" && kind !== "endless"){ el.innerHTML = ""; return; }
   const list = kind === "level" ? boardLevels() : ENDLESS, cur = levelById(boardTab), here = list.filter(l => l.num === cur.num);
   const nums = [...new Set(list.map(l => l.num))], main = LEVELS.find(l => l.num === cur.num && !l.part) || cur;
@@ -1640,6 +1660,9 @@ function boardRows(data, val){
 let boardAsk = 0;
 async function renderBoard(){
   const el = $("board"), tab = boardTab, ask = ++boardAsk;
+  el.classList.toggle("chatbox", tab === "chat");
+  if (tab === "chat") return renderChat();
+  clearTimeout(chatT);
   if (!sb){ el.innerHTML = '<p class="empty">The scoreboard is offline right now. Your runs still count on this phone.</p>'; return; }
   const fail = () => '<p class="empty">Could not load the scoreboard. Try again in a bit.</p>';
   const none = what => '<p class="empty">' + what + ' ' + (signedIn() ? 'Be the first.' : 'Create a free account and be the first.') + '</p>';
@@ -1671,6 +1694,77 @@ async function renderBoard(){
     (signedIn() ? '' : '<p class="empty" style="border-top:1px solid #ffffff0d">Create a free account to get your name on here.</p>');
   boardMoreBtn();
 }
+/* ---- the chat: one room for every player with an account (javeda_chat_* in supabase-javeda-schema.sql) ----
+   It asks for what's new every 4 s while the tab is open and the page is in view; every minute it reads the whole
+   list again, so a message a creator deleted goes for everyone. Names and words stay as they were written. */
+let chatLast = 0, chatT = null, chatBusy = false, chatN = 0, chatIds = "";
+const CHAT_ERR = { login:"Log in to chat.", player:"Make your player first (a name and a picture).", muted:"You can't chat for a while.",
+  long:"200 characters at most.", link:"No links in the chat.", slow:"Slow down a little.", same:"You just said that." };
+function chatTime(t){ const d = new Date(t), loc = window.JAVEDA_LOCALE || "en-GB";
+  return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString(loc, { hour:"2-digit", minute:"2-digit" }) : d.toLocaleDateString(loc, { day:"numeric", month:"short" }); }
+function chatRow(m){
+  const acts = (m.mine || creator ? '<button type="button" data-chatdel="' + m.id + '" title="Delete" aria-label="Delete">&times;</button>' : '') +
+    (!m.mine && signedIn() ? '<button type="button" data-chatrep="' + m.id + '" title="Report" aria-label="Report">&#9873;</button>' : '') +
+    (creator && !m.mine ? '<button type="button" data-chatmute="' + m.id + '" title="Mute for a day" aria-label="Mute for a day">&#128263;</button>' : '');
+  return '<li data-id="' + m.id + '"' + (m.mine ? ' class="you"' : '') + '><img src="' + pic(m.avatar) + '" alt=""><div><div class="ch"><b data-i18n-skip>' + esc(m.username) + '</b>' +
+    (m.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + '<time data-i18n-skip>' + chatTime(m.created_at) + '</time>' +
+    (acts ? '<span class="acts">' + acts + '</span>' : '') + '</div><p data-i18n-skip>' + esc(m.body) + '</p></div></li>';
+}
+function renderChat(){
+  const el = $("board"); el.classList.remove("short"); $("boardMore").classList.add("hid");
+  if (!sb){ el.innerHTML = '<p class="empty">The chat is offline right now.</p>'; return; }
+  const can = signedIn() && !session.offline;
+  el.innerHTML = '<ol class="chatlog" id="chatLog" aria-live="polite"><li class="empty">Loading…</li></ol>' + (can
+    ? '<form class="chatform" id="chatForm"><input class="in" id="chatIn" maxlength="200" autocomplete="off" enterkeyhint="send" placeholder="Say something to the pack…" aria-label="Message"><button class="btn primary" type="submit">Send</button></form>' +
+      '<p class="chatnote">Be nice. No links. Messages go after 30 days.<span class="err" id="chatErr"></span></p>'
+    : '<p class="chatnote" style="padding-top:12px;border-top:1px solid #ffffff14">Create a free account to chat. <button class="switch" type="button" data-chatjoin="1">Create a free account</button></p>');
+  chatLast = 0; chatIds = ""; chatN = 0; chatPoll(true);
+}
+async function chatPoll(first){
+  clearTimeout(chatT); if (boardTab !== "chat" || !sb) return;
+  if (!document.hidden && !chatBusy){
+    const full = first || ++chatN % 15 === 0;
+    chatBusy = true;
+    const { data, error } = await sb.rpc("javeda_chat_list", { p_after: full ? 0 : chatLast }).then(r => r, e => ({ error:e }));
+    chatBusy = false;
+    const log = $("chatLog"); if (boardTab !== "chat" || !log) return;
+    if (error){ if (first) log.innerHTML = '<li class="empty">Could not load the chat. Try again in a bit.</li>'; }
+    else chatAdd(data || [], full);
+  }
+  chatT = setTimeout(chatPoll, document.hidden ? 15000 : 4000);
+}
+function chatAdd(list, full){
+  const log = $("chatLog"), near = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+  if (full){ const ids = list.map(m => m.id).join(","); if (ids === chatIds && log.querySelector("[data-id]")) return; chatIds = ids;
+    log.innerHTML = list.length ? list.map(chatRow).join("") : '<li class="empty">No messages yet. Say hi!</li>';
+    chatLast = list.length ? list[list.length - 1].id : 0; log.scrollTop = log.scrollHeight; return; }
+  let added = 0;
+  for (const m of list){ if (log.querySelector('[data-id="' + m.id + '"]')) continue; log.insertAdjacentHTML("beforeend", chatRow(m)); added++; chatLast = Math.max(chatLast, m.id); }
+  if (added){ const e = log.querySelector("li.empty"); if (e) e.remove(); chatIds = [...log.querySelectorAll("[data-id]")].map(x => x.dataset.id).join(","); }
+  while (log.children.length > 120) log.firstElementChild.remove();
+  if (added && near) log.scrollTop = log.scrollHeight;
+}
+document.addEventListener("submit", async e => {
+  if (e.target.id !== "chatForm") return; e.preventDefault();
+  const inp = $("chatIn"), text = inp.value.trim(), err = $("chatErr"); err.textContent = ""; if (!text || chatBusy) return;
+  inp.disabled = true;
+  const { data, error } = await sb.rpc("javeda_chat_send", { p_body:text }).then(r => r, x => ({ error:x }));
+  inp.disabled = false; inp.focus();
+  if (error){ const k = Object.keys(CHAT_ERR).find(k => String(error.message || "").includes(k)); err.textContent = k ? CHAT_ERR[k] : "Could not send. Try again."; return; }
+  inp.value = ""; if (data) chatAdd([data], false); const log = $("chatLog"); if (log) log.scrollTop = log.scrollHeight;
+});
+document.visibilityState && document.addEventListener("visibilitychange", () => { if (!document.hidden && boardTab === "chat") chatPoll(); });
+$("board").addEventListener("click", async e => {
+  const b = e.target.closest("[data-chatdel],[data-chatrep],[data-chatmute],[data-chatjoin]"); if (!b) return;
+  if (b.dataset.chatjoin){ openLogin(true); return; }
+  const li = b.closest("li"), name = li && li.querySelector(".ch b").textContent, body = li && li.querySelector("p").textContent;
+  if (b.dataset.chatdel){ const { error } = await sb.rpc("javeda_chat_delete", { p_id:+b.dataset.chatdel }).then(r => r, x => ({ error:x })); if (!error) li.remove(); return; }
+  if (b.dataset.chatrep){ b.disabled = true; await sendReport({ kind:"player", topic:"other", message:"Chat: " + name + ": " + body, detail:"chat message " + b.dataset.chatrep, page:"/javeda/#chat" });
+    toast("Thanks. Lazy Jo will take a look."); return; }
+  if (b.dataset.chatmute){ if (!confirm((window.JAVEDA_T || (x => x))("Mute this player for a day? Their messages of the last day go too."))) return;
+    const { error } = await sb.rpc("javeda_chat_mute", { p_id:+b.dataset.chatmute, p_hours:24 }).then(r => r, x => ({ error:x }));
+    if (error){ toast(esc(error.message)); return; } toast("Muted for a day."); chatPoll(true); }
+});
 // at the top of the page the board shows the top 5; the rest on a tap
 let boardAll = false;
 function boardMoreBtn(){

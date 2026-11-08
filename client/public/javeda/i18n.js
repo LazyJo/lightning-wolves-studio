@@ -18,7 +18,7 @@ const pick = () => { try { const s = localStorage.getItem("javeda.lang"); if (LA
 const LANG = pick(), I = { nl:0, fr:1, es:2 }[LANG], PACKED = ["it", "ja", "zh", "tw"].includes(LANG);
 window.JAVEDA_LANG = LANG;
 // for dates and numbers in the language picked
-window.JAVEDA_LOCALE = { en:"en-GB", nl:"nl-BE", fr:"fr-BE", es:"es-ES", it:"it-IT", ja:"ja-JP", zh:"zh-CN", tw:"zh-TW" }[LANG];
+window.JAVEDA_LOCALE = { en:"en-GB", nl:"nl-BE", fr:"fr-BE", es:"es-ES", it:"it-IT", tr:"tr-TR", ja:"ja-JP", zh:"zh-CN", tw:"zh-TW" }[LANG];
 document.documentElement.lang = { zh:"zh-Hans", tw:"zh-Hant" }[LANG] || LANG;
 // where lang/<code>.js is: next to this file
 const BASE = (document.currentScript && document.currentScript.src || location.href).replace(/[^/]*([?#].*)?$/, "");
@@ -816,11 +816,21 @@ function tr(s){
 const done = new WeakMap();      // a node -> the text we put there (so we don't translate our own words again)
 const ATTRS = ["placeholder", "title", "aria-label"];
 const INLINE = new Set(["B", "I", "STRONG", "EM", "A", "SMALL", "BR", "U", "CODE", "SPAN"]);
+// Turkish capitals: the page is lang="tr" (so CSS uppercase makes i -> İ in Turkish words), but a name or title that
+// stays English (no translation found) would turn "Lifestyle" into "LİFESTYLE". Its element alone gets lang="en"
+// (taken off again when the element later shows Turkish).
+const EN_CAPS = LANG === "tr";
+function capsLang(n, english){
+  const e = n.parentElement; if (!EN_CAPS || !e) return;
+  if (english){ if (e.childNodes.length === 1 && !e.hasAttribute("lang")){ e.setAttribute("lang", "en"); e.dataset.capsEn = "1"; } }
+  else if (e.dataset.capsEn){ e.removeAttribute("lang"); delete e.dataset.capsEn; }
+}
 function doText(n){
   const v = n.nodeValue; if (!v || done.get(n) === v || !/[A-Za-z]{2}/.test(v)) return;
-  const t = tr(v); if (t == null) return;
+  const t = tr(v); if (t == null){ capsLang(n, true); return; }
   const lead = v.match(/^\s*/)[0], trail = v.match(/\s*$/)[0], out = lead + t + trail;
   done.set(n, out); if (out !== v) n.nodeValue = out;
+  capsLang(n, false);
 }
 function doAttrs(e){
   for (const a of ATTRS){ const v = e.getAttribute && e.getAttribute(a); if (!v || !/[A-Za-z]{2}/.test(v)) continue;

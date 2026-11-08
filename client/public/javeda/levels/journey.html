@@ -421,7 +421,7 @@ function hud(){
 function showerEnd(i){ return ENDLESS ? blockOf(i)[1] : i >= STOPS - 1 ? END_AT : BLOCKS[i][1]; }
 function reset(){
   S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, hearts:CFG.hearts, at:0, phase:"defend", arrived:0, a:Math.PI/2, ta:Math.PI/2,
-        x:0, z:0, vx:0, vz:0, flyT:0, nextMet:barT(1), front:Math.PI/2 + Math.PI*.6, frontDir:1, k:0, bounced:0, onBeat:0, combo:0, best:0, hits:0, lost:0, saved:0, hitHere:0, starsGot:0, perfect:0, shield:0,
+        x:0, z:0, vx:0, vz:0, flyT:0, nextMet:barT(1), front:Math.PI/2 + Math.PI*.6, frontDir:1, k:0, bounced:0, onBeat:0, combo:0, best:0, hits:0, inv:0, lost:0, saved:0, hitHere:0, starsGot:0, perfect:0, shield:0,
         loops:0, far:0, lap:0, flashT:0, stallT:0, nextHeart:barT(24) };
   meteors.forEach(m => { m.on = false; m.m.visible = false; });
   stars.forEach(s => s.visible = true);
@@ -462,6 +462,7 @@ function update(dt){
   if (S.done) return;
   const t = Math.max(0, S.t), p = P(S.at);
   if (S.shield > 0) S.shield -= dt;
+  if (S.inv > 0) S.inv -= dt;
   // endless: a heart back every 24 bars (the remix gives one per lap instead)
   if (ENDLESS && !REMIX && t >= S.nextHeart){ S.nextHeart += BAR*24; if (S.hearts < CFG.hearts){ S.hearts++; sfx.good(); say("A HEART BACK", "one every 24 bars", 1, "g"); } }
 
@@ -519,7 +520,8 @@ function update(dt){
         S.score += (beat ? 200 : 100) * Math.min(4, 1 + Math.floor(S.combo/6)); S.shield = .25; sfx.bounce(beat); if (beat) say("ON THE BEAT", "x2", .4);
       }
     }
-    if (!m.out && r < q.r + .2){ m.on = false; m.m.visible = false; S.hits++; S.hitHere++; flashPlanet(q); if (hurt("THE PLANET IS HIT")) return; continue; }
+    // a hit gives the planet a moment (S.inv): a second meteor right behind the first burns up instead of taking another heart
+    if (!m.out && r < q.r + .2){ m.on = false; m.m.visible = false; flashPlanet(q); if (S.inv > 0) continue; S.hits++; S.hitHere++; S.inv = .9; if (hurt("THE PLANET IS HIT")) return; continue; }
     // in Part 3 comets also hunt the ship while it flies (any meteor near the ship hurts)
     if (RU.comets && S.phase === "fly" && Math.hypot(m.x - S.x, m.z - S.z) < 1.1){ m.on = false; m.m.visible = false; if (hurt("HIT BY A METEOR")) return; S.phase = "launch"; continue; }
     if (r > 26){ m.on = false; m.m.visible = false; }

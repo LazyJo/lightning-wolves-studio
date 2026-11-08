@@ -581,14 +581,15 @@ const SN = {
     return p; },
   flip(t, at){ const s = this.st, cur = s.cur;
     if (ONLINE) W2.closed(s.n - 1, t);
-    else if (cur && cur.match && !cur.snapped){ cur.snapped = true; s.combo = 0; if (hurt("MISSED A PAIR", "When both piles show the same picture, tap - SNAP. A heart and a broken heart aren't the same.")) return; }
+    else if (cur && cur.match && !cur.snapped){ cur.snapped = true; s.combo = 0; if (S.inv <= 0 && hurt("MISSED A PAIR", "When both piles show the same picture, tap - SNAP. A heart and a broken heart aren't the same.")) return; }
     const k = s.n++, d = this.deal(k, s.since, this.L(t)); s.since = d.match ? 0 : s.since + 1;
     this.card(0, d.a, t); this.card(1, d.b, t); sfx.clink();
     s.cur = Object.assign(d, { k, at, snapped:false }); s.flips[k] = s.cur; },
   press(){ const s = this.st, c = s.cur; if (!c || c.snapped || S.done || S.end >= 0) return;
     if (ONLINE){ W2.mine(c, Math.max(0, S.t)); return; }
     c.snapped = true;
-    if (!c.match){ s.combo = 0; hurt("NOT A PAIR", "Only snap when both piles show the same picture. A heart and a broken heart aren't the same, nor the sun and the moon."); return; }
+    // right after a heart is lost (the blink) a wrong snap costs nothing: one late tap can't take two hearts
+    if (!c.match){ s.combo = 0; if (S.inv <= 0) hurt("NOT A PAIR", "Only snap when both piles show the same picture. A heart and a broken heart aren't the same, nor the sun and the moon."); return; }
     s.snaps++; s.combo++; S.combo = s.combo; const beat = onBeat(S.t), n = Math.round(100*(beat ? 2 : 1)*(section(S.t) === "hook" ? 2 : 1)*Math.min(2.5, 1 + s.combo*.2)) + (s.piles[0].length + s.piles[1].length)*10;
     S.score += n; sfx.good(s.combo); sfx.clap(); say(beat ? "SNAP! ON THE BEAT" : "SNAP!", "+" + n + " · both piles", .8);
     this.collect();

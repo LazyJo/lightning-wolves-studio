@@ -737,7 +737,7 @@ function update(dt){
     if (!inLane) continue;
     if (w.userData.low && S.y > 0.75) continue;             // cleared the low wall
     if (w.userData.hole && S.y > 0.70) continue;            // flew over the hole
-    S.hits++; S.hearts = Math.max(0, S.hearts - 1); S.inv = .95;
+    S.hits++; S.hearts = Math.max(0, S.hearts - 1); S.inv = 1.3;
     // on the finish line he is not shunted back off it, so if his last heart goes
     // on the same frame, the ending below still fires: the story wins over a fail
     const atEnd = !ENDLESS && S.dist >= CP_TOTAL * CP_EVERY;
@@ -793,6 +793,8 @@ function update(dt){
 }
 
 function render(dt){
+  // blinks while a crash's grace lasts (walls can't hurt then)
+  ufo.visible = S.end >= 0 || S.crash >= 0 || !(S.inv > 0 && Math.floor(S.inv*12) % 2);
   if (S.end >= 0){ renderEnd(dt); return; }
   const y = FLY_Y + S.y;
   ufo.position.set(S.laneX*LANE, y, -S.dist);

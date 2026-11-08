@@ -49,6 +49,8 @@ canvas{display:block; touch-action:none}
 #pads.hid{display:none}
 #pads button{font-family:Bungee,sans-serif; flex:1; height:68px; border-radius:14px; border:1.5px solid #7dff4d66; background:#0e1a06cc; color:#c8ff9a; font-size:20px; touch-action:none; cursor:pointer}
 #pads button.on{background:#7dff4d44; border-color:#c8ff9a}
+#pads button.go{animation:padgo .5s ease-in-out infinite alternate}
+@keyframes padgo{from{box-shadow:0 0 0 0 #7dff4d00} to{box-shadow:0 0 0 6px #7dff4d88; border-color:#c8ff9a}}
 #veil{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; gap:14px; z-index:9; text-align:center; padding:24px; overflow-y:auto;
   background:radial-gradient(80% 50% at 50% 72%, #ff8a2a55 0%, transparent 60%), linear-gradient(180deg,#1a0d22 0%,#3a1a2a 45%,#7a3a24 75%,#1a0d10 100%)}
 #veil .sp{flex:1 0 0; display:block}
@@ -374,7 +376,7 @@ function hud(){
     lastH = h; $("hearts").textContent = h; }
   if (GOLD){ $("sunl").textContent = (REMIX ? "REMIX · LAP " + (S.lap + 1) : "ENDLESS") + " · " + clock(S.t);
     if (REMIX) $("sunbar").firstChild.style.width = (clamp((S.t - S.segT)/(S.segEnd - S.segT), 0, 1)*100).toFixed(1) + "%"; }
-  else $("sunbar").firstChild.style.width = (clamp(1 - S.t / END_AT, 0, 1)*100).toFixed(1) + "%";
+  else $("sunbar").firstChild.style.width = (clamp(1 - (S.t - Math.min(S.waited || 0, 12)) / END_AT, 0, 1)*100).toFixed(1) + "%";
   if (G.hud) G.hud();
 }
 
@@ -462,7 +464,7 @@ const HOP = {
     if (this.stars.length && this.stars[0].position.x < S.x - 30) this.stars = this.stars.filter(s => s.position.x >= S.x - 30 || (this.root.remove(s), false));
   },
   reset(){
-    Object.assign(S, { hearts:3, maxHearts:3, x:-2.5, y:2.05, vy:0, ground:true, coyote:0, hover:1, hold:false, last:0, inv:0, starsGot:0, falls:0 });
+    Object.assign(S, { hearts:3, maxHearts:3, x:-2.5, y:2.05, vy:0, ground:true, coyote:0, hover:1, hold:false, last:0, inv:0, starsGot:0, falls:0, wait:0, waited:0 });
     if (GOLD){ this.course(); this.grow(0); }
     else this.stars.forEach(s => s.visible = true);
     $("pads").classList.remove("hid");
@@ -473,11 +475,14 @@ const HOP = {
   press(down){ if (!S.started || S.end >= 0) return; $("pads").firstChild && $("pads").firstChild.classList.toggle("on", down);
     if (!down && S.hold && S.vy > 0) S.vy *= .45;
     S.hold = down;
+    if (down && S.wait > 0){ S.wait = 0; this.waitPad(false); }   // back on the rock after a splash: the tap is the jump
     if (down && (S.ground || S.coyote > 0)){ S.vy = 11.5; S.ground = false; S.coyote = 0; sfx.jump(); } },
   seaLevel(t){ const ph = ((t - GRID.t0) % BAR + BAR) % BAR / BAR; return -.1 + Math.max(0, Math.sin(ph*Math.PI*2))*(inHook(t) ? 1.15 : t > barT(2) ? .75 : .3); },
   update(dt, t){
     if (GOLD) this.grow(t);
-    const prevY = S.y; S.x += this.speed(t)*dt;
+    const prevY = S.y;
+    if (S.wait > 0){ S.wait -= dt; S.waited += dt; if (S.wait <= 0) this.waitPad(false); }
+    else S.x += this.speed(t)*dt;
     S.vy -= 27*dt;
     if (S.hold && S.vy < 0 && S.hover > 0){ S.vy = Math.max(S.vy, -2); S.hover = Math.max(0, S.hover - dt*.9); }
     S.y += S.vy*dt; S.coyote -= dt; if (S.inv > 0) S.inv -= dt;
@@ -497,12 +502,15 @@ const HOP = {
       else { S.score += 150; S.starsGot++; sfx.good(); } }
     // into the sea: a splash, a heart, back to the start of the last rock
     if (S.y - .3 < this.seaLevel(t)){
-      sfx.splash(); S.hearts--; S.falls++; const p = this.plat[S.last]; S.x = p.x - p.w/2 + .6; S.y = p.y + 1.2; S.vy = 0; S.inv = 1;
+      sfx.splash(); S.hearts--; S.falls++; const p = this.plat[S.last]; S.x = p.x - p.w/2 + .6; S.y = p.y + .45; S.vy = 0; S.ground = true; S.coyote = 0; S.inv = 1;
       if (S.hearts <= 0){ lose("THE SEA GOT YOU", "Jump right at the edge, and hold to hover over the long gaps."); return; }
       say("SPLASH!", S.hearts + (S.hearts === 1 ? " heart" : " hearts") + " left", 1, true);
+      // back standing on the rock, and the saucer waits (up to 4 s) for your jump
+      S.wait = 4; this.waitPad(true);
     }
-    if (!GOLD && t >= END_AT){ lose("THE SUN WENT DOWN", "Keep moving - the arch is at the end of the beach."); }
+    if (!GOLD && t >= END_AT + Math.min(S.waited, 12)){ lose("THE SUN WENT DOWN", "Keep moving - the arch is at the end of the beach."); }
   },
+  waitPad(on){ const b = $("pads").firstChild; if (b && b.classList) b.classList.toggle("go", on); },
   hud(){ $("gauge").firstChild.style.width = (S.hover*100).toFixed(0) + "%"; },
   render(dt, t){
     ufo.position.set(S.x, S.y + Math.sin(t*3)*.05, 0); ufo.rotation.set(0, t*.8, clamp(-S.vy*.02, -.3, .3));

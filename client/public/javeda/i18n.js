@@ -1,4 +1,4 @@
-/* JAVEDA in eight languages: English, Nederlands, Français, Español, Italiano, 日本語, 简体中文 and 繁體中文 (Taiwan).
+/* JAVEDA in nine languages: English, Nederlands, Français, Español, Italiano, Türkçe, 日本語, 简体中文 and 繁體中文 (Taiwan).
    English, Dutch, French and Spanish are the rows below; Italian, Japanese and the two Chinese come in a pack of their
    own (lang/it.js, ja.js, zh.js, tw.js: the same English sentences as keys), loaded only when one is picked.
    The page is written in English. This file changes the words the player sees - text, placeholders, titles,
@@ -9,13 +9,13 @@
    else English. The picker sits in the top bar; a new pick reloads the page. */
 (function(){
 "use strict";
-const LANGS = [["en", "English"], ["nl", "Nederlands"], ["fr", "Français"], ["es", "Español"], ["it", "Italiano"], ["ja", "日本語"], ["zh", "简体中文"], ["tw", "繁體中文"]];
+const LANGS = [["en", "English"], ["nl", "Nederlands"], ["fr", "Français"], ["es", "Español"], ["it", "Italiano"], ["tr", "Türkçe"], ["ja", "日本語"], ["zh", "简体中文"], ["tw", "繁體中文"]];
 // the phone's language: zh-TW / zh-HK / zh-Hant read Traditional, other Chinese Simplified
 const fromPhone = () => { for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"])){
     const x = String(l).toLowerCase(); if (x.startsWith("zh")) return /hant|tw|hk|mo/.test(x) ? "tw" : "zh";
     const n = x.slice(0, 2); if (LANGS.some(k => k[0] === n)) return n; } return "en"; };
 const pick = () => { try { const s = localStorage.getItem("javeda.lang"); if (LANGS.some(l => l[0] === s)) return s; } catch(e){} return fromPhone(); };
-const LANG = pick(), I = { nl:0, fr:1, es:2 }[LANG], PACKED = ["it", "ja", "zh", "tw"].includes(LANG);
+const LANG = pick(), I = { nl:0, fr:1, es:2 }[LANG], PACKED = ["it", "tr", "ja", "zh", "tw"].includes(LANG);
 window.JAVEDA_LANG = LANG;
 // for dates and numbers in the language picked
 window.JAVEDA_LOCALE = { en:"en-GB", nl:"nl-BE", fr:"fr-BE", es:"es-ES", it:"it-IT", tr:"tr-TR", ja:"ja-JP", zh:"zh-CN", tw:"zh-TW" }[LANG];
@@ -819,9 +819,11 @@ const INLINE = new Set(["B", "I", "STRONG", "EM", "A", "SMALL", "BR", "U", "CODE
 // Turkish capitals: the page is lang="tr" (so CSS uppercase makes i -> İ in Turkish words), but a name or title that
 // stays English (no translation found) would turn "Lifestyle" into "LİFESTYLE". Its element alone gets lang="en"
 // (taken off again when the element later shows Turkish).
-const EN_CAPS = LANG === "tr";
+const EN_CAPS = LANG === "tr", TR_WORDS = new Set();   // TR_WORDS: every piece of Turkish in the pack (filled by usePack)
+const turkish = v => /[çğıİöşüÇĞÖŞÜ]/.test(v) || TR_WORDS.has(norm(v));
 function capsLang(n, english){
   const e = n.parentElement; if (!EN_CAPS || !e) return;
+  if (english && turkish(n.nodeValue)) english = false;        // already Turkish (put there by a whole-sentence translation)
   if (english){ if (e.childNodes.length === 1 && !e.hasAttribute("lang")){ e.setAttribute("lang", "en"); e.dataset.capsEn = "1"; } }
   else if (e.dataset.capsEn){ e.removeAttribute("lang"); delete e.dataset.capsEn; }
 }
@@ -842,6 +844,7 @@ const H = new Map(), HT = new Map(); if (I != null) for (const r of HTML) (r[0].
 // Italian / Japanese / Chinese: the pack's words into the same maps, and its own patterns (keyed by the English pattern)
 function usePack(pk){
   PK = pk; ON = true;
+  if (EN_CAPS) for (const v of [...Object.values(pk.S || {}), ...Object.values(pk.HTML || {})]) for (const x of String(v).split(/<[^>]*>/)) { const k = norm(x); if (k) TR_WORDS.add(k); }
   for (const k in pk.S || {}) (k.includes("#") ? TPL : EX).set(k, pk.S[k]);
   for (const k in pk.HTML || {}) (k.includes("#") ? HT : H).set(norm(k), pk.HTML[k]);
   PAT = P.map(p => [p[0], (pk.P || {})[p[0].source]]).filter(p => p[1] != null);

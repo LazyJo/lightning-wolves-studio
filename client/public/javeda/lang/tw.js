@@ -182,7 +182,7 @@ S: {
 "What happened?":"發生了什麼？",
 "Your email (only if you want an answer)":"你的電子郵件（需要回覆時再填）",
 "It goes with the kind of phone and browser you use, so the problem can be found - nothing else.":"會附帶你使用的手機和瀏覽器類型，方便排查問題 - 不會傳送其他資訊。",
-"Send":"送出",
+"Send":"傳送",
 "That didn't send. Try again in a bit.":"送出失敗，請稍後再試。",
 "Write what happened first.":"請先寫下發生了什麼。",
 "That email doesn't look right (or leave it empty).":"這個電子郵件好像不對（或者留空）。",
@@ -1385,7 +1385,21 @@ S: {
 "Could not use the key. Try again.":"無法使用鑰匙。請再試一次。",
 "Play JAVEDA with me, Lazy Jo's playable album. Use my link and we both get a key to open a level:":"一起來玩 JAVEDA 吧，Lazy Jo 的可玩專輯。用我的連結，我們都能得到一把打開關卡的鑰匙：",
 "A friend invited you. Make a free account and clear your first level: you both get a 🔑 key.":"有好友邀請了你。建立免費帳號並過關第一個關卡，你們都能得到一把🔑鑰匙。",
-"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"好友邀請已生效：過關你的第一個關卡，你們都能得到一把🔑鑰匙。"
+"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"好友邀請已生效：過關你的第一個關卡，你們都能得到一把🔑鑰匙。",
+"Weekly tournament · until":"每週錦標賽 · 截止",
+"Weekly":"每週",
+"Last week":"上週",
+"Not played yet this week":"本週還沒玩",
+"Over":"已結束",
+"Log in to compete":"登入即可參賽",
+"This week":"本週",
+"The weekly tournament isn't on right now.":"每週錦標賽目前未開放。",
+"Nobody has played this week's tournament yet.":"還沒有人玩本週的錦標賽。",
+"You're offline: the weekly tournament only counts with internet.":"你已離線：每週錦標賽只在連網時計分。",
+"Your best this week #":"本週最佳 #",
+"Your best this week is still":"本週最佳仍是",
+"on the weekly board":"（每週排行榜）",
+"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"本週錦標賽已結束：冠軍在排行榜上。週一開始新的歌曲。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款線上對戰</small>HOOPS <i>1v1</i>",
@@ -2285,9 +2299,12 @@ HTML: {
 "Send your link to a friend. When they make a free account with it and clear their first level, you <b>both</b> get a 🔑 key.":"把你的連結傳給好友。好友用它建立免費帳號並過關第一個關卡後，你們<b>兩個人</b>都能得到一把🔑鑰匙。",
 "A key opens <b>any locked song you choose</b>: tap 🔑 on its Part 1.":"一把鑰匙可以打開<b>你選擇的任何一首鎖定歌曲</b>：點擊它第1部分上的🔑。",
 "<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice":"<b>🎁 邀請好友</b> · 你們都能得到一把🔑鑰匙，打開任何一首歌",
-"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 邀請好友</b> · 你們都能得到一把🔑鑰匙，打開任何一首歌 · 你有<b># 🔑</b>"
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 邀請好友</b> · 你們都能得到一把🔑鑰匙，打開任何一首歌 · 你有<b># 🔑</b>",
+"One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.":"整週同一首歌，想玩幾次都行。結束時分數最高的玩家贏得<b>JAVEDA 通行證</b>。",
+"<b>Log in</b> to compete in the weekly tournament.":"<b>登入</b>就能參加每週錦標賽。"
 },
 P: {
+"^New best this week! (.+)$": "本週新紀錄！$1",
 "^Best (.+)$": "最佳 $1",
 "^Level (\\d+)$": "第$1關",
 "^Level (\\d+) · (\\d+) parts$": "第$1關 · 共$2部分",

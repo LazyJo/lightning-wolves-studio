@@ -2179,3 +2179,150 @@ BEGIN
 END;
 $$;
 GRANT EXECUTE ON FUNCTION public.javeda_use_key(TEXT) TO authenticated;
+
+-- ============================================================================
+-- The weekly tournament: one song's Part 1 a week, for every player with an account (like the daily challenge, it
+-- can be played before you've reached it, but it keeps nothing open). Monday 00:00 to Sunday 20:00, Brussels time;
+-- your best run of the week counts. Lightning Bot closes it on Sunday evening (javeda_weekly_close, server only):
+-- the winner (the best score, the earliest on a tie) gets a JAVEDA Pass if they haven't got one, and the 🏆 role.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS javeda_weekly_scores (
+  week       DATE NOT NULL,
+  user_id    UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  level      TEXT NOT NULL REFERENCES javeda_levels(id),
+  best_score INT  NOT NULL DEFAULT 0,
+  runs       INT  NOT NULL DEFAULT 0,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (week, user_id)
+);
+CREATE INDEX IF NOT EXISTS javeda_weekly_top ON javeda_weekly_scores (week, best_score DESC, updated_at);
+CREATE TABLE IF NOT EXISTS javeda_weekly_runs (
+  user_id    UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  week       DATE NOT NULL,
+  level      TEXT NOT NULL REFERENCES javeda_levels(id),
+  started_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS javeda_weekly_winners (
+  week       DATE PRIMARY KEY,
+  level      TEXT NOT NULL,
+  user_id    UUID REFERENCES javeda_players(user_id) ON DELETE SET NULL,
+  username   TEXT,
+  best_score INT,
+  prize      TEXT,
+  closed_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE javeda_weekly_scores  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE javeda_weekly_runs    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE javeda_weekly_winners ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS javeda_weekly_scores_read ON javeda_weekly_scores;
+CREATE POLICY javeda_weekly_scores_read ON javeda_weekly_scores FOR SELECT USING (true);
+DROP POLICY IF EXISTS javeda_weekly_winners_read ON javeda_weekly_winners;
+CREATE POLICY javeda_weekly_winners_read ON javeda_weekly_winners FOR SELECT USING (true);
+REVOKE ALL ON javeda_weekly_scores, javeda_weekly_runs, javeda_weekly_winners FROM anon, authenticated;
+GRANT SELECT ON javeda_weekly_scores, javeda_weekly_winners TO anon, authenticated;
+
+DROP VIEW IF EXISTS javeda_weekly_board;
+CREATE VIEW javeda_weekly_board WITH (security_invoker = true) AS
+SELECT w.week, w.level, p.username, p.avatar, w.best_score, w.updated_at, (p.album_completed_at IS NOT NULL) AS album_complete
+FROM javeda_weekly_scores w JOIN javeda_players p ON p.user_id = w.user_id
+WHERE w.best_score > 0;
+GRANT SELECT ON javeda_weekly_board TO anon, authenticated;
+
+-- the Monday a moment falls in (Brussels), the week's song, and when its tournament ends
+CREATE OR REPLACE FUNCTION public.javeda_week_of(p_at TIMESTAMPTZ)
+RETURNS DATE LANGUAGE sql IMMUTABLE SET search_path = public
+AS $$ SELECT date_trunc('week', p_at AT TIME ZONE 'Europe/Brussels')::DATE; $$;
+CREATE OR REPLACE FUNCTION public.javeda_weekly_level(p_week DATE)
+RETURNS TEXT
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  WITH pool AS (SELECT id, row_number() OVER (ORDER BY md5('javeda-weekly-' || id)) - 1 AS i, count(*) OVER () AS n
+                FROM javeda_levels WHERE NOT endless AND id ~ '^lvl[0-9]+$')
+  SELECT id FROM pool WHERE i = ((((p_week - DATE '2026-11-02') / 7) % n) + n) % n;
+$$;
+CREATE OR REPLACE FUNCTION public.javeda_weekly_end(p_week DATE)
+RETURNS TIMESTAMPTZ LANGUAGE sql IMMUTABLE SET search_path = public
+AS $$ SELECT ((p_week + 6)::TIMESTAMP + TIME '20:00') AT TIME ZONE 'Europe/Brussels'; $$;
+
+-- this week's tournament, for anyone: the song, when it ends, whether it's still on, and last week's winner
+CREATE OR REPLACE FUNCTION public.javeda_weekly()
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT json_build_object('week', w, 'level', javeda_weekly_level(w), 'ends_at', javeda_weekly_end(w), 'open', now() < javeda_weekly_end(w),
+    'last', (SELECT json_build_object('week', x.week, 'level', x.level, 'username', x.username, 'best_score', x.best_score)
+             FROM javeda_weekly_winners x WHERE x.week < w ORDER BY x.week DESC LIMIT 1))
+  FROM (SELECT javeda_week_of(now()) AS w) t;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_weekly() TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_start_weekly()
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE uid UUID := auth.uid(); w DATE := javeda_week_of(now()); lvl TEXT := javeda_weekly_level(javeda_week_of(now()));
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
+  IF now() >= javeda_weekly_end(w) THEN RAISE EXCEPTION 'this week''s tournament is over' USING ERRCODE = '42501'; END IF;
+  INSERT INTO javeda_weekly_runs (user_id, week, level, started_at) VALUES (uid, w, lvl, now())
+  ON CONFLICT (user_id) DO UPDATE SET week = EXCLUDED.week, level = EXCLUDED.level, started_at = now();
+  RETURN json_build_object('week', w, 'level', lvl);
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_start_weekly() TO authenticated;
+
+-- a weekly run is over: it counts for the week it started in, if it ends before the tournament does (+10 min for a run on the bell)
+CREATE OR REPLACE FUNCTION public.javeda_submit_weekly(p_score INT, p_cleared BOOLEAN)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE uid UUID := auth.uid(); run javeda_weekly_runs; lv javeda_levels; score INT; was INT; row javeda_weekly_scores;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  DELETE FROM javeda_weekly_runs WHERE user_id = uid RETURNING * INTO run;
+  IF run.user_id IS NULL THEN RAISE EXCEPTION 'no run started' USING ERRCODE = '22023'; END IF;
+  IF now() > javeda_weekly_end(run.week) + interval '10 minutes' THEN RAISE EXCEPTION 'this week''s tournament is over' USING ERRCODE = '42501'; END IF;
+  SELECT * INTO lv FROM javeda_levels WHERE id = run.level;
+  score := GREATEST(0, LEAST(COALESCE(p_score, 0), lv.max_score));
+  -- not faster than the song allows: a run shorter than 20 s doesn't count
+  IF now() - run.started_at < interval '20 seconds' THEN score := 0; END IF;
+  SELECT best_score INTO was FROM javeda_weekly_scores WHERE week = run.week AND user_id = uid;
+  INSERT INTO javeda_weekly_scores AS s (week, user_id, level, best_score, runs) VALUES (run.week, uid, run.level, score, 1)
+  ON CONFLICT (week, user_id) DO UPDATE SET best_score = GREATEST(s.best_score, EXCLUDED.best_score), runs = s.runs + 1,
+    updated_at = CASE WHEN EXCLUDED.best_score > s.best_score THEN now() ELSE s.updated_at END
+  RETURNING * INTO row;
+  RETURN json_build_object('week', run.week, 'level', run.level, 'score', score, 'best', row.best_score, 'new_best', was IS NULL OR score > was,
+    'rank', (SELECT count(*) + 1 FROM javeda_weekly_scores WHERE week = run.week AND (best_score > row.best_score OR (best_score = row.best_score AND updated_at < row.updated_at))));
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_submit_weekly(INT, BOOLEAN) TO authenticated;
+
+-- Sunday evening (server only): the week's winner and their prize. Twice is the same as once.
+CREATE OR REPLACE FUNCTION public.javeda_weekly_close(p_week DATE)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE w javeda_weekly_winners; top javeda_weekly_scores; nm TEXT; prize TEXT := NULL; lvl TEXT := javeda_weekly_level(p_week);
+BEGIN
+  SELECT * INTO w FROM javeda_weekly_winners WHERE week = p_week;
+  IF w.week IS NULL THEN
+    IF now() < javeda_weekly_end(p_week) THEN RAISE EXCEPTION 'not over yet'; END IF;
+    SELECT * INTO top FROM javeda_weekly_scores WHERE week = p_week AND best_score > 0 ORDER BY best_score DESC, updated_at LIMIT 1;
+    IF top.user_id IS NOT NULL THEN
+      SELECT username INTO nm FROM javeda_players WHERE user_id = top.user_id;
+      IF NOT EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = top.user_id) AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = top.user_id) THEN
+        PERFORM javeda_grant_pass(top.user_id, 'gift', 'weekly ' || p_week); prize := 'pass';
+      END IF;
+    END IF;
+    INSERT INTO javeda_weekly_winners (week, level, user_id, username, best_score, prize) VALUES (p_week, lvl, top.user_id, nm, top.best_score, prize)
+    RETURNING * INTO w;
+  END IF;
+  RETURN json_build_object('week', w.week, 'level', w.level, 'username', w.username, 'user_id', w.user_id, 'best_score', w.best_score, 'prize', w.prize,
+    'top', (SELECT coalesce(json_agg(json_build_object('username', p.username, 'user_id', s.user_id, 'best_score', s.best_score) ORDER BY s.best_score DESC, s.updated_at), '[]'::json)
+            FROM (SELECT * FROM javeda_weekly_scores WHERE week = p_week AND best_score > 0 ORDER BY best_score DESC, updated_at LIMIT 3) s JOIN javeda_players p ON p.user_id = s.user_id),
+    'players', (SELECT count(*) FROM javeda_weekly_scores WHERE week = p_week AND best_score > 0));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_weekly_close(DATE) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_weekly_close(DATE) TO service_role;

@@ -1385,7 +1385,21 @@ S: {
 "Could not use the key. Try again.":"Impossibile usare la chiave. Riprova.",
 "Play JAVEDA with me, Lazy Jo's playable album. Use my link and we both get a key to open a level:":"Gioca a JAVEDA con me, l'album giocabile di Lazy Jo. Usa il mio link e riceviamo entrambi una chiave per aprire un livello:",
 "A friend invited you. Make a free account and clear your first level: you both get a 🔑 key.":"Un amico ti ha invitato. Crea un account gratis e completa il tuo primo livello: ricevete entrambi una 🔑 chiave.",
-"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"L'invito del tuo amico vale: completa il tuo primo livello e ricevete entrambi una 🔑 chiave."
+"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"L'invito del tuo amico vale: completa il tuo primo livello e ricevete entrambi una 🔑 chiave.",
+"Weekly tournament · until":"Torneo settimanale · fino a",
+"Weekly":"Settimanale",
+"Last week":"La settimana scorsa",
+"Not played yet this week":"Non ancora giocato questa settimana",
+"Over":"Finito",
+"Log in to compete":"Accedi per partecipare",
+"This week":"Questa settimana",
+"The weekly tournament isn't on right now.":"Il torneo settimanale al momento non è attivo.",
+"Nobody has played this week's tournament yet.":"Nessuno ha ancora giocato il torneo di questa settimana.",
+"You're offline: the weekly tournament only counts with internet.":"Sei offline: il torneo settimanale conta solo con internet.",
+"Your best this week #":"Il tuo record della settimana #",
+"Your best this week is still":"Il tuo record della settimana è ancora",
+"on the weekly board":"nella classifica settimanale",
+"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"Il torneo di questa settimana è finito: il vincitore è in classifica. Lunedì inizia una nuova canzone."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",
@@ -2285,9 +2299,12 @@ HTML: {
 "Send your link to a friend. When they make a free account with it and clear their first level, you <b>both</b> get a 🔑 key.":"Manda il tuo link a un amico. Quando crea un account gratis con quel link e completa il suo primo livello, ricevete <b>entrambi</b> una 🔑 chiave.",
 "A key opens <b>any locked song you choose</b>: tap 🔑 on its Part 1.":"Una chiave apre <b>qualsiasi canzone bloccata a tua scelta</b>: tocca 🔑 sulla sua Parte 1.",
 "<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice":"<b>🎁 Invita un amico</b> · ricevete entrambi una 🔑 chiave per aprire una canzone a scelta",
-"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 Invita un amico</b> · ricevete entrambi una 🔑 chiave per aprire una canzone a scelta · hai <b># 🔑</b>"
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 Invita un amico</b> · ricevete entrambi una 🔑 chiave per aprire una canzone a scelta · hai <b># 🔑</b>",
+"One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.":"Una canzone per tutta la settimana, tutti i tentativi che vuoi. Alla fine, il miglior punteggio vince un <b>JAVEDA Pass</b>.",
+"<b>Log in</b> to compete in the weekly tournament.":"<b>Accedi</b> per partecipare al torneo settimanale."
 },
 P: {
+"^New best this week! (.+)$": "Nuovo record della settimana! $1",
 "^Best (.+)$": "Record $1",
 "^Level (\\d+)$": "Livello $1",
 "^Level (\\d+) · (\\d+) parts$": "Livello $1 · $2 parti",

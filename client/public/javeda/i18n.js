@@ -122,6 +122,21 @@ const S = [
   ["Play JAVEDA with me, Lazy Jo's playable album. Use my link and we both get a key to open a level:", "Speel JAVEDA met me, het speelbare album van Lazy Jo. Gebruik mijn link en we krijgen allebei een sleutel om een level te openen:", "Joue à JAVEDA avec moi, l'album jouable de Lazy Jo. Utilise mon lien et on reçoit tous les deux une clé pour ouvrir un niveau :", "Juega a JAVEDA conmigo, el álbum jugable de Lazy Jo. Usa mi enlace y los dos recibimos una llave para abrir un nivel:"],
   ["A friend invited you. Make a free account and clear your first level: you both get a 🔑 key.", "Een vriend heeft je uitgenodigd. Maak een gratis account en speel je eerste level uit: jullie krijgen allebei een 🔑 sleutel.", "Un ami t'a invité. Crée un compte gratuit et termine ton premier niveau : vous recevez tous les deux une 🔑 clé.", "Un amigo te ha invitado. Crea una cuenta gratis y supera tu primer nivel: los dos recibís una 🔑 llave."],
   ["Your friend's invite counts: clear your first level and you both get a 🔑 key.", "De uitnodiging van je vriend telt: speel je eerste level uit en jullie krijgen allebei een 🔑 sleutel.", "L'invitation de ton ami compte : termine ton premier niveau et vous recevez tous les deux une 🔑 clé.", "La invitación de tu amigo cuenta: supera tu primer nivel y los dos recibís una 🔑 llave."],
+  // the weekly tournament
+  ["Weekly tournament · until", "Weektoernooi · tot", "Tournoi de la semaine · jusqu'à", "Torneo semanal · hasta el"],
+  ["Weekly", "Week", "Semaine", "Semanal"],
+  ["Last week", "Vorige week", "La semaine dernière", "La semana pasada"],
+  ["Not played yet this week", "Deze week nog niet gespeeld", "Pas encore joué cette semaine", "Aún no has jugado esta semana"],
+  ["Over", "Voorbij", "Terminé", "Terminado"],
+  ["Log in to compete", "Log in om mee te doen", "Connecte-toi pour participer", "Inicia sesión para competir"],
+  ["This week", "Deze week", "Cette semaine", "Esta semana"],
+  ["The weekly tournament isn't on right now.", "Het weektoernooi loopt nu niet.", "Le tournoi de la semaine n'a pas lieu pour l'instant.", "El torneo semanal no está activo ahora."],
+  ["Nobody has played this week's tournament yet.", "Nog niemand speelde het toernooi van deze week.", "Personne n'a encore joué le tournoi de cette semaine.", "Nadie ha jugado aún el torneo de esta semana."],
+  ["You're offline: the weekly tournament only counts with internet.", "Je bent offline: het weektoernooi telt alleen met internet.", "Tu es hors ligne : le tournoi de la semaine ne compte qu'avec internet.", "Estás sin conexión: el torneo semanal solo cuenta con internet."],
+  ["Your best this week #", "Je beste deze week #", "Ton record de la semaine #", "Tu récord de la semana #"],
+  ["Your best this week is still", "Je beste deze week is nog steeds", "Ton record de la semaine est toujours", "Tu récord de la semana sigue siendo"],
+  ["on the weekly board", "op het weekbord", "au classement de la semaine", "en la tabla semanal"],
+  ["This week's tournament is over: the winner is on the board. A new song starts on Monday.", "Het toernooi van deze week is voorbij: de winnaar staat op het bord. Maandag begint een nieuw nummer.", "Le tournoi de cette semaine est terminé : le gagnant est au classement. Un nouveau morceau commence lundi.", "El torneo de esta semana ha terminado: el ganador está en la tabla. El lunes empieza una canción nueva."],
   // the log-in's messages and the new password
   ["Forgot your password?", "Wachtwoord vergeten?", "Mot de passe oublié ?", "¿Olvidaste tu contraseña?"],
   ["Type your email above first.", "Vul eerst hierboven je e-mail in.", "Entre d'abord ton e-mail ci-dessus.", "Escribe primero tu email arriba."],
@@ -614,6 +629,7 @@ const S = [
    and a function gets (match, tr) to translate a part inside ---- */
 const lv = (n, nl, fr, es) => [nl, fr, es];      // (for reading only)
 const P = [
+  [/^New best this week! (.+)$/, "Nieuw weekrecord! $1", "Nouveau record de la semaine ! $1", "¡Nuevo récord de la semana! $1"],
   [/^Best (.+)$/, "Beste $1", "Meilleur $1", "Mejor $1"],
   [/^Level (\d+)$/, "Level $1", "Niveau $1", "Nivel $1"],
   [/^Level (\d+) · (\d+) parts$/, "Level $1 · $2 delen", "Niveau $1 · $2 parties", "Nivel $1 · $2 partes"],
@@ -688,6 +704,8 @@ const HTML = [
   ["A key opens <b>any locked song you choose</b>: tap 🔑 on its Part 1.", "Een sleutel opent <b>elk vergrendeld nummer dat je kiest</b>: tik op 🔑 bij Deel 1.", "Une clé ouvre <b>le morceau verrouillé de ton choix</b> : touche 🔑 sur sa Partie 1.", "Una llave abre <b>la canción bloqueada que elijas</b>: toca 🔑 en su Parte 1."],
   ["<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice", "<b>🎁 Nodig een vriend uit</b> · jullie krijgen allebei een 🔑 sleutel om een nummer naar keuze te openen", "<b>🎁 Invite un ami</b> · vous recevez tous les deux une 🔑 clé pour ouvrir le morceau de votre choix", "<b>🎁 Invita a un amigo</b> · los dos recibís una 🔑 llave para abrir la canción que queráis"],
   ["<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>", "<b>🎁 Nodig een vriend uit</b> · jullie krijgen allebei een 🔑 sleutel om een nummer naar keuze te openen · je hebt <b># 🔑</b>", "<b>🎁 Invite un ami</b> · vous recevez tous les deux une 🔑 clé pour ouvrir le morceau de votre choix · tu as <b># 🔑</b>", "<b>🎁 Invita a un amigo</b> · los dos recibís una 🔑 llave para abrir la canción que queráis · tienes <b># 🔑</b>"],
+  ["One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.", "Eén nummer de hele week, zo vaak proberen als je wil. Als het afloopt, wint de beste score een <b>JAVEDA Pass</b>.", "Un morceau toute la semaine, autant d'essais que tu veux. À la fin, le meilleur score gagne un <b>JAVEDA Pass</b>.", "Una canción toda la semana, todos los intentos que quieras. Al terminar, la mejor puntuación gana un <b>JAVEDA Pass</b>."],
+  ["<b>Log in</b> to compete in the weekly tournament.", "<b>Log in</b> om mee te doen aan het weektoernooi.", "<b>Connecte-toi</b> pour participer au tournoi de la semaine.", "<b>Inicia sesión</b> para competir en el torneo semanal."],
 ];
 // the same, with a number in them: [English as a pattern on the html, a function giving the translation]
 const HP = [

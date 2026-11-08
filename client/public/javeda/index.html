@@ -446,6 +446,10 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .daily .best{font:700 14px/1.2 var(--cond); letter-spacing:.08em; color:var(--gold)}
 .daily .tag{font:700 12px/1.1 var(--cond); letter-spacing:.12em; text-transform:uppercase; padding:5px 8px; border-radius:4px; background:#ffffff12; color:var(--dim)}
 .daily .btns{display:flex; gap:6px}
+/* the weekly tournament: the daily's card, in gold */
+.daily.weekly{border-color:#ffd60a66; background:radial-gradient(90% 120% at 100% 0%,#ffd60a2e,transparent 60%),radial-gradient(70% 100% at 0% 100%,#f0a40026,transparent 60%),var(--panel)}
+.daily.weekly .dl{color:#ffe08a}
+.daily.weekly .last{font-size:12.5px; color:var(--mute)}
 .btn.hot{background:var(--magenta); border-color:var(--magenta); color:#fff}
 .btn.hot:hover{background:#ff5a9e}
 @media (max-width:760px){ .now{grid-template-columns:minmax(0,1fr)} }
@@ -1326,6 +1330,7 @@ let record = null;          // your online 1v1 wins, losses, draws
 let boardTab = "points";
 let daily = null;           // today's challenge: { day, level } from javeda_daily
 let dailyBest = 0;          // your best in it today
+let weekly = null, weeklyBest = 0;   // this week's tournament (javeda_weekly) and your best in it
 // notifications on this phone: what was asked for ({ daily, beaten }; null = never). "beaten" counts once logged in.
 const PUSH_OK = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && window.isSecureContext;
 let pushWish = (() => { try { return JSON.parse(localStorage.getItem("javeda.push.v1")); } catch(e){ return null; } })();
@@ -1456,7 +1461,7 @@ function renderNow(){
           : wait ? '<div class="next"><span class="nt"><small>Next &middot; ' + lvName(wait) + ' &middot; ' + needText(wait) + '</small><span>' + esc(wait.title) + '</span></span>' +
               '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>' : '') + passrow + invrow + crt + '</article>';
   }
-  hsPut($("now"), html + dailyCard());
+  hsPut($("now"), html + dailyCard() + weeklyCard());
 }
 // today's challenge: one song's Part 1 for everyone, a board of its own that starts empty every day
 function dailyCard(){
@@ -1472,7 +1477,29 @@ function dailyCard(){
       '<span class="btns">' + (PUSH_OK && !(pushWish && pushWish.daily) ? '<button class="btn small" data-bell="1" title="Tell me when the next challenge is up" aria-label="Tell me when the next challenge is up">&#128276;</button>' : '') +
       '<button class="btn small" data-board="daily">Board</button><button class="btn hot small" data-daily="1">Play &#9654;</button></span></div></article>';
 }
+// the weekly tournament: one song for the week, the best score by Sunday 20:00 wins a JAVEDA Pass
+function weeklyCard(){
+  const lv = weekly && levelById(weekly.level); if (!lv) return "";
+  const loc = window.JAVEDA_LOCALE || "en-GB", end = new Date(weekly.ends_at);
+  const ends = end.toLocaleDateString(loc, { weekday:"short" }) + " " + end.toLocaleTimeString(loc, { hour:"2-digit", minute:"2-digit" });
+  const last = weekly.last && weekly.last.username ? '<span class="last" data-i18n-skip>&#127942; ' + esc(weekly.last.username) + ' &middot; ' + fmt(weekly.last.best_score) + '</span>' : '';
+  return '<article class="daily weekly"><span class="dl">Weekly tournament &middot; until <span data-i18n-skip>' + esc(ends) + '</span></span>' +
+    '<span class="dt">Level ' + lv.num + ' &middot; ' + esc(lv.title) + '</span>' +
+    '<p class="dd">' + (weekly.open ? 'One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.' : 'This week\'s tournament is over: the winner is on the board. A new song starts on Monday.') + '</p>' +
+    (last ? '<div>' + '<span class="last">Last week</span> ' + last + '</div>' : '') +
+    '<div class="row">' + (weeklyBest ? '<span class="best">Your best this week ' + fmt(weeklyBest) + '</span>' : '<span class="tag">' + (session ? (weekly.open ? 'Not played yet this week' : 'Over') : 'Log in to compete') + '</span>') +
+      '<span class="btns"><button class="btn small" data-board="weekly">Board</button>' + (weekly.open ? '<button class="btn gold small" data-weekly="1">Play &#9654;</button>' : '') + '</span></div></article>';
+}
+async function loadWeekly(){
+  if (!sb) return;
+  const { data } = await sb.rpc("javeda_weekly").then(r => r, () => ({}));
+  if (!data || !levelById(data.level)) return;
+  weekly = data; weeklyBest = 0;
+  if (signedIn()){ const r = await sb.from("javeda_weekly_scores").select("best_score").eq("week", weekly.week).eq("user_id", session.user.id).maybeSingle(); weeklyBest = (r.data && r.data.best_score) || 0; }
+  renderNow(); if (boardTab === "weekly"){ renderTabs(); renderBoard(); }
+}
 async function loadDaily(){
+  loadWeekly();
   if (!sb) return;
   const { data } = await sb.rpc("javeda_daily");
   if (!data || !levelById(data.level)) return;
@@ -1658,14 +1685,14 @@ function renderUltimate(){
 }
 const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"],["lvl28","Level 28"],["lvl28b","Level 28 Part 2"]];
 /// the scoreboard picker: which kind of board, then (a level or an endless) the level, then its part
-const boardKind = id => id === "points" || id === "chat" || id === "1v1" || id === "daily" || id === "marathon" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
+const boardKind = id => id === "points" || id === "chat" || id === "1v1" || id === "daily" || id === "weekly" || id === "marathon" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
 const boardLevels = () => TABS.filter(([k]) => k !== "points" && k !== "1v1").map(([k]) => levelById(k)).filter(Boolean);
 let lastBoard = { level:"lvl28", endless:"lvl28x" };
 function renderTabs(){
   const kind = boardKind(boardTab), pad = n => String(n).padStart(2, "0");
   if (kind === "level" || kind === "endless") lastBoard[kind] = boardTab;
   const cdot = chatDot.n && kind !== "chat" ? '<span class="cdot' + (chatDot.by ? ' gold' : '') + '" aria-label="New messages"></span>' : "";
-  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat" + cdot], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["marathon", "Marathon", "g"]].map(([k, t, c]) =>
+  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat" + cdot], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["weekly", "&#127942; Weekly", "g"], ["marathon", "Marathon", "g"]].map(([k, t, c]) =>
     '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
   requestAnimationFrame(hsAll);
   const el = $("etabs"); el.classList.toggle("gold", kind === "endless" || kind === "marathon");
@@ -1673,6 +1700,8 @@ function renderTabs(){
     el.innerHTML = lv ? '<div class="pts"><span class="cap"><small>Today &middot; Level ' + lv.num + '</small>' + esc(lv.title) + '</span></div>' : ""; return; }
   if (kind === "marathon"){ el.innerHTML = '<div class="pts"><span class="cap"><small>Album marathon</small>songs cleared in one run</span></div>'; return; }
   if (kind === "chat"){ el.innerHTML = ""; return; }
+  if (kind === "weekly"){ const lv = weekly && levelById(weekly.level);
+    el.innerHTML = lv ? '<div class="pts"><span class="cap"><small>This week &middot; Level ' + lv.num + '</small>' + esc(lv.title) + '</span></div>' : ""; return; }
   if (kind !== "level" && kind !== "endless"){ el.innerHTML = ""; return; }
   const list = kind === "level" ? boardLevels() : ENDLESS, cur = levelById(boardTab), here = list.filter(l => l.num === cur.num);
   const nums = [...new Set(list.map(l => l.num))], main = LEVELS.find(l => l.num === cur.num && !l.part) || cur;
@@ -1715,6 +1744,14 @@ async function renderBoard(){
     const { data, error } = await sb.from("javeda_daily_board").select("*").eq("day", daily.day).order("best_score", { ascending:false }).limit(25);
     if (ask !== boardAsk) return;
     el.innerHTML = error ? fail() : !data.length ? none("Nobody has played today's challenge yet.") : boardRows(data, r => fmt(r.best_score));
+    boardMoreBtn(); return;
+  }
+  // the weekly tournament: this week's scores (the earliest first on a tie, as the prize goes)
+  if (tab === "weekly"){
+    if (!weekly){ el.innerHTML = '<p class="empty">The weekly tournament isn\'t on right now.</p>'; return; }
+    const { data, error } = await sb.from("javeda_weekly_board").select("*").eq("week", weekly.week).order("best_score", { ascending:false }).order("updated_at", { ascending:true }).limit(25);
+    if (ask !== boardAsk) return;
+    el.innerHTML = error ? fail() : !data.length ? none("Nobody has played this week's tournament yet.") : boardRows(data, r => fmt(r.best_score));
     boardMoreBtn(); return;
   }
   // an endless board (and HYPERDRIVE and the marathon) reads the per-level scores; the rest read the one-row-per-player board
@@ -2194,13 +2231,13 @@ function play(id, how){
     if (lv.online){ toast("Online games need the internet."); return; }
     if ("caches" in window){ caches.match(SONGS_URL + "lvl" + lv.num + ".mp3").then(hit => hit ? play(id, { ...how, offlineOk:true }) : toast("This song isn't saved on this phone yet. Play it once with internet, or save all the songs in the app.", 5000)); return; }
   }
-  if (lv && !how.daily && passReady(lv)) return openPass(lv);
-  if (!lv || !(isOpen(lv) || how.daily)) return;
+  if (lv && !how.daily && !how.weekly && passReady(lv)) return openPass(lv);
+  if (!lv || !(isOpen(lv) || how.daily || how.weekly)) return;
   if (lv.online && !signedIn()){ toast("Log in to play online - the result goes on your account."); openLogin(); return; }
   current = lv; mode = how;
   const r = lv.id === "lvl1" || lv.id === "lvl1x" ? rides() : [];
   $("frame").src = lv.src + (how.room ? "&room=" + how.room : "") + (r.length ? "&rides=" + r.join(",") : "");
-  $("playClose").innerHTML = "&#10005; " + (how.marathon ? "Marathon " + (marathon.i + 1) + "/" + MARATHON.length : how.daily ? "Daily" : how.room ? "Private room" : "JAVEDA");
+  $("playClose").innerHTML = "&#10005; " + (how.marathon ? "Marathon " + (marathon.i + 1) + "/" + MARATHON.length : how.daily ? "Daily" : how.weekly ? "Weekly" : how.room ? "Private room" : "JAVEDA");
   $("play").classList.remove("hid");
   document.body.style.overflow = "hidden"; document.body.classList.add("playing");
 }
@@ -2267,6 +2304,7 @@ $("now").addEventListener("click", e => {
   if (b.dataset.play || b.dataset.pass !== undefined) playOrPass(e);
   else if (b.dataset.daily) play(daily.level, { daily:true });
   else if (b.dataset.friends) openFriends();
+  else if (b.dataset.weekly && weekly) play(weekly.level, { weekly:true });
   else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); } });
   else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (b.dataset.marathon) startMarathon();
@@ -2352,11 +2390,12 @@ renderSnd();
 // An endless run starts with the database, which holds its score to the time played (the marathon too; a daily
 // run starts there as well, which fixes the day and the level it counts for). .then() sends it now: a supabase query only goes out when something awaits it, and awaited
 // at the end of the run it would say the run took no time at all.
-let runStart = null, dailyStart = null;
+let runStart = null, dailyStart = null, weeklyStart = null;
 const sendNow = q => q.then(r => r);
 function startRun(lv){
   runStart = signedIn() && lv.endless && isOpen(lv) ? sendNow(sb.rpc("javeda_start_run", { p_level:lv.id })) : null;
   dailyStart = signedIn() && mode.daily ? sendNow(sb.rpc("javeda_start_daily")) : null;
+  weeklyStart = signedIn() && mode.weekly ? sendNow(sb.rpc("javeda_start_weekly")) : null;
 }
 // quiet: no toast or share offer (the marathon says its own)
 async function saveRun(r, quiet){
@@ -2477,6 +2516,23 @@ async function saveDaily(r){
   toast((d.new_best ? "<b>New best today! " + fmt(d.score) + "</b>" : "Today's best is still <b>" + fmt(d.best) + "</b>") + " · <b>#" + d.rank + "</b> on today's board" +
         (run && run.earned ? " · +" + fmt(run.earned) + (run.earned === 1 ? " point" : " points") : "") + kept, 6000);
   if (d.new_best && d.score) offerShare({ kind:"daily", lv, score:d.score, head:"Daily challenge" });
+}
+
+// the weekly tournament's run: the week's board (and, once the level is yours to play, a run like any other, quietly)
+async function saveWeekly(r){
+  const lv = levelById(r.level), score = r.score | 0;
+  if (!signedIn()){ if (isOpen(lv)) await saveRun(r, true); toast("<b>Log in</b> to compete in the weekly tournament.", 5000); return; }
+  if (session.offline || !navigator.onLine){ weeklyStart = null; if (isOpen(lv)) await saveRun(r, true); toast("You're offline: the weekly tournament only counts with internet.", 4500); return; }
+  const started = weeklyStart ? await weeklyStart : null; weeklyStart = null;
+  if (!started || started.error){ toast("That weekly run didn't save: " + esc(started && started.error ? started.error.message : "it never started")); return; }
+  const res = await sb.rpc("javeda_submit_weekly", { p_score:score, p_cleared:!!r.cleared });
+  if (res.error){ toast("That weekly run didn't save: " + esc(res.error.message)); return; }
+  const d = res.data; if (weekly && d.week === weekly.week) weeklyBest = d.best;
+  const run = isOpen(lv) ? await saveRun(r, true) : null;
+  if (!run) refreshStats(true);
+  renderNow(); if (boardTab === "weekly") renderBoard();
+  toast((d.new_best ? "<b>New best this week! " + fmt(d.score) + "</b>" : "Your best this week is still <b>" + fmt(d.best) + "</b>") + " · <b>#" + d.rank + "</b> on the weekly board" +
+        (run && run.earned ? " · +" + fmt(run.earned) + (run.earned === 1 ? " point" : " points") : ""), 6000);
 }
 
 /* ---- the album marathon: Part 1 of every song back to back, one try each ---- */
@@ -3307,6 +3363,7 @@ addEventListener("message", e => {
   if (m.type === "javeda:start" && current && m.level === current.id) startRun(current);
   else if (m.type === "javeda:result" && current && m.level === current.id){
     if (mode.daily) saveDaily(m);
+    else if (mode.weekly) saveWeekly(m);
     else { saveRun(m, !!mode.marathon); if (mode.marathon) marathonStep(m); }
   }
   else if (m.type === "javeda:match" && current && current.online && m.level === current.id) reportMatch(m);

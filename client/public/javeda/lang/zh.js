@@ -1385,7 +1385,21 @@ S: {
 "Could not use the key. Try again.":"无法使用钥匙。请再试一次。",
 "Play JAVEDA with me, Lazy Jo's playable album. Use my link and we both get a key to open a level:":"一起来玩 JAVEDA 吧，Lazy Jo 的可玩专辑。用我的链接，我们都能得到一把打开关卡的钥匙：",
 "A friend invited you. Make a free account and clear your first level: you both get a 🔑 key.":"有好友邀请了你。创建免费账号并通关第一个关卡，你们都能得到一把🔑钥匙。",
-"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"好友邀请已生效：通关你的第一个关卡，你们都能得到一把🔑钥匙。"
+"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"好友邀请已生效：通关你的第一个关卡，你们都能得到一把🔑钥匙。",
+"Weekly tournament · until":"每周锦标赛 · 截止",
+"Weekly":"每周",
+"Last week":"上周",
+"Not played yet this week":"本周还没玩",
+"Over":"已结束",
+"Log in to compete":"登录即可参赛",
+"This week":"本周",
+"The weekly tournament isn't on right now.":"每周锦标赛目前未开放。",
+"Nobody has played this week's tournament yet.":"还没有人玩本周的锦标赛。",
+"You're offline: the weekly tournament only counts with internet.":"你已离线：每周锦标赛只在联网时计分。",
+"Your best this week #":"本周最佳 #",
+"Your best this week is still":"本周最佳仍是",
+"on the weekly board":"（每周排行榜）",
+"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"本周锦标赛已结束：冠军在排行榜上。周一开始新的歌曲。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",
@@ -2285,9 +2299,12 @@ HTML: {
 "Send your link to a friend. When they make a free account with it and clear their first level, you <b>both</b> get a 🔑 key.":"把你的链接发给好友。好友用它创建免费账号并通关第一个关卡后，你们<b>两个人</b>都能得到一把🔑钥匙。",
 "A key opens <b>any locked song you choose</b>: tap 🔑 on its Part 1.":"一把钥匙可以打开<b>你选择的任意一首锁定歌曲</b>：点击它第1部分上的🔑。",
 "<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice":"<b>🎁 邀请好友</b> · 你们都能得到一把🔑钥匙，打开任意一首歌",
-"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 邀请好友</b> · 你们都能得到一把🔑钥匙，打开任意一首歌 · 你有<b># 🔑</b>"
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 邀请好友</b> · 你们都能得到一把🔑钥匙，打开任意一首歌 · 你有<b># 🔑</b>",
+"One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.":"整周同一首歌，想玩几次都行。结束时分数最高的玩家赢得<b>JAVEDA 通行证</b>。",
+"<b>Log in</b> to compete in the weekly tournament.":"<b>登录</b>即可参加每周锦标赛。"
 },
 P: {
+"^New best this week! (.+)$": "本周新纪录！$1",
 "^Best (.+)$": "最佳 $1",
 "^Level (\\d+)$": "第$1关",
 "^Level (\\d+) · (\\d+) parts$": "第$1关 · 共$2部分",

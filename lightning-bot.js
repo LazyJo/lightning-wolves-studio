@@ -226,6 +226,36 @@ async function feed(sb) {
       components: [row(link('Play today\'s challenge', JAVEDA, '🎮'))] }, 'daily');
     await setState(sb, 'daily_posted', d.day);
   }
+  // the weekly tournament: from Monday 10:00 the week's song; once Sunday 20:00 has passed, the winner (javeda_weekly_close
+  // gives them their Pass). A week nobody played closes quietly.
+  let wk = null; try { const r = await sb.rpc('javeda_weekly'); wk = r && r.data; } catch (e) {}
+  if (wk) {
+    const prev = new Date(Date.parse(wk.week + 'T12:00:00Z') - 7 * 864e5).toISOString().slice(0, 10), toClose = wk.open ? prev : wk.week;
+    if ((await getState(sb, 'weekly_closed')) !== toClose) {
+      const { data: w, error } = (await sb.rpc('javeda_weekly_close', { p_week: toClose }).catch(e => ({ error: e }))) || {};
+      if (!error && w) {
+        if (w.players > 0 && w.username) {
+          const medal = ['🥇', '🥈', '🥉'], who = await discordNames(sb, (w.top || []).map(t => t.user_id));
+          await post({ embeds: [{ color: GOLD, title: '🏆 This week\'s JAVEDA champion: ' + w.username, url: JAVEDA,
+            description: (who[w.user_id] ? '<@' + who[w.user_id] + '> ' : '') + '**' + w.username + '** won the weekly tournament on **' + await levelName(sb, w.level) + '** with **' +
+              fmt(w.best_score) + '**' + (w.prize === 'pass' ? ' and wins a ⚡ **JAVEDA Pass**!' : '!') + '\n\n' +
+              (w.top || []).map((t, n) => medal[n] + ' ' + (who[t.user_id] ? '<@' + who[t.user_id] + '> ' : '') + '**' + t.username + '** · ' + fmt(t.best_score)).join('\n') +
+              '\n\n' + w.players + ' player' + (w.players === 1 ? '' : 's') + ' this week. A new song starts on Monday.' }],
+            allowed_mentions: { users: Object.values(who) } }, 'weekly-winner');
+          if (typeof C.champion === 'function') await C.champion(sb, who[w.user_id]).catch(() => {});
+        }
+        await setState(sb, 'weekly_closed', toClose);
+      }
+    }
+    if (wk.open && hour >= 10 && (await getState(sb, 'weekly_posted')) !== wk.week) {
+      const news = (await guildRoles().catch(() => [])).find(r => ROLE.news.re.test(r.name));
+      await post({ content: news ? '<@&' + news.id + '>' : undefined, allowed_mentions: { roles: news ? [news.id] : [] },
+        embeds: [{ color: GOLD, title: '🏆 This week\'s JAVEDA tournament', url: JAVEDA, description: '**' + await levelName(sb, wk.level) + '**\nOne song all week, as many tries as you like. ' +
+          'The best score on **Sunday at 20:00** wins a ⚡ **JAVEDA Pass**.' + (wk.last && wk.last.username ? '\nLast week\'s champion: **' + wk.last.username + '**.' : '') }],
+        components: [row(link('Play the tournament', JAVEDA, '🏆'))] }, 'weekly');
+      await setState(sb, 'weekly_posted', wk.week);
+    }
+  }
   // who is #1 now; the first run only remembers (no flood of "new #1" when the bot starts)
   const tops = (await getState(sb, 'tops')) || {}, now = {};
   for (const kind of ['points', 'online', 'daily']) {
@@ -242,6 +272,13 @@ async function feed(sb) {
   }
   await setState(sb, 'tops', { ...tops, ...now });
   return { posted };
+}
+
+// Discord ids of JAVEDA players who linked their account (javeda_discord_links), for mentions: { user_id: discord id }
+async function discordNames(sb, ids) {
+  const want = (ids || []).filter(Boolean); if (!want.length) return {};
+  let data = null; try { const r = await sb.from('javeda_discord_links').select('user_id, discord_id').in('user_id', want); data = r && r.data; } catch (e) {}
+  return Object.fromEntries((data || []).map(r => [r.user_id, r.discord_id]));
 }
 
 // ── the routes ──

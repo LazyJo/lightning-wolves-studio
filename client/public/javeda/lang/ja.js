@@ -1385,7 +1385,21 @@ S: {
 "Could not use the key. Try again.":"カギを使えませんでした。もう一度試してね。",
 "Play JAVEDA with me, Lazy Jo's playable album. Use my link and we both get a key to open a level:":"一緒にJAVEDAで遊ぼう！Lazy Joのプレイできるアルバムだよ。私のリンクを使うと、2人ともレベルを開けるカギがもらえるよ：",
 "A friend invited you. Make a free account and clear your first level: you both get a 🔑 key.":"友だちから招待が届いたよ。無料アカウントを作って最初のレベルをクリアすると、2人とも🔑カギがもらえます。",
-"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"友だちの招待が有効になったよ。最初のレベルをクリアすると、2人とも🔑カギがもらえます。"
+"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"友だちの招待が有効になったよ。最初のレベルをクリアすると、2人とも🔑カギがもらえます。",
+"Weekly tournament · until":"ウィークリー大会 · 終了",
+"Weekly":"ウィークリー",
+"Last week":"先週",
+"Not played yet this week":"今週はまだプレイしていません",
+"Over":"終了",
+"Log in to compete":"参加するにはログイン",
+"This week":"今週",
+"The weekly tournament isn't on right now.":"ウィークリー大会は今開催されていません。",
+"Nobody has played this week's tournament yet.":"今週の大会はまだ誰もプレイしていません。",
+"You're offline: the weekly tournament only counts with internet.":"オフラインです：ウィークリー大会はネット接続中だけカウントされます。",
+"Your best this week #":"今週のベスト #",
+"Your best this week is still":"今週のベストは変わらず",
+"on the weekly board":"（ウィークリーランキング）",
+"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"今週の大会は終了しました：優勝者はランキングで確認できます。月曜日に新しい曲が始まります。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",
@@ -2285,9 +2299,12 @@ HTML: {
 "Send your link to a friend. When they make a free account with it and clear their first level, you <b>both</b> get a 🔑 key.":"リンクを友だちに送ろう。友だちがそのリンクで無料アカウントを作って最初のレベルをクリアすると、<b>2人とも</b>🔑カギがもらえます。",
 "A key opens <b>any locked song you choose</b>: tap 🔑 on its Part 1.":"カギは<b>好きなロック中の曲</b>を1曲開けられます：その曲のパート1の🔑をタップ。",
 "<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice":"<b>🎁 友だちを招待</b> · 2人とも好きな曲を開ける🔑カギがもらえる",
-"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 友だちを招待</b> · 2人とも好きな曲を開ける🔑カギがもらえる · 所持<b># 🔑</b>"
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 友だちを招待</b> · 2人とも好きな曲を開ける🔑カギがもらえる · 所持<b># 🔑</b>",
+"One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.":"1週間ずっと同じ曲、何回でも挑戦OK。終了時点でベストスコアの人が<b>JAVEDAパス</b>をゲット。",
+"<b>Log in</b> to compete in the weekly tournament.":"ウィークリー大会に参加するには<b>ログイン</b>してね。"
 },
 P: {
+"^New best this week! (.+)$": "今週のベスト更新！$1",
 "^Best (.+)$": "ベスト $1",
 "^Level (\\d+)$": "レベル$1",
 "^Level (\\d+) · (\\d+) parts$": "レベル$1 · 全$2パート",

@@ -1443,7 +1443,8 @@ S: {
 "Play 100 runs.":"玩 100 局。",
 "Weekly tournament":"每周锦标赛",
 "Opens at # downloads":"下载量达到 # 时开启",
-"# / # downloads":"下载量 # / #"
+"# / # downloads":"下载量 # / #",
+"It plays offline and opens in one tap.":"可以离线玩，一点就打开。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",
@@ -2346,7 +2347,8 @@ HTML: {
 "<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 邀请好友</b> · 你们都能得到一把🔑钥匙，打开任意一首歌 · 你有<b># 🔑</b>",
 "One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.":"整周同一首歌，想玩几次都行。结束时分数最高的玩家赢得<b>JAVEDA 通行证</b>。",
 "<b>Log in</b> to compete in the weekly tournament.":"<b>登录</b>即可参加每周锦标赛。",
-"One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"整整一周同一首歌，最高分赢得 <b>JAVEDA Pass</b>。JAVEDA 下载量达到 # 时开始：下载应用，带上你的朋友。"
+"One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"整整一周同一首歌，最高分赢得 <b>JAVEDA Pass</b>。JAVEDA 下载量达到 # 时开始：下载应用，带上你的朋友。",
+"Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"每次安装都算数：达到 <b>#</b> 时，每周锦标赛向所有人开放。现在：<b>#</b>。"
 },
 P: {
 "^New best this week! (.+)$": "本周新纪录！$1",

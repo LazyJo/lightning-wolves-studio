@@ -1443,7 +1443,8 @@ S: {
 "Play 100 runs.":"Gioca 100 partite.",
 "Weekly tournament":"Torneo settimanale",
 "Opens at # downloads":"Si apre a # download",
-"# / # downloads":"# / # download"
+"# / # downloads":"# / # download",
+"It plays offline and opens in one tap.":"Funziona offline e si apre con un tocco."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",
@@ -2346,7 +2347,8 @@ HTML: {
 "<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 Invita un amico</b> · ricevete entrambi una 🔑 chiave per aprire una canzone a scelta · hai <b># 🔑</b>",
 "One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.":"Una canzone per tutta la settimana, tutti i tentativi che vuoi. Alla fine, il miglior punteggio vince un <b>JAVEDA Pass</b>.",
 "<b>Log in</b> to compete in the weekly tournament.":"<b>Accedi</b> per partecipare al torneo settimanale.",
-"One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"Una canzone per tutta la settimana, il punteggio migliore vince un <b>JAVEDA Pass</b>. Parte appena JAVEDA arriva a # download: scarica l'app e porta i tuoi amici."
+"One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"Una canzone per tutta la settimana, il punteggio migliore vince un <b>JAVEDA Pass</b>. Parte appena JAVEDA arriva a # download: scarica l'app e porta i tuoi amici.",
+"Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"Ogni installazione conta: a <b>#</b> il torneo settimanale si apre per tutti. Ora: <b>#</b>."
 },
 P: {
 "^New best this week! (.+)$": "Nuovo record della settimana! $1",

@@ -126,6 +126,7 @@ const S = [
   ["Weekly tournament", "Weektoernooi", "Tournoi de la semaine", "Torneo semanal"],
   ["Opens at # downloads", "Opent bij # downloads", "Ouvre à # téléchargements", "Se abre con # descargas"],
   ["# / # downloads", "# / # downloads", "# / # téléchargements", "# / # descargas"],
+  ["It plays offline and opens in one tap.", "Hij speelt offline en opent met één tik.", "Il marche hors ligne et s'ouvre d'un seul toucher.", "Funciona sin conexión y se abre con un toque."],
   ["Weekly tournament · until", "Weektoernooi · tot", "Tournoi de la semaine · jusqu'à", "Torneo semanal · hasta el"],
   ["Weekly", "Week", "Semaine", "Semanal"],
   ["Last week", "Vorige week", "La semaine dernière", "La semana pasada"],
@@ -729,6 +730,7 @@ const P = [
 
 /* ---- sentences with bold words or links in them, translated whole: [English html, nl, fr, es] ---- */
 const HTML = [
+  ["Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.", "Elke installatie telt: bij <b>#</b> opent het weektoernooi voor iedereen. Nu: <b>#</b>.", "Chaque installation compte : à <b>#</b>, le tournoi de la semaine ouvre pour tout le monde. Maintenant : <b>#</b>.", "Cada instalación cuenta: con <b>#</b> se abre el torneo semanal para todos. Ahora: <b>#</b>."],
   ["One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.", "Eén nummer de hele week, de beste score wint een <b>JAVEDA Pass</b>. Het begint zodra JAVEDA # downloads heeft: haal de app en neem je vrienden mee.", "Un morceau toute la semaine, le meilleur score gagne un <b>JAVEDA Pass</b>. Il commence dès que JAVEDA a # téléchargements : télécharge l'app et amène tes amis.", "Una canción toda la semana, la mejor puntuación gana un <b>JAVEDA Pass</b>. Empieza en cuanto JAVEDA tenga # descargas: descarga la app y trae a tus amigos."],
   ['<small>The first online one</small>HOOPS <i>1v1</i>', '<small>De eerste online</small>HOOPS <i>1v1</i>', '<small>Le premier en ligne</small>HOOPS <i>1v1</i>', '<small>El primero online</small>HOOPS <i>1v1</i>'],
   ['<small>Memory, head to head</small>PASS IT ON <i>1v1</i>', '<small>Geheugen, man tegen man</small>PASS IT ON <i>1v1</i>', '<small>Mémoire, face à face</small>PASS IT ON <i>1v1</i>', '<small>Memoria, cara a cara</small>PASS IT ON <i>1v1</i>'],

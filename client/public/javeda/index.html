@@ -808,6 +808,20 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 </div>
 
 <!-- you were invited -->
+<!-- put JAVEDA on the phone: once after a first clear in the browser (at most twice, a week apart) -->
+<div class="sheet hid" id="nudge" role="dialog" aria-modal="true" aria-labelledby="ngT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="ngT">&#128242; Put JAVEDA on your phone</h3>
+    <p>It plays offline and opens in one tap.</p>
+    <p class="hid" id="ngCount"></p>
+    <div style="display:flex; gap:8px; flex-wrap:wrap">
+      <button class="btn primary" id="ngGo" type="button">Get the app</button>
+      <button class="btn small" id="ngNo" type="button">Not now</button>
+    </div>
+  </div>
+</div>
+
 <div class="sheet hid" id="join" role="dialog" aria-modal="true" aria-labelledby="jnT">
   <div class="card">
     <button class="x" type="button" data-close aria-label="Close">&times;</button>
@@ -2388,8 +2402,26 @@ function stopPlay(){
   $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null; mode = {};
   document.body.style.overflow = ""; document.body.classList.remove("playing");
   renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless();
-  if (creditsDue){ creditsDue = false; openCredits(); }
+  if (creditsDue){ creditsDue = false; openCredits(); } else maybeNudge();
 }
+/* ---- the app: after a clear in the browser, a card to put JAVEDA on the phone - the first time, and once more a week
+   later if it was "Not now". Never in the app itself. While the weekly tournament waits for downloads, it says so. ---- */
+const NUDGE_KEY = "javeda.nudge.app";
+let nudgeDue = false;
+function maybeNudge(){
+  if (!nudgeDue || STANDALONE || creator) return; nudgeDue = false;
+  let st = { n:0, at:0 }; try { st = JSON.parse(localStorage.getItem(NUDGE_KEY) || "null") || st; } catch(e){}
+  if (st.n >= 2 || (st.n === 1 && Date.now() - st.at < 7 * 864e5)) return;
+  const c = $("ngCount"), lock = weeklyLocked();
+  c.classList.toggle("hid", !lock);
+  if (lock) c.innerHTML = "Every install counts: at <b>" + fmt(weekly.need || 100) + "</b> the weekly tournament opens for everyone. Now: <b>" + fmt(weekly.downloads || 0) + "</b>.";
+  // something else open (the share card, a toast's sheet): next clear, then
+  setTimeout(() => { if (document.body.classList.contains("playing") || document.querySelector(".sheet:not(.hid)")){ nudgeDue = true; return; }
+    try { localStorage.setItem(NUDGE_KEY, JSON.stringify({ n:st.n + 1, at:Date.now() })); } catch(e){}
+    openSheet("nudge"); }, 900);
+}
+$("ngGo").onclick = () => { closeSheet("nudge"); $("appBtn").click(); };
+$("ngNo").onclick = () => closeSheet("nudge");
 // a Play button plays; a gold Pass one (data-pass: the level it's for, or nothing) opens the Pass
 const playOrPass = e => {
   const b = e.target.closest("[data-play], [data-pass]"); if (!b) return false;
@@ -3591,6 +3623,7 @@ addEventListener("message", e => {
   if (m.type === "javeda:start" && current && m.level === current.id) startRun(current);
   else if (m.type === "javeda:result" && current && m.level === current.id){
     runEnded(m);
+    if (m.cleared && !current.endless) nudgeDue = true;      // a clear: the app card when they're back (maybeNudge)
     if (mode.daily) saveDaily(m);
     else if (mode.weekly) saveWeekly(m);
     else { saveRun(m, !!mode.marathon); if (mode.marathon) marathonStep(m); }

@@ -1443,7 +1443,8 @@ S: {
 "Play 100 runs.":"100回プレイしよう。",
 "Weekly tournament":"ウィークリートーナメント",
 "Opens at # downloads":"#ダウンロードで開幕",
-"# / # downloads":"#/#ダウンロード"
+"# / # downloads":"#/#ダウンロード",
+"It plays offline and opens in one tap.":"オフラインでも遊べて、ワンタップで開けるよ。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",
@@ -2346,7 +2347,8 @@ HTML: {
 "<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 友だちを招待</b> · 2人とも好きな曲を開ける🔑カギがもらえる · 所持<b># 🔑</b>",
 "One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.":"1週間ずっと同じ曲、何回でも挑戦OK。終了時点でベストスコアの人が<b>JAVEDAパス</b>をゲット。",
 "<b>Log in</b> to compete in the weekly tournament.":"ウィークリー大会に参加するには<b>ログイン</b>してね。",
-"One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"1週間ずっと同じ曲。最高スコアの人が<b>JAVEDA Pass</b>をゲット。JAVEDAが#ダウンロードに達したらスタート：アプリを入れて友だちを誘おう。"
+"One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"1週間ずっと同じ曲。最高スコアの人が<b>JAVEDA Pass</b>をゲット。JAVEDAが#ダウンロードに達したらスタート：アプリを入れて友だちを誘おう。",
+"Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"インストールごとにカウント：<b>#</b>でウィークリートーナメントがみんなに開幕。いま：<b>#</b>。"
 },
 P: {
 "^New best this week! (.+)$": "今週のベスト更新！$1",

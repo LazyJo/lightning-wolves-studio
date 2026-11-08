@@ -1440,7 +1440,10 @@ S: {
 "Pack Leader":"狼群首領",
 "Get 3 friends to join with your invite link.":"用你的邀請連結邀請 3 位朋友加入。",
 "Never Give Up":"永不放棄",
-"Play 100 runs.":"玩 100 局。"
+"Play 100 runs.":"玩 100 局。",
+"Weekly tournament":"每週錦標賽",
+"Opens at # downloads":"下載量達到 # 時開啟",
+"# / # downloads":"下載量 # / #"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款線上對戰</small>HOOPS <i>1v1</i>",
@@ -2342,7 +2345,8 @@ HTML: {
 "<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice":"<b>🎁 邀請好友</b> · 你們都能得到一把🔑鑰匙，打開任何一首歌",
 "<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 邀請好友</b> · 你們都能得到一把🔑鑰匙，打開任何一首歌 · 你有<b># 🔑</b>",
 "One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.":"整週同一首歌，想玩幾次都行。結束時分數最高的玩家贏得<b>JAVEDA 通行證</b>。",
-"<b>Log in</b> to compete in the weekly tournament.":"<b>登入</b>就能參加每週錦標賽。"
+"<b>Log in</b> to compete in the weekly tournament.":"<b>登入</b>就能參加每週錦標賽。",
+"One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"整整一週同一首歌，最高分贏得 <b>JAVEDA Pass</b>。JAVEDA 下載量達到 # 時開始：下載 App，帶上你的朋友。"
 },
 P: {
 "^New best this week! (.+)$": "本週新紀錄！$1",

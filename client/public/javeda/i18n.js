@@ -123,6 +123,9 @@ const S = [
   ["A friend invited you. Make a free account and clear your first level: you both get a 🔑 key.", "Een vriend heeft je uitgenodigd. Maak een gratis account en speel je eerste level uit: jullie krijgen allebei een 🔑 sleutel.", "Un ami t'a invité. Crée un compte gratuit et termine ton premier niveau : vous recevez tous les deux une 🔑 clé.", "Un amigo te ha invitado. Crea una cuenta gratis y supera tu primer nivel: los dos recibís una 🔑 llave."],
   ["Your friend's invite counts: clear your first level and you both get a 🔑 key.", "De uitnodiging van je vriend telt: speel je eerste level uit en jullie krijgen allebei een 🔑 sleutel.", "L'invitation de ton ami compte : termine ton premier niveau et vous recevez tous les deux une 🔑 clé.", "La invitación de tu amigo cuenta: supera tu primer nivel y los dos recibís una 🔑 llave."],
   // the weekly tournament
+  ["Weekly tournament", "Weektoernooi", "Tournoi de la semaine", "Torneo semanal"],
+  ["Opens at # downloads", "Opent bij # downloads", "Ouvre à # téléchargements", "Se abre con # descargas"],
+  ["# / # downloads", "# / # downloads", "# / # téléchargements", "# / # descargas"],
   ["Weekly tournament · until", "Weektoernooi · tot", "Tournoi de la semaine · jusqu'à", "Torneo semanal · hasta el"],
   ["Weekly", "Week", "Semaine", "Semanal"],
   ["Last week", "Vorige week", "La semaine dernière", "La semana pasada"],
@@ -726,6 +729,7 @@ const P = [
 
 /* ---- sentences with bold words or links in them, translated whole: [English html, nl, fr, es] ---- */
 const HTML = [
+  ["One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.", "Eén nummer de hele week, de beste score wint een <b>JAVEDA Pass</b>. Het begint zodra JAVEDA # downloads heeft: haal de app en neem je vrienden mee.", "Un morceau toute la semaine, le meilleur score gagne un <b>JAVEDA Pass</b>. Il commence dès que JAVEDA a # téléchargements : télécharge l'app et amène tes amis.", "Una canción toda la semana, la mejor puntuación gana un <b>JAVEDA Pass</b>. Empieza en cuanto JAVEDA tenga # descargas: descarga la app y trae a tus amigos."],
   ['<small>The first online one</small>HOOPS <i>1v1</i>', '<small>De eerste online</small>HOOPS <i>1v1</i>', '<small>Le premier en ligne</small>HOOPS <i>1v1</i>', '<small>El primero online</small>HOOPS <i>1v1</i>'],
   ['<small>Memory, head to head</small>PASS IT ON <i>1v1</i>', '<small>Geheugen, man tegen man</small>PASS IT ON <i>1v1</i>', '<small>Mémoire, face à face</small>PASS IT ON <i>1v1</i>', '<small>Memoria, cara a cara</small>PASS IT ON <i>1v1</i>'],
   ['<small>Two card games</small>BLIND LOVE <i>1v1</i>', '<small>Twee kaartspellen</small>BLIND LOVE <i>1v1</i>', '<small>Deux jeux de cartes</small>BLIND LOVE <i>1v1</i>', '<small>Dos juegos de cartas</small>BLIND LOVE <i>1v1</i>'],

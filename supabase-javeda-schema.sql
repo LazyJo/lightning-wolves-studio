@@ -2245,14 +2245,38 @@ RETURNS TIMESTAMPTZ LANGUAGE sql IMMUTABLE SET search_path = public
 AS $$ SELECT ((p_week + 6)::TIMESTAMP + TIME '20:00') AT TIME ZONE 'Europe/Brussels'; $$;
 
 -- this week's tournament, for anyone: the song, when it ends, whether it's still on, and last week's winner
+-- The tournament opens once JAVEDA has javeda_settings.weekly_from app downloads (100): the first time the count gets
+-- there, weekly_on_since is set and it stays open from then on. Until then nothing can be played, closed or announced.
+ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS weekly_from INT NOT NULL DEFAULT 100;
+ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS weekly_on_since TIMESTAMPTZ;
+CREATE OR REPLACE FUNCTION public.javeda_weekly_on()
+RETURNS BOOLEAN
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE st javeda_settings; n INT;
+BEGIN
+  SELECT * INTO st FROM javeda_settings WHERE id;
+  IF st.weekly_on_since IS NOT NULL THEN RETURN true; END IF;
+  SELECT count(*) INTO n FROM javeda_app_devices;
+  IF n >= COALESCE(st.weekly_from, 100) THEN UPDATE javeda_settings SET weekly_on_since = now() WHERE id; RETURN true; END IF;
+  RETURN false;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_weekly_on() FROM PUBLIC, anon, authenticated;
+-- the week: its song, when it ends, whether it can be played (open), and while it's locked (on = false) how many
+-- downloads there are and how many it waits for
 CREATE OR REPLACE FUNCTION public.javeda_weekly()
 RETURNS JSON
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
-  SELECT json_build_object('week', w, 'level', javeda_weekly_level(w), 'ends_at', javeda_weekly_end(w), 'open', now() < javeda_weekly_end(w),
+DECLARE w DATE := javeda_week_of(now()); live BOOLEAN := javeda_weekly_on();
+BEGIN
+  RETURN json_build_object('week', w, 'level', javeda_weekly_level(w), 'ends_at', javeda_weekly_end(w), 'open', live AND now() < javeda_weekly_end(w),
+    'on', live, 'downloads', CASE WHEN live THEN NULL ELSE (SELECT count(*) FROM javeda_app_devices) END,
+    'need', (SELECT weekly_from FROM javeda_settings WHERE id),
     'last', (SELECT json_build_object('week', x.week, 'level', x.level, 'username', x.username, 'best_score', x.best_score)
-             FROM javeda_weekly_winners x WHERE x.week < w ORDER BY x.week DESC LIMIT 1))
-  FROM (SELECT javeda_week_of(now()) AS w) t;
+             FROM javeda_weekly_winners x WHERE x.week < w AND x.user_id IS NOT NULL ORDER BY x.week DESC LIMIT 1));
+END;
 $$;
 GRANT EXECUTE ON FUNCTION public.javeda_weekly() TO anon, authenticated;
 
@@ -2264,6 +2288,7 @@ DECLARE uid UUID := auth.uid(); w DATE := javeda_week_of(now()); lvl TEXT := jav
 BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
   IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
+  IF NOT javeda_weekly_on() THEN RAISE EXCEPTION 'the weekly tournament opens at % downloads', (SELECT weekly_from FROM javeda_settings WHERE id) USING ERRCODE = '42501'; END IF;
   IF now() >= javeda_weekly_end(w) THEN RAISE EXCEPTION 'this week''s tournament is over' USING ERRCODE = '42501'; END IF;
   INSERT INTO javeda_weekly_runs (user_id, week, level, started_at) VALUES (uid, w, lvl, now())
   ON CONFLICT (user_id) DO UPDATE SET week = EXCLUDED.week, level = EXCLUDED.level, started_at = now();

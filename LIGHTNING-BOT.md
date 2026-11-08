@@ -114,4 +114,7 @@ Restart project); at most once an hour, and one "it's back" when it is. It has t
 In the feed (every 5 minutes): from Monday 10:00 (Brussels) it posts the week's song with a 🔔 JAVEDA News ping; once
 Sunday 20:00 has passed it closes the week (`javeda_weekly_close`, which gives the winner a JAVEDA Pass) and posts the
 champion and the top 3, mentioning those who linked their Discord. A week nobody played closes without a post.
+**Locked until 100 downloads:** until JAVEDA has 100 app downloads (the Players & downloads count), nothing can be
+played and the bot posts nothing for it; the JAVEDA page shows "Opens at 100 downloads · N / 100". The first time the count
+gets there it opens by itself and stays open. The number is `weekly_from` in `javeda_settings`.
 After adding `/link` and `/unlink`, open the register link once more (step 5).

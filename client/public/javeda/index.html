@@ -1533,6 +1533,12 @@ function dailyCard(){
 // the weekly tournament: one song for the week, the best score by Sunday 20:00 wins a JAVEDA Pass
 function weeklyCard(){
   const lv = weekly && levelById(weekly.level); if (!lv) return "";
+  // locked until JAVEDA has 100 downloads (javeda_weekly: on = false): what it is, and how far
+  if (weekly.on === false) return '<article class="daily weekly"><span class="dl">Weekly tournament</span>' +
+    '<span class="dt">&#128274; Opens at ' + fmt(weekly.need || 100) + ' downloads</span>' +
+    '<p class="dd">One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has ' + fmt(weekly.need || 100) + ' downloads: get the app and bring your friends.</p>' +
+    '<div class="row"><span class="tag">' + fmt(weekly.downloads || 0) + ' / ' + fmt(weekly.need || 100) + ' downloads</span><span class="btns">' +
+    (STANDALONE ? '' : '<button class="btn small" data-getapp="1">Get the app</button>') + (hasPass() ? '' : '<button class="btn gold small" data-friends="1">Invite</button>') + '</span></div></article>';
   const loc = window.JAVEDA_LOCALE || "en-GB", end = new Date(weekly.ends_at);
   const ends = end.toLocaleDateString(loc, { weekday:"short" }) + " " + end.toLocaleTimeString(loc, { hour:"2-digit", minute:"2-digit" });
   const last = weekly.last && weekly.last.username ? '<span class="last" data-i18n-skip>&#127942; ' + esc(weekly.last.username) + ' &middot; ' + fmt(weekly.last.best_score) + '</span>' : '';
@@ -1543,11 +1549,14 @@ function weeklyCard(){
     '<div class="row">' + (weeklyBest ? '<span class="best">Your best this week ' + fmt(weeklyBest) + '</span>' : '<span class="tag">' + (session ? (weekly.open ? 'Not played yet this week' : 'Over') : 'Log in to compete') + '</span>') +
       '<span class="btns"><button class="btn small" data-board="weekly">Board</button>' + (weekly.open ? '<button class="btn gold small" data-weekly="1">Play &#9654;</button>' : '') + '</span></div></article>';
 }
+const weeklyLocked = () => !!weekly && weekly.on === false;
 async function loadWeekly(){
   if (!sb) return;
   const { data } = await sb.rpc("javeda_weekly").then(r => r, () => ({}));
   if (!data || !levelById(data.level)) return;
   weekly = data; weeklyBest = 0;
+  if (weeklyLocked() && boardTab === "weekly"){ boardTab = "points"; renderBoard(); }
+  renderTabs();        // the Weekly tab shows only once it's open
   if (signedIn()){ const r = await sb.from("javeda_weekly_scores").select("best_score").eq("week", weekly.week).eq("user_id", session.user.id).maybeSingle(); weeklyBest = (r.data && r.data.best_score) || 0; }
   renderNow(); if (boardTab === "weekly"){ renderTabs(); renderBoard(); }
 }
@@ -1745,7 +1754,7 @@ function renderTabs(){
   const kind = boardKind(boardTab), pad = n => String(n).padStart(2, "0");
   if (kind === "level" || kind === "endless") lastBoard[kind] = boardTab;
   const cdot = chatDot.n && kind !== "chat" ? '<span class="cdot' + (chatDot.by ? ' gold' : '') + '" aria-label="New messages"></span>' : "";
-  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat" + cdot], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["weekly", "&#127942; Weekly", "g"], ["marathon", "Marathon", "g"]].map(([k, t, c]) =>
+  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat" + cdot], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["weekly", "&#127942; Weekly", "g"], ["marathon", "Marathon", "g"]].filter(([k]) => k !== "weekly" || !weeklyLocked()).map(([k, t, c]) =>
     '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
   requestAnimationFrame(hsAll);
   const el = $("etabs"); el.classList.toggle("gold", kind === "endless" || kind === "marathon");
@@ -2436,7 +2445,8 @@ $("now").addEventListener("click", e => {
   if (b.dataset.play || b.dataset.pass !== undefined) playOrPass(e);
   else if (b.dataset.daily) play(daily.level, { daily:true });
   else if (b.dataset.friends) openFriends();
-  else if (b.dataset.weekly && weekly) play(weekly.level, { weekly:true });
+  else if (b.dataset.weekly && weekly && weekly.on !== false) play(weekly.level, { weekly:true });
+  else if (b.dataset.getapp) openAppSheet();
   else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); } });
   else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (b.dataset.marathon) startMarathon();

@@ -1440,7 +1440,10 @@ S: {
 "IT'S FREE":"BEDAVA",
 "FLAG ON":"BAYRAK AÇIK",
 "Try again":"Tekrar dene",
-"THE SONG'S OVER":"ŞARKI BİTTİ"
+"THE SONG'S OVER":"ŞARKI BİTTİ",
+"Weekly tournament":"Haftalık turnuva",
+"Opens at # downloads":"# indirmede açılıyor",
+"# / # downloads":"İndirme: # / #"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>İlk online oyun</small>HOOPS <i>1v1</i>",
@@ -2342,7 +2345,8 @@ HTML: {
 "<b>#</b> in space · lap <b>#</b> · stages <b>#</b> · rainbows <b>#</b> · cards <b>#</b>":"Uzayda <b>#</b> · tur <b>#</b> · aşama <b>#</b> · gökkuşağı <b>#</b> · kart <b>#</b>",
 "<b>Tap</b> a mound to dig it: the number says how many crabs are in the # around it (an empty one digs its neighbours too; the first dig is never a crab). <b>Hold</b> a mound, or turn on <b>FLAG</b>, to mark a crab. Dig up a crab and it bites - a heart (#). Take your time: only a crab costs a heart. Dig a whole beach to clear the part. Dug <b>on the beat</b> it counts double; double again in the hooks.":"Kazmak için bir tümseğe <b>dokun</b>: sayı, etrafındaki # tümsekte kaç yengeç olduğunu söyler (boş bir tümsek komşularını da kazar; ilk kazıdan asla yengeç çıkmaz). Bir yengeci işaretlemek için tümseği <b>basılı tut</b> ya da <b>BAYRAK</b> modunu aç. Yengeç çıkarırsan ısırır - bir kalp gider (#). Acele etme: sadece yengeç kalp götürür. Bölümü geçmek için bütün bir kumsalı kaz. <b>Ritimde</b> kazarsan iki kat sayılır; nakaratlarda bir kat daha ikiye katlanır.",
 "<b>Heart Flow:</b> drag from a heart to the heart of the same colour; lines can't cross. <b>Crab Sweeper:</b> tap a mound to dig it, the number counts the crabs around; hold it, or turn on <b>FLAG</b>, to mark a crab - only a crab costs a heart. <b>Starlight:</b> tap a star and it changes, with the four next to it; light them all. <b>Shell Sudoku:</b> tap a picture on the tray, then a stone; each one once in every row, column and box. When a game's turn is up you finish what you're on, then the next one comes in.":"<b>Heart Flow:</b> bir kalpten aynı renkteki kalbe sürükle; çizgiler kesişemez. <b>Crab Sweeper:</b> kazmak için bir tümseğe dokun, sayı çevredeki yengeçleri gösterir; bir yengeci işaretlemek için basılı tut ya da <b>BAYRAK</b> modunu aç - sadece yengeç kalp götürür. <b>Starlight:</b> bir yıldıza dokun, o ve yanındaki dört yıldız değişir; hepsini yak. <b>Shell Sudoku:</b> tepsiden bir resme, sonra bir taşa dokun; her resim her satırda, sütunda ve kutuda bir kez. Bir oyunun süresi dolunca elindekini bitirirsin, sonra sıradaki gelir.",
-"Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart. <b>Go again.</b>":"Crab Sweeper bölümünü geçmek için bütün kumsalı kaz - yengeç olmayan her tümseği. Acele etme: sadece yengeç kalp götürür. <b>Tekrar dene.</b>"
+"Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart. <b>Go again.</b>":"Crab Sweeper bölümünü geçmek için bütün kumsalı kaz - yengeç olmayan her tümseği. Acele etme: sadece yengeç kalp götürür. <b>Tekrar dene.</b>",
+"One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"Bütün hafta tek şarkı, en yüksek skor <b>JAVEDA Pass</b> kazanır. JAVEDA'nın indirme sayısı # olunca başlıyor: uygulamayı indir, arkadaşlarını da getir."
 },
 P: {
 "^New best this week! (.+)$": "Bu haftanın yeni rekoru! $1",

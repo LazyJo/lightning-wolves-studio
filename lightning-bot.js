@@ -231,8 +231,9 @@ async function feed(sb) {
   }
   // the weekly tournament: from Monday 10:00 the week's song; once Sunday 20:00 has passed, the winner (javeda_weekly_close
   // gives them their Pass). A week nobody played closes quietly.
+  // (locked until JAVEDA has 100 downloads: wk.on is false, and nothing is closed or announced)
   let wk = null; try { const r = await sb.rpc('javeda_weekly'); wk = r && r.data; } catch (e) {}
-  if (wk) {
+  if (wk && wk.on !== false) {
     const prev = new Date(Date.parse(wk.week + 'T12:00:00Z') - 7 * 864e5).toISOString().slice(0, 10), toClose = wk.open ? prev : wk.week;
     if ((await getState(sb, 'weekly_closed')) !== toClose) {
       const { data: w, error } = (await sb.rpc('javeda_weekly_close', { p_week: toClose }).catch(e => ({ error: e }))) || {};

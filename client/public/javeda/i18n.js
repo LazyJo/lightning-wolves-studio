@@ -128,6 +128,12 @@ const S = [
   ["# / # downloads", "# / # downloads", "# / # téléchargements", "# / # descargas"],
   ["It plays offline and opens in one tap.", "Hij speelt offline en opent met één tik.", "Il marche hors ligne et s'ouvre d'un seul toucher.", "Funciona sin conexión y se abre con un toque."],
   // season events
+  ["Autumn event", "Herfstevent", "Événement d'automne", "Evento de otoño"],
+  ["Autumn", "Herfst", "Automne", "Otoño"],
+  ["Maple Saucer", "Maple Saucer", "Maple Saucer", "Maple Saucer"],
+  ["Harvest Wolf", "Oogstwolf", "Loup des moissons", "Lobo de la cosecha"],
+  ["Play on # different days during the Autumn event.", "Speel op # verschillende dagen tijdens het herfstevent.", "Joue # jours différents pendant l'événement d'automne.", "Juega # días distintos durante el evento de otoño."],
+  ["Clear # levels during an Autumn event.", "Haal # levels tijdens een herfstevent.", "Réussis # niveaux pendant un événement d'automne.", "Supera # niveles durante un evento de otoño."],
   ["The winner gets a discount code for Lazy Jo's merch shop; the top three each get a key to open a song.", "De winnaar krijgt een kortingscode voor de merchshop van Lazy Jo; de top drie krijgt elk een sleutel om een nummer te openen.", "Le gagnant reçoit un code de réduction pour la boutique de Lazy Jo ; les trois premiers reçoivent chacun une clé pour ouvrir un morceau.", "El ganador se lleva un código de descuento para la tienda de Lazy Jo; los tres primeros reciben una llave para abrir una canción."],
   ["The winner gets Lazy Jo merch; the top three each get a key to open a song.", "De winnaar krijgt merch van Lazy Jo; de top drie krijgt elk een sleutel om een nummer te openen.", "Le gagnant reçoit du merch de Lazy Jo ; les trois premiers reçoivent chacun une clé pour ouvrir un morceau.", "El ganador se lleva merch de Lazy Jo; los tres primeros reciben una llave para abrir una canción."],
   ["Your prize: a key to open a song of your choice. It's already in your account.", "Je prijs: een sleutel om een nummer naar keuze te openen. Hij staat al op je account.", "Ton prix : une clé pour ouvrir le morceau de ton choix. Elle est déjà sur ton compte.", "Tu premio: una llave para abrir la canción que quieras. Ya está en tu cuenta."],

@@ -144,11 +144,13 @@ html[data-season="summer"]{ --night:#140a1c; --deep:#22102c; --panel:#2a1534; --
 html[data-season="summer"] body{ background:radial-gradient(80% 45% at 50% -8%, #ff9d2e66 0%, transparent 70%) fixed, radial-gradient(90% 60% at 50% -10%, #5a2448 0%, var(--night) 72%) fixed, var(--night) }
 html[data-season="halloween"]{ --night:#0b0612; --deep:#170c22; --panel:#1c0f2a; --panel-2:#251536; --line:#40265a; --beam:#ffc48a; --cyan:#ff9d2e; --season:#ff9d2e; }
 html[data-season="halloween"] body{ background:radial-gradient(60% 40% at 50% -6%, #ff7a1a44 0%, transparent 70%) fixed, radial-gradient(90% 60% at 50% -10%, #2c1546 0%, var(--night) 72%) fixed, var(--night) }
+html[data-season="autumn"]{ --night:#140a06; --deep:#22120a; --panel:#2a170d; --panel-2:#351d10; --line:#5a3218; --beam:#ffd0a0; --cyan:#f2b33d; --season:#ff8a3d; --blue:#e8761c; }
+html[data-season="autumn"] body{ background:radial-gradient(60% 40% at 20% -5%, #e8761c44 0%, transparent 70%) fixed, radial-gradient(60% 40% at 85% 0%, #c4451c33 0%, transparent 70%) fixed, radial-gradient(90% 60% at 50% -10%, #4a2410 0%, var(--night) 72%) fixed, var(--night) }
 html[data-season] .hero h1{ background:linear-gradient(172deg, #fff 30%, var(--season) 115%); -webkit-background-clip:text; background-clip:text; color:transparent }
 html[data-season] .logo b{ background:linear-gradient(172deg, #fff 20%, var(--season) 110%); -webkit-background-clip:text; background-clip:text; color:transparent }
 html[data-season] .logo::after{ font-size:18px; line-height:1; margin-left:-4px; filter:drop-shadow(0 0 6px #0008) }
 html[data-season="winter"] .logo::after{ content:"\2744\FE0F" } html[data-season="valentine"] .logo::after{ content:"\1F498" }
-html[data-season="spring"] .logo::after{ content:"\1F338" } html[data-season="summer"] .logo::after{ content:"\2600\FE0F" } html[data-season="halloween"] .logo::after{ content:"\1F383" }
+html[data-season="autumn"] .logo::after{ content:"\1F342" } html[data-season="spring"] .logo::after{ content:"\1F338" } html[data-season="summer"] .logo::after{ content:"\2600\FE0F" } html[data-season="halloween"] .logo::after{ content:"\1F383" }
 /* the welcome, once a season */
 .season-hello{ position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center;
   background:radial-gradient(60% 45% at 50% 50%, color-mix(in srgb, var(--season) 22%, transparent), #000a 75%); opacity:0; transition:opacity .5s ease; pointer-events:auto }
@@ -1329,6 +1331,7 @@ let AVATARS = [
   { id:"ev-winter", name:"Snow Saucer", cost:0, sort:200, unlock:"event:winter" }, { id:"ev-valentine", name:"Heart Saucer", cost:0, sort:201, unlock:"event:valentine" },
   { id:"ev-spring", name:"Blossom Saucer", cost:0, sort:202, unlock:"event:spring" }, { id:"ev-summer", name:"Sunset Saucer", cost:0, sort:203, unlock:"event:summer" },
   { id:"ev-halloween", name:"Pumpkin Saucer", cost:0, sort:204, unlock:"event:halloween" }, { id:"ev-gift", name:"Gift Saucer", cost:0, sort:205, unlock:"event:advent" },
+  { id:"ev-autumn", name:"Maple Saucer", cost:0, sort:206, unlock:"event:autumn" },
   { id:"bike", name:"Zirka's Bike", cost:0 },
   { id:"wolf", name:"Wolf", cost:0 },
   { id:"planet", name:"Planet Javeda", cost:0 },
@@ -1629,7 +1632,8 @@ const EV = {
   valentine:{ e:"\u{1F498}",     name:"Valentine event", tab:"Valentine", pic:"ev-valentine", picName:"Heart Saucer",   badge:"Lovebird" },
   spring:   { e:"\u{1F338}",     name:"Spring event",    tab:"Spring",    pic:"ev-spring",    picName:"Blossom Saucer", badge:"Bloom" },
   summer:   { e:"\u2600\uFE0F", name:"Summer event",    tab:"Summer",    pic:"ev-summer",    picName:"Sunset Saucer",  badge:"Sunset Rider" },
-  halloween:{ e:"\u{1F383}",     name:"Halloween event", tab:"Halloween", pic:"ev-halloween", picName:"Pumpkin Saucer", badge:"Night Howler" }
+  halloween:{ e:"\u{1F383}",     name:"Halloween event", tab:"Halloween", pic:"ev-halloween", picName:"Pumpkin Saucer", badge:"Night Howler" },
+  autumn:   { e:"\u{1F342}",     name:"Autumn event",    tab:"Autumn",    pic:"ev-autumn",    picName:"Maple Saucer",   badge:"Harvest Wolf" }
 };
 let evNow = null, evPrizes = [];
 const evDate = t => new Date(t).toLocaleDateString(window.JAVEDA_LOCALE || "en-GB", { day:"numeric", month:"short" });
@@ -2203,8 +2207,8 @@ const BADGES = [
   { id:"pack",     e:"\u{1F91D}",    name:"Pack Leader",     how:"Get 3 friends to join with your invite link.",       ok:c => c.friends >= 3, n:c => c.friends, of:3 },
   { id:"grind",    e:"\u{1F501}",    name:"Never Give Up",   how:"Play 100 runs.",                                     ok:c => c.runs >= 100, n:c => c.runs, of:100 },
   // the season badges: only during their event (shown then, or once earned)
-  ...Object.entries({ winter:"Winter", valentine:"Valentine", spring:"Spring", summer:"Summer", halloween:"Halloween" }).map(([k, w]) =>
-    ({ id:"ev-" + k, ev:k, e:null, name:null, how:"Clear 5 levels during a " + w + " event.", ok:c => (c.events || []).includes(k) }))
+  ...Object.entries({ winter:"Winter", valentine:"Valentine", spring:"Spring", summer:"Summer", halloween:"Halloween", autumn:"Autumn" }).map(([k, w]) =>
+    ({ id:"ev-" + k, ev:k, e:null, name:null, how:"Clear 5 levels during " + (k === "autumn" ? "an " : "a ") + w + " event.", ok:c => (c.events || []).includes(k) }))
 ];
 BADGES.forEach(b => { if (b.ev){ b.e = EV[b.ev].e; b.name = EV[b.ev].badge; } });
 let myBadges = null;

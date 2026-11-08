@@ -1159,9 +1159,11 @@ CREATE OR REPLACE FUNCTION public.javeda_daily_level(p_day DATE)
 RETURNS TEXT
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
+  -- never Level 1 Part 1 (it's open for everyone anyway): on its day the next song in the rotation (the other days stay as they were)
   WITH pool AS (SELECT id, row_number() OVER (ORDER BY md5('javeda-daily-' || id)) - 1 AS i, count(*) OVER () AS n
-                FROM javeda_levels WHERE NOT endless AND id ~ '^lvl[0-9]+$')
-  SELECT id FROM pool WHERE i = (((p_day - DATE '2026-11-01') % n) + n) % n;
+                FROM javeda_levels WHERE NOT endless AND id ~ '^lvl[0-9]+$'),
+       pick AS (SELECT id, i, n FROM pool WHERE i = (((p_day - DATE '2026-11-01') % n) + n) % n)
+  SELECT CASE WHEN pick.id = 'lvl1' THEN (SELECT p.id FROM pool p WHERE p.i = (pick.i + 1) % pick.n) ELSE pick.id END FROM pick;
 $$;
 
 -- today's challenge, for anyone (guests see it too)
@@ -2543,8 +2545,9 @@ GRANT EXECUTE ON FUNCTION public.javeda_badges(TEXT) TO anon, authenticated;
 
 
 -- ── Season events ───────────────────────────────────────────────────────────
--- Five a year, on the same dates (Brussels): winter 1 Dec - 6 Jan (with the advent calendar, 1-24 Dec), valentine
--- 7-21 Feb (an invite gives two keys each), spring 20 Mar - 20 Apr, summer 21 Jun - 31 Aug, halloween 24 Oct - 2 Nov.
+-- Six a year, on the same dates (Brussels): winter 1 Dec - 6 Jan (with the advent calendar, 1-24 Dec), valentine
+-- 7-21 Feb (an invite gives two keys each), spring 20 Mar - 20 Apr, summer 21 Jun - 31 Aug, halloween 24 Oct - 2 Nov,
+-- autumn 3 - 30 Nov.
 -- During one: the page dresses up, runs count for the event's board, its second weekend pays double points, playing on
 -- 5 different days gives the event's picture, clearing 5 levels its badge. When it ends (javeda_event_close_due, from
 -- the bot's 5-minute feed) the top 3 are kept and each gets a key (open a song of their choice); #1 also gets a discount
@@ -2556,7 +2559,8 @@ INSERT INTO javeda_avatars (id, name, cost, sort, unlock) VALUES
   ('ev-spring', 'Blossom Saucer', 0, 202, 'event:spring'),
   ('ev-summer', 'Sunset Saucer', 0, 203, 'event:summer'),
   ('ev-halloween', 'Pumpkin Saucer', 0, 204, 'event:halloween'),
-  ('ev-gift', 'Gift Saucer', 0, 205, 'event:advent')
+  ('ev-gift', 'Gift Saucer', 0, 205, 'event:advent'),
+  ('ev-autumn', 'Maple Saucer', 0, 206, 'event:autumn')
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, cost = EXCLUDED.cost, sort = EXCLUDED.sort, unlock = EXCLUDED.unlock;
 
 -- the event at a moment: its key ("winter-2026"), kind, start and end, and its double points weekend
@@ -2573,6 +2577,7 @@ BEGIN
   ELSIF d BETWEEN make_date(y, 3, 20) AND make_date(y, 4, 20) THEN k := 'spring'; a := make_date(y, 3, 20); b := make_date(y, 4, 20);
   ELSIF d BETWEEN make_date(y, 6, 21) AND make_date(y, 8, 31) THEN k := 'summer'; a := make_date(y, 6, 21); b := make_date(y, 8, 31);
   ELSIF d BETWEEN make_date(y, 10, 24) AND make_date(y, 11, 2) THEN k := 'halloween'; a := make_date(y, 10, 24); b := make_date(y, 11, 2);
+  ELSIF d BETWEEN make_date(y, 11, 3) AND make_date(y, 11, 30) THEN k := 'autumn'; a := make_date(y, 11, 3); b := make_date(y, 11, 30);
   ELSE RETURN; END IF;
   sat := a + ((6 - extract(dow FROM a)::INT + 7) % 7) + 7;          -- the event's second Saturday
   RETURN QUERY SELECT k || '-' || extract(year FROM a)::INT, k,

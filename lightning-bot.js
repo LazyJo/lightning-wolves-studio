@@ -260,10 +260,11 @@ async function feed(sb) {
     }
   }
   // season events (javeda_event_now / javeda_event_close_due): the start, the double points weekend, and when one ends its top 3
-  const EVN = { winter: ['❄️', 'Winter event'], valentine: ['💘', 'Valentine event'], spring: ['🌸', 'Spring event'], summer: ['☀️', 'Summer event'], halloween: ['🎃', 'Halloween event'] };
+  const EVN = { winter: ['❄️', 'Winter event'], valentine: ['💘', 'Valentine event'], spring: ['🌸', 'Spring event'], summer: ['☀️', 'Summer event'], halloween: ['🎃', 'Halloween event'], autumn: ['🍂', 'Autumn event'] };
   const EVX = { winter: 'Snow, an advent calendar with a gift every day until the 24th, and the Snow Saucer picture for playing on 5 days.',
     valentine: 'Hearts everywhere, and inviting a friend gives you **two keys each** instead of one.', spring: 'Blossoms, and the Blossom Saucer picture for playing on 5 days.',
-    summer: 'Sunset skies, fireflies, and the Sunset Saucer picture for playing on 5 days.', halloween: 'Bats, pumpkins, and the Pumpkin Saucer picture for playing on 5 days.' };
+    summer: 'Sunset skies, fireflies, and the Sunset Saucer picture for playing on 5 days.', halloween: 'Bats, pumpkins, and the Pumpkin Saucer picture for playing on 5 days.',
+    autumn: 'Falling leaves, warm colours, and the Maple Saucer picture for playing on 5 days.' };
   let ev = null; try { const r = await sb.rpc('javeda_event_now'); ev = r && r.data; } catch (e) {}
   if (ev && EVN[ev.kind] && hour >= 10) try {
     const [em, nm] = EVN[ev.kind], news = () => guildRoles().catch(() => []).then(rs => rs.find(r => ROLE.news.re.test(r.name)));

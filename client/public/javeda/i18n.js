@@ -831,10 +831,21 @@ function capsLang(n, english){
   if (english){ if (e.childNodes.length === 1 && !e.hasAttribute("lang")){ e.setAttribute("lang", "en"); e.dataset.capsEn = "1"; } }
   else if (e.dataset.capsEn){ e.removeAttribute("lang"); delete e.dataset.capsEn; }
 }
+// Turkish in the display font: Bungee draws every letter as a capital, so a lowercase i shows as I. The Turkish goes in
+// as real Turkish capitals (İ); a part that stayed English (a title between " · ") gets English ones.
+function bungeeCaps(n, out, en){
+  if (!/[iı]/.test(out) || !n.parentElement || !/Bungee/i.test(getComputedStyle(n.parentElement).fontFamily)) return out;
+  const a = out.split(" · "), b = en ? en.split(" · ") : [];
+  return a.map((x, i) => b.length === a.length && x.trim() === b[i].trim() ? x.toUpperCase() : x.toLocaleUpperCase("tr-TR")).join(" · ");
+}
+function capsBlock(e){ if (!EN_CAPS) return; const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let n;
+  while ((n = w.nextNode())){ const v = n.nodeValue, u = bungeeCaps(n, v, null); if (u !== v) n.nodeValue = u; } }
 function doText(n){
   const v = n.nodeValue; if (!v || done.get(n) === v || !/[A-Za-z]{2}/.test(v)) return;
   const t = tr(v); if (t == null){ capsLang(n, true); return; }
-  const lead = v.match(/^\s*/)[0], trail = v.match(/\s*$/)[0], out = lead + t + trail;
+  const lead = v.match(/^\s*/)[0], trail = v.match(/\s*$/)[0];
+  let out = lead + t + trail;
+  if (EN_CAPS) out = bungeeCaps(n, out, v);
   done.set(n, out); if (out !== v) n.nodeValue = out;
   capsLang(n, false);
 }
@@ -868,9 +879,9 @@ function doBlock(e){
   let inl = false; for (const k of kids){ if (k.nodeType === 1){ if (!INLINE.has(k.tagName)) return false; inl = true; } }
   if (!inl) return false;
   const k = norm(e.innerHTML); if (done.get(e) === k) return true;
-  for (const [re, f] of HPAT){ const m = k.match(re); if (m){ put(e, f(m)); done.set(e, norm(e.innerHTML)); return true; } }
-  if (H.has(k)){ put(e, H.get(k)); done.set(e, norm(e.innerHTML)); return true; }
-  const bt = byTemplate(k, HT); if (bt != null){ put(e, bt); done.set(e, norm(e.innerHTML)); return true; }
+  for (const [re, f] of HPAT){ const m = k.match(re); if (m){ put(e, f(m)); capsBlock(e); done.set(e, norm(e.innerHTML)); return true; } }
+  if (H.has(k)){ put(e, H.get(k)); capsBlock(e); done.set(e, norm(e.innerHTML)); return true; }
+  const bt = byTemplate(k, HT); if (bt != null){ put(e, bt); capsBlock(e); done.set(e, norm(e.innerHTML)); return true; }
   return false;
 }
 function walk(root){

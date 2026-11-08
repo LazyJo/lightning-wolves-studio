@@ -2379,3 +2379,72 @@ RETURNS VOID
 LANGUAGE sql SECURITY DEFINER SET search_path = public
 AS $$ DELETE FROM javeda_discord_links WHERE user_id = auth.uid(); $$;
 GRANT EXECUTE ON FUNCTION public.javeda_discord_unlink() TO authenticated;
+
+-- ── Where players get stuck: how runs end, and when in the song ─────────────
+-- One row per run of a level (not the endless ones): cleared, out (fail) or given up (quit), the second in the song
+-- it happened and the level's reason ("THE SEA GOT YOU"). Nobody's name or account goes with it - guests count too.
+-- The JAVEDA page sends them (javeda_run_log); a creator's own testing is left out. Only creators read the totals
+-- (javeda_run_stats, in "Where players get stuck"). Rows older than 180 days are cleared away.
+CREATE TABLE IF NOT EXISTS javeda_run_log (
+  id      BIGSERIAL PRIMARY KEY,
+  level   TEXT NOT NULL REFERENCES javeda_levels(id) ON DELETE CASCADE,
+  outcome TEXT NOT NULL CHECK (outcome IN ('clear', 'fail', 'quit')),
+  t       REAL,
+  why     TEXT,
+  at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS javeda_run_log_level_idx ON javeda_run_log (level, at DESC);
+ALTER TABLE javeda_run_log ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_run_log FROM anon, authenticated;
+
+-- p_runs: [{ level, outcome, t, why }], at most 20 at a time
+CREATE OR REPLACE FUNCTION public.javeda_run_log(p_runs JSONB)
+RETURNS INT
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE n INT;
+BEGIN
+  IF jsonb_typeof(p_runs) IS DISTINCT FROM 'array' OR jsonb_array_length(p_runs) > 20 THEN RAISE EXCEPTION 'runs' USING ERRCODE = '22023'; END IF;
+  IF auth.uid() IS NOT NULL AND EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()) THEN RETURN 0; END IF;
+  INSERT INTO javeda_run_log (level, outcome, t, why)
+  SELECT l.id, r ->> 'outcome',
+         CASE WHEN jsonb_typeof(r -> 't') = 'number' THEN LEAST(GREATEST((r ->> 't')::REAL, 0), 1800) END,
+         CASE WHEN r ->> 'outcome' = 'fail' THEN NULLIF(left(btrim(r ->> 'why'), 60), '') END
+  FROM jsonb_array_elements(p_runs) r
+  JOIN javeda_levels l ON l.id = r ->> 'level' AND NOT l.endless
+  WHERE r ->> 'outcome' IN ('clear', 'fail', 'quit');
+  GET DIAGNOSTICS n = ROW_COUNT;
+  IF random() < .01 THEN DELETE FROM javeda_run_log WHERE at < now() - INTERVAL '180 days'; END IF;
+  RETURN n;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_run_log(JSONB) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.javeda_run_log(JSONB) TO anon, authenticated;
+
+-- per level, the last p_days days: how many runs were cleared / out / given up, the seconds the last 400 outs and
+-- give-ups happened at, how long the part runs (from the clears), and the three reasons heard most
+CREATE OR REPLACE FUNCTION public.javeda_run_stats(p_days INT DEFAULT 30)
+RETURNS TABLE (level TEXT, clears INT, fails INT, quits INT, fail_t REAL[], quit_t REAL[], len REAL, whys JSON)
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+#variable_conflict use_column
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'creators only' USING ERRCODE = '42501';
+  END IF;
+  RETURN QUERY
+  WITH r AS (SELECT * FROM javeda_run_log WHERE at > now() - make_interval(days => GREATEST(1, LEAST(COALESCE(p_days, 30), 365))))
+  SELECT l.id,
+         (SELECT count(*)::INT FROM r WHERE r.level = l.id AND r.outcome = 'clear'),
+         (SELECT count(*)::INT FROM r WHERE r.level = l.id AND r.outcome = 'fail'),
+         (SELECT count(*)::INT FROM r WHERE r.level = l.id AND r.outcome = 'quit'),
+         (SELECT COALESCE(array_agg(x.t), '{}') FROM (SELECT r.t FROM r WHERE r.level = l.id AND r.outcome = 'fail' AND r.t IS NOT NULL ORDER BY r.at DESC LIMIT 400) x),
+         (SELECT COALESCE(array_agg(x.t), '{}') FROM (SELECT r.t FROM r WHERE r.level = l.id AND r.outcome = 'quit' AND r.t IS NOT NULL ORDER BY r.at DESC LIMIT 400) x),
+         (SELECT percentile_cont(.9) WITHIN GROUP (ORDER BY r.t)::REAL FROM r WHERE r.level = l.id AND r.outcome = 'clear' AND r.t IS NOT NULL),
+         (SELECT COALESCE(json_agg(json_build_object('why', w.why, 'n', w.n)), '[]') FROM
+            (SELECT r.why, count(*) AS n FROM r WHERE r.level = l.id AND r.outcome = 'fail' AND r.why IS NOT NULL GROUP BY r.why ORDER BY n DESC LIMIT 3) w)
+  FROM javeda_levels l WHERE NOT l.endless ORDER BY l.sort;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_run_stats(INT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_run_stats(INT) TO authenticated;

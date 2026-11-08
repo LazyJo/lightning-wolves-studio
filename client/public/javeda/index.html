@@ -507,6 +507,19 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .st .rate span{font:700 12px/1 var(--cond); letter-spacing:.06em; color:var(--dim)}
 .st .num{font:700 13px/1.2 var(--cond); letter-spacing:.04em; color:var(--dim); text-align:right; white-space:nowrap}
 .st li.hot .nm{color:#ffb0c8} .st li.hot .rate i b{background:var(--magenta)}
+.st li.run{grid-template-columns:minmax(0,1fr); row-gap:6px}
+.st li.run .num{text-align:left; white-space:normal}
+.st li.run .sg{grid-column:1 / -1}
+.sg{display:grid; grid-template-columns:repeat(16,1fr); gap:2px; align-items:end; height:30px; padding:0 1px; border-bottom:1px solid #ffffff1a; position:relative}
+.sg span{display:flex; flex-direction:column-reverse; height:100%; justify-content:flex-start}
+.sg b{display:block; background:var(--magenta); border-radius:2px 2px 0 0; min-height:0}
+.sg b.q{background:#9aa3b8; opacity:.7}
+.sg span.pk b:not(.q){background:#ff4f8b; box-shadow:0 0 6px #ff4f8b88}
+.st .why{grid-column:1 / -1; font:700 12px/1.3 var(--cond); letter-spacing:.04em; color:var(--mute)}
+.st .why b{color:#ffb0c8; font-weight:700}
+.st .key{display:flex; gap:14px; flex-wrap:wrap; font:700 11px/1 var(--cond); letter-spacing:.1em; text-transform:uppercase; color:var(--mute); margin:4px 0 10px}
+.st .key i{display:inline-block; width:10px; height:10px; border-radius:2px; vertical-align:-1px; margin-right:5px; background:var(--magenta)}
+.st .key i.q{background:#9aa3b8}
 .card.wide{width:min(760px,100%)}
 /* the share picture */
 .shot{position:absolute; top:0; left:50%; transform:translateX(-50%); height:100%; width:auto; max-width:100%; aspect-ratio:9/16; border-radius:12px; border:1px solid var(--line); display:block}
@@ -790,7 +803,8 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
   <div class="card wide">
     <button class="x" type="button" data-close aria-label="Close">&times;</button>
     <h3 id="stT">Where players get stuck</h3>
-    <p>Every logged-in player but the creators. <b>Cleared</b> is how many of the players who tried a level cleared it; <b>stuck</b> tried and never did; <b>never tried</b> could play it and didn't. Guests aren't in here.</p>
+    <div class="rptabs"><button class="btn small" type="button" data-stt="runs" aria-pressed="true">Runs &middot; 30 days</button><button class="btn small" type="button" data-stt="players" aria-pressed="false">Players</button></div>
+    <p id="stHelp"></p>
     <div id="stBody"></div>
   </div>
 </div>
@@ -2258,6 +2272,7 @@ function play(id, how){
   if (lv && !how.daily && !how.weekly && passReady(lv)) return openPass(lv);
   if (!lv || !(isOpen(lv) || how.daily || how.weekly)) return;
   if (lv.online && !signedIn()){ toast("Log in to play online - the result goes on your account."); openLogin(); return; }
+  runLeft(); runDone = -1;          // a run left for another level counts as giving up
   current = lv; mode = how;
   const r = lv.id === "lvl1" || lv.id === "lvl1x" ? rides() : [];
   $("frame").src = lv.src + (how.room ? "&room=" + how.room : "") + (r.length ? "&rides=" + r.join(",") : "");
@@ -2267,6 +2282,7 @@ function play(id, how){
 }
 document.addEventListener("touchmove", e => { if (e.cancelable && document.body.classList.contains("playing")) e.preventDefault(); }, { passive:false });
 function stopPlay(){
+  runLeft();
   if (marathon) return endMarathon("You left the run.");
   $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null; mode = {};
   document.body.style.overflow = ""; document.body.classList.remove("playing");
@@ -2704,8 +2720,13 @@ $("jnGo").onclick = () => {
 $("jnNo").onclick = () => { dropInvite(); closeSheet("join"); };
 
 /* ---- where players get stuck (creators) ---- */
+let stTab = "runs";
+const mmss = t => Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0");
 async function openStats(){
   openSheet("stats");
+  document.querySelectorAll("[data-stt]").forEach(b => b.setAttribute("aria-pressed", b.dataset.stt === stTab));
+  if (stTab === "runs") return statsRuns();
+  $("stHelp").innerHTML = "Every logged-in player but the creators. <b>Cleared</b> is how many of the players who tried a level cleared it; <b>stuck</b> tried and never did; <b>never tried</b> could play it and didn't. Guests aren't in here.";
   const el = $("stBody"); el.innerHTML = "<p>Loading&hellip;</p>";
   const { data, error } = await sb.rpc("javeda_level_stats");
   if (error){ el.innerHTML = '<p class="err">' + esc(error.message) + '</p>'; return; }
@@ -2721,6 +2742,32 @@ async function openStats(){
         '<br>' + Math.max(0, r.could - r.tried) + ' never tried</span></li>';
     }).join("") + '</ol>' +
     (rows.some(r => r.tried) ? '' : '<p>No runs from players yet. It fills up as people play.</p>');
+}
+$("stats").addEventListener("click", e => { const b = e.target.closest("[data-stt]"); if (b){ stTab = b.dataset.stt; openStats(); } });
+// every run of the last 30 days, guests too: how it ended, and where in the song the outs and give-ups pile up
+async function statsRuns(){
+  $("stHelp").innerHTML = "Every run of a level in the last 30 days, guests too (not the creators' own). <b>Out</b>: the level ended it. <b>Gave up</b>: left in the middle. The strip is the song from start to end: the higher a bar, the more runs ended there.";
+  const el = $("stBody"); el.innerHTML = "<p>Loading&hellip;</p>";
+  const { data, error } = await sb.rpc("javeda_run_stats", { p_days:30 }).then(r => r, e => ({ error:e }));
+  if (error){ el.innerHTML = '<p class="err">' + (/javeda_run_stats/.test(error.message) ? "Run the newest supabase-javeda-schema.sql in Supabase first (it adds the run counts)." : esc(error.message)) + '</p>'; return; }
+  const rows = data.filter(r => levelById(r.level)), runs = r => r.clears + r.fails + r.quits, bad = r => runs(r) ? (r.fails + r.quits) / runs(r) : 0;
+  const worst = new Set(rows.filter(r => runs(r) >= 10).sort((a, b) => bad(b) - bad(a)).slice(0, 3).map(r => r.level));
+  if (!rows.some(runs)){ el.innerHTML = "<p>No runs counted yet. They come in from now on, as people play.</p>"; return; }
+  const N = 16;
+  el.innerHTML = '<div class="st"><div class="key"><span><i></i>Out</span><span><i class="q"></i>Gave up</span></div></div><ol class="st">' + rows.map(r => {
+    const lv = levelById(r.level), n = runs(r);
+    if (!n) return '<li class="run"><span class="nm">' + lvName(lv) + ' <small>' + esc(lv.title) + '</small></span><span class="num">no runs yet</span></li>';
+    const ts = r.fail_t.concat(r.quit_t), len = Math.max(30, r.len || 0, ...ts), bin = t => Math.min(N - 1, Math.floor(t / len * N));
+    const f = Array(N).fill(0), q = Array(N).fill(0);
+    r.fail_t.forEach(t => f[bin(t)]++); r.quit_t.forEach(t => q[bin(t)]++);
+    const top = Math.max(1, ...f.map((x, i) => x + q[i])), pk = f.indexOf(Math.max(...f));
+    const strip = '<div class="sg" aria-hidden="true">' + f.map((x, i) => '<span' + (i === pk && x ? ' class="pk"' : '') + ' title="' + mmss(i * len / N) + '-' + mmss((i + 1) * len / N) + '"><b style="height:' + (x / top * 100) + '%"></b><b class="q" style="height:' + (q[i] / top * 100) + '%"></b></span>').join("") + '</div>';
+    const why = (r.whys || []).map(w => esc(w.why) + ' &times;' + w.n).join(" &middot; ");
+    const pct = x => Math.round(x / n * 100) + "%";
+    return '<li class="run' + (worst.has(r.level) ? ' hot' : '') + '"><span class="nm">' + lvName(lv) + ' <small>' + esc(lv.title) + '</small></span>' +
+      '<span class="num">' + fmt(n) + ' runs &middot; ' + pct(r.clears) + ' cleared &middot; ' + pct(r.fails) + ' out &middot; ' + pct(r.quits) + ' gave up</span>' + strip +
+      (f[pk] || why ? '<span class="why">' + (f[pk] ? 'Most outs around <b>' + mmss(pk * len / N) + '-' + mmss((pk + 1) * len / N) + '</b>' : '') + (f[pk] && why ? ' &middot; ' : '') + why + '</span>' : '') + '</li>';
+  }).join("") + '</ol>';
 }
 
 /* ---- the JAVEDA Pass ---- */
@@ -2824,7 +2871,46 @@ addEventListener("message", e => {
   if (e.origin !== location.origin || !e.data || e.data.type !== "javeda:report" || !e.data.report) return;
   const r = e.data.report; sendReport({ ...r, kind:"error", level: current ? current.id : null });
 });
-addEventListener("online", () => { flushReports(); });
+addEventListener("online", () => { flushReports(); flushRunLog(); });
+
+/* ---- where players get stuck: how each run ended (cleared, out, gave up) and when in the song. report.js in the
+   level keeps the time (JAVEDA_RUN); nothing about the player goes with it. Not the endless runs, online games or a
+   creator's own testing. Kept on the phone until it's sent. ---- */
+const RUNLOG_KEY = "javeda.runlog.v1";
+let runDone = -1, runLogBusy = false;     // runDone: the frame's run that's already counted
+const runInfo = () => { try { const w = $("frame").contentWindow; return w && w.JAVEDA_RUN ? w.JAVEDA_RUN() : null; } catch(e){ return null; } };
+const runLogs = lv => !!lv && !lv.endless && !lv.online && !creator;
+const runQ = () => { try { const q = JSON.parse(localStorage.getItem(RUNLOG_KEY) || "[]"); return Array.isArray(q) ? q : []; } catch(e){ return []; } };
+function runLog(items){
+  try { localStorage.setItem(RUNLOG_KEY, JSON.stringify(runQ().concat(items).slice(-60))); } catch(e){}
+  flushRunLog();
+}
+async function flushRunLog(){
+  if (!sb || !navigator.onLine || runLogBusy) return;
+  const batch = runQ().slice(0, 20); if (!batch.length) return;
+  runLogBusy = true;
+  const { error } = await sb.rpc("javeda_run_log", { p_runs:batch }).then(r => r, e => ({ error:e }));
+  runLogBusy = false;
+  if (error && netErr(error)) return;                 // no internet: next time
+  try { localStorage.setItem(RUNLOG_KEY, JSON.stringify(runQ().slice(batch.length))); } catch(e){}
+  if (runQ().length) flushRunLog();
+}
+// a result came in from the level: cleared or out, and when
+function runEnded(m){
+  if (!runLogs(current)) return;
+  const i = runInfo() || { run:-1, t:null, why:null, quits:[] }, lv = current.id;
+  runDone = i.run;
+  runLog(i.quits.map(t => ({ level:lv, outcome:"quit", t })).concat([{ level:lv, outcome:m.cleared ? "clear" : "fail", t:i.t, why:m.cleared ? null : i.why }]));
+}
+// the level is closed or swapped: a run still going is given up
+function runLeft(){
+  if (!runLogs(current)) return;
+  const i = runInfo(); if (!i) return;
+  const items = i.quits.map(t => ({ level:current.id, outcome:"quit", t }));
+  if (i.live && i.run !== runDone && i.t > 3){ items.push({ level:current.id, outcome:"quit", t:i.t }); runDone = i.run; }
+  if (items.length) runLog(items);
+}
+addEventListener("pagehide", runLeft);
 // Report a problem: the sheet
 function openReport(){
   const opts = [...LEVELS, ULT].filter(Boolean).map(l => '<option value="' + l.id + '"' + (l.id === lastPlayed ? " selected" : "") + '>' + esc(lvName(l)) + ' · ' + esc(l.title) + '</option>');
@@ -3386,6 +3472,7 @@ addEventListener("message", e => {
   const m = e.data || {};
   if (m.type === "javeda:start" && current && m.level === current.id) startRun(current);
   else if (m.type === "javeda:result" && current && m.level === current.id){
+    runEnded(m);
     if (mode.daily) saveDaily(m);
     else if (mode.weekly) saveWeekly(m);
     else { saveRun(m, !!mode.marathon); if (mode.marathon) marathonStep(m); }
@@ -3515,7 +3602,7 @@ if (location.hash === "#app"){ history.replaceState(null, "", location.pathname 
     passCents = cfg.javedaPassCents || null;
   } catch(e){}
   if (!sb){ progress = { ...guest.progress }; unlocks = new Set(guest.unlocks || []); renderAll(); return; }
-  window.JAVEDA_REPORT(); flushReports();
+  window.JAVEDA_REPORT(); flushReports(); flushRunLog();
   // the live catalogue wins over the built-in copy, so prices can change without a deploy
   sb.from("javeda_avatars").select("*").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
   // is the Pass on sale?

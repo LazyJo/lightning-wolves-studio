@@ -42,4 +42,25 @@
   addEventListener("unhandledrejection", e => {
     const r = e.reason; report(r && (r.message || r.name) || String(r), r && r.stack);
   });
+
+  /* Where players get stuck: in a level (in the JAVEDA page's frame), keep an eye on the run - how far into the song
+     it is while it's going, and why it ended. The JAVEDA page asks (JAVEDA_RUN) when a run ends or is left, and sends
+     only that: the level, cleared / out / gave up, the second in the song and the reason. Every level keeps its run in
+     S (S.started, S.t, and S.fail / S.done / S.end once it's over). */
+  if (window.parent === window) return;
+  const st = { run:0, live:false, t:0, quits:[] };
+  const peek = () => { try { return typeof S === "object" && S ? S : null; } catch(e){ return null; } };
+  const practice = () => { try { return typeof PRACTICE !== "undefined" && !!PRACTICE; } catch(e){ return false; } };   // a practice run isn't a try
+  const going = s => !!s && !practice() && !!s.started && !s.fail && !s.done && !(s.end >= 0) && typeof s.t === "number" && isFinite(s.t);
+  setInterval(() => {
+    const s = peek(), on = going(s);
+    if (on){
+      if (!st.live) st.run++;                                            // a new run
+      else if (s.t < st.t - 2){ if (st.t > 3) st.quits.push(st.t); st.run++; }   // started over in the middle of one
+      st.t = Math.max(0, s.t);
+    }
+    st.live = on;
+  }, 250);
+  window.JAVEDA_RUN = () => { const s = peek(), q = st.quits; st.quits = [];
+    return { run:st.run, live:going(s), t:Math.round(st.t * 10) / 10, why:s && typeof s.why === "string" ? s.why.slice(0, 60) : null, quits:q }; };
 })();

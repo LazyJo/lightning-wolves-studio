@@ -121,7 +121,7 @@ After adding `/link` and `/unlink`, open the register link once more (step 5).
 
 ## Season events
 Five a year, same dates (Brussels): ❄️ winter 1 Dec – 6 Jan (advent calendar 1–24 Dec), 💘 valentine 7–21 Feb (an invite gives
-2 keys each), 🌸 spring 20 Mar – 20 Apr, ☀️ summer 21 Jun – 31 Aug, 🎃 halloween 24 Oct – 2 Nov, 🍂 autumn 3 – 30 Nov. The JAVEDA page and the levels
+2 keys each), 🌸 spring 20 Mar – 20 Apr, ☀️ summer 21 Jun – 31 Aug, 🎃 halloween 24 Oct – 2 Nov, 🍂 autumn 10 – 23 Nov. The other days the page looks as always. The JAVEDA page and the levels
 dress up by themselves (`season.js`; preview any time with `?season=winter`, back with `?season=off`).
 In the feed: from 10:00 on the first day the bot announces the event (🔔 JAVEDA News), then the double points weekend (the
 event's second weekend), and when it ends the top 3 of the event board (`javeda_event_close_due`).

@@ -2547,7 +2547,7 @@ GRANT EXECUTE ON FUNCTION public.javeda_badges(TEXT) TO anon, authenticated;
 -- ── Season events ───────────────────────────────────────────────────────────
 -- Six a year, on the same dates (Brussels): winter 1 Dec - 6 Jan (with the advent calendar, 1-24 Dec), valentine
 -- 7-21 Feb (an invite gives two keys each), spring 20 Mar - 20 Apr, summer 21 Jun - 31 Aug, halloween 24 Oct - 2 Nov,
--- autumn 3 - 30 Nov.
+-- autumn 10 - 23 Nov. In between (about half the year, a week at least around each event) the page looks as always.
 -- During one: the page dresses up, runs count for the event's board, its second weekend pays double points, playing on
 -- 5 different days gives the event's picture, clearing 5 levels its badge. When it ends (javeda_event_close_due, from
 -- the bot's 5-minute feed) the top 3 are kept and each gets a key (open a song of their choice); #1 also gets a discount
@@ -2577,7 +2577,7 @@ BEGIN
   ELSIF d BETWEEN make_date(y, 3, 20) AND make_date(y, 4, 20) THEN k := 'spring'; a := make_date(y, 3, 20); b := make_date(y, 4, 20);
   ELSIF d BETWEEN make_date(y, 6, 21) AND make_date(y, 8, 31) THEN k := 'summer'; a := make_date(y, 6, 21); b := make_date(y, 8, 31);
   ELSIF d BETWEEN make_date(y, 10, 24) AND make_date(y, 11, 2) THEN k := 'halloween'; a := make_date(y, 10, 24); b := make_date(y, 11, 2);
-  ELSIF d BETWEEN make_date(y, 11, 3) AND make_date(y, 11, 30) THEN k := 'autumn'; a := make_date(y, 11, 3); b := make_date(y, 11, 30);
+  ELSIF d BETWEEN make_date(y, 11, 10) AND make_date(y, 11, 23) THEN k := 'autumn'; a := make_date(y, 11, 10); b := make_date(y, 11, 23);
   ELSE RETURN; END IF;
   sat := a + ((6 - extract(dow FROM a)::INT + 7) % 7) + 7;          -- the event's second Saturday
   RETURN QUERY SELECT k || '-' || extract(year FROM a)::INT, k,

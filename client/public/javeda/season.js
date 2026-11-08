@@ -1,5 +1,5 @@
 /* JAVEDA - the seasons. Six events a year on the same dates (Brussels): winter 1 Dec - 6 Jan, valentine 7-21 Feb,
-   spring 20 Mar - 20 Apr, summer 21 Jun - 31 Aug, halloween 24 Oct - 2 Nov, autumn 3-30 Nov (javeda_event_at has the
+   spring 20 Mar - 20 Apr, summer 21 Jun - 31 Aug, halloween 24 Oct - 2 Nov, autumn 10-23 Nov (javeda_event_at has the
    same dates and runs the event itself: its board, double points, pictures, prizes).
    This file only dresses the page: html[data-season] (the JAVEDA page's colours follow it), a few drifting particles
    (snow, hearts, petals, fireflies, bats) and, on the JAVEDA page, a short welcome the first time in a season.
@@ -20,7 +20,7 @@
     if (md >= 320 && md <= 420) return "spring";
     if (md >= 621 && md <= 831) return "summer";
     if (md >= 1024 && md <= 1102) return "halloween";
-    if (md >= 1103 && md <= 1130) return "autumn";
+    if (md >= 1110 && md <= 1123) return "autumn";
     return null;
   }
   let force = null;

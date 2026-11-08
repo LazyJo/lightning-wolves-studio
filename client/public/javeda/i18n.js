@@ -137,6 +137,18 @@ const S = [
   ["Your best this week is still", "Je beste deze week is nog steeds", "Ton record de la semaine est toujours", "Tu récord de la semana sigue siendo"],
   ["on the weekly board", "op het weekbord", "au classement de la semaine", "en la tabla semanal"],
   ["This week's tournament is over: the winner is on the board. A new song starts on Monday.", "Het toernooi van deze week is voorbij: de winnaar staat op het bord. Maandag begint een nieuw nummer.", "Le tournoi de cette semaine est terminé : le gagnant est au classement. Un nouveau morceau commence lundi.", "El torneo de esta semana ha terminado: el ganador está en la tabla. El lunes empieza una canción nueva."],
+  // Discord link
+  ["Link your player to Lazy Jo's Discord for its roles: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass and 🏆 Weekly Champion.", "Koppel je speler aan de Discord van Lazy Jo voor de rollen: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass en 🏆 Weekly Champion.", "Relie ton joueur au Discord de Lazy Jo pour ses rôles : 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass et 🏆 Weekly Champion.", "Vincula tu jugador al Discord de Lazy Jo para sus roles: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass y 🏆 Weekly Champion."],
+  ["Your code", "Je code", "Ton code", "Tu código"],
+  ["In Lazy Jo's Discord server, send this as a message. It works for 15 minutes.", "Stuur dit als bericht in de Discord-server van Lazy Jo. Het werkt 15 minuten.", "Envoie ceci en message sur le serveur Discord de Lazy Jo. Ça marche pendant 15 minutes.", "Envía esto como mensaje en el servidor de Discord de Lazy Jo. Funciona durante 15 minutos."],
+  ["Link Discord", "Discord koppelen", "Relier Discord", "Vincular Discord"],
+  ["Open Discord", "Open Discord", "Ouvrir Discord", "Abrir Discord"],
+  ["Unlink", "Ontkoppelen", "Délier", "Desvincular"],
+  ["Could not make a code. Try again in a bit.", "Kon geen code maken. Probeer het zo opnieuw.", "Impossible de créer un code. Réessaie dans un instant.", "No se pudo crear un código. Inténtalo en un rato."],
+  ["Copied. Now paste it in the Discord server.", "Gekopieerd. Plak het nu in de Discord-server.", "Copié. Colle-le maintenant sur le serveur Discord.", "Copiado. Ahora pégalo en el servidor de Discord."],
+  ["Unlinked from Discord. The roles go within 5 minutes.", "Ontkoppeld van Discord. De rollen verdwijnen binnen 5 minuten.", "Délié de Discord. Les rôles partent d'ici 5 minutes.", "Desvinculado de Discord. Los roles se quitan en 5 minutos."],
+  ["Linked to Discord:", "Gekoppeld aan Discord:", "Relié à Discord :", "Vinculado a Discord:"],
+  ["Your roles update every 5 minutes.", "Je rollen worden elke 5 minuten bijgewerkt.", "Tes rôles se mettent à jour toutes les 5 minutes.", "Tus roles se actualizan cada 5 minutos."],
   // the log-in's messages and the new password
   ["Forgot your password?", "Wachtwoord vergeten?", "Mot de passe oublié ?", "¿Olvidaste tu contraseña?"],
   ["Type your email above first.", "Vul eerst hierboven je e-mail in.", "Entre d'abord ton e-mail ci-dessus.", "Escribe primero tu email arriba."],

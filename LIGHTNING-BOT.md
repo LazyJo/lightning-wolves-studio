@@ -13,6 +13,7 @@ What it does:
 | `/top` | Top 10 of a board: points, online 1v1, or today's challenge |
 | `/daily` | Today's challenge and its top 5 |
 | `/help` | What the bot does |
+| `/link` · `/unlink` | Ties a JAVEDA player to their Discord (the code comes from JAVEDA: tap your player → Link Discord). The bot then keeps 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass and 🏆 Weekly Champion in step every 5 minutes (`lightning-link.js`) - and takes them from anyone who shouldn't have them, hand-given ones too |
 | `/regions` | Where the members come from: each region role and how many have it (counted every 5 minutes) |
 | `/rank` · `/leaderboard` | Your level and XP · the 10 most active wolves |
 | `/warn` `/warnings` `/timeout` `/kick` `/ban` `/purge` | Mods only (Discord's own permissions decide who). Each one goes in the log channel |
@@ -108,3 +109,9 @@ Restart project); at most once an hour, and one "it's back" when it is. It has t
 - **cron-job.org** (free): Create cronjob → URL `https://lightningwolves.studio/api/health`, every 5 minutes,
   timeout 30 s. Under Notifications, tick "on failure" too, for an email as well (the address answers 503 when down).
 - Needs no key. The bot needs nothing new (it already has the DISCORD_BOT_TOKEN); Discord allows DMs from server members by default.
+
+## The weekly tournament
+In the feed (every 5 minutes): from Monday 10:00 (Brussels) it posts the week's song with a 🔔 JAVEDA News ping; once
+Sunday 20:00 has passed it closes the week (`javeda_weekly_close`, which gives the winner a JAVEDA Pass) and posts the
+champion and the top 3, mentioning those who linked their Discord. A week nobody played closes without a post.
+After adding `/link` and `/unlink`, open the register link once more (step 5).

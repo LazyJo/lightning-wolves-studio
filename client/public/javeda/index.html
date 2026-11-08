@@ -681,6 +681,13 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <label class="chk" id="pfPushBRow"><input type="checkbox" id="pfPushB"><span>Someone beats one of your scores<small class="hid" id="pfPushLogin"> &middot; log in for this one</small></span></label>
       <p class="note hid" id="pfPushNote"></p>
     </div>
+    <div class="pushset hid" id="pfDiscord">
+      <h2>Discord</h2>
+      <p class="note" id="pfDcState">Link your player to Lazy Jo's Discord for its roles: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass and 🏆 Weekly Champion.</p>
+      <div class="linkrow hid" id="pfDcRow"><input class="in" id="pfDcCode" readonly aria-label="Your code"><button class="btn small" id="pfDcCopy" type="button">Copy</button></div>
+      <p class="note hid" id="pfDcHow">In Lazy Jo's Discord server, send this as a message. It works for 15 minutes.</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center"><button class="btn small" id="pfDcGet" type="button">Link Discord</button><a class="btn small" data-link="discord" target="_blank" rel="noopener">Open Discord</a><button class="switch hid" id="pfDcUn" type="button">Unlink</button></div>
+    </div>
     <div class="err" id="pfErr"></div>
     <div style="display:flex; gap:8px; flex-wrap:wrap">
       <button class="btn primary" id="pfSave" type="button">Save</button>
@@ -1966,10 +1973,27 @@ function openProfile(){
   $("pfOut").classList.toggle("hid", !session);
   $("pfDel").classList.toggle("hid", !signedIn() || !!session.offline || creator);
   $("pfNewsRow").classList.toggle("hid", !signedIn() || !!session.offline); $("pfNews").checked = news;
-  picTab = "mine"; renderPushSet(); renderPics(); openSheet("profile");
+  picTab = "mine"; renderPushSet(); renderPics(); renderDiscord(); openSheet("profile");
   refreshStats().then(renderPics);
 }
 $("meBtn").onclick = openProfile;
+// Discord: a code for /link in the server (Lightning Bot ties the two and keeps the JAVEDA roles in step)
+async function renderDiscord(){
+  const box = $("pfDiscord"), on = signedIn() && !session.offline && !!sb; box.classList.toggle("hid", !on); if (!on) return;
+  $("pfDcRow").classList.add("hid"); $("pfDcHow").classList.add("hid");
+  const { data } = await sb.rpc("javeda_discord_status").then(r => r, () => ({}));
+  const linked = !!(data && data.linked);
+  $("pfDcState").innerHTML = linked ? '&#10003; Linked to Discord: <b data-i18n-skip>' + esc(data.name || "") + '</b>. Your roles update every 5 minutes.'
+    : "Link your player to Lazy Jo's Discord for its roles: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass and 🏆 Weekly Champion.";
+  $("pfDcGet").classList.toggle("hid", linked); $("pfDcUn").classList.toggle("hid", !linked);
+}
+$("pfDcGet").onclick = async () => {
+  const { data, error } = await sb.rpc("javeda_discord_code").then(r => r, x => ({ error:x }));
+  if (error){ $("pfErr").textContent = "Could not make a code. Try again in a bit."; return; }
+  $("pfDcCode").value = "/link " + data.code; $("pfDcRow").classList.remove("hid"); $("pfDcHow").classList.remove("hid");
+};
+$("pfDcCopy").onclick = async () => { try { await navigator.clipboard.writeText($("pfDcCode").value); toast("Copied. Now paste it in the Discord server."); } catch(e){ $("pfDcCode").select(); } };
+$("pfDcUn").onclick = async () => { await sb.rpc("javeda_discord_unlink").then(r => r, () => null); toast("Unlinked from Discord. The roles go within 5 minutes."); renderDiscord(); };
 $("picTabs").addEventListener("click", e => { const b = e.target.closest("[data-pt]"); if (b){ picTab = b.dataset.pt; renderPics(); } });
 $("pics").addEventListener("click", async e => {
   const b = e.target.closest("[data-pic]"); if (!b) return;

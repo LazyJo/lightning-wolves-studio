@@ -1399,7 +1399,18 @@ S: {
 "Your best this week #":"今週のベスト #",
 "Your best this week is still":"今週のベストは変わらず",
 "on the weekly board":"（ウィークリーランキング）",
-"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"今週の大会は終了しました：優勝者はランキングで確認できます。月曜日に新しい曲が始まります。"
+"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"今週の大会は終了しました：優勝者はランキングで確認できます。月曜日に新しい曲が始まります。",
+"Link your player to Lazy Jo's Discord for its roles: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass and 🏆 Weekly Champion.":"プレイヤーをLazy JoのDiscordと連携してロールをもらおう：🏆 Top 10、💿 28/28、🎟️ JAVEDA Pass、🏆 Weekly Champion。",
+"Your code":"あなたのコード",
+"In Lazy Jo's Discord server, send this as a message. It works for 15 minutes.":"Lazy JoのDiscordサーバーで、これをメッセージとして送ってね。15分間有効です。",
+"Link Discord":"Discordと連携",
+"Open Discord":"Discordを開く",
+"Unlink":"連携を解除",
+"Could not make a code. Try again in a bit.":"コードを作れませんでした。少ししてからもう一度試してね。",
+"Copied. Now paste it in the Discord server.":"コピーしました。Discordサーバーに貼り付けてね。",
+"Unlinked from Discord. The roles go within 5 minutes.":"Discordとの連携を解除しました。ロールは5分以内に外れます。",
+"Linked to Discord:":"Discordと連携済み：",
+"Your roles update every 5 minutes.":"ロールは5分ごとに更新されます。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",

@@ -102,7 +102,7 @@ function pickerMessages() {
 }
 const chunk = (a, n) => a.reduce((o, x, i) => (i % n ? o[o.length - 1].push(x) : o.push([x]), o), []);
 const help = () => ({ embeds: [{ color: BLUE, title: '⚡ Lightning Bot', description:
-  '`/javeda` JAVEDA, the playable album\n`/top` the top 10 of a board\n`/daily` today\'s challenge\n`/rank` your level · `/leaderboard` the most active wolves\n`/regions` where the members come from\n\n' +
+  '`/javeda` JAVEDA, the playable album\n`/top` the top 10 of a board\n`/daily` today\'s challenge\n`/rank` your level · `/leaderboard` the most active wolves\n`/regions` where the members come from\n`/link` your JAVEDA player, for the 🏆 Top 10, 💿 28/28, 🎟️ Pass and 🏆 Weekly Champion roles · `/unlink`\n\n' +
   'Mods: `/warn` `/warnings` `/timeout` `/kick` `/ban` `/purge`\nAdmins: `/setup welcome | rules | roles | feed | log | levels | intro`' }], flags: EPHEMERAL });
 
 // ── JAVEDA, from the database ──
@@ -158,6 +158,7 @@ async function toggleRole(i, key) {
 
 // ── the community part: levels, ranks, badges, welcomes, moderation ──
 const C = require('./lightning-community')({ discord, GUILD, getState, setState, guildRoles, EPHEMERAL, GOLD, BLUE });
+const L = require('./lightning-link')({ discord, GUILD, guildRoles, EPHEMERAL });
 
 // ── the slash commands (registered by /api/discord/register) ──
 const COMMANDS = [
@@ -172,6 +173,7 @@ const COMMANDS = [
     options: ['welcome', 'rules', 'roles', 'feed', ...Object.keys(C.SETUP)].map(n => ({ type: 1, name: n, description: { welcome: 'Post the welcome card in this channel', rules: 'Post the rules in this channel',
       roles: 'Post the role picker in this channel', feed: 'Make this channel the JAVEDA feed (daily challenge, new #1s)', ...C.SETUP }[n] })) },
   ...C.COMMANDS,
+  ...L.COMMANDS,
 ];
 
 async function command(i, sb) {
@@ -196,6 +198,7 @@ async function command(i, sb) {
     if (C.SETUP[sub]) { if (!sb) return offline(); return done(await C.setup(sub, ch, sb)); }
   }
   const r = await C.command(i, sb); if (r) return r;
+  const l = await L.command(i, sb); if (l) return l;
   return { content: 'I don\'t know that one.', flags: EPHEMERAL };
 }
 const done = text => ({ content: '✅ ' + text, flags: EPHEMERAL });
@@ -242,7 +245,6 @@ async function feed(sb) {
               (w.top || []).map((t, n) => medal[n] + ' ' + (who[t.user_id] ? '<@' + who[t.user_id] + '> ' : '') + '**' + t.username + '** · ' + fmt(t.best_score)).join('\n') +
               '\n\n' + w.players + ' player' + (w.players === 1 ? '' : 's') + ' this week. A new song starts on Monday.' }],
             allowed_mentions: { users: Object.values(who) } }, 'weekly-winner');
-          if (typeof C.champion === 'function') await C.champion(sb, who[w.user_id]).catch(() => {});
         }
         await setState(sb, 'weekly_closed', toClose);
       }
@@ -315,7 +317,7 @@ function mount(app, getSb) {
   app.post('/api/discord/feed', express.json(), async (req, res) => {
     if (!keyOk(req)) return res.status(401).json({ error: 'key' });
     const sb = getSb(); if (!sb) return res.status(503).json({ error: 'no database' });
-    try { const f = await feed(sb); f.community = await C.tick(sb); res.json(f); } catch (e) { console.error('lightning bot feed:', e); res.status(500).json({ error: e.message }); }
+    try { const f = await feed(sb); f.community = await C.tick(sb); try { f.links = await L.sync(sb); } catch (e) { f.links = ['failed: ' + e.message]; } res.json(f); } catch (e) { console.error('lightning bot feed:', e); res.status(500).json({ error: e.message }); }
   });
 }
 

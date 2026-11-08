@@ -1399,7 +1399,18 @@ S: {
 "Your best this week #":"本周最佳 #",
 "Your best this week is still":"本周最佳仍是",
 "on the weekly board":"（每周排行榜）",
-"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"本周锦标赛已结束：冠军在排行榜上。周一开始新的歌曲。"
+"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"本周锦标赛已结束：冠军在排行榜上。周一开始新的歌曲。",
+"Link your player to Lazy Jo's Discord for its roles: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass and 🏆 Weekly Champion.":"把你的玩家关联到 Lazy Jo 的 Discord，获取身份组：🏆 Top 10、💿 28/28、🎟️ JAVEDA Pass 和 🏆 Weekly Champion。",
+"Your code":"你的代码",
+"In Lazy Jo's Discord server, send this as a message. It works for 15 minutes.":"在 Lazy Jo 的 Discord 服务器里把这条作为消息发送。15分钟内有效。",
+"Link Discord":"关联 Discord",
+"Open Discord":"打开 Discord",
+"Unlink":"取消关联",
+"Could not make a code. Try again in a bit.":"无法生成代码。请稍后再试。",
+"Copied. Now paste it in the Discord server.":"已复制。现在把它粘贴到 Discord 服务器里。",
+"Unlinked from Discord. The roles go within 5 minutes.":"已取消与 Discord 的关联。身份组会在5分钟内移除。",
+"Linked to Discord:":"已关联 Discord：",
+"Your roles update every 5 minutes.":"你的身份组每5分钟更新一次。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",

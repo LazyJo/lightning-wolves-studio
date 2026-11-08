@@ -2326,3 +2326,56 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_weekly_close(DATE) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_weekly_close(DATE) TO service_role;
+
+-- ============================================================================
+-- Link Discord: a JAVEDA player asks for a code (valid 15 minutes) and types /link CODE in Lazy Jo's Discord server;
+-- Lightning Bot (the server, with the service key) ties the two. From then on the bot keeps their roles in step every
+-- 5 minutes: 🏆 Top 10 (the Points board), 💿 28/28 (the whole album), 🎟️ JAVEDA Pass, 🏆 Weekly Champion. Unlink any
+-- time, in JAVEDA or with /unlink.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS javeda_discord_links (
+  user_id      UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  discord_id   TEXT NOT NULL UNIQUE,
+  discord_name TEXT,
+  linked_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS javeda_discord_codes (
+  code       TEXT PRIMARY KEY,
+  user_id    UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  expires_at TIMESTAMPTZ NOT NULL
+);
+ALTER TABLE javeda_discord_links ENABLE ROW LEVEL SECURITY;
+ALTER TABLE javeda_discord_codes ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_discord_links, javeda_discord_codes FROM anon, authenticated;
+
+-- a new code for the player (the old one goes), and whether they're linked already
+CREATE OR REPLACE FUNCTION public.javeda_discord_code()
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE uid UUID := auth.uid(); c TEXT;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'player'; END IF;
+  DELETE FROM javeda_discord_codes WHERE user_id = uid OR expires_at < now();
+  LOOP
+    c := upper(substr(translate(md5(random()::text || clock_timestamp()::text), '0o1il', ''), 1, 6));
+    BEGIN INSERT INTO javeda_discord_codes (code, user_id, expires_at) VALUES (c, uid, now() + interval '15 minutes'); EXIT;
+    EXCEPTION WHEN unique_violation THEN NULL; END;
+  END LOOP;
+  RETURN json_build_object('code', c, 'expires_at', now() + interval '15 minutes');
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_discord_code() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_discord_status()
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT json_build_object('linked', l.user_id IS NOT NULL, 'name', l.discord_name)
+      FROM (SELECT auth.uid() AS uid) u LEFT JOIN javeda_discord_links l ON l.user_id = u.uid; $$;
+GRANT EXECUTE ON FUNCTION public.javeda_discord_status() TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_discord_unlink()
+RETURNS VOID
+LANGUAGE sql SECURITY DEFINER SET search_path = public
+AS $$ DELETE FROM javeda_discord_links WHERE user_id = auth.uid(); $$;
+GRANT EXECUTE ON FUNCTION public.javeda_discord_unlink() TO authenticated;

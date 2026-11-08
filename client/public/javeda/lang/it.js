@@ -1399,7 +1399,18 @@ S: {
 "Your best this week #":"Il tuo record della settimana #",
 "Your best this week is still":"Il tuo record della settimana è ancora",
 "on the weekly board":"nella classifica settimanale",
-"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"Il torneo di questa settimana è finito: il vincitore è in classifica. Lunedì inizia una nuova canzone."
+"This week's tournament is over: the winner is on the board. A new song starts on Monday.":"Il torneo di questa settimana è finito: il vincitore è in classifica. Lunedì inizia una nuova canzone.",
+"Link your player to Lazy Jo's Discord for its roles: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass and 🏆 Weekly Champion.":"Collega il tuo giocatore al Discord di Lazy Jo per i suoi ruoli: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass e 🏆 Weekly Champion.",
+"Your code":"Il tuo codice",
+"In Lazy Jo's Discord server, send this as a message. It works for 15 minutes.":"Invialo come messaggio nel server Discord di Lazy Jo. Funziona per 15 minuti.",
+"Link Discord":"Collega Discord",
+"Open Discord":"Apri Discord",
+"Unlink":"Scollega",
+"Could not make a code. Try again in a bit.":"Impossibile creare un codice. Riprova tra poco.",
+"Copied. Now paste it in the Discord server.":"Copiato. Ora incollalo nel server Discord.",
+"Unlinked from Discord. The roles go within 5 minutes.":"Scollegato da Discord. I ruoli spariscono entro 5 minuti.",
+"Linked to Discord:":"Collegato a Discord:",
+"Your roles update every 5 minutes.":"I tuoi ruoli si aggiornano ogni 5 minuti."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",

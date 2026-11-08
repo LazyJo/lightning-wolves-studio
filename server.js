@@ -94,7 +94,7 @@ const TIER_CREDITS = {
 // from the webhook and from /api/javeda/pass/confirm when the player comes back, whichever is first. A full refund
 // takes it away again (revokeJavedaPass), and a refunded payment never grants it twice. What a level
 // opens is the database's business (supabase-javeda-schema.sql), not this file's.
-const JAVEDA_PASS_CENTS = parseInt(process.env.JAVEDA_PASS_CENTS || '599', 10);
+const JAVEDA_PASS_CENTS = parseInt(process.env.JAVEDA_PASS_CENTS || '499', 10);
 // where a checkout may send the player back to: the site, its previews, local dev
 const JAVEDA_ORIGINS = /^https:\/\/((www\.)?lightningwolves\.studio|lightning-wolves-studio-[a-z0-9-]+-lazyjos-projects\.vercel\.app)$|^http:\/\/localhost(:\d+)?$/;
 

@@ -1414,7 +1414,7 @@ GRANT EXECUTE ON FUNCTION public.javeda_creator_overview() TO authenticated;
 
 -- ── The JAVEDA Pass ─────────────────────────────────────────────────────────
 -- The whole game is free if you can finish it: clearing a part opens the next one, for everyone. The JAVEDA Pass only
--- skips the wait: every part, endless and remix, HYPERDRIVE and the album marathon open straight away. EUR 5.99 once
+-- skips the wait: every part, endless and remix, HYPERDRIVE and the album marathon open straight away. EUR 4.99 once
 -- through Stripe (the server's /api/javeda/pass/*, which call javeda_grant_pass), or an EVEN or merch code. Points,
 -- pictures and the album badge still come from playing. Creators need no Pass.
 -- pass_on only says the Pass is on sale in the hub: a Pass or a code works either way.

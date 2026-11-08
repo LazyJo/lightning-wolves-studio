@@ -71,7 +71,7 @@ Built and **not on sale** yet: until it is, the hub offers it to nobody (a code 
    **Bank statement:** Stripe > Settings > Business: shortened descriptor `LAZY JO`. The Pass adds its own suffix, so
    it reads `LAZY JO* JAVEDA PASS`. Without that field Stripe cuts the long descriptor to 10 letters, which makes it
    23 of the 22 allowed.
-3. **Price / VAT (optional).** `JAVEDA_PASS_CENTS` (default `599` = EUR 5.99, VAT included). With Stripe Tax set
+3. **Price / VAT (optional).** `JAVEDA_PASS_CENTS` (default `499` = EUR 4.99, VAT included). With Stripe Tax set
    up in the Stripe dashboard, `JAVEDA_STRIPE_TAX=1` turns on automatic tax for the Pass checkout.
 4. **Codes.** On the hub, as a creator: Continue card > **Pass codes**: make EVEN and merch codes (they already
    work before it's on sale). **See it free** shows the hub as a player without the Pass would see it.
@@ -183,7 +183,7 @@ Built and **not on sale** yet: until it is, the hub offers it to nobody (a code 
 - **The JAVEDA Pass: it skips the wait, it never locks anything.** The whole game is free if you can finish it:
   clearing a part opens the next one, for everyone. The Pass opens every part, endless and remix, HYPERDRIVE and the
   marathon straight away. `javeda_settings.pass_on` only says it's on sale in the hub; a Pass works either way.
-  - **Two ways in.** EUR 5.99 once through Stripe Checkout (`/api/javeda/pass/checkout`; back on the hub with
+  - **Two ways in.** EUR 4.99 once through Stripe Checkout (`/api/javeda/pass/checkout`; back on the hub with
     `?pass=done&session_id=...`, which calls `/api/javeda/pass/confirm`; the webhook grants it too, whichever is
     first, via `javeda_grant_pass`, service role only) - or a code (`javeda_redeem`) from **EVEN** or **merch**: the
     same Pass. Codes (`javeda_codes`) can be shared (`max_uses`, none = no limit), expire (`expires_at`) and be

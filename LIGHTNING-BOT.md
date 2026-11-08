@@ -118,3 +118,14 @@ champion and the top 3, mentioning those who linked their Discord. A week nobody
 played and the bot posts nothing for it; the JAVEDA page shows "Opens at 100 downloads · N / 100". The first time the count
 gets there it opens by itself and stays open. The number is `weekly_from` in `javeda_settings`.
 After adding `/link` and `/unlink`, open the register link once more (step 5).
+
+## Season events
+Five a year, same dates (Brussels): ❄️ winter 1 Dec – 6 Jan (advent calendar 1–24 Dec), 💘 valentine 7–21 Feb (an invite gives
+2 keys each), 🌸 spring 20 Mar – 20 Apr, ☀️ summer 21 Jun – 31 Aug, 🎃 halloween 24 Oct – 2 Nov. The JAVEDA page and the levels
+dress up by themselves (`season.js`; preview any time with `?season=winter`, back with `?season=off`).
+In the feed: from 10:00 on the first day the bot announces the event (🔔 JAVEDA News), then the double points weekend (the
+event's second weekend), and when it ends the top 3 of the event board (`javeda_event_close_due`).
+**Prizes:** the top 3 get a discount code; #1 gets merch instead once JAVEDA has 100 downloads and 30 accounts. Lazy Jo makes
+the codes in the EVEN shop and puts them in, in place order, in the Supabase SQL editor:
+`SELECT javeda_event_codes('winter-2026', ARRAY['CODE-1ST', 'CODE-2ND', 'CODE-3RD']);`
+Each winner sees their own code on the JAVEDA page.

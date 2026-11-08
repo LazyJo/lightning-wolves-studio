@@ -259,6 +259,43 @@ async function feed(sb) {
       await setState(sb, 'weekly_posted', wk.week);
     }
   }
+  // season events (javeda_event_now / javeda_event_close_due): the start, the double points weekend, and when one ends its top 3
+  const EVN = { winter: ['❄️', 'Winter event'], valentine: ['💘', 'Valentine event'], spring: ['🌸', 'Spring event'], summer: ['☀️', 'Summer event'], halloween: ['🎃', 'Halloween event'] };
+  const EVX = { winter: 'Snow, an advent calendar with a gift every day until the 24th, and the Snow Saucer picture for playing on 5 days.',
+    valentine: 'Hearts everywhere, and inviting a friend gives you **two keys each** instead of one.', spring: 'Blossoms, and the Blossom Saucer picture for playing on 5 days.',
+    summer: 'Sunset skies, fireflies, and the Sunset Saucer picture for playing on 5 days.', halloween: 'Bats, pumpkins, and the Pumpkin Saucer picture for playing on 5 days.' };
+  let ev = null; try { const r = await sb.rpc('javeda_event_now'); ev = r && r.data; } catch (e) {}
+  if (ev && EVN[ev.kind] && hour >= 10) try {
+    const [em, nm] = EVN[ev.kind], news = () => guildRoles().catch(() => []).then(rs => rs.find(r => ROLE.news.re.test(r.name)));
+    if ((await getState(sb, 'event_posted')) !== ev.event) {
+      const n = await news();
+      await post({ content: n ? '<@&' + n.id + '>' : undefined, allowed_mentions: { roles: n ? [n.id] : [] },
+        embeds: [{ color: GOLD, title: em + ' The JAVEDA ' + nm + ' has started', url: JAVEDA, description: EVX[ev.kind] + '\n\nEvery run counts for the event board: ' +
+          (ev.merch ? 'the winner gets **Lazy Jo merch**, second and third a discount code.' : 'the best three win a **discount code** for the merch shop.') +
+          '\nDouble points weekend: **' + new Date(ev.double_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/Brussels' }) + '**.' }],
+        components: [row(link('Play the event', JAVEDA, em))] }, 'event');
+      await setState(sb, 'event_posted', ev.event);
+    }
+    if (ev.double && (await getState(sb, 'double_posted')) !== ev.event) {
+      const n = await news();
+      await post({ content: n ? '<@&' + n.id + '>' : undefined, allowed_mentions: { roles: n ? [n.id] : [] },
+        embeds: [{ color: GOLD, title: '⚡ Double points weekend', url: JAVEDA, description: 'Every run in JAVEDA pays **double points** this weekend - and they count double on the ' + em + ' event board too.' }],
+        components: [row(link('Play now', JAVEDA, '⚡'))] }, 'event-double');
+      await setState(sb, 'double_posted', ev.event);
+    }
+  } catch (e) {}
+  try {
+    const { data: closed } = (await sb.rpc('javeda_event_close_due').catch(e => ({ error: e }))) || {};
+    for (const c of (Array.isArray(closed) ? closed : [])) {
+      if (!c.players || !EVN[c.kind] || !(c.top || []).length) continue;
+      const [em, nm] = EVN[c.kind], medal = ['🥇', '🥈', '🥉'], who = await discordNames(sb, c.top.map(t => t.user_id));
+      await post({ embeds: [{ color: GOLD, title: em + ' The ' + nm + ' is over', url: JAVEDA,
+          description: c.top.map(t => medal[t.place - 1] + ' ' + (who[t.user_id] ? '<@' + who[t.user_id] + '> ' : '') + '**' + t.username + '** · ' + fmt(t.points) + ' points' +
+            (t.prize === 'merch' ? ' · wins **Lazy Jo merch**' : ' · wins a discount code')).join('\n') +
+            '\n\n' + c.players + ' player' + (c.players === 1 ? '' : 's') + ' took part. The winners find their code on the JAVEDA page.' }],
+        allowed_mentions: { users: Object.values(who) } }, 'event-winners');
+    }
+  } catch (e) {}
   // who is #1 now; the first run only remembers (no flood of "new #1" when the bot starts)
   const tops = (await getState(sb, 'tops')) || {}, now = {};
   for (const kind of ['points', 'online', 'daily']) {

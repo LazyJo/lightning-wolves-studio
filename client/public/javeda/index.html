@@ -95,6 +95,7 @@
 <meta name="theme-color" content="#050c1e">
 <link rel="icon" href="avatars/saucer.svg" type="image/svg+xml">
 <script src="/javeda/report.js"></script>
+<script src="/javeda/season.js"></script>
 <!-- JAVEDA as an app on a phone or computer (sw.js keeps it playable offline) -->
 <link rel="manifest" href="/javeda/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/javeda/icons/apple-touch-icon.png?v=2">
@@ -131,6 +132,33 @@ button{font:inherit; color:inherit; cursor:pointer}
 button:focus-visible, a:focus-visible, input:focus-visible{outline:2px solid var(--beam); outline-offset:2px}
 .hid{display:none!important}
 .wrap{max-width:980px; margin:0 auto; padding:14px 16px 48px; display:grid; grid-template-columns:minmax(0,1fr); gap:22px}
+
+/* the seasons (season.js sets html[data-season] on the event's dates): the page's colours, its sky, the title */
+html[data-season="winter"]{ --night:#061226; --deep:#0b1d3c; --panel:#10254a; --panel-2:#16305c; --line:#2a4a7e; --cyan:#bfe9ff; --beam:#dff3ff; --season:#bfe9ff; }
+html[data-season="winter"] body{ background:radial-gradient(70% 45% at 20% -5%, #2b5d8f66 0%, transparent 70%) fixed, radial-gradient(60% 40% at 85% 0%, #67e8f944 0%, transparent 70%) fixed, radial-gradient(90% 60% at 50% -10%, #1b3f73 0%, var(--night) 72%) fixed, var(--night) }
+html[data-season="valentine"]{ --night:#14061a; --deep:#24092c; --panel:#2a0d33; --panel-2:#36113f; --line:#5a1f5e; --beam:#ffc2dc; --cyan:#ff9cc6; --season:#ff6fae; }
+html[data-season="valentine"] body{ background:radial-gradient(70% 45% at 50% -10%, #ff3d8b55 0%, transparent 70%) fixed, radial-gradient(90% 60% at 50% -10%, #4a1240 0%, var(--night) 72%) fixed, var(--night) }
+html[data-season="spring"]{ --night:#07141a; --deep:#0c2229; --panel:#102a31; --panel-2:#16363d; --line:#265257; --beam:#ffd6e8; --cyan:#9ef0c8; --season:#ffc6e0; }
+html[data-season="spring"] body{ background:radial-gradient(60% 40% at 15% -5%, #ffc6e055 0%, transparent 70%) fixed, radial-gradient(60% 40% at 85% 0%, #3ddc9744 0%, transparent 70%) fixed, radial-gradient(90% 60% at 50% -10%, #134046 0%, var(--night) 72%) fixed, var(--night) }
+html[data-season="summer"]{ --night:#140a1c; --deep:#22102c; --panel:#2a1534; --panel-2:#351b40; --line:#5a3157; --beam:#ffe2a8; --cyan:#ffc46b; --season:#ffb347; }
+html[data-season="summer"] body{ background:radial-gradient(80% 45% at 50% -8%, #ff9d2e66 0%, transparent 70%) fixed, radial-gradient(90% 60% at 50% -10%, #5a2448 0%, var(--night) 72%) fixed, var(--night) }
+html[data-season="halloween"]{ --night:#0b0612; --deep:#170c22; --panel:#1c0f2a; --panel-2:#251536; --line:#40265a; --beam:#ffc48a; --cyan:#ff9d2e; --season:#ff9d2e; }
+html[data-season="halloween"] body{ background:radial-gradient(60% 40% at 50% -6%, #ff7a1a44 0%, transparent 70%) fixed, radial-gradient(90% 60% at 50% -10%, #2c1546 0%, var(--night) 72%) fixed, var(--night) }
+html[data-season] .hero h1{ background:linear-gradient(172deg, #fff 30%, var(--season) 115%); -webkit-background-clip:text; background-clip:text; color:transparent }
+html[data-season] .logo b{ background:linear-gradient(172deg, #fff 20%, var(--season) 110%); -webkit-background-clip:text; background-clip:text; color:transparent }
+html[data-season] .logo::after{ font-size:18px; line-height:1; margin-left:-4px; filter:drop-shadow(0 0 6px #0008) }
+html[data-season="winter"] .logo::after{ content:"\2744\FE0F" } html[data-season="valentine"] .logo::after{ content:"\1F498" }
+html[data-season="spring"] .logo::after{ content:"\1F338" } html[data-season="summer"] .logo::after{ content:"\2600\FE0F" } html[data-season="halloween"] .logo::after{ content:"\1F383" }
+/* the welcome, once a season */
+.season-hello{ position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center;
+  background:radial-gradient(60% 45% at 50% 50%, color-mix(in srgb, var(--season) 22%, transparent), #000a 75%); opacity:0; transition:opacity .5s ease; pointer-events:auto }
+.season-hello.on{ opacity:1 }
+.season-hello .se{ font-size:76px; line-height:1; transform:scale(.6) rotate(-12deg); transition:transform .9s cubic-bezier(.2,1.6,.4,1) }
+.season-hello.on .se{ transform:none }
+.season-hello b{ font:400 clamp(30px,8vw,54px)/1 var(--display); background:linear-gradient(172deg,#fff 30%,var(--season) 115%); -webkit-background-clip:text; background-clip:text; color:transparent;
+  transform:translateY(14px); transition:transform .8s ease .15s }
+.season-hello.on b{ transform:none }
+.season-hello small{ font:700 13px/1 var(--cond); letter-spacing:.42em; color:var(--beam) }
 
 /* top bar */
 .top{display:flex; align-items:center; justify-content:space-between; gap:12px}
@@ -298,6 +326,8 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .seg button[aria-selected="true"]{background:var(--blue); color:#041024}
 .seg button.g{color:#ffe89a}
 .seg button.g[aria-selected="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
+.seg button.ev{color:var(--season, #9fe8ff)}
+.seg button.ev[aria-selected="true"]{background:linear-gradient(180deg,#fff,var(--season, #9fe8ff)); color:#120818}
 /* a row that stays one line and slides: the soft edge says there's more that way */
 .hs{overflow:auto hidden; overscroll-behavior-x:contain; scrollbar-width:none; -webkit-overflow-scrolling:touch; user-select:none; -webkit-user-select:none}
 .hs::-webkit-scrollbar{display:none}
@@ -450,6 +480,32 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .daily.weekly{border-color:#ffd60a66; background:radial-gradient(90% 120% at 100% 0%,#ffd60a2e,transparent 60%),radial-gradient(70% 100% at 0% 100%,#f0a40026,transparent 60%),var(--panel)}
 .daily.weekly .dl{color:#ffe08a}
 .daily.weekly .last{font-size:12.5px; color:var(--mute)}
+/* season events: the event card, the advent calendar, a prize */
+html[data-season="winter"]{ --blue:#5ab8f0 } html[data-season="valentine"]{ --blue:#e8508c } html[data-season="spring"]{ --blue:#2fbf86 }
+html[data-season="summer"]{ --blue:#f08a24 } html[data-season="halloween"]{ --blue:#e8761c }
+.daily.event{border-color:color-mix(in srgb, var(--season, #67e8f9) 55%, transparent); background:radial-gradient(90% 120% at 100% 0%, color-mix(in srgb, var(--season, #67e8f9) 26%, transparent), transparent 60%), radial-gradient(70% 100% at 0% 100%, #ffffff10, transparent 60%), var(--panel)}
+.daily.event .dl, .daily.advent .dl, .daily.prize .dl{color:var(--season, #9fe8ff)}
+.daily.event .dt, .daily.advent .dt{background:linear-gradient(180deg,#fff,var(--season, #9fe8ff)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:none}
+.evdbl{font:700 13px/1.25 var(--cond); letter-spacing:.06em; color:var(--gold); padding:6px 9px; border-radius:6px; background:#ffd60a14; border:1px dashed #ffd60a55; justify-self:start}
+.evdbl.on{background:linear-gradient(90deg,#ffd60a33,#ff9d2e33); border-style:solid; animation:evpulse 1.6s ease-in-out infinite alternate}
+@keyframes evpulse{from{box-shadow:0 0 0 0 #ffd60a00} to{box-shadow:0 0 14px 0 #ffd60a55}}
+.evgoals{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.evgoals > span{display:flex; align-items:center; gap:8px; padding:7px 8px; border-radius:8px; background:#ffffff0a; border:1px solid var(--line); font-size:12.5px; min-width:0}
+.evgoals > span > span:last-child{display:grid; gap:3px; min-width:0}
+.evgoals img{width:30px; height:30px; border-radius:7px; flex:none}
+.evgoals .be{font-size:24px; flex:none; width:30px; text-align:center}
+.evgoals b{display:block; font:700 12px/1.15 var(--cond); letter-spacing:.06em; text-transform:uppercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.evgoals em{font:700 12px/1 var(--cond); font-style:normal; color:var(--gold)}
+.evgoals .done em{color:var(--good)}
+.daily.advent{border-color:#ffd60a55; background:radial-gradient(80% 110% at 100% 0%,#d42a3a33,transparent 60%),radial-gradient(70% 100% at 0% 100%,#2fbf6a2a,transparent 60%),var(--panel)}
+.doors{display:grid; grid-template-columns:repeat(8,1fr); gap:5px}
+.door{aspect-ratio:1; display:grid; place-items:center; border-radius:7px; border:1px solid var(--line); background:#ffffff08; font:700 13px/1 var(--cond); color:var(--mute); position:relative; padding:0}
+.door small{position:absolute; bottom:2px; left:0; right:0; font-size:9px; color:var(--gold); text-align:center}
+.door.open{background:#ffd60a1a; border-color:#ffd60a66; font-size:17px}
+.door.missed{opacity:.35; text-decoration:line-through}
+.door.today{background:linear-gradient(180deg,#ff6a6a,#d42a3a); border-color:#ffd60a; color:#fff; font-size:15px; cursor:pointer; animation:evpulse 1.2s ease-in-out infinite alternate}
+.daily.prize{border-color:#ffd60a88; background:radial-gradient(90% 120% at 100% 0%,#ffd60a33,transparent 60%),var(--panel)}
+.daily.prize code{font:700 18px/1 var(--cond); letter-spacing:.12em; color:var(--gold); background:#0006; padding:6px 10px; border-radius:6px; user-select:all}
 .btn.hot{background:var(--magenta); border-color:var(--magenta); color:#fff}
 .btn.hot:hover{background:#ff5a9e}
 @media (max-width:760px){ .now{grid-template-columns:minmax(0,1fr)} }
@@ -1270,6 +1326,9 @@ function nextMain(id){
 const rides = () => (creator || (progress.lvl2b && progress.lvl2b.cleared)) ? ["bike"] : [];
 let AVATARS = [
   { id:"saucer", name:"Blue Saucer", cost:0 },
+  { id:"ev-winter", name:"Snow Saucer", cost:0, sort:200, unlock:"event:winter" }, { id:"ev-valentine", name:"Heart Saucer", cost:0, sort:201, unlock:"event:valentine" },
+  { id:"ev-spring", name:"Blossom Saucer", cost:0, sort:202, unlock:"event:spring" }, { id:"ev-summer", name:"Sunset Saucer", cost:0, sort:203, unlock:"event:summer" },
+  { id:"ev-halloween", name:"Pumpkin Saucer", cost:0, sort:204, unlock:"event:halloween" }, { id:"ev-gift", name:"Gift Saucer", cost:0, sort:205, unlock:"event:advent" },
   { id:"bike", name:"Zirka's Bike", cost:0 },
   { id:"wolf", name:"Wolf", cost:0 },
   { id:"planet", name:"Planet Javeda", cost:0 },
@@ -1390,7 +1449,7 @@ let progress = {};          // level id -> { cleared, best, metres, runs }
 let owned = new Set();      // bought pictures
 let stats = null;           // what the database counts for the earned pictures (javeda_my_stats)
 let picTab = "mine";
-const PIC_TABS = [["mine", "Yours"], ["points", "Points"], ["levels", "Levels"], ["daily", "Daily"]];
+const PIC_TABS = [["mine", "Yours"], ["points", "Points"], ["levels", "Levels"], ["daily", "Daily"], ["events", "Events"]];
 let news = false;           // asked for JAVEDA news by email (javeda_news)
 let creator = false;        // a creator account (javeda_creators) plays every level, cleared or not
 let record = null;          // your online 1v1 wins, losses, draws
@@ -1528,7 +1587,7 @@ function renderNow(){
           : wait ? '<div class="next"><span class="nt"><small>Next &middot; ' + lvName(wait) + ' &middot; ' + needText(wait) + '</small><span>' + esc(wait.title) + '</span></span>' +
               '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>' : '') + passrow + invrow + crt + '</article>';
   }
-  hsPut($("now"), html + dailyCard() + weeklyCard());
+  hsPut($("now"), html + prizeCards() + eventCard() + adventCard() + dailyCard() + weeklyCard());
 }
 // today's challenge: one song's Part 1 for everyone, a board of its own that starts empty every day
 function dailyCard(){
@@ -1563,6 +1622,85 @@ function weeklyCard(){
     '<div class="row">' + (weeklyBest ? '<span class="best">Your best this week ' + fmt(weeklyBest) + '</span>' : '<span class="tag">' + (session ? (weekly.open ? 'Not played yet this week' : 'Over') : 'Log in to compete') + '</span>') +
       '<span class="btns"><button class="btn small" data-board="weekly">Board</button>' + (weekly.open ? '<button class="btn gold small" data-weekly="1">Play &#9654;</button>' : '') + '</span></div></article>';
 }
+/* ---- season events (javeda_event_now): the event card, the advent calendar in December, the event's board, a prize
+   for its top 3. season.js dresses the page; ?season=winter previews it all before the dates (with made-up numbers). ---- */
+const EV = {
+  winter:   { e:"\u2744\uFE0F", name:"Winter event",    tab:"Winter",    pic:"ev-winter",    picName:"Snow Saucer",    badge:"Winter Wolf" },
+  valentine:{ e:"\u{1F498}",     name:"Valentine event", tab:"Valentine", pic:"ev-valentine", picName:"Heart Saucer",   badge:"Lovebird" },
+  spring:   { e:"\u{1F338}",     name:"Spring event",    tab:"Spring",    pic:"ev-spring",    picName:"Blossom Saucer", badge:"Bloom" },
+  summer:   { e:"\u2600\uFE0F", name:"Summer event",    tab:"Summer",    pic:"ev-summer",    picName:"Sunset Saucer",  badge:"Sunset Rider" },
+  halloween:{ e:"\u{1F383}",     name:"Halloween event", tab:"Halloween", pic:"ev-halloween", picName:"Pumpkin Saucer", badge:"Night Howler" }
+};
+let evNow = null, evPrizes = [];
+const evDate = t => new Date(t).toLocaleDateString(window.JAVEDA_LOCALE || "en-GB", { day:"numeric", month:"short" });
+// a preview before the dates (?season=...): the same cards with made-up numbers, nothing saved
+function evPreview(){
+  const k = window.JAVEDA_SEASON; if (!k || !EV[k]) return null;
+  const now = Date.now(), d = 864e5;
+  return { preview:true, event:k + "-preview", kind:k, starts:new Date(now - 5 * d).toISOString(), ends:new Date(now + 20 * d).toISOString(),
+    double_from:new Date(now + 4 * d).toISOString(), double_to:new Date(now + 6 * d).toISOString(), double:false, merch:false,
+    advent:k === "winter" ? { day:6, year:2026, opened:[1, 2, 3, 5].map(n => ({ day:n, gift:advGift(n) })) } : null,
+    me:signedIn() ? { points:820, days:3, clears:2, rank:4 } : null };
+}
+const advGift = n => n === 24 ? { gift:"picture", picture:"ev-gift" } : [6, 13, 20].includes(n) ? { gift:"key", keys:1 } : { gift:"points", points:50 + ((n * 37) % 11) * 10 };
+async function loadEvent(){
+  if (!sb) return;
+  const { data } = await sb.rpc("javeda_event_now").then(r => r, () => ({}));
+  evNow = data && EV[data.kind] ? data : (localStorage.getItem("javeda.season") ? evPreview() : null);
+  evPrizes = [];
+  if (signedIn() && !session.offline){ const p = await sb.rpc("javeda_my_prizes").then(r => r, () => ({})); evPrizes = Array.isArray(p.data) ? p.data : []; }
+  renderNow(); renderTabs(); if (boardTab === "event") renderBoard();
+}
+function eventCard(){
+  if (!evNow) return "";
+  const k = EV[evNow.kind], me = evNow.me || { points:0, days:0, clears:0 }, until = evDate(new Date(evNow.ends) - 1);
+  const dbl = evNow.double ? '<div class="evdbl on">&#9889; Double points weekend: every run pays double</div>'
+    : new Date(evNow.double_from) > Date.now() ? '<div class="evdbl">&#9889; Double points: <span data-i18n-skip>' + esc(evDate(evNow.double_from) + " - " + evDate(new Date(evNow.double_to) - 1)) + '</span></div>' : '';
+  const days = Math.min(5, me.days || 0), cl = Math.min(5, me.clears || 0);
+  return '<article class="daily event"><span class="dl">' + k.e + ' ' + k.name + ' &middot; until <span data-i18n-skip>' + esc(until) + '</span></span>' +
+    '<span class="dt">Climb the event board</span>' +
+    '<p class="dd">' + (evNow.merch ? "The winner gets Lazy Jo merch; second and third place get a discount code for the merch shop." : "The best three win a discount code for Lazy Jo's merch shop.") + '</p>' + dbl +
+    '<div class="evgoals"><span class="' + (days >= 5 ? 'done' : '') + '"><img src="' + pic(k.pic) + '" alt=""><span><b>' + k.picName + '</b><em>' + days + ' / 5 days</em></span></span>' +
+    '<span class="' + (cl >= 5 ? 'done' : '') + '"><span class="be" aria-hidden="true">' + k.e + '</span><span><b>' + k.badge + '</b><em>' + cl + ' / 5 clears</em></span></span></div>' +
+    '<div class="row">' + (!signedIn() ? '<span class="tag">Log in to compete</span>' : me.points ? '<span class="best">#' + me.rank + ' &middot; ' + fmt(me.points) + ' points</span>' : '<span class="tag">Not on the board yet</span>') +
+    '<span class="btns"><button class="btn small" data-board="event">Board</button></span></div></article>';
+}
+function adventCard(){
+  const a = evNow && evNow.advent; if (!a) return "";
+  const opened = new Map((a.opened || []).map(o => [o.day, o.gift])), done = opened.has(a.day);
+  const icon = g => g.gift === "points" ? "&#129689;" : g.gift === "key" ? "&#128273;" : "&#127873;";
+  const doors = Array.from({ length:24 }, (_, i) => i + 1).map(d => {
+    if (opened.has(d)){ const g = opened.get(d); return '<span class="door open" title="' + d + '">' + icon(g) + (g.gift === "points" ? '<small>+' + g.points + '</small>' : '') + '</span>'; }
+    if (d === a.day) return '<button class="door today" type="button" data-door="' + d + '" aria-label="' + d + '">' + d + '</button>';
+    return '<span class="door' + (d < a.day ? ' missed' : '') + '">' + d + '</span>';
+  }).join("");
+  return '<article class="daily advent"><span class="dl">&#127876; Advent calendar</span><span class="dt">' + (done ? "Come back tomorrow" : "Today's door is open") + '</span>' +
+    '<p class="dd">A gift every day until the 24th: points, keys, and on the 24th the Gift Saucer.</p><div class="doors">' + doors + '</div>' +
+    (signedIn() ? '' : '<div class="row"><span class="tag">Log in to open the doors.</span></div>') + '</article>';
+}
+async function openDoor(d){
+  if (!signedIn()){ openLogin(); return; }
+  const a = evNow && evNow.advent; if (!a || d !== a.day) return;
+  let g = advGift(d);
+  if (!evNow.preview){
+    const { data, error } = await sb.rpc("javeda_advent_open").then(r => r, e => ({ error:e }));
+    if (error){ toast(/already/.test(error.message) ? "Come back tomorrow" : netErr(error) ? "No internet." : esc(error.message)); if (/already/.test(error.message)) loadEvent(); return; }
+    g = data.gift; if (data.player) player = data.player;
+    if (g.gift === "picture") owned.add(g.picture);
+    saveSnap(); renderMe(); loadBadges(true);
+  }
+  a.opened = [...(a.opened || []), { day:d, gift:g }];
+  renderNow();
+  toast(g.gift === "points" ? "&#129689; <b>+" + fmt(g.points) + " points</b> from today's door" : g.gift === "key" ? "&#128273; A key from today's door: open a song of your choice." : "&#127873; The Gift Saucer is yours!", 5000);
+}
+function prizeCards(){
+  return evPrizes.map(p => { const k = EV[p.kind]; if (!k) return "";
+    return '<article class="daily prize"><span class="dl">&#127942; ' + k.name + ' &middot; You won!</span><span class="dt">Place ' + p.place + '</span>' +
+      (p.code ? '<p class="dd">' + (p.prize === "merch" ? "Your merch code:" : "Your discount code:") + '</p><code data-i18n-skip>' + esc(p.code) + '</code><p class="dd">Use it in Lazy Jo\'s merch shop.</p>'
+        : '<p class="dd">Lazy Jo is adding your code. Check back soon.</p>') +
+      '<div class="row"><span class="btns">' + (p.code ? '<button class="btn small" type="button" data-copycode="' + esc(p.code) + '">Copy</button>' : '') +
+      '<a class="btn gold small" href="' + LINKS.merch + '" target="_blank" rel="noopener">Open the shop</a></span></div></article>'; }).join("");
+}
 const weeklyLocked = () => !!weekly && weekly.on === false;
 async function loadWeekly(){
   if (!sb) return;
@@ -1575,7 +1713,7 @@ async function loadWeekly(){
   renderNow(); if (boardTab === "weekly"){ renderTabs(); renderBoard(); }
 }
 async function loadDaily(){
-  loadWeekly();
+  loadWeekly(); loadEvent();
   if (!sb) return;
   const { data } = await sb.rpc("javeda_daily");
   if (!data || !levelById(data.level)) return;
@@ -1761,14 +1899,14 @@ function renderUltimate(){
 }
 const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"],["lvl28","Level 28"],["lvl28b","Level 28 Part 2"]];
 /// the scoreboard picker: which kind of board, then (a level or an endless) the level, then its part
-const boardKind = id => id === "points" || id === "chat" || id === "1v1" || id === "daily" || id === "weekly" || id === "marathon" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
+const boardKind = id => id === "points" || id === "chat" || id === "1v1" || id === "daily" || id === "weekly" || id === "marathon" || id === "event" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
 const boardLevels = () => TABS.filter(([k]) => k !== "points" && k !== "1v1").map(([k]) => levelById(k)).filter(Boolean);
 let lastBoard = { level:"lvl28", endless:"lvl28x" };
 function renderTabs(){
   const kind = boardKind(boardTab), pad = n => String(n).padStart(2, "0");
   if (kind === "level" || kind === "endless") lastBoard[kind] = boardTab;
   const cdot = chatDot.n && kind !== "chat" ? '<span class="cdot' + (chatDot.by ? ' gold' : '') + '" aria-label="New messages"></span>' : "";
-  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat" + cdot], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["weekly", "&#127942; Weekly", "g"], ["marathon", "Marathon", "g"]].filter(([k]) => k !== "weekly" || !weeklyLocked()).map(([k, t, c]) =>
+  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat" + cdot], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["weekly", "&#127942; Weekly", "g"], ["marathon", "Marathon", "g"]].concat(evNow ? [["event", EV[evNow.kind].e + " " + EV[evNow.kind].tab, "ev"]] : []).filter(([k]) => k !== "weekly" || !weeklyLocked()).map(([k, t, c]) =>
     '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
   requestAnimationFrame(hsAll);
   const el = $("etabs"); el.classList.toggle("gold", kind === "endless" || kind === "marathon");
@@ -1776,6 +1914,7 @@ function renderTabs(){
     el.innerHTML = lv ? '<div class="pts"><span class="cap"><small>Today &middot; Level ' + lv.num + '</small>' + esc(lv.title) + '</span></div>' : ""; return; }
   if (kind === "marathon"){ el.innerHTML = '<div class="pts"><span class="cap"><small>Album marathon</small>songs cleared in one run</span></div>'; return; }
   if (kind === "chat"){ el.innerHTML = ""; return; }
+  if (kind === "event"){ el.innerHTML = evNow ? '<div class="pts"><span class="cap"><small>' + EV[evNow.kind].e + ' ' + EV[evNow.kind].name + '</small>Event points</span></div>' : ""; return; }
   if (kind === "weekly"){ const lv = weekly && levelById(weekly.level);
     el.innerHTML = lv ? '<div class="pts"><span class="cap"><small>This week &middot; Level ' + lv.num + '</small>' + esc(lv.title) + '</span></div>' : ""; return; }
   if (kind !== "level" && kind !== "endless"){ el.innerHTML = ""; return; }
@@ -1821,6 +1960,14 @@ async function renderBoard(){
     if (ask !== boardAsk) return;
     el.innerHTML = error ? fail() : !data.length ? none("Nobody has played today's challenge yet.") : boardRows(data, r => fmt(r.best_score));
     boardMoreBtn(); return;
+  }
+  // a season event's board: the points earned during it
+  if (tab === "event"){
+    if (!evNow){ el.innerHTML = '<p class="empty">There\'s no event on right now.</p>'; return; }
+    const { data, error } = evNow.preview ? { data:[] } : await sb.rpc("javeda_event_board", { p_event:evNow.event }).then(r => r, e => ({ error:e }));
+    if (ask !== boardAsk) return;
+    el.innerHTML = error ? fail() : !data.length ? none("Nobody is on the event board yet.") : boardRows(data, r => fmt(r.points));
+    return;
   }
   // the weekly tournament: this week's scores (the earliest first on a tie, as the prize goes)
   if (tab === "weekly"){
@@ -1976,10 +2123,12 @@ addEventListener("keydown", e => { if (e.key === "Escape") document.querySelecto
 // this only shows it, from its numbers (javeda_my_stats). The album's also works for a guest
 const picKind = a => (a.unlock || "").split(":")[0];
 const picN = a => +(a.unlock || "").split(":")[1] || 0;
-const picGroup = a => !a.unlock ? (a.cost ? "points" : "free") : /^(days|streak|wins|podium)$/.test(picKind(a)) ? "daily" : "levels";
+const picGroup = a => !a.unlock ? (a.cost ? "points" : "free") : picKind(a) === "event" ? "events" : /^(days|streak|wins|podium)$/.test(picKind(a)) ? "daily" : "levels";
+const evOf = a => (a.unlock || "").split(":")[1];
 function ownsPic(a){
   if (!a.unlock) return a.cost === 0 || owned.has(a.id);
   const k = picKind(a);
+  if (k === "event") return owned.has(a.id);
   if (k === "album") return signedIn() ? !!player.album_completed_at : albumDone();
   if (!signedIn() || !stats) return false;
   return k === "song" ? (stats.songs || []).includes(picN(a)) : (stats[k] || 0) >= picN(a);
@@ -1987,6 +2136,7 @@ function ownsPic(a){
 // the pill on a locked one
 function picChip(a){
   const k = picKind(a), n = picN(a), one = n === 1;
+  if (k === "event") return evOf(a) === "advent" ? "&#127876; 24" : EV[evOf(a)] ? EV[evOf(a)].e + " " + EV[evOf(a)].tab : "";
   return k === "album" ? "28/28" : k === "song" ? "Level " + n : k === "parts" ? n + " parts" : k === "remix" ? n + (one ? " Remix" : " Remixes") :
     k === "endless" ? n + " Endless" : k === "days" ? n + (one ? " day" : " days") : k === "streak" ? n + " in a row" : k === "wins" ? n + (one ? " win" : " wins") : "Top 3 x" + n;
 }
@@ -1994,6 +2144,7 @@ function picChip(a){
 function picNeed(a){
   const k = picKind(a), n = picN(a), one = n === 1, x = stats && !Array.isArray(stats[k]) ? stats[k] || 0 : 0;
   if (k === "album") return ["Clear every part of all 28 songs."];
+  if (k === "event") return evOf(a) === "advent" ? ["Open the 24th door of the advent calendar."] : ["Play on 5 different days during the " + (EV[evOf(a)] ? EV[evOf(a)].tab : "") + " event.", "Only during the event."];
   if (k === "song"){
     const ps = LEVELS.filter(l => l.num === n && !l.endless), got = ps.filter(l => cleared(l.id)).length;
     return ps.length > 1 ? ["Clear every part of Level " + n + ".", "You've cleared " + got + " of " + ps.length + "."] : ["Clear Level " + n + "."];
@@ -2049,14 +2200,18 @@ const BADGES = [
   { id:"champ",    e:"\u{1F3C6}",    name:"Weekly Champion", how:"Win a weekly tournament.",                           ok:c => c.champion >= 1 },
   { id:"duel",     e:"\u2694\uFE0F", name:"Duelist",        how:"Win 10 online 1v1 games.",                           ok:c => c.wins >= 10, n:c => c.wins, of:10 },
   { id:"pack",     e:"\u{1F91D}",    name:"Pack Leader",     how:"Get 3 friends to join with your invite link.",       ok:c => c.friends >= 3, n:c => c.friends, of:3 },
-  { id:"grind",    e:"\u{1F501}",    name:"Never Give Up",   how:"Play 100 runs.",                                     ok:c => c.runs >= 100, n:c => c.runs, of:100 }
+  { id:"grind",    e:"\u{1F501}",    name:"Never Give Up",   how:"Play 100 runs.",                                     ok:c => c.runs >= 100, n:c => c.runs, of:100 },
+  // the season badges: only during their event (shown then, or once earned)
+  ...Object.entries({ winter:"Winter", valentine:"Valentine", spring:"Spring", summer:"Summer", halloween:"Halloween" }).map(([k, w]) =>
+    ({ id:"ev-" + k, ev:k, e:null, name:null, how:"Clear 5 levels during a " + w + " event.", ok:c => (c.events || []).includes(k) }))
 ];
+BADGES.forEach(b => { if (b.ev){ b.e = EV[b.ev].e; b.name = EV[b.ev].badge; } });
 let myBadges = null;
 const badgeCtx = c => ({ ...c, stars3:Object.entries(c.best || {}).filter(([id, b]) => starsOf(id, { cleared:true, best:b }) === 3).length });
 const badgesGot = c => { const x = badgeCtx(c); return BADGES.filter(b => b.ok(x)); };
 function badgeItems(c, all){
   const x = c ? badgeCtx(c) : null;
-  return BADGES.filter(b => all || (x && b.ok(x))).map(b => {
+  return BADGES.filter(b => (!b.ev || (x && b.ok(x)) || (all && evNow && evNow.kind === b.ev)) && (all || (x && b.ok(x)))).map(b => {
     const got = !!x && b.ok(x), n = x && b.n && !got ? Math.min(b.of, b.n(x) || 0) : 0;
     return '<li class="' + (got ? 'got' : '') + '"><span class="be" aria-hidden="true">' + b.e + '</span><span class="bt"><b>' + b.name + '</b><small>' + b.how + '</small>' +
       (n ? '<em>' + n + ' / ' + b.of + '</em>' : '') + '</span></li>';
@@ -2078,7 +2233,7 @@ async function loadBadges(say){
 function renderBadges(){
   const mine = signedIn() ? myBadges : null;
   $("pfBdNote").classList.toggle("hid", signedIn());
-  $("pfBdN").textContent = mine ? badgesGot(mine).length + " / " + BADGES.length : "";
+  $("pfBdN").textContent = mine ? badgesGot(mine).length + " / " + BADGES.filter(b => !b.ev || b.ok(badgeCtx(mine)) || (evNow && evNow.kind === b.ev)).length : "";
   $("pfBdList").innerHTML = badgeItems(mine, true);
 }
 // someone else's (or your own) from a scoreboard
@@ -2091,7 +2246,7 @@ async function openWho(name){
   $("whoT").textContent = data.username; $("whoImg").src = pic(data.avatar);
   $("whoPts").textContent = fmt(data.points) + " points";
   const got = badgesGot(data).length;
-  $("whoN").textContent = got + " / " + BADGES.length;
+  $("whoN").textContent = got + " / " + BADGES.filter(b => !b.ev || b.ok(badgeCtx(data))).length;
   $("whoList").innerHTML = got ? badgeItems(data, false) : "<li>No badges yet.</li>";
 }
 function openProfile(){
@@ -2480,6 +2635,8 @@ $("now").addEventListener("click", e => {
   else if (b.dataset.weekly && weekly && weekly.on !== false) play(weekly.level, { weekly:true });
   else if (b.dataset.getapp) openAppSheet();
   else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); } });
+  else if (b.dataset.door) openDoor(+b.dataset.door);
+  else if (b.dataset.copycode){ navigator.clipboard && navigator.clipboard.writeText(b.dataset.copycode).then(() => toast("Copied: " + esc(b.dataset.copycode)), () => {}); }
   else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (b.dataset.marathon) startMarathon();
   else if (b.dataset.credits) openCredits();
@@ -2625,9 +2782,12 @@ async function saveRun(r, quiet){
   renderMe(); renderNow(); renderBoard();
   saveSnap();
   refreshStats(true);
+  if (d.event && evNow && d.event.event === evNow.event){ evNow.me = { ...(evNow.me || {}), points:d.event.points, days:d.event.days, clears:d.event.clears, rank:(evNow.me && evNow.me.rank) || 1 }; }
+  if (d.event && d.event.picture){ owned.add(d.event.picture); const a = AVATARS.find(x => x.id === d.event.picture);
+    setTimeout(() => toast('<img class="tp" src="' + pic(d.event.picture) + '" alt=""> <span>New picture</span> <b>' + esc(a ? a.name : d.event.picture) + '</b>', 6000), 6500); }
   if (r.flawless && r.cleared) sb.rpc("javeda_flawless_add", { p_level:lv.id }).then(() => loadBadges(true), () => loadBadges(true)); else loadBadges(true);
   if (d.album_complete) finale();
-  else if (!quiet) toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (r.cleared ? " &middot; " + starNote(lv.id) : "") +
+  else if (!quiet) toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (d.double ? " &middot; &#9889; x2" : "") + (r.cleared ? " &middot; " + starNote(lv.id) : "") +
     (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), r.cleared ? 5500 : 4500);
   if (r.cleared && !quiet) offerShare({ kind:"level", lv, score:d.score, head:d.first_clear ? "First clear" : d.new_best ? "New best" : "Cleared",
     stars:starsOf(lv.id, { cleared:true, best:d.score }) });

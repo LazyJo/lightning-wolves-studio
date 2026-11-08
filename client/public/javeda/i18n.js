@@ -102,6 +102,9 @@ const S = [
   ["Thanks. Lazy Jo will take a look.", "Bedankt. Lazy Jo kijkt ernaar.", "Merci. Lazy Jo va regarder.", "Gracias. Lazy Jo lo revisará."],
   ["Muted for a day.", "Een dag gedempt.", "Rendu muet pour un jour.", "Silenciado un día."],
   ["Mute this player for a day? Their messages of the last day go too.", "Deze speler een dag dempen? Hun berichten van de afgelopen dag verdwijnen ook.", "Rendre ce joueur muet pour un jour ? Ses messages de la dernière journée partent aussi.", "¿Silenciar a este jugador un día? Sus mensajes del último día también se borran."],
+  ["# online now", "# nu online", "# en ligne", "# conectados ahora"],
+  ["mentioned you in the chat", "noemde je in de chat", "t'a mentionné dans le chat", "te mencionó en el chat"],
+  ["New messages", "Nieuwe berichten", "Nouveaux messages", "Mensajes nuevos"],
   // the log-in's messages and the new password
   ["Forgot your password?", "Wachtwoord vergeten?", "Mot de passe oublié ?", "¿Olvidaste tu contraseña?"],
   ["Type your email above first.", "Vul eerst hierboven je e-mail in.", "Entre d'abord ton e-mail ci-dessus.", "Escribe primero tu email arriba."],

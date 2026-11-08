@@ -1366,7 +1366,10 @@ S: {
 "Mute for a day":"禁言一天",
 "Thanks. Lazy Jo will take a look.":"謝謝。Lazy Jo 會去看看。",
 "Muted for a day.":"已禁言一天。",
-"Mute this player for a day? Their messages of the last day go too.":"禁言這名玩家一天？他最近一天的訊息也會刪除。"
+"Mute this player for a day? Their messages of the last day go too.":"禁言這名玩家一天？他最近一天的訊息也會刪除。",
+"# online now":"#人在線",
+"mentioned you in the chat":"在聊天中提到了你",
+"New messages":"新訊息"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款線上對戰</small>HOOPS <i>1v1</i>",

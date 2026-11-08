@@ -1366,7 +1366,10 @@ S: {
 "Mute for a day":"1日ミュート",
 "Thanks. Lazy Jo will take a look.":"ありがとう。Lazy Joが確認します。",
 "Muted for a day.":"1日ミュートしました。",
-"Mute this player for a day? Their messages of the last day go too.":"このプレイヤーを1日ミュートする？ 直近1日のメッセージも消えます。"
+"Mute this player for a day? Their messages of the last day go too.":"このプレイヤーを1日ミュートする？ 直近1日のメッセージも消えます。",
+"# online now":"#人がオンライン",
+"mentioned you in the chat":"チャットであなたをメンションしました",
+"New messages":"新しいメッセージ"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",

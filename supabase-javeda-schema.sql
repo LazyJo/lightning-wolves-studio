@@ -2046,3 +2046,19 @@ BEGIN
 END;
 $$;
 GRANT EXECUTE ON FUNCTION public.javeda_chat_mute(BIGINT, INT) TO authenticated;
+
+-- the chat, from outside it (the page asks about once a minute while the chat tab is closed): how many new messages
+-- since p_after (not your own, up to 99), the newest id, and who mentioned you (@yourname) in them, if anyone
+CREATE OR REPLACE FUNCTION public.javeda_chat_peek(p_after BIGINT)
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT json_build_object(
+    'last', (SELECT coalesce(max(id), 0) FROM javeda_chat),
+    'n', (SELECT count(*) FROM (SELECT 1 FROM javeda_chat WHERE id > coalesce(p_after, 0) AND user_id IS DISTINCT FROM auth.uid() LIMIT 99) x),
+    'by', (SELECT c.username FROM javeda_chat c JOIN javeda_players p ON p.user_id = auth.uid()
+           WHERE c.id > coalesce(p_after, 0) AND c.user_id <> p.user_id
+             AND c.body ~* ('(^|[^A-Za-z0-9_.-])@' || replace(p.username, '.', '[.]') || '([^A-Za-z0-9_.-]|$)')
+           ORDER BY c.id DESC LIMIT 1));
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_chat_peek(BIGINT) TO anon, authenticated;

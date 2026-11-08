@@ -468,6 +468,14 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .chatform{display:flex; gap:8px; padding:10px 12px 6px; border-top:1px solid #ffffff14}
 .chatform .in{flex:1; min-width:0}
 .chatnote{margin:0; padding:2px 14px 12px; font-size:13px; color:var(--mute)}
+.chatbar{display:flex; align-items:center; gap:7px; padding:9px 14px; border-bottom:1px solid #ffffff14; font:700 12px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; color:var(--dim)}
+.chatbar .live{width:8px; height:8px; border-radius:50%; background:#3ddc84; box-shadow:0 0 8px #3ddc84aa}
+.chatlog .ch b{cursor:pointer}
+.chatlog .at{color:var(--beam); font-weight:700}
+.chatlog .at.me{color:#041024; background:var(--gold); border-radius:4px; padding:0 3px}
+.chatlog li.ment{box-shadow:inset 3px 0 0 var(--gold)}
+#tabs .cdot{display:inline-block; width:8px; height:8px; margin-left:6px; border-radius:50%; background:var(--blue); vertical-align:2px; box-shadow:0 0 6px var(--blue)}
+#tabs .cdot.gold{background:var(--gold); box-shadow:0 0 6px var(--gold)}
 .chatnote .err{display:block; margin-top:4px}
 .board .un .gb{display:inline-block; margin-left:7px; font:700 10px/1 var(--cond); letter-spacing:.1em; color:#2a1a02; background:linear-gradient(180deg,#ffe08a,#e0a41a); border-radius:999px; padding:3px 6px; vertical-align:2px}
 .pic .cost.earn{background:#2a1a02; color:var(--gold); border:1px solid #e0a41a; font-size:10.5px}
@@ -1629,7 +1637,8 @@ let lastBoard = { level:"lvl28", endless:"lvl28x" };
 function renderTabs(){
   const kind = boardKind(boardTab), pad = n => String(n).padStart(2, "0");
   if (kind === "level" || kind === "endless") lastBoard[kind] = boardTab;
-  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat"], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["marathon", "Marathon", "g"]].map(([k, t, c]) =>
+  const cdot = chatDot.n && kind !== "chat" ? '<span class="cdot' + (chatDot.by ? ' gold' : '') + '" aria-label="New messages"></span>' : "";
+  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat" + cdot], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["marathon", "Marathon", "g"]].map(([k, t, c]) =>
     '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
   requestAnimationFrame(hsAll);
   const el = $("etabs"); el.classList.toggle("gold", kind === "endless" || kind === "marathon");
@@ -1702,19 +1711,25 @@ const CHAT_ERR = { login:"Log in to chat.", player:"Make your player first (a na
   long:"200 characters at most.", link:"No links in the chat.", slow:"Slow down a little.", same:"You just said that." };
 function chatTime(t){ const d = new Date(t), loc = window.JAVEDA_LOCALE || "en-GB";
   return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString(loc, { hour:"2-digit", minute:"2-digit" }) : d.toLocaleDateString(loc, { day:"numeric", month:"short" }); }
+// @name in a message: blue, and gold with a gold edge on the row when it's you
+const AT = /(^|[^A-Za-z0-9_.-])@([A-Za-z0-9_.-]{3,16})(?![A-Za-z0-9_.-])/g;
+const meName = () => (signedIn() ? player.username.toLowerCase() : "");
+const atHtml = t => esc(t).replace(AT, (x, pre, n) => pre + '<span class="at' + (n.toLowerCase() === meName() ? ' me' : '') + '">@' + n + '</span>');
+const mentionsMe = m => !m.mine && !!meName() && [...String(m.body).matchAll(AT)].some(x => x[2].toLowerCase() === meName());
 function chatRow(m){
   const acts = (m.mine || creator ? '<button type="button" data-chatdel="' + m.id + '" title="Delete" aria-label="Delete">&times;</button>' : '') +
     (!m.mine && signedIn() ? '<button type="button" data-chatrep="' + m.id + '" title="Report" aria-label="Report">&#9873;</button>' : '') +
     (creator && !m.mine ? '<button type="button" data-chatmute="' + m.id + '" title="Mute for a day" aria-label="Mute for a day">&#128263;</button>' : '');
-  return '<li data-id="' + m.id + '"' + (m.mine ? ' class="you"' : '') + '><img src="' + pic(m.avatar) + '" alt=""><div><div class="ch"><b data-i18n-skip>' + esc(m.username) + '</b>' +
+  return '<li data-id="' + m.id + '"' + (m.mine ? ' class="you"' : mentionsMe(m) ? ' class="ment"' : '') + '><img src="' + pic(m.avatar) + '" alt=""><div><div class="ch"><b data-i18n-skip>' + esc(m.username) + '</b>' +
     (m.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + '<time data-i18n-skip>' + chatTime(m.created_at) + '</time>' +
-    (acts ? '<span class="acts">' + acts + '</span>' : '') + '</div><p data-i18n-skip>' + esc(m.body) + '</p></div></li>';
+    (acts ? '<span class="acts">' + acts + '</span>' : '') + '</div><p data-i18n-skip>' + atHtml(m.body) + '</p></div></li>';
 }
 function renderChat(){
   const el = $("board"); el.classList.remove("short"); $("boardMore").classList.add("hid");
   if (!sb){ el.innerHTML = '<p class="empty">The chat is offline right now.</p>'; return; }
   const can = signedIn() && !session.offline;
-  el.innerHTML = '<ol class="chatlog" id="chatLog" aria-live="polite"><li class="empty">Loading…</li></ol>' + (can
+  el.innerHTML = '<div class="chatbar"><span class="live"></span><span id="chatOnline">' + onlineText() + '</span></div>' +
+    '<ol class="chatlog" id="chatLog" aria-live="polite"><li class="empty">Loading…</li></ol>' + (can
     ? '<form class="chatform" id="chatForm"><input class="in" id="chatIn" maxlength="200" autocomplete="off" enterkeyhint="send" placeholder="Say something to the pack…" aria-label="Message"><button class="btn primary" type="submit">Send</button></form>' +
       '<p class="chatnote">Be nice. No links. Messages go after 30 days.<span class="err" id="chatErr"></span></p>'
     : '<p class="chatnote" style="padding-top:12px;border-top:1px solid #ffffff14">Create a free account to chat. <button class="switch" type="button" data-chatjoin="1">Create a free account</button></p>');
@@ -1735,6 +1750,7 @@ async function chatPoll(first){
 }
 function chatAdd(list, full){
   const log = $("chatLog"), near = log.scrollHeight - log.scrollTop - log.clientHeight < 80;
+  setTimeout(chatSeenNow, 0);
   if (full){ const ids = list.map(m => m.id).join(","); if (ids === chatIds && log.querySelector("[data-id]")) return; chatIds = ids;
     log.innerHTML = list.length ? list.map(chatRow).join("") : '<li class="empty">No messages yet. Say hi!</li>';
     chatLast = list.length ? list[list.length - 1].id : 0; log.scrollTop = log.scrollHeight; return; }
@@ -1755,6 +1771,8 @@ document.addEventListener("submit", async e => {
 });
 document.visibilityState && document.addEventListener("visibilitychange", () => { if (!document.hidden && boardTab === "chat") chatPoll(); });
 $("board").addEventListener("click", async e => {
+  const nm = e.target.closest(".chatlog .ch b"), inp = $("chatIn");
+  if (nm && inp){ const at = "@" + nm.textContent + " "; if (!inp.value.includes(at)) inp.value = (inp.value && !inp.value.endsWith(" ") ? inp.value + " " : inp.value) + at; inp.focus(); return; }
   const b = e.target.closest("[data-chatdel],[data-chatrep],[data-chatmute],[data-chatjoin]"); if (!b) return;
   if (b.dataset.chatjoin){ openLogin(true); return; }
   const li = b.closest("li"), name = li && li.querySelector(".ch b").textContent, body = li && li.querySelector("p").textContent;
@@ -1765,6 +1783,33 @@ $("board").addEventListener("click", async e => {
     const { error } = await sb.rpc("javeda_chat_mute", { p_id:+b.dataset.chatmute, p_hours:24 }).then(r => r, x => ({ error:x }));
     if (error){ toast(esc(error.message)); return; } toast("Muted for a day."); chatPoll(true); }
 });
+/* ---- the chat from outside it: a dot on the tab for new messages (gold when someone @mentions you, with a toast), and
+   how many are on the JAVEDA page right now (Realtime presence, on a connection of its own with the public key) ---- */
+const SEEN_KEY = "javeda.chatSeen";
+let chatDot = { n:0, by:null }, mentionToast = 0, peekT = null, online = 0, onCh = null;
+const chatSeen = () => { try { return +localStorage.getItem(SEEN_KEY) || 0; } catch(e){ return 0; } };
+function chatSeenNow(){ if (boardTab !== "chat" || !chatLast) return; try { if (chatLast > chatSeen()) localStorage.setItem(SEEN_KEY, String(chatLast)); } catch(e){}
+  if (chatDot.n){ chatDot = { n:0, by:null }; renderTabs(); } }
+async function chatPeek(){
+  clearTimeout(peekT); peekT = setTimeout(chatPeek, 45000);
+  if (!sb || document.hidden || boardTab === "chat") return;
+  const seen = chatSeen(); if (!seen){ const { data } = await sb.rpc("javeda_chat_peek", { p_after:0 }).then(r => r, () => ({})); if (data) try { localStorage.setItem(SEEN_KEY, String(data.last)); } catch(e){} return; }
+  const { data } = await sb.rpc("javeda_chat_peek", { p_after:seen }).then(r => r, () => ({})); if (!data) return;
+  const was = chatDot.n + "|" + chatDot.by; chatDot = { n:data.n || 0, by:data.by || null };
+  if (was !== chatDot.n + "|" + chatDot.by) renderTabs();
+  if (chatDot.by && data.last > mentionToast){ mentionToast = data.last; toast(esc(chatDot.by) + " &middot; mentioned you in the chat", 6000); }
+}
+const onlineText = () => online ? online + " online now" : "Chat";
+function onlineStart(cfg){
+  try {
+    const rt = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey, { auth:{ persistSession:false, autoRefreshToken:false, detectSessionInUrl:false, storageKey:"javeda-online" } });
+    let me = ""; try { me = localStorage.getItem("javeda.dev") || ""; if (!me){ me = Math.random().toString(36).slice(2, 12); localStorage.setItem("javeda.dev", me); } } catch(e){ me = Math.random().toString(36).slice(2, 12); }
+    onCh = rt.channel("javeda-online", { config:{ presence:{ key:me } } });
+    onCh.on("presence", { event:"sync" }, () => { online = Object.keys(onCh.presenceState() || {}).length; const el = $("chatOnline"); if (el) el.textContent = onlineText(); });
+    onCh.subscribe(st => { if (st === "SUBSCRIBED" && !document.hidden) onCh.track({ at:Date.now() }); });
+    document.addEventListener("visibilitychange", () => { try { document.hidden ? onCh.untrack() : onCh.track({ at:Date.now() }); } catch(e){} if (!document.hidden) chatPeek(); });
+  } catch(e){}
+}
 // at the top of the page the board shows the top 5; the rest on a tap
 let boardAll = false;
 function boardMoreBtn(){
@@ -3304,9 +3349,9 @@ if (location.hash === "#report") setTimeout(openReport, 400);
 // /javeda/#app (the QR code): straight to putting it on your phone
 if (location.hash === "#app"){ history.replaceState(null, "", location.pathname + location.search); if (!STANDALONE) setTimeout(openAppSheet, 400); }
 (async () => {
+  let cfg = {};
   try {
     // the settings are kept on the phone too, so the app starts offline (the address and the public key only)
-    let cfg = {};
     try { const r = await fetch("/api/config"); cfg = r.ok ? await r.json() : {}; if (cfg.supabaseUrl) localStorage.setItem("javeda.cfg", JSON.stringify({ supabaseUrl:cfg.supabaseUrl, supabaseAnonKey:cfg.supabaseAnonKey, javedaPassCents:cfg.javedaPassCents })); }
     catch(err){ try { cfg = JSON.parse(localStorage.getItem("javeda.cfg")) || {}; } catch(e2){} }
     if (cfg.supabaseUrl && cfg.supabaseAnonKey && window.supabase)
@@ -3325,6 +3370,7 @@ if (location.hash === "#app"){ history.replaceState(null, "", location.pathname 
   const [{ data }] = await Promise.all([sb.auth.getSession(), passInfo]);
   session = data.session; await loadAccount(); loadDaily().then(() => goTo(location.hash)); passReturn();
   if (RECOVERY && session) openNewPassword();
+  onlineStart(cfg); setTimeout(chatPeek, 4000);
   if (STANDALONE) appSeen("open");
   pushSync(); pushAuto();
   sb.auth.onAuthStateChange((_e, s) => {

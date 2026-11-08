@@ -1366,7 +1366,10 @@ S: {
 "Mute for a day":"Silenzia per un giorno",
 "Thanks. Lazy Jo will take a look.":"Grazie. Lazy Jo darà un'occhiata.",
 "Muted for a day.":"Silenziato per un giorno.",
-"Mute this player for a day? Their messages of the last day go too.":"Silenziare questo giocatore per un giorno? Spariscono anche i suoi messaggi dell'ultimo giorno."
+"Mute this player for a day? Their messages of the last day go too.":"Silenziare questo giocatore per un giorno? Spariscono anche i suoi messaggi dell'ultimo giorno.",
+"# online now":"# online ora",
+"mentioned you in the chat":"ti ha menzionato nella chat",
+"New messages":"Nuovi messaggi"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",

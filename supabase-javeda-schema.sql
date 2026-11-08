@@ -2448,3 +2448,63 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_run_stats(INT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_run_stats(INT) TO authenticated;
+
+-- ── Badges ──────────────────────────────────────────────────────────────────
+-- Shown on your player and to anyone who taps your name on a scoreboard. Most come from what's already here (clears,
+-- daily challenges, weekly tournaments, 1v1 wins, friends invited, runs); the page decides which are earned
+-- (the thresholds live in index.html, BADGES). One is new: the levels you cleared without losing a heart
+-- (javeda_flawless, sent by the page after the run saved; only for a level you have cleared).
+CREATE TABLE IF NOT EXISTS javeda_flawless (
+  user_id UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  level   TEXT NOT NULL REFERENCES javeda_levels(id) ON DELETE CASCADE,
+  at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (user_id, level)
+);
+ALTER TABLE javeda_flawless ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_flawless FROM anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_flawless_add(p_level TEXT)
+RETURNS INT
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE uid UUID := auth.uid();
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_progress g JOIN javeda_levels l ON l.id = g.level
+                 WHERE g.user_id = uid AND g.level = p_level AND g.cleared AND NOT l.endless) THEN
+    RAISE EXCEPTION 'not cleared' USING ERRCODE = '42501';
+  END IF;
+  INSERT INTO javeda_flawless (user_id, level) VALUES (uid, p_level) ON CONFLICT DO NOTHING;
+  RETURN (SELECT count(*)::INT FROM javeda_flawless WHERE user_id = uid);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_flawless_add(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_flawless_add(TEXT) TO authenticated;
+
+-- a player's counters, by name (all of it is public already: progress, boards, 1v1 record)
+CREATE OR REPLACE FUNCTION public.javeda_badges(p_username TEXT)
+RETURNS JSON
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE p javeda_players;
+BEGIN
+  SELECT * INTO p FROM javeda_players WHERE lower(username) = lower(btrim(p_username));
+  IF p IS NULL THEN RETURN NULL; END IF;
+  RETURN json_build_object(
+    'username', p.username, 'avatar', p.avatar, 'points', p.points, 'album', p.album_completed_at IS NOT NULL,
+    'parts',    (SELECT count(*) FROM javeda_progress g JOIN javeda_levels l ON l.id = g.level WHERE g.user_id = p.user_id AND g.cleared AND NOT l.endless),
+    'songs',    (SELECT count(*) FROM (SELECT l.num FROM javeda_levels l LEFT JOIN javeda_progress g ON g.level = l.id AND g.user_id = p.user_id
+                   WHERE NOT l.endless GROUP BY l.num HAVING bool_and(COALESCE(g.cleared, false))) s),
+    'runs',     (SELECT COALESCE(sum(g.runs), 0) FROM javeda_progress g WHERE g.user_id = p.user_id),
+    'daily',    (SELECT count(*) FROM javeda_daily_scores d WHERE d.user_id = p.user_id),
+    'champion', (SELECT count(*) FROM javeda_weekly_winners w WHERE w.user_id = p.user_id),
+    'podium',   (SELECT count(*) FROM javeda_weekly_winners w JOIN javeda_weekly_scores s ON s.week = w.week AND s.user_id = p.user_id AND s.best_score > 0
+                   WHERE (SELECT count(*) FROM javeda_weekly_scores o WHERE o.week = w.week AND o.best_score > s.best_score) < 3),
+    'wins',     COALESCE((SELECT v.wins FROM javeda_1v1 v WHERE v.user_id = p.user_id), 0),
+    'friends',  (SELECT count(*) FROM javeda_invites i WHERE i.inviter = p.user_id),
+    'flawless', (SELECT count(*) FROM javeda_flawless f WHERE f.user_id = p.user_id),
+    'best',     (SELECT COALESCE(json_object_agg(g.level, g.best_score), '{}') FROM javeda_progress g WHERE g.user_id = p.user_id AND g.cleared));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_badges(TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.javeda_badges(TEXT) TO anon, authenticated;

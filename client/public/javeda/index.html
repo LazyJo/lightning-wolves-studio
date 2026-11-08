@@ -598,6 +598,23 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 /* a yes/no box: JAVEDA news by email */
 .chk{display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.4; color:var(--dim); cursor:pointer}
 .chk input{width:18px; height:18px; margin:1px 0 0; flex:none; accent-color:var(--blue)}
+/* badges */
+.bdgs{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px}
+.bdgs li{display:flex; gap:7px; align-items:center; padding:8px; border:1px solid var(--line); border-radius:10px; background:#ffffff06}
+.bdgs li.got{border-color:#ffd60a66; background:linear-gradient(180deg,#ffd60a1c,#ffd60a06)}
+.bdgs .be{font-size:21px; line-height:1; flex:none}
+.bdgs li:not(.got) .be{filter:grayscale(1); opacity:.4}
+.bdgs .bt{display:grid; gap:2px; min-width:0}
+.bdgs .bt b{font:700 12.5px/1.15 var(--cond); letter-spacing:.02em; text-transform:uppercase; overflow-wrap:break-word}
+.bdgs li:not(.got) .bt b{color:var(--mute)}
+.bdgs .bt small{font-size:11.5px; line-height:1.3; color:var(--mute)}
+.bdgs .bt em{font:700 11px/1 var(--cond); letter-spacing:.06em; color:var(--gold); font-style:normal}
+.bdghd{display:flex; justify-content:space-between; align-items:baseline; gap:8px}
+.bdghd small{font:700 12px/1 var(--cond); letter-spacing:.1em; color:var(--gold)}
+.whohd{display:flex; gap:12px; align-items:center; margin:2px 0 14px}
+.whohd img{width:58px; height:58px; border-radius:12px; border:1px solid var(--line)}
+.whohd p{margin:4px 0 0; color:var(--mute); font-size:14px}
+.board li[data-who]{cursor:pointer}
 .pushset{display:grid; gap:8px}
 .pushset h2{margin:0}
 .pushset .note{font-size:13px; color:var(--mute); margin:0}
@@ -687,6 +704,11 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <div class="pics" id="pics"></div>
     </div>
     <div class="rules" id="pfRules"></div>
+    <div class="pushset" id="pfBadges">
+      <div class="bdghd"><h2>Badges</h2><small id="pfBdN"></small></div>
+      <p class="note hid" id="pfBdNote">Make a free account to earn badges.</p>
+      <ul class="bdgs" id="pfBdList"></ul>
+    </div>
     <label class="chk hid" id="pfNewsRow"><input type="checkbox" id="pfNews"><span>Email me JAVEDA news: new levels and new songs.</span></label>
     <div class="pushset hid" id="pfPush">
       <h2>Notifications</h2>
@@ -795,6 +817,16 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <button class="btn primary" id="jnGo" type="button">Play now</button>
       <button class="btn small" id="jnNo" type="button">Not now</button>
     </div>
+  </div>
+</div>
+
+<!-- a player's badges: tap a name on a scoreboard -->
+<div class="sheet hid" id="who" role="dialog" aria-modal="true" aria-labelledby="whoT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <div class="whohd"><img id="whoImg" alt=""><div><h3 id="whoT" data-i18n-skip></h3><p id="whoPts"></p></div></div>
+    <div class="bdghd"><h2 style="margin:0 0 8px">Badges</h2><small id="whoN"></small></div>
+    <ul class="bdgs" id="whoList"></ul>
   </div>
 </div>
 
@@ -1738,7 +1770,7 @@ function renderTabs(){
 function boardRows(data, val){
   const mine = signedIn() ? player.username.toLowerCase() : null;
   return '<ol>' + data.map((r, i) =>
-    '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '"><span class="rk">' + (i + 1) + '</span>' +
+    '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '" data-who="' + esc(r.username) + '"><span class="rk">' + (i + 1) + '</span>' +
     '<img src="' + pic(r.avatar) + '" alt=""><span class="un"><span data-i18n-skip>' + esc(r.username) + '</span>' +
       (r.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + '</span>' +
     '<span class="val">' + val(r) + '</span></li>').join("") + '</ol>';
@@ -1855,6 +1887,7 @@ document.addEventListener("submit", async e => {
   inp.value = ""; if (data) chatAdd([data], false); const log = $("chatLog"); if (log) log.scrollTop = log.scrollHeight;
 });
 document.visibilityState && document.addEventListener("visibilitychange", () => { if (!document.hidden && boardTab === "chat") chatPoll(); });
+$("board").addEventListener("click", e => { const w = e.target.closest("li[data-who]"); if (w && !e.target.closest("button, a, input")) openWho(w.dataset.who); });
 $("board").addEventListener("click", async e => {
   const nm = e.target.closest(".chatlog .ch b"), inp = $("chatIn");
   if (nm && inp){ const at = "@" + nm.textContent + " "; if (!inp.value.includes(at)) inp.value = (inp.value && !inp.value.endsWith(" ") ? inp.value + " " : inp.value) + at; inp.focus(); return; }
@@ -1979,6 +2012,65 @@ async function refreshStats(say){
   const fresh = AVATARS.filter(a => a.unlock && ownsPic(a) && !had.includes(a.id));
   if (fresh.length) setTimeout(() => toast('<img class="tp" src="' + pic(fresh[0].id) + '" alt=""> <span>New picture</span> <b>' + esc(fresh[0].name) + '</b>' + (fresh.length > 1 ? ' <span>+' + (fresh.length - 1) + ' more</span>' : ''), 6000), 6000);
 }
+/* ---- badges: on your player, and on anyone's when you tap their name on a scoreboard. javeda_badges gives the
+   counters (all public already); which are earned is decided here. n/of: how far you are, on a locked one. ---- */
+const BADGES = [
+  { id:"first",    e:"\u26A1",       name:"First Clear",     how:"Clear your first level.",                            ok:c => c.parts >= 1 },
+  { id:"flawless", e:"\u{1F6E1}\uFE0F", name:"Untouchable",  how:"Clear a level without losing a heart.",             ok:c => c.flawless >= 1 },
+  { id:"stars",    e:"\u2B50",       name:"Three Stars",     how:"Get all 3 stars on a level.",                        ok:c => c.stars3 >= 1 },
+  { id:"half",     e:"\u{1F317}",    name:"Halfway There",   how:"Clear every part of 14 songs.",                      ok:c => c.songs >= 14, n:c => c.songs, of:14 },
+  { id:"album",    e:"\u{1F4BF}",    name:"28/28",           how:"Clear every part of all 28 songs.",                  ok:c => !!c.album, n:c => c.songs, of:28 },
+  { id:"iron",     e:"\u{1F43A}",    name:"Iron Wolf",       how:"Clear 10 different levels without losing a heart.",  ok:c => c.flawless >= 10, n:c => c.flawless, of:10 },
+  { id:"daily",    e:"\u{1F4C5}",    name:"Daily Regular",   how:"Play 7 daily challenges.",                           ok:c => c.daily >= 7, n:c => c.daily, of:7 },
+  { id:"podium",   e:"\u{1F949}",    name:"Weekly Podium",   how:"Finish in the top 3 of a weekly tournament.",        ok:c => c.podium >= 1 },
+  { id:"champ",    e:"\u{1F3C6}",    name:"Weekly Champion", how:"Win a weekly tournament.",                           ok:c => c.champion >= 1 },
+  { id:"duel",     e:"\u2694\uFE0F", name:"Duelist",        how:"Win 10 online 1v1 games.",                           ok:c => c.wins >= 10, n:c => c.wins, of:10 },
+  { id:"pack",     e:"\u{1F91D}",    name:"Pack Leader",     how:"Get 3 friends to join with your invite link.",       ok:c => c.friends >= 3, n:c => c.friends, of:3 },
+  { id:"grind",    e:"\u{1F501}",    name:"Never Give Up",   how:"Play 100 runs.",                                     ok:c => c.runs >= 100, n:c => c.runs, of:100 }
+];
+let myBadges = null;
+const badgeCtx = c => ({ ...c, stars3:Object.entries(c.best || {}).filter(([id, b]) => starsOf(id, { cleared:true, best:b }) === 3).length });
+const badgesGot = c => { const x = badgeCtx(c); return BADGES.filter(b => b.ok(x)); };
+function badgeItems(c, all){
+  const x = c ? badgeCtx(c) : null;
+  return BADGES.filter(b => all || (x && b.ok(x))).map(b => {
+    const got = !!x && b.ok(x), n = x && b.n && !got ? Math.min(b.of, b.n(x) || 0) : 0;
+    return '<li class="' + (got ? 'got' : '') + '"><span class="be" aria-hidden="true">' + b.e + '</span><span class="bt"><b>' + b.name + '</b><small>' + b.how + '</small>' +
+      (n ? '<em>' + n + ' / ' + b.of + '</em>' : '') + '</span></li>';
+  }).join("");
+}
+// yours: the counters, and a toast for a badge you didn't have
+async function loadBadges(say){
+  if (!signedIn() || session.offline || !sb || !navigator.onLine) return;
+  const { data } = await sb.rpc("javeda_badges", { p_username:player.username }).then(r => r, () => ({}));
+  if (!data) return;
+  myBadges = data;
+  const key = "javeda.badges." + session.user.id, now = badgesGot(data).map(b => b.id);
+  let had = null; try { had = JSON.parse(localStorage.getItem(key) || "null"); } catch(e){}
+  try { localStorage.setItem(key, JSON.stringify(now)); } catch(e){}
+  const fresh = had ? BADGES.filter(b => now.includes(b.id) && !had.includes(b.id)) : [];
+  if (say && fresh.length) setTimeout(() => toast(fresh[0].e + ' <span>New badge</span> <b>' + fresh[0].name + '</b>' + (fresh.length > 1 ? ' <span>+' + (fresh.length - 1) + ' more</span>' : ''), 6000), 12500);
+  if (!$("profile").classList.contains("hid")) renderBadges();
+}
+function renderBadges(){
+  const mine = signedIn() ? myBadges : null;
+  $("pfBdNote").classList.toggle("hid", signedIn());
+  $("pfBdN").textContent = mine ? badgesGot(mine).length + " / " + BADGES.length : "";
+  $("pfBdList").innerHTML = badgeItems(mine, true);
+}
+// someone else's (or your own) from a scoreboard
+async function openWho(name){
+  if (!sb) return;
+  $("whoT").textContent = name; $("whoImg").src = pic("saucer"); $("whoPts").textContent = ""; $("whoN").textContent = "";
+  $("whoList").innerHTML = "<li>Loading&hellip;</li>"; openSheet("who");
+  const { data, error } = await sb.rpc("javeda_badges", { p_username:name }).then(r => r, e => ({ error:e }));
+  if (error || !data){ $("whoList").innerHTML = "<li>" + (error && netErr(error) ? "No internet." : "Could not load this player.") + "</li>"; return; }
+  $("whoT").textContent = data.username; $("whoImg").src = pic(data.avatar);
+  $("whoPts").textContent = fmt(data.points) + " points";
+  const got = badgesGot(data).length;
+  $("whoN").textContent = got + " / " + BADGES.length;
+  $("whoList").innerHTML = got ? badgeItems(data, false) : "<li>No badges yet.</li>";
+}
 function openProfile(){
   pickAv = signedIn() ? player.avatar : guest.avatar;
   $("pfName").value = signedIn() ? player.username : guest.name;
@@ -1987,8 +2079,8 @@ function openProfile(){
   $("pfOut").classList.toggle("hid", !session);
   $("pfDel").classList.toggle("hid", !signedIn() || !!session.offline || creator);
   $("pfNewsRow").classList.toggle("hid", !signedIn() || !!session.offline); $("pfNews").checked = news;
-  picTab = "mine"; renderPushSet(); renderPics(); renderDiscord(); openSheet("profile");
-  refreshStats().then(renderPics);
+  picTab = "mine"; renderPushSet(); renderPics(); renderDiscord(); renderBadges(); openSheet("profile");
+  refreshStats().then(renderPics); loadBadges().then(renderBadges);
 }
 $("meBtn").onclick = openProfile;
 // Discord: a code for /link in the server (Lightning Bot ties the two and keeps the JAVEDA roles in step)
@@ -2239,7 +2331,7 @@ async function loadAccount(){
     return loadAccount();
   }
   if (news) newsWish(false); else applyNewsWish(false);
-  claimFriend();
+  claimFriend(); loadBadges();
   saveSnap(); withPending(uid);
   renderAll(); showJoin();
   refreshStats(true);
@@ -2491,6 +2583,7 @@ async function saveRun(r, quiet){
   renderMe(); renderNow(); renderBoard();
   saveSnap();
   refreshStats(true);
+  if (r.flawless && r.cleared) sb.rpc("javeda_flawless_add", { p_level:lv.id }).then(() => loadBadges(true), () => loadBadges(true)); else loadBadges(true);
   if (d.album_complete) finale();
   else if (!quiet) toast("<b>+" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") + "</b>" + (r.cleared ? " &middot; " + starNote(lv.id) : "") +
     (unlocks ? " · " + unlocks : "") + (d.first_clear ? " · first clear!" : ""), r.cleared ? 5500 : 4500);
@@ -2897,8 +2990,10 @@ async function flushRunLog(){
 }
 // a result came in from the level: cleared or out, and when
 function runEnded(m){
+  const info = runInfo();
+  if (info && info.flawless && m.cleared) m.flawless = true;        // cleared without losing a heart: a badge
   if (!runLogs(current)) return;
-  const i = runInfo() || { run:-1, t:null, why:null, quits:[] }, lv = current.id;
+  const i = info || { run:-1, t:null, why:null, quits:[] }, lv = current.id;
   runDone = i.run;
   runLog(i.quits.map(t => ({ level:lv, outcome:"quit", t })).concat([{ level:lv, outcome:m.cleared ? "clear" : "fail", t:i.t, why:m.cleared ? null : i.why }]));
 }

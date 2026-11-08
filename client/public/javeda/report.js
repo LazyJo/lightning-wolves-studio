@@ -48,19 +48,26 @@
      only that: the level, cleared / out / gave up, the second in the song and the reason. Every level keeps its run in
      S (S.started, S.t, and S.fail / S.done / S.end once it's over). */
   if (window.parent === window) return;
-  const st = { run:0, live:false, t:0, quits:[] };
+  const st = { run:0, live:false, t:0, quits:[], h:null, hurt:false };
+  const hearts = s => typeof s.hearts === "number" ? s.hearts : typeof s.lives === "number" ? s.lives : null;   // for "no heart lost"
   const peek = () => { try { return typeof S === "object" && S ? S : null; } catch(e){ return null; } };
   const practice = () => { try { return typeof PRACTICE !== "undefined" && !!PRACTICE; } catch(e){ return false; } };   // a practice run isn't a try
   const going = s => !!s && !practice() && !!s.started && !s.fail && !s.done && !(s.end >= 0) && typeof s.t === "number" && isFinite(s.t);
   setInterval(() => {
     const s = peek(), on = going(s);
+    const fresh = on && (!st.live || s.t < st.t - 2);
     if (on){
       if (!st.live) st.run++;                                            // a new run
       else if (s.t < st.t - 2){ if (st.t > 3) st.quits.push(st.t); st.run++; }   // started over in the middle of one
       st.t = Math.max(0, s.t);
     }
+    if (fresh){ st.h = hearts(s); st.hurt = false; }
+    else if (s && st.run) st.hurt = hurt(s);
     st.live = on;
   }, 250);
+  // a heart lost since the run started (a heart picked up later doesn't undo it)
+  function hurt(s){ const h = hearts(s); if (st.hurt || h === null || st.h === null) return st.hurt; if (h < st.h) return true; st.h = h; return false; }
   window.JAVEDA_RUN = () => { const s = peek(), q = st.quits; st.quits = [];
-    return { run:st.run, live:going(s), t:Math.round(st.t * 10) / 10, why:s && typeof s.why === "string" ? s.why.slice(0, 60) : null, quits:q }; };
+    const flawless = !!s && st.run > 0 && st.h !== null && !hurt(s);
+    return { run:st.run, live:going(s), t:Math.round(st.t * 10) / 10, why:s && typeof s.why === "string" ? s.why.slice(0, 60) : null, quits:q, flawless }; };
 })();

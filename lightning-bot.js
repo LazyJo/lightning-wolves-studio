@@ -271,7 +271,7 @@ async function feed(sb) {
       const n = await news();
       await post({ content: n ? '<@&' + n.id + '>' : undefined, allowed_mentions: { roles: n ? [n.id] : [] },
         embeds: [{ color: GOLD, title: em + ' The JAVEDA ' + nm + ' has started', url: JAVEDA, description: EVX[ev.kind] + '\n\nEvery run counts for the event board: ' +
-          (ev.merch ? 'the winner gets **Lazy Jo merch**, second and third a discount code.' : 'the best three win a **discount code** for the merch shop.') +
+          (ev.merch ? 'the winner gets **Lazy Jo merch**' : 'the winner gets a **discount code** for the merch shop') + ', and the top 3 each get a 🔑 key to open a song.' +
           '\nDouble points weekend: **' + new Date(ev.double_from).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'Europe/Brussels' }) + '**.' }],
         components: [row(link('Play the event', JAVEDA, em))] }, 'event');
       await setState(sb, 'event_posted', ev.event);
@@ -291,8 +291,8 @@ async function feed(sb) {
       const [em, nm] = EVN[c.kind], medal = ['🥇', '🥈', '🥉'], who = await discordNames(sb, c.top.map(t => t.user_id));
       await post({ embeds: [{ color: GOLD, title: em + ' The ' + nm + ' is over', url: JAVEDA,
           description: c.top.map(t => medal[t.place - 1] + ' ' + (who[t.user_id] ? '<@' + who[t.user_id] + '> ' : '') + '**' + t.username + '** · ' + fmt(t.points) + ' points' +
-            (t.prize === 'merch' ? ' · wins **Lazy Jo merch**' : ' · wins a discount code')).join('\n') +
-            '\n\n' + c.players + ' player' + (c.players === 1 ? '' : 's') + ' took part. The winners find their code on the JAVEDA page.' }],
+            (t.prize === 'merch' ? ' · wins **Lazy Jo merch** and a 🔑 key' : t.prize === 'discount' ? ' · wins a discount code and a 🔑 key' : ' · wins a 🔑 key')).join('\n') +
+            '\n\n' + c.players + ' player' + (c.players === 1 ? '' : 's') + ' took part. The keys are already in their accounts; the winner finds the code on the JAVEDA page.' }],
         allowed_mentions: { users: Object.values(who) } }, 'event-winners');
     }
   } catch (e) {}

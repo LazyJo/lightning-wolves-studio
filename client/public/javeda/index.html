@@ -1659,7 +1659,7 @@ function eventCard(){
   const days = Math.min(5, me.days || 0), cl = Math.min(5, me.clears || 0);
   return '<article class="daily event"><span class="dl">' + k.e + ' ' + k.name + ' &middot; until <span data-i18n-skip>' + esc(until) + '</span></span>' +
     '<span class="dt">Climb the event board</span>' +
-    '<p class="dd">' + (evNow.merch ? "The winner gets Lazy Jo merch; second and third place get a discount code for the merch shop." : "The best three win a discount code for Lazy Jo's merch shop.") + '</p>' + dbl +
+    '<p class="dd">' + (evNow.merch ? "The winner gets Lazy Jo merch; the top three each get a key to open a song." : "The winner gets a discount code for Lazy Jo's merch shop; the top three each get a key to open a song.") + '</p>' + dbl +
     '<div class="evgoals"><span class="' + (days >= 5 ? 'done' : '') + '"><img src="' + pic(k.pic) + '" alt=""><span><b>' + k.picName + '</b><em>' + days + ' / 5 days</em></span></span>' +
     '<span class="' + (cl >= 5 ? 'done' : '') + '"><span class="be" aria-hidden="true">' + k.e + '</span><span><b>' + k.badge + '</b><em>' + cl + ' / 5 clears</em></span></span></div>' +
     '<div class="row">' + (!signedIn() ? '<span class="tag">Log in to compete</span>' : me.points ? '<span class="best">#' + me.rank + ' &middot; ' + fmt(me.points) + ' points</span>' : '<span class="tag">Not on the board yet</span>') +
@@ -1696,10 +1696,11 @@ async function openDoor(d){
 function prizeCards(){
   return evPrizes.map(p => { const k = EV[p.kind]; if (!k) return "";
     return '<article class="daily prize"><span class="dl">&#127942; ' + k.name + ' &middot; You won!</span><span class="dt">Place ' + p.place + '</span>' +
-      (p.code ? '<p class="dd">' + (p.prize === "merch" ? "Your merch code:" : "Your discount code:") + '</p><code data-i18n-skip>' + esc(p.code) + '</code><p class="dd">Use it in Lazy Jo\'s merch shop.</p>'
-        : '<p class="dd">Lazy Jo is adding your code. Check back soon.</p>') +
-      '<div class="row"><span class="btns">' + (p.code ? '<button class="btn small" type="button" data-copycode="' + esc(p.code) + '">Copy</button>' : '') +
-      '<a class="btn gold small" href="' + LINKS.merch + '" target="_blank" rel="noopener">Open the shop</a></span></div></article>'; }).join("");
+      (p.prize === "key" ? '<p class="dd">Your prize: a key to open a song of your choice. It\'s already in your account.</p>'
+        : (p.code ? '<p class="dd">' + (p.prize === "merch" ? "Your merch code:" : "Your discount code:") + '</p><code data-i18n-skip>' + esc(p.code) + '</code><p class="dd">Use it in Lazy Jo\'s merch shop.</p>'
+          : '<p class="dd">Lazy Jo is adding your code. Check back soon.</p>') + '<p class="dd">Plus a key to open a song of your choice.</p>') +
+      (p.prize === "key" ? '' : '<div class="row"><span class="btns">' + (p.code ? '<button class="btn small" type="button" data-copycode="' + esc(p.code) + '">Copy</button>' : '') +
+      '<a class="btn gold small" href="' + LINKS.merch + '" target="_blank" rel="noopener">Open the shop</a></span></div>') + '</article>'; }).join("");
 }
 const weeklyLocked = () => !!weekly && weekly.on === false;
 async function loadWeekly(){

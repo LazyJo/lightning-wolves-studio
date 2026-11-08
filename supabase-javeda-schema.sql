@@ -2547,8 +2547,9 @@ GRANT EXECUTE ON FUNCTION public.javeda_badges(TEXT) TO anon, authenticated;
 -- 7-21 Feb (an invite gives two keys each), spring 20 Mar - 20 Apr, summer 21 Jun - 31 Aug, halloween 24 Oct - 2 Nov.
 -- During one: the page dresses up, runs count for the event's board, its second weekend pays double points, playing on
 -- 5 different days gives the event's picture, clearing 5 levels its badge. When it ends (javeda_event_close_due, from
--- the bot's 5-minute feed) the top 3 are kept: a discount code each, or merch for #1 once JAVEDA has 100 downloads and
--- 30 accounts. Lazy Jo adds the codes (javeda_event_codes); each winner sees their own on the JAVEDA page.
+-- the bot's 5-minute feed) the top 3 are kept and each gets a key (open a song of their choice); #1 also gets a discount
+-- code - or merch, once JAVEDA has 100 downloads and 30 accounts, at most one merch a month. Lazy Jo adds #1's code
+-- (javeda_event_codes); the winner sees it on the JAVEDA page.
 INSERT INTO javeda_avatars (id, name, cost, sort, unlock) VALUES
   ('ev-winter', 'Snow Saucer', 0, 200, 'event:winter'),
   ('ev-valentine', 'Heart Saucer', 0, 201, 'event:valentine'),
@@ -2604,7 +2605,7 @@ CREATE TABLE IF NOT EXISTS javeda_event_winners (
   user_id   UUID REFERENCES javeda_players(user_id) ON DELETE SET NULL,
   username  TEXT,
   points    INT,
-  prize     TEXT NOT NULL CHECK (prize IN ('merch', 'discount')),
+  prize     TEXT NOT NULL CHECK (prize IN ('merch', 'discount', 'key')),
   code      TEXT,
   closed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (event, place)
@@ -2722,23 +2723,27 @@ AS $$ SELECT p.username, p.avatar, s.points, p.album_completed_at IS NOT NULL
       WHERE s.event = p_event AND s.points > 0 ORDER BY s.points DESC, s.updated_at LIMIT 50; $$;
 GRANT EXECUTE ON FUNCTION public.javeda_event_board(TEXT) TO anon, authenticated;
 
--- the events that ended and aren't closed yet: their top 3 are kept (prize: merch for #1 once javeda_merch_on, else a
--- discount code each). For the bot's feed, which tells Discord; returns what it closed.
+-- the events that ended and aren't closed yet: their top 3 are kept, a key each; #1's prize is a discount code, or merch
+-- once javeda_merch_on and no merch went out this month. For the bot's feed, which tells Discord; returns what it closed.
 CREATE OR REPLACE FUNCTION public.javeda_event_close_due()
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
-DECLARE e RECORD; out JSON[] := '{}'; i INT; merch BOOLEAN := javeda_merch_on(); n INT;
+DECLARE e RECORD; out JSON[] := '{}'; i INT; merch BOOLEAN; n INT;
 BEGIN
   FOR i IN 1..40 LOOP
     SELECT * INTO e FROM javeda_event_at(now() - make_interval(days => i));
     CONTINUE WHEN e.key IS NULL OR e.ends > now() OR EXISTS (SELECT 1 FROM javeda_event_closed WHERE event = e.key);
     SELECT count(*) INTO n FROM javeda_event_scores WHERE event = e.key AND points > 0;
+    merch := javeda_merch_on() AND NOT EXISTS (SELECT 1 FROM javeda_event_winners WHERE prize = 'merch'
+               AND date_trunc('month', closed_at AT TIME ZONE 'Europe/Brussels') = date_trunc('month', now() AT TIME ZONE 'Europe/Brussels'));
     INSERT INTO javeda_event_winners (event, place, user_id, username, points, prize)
-    SELECT e.key, r.place, r.user_id, r.username, r.points, CASE WHEN r.place = 1 AND merch THEN 'merch' ELSE 'discount' END
+    SELECT e.key, r.place, r.user_id, r.username, r.points, CASE WHEN r.place > 1 THEN 'key' WHEN merch THEN 'merch' ELSE 'discount' END
     FROM (SELECT s.user_id, p.username, s.points, row_number() OVER (ORDER BY s.points DESC, s.updated_at)::INT AS place
           FROM javeda_event_scores s JOIN javeda_players p ON p.user_id = s.user_id WHERE s.event = e.key AND s.points > 0) r
     WHERE r.place <= 3 ON CONFLICT DO NOTHING;
+    -- a key each for the top 3 (open a song of their choice)
+    UPDATE javeda_players SET level_keys = level_keys + 1 WHERE user_id IN (SELECT user_id FROM javeda_event_winners WHERE event = e.key AND user_id IS NOT NULL);
     INSERT INTO javeda_event_closed (event, players) VALUES (e.key, n);
     out := out || json_build_object('event', e.key, 'kind', e.kind, 'players', n,
       'top', (SELECT COALESCE(json_agg(json_build_object('place', w.place, 'username', w.username, 'user_id', w.user_id, 'points', w.points, 'prize', w.prize) ORDER BY w.place), '[]')
@@ -2750,7 +2755,7 @@ $$;
 REVOKE ALL ON FUNCTION public.javeda_event_close_due() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_event_close_due() TO service_role;
 
--- Lazy Jo's codes for an event's winners, in place order: SELECT javeda_event_codes('winter-2026', ARRAY['CODE1','CODE2','CODE3']);
+-- Lazy Jo's code for an event's winner (#1; the others get a key): SELECT javeda_event_codes('winter-2026', ARRAY['CODE']);
 -- (creators only; in the SQL Editor the creator check is skipped)
 CREATE OR REPLACE FUNCTION public.javeda_event_codes(p_event TEXT, p_codes TEXT[])
 RETURNS JSON

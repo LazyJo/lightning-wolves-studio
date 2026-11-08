@@ -2062,3 +2062,120 @@ AS $$
            ORDER BY c.id DESC LIMIT 1));
 $$;
 GRANT EXECUTE ON FUNCTION public.javeda_chat_peek(BIGINT) TO anon, authenticated;
+
+-- ============================================================================
+-- Invite a friend: every player has an invite link (/javeda/?invite=CODE). A friend who opens it, makes an account
+-- (within 7 days of that, a new account) and clears their first level gets a key, and so does the one who invited
+-- them (at most 10 keys from inviting). A key opens one locked song of your choice: its Part 1 is kept open
+-- (javeda_unlocks, via 'key'), like a daily challenge does; its Parts 2-3 then open as usual.
+-- ============================================================================
+ALTER TABLE javeda_players ADD COLUMN IF NOT EXISTS level_keys INT NOT NULL DEFAULT 0;
+ALTER TABLE javeda_players ADD COLUMN IF NOT EXISTS keys_earned INT NOT NULL DEFAULT 0;
+ALTER TABLE javeda_players ADD COLUMN IF NOT EXISTS invite_code TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS javeda_players_invite ON javeda_players (invite_code) WHERE invite_code IS NOT NULL;
+CREATE TABLE IF NOT EXISTS javeda_invites (
+  invitee     UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  inviter     UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  rewarded_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS javeda_invites_by ON javeda_invites (inviter);
+ALTER TABLE javeda_invites ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_invites FROM anon, authenticated;
+
+-- your code (made the first time you ask), your keys, and how many friends came and cleared a level
+CREATE OR REPLACE FUNCTION public.javeda_invite_code()
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE uid UUID := auth.uid(); me javeda_players%ROWTYPE; c TEXT;
+BEGIN
+  SELECT * INTO me FROM javeda_players WHERE user_id = uid;
+  IF me.user_id IS NULL THEN RAISE EXCEPTION 'player'; END IF;
+  c := me.invite_code;
+  WHILE c IS NULL LOOP
+    c := upper(substr(md5(random()::text || clock_timestamp()::text || uid::text), 1, 6));
+    BEGIN UPDATE javeda_players SET invite_code = c WHERE user_id = uid;
+    EXCEPTION WHEN unique_violation THEN c := NULL; END;
+  END LOOP;
+  RETURN json_build_object('code', c, 'keys', me.level_keys,
+    'joined', (SELECT count(*) FROM javeda_invites WHERE inviter = uid),
+    'cleared', (SELECT count(*) FROM javeda_invites WHERE inviter = uid AND rewarded_at IS NOT NULL));
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_invite_code() TO authenticated;
+
+-- a key each, the first time the invited friend clears a level (inside: no one calls this directly)
+CREATE OR REPLACE FUNCTION public.javeda_invite_reward(p_user UUID)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE inv UUID;
+BEGIN
+  UPDATE javeda_invites SET rewarded_at = now() WHERE invitee = p_user AND rewarded_at IS NULL RETURNING inviter INTO inv;
+  IF inv IS NULL THEN RETURN; END IF;
+  UPDATE javeda_players SET level_keys = level_keys + 1, keys_earned = keys_earned + 1 WHERE user_id = inv AND keys_earned < 10;
+  UPDATE javeda_players SET level_keys = level_keys + 1 WHERE user_id = p_user;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_invite_reward(UUID) FROM PUBLIC, anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.javeda_progress_invite()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF NEW.cleared AND (TG_OP = 'INSERT' OR NOT OLD.cleared)
+     AND EXISTS (SELECT 1 FROM javeda_invites WHERE invitee = NEW.user_id AND rewarded_at IS NULL) THEN
+    PERFORM javeda_invite_reward(NEW.user_id);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS javeda_progress_invite ON javeda_progress;
+CREATE TRIGGER javeda_progress_invite AFTER INSERT OR UPDATE OF cleared ON javeda_progress
+  FOR EACH ROW EXECUTE FUNCTION public.javeda_progress_invite();
+
+-- the new player came through a friend's link (the page keeps the code from the link and says so once the player exists)
+CREATE OR REPLACE FUNCTION public.javeda_invited_by(p_code TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE uid UUID := auth.uid(); me javeda_players%ROWTYPE; inv UUID;
+BEGIN
+  SELECT * INTO me FROM javeda_players WHERE user_id = uid;
+  IF me.user_id IS NULL THEN RETURN 'player'; END IF;
+  IF me.created_at < now() - interval '7 days' THEN RETURN 'old'; END IF;
+  SELECT user_id INTO inv FROM javeda_players WHERE invite_code = upper(btrim(coalesce(p_code, '')));
+  IF inv IS NULL THEN RETURN 'unknown'; END IF;
+  IF inv = uid THEN RETURN 'self'; END IF;
+  INSERT INTO javeda_invites (invitee, inviter) VALUES (uid, inv) ON CONFLICT (invitee) DO NOTHING;
+  -- cleared something already (a guest's levels came along): the keys now
+  IF EXISTS (SELECT 1 FROM javeda_progress WHERE user_id = uid AND cleared) THEN PERFORM javeda_invite_reward(uid); END IF;
+  RETURN 'ok';
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_invited_by(TEXT) TO authenticated;
+
+-- use a key on a locked song: its Part 1 opens
+CREATE OR REPLACE FUNCTION public.javeda_use_key(p_level TEXT)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE uid UUID := auth.uid(); me javeda_players%ROWTYPE; lv javeda_levels%ROWTYPE; left_ INT;
+BEGIN
+  SELECT * INTO me FROM javeda_players WHERE user_id = uid FOR UPDATE;
+  IF me.user_id IS NULL THEN RAISE EXCEPTION 'player'; END IF;
+  IF me.level_keys <= 0 THEN RAISE EXCEPTION 'no keys'; END IF;
+  SELECT * INTO lv FROM javeda_levels WHERE id = p_level;
+  IF lv.id IS NULL OR lv.endless OR p_level !~ '^lvl[0-9]+$' THEN RAISE EXCEPTION 'not a song'; END IF;
+  IF lv.requires IS NULL
+     OR EXISTS (SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared AND best_score >= lv.requires_score)
+     OR EXISTS (SELECT 1 FROM javeda_unlocks WHERE user_id = uid AND level = p_level)
+     OR EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = uid) THEN RAISE EXCEPTION 'already open'; END IF;
+  INSERT INTO javeda_unlocks (user_id, level, via) VALUES (uid, p_level, 'key');
+  UPDATE javeda_players SET level_keys = level_keys - 1, updated_at = now() WHERE user_id = uid RETURNING level_keys INTO left_;
+  RETURN json_build_object('level', p_level, 'keys', left_);
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_use_key(TEXT) TO authenticated;

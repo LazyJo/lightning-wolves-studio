@@ -1369,7 +1369,23 @@ S: {
 "Mute this player for a day? Their messages of the last day go too.":"Silenziare questo giocatore per un giorno? Spariscono anche i suoi messaggi dell'ultimo giorno.",
 "# online now":"# online ora",
 "mentioned you in the chat":"ti ha menzionato nella chat",
-"New messages":"Nuovi messaggi"
+"New messages":"Nuovi messaggi",
+"Invite friends":"Invita amici",
+"Invite":"Invita",
+"Your invite link":"Il tuo link d'invito",
+"Up to 10 keys from inviting. Your friend gets one too.":"Fino a 10 chiavi invitando. Anche il tuo amico ne riceve una.",
+"# joined with your link":"# si sono uniti con il tuo link",
+"# cleared a level":"# hanno completato un livello",
+"you have # keys":"hai # chiavi",
+"Open with a key":"Apri con una chiave",
+"Use a key to open this song?":"Usare una chiave per aprire questa canzone?",
+"Make a free account to invite friends.":"Crea un account gratis per invitare amici.",
+"Inviting needs the internet.":"Per invitare serve internet.",
+"Could not load your link. Try again in a bit.":"Impossibile caricare il tuo link. Riprova tra poco.",
+"Could not use the key. Try again.":"Impossibile usare la chiave. Riprova.",
+"Play JAVEDA with me, Lazy Jo's playable album. Use my link and we both get a key to open a level:":"Gioca a JAVEDA con me, l'album giocabile di Lazy Jo. Usa il mio link e riceviamo entrambi una chiave per aprire un livello:",
+"A friend invited you. Make a free account and clear your first level: you both get a 🔑 key.":"Un amico ti ha invitato. Crea un account gratis e completa il tuo primo livello: ricevete entrambi una 🔑 chiave.",
+"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"L'invito del tuo amico vale: completa il tuo primo livello e ricevete entrambi una 🔑 chiave."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",
@@ -2265,7 +2281,11 @@ HTML: {
 "<b>#</b> in space · lap <b>#</b> · stages <b>#</b> · rainbows <b>#</b> · cards <b>#</b>":"<b>#</b> nello spazio · giro <b>#</b> · fasi <b>#</b> · arcobaleni <b>#</b> · carte <b>#</b>",
 "<b>Tap</b> a mound to dig it: the number says how many crabs are in the # around it (an empty one digs its neighbours too; the first dig is never a crab). <b>Hold</b> a mound, or turn on <b>FLAG</b>, to mark a crab. Dig up a crab and it bites - a heart (#). Take your time: only a crab costs a heart. Dig a whole beach to clear the part. Dug <b>on the beat</b> it counts double; double again in the hooks.":"<b>Tocca</b> un mucchietto per scavarlo: il numero dice quanti granchi ci sono negli # intorno (uno vuoto scava anche i vicini; il primo scavo non è mai un granchio). <b>Tieni premuto</b> un mucchietto, o attiva <b>BANDIERA</b>, per segnare un granchio. Se dissotterri un granchio ti morde - un cuore (#). Prenditi il tuo tempo: solo un granchio costa un cuore. Scava un'intera spiaggia per completare la parte. Scavato <b>a tempo</b> vale doppio; di nuovo doppio nei ritornelli.",
 "<b>Heart Flow:</b> drag from a heart to the heart of the same colour; lines can't cross. <b>Crab Sweeper:</b> tap a mound to dig it, the number counts the crabs around; hold it, or turn on <b>FLAG</b>, to mark a crab - only a crab costs a heart. <b>Starlight:</b> tap a star and it changes, with the four next to it; light them all. <b>Shell Sudoku:</b> tap a picture on the tray, then a stone; each one once in every row, column and box. When a game's turn is up you finish what you're on, then the next one comes in.":"<b>Heart Flow:</b> trascina da un cuore al cuore dello stesso colore; le linee non possono incrociarsi. <b>Crab Sweeper:</b> tocca un mucchietto per scavarlo, il numero conta i granchi intorno; tienilo premuto, o attiva <b>BANDIERA</b>, per segnare un granchio - solo un granchio costa un cuore. <b>Starlight:</b> tocca una stella e cambia, insieme alle quattro vicine; accendile tutte. <b>Shell Sudoku:</b> tocca un'immagine sul vassoio, poi una pietra; ognuna una volta in ogni riga, colonna e riquadro. Quando il turno di un gioco finisce, completi quello che stai facendo, poi arriva il prossimo.",
-"Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart. <b>Go again.</b>":"Scava un'intera spiaggia - ogni mucchietto senza granchio - per completare Crab Sweeper. Prenditi il tuo tempo: solo un granchio costa un cuore. <b>Riprova.</b>"
+"Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart. <b>Go again.</b>":"Scava un'intera spiaggia - ogni mucchietto senza granchio - per completare Crab Sweeper. Prenditi il tuo tempo: solo un granchio costa un cuore. <b>Riprova.</b>",
+"Send your link to a friend. When they make a free account with it and clear their first level, you <b>both</b> get a 🔑 key.":"Manda il tuo link a un amico. Quando crea un account gratis con quel link e completa il suo primo livello, ricevete <b>entrambi</b> una 🔑 chiave.",
+"A key opens <b>any locked song you choose</b>: tap 🔑 on its Part 1.":"Una chiave apre <b>qualsiasi canzone bloccata a tua scelta</b>: tocca 🔑 sulla sua Parte 1.",
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice":"<b>🎁 Invita un amico</b> · ricevete entrambi una 🔑 chiave per aprire una canzone a scelta",
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 Invita un amico</b> · ricevete entrambi una 🔑 chiave per aprire una canzone a scelta · hai <b># 🔑</b>"
 },
 P: {
 "^Best (.+)$": "Record $1",

@@ -534,6 +534,9 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 /* the JAVEDA Pass: gold and lightning. A locked part stays dim, but its lightning button doesn't */
 .passrow{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; border:1px solid #ffd60a59; background:linear-gradient(100deg,#ffd60a1f,#050c1e80 70%); border-radius:10px; padding:9px 10px 9px 12px; font-size:13.5px; color:var(--dim)}
 .passrow b{color:var(--gold)}
+.passrow.invrow{border-color:#67c8ff55; background:linear-gradient(100deg,#67c8ff1c,#050c1e80 70%)}
+.passrow.invrow b{color:var(--beam)}
+.keylock{border-color:#67c8ff80; color:var(--beam)}
 .part.locked.passy{opacity:1}
 .part.passy .pi, .part.passy .tag, .part.passy .inf.lock{opacity:.55}
 .btn.passlock{border:1px dashed #ffd60a88; background:#ffd60a12; color:var(--gold)}
@@ -721,6 +724,23 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <p class="small" id="lgForgotRow"><button class="switch" id="lgForgot" type="button">Forgot your password?</button></p>
     <p id="lgSwitchRow"><span id="lgSwitchTxt">New here?</span> <button class="switch" id="lgSwitch" type="button">Create an account</button></p>
     <p class="small"><a href="/javeda/privacy.html" target="_blank" rel="noopener">How JAVEDA keeps your data</a></p>
+  </div>
+</div>
+
+<!-- invite friends, earn keys: a key opens a locked song of your choice -->
+<div class="sheet hid" id="friends" role="dialog" aria-modal="true" aria-labelledby="frT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="frT">&#127873; Invite friends</h3>
+    <p>Send your link to a friend. When they make a free account with it and clear their first level, you <b>both</b> get a &#128273; key.</p>
+    <p>A key opens <b>any locked song you choose</b>: tap &#128273; on its Part 1.</p>
+    <div class="linkrow"><input class="in" id="frLink" readonly aria-label="Your invite link"><button class="btn small" id="frCopy" type="button">Copy</button></div>
+    <div class="ivacts">
+      <button class="btn" id="frShare" type="button">Share&hellip;</button>
+      <a class="btn wa" id="frWa" target="_blank" rel="noopener">WhatsApp</a>
+    </div>
+    <p class="small" id="frStats"></p>
+    <p class="small">Up to 10 keys from inviting. Your friend gets one too.</p>
   </div>
 </div>
 
@@ -1412,6 +1432,10 @@ function renderNow(){
   const passrow = (passOn || freeView) && !hasPass() ? '<div class="passrow"><span><b>&#9889; JAVEDA Pass</b> &middot; every part open right away' +
     (passCents ? ' &middot; ' + euro(passCents) + ' once' : '') + '</span><button class="btn gold small" data-pass="">Get it</button></div>'
     : pass && !creator ? '<div class="passrow"><span><b>&#9889; JAVEDA Pass</b> &middot; every part open</span><button class="btn gold small" data-marathon="1">Album marathon</button></div>' : '';
+  // invite friends: a key each (not for a creator or a Pass: everything's open there)
+  const keys = signedIn() ? player.level_keys || 0 : 0;
+  const invrow = hasPass() ? '' : '<div class="passrow invrow"><span><b>&#127873; Invite a friend</b> &middot; you both get a &#128273; key to open a song of your choice' +
+    (keys ? ' &middot; you have <b>' + keys + ' &#128273;</b>' : '') + '</span><button class="btn small" type="button" data-friends="1">Invite</button></div>';
   let html;
   if (albumDone()){
     const mb = (progress.marathon || {}).best;
@@ -1430,7 +1454,7 @@ function renderNow(){
       (nx ? '<div class="next"><span class="nt"><small>' + (parts ? 'Continue' : 'Start here') + ' &middot; ' + lvName(nx) + '</small><span>' + esc(nx.title) + '</span></span>' +
               '<button class="btn primary" data-play="' + nx.id + '">' + (parts ? 'Continue' : 'Play') + ' &#9654;</button></div>'
           : wait ? '<div class="next"><span class="nt"><small>Next &middot; ' + lvName(wait) + ' &middot; ' + needText(wait) + '</small><span>' + esc(wait.title) + '</span></span>' +
-              '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>' : '') + passrow + crt + '</article>';
+              '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>' : '') + passrow + invrow + crt + '</article>';
   }
   hsPut($("now"), html + dailyCard());
 }
@@ -1531,9 +1555,12 @@ function partTile(lv){
       (open
         ? (done ? '<span class="best">Best ' + fmt(p.best) + '</span>' : '<span class="tag">' + (p.runs ? 'Not cleared yet' : 'New') + '</span>') +
           '<span class="btns"><button class="btn ' + (done ? '' : 'primary') + ' small" data-play="' + lv.id + '">' + (done ? 'Replay' : 'Play') + '</button>' + infButton(lv) + '</span>'
-        : '<span class="tag">&#128274; ' + lock + '</span><span class="btns">' + passBolt(lv) + infButton(lv) + '</span>') +
+        : '<span class="tag">&#128274; ' + lock + '</span><span class="btns">' + keyBolt(lv) + passBolt(lv) + infButton(lv) + '</span>') +
     '</div></div>';
 }
+// a key (from inviting friends) opens a locked song's Part 1
+const keyReady = lv => signedIn() && !session.offline && (player.level_keys || 0) > 0 && !lv.part && /^lvl\d+$/.test(lv.id) && !isOpen(lv) && !hasPass();
+const keyBolt = lv => keyReady(lv) ? '<button class="btn small keylock pz" data-key="' + lv.id + '" title="Open with a key" aria-label="Open with a key">&#128273;</button>' : '';
 // on a locked tile, once the Pass is on sale: it opens it right now
 const passBolt = lv => passReady(lv) ? '<button class="btn small passlock pz" data-pass="' + lv.id + '" title="Unlock with the JAVEDA Pass" aria-label="Unlock with the JAVEDA Pass">&#9889;</button>' : '';
 // a part's endless, right beside it: gold when it's open, dim with a lock (and what opens it) when it isn't
@@ -2137,6 +2164,7 @@ async function loadAccount(){
     return loadAccount();
   }
   if (news) newsWish(false); else applyNewsWish(false);
+  claimFriend();
   saveSnap(); withPending(uid);
   renderAll(); showJoin();
   refreshStats(true);
@@ -2190,11 +2218,55 @@ const playOrPass = e => {
   if (b.dataset.pass !== undefined) openPass(levelById(b.dataset.pass)); else play(b.dataset.play);
   return true;
 };
-$("levels").addEventListener("click", playOrPass);
+$("levels").addEventListener("click", e => { const k = e.target.closest("[data-key]"); if (k) useKey(levelById(k.dataset.key)); else playOrPass(e); });
+async function useKey(lv){
+  if (!lv || !keyReady(lv)) return;
+  if (!confirm((window.JAVEDA_T || (x => x))("Use a key to open this song?") + "\n" + lvName(lv) + " · " + lv.title)) return;
+  const { data, error } = await sb.rpc("javeda_use_key", { p_level:lv.id }).then(r => r, x => ({ error:x }));
+  if (error){ toast(/already open/.test(error.message) ? lvName(lv) + " is open." : "Could not use the key. Try again."); if (/already open/.test(error.message)) loadAccount(); return; }
+  unlocks.add(lv.id); player.level_keys = data.keys; saveSnap(); renderAll(); toast("&#128273; " + lvName(lv) + " is open.", 5000);
+}
+// invite friends: your link (the code is made the first time), shared or copied
+let friendUrl = "";
+async function openFriends(){
+  if (!sb){ toast("Inviting needs the internet."); return; }
+  if (!signedIn()){ toast("Make a free account to invite friends."); openLogin(true); return; }
+  $("frLink").value = "…"; $("frStats").textContent = ""; openSheet("friends");
+  const { data, error } = await sb.rpc("javeda_invite_code").then(r => r, x => ({ error:x }));
+  if (error){ $("frStats").textContent = "Could not load your link. Try again in a bit."; return; }
+  friendUrl = location.origin + "/javeda/?invite=" + data.code;
+  $("frLink").value = friendUrl;
+  const text = (window.JAVEDA_T || (x => x))("Play JAVEDA with me, Lazy Jo's playable album. Use my link and we both get a key to open a level:");
+  $("frWa").href = "https://wa.me/?text=" + encodeURIComponent(text + " " + friendUrl);
+  $("frShare").classList.toggle("hid", !navigator.share); $("frShare").onclick = async () => { try { await navigator.share({ title:"JAVEDA", text, url:friendUrl }); } catch(e){} };
+  player.level_keys = data.keys;
+  $("frStats").textContent = data.joined + " joined with your link · " + data.cleared + " cleared a level · you have " + data.keys + " keys";
+}
+$("frCopy").onclick = async () => { if (!friendUrl) return; try { await navigator.clipboard.writeText(friendUrl); toast("Link copied - send it to your friend"); } catch(e){ $("frLink").select(); } };
+// a friend's link: keep its code (also through making an account), and say what it means
+const FRIEND_KEY = "javeda.friend";
+(function(){
+  const q = new URLSearchParams(location.search), c = (q.get("invite") || "").toUpperCase();
+  if (!/^[A-F0-9]{6}$/.test(c)) return;
+  try { localStorage.setItem(FRIEND_KEY, JSON.stringify({ code:c, at:Date.now() })); } catch(e){}
+  q.delete("invite"); history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash);
+  setTimeout(() => { if (!signedIn()) toast("A friend invited you. Make a free account and clear your first level: you both get a &#128273; key.", 8000); }, 2500);
+})();
+// once the player exists: tell the server who invited them (once)
+async function claimFriend(){
+  let x = null; try { x = JSON.parse(localStorage.getItem(FRIEND_KEY) || "null"); } catch(e){}
+  if (!x || !signedIn() || session.offline) return;
+  if (Date.now() - x.at > 7 * 864e5){ try { localStorage.removeItem(FRIEND_KEY); } catch(e){} return; }
+  const { data, error } = await sb.rpc("javeda_invited_by", { p_code:x.code }).then(r => r, e => ({ error:e }));
+  if (error && netErr(error)) return;
+  try { localStorage.removeItem(FRIEND_KEY); } catch(e){}
+  if (data === "ok") toast("Your friend's invite counts: clear your first level and you both get a &#128273; key.", 6000);
+}
 $("now").addEventListener("click", e => {
   const b = e.target.closest("button"); if (!b) return;
   if (b.dataset.play || b.dataset.pass !== undefined) playOrPass(e);
   else if (b.dataset.daily) play(daily.level, { daily:true });
+  else if (b.dataset.friends) openFriends();
   else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); } });
   else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (b.dataset.marathon) startMarathon();

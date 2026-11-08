@@ -1369,7 +1369,23 @@ S: {
 "Mute this player for a day? Their messages of the last day go too.":"禁言这名玩家一天？他最近一天的消息也会删除。",
 "# online now":"#人在线",
 "mentioned you in the chat":"在聊天中提到了你",
-"New messages":"新消息"
+"New messages":"新消息",
+"Invite friends":"邀请好友",
+"Invite":"邀请",
+"Your invite link":"你的邀请链接",
+"Up to 10 keys from inviting. Your friend gets one too.":"邀请最多可得10把钥匙。你的好友也会得到一把。",
+"# joined with your link":"#人通过你的链接加入",
+"# cleared a level":"#人通关了一个关卡",
+"you have # keys":"你有#把钥匙",
+"Open with a key":"用钥匙打开",
+"Use a key to open this song?":"用一把钥匙打开这首歌？",
+"Make a free account to invite friends.":"创建免费账号即可邀请好友。",
+"Inviting needs the internet.":"邀请需要联网。",
+"Could not load your link. Try again in a bit.":"链接加载失败。请稍后再试。",
+"Could not use the key. Try again.":"无法使用钥匙。请再试一次。",
+"Play JAVEDA with me, Lazy Jo's playable album. Use my link and we both get a key to open a level:":"一起来玩 JAVEDA 吧，Lazy Jo 的可玩专辑。用我的链接，我们都能得到一把打开关卡的钥匙：",
+"A friend invited you. Make a free account and clear your first level: you both get a 🔑 key.":"有好友邀请了你。创建免费账号并通关第一个关卡，你们都能得到一把🔑钥匙。",
+"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"好友邀请已生效：通关你的第一个关卡，你们都能得到一把🔑钥匙。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",
@@ -2265,7 +2281,11 @@ HTML: {
 "<b>#</b> in space · lap <b>#</b> · stages <b>#</b> · rainbows <b>#</b> · cards <b>#</b>":"太空中<b>#</b> · 第<b>#</b>圈 · 阶段<b>#</b> · 彩虹<b>#</b> · 卡牌<b>#</b>",
 "<b>Tap</b> a mound to dig it: the number says how many crabs are in the # around it (an empty one digs its neighbours too; the first dig is never a crab). <b>Hold</b> a mound, or turn on <b>FLAG</b>, to mark a crab. Dig up a crab and it bites - a heart (#). Take your time: only a crab costs a heart. Dig a whole beach to clear the part. Dug <b>on the beat</b> it counts double; double again in the hooks.":"<b>点击</b>沙堆挖开：数字表示周围#格里有几只螃蟹（空的会连带挖开周围；第一下绝不会是螃蟹）。<b>长按</b>沙堆或打开<b>插旗</b>来标记螃蟹。挖到螃蟹会被夹 - 扣一颗爱心（#）。慢慢来：只有螃蟹会扣爱心。挖完整片海滩就能通关这一部分。<b>踩准节拍</b>挖得分翻倍；副歌时再翻倍。",
 "<b>Heart Flow:</b> drag from a heart to the heart of the same colour; lines can't cross. <b>Crab Sweeper:</b> tap a mound to dig it, the number counts the crabs around; hold it, or turn on <b>FLAG</b>, to mark a crab - only a crab costs a heart. <b>Starlight:</b> tap a star and it changes, with the four next to it; light them all. <b>Shell Sudoku:</b> tap a picture on the tray, then a stone; each one once in every row, column and box. When a game's turn is up you finish what you're on, then the next one comes in.":"<b>Heart Flow：</b>从一颗爱心拖到同色的爱心；线不能交叉。<b>Crab Sweeper：</b>点击沙堆挖开，数字表示周围的螃蟹数；长按或打开<b>插旗</b>来标记螃蟹 - 只有螃蟹会扣爱心。<b>Starlight：</b>点击一颗星星，它和相邻的四颗都会切换；把它们全部点亮。<b>Shell Sudoku：</b>先点托盘上的图案，再点一块石头；每行、每列、每宫中每个图案各出现一次。轮到的游戏时间一到，先完成手上这一局，再换下一个。",
-"Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart. <b>Go again.</b>":"挖完整片海滩 - 所有没有螃蟹的沙堆 - 就能通关Crab Sweeper。慢慢来：只有螃蟹会扣爱心。<b>再来一次。</b>"
+"Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart. <b>Go again.</b>":"挖完整片海滩 - 所有没有螃蟹的沙堆 - 就能通关Crab Sweeper。慢慢来：只有螃蟹会扣爱心。<b>再来一次。</b>",
+"Send your link to a friend. When they make a free account with it and clear their first level, you <b>both</b> get a 🔑 key.":"把你的链接发给好友。好友用它创建免费账号并通关第一个关卡后，你们<b>两个人</b>都能得到一把🔑钥匙。",
+"A key opens <b>any locked song you choose</b>: tap 🔑 on its Part 1.":"一把钥匙可以打开<b>你选择的任意一首锁定歌曲</b>：点击它第1部分上的🔑。",
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice":"<b>🎁 邀请好友</b> · 你们都能得到一把🔑钥匙，打开任意一首歌",
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 邀请好友</b> · 你们都能得到一把🔑钥匙，打开任意一首歌 · 你有<b># 🔑</b>"
 },
 P: {
 "^Best (.+)$": "最佳 $1",

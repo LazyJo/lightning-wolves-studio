@@ -1369,7 +1369,23 @@ S: {
 "Mute this player for a day? Their messages of the last day go too.":"このプレイヤーを1日ミュートする？ 直近1日のメッセージも消えます。",
 "# online now":"#人がオンライン",
 "mentioned you in the chat":"チャットであなたをメンションしました",
-"New messages":"新しいメッセージ"
+"New messages":"新しいメッセージ",
+"Invite friends":"友だちを招待",
+"Invite":"招待",
+"Your invite link":"あなたの招待リンク",
+"Up to 10 keys from inviting. Your friend gets one too.":"招待でもらえるカギは最大10本。友だちも1本もらえます。",
+"# joined with your link":"#人があなたのリンクで参加",
+"# cleared a level":"#人がレベルをクリア",
+"you have # keys":"カギを#本持っています",
+"Open with a key":"カギで開ける",
+"Use a key to open this song?":"カギを使ってこの曲を開ける？",
+"Make a free account to invite friends.":"友だちを招待するには無料アカウントを作ってね。",
+"Inviting needs the internet.":"招待にはネット接続が必要です。",
+"Could not load your link. Try again in a bit.":"リンクを読み込めませんでした。少ししてからもう一度試してね。",
+"Could not use the key. Try again.":"カギを使えませんでした。もう一度試してね。",
+"Play JAVEDA with me, Lazy Jo's playable album. Use my link and we both get a key to open a level:":"一緒にJAVEDAで遊ぼう！Lazy Joのプレイできるアルバムだよ。私のリンクを使うと、2人ともレベルを開けるカギがもらえるよ：",
+"A friend invited you. Make a free account and clear your first level: you both get a 🔑 key.":"友だちから招待が届いたよ。無料アカウントを作って最初のレベルをクリアすると、2人とも🔑カギがもらえます。",
+"Your friend's invite counts: clear your first level and you both get a 🔑 key.":"友だちの招待が有効になったよ。最初のレベルをクリアすると、2人とも🔑カギがもらえます。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",
@@ -2265,7 +2281,11 @@ HTML: {
 "<b>#</b> in space · lap <b>#</b> · stages <b>#</b> · rainbows <b>#</b> · cards <b>#</b>":"宇宙で<b>#</b> · ラップ<b>#</b> · ステージ<b>#</b> · 虹<b>#</b> · カード<b>#</b>",
 "<b>Tap</b> a mound to dig it: the number says how many crabs are in the # around it (an empty one digs its neighbours too; the first dig is never a crab). <b>Hold</b> a mound, or turn on <b>FLAG</b>, to mark a crab. Dig up a crab and it bites - a heart (#). Take your time: only a crab costs a heart. Dig a whole beach to clear the part. Dug <b>on the beat</b> it counts double; double again in the hooks.":"砂山を<b>タップ</b>して掘ろう：数字は周りの#マスにいるカニの数（空っぽなら周りも一緒に掘れる。最初のひと掘りは絶対カニじゃない）。砂山を<b>長押し</b>するか<b>旗</b>をオンにしてカニに印。カニを掘り当てるとかまれる - ハートが1つ減る（#）。じっくりでOK：ハートが減るのはカニだけ。ビーチを全部掘ればパートクリア。<b>ビートに合わせて</b>掘ると2倍、サビではさらに2倍。",
 "<b>Heart Flow:</b> drag from a heart to the heart of the same colour; lines can't cross. <b>Crab Sweeper:</b> tap a mound to dig it, the number counts the crabs around; hold it, or turn on <b>FLAG</b>, to mark a crab - only a crab costs a heart. <b>Starlight:</b> tap a star and it changes, with the four next to it; light them all. <b>Shell Sudoku:</b> tap a picture on the tray, then a stone; each one once in every row, column and box. When a game's turn is up you finish what you're on, then the next one comes in.":"<b>Heart Flow：</b>ハートから同じ色のハートまでドラッグ。線は交差できない。<b>Crab Sweeper：</b>砂山をタップして掘ろう、数字は周りのカニの数。長押しか<b>旗</b>をオンにしてカニに印をつけよう - ハートが減るのはカニだけ。<b>Starlight：</b>星をタップすると、隣の4つと一緒に切り替わる。全部灯そう。<b>Shell Sudoku：</b>トレイの絵をタップしてから石をタップ。どの行・列・ブロックにも各絵が1回ずつ。ゲームの番が終わったら、今のぶんを終えてから次のゲームが始まる。",
-"Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart. <b>Go again.</b>":"カニのいない砂山を全部掘って - ビーチまるごと - Crab Sweeperをクリアしよう。じっくりでOK：ハートが減るのはカニだけ。<b>もう一回。</b>"
+"Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart. <b>Go again.</b>":"カニのいない砂山を全部掘って - ビーチまるごと - Crab Sweeperをクリアしよう。じっくりでOK：ハートが減るのはカニだけ。<b>もう一回。</b>",
+"Send your link to a friend. When they make a free account with it and clear their first level, you <b>both</b> get a 🔑 key.":"リンクを友だちに送ろう。友だちがそのリンクで無料アカウントを作って最初のレベルをクリアすると、<b>2人とも</b>🔑カギがもらえます。",
+"A key opens <b>any locked song you choose</b>: tap 🔑 on its Part 1.":"カギは<b>好きなロック中の曲</b>を1曲開けられます：その曲のパート1の🔑をタップ。",
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice":"<b>🎁 友だちを招待</b> · 2人とも好きな曲を開ける🔑カギがもらえる",
+"<b>🎁 Invite a friend</b> · you both get a 🔑 key to open a song of your choice · you have <b># 🔑</b>":"<b>🎁 友だちを招待</b> · 2人とも好きな曲を開ける🔑カギがもらえる · 所持<b># 🔑</b>"
 },
 P: {
 "^Best (.+)$": "ベスト $1",

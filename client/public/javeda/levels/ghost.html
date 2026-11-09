@@ -381,8 +381,8 @@ const HW = {
     Object.assign(this, { t0, t1, L0, L1 });
     if (cont) return;
     this.start = t0;
-    this.st = { caught:0, golds:0, haunt:0, run:0, people:0, j:Math.ceil((t0 - GRID.t0)/BEAT), k:0 };
-    for (const w of this.wins){ w.state = "empty"; }
+    this.st = { caught:0, golds:0, haunt:0, run:0, people:0, calm:t0, j:Math.ceil((t0 - GRID.t0)/BEAT), k:0 };
+    for (const w of this.wins){ w.state = "empty"; w.red = null; }
   },
   info(){ return this.st.caught + " CAUGHT · HAUNTED " + this.st.haunt + "/8"; },
   free(){ const c = this.wins.filter(w => w.state === "empty"); return c.length ? c[Math.floor(rnd(this.st.k++*3.3)*c.length)] : null; },
@@ -392,15 +392,17 @@ const HW = {
     if (j < 4) return;
     if (b === 2 || (hook && L > .5 && b === 0)){ const w = this.free(); if (w){ w.state = "person"; w.t0 = tb; w.t1 = tb + 3*BEAT; } }
     if (sec === "calm" && j % 2) return;
-    const up = Math.max(.6, BEAT*(1.7 - .6*L));
-    for (let i = 0; i < (hook && b % 2 === 0 ? 2 : 1); i++){ const w = this.free(); if (!w) return;
+    const up = Math.max(.9, BEAT*(1.7 - .6*L));
+    // a pair in the hooks: the second comes up half a beat after the first, so one finger can take both
+    for (let i = 0; i < (hook && b % 2 === 0 ? 2 : 1); i++){ const w = this.free(); if (!w) return; const tb0 = tb; tb = tb0 + (i ? BEAT/2 : 0);
       const kind = S.hearts < HEARTS && bar % 8 === 5 && b === 0 && i === 0 ? "heart" : hook && rnd(j*7.1 + i) < .2 ? "gold" : "ghost";
       w.state = "ghost"; w.kind = kind; w.t0 = tb; w.t1 = tb + up*(kind === "gold" ? .8 : 1);
-      const c = { ghost:GC.ghost, gold:0xffd070, heart:0xff9ab0 }[kind]; w.gh.userData.mat.color.setHex(c); w.gh.userData.mat.emissive.setHex(c); } },
+      const c = { ghost:GC.ghost, gold:0xffd070, heart:0xff9ab0 }[kind]; w.gh.userData.mat.color.setHex(c); w.gh.userData.mat.emissive.setHex(c); tb = tb0; } },
   tap(cx, cy){ this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const P = new THREE.Vector3(); if (!this.ray.ray.intersectPlane(this.plane, P)) return;
     this.hit(this.wins.findIndex(w => Math.abs(P.x - w.x) < 1.5 && Math.abs(P.y - w.y) < 1.8)); },
   hit(i){ const w = this.wins[i], st = this.st; if (!w){ S.combo = 0; return; }
     this.zapT = .25; this.zapTo = new THREE.Vector3(w.x, w.y, .3); sfx.zap();
+    if (w.state === "ghost" && S.t < w.t0){ S.combo = 0; return; }
     if (w.state === "ghost"){ w.state = "empty"; st.caught++; st.run++;
       const beat = award(w.kind === "gold" ? 300 : 100, 8); sfx.good(S.combo);
       if (w.kind === "gold"){ st.golds++; say("GOLD", "+" + (beat ? 600 : 300), .5, "g"); }
@@ -413,9 +415,11 @@ const HW = {
     const st = this.st;
     while (GRID.t0 + st.j*BEAT <= t){ const tb = GRID.t0 + st.j*BEAT; this.spawn(st.j, tb); st.j++; }
     for (const w of this.wins){ if (w.state === "empty" || t < w.t1) continue;
-      if (w.state === "ghost"){ st.haunt++; st.run = 0; S.combo = 0; sfx.bad(); say("IT DUCKED AWAY", "haunted " + st.haunt + "/8", .8, "x");
+      if (w.state === "ghost"){ st.haunt++; st.run = 0; st.calm = t; w.red = t; S.combo = 0; sfx.bad(); say("IT DUCKED AWAY", "haunted " + st.haunt + "/8", .8, "x");
         if (st.haunt >= 8){ w.state = "empty"; (CFG.endless ? over : lose)("HAUNTED", "Eight got away. Tap each ghost while it's up in the window - ten in a row calm the houses down."); return; } }
       w.state = "empty"; }
+    // the houses settle by themselves too: four bars without a ghost getting away, one less haunting
+    if (st.haunt > 0 && t - (st.calm || this.start) > 4*BAR){ st.haunt--; st.calm = t; say("THE HOUSES CALM DOWN", "haunted " + st.haunt + "/8", .9, "g"); }
     if (this.zapT > 0) this.zapT -= dt;
   },
   render(dt, t){
@@ -424,7 +428,9 @@ const HW = {
     for (const w of this.wins){ const up = w.state === "ghost" ? clamp((t - w.t0)/.15, 0, 1)*clamp((w.t1 - t)/.15, 0, 1) : 0;
       w.gh.visible = up > 0; w.hs.visible = up > 0 && w.kind === "heart";
       if (up > 0){ w.gh.position.set(w.x, w.y - 1.6 + up*.5, .1); ghostOpacity(w.gh, up); w.hs.position.set(w.x, w.y + .6, .5); w.hs.scale.setScalar(beat ? 1.7 : 1.4); }
-      w.person.visible = w.state === "person"; w.glass.material.color.setHex(w.state === "person" ? 0xffa850 : w.state === "ghost" ? 0x2a3040 : 0x0e0c12); }
+      w.person.visible = w.state === "person";
+      const red = w.red != null && t - w.red < .45;            // a ghost just got away from this one
+      w.glass.material.color.setHex(red ? 0xb02030 : w.state === "person" ? 0xffa850 : w.state === "ghost" ? 0x2a3040 : 0x0e0c12); }
     if (this.zapT > 0 && this.zapTo){ const a = ME.position.clone(), b = this.zapTo, len = a.distanceTo(b); this.zap.position.copy(a).add(b).multiplyScalar(.5); this.zap.scale.set(1, len, 1); this.zap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); this.zap.material.opacity = this.zapT*2; } else this.zap.material.opacity = 0;
     driftFog(this.fog, t, 5);
     CAMP.set(0, portrait ? 9 : 7.5, portrait ? 44 : 26); CAML.set(0, 8, 0);

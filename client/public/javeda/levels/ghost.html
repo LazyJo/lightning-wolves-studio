@@ -123,7 +123,7 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
    its warm orange beam. Jo picked HAUNTED WINDOWS: the two old houses from the street. On
    the beat a ghost comes up in a window - tap it and the beam takes it (on the beat x2).
    The neighbours at the lit windows cost a heart (3); a ghost that ducks away haunts the
-   houses more - eight and it's over, ten caught in a row calm them down. The song sets how
+   houses more - eight cost a heart, ten caught in a row (or a few quiet bars) calm them down. The song sets how
    many: a few in the calm, one a beat in the verses, two at once and gold ones in the hooks.
    At the end of the song: the street as it is on the cover.
    Once it's cleared, ENDLESS opens (?endless=1): the ghosts never stop, quicker every 8
@@ -351,7 +351,7 @@ function award(base, every){ const beat = onBeat(S.t); S.combo++; S.best = Math.
 // The two old houses from the cover, from the street, the lamp glowing beside them. On the beat a
 // ghost comes up in a window for a moment - tap it and the saucer's beam takes it (on the beat x2).
 // The neighbours at the lit windows cost a heart. A ghost that ducks away haunts the houses a bit
-// more - eight and it's over; ten caught in a row calm them down again. Gold ghosts in the hooks,
+// more - eight cost a heart; ten caught in a row (or three bars with none getting away) calm them down. Gold ghosts in the hooks,
 // and now and then a pink one carrying a heart when you're missing one.
 const HW = {
   name:"windows", tag:"HAUNTED WINDOWS", hint:"tap the ghosts in the windows - not the neighbours",
@@ -392,7 +392,7 @@ const HW = {
     if (j < 4) return;
     if (b === 2 || (hook && L > .5 && b === 0)){ const w = this.free(); if (w){ w.state = "person"; w.t0 = tb; w.t1 = tb + 3*BEAT; } }
     if (sec === "calm" && j % 2) return;
-    const up = Math.max(.9, BEAT*(1.7 - .6*L));
+    const up = Math.max(1.1, BEAT*(1.9 - .6*L));
     // a pair in the hooks: the second comes up half a beat after the first, so one finger can take both
     for (let i = 0; i < (hook && b % 2 === 0 ? 2 : 1); i++){ const w = this.free(); if (!w) return; const tb0 = tb; tb = tb0 + (i ? BEAT/2 : 0);
       const kind = S.hearts < HEARTS && bar % 8 === 5 && b === 0 && i === 0 ? "heart" : hook && rnd(j*7.1 + i) < .2 ? "gold" : "ghost";
@@ -416,10 +416,11 @@ const HW = {
     while (GRID.t0 + st.j*BEAT <= t){ const tb = GRID.t0 + st.j*BEAT; this.spawn(st.j, tb); st.j++; }
     for (const w of this.wins){ if (w.state === "empty" || t < w.t1) continue;
       if (w.state === "ghost"){ st.haunt++; st.run = 0; st.calm = t; w.red = t; S.combo = 0; sfx.bad(); say("IT DUCKED AWAY", "haunted " + st.haunt + "/8", .8, "x");
-        if (st.haunt >= 8){ w.state = "empty"; (CFG.endless ? over : lose)("HAUNTED", "Eight got away. Tap each ghost while it's up in the window - ten in a row calm the houses down."); return; } }
+        // eight got away: the houses take a heart, then they're calm again (the run ends only when the hearts are gone)
+        if (st.haunt >= 8){ w.state = "empty"; st.haunt = 0; if (hurt("HAUNTED", "Eight got away. Tap each ghost while it's up in the window - ten in a row calm the houses down.")) return; } }
       w.state = "empty"; }
-    // the houses settle by themselves too: four bars without a ghost getting away, one less haunting
-    if (st.haunt > 0 && t - (st.calm || this.start) > 4*BAR){ st.haunt--; st.calm = t; say("THE HOUSES CALM DOWN", "haunted " + st.haunt + "/8", .9, "g"); }
+    // the houses settle by themselves too: three bars without a ghost getting away, one less haunting
+    if (st.haunt > 0 && t - (st.calm || this.start) > 3*BAR){ st.haunt--; st.calm = t; say("THE HOUSES CALM DOWN", "haunted " + st.haunt + "/8", .9, "g"); }
     if (this.zapT > 0) this.zapT -= dt;
   },
   render(dt, t){

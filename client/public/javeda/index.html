@@ -2726,7 +2726,7 @@ renderSnd();
 // An endless run starts with the database, which holds its score to the time played (the marathon too; a daily
 // run starts there as well, which fixes the day and the level it counts for). .then() sends it now: a supabase query only goes out when something awaits it, and awaited
 // at the end of the run it would say the run took no time at all.
-let runStart = null, dailyStart = null, weeklyStart = null;
+let runStart = null, dailyStart = null, weeklyStart = null, startedAt = 0;
 const sendNow = q => q.then(r => r);
 function startRun(lv){
   runStart = signedIn() && lv.endless && isOpen(lv) ? sendNow(sb.rpc("javeda_start_run", { p_level:lv.id })) : null;
@@ -3785,7 +3785,9 @@ addEventListener("message", e => {
   // only the level page we opened, from this site
   if (e.origin !== location.origin || e.source !== $("frame").contentWindow) return;
   const m = e.data || {};
-  if (m.type === "javeda:start" && current && m.level === current.id) startRun(current);
+  if (m.type === "javeda:start" && current && m.level === current.id){ startedAt = Date.now(); startRun(current); }
+  // report.js saw a run begin: if the level didn't say javeda:start itself (most only do for endless), start it here
+  else if (m.type === "javeda:begun" && current){ if (Date.now() - startedAt > 3000) startRun(current); }
   else if (m.type === "javeda:result" && current && m.level === current.id){
     runEnded(m);
     if (m.cleared && !current.endless) nudgeDue = true;      // a clear: the app card when they're back (maybeNudge)

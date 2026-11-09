@@ -61,6 +61,9 @@
       else if (s.t < st.t - 2){ if (st.t > 3) st.quits.push(st.t); st.run++; }   // started over in the middle of one
       st.t = Math.max(0, s.t);
     }
+    // a run has begun: tell the JAVEDA page (it starts a daily or weekly run with the database even when the level only
+    // says javeda:start for its endless modes)
+    if (fresh) try { window.parent.postMessage({ type:"javeda:begun", run:st.run }, location.origin); } catch(e){}
     if (fresh){ st.h = hearts(s); st.hurt = false; }
     else if (s && st.run) st.hurt = hurt(s);
     st.live = on;

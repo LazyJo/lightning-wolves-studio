@@ -440,7 +440,9 @@ const HW = {
       w.glass.material.color.setHex(red ? 0xb02030 : w.state === "person" ? 0xffa850 : w.state === "ghost" ? 0x2a3040 : 0x0e0c12); }
     if (this.zapT > 0 && this.zapTo){ const a = ME.position.clone(), b = this.zapTo, len = a.distanceTo(b); this.zap.position.copy(a).add(b).multiplyScalar(.5); this.zap.scale.set(1, len, 1); this.zap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); this.zap.material.opacity = this.zapT*2; } else this.zap.material.opacity = 0;
     driftFog(this.fog, t, 5);
-    CAMP.set(0, portrait ? 9 : 7.5, portrait ? 44 : 26); CAML.set(0, 8, 0);
+    // far enough back that both houses fit across the screen, every window in view (a tall phone needs more room)
+    const fit = 13.9 / (Math.tan(cam.fov * Math.PI / 360) * cam.aspect);
+    CAMP.set(0, portrait ? 9 : 7.5, Math.max(portrait ? 44 : 26, fit)); CAML.set(0, 8, 0);
   }
 };
 

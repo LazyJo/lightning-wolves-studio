@@ -454,6 +454,9 @@ function hover(p, t, dt, h){ h = h || 1.9; HOV.set(p.x, p.y + h + Math.sin(t*2)*
   const s = ME.scale.y, b = ME.userData.beam, len = Math.max(.3, (ME.position.y - p.y - .1)/s); b.visible = true; b.scale.set(.55, len/3.2, .55); b.position.y = -.2 - len/2; }
 // the camera for a game: [landscape position, look], [portrait position, look]
 function setCam(L, P){ const [p, l] = cam.aspect < .8 ? P : L; cam.position.set(p[0], p[1], p[2]); cam.lookAt(l[0], l[1], l[2]); }
+// on a phone: back along the line from l in direction d, far enough that a playfield of half-width `half` fits across
+function fitCam(l, d, base, half, add){ const D = new THREE.Vector3(d[0], d[1], d[2]).normalize(), need = half/(Math.tan(cam.fov*Math.PI/360)*cam.aspect);
+  cam.position.set(l[0], l[1], l[2]).addScaledVector(D, Math.max(base, need + add)); cam.lookAt(l[0], l[1], l[2]); }
 // a word or two on a sprite, for the labels on the cloud
 const LABEL_TEX = {};
 function labelTex(key, w, h, draw){ return LABEL_TEX[key] || (LABEL_TEX[key] = canvasTex(w, h, draw)); }
@@ -542,7 +545,8 @@ const UNT = {
     this.xs.forEach((s, i) => { const p = !done && this.xat && this.xat[i]; s.visible = !!p; if (p){ s.position.set(p.x, .2, p.z); s.scale.setScalar(.3*(beat ? 1.15 : 1)); } });
     this.fx.tick(dt); animSky(this.w, t, dt, beat);
     hover(this.drag ? this.drag.m.position : this.hintNode ? this.hintNode.m.position : S.last || new THREE.Vector3(0, 0, -1), t, dt, 2.2);
-    setCam([[0, 6.3, 5.9], [0, -.7, -1.35]], [[0, 10.6, 6.9], [0, -.3, -.75]]);
+    // the whole cloud on a phone: birds can go to x ±3.0 (and their size)
+    if (cam.aspect < .8) fitCam([0, -.3, -.75], [0, 10.9, 7.65], 13.3, 3.35, 1.5); else setCam([[0, 6.3, 5.9], [0, -.7, -1.35]], [[0, 10.6, 6.9], [0, -.3, -.75]]);
   }
 };
 function segCross(p, q, r, s){ const o = (a, b, c) => (b.x - a.x)*(c.z - a.z) - (b.z - a.z)*(c.x - a.x), d1 = o(p, q, r), d2 = o(p, q, s), d3 = o(r, s, p), d4 = o(r, s, q);
@@ -594,7 +598,7 @@ const CODE = {
     const sd = S.k++*1.618 + S.codes*.37, left = [...Array(this.nc).keys()];
     this.code = Array.from({ length:this.n }, (_, i) => this.rep ? Math.floor(rnd(sd + i*7.31 + .5)*this.nc) : left.splice(Math.floor(rnd(sd + i*7.31 + .5)*left.length), 1)[0]);
     this.rows = []; this.cur = Array(this.n).fill(-1); this.curM = Array(this.n).fill(null); this.lock = 0; this.absent = new Set(); this.cracked = false; this.solved = false;
-    this.pal.forEach((b, i) => { b.visible = i < this.nc; b.position.set((i - (this.nc - 1)/2)*.72, .02, 2.45); });
+    this.pal.forEach((b, i) => { b.visible = i < this.nc; b.position.set((i - (this.nc - 1)/2)*Math.min(.72, 3.6/this.nc), .02, 2.45); });   // six colours fit a phone too
     // the wires: one a try
     for (let r = 0; r < this.TRIES; r++){ const w = new THREE.Mesh(new THREE.BoxGeometry(this.n*this.SP + .3, .03, .04), new THREE.MeshStandardMaterial({ color:0x6a86b8, roughness:.4, emissive:0x2a4a8a, emissiveIntensity:.3 })); w.position.set(0, .12, this.rowZ(r)); this.root.add(w); this.objs.push(w); w.userData.row = r; }
     this.wires = this.objs.slice();

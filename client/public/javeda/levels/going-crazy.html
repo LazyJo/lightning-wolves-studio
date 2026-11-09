@@ -351,7 +351,7 @@ const FALL = {
     for (const [x, z, w, d] of [[-12, 0, 10, 38], [12, 0, 10, 38], [0, -12, 14, 10], [0, 12, 14, 10]]){
       const k = this.walls.length, t = windowTex(k + 7); t.repeat.set((x ? d : w)/5, 500/10);
       const m = new THREE.MeshStandardMaterial({ map:t, emissiveMap:t, emissive:0xffffff, emissiveIntensity:1, color:0x2a2a38, roughness:.6 });
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 500, d), m); wall.position.set(x, -230, z); this.root.add(wall); this.walls.push(t); }
+      const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 500, d), m); wall.position.set(x, -225, z); this.root.add(wall); this.walls.push(t); }
     // neon signs on the walls, passing by
     this.signs = this.SIGNS.map(([text, color], i) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(9, 2.25), new THREE.MeshBasicMaterial({ map:neonTex(text, color), transparent:true, blending:THREE.AdditiveBlending, depthWrite:false }));
       const side = i % 4, P = [[-6.95, 0, Math.PI/2], [6.95, 0, -Math.PI/2], [0, -6.95, 0], [0, 6.95, Math.PI]][side];
@@ -486,7 +486,9 @@ const FALL = {
     for (const r of this.rings) if (r.on){ r.r.position.set(r.rx, r.y, r.rz); r.r.scale.setScalar(1 + (beat ? .12 : 0)); }
     for (const h of this.hearts) if (h.on){ h.g.position.set(h.hx, h.y, h.hz); h.g.rotation.y = t*2; }
     const portrait = cam.aspect < .8;
-    CAMP.set(st.x*.25, portrait ? 15 : 11, (portrait ? 3 : 4.5) + st.z*.25); CAML.set(st.x*.4, -30, st.z*.4 - 2);
+    // high enough that the saucer stays on screen even at a corner hole (reach ±6 plus its size)
+    const fit = 5.9/(Math.tan(cam.fov*Math.PI/360)*cam.aspect);
+    CAMP.set(st.x*.25, Math.max(portrait ? 15 : 11, fit), (portrait ? 3 : 4.5) + st.z*.25); CAML.set(st.x*.4, -30, st.z*.4 - 2);
   }
 };
 

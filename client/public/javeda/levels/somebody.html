@@ -945,6 +945,9 @@ function camRig(x, z){
   const h = 6.4 + tall*7, back = 9.5 + tall*9, fx = .55 + tall*.6;
   V.set(x*fx, h, z*.55 + back);
   LOOK.set(x*fx, .4, z*.55 - 12 + tall*4);
+  // a phone: back along the same line until ±8 m round the saucer fits across (the monsters and their orbs)
+  const d = Math.hypot(V.x - x, V.y, V.z - z), k = Math.max(1, 8/(Math.tan(cam.fov*Math.PI/360)*cam.aspect)/d);
+  if (k > 1){ V.x = x + (V.x - x)*k; V.y *= k; V.z = z + (V.z - z)*k; }
 }
 function render(dt){
   const t = S.t;

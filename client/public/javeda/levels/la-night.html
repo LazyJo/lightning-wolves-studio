@@ -588,7 +588,9 @@ const RACE = {
       const q = camInit ? Math.min(1, dt*2) : 1; ME.position.x += (tx - ME.position.x)*q; ME.position.y += (ty - ME.position.y)*q; ME.position.z += (tz - ME.position.z)*q; ME.scale.setScalar(ME.scale.x + (sc - ME.scale.x)*q);
       const bl = ME.position.y/ME.scale.x; ME.userData.beam.visible = t >= this.go; ME.userData.beam.scale.set(1.6, bl/3.2, 1.6); ME.userData.beam.position.y = -bl/2; }
     // the camera: behind the car, swinging round with it (looking down the grid for the countdown)
-    const want = c.th*.6 + c.ph*.4; this.camH += (want - this.camH)*Math.min(1, dt*3.5);
+    // on a phone (a narrow view) the camera turns to the new street while you drift, and sees wider
+    const want = portrait && c.held ? this.H[c.ci] : c.th*.6 + c.ph*.4; this.camH += (want - this.camH)*Math.min(1, dt*3.5);
+    const fv = portrait ? 75 : 60; if (cam.fov !== fv){ cam.fov = fv; cam.updateProjectionMatrix(); }
     const fx = Math.sin(this.camH), fz = -Math.cos(this.camH);
     if (t < this.go){ CAMP.set(c.x, portrait ? 8 : 6, c.z + (portrait ? 14 : 10)); CAML.set(c.x, 2.5, c.z - 22); }
     else { const D = portrait ? 15 : 11, Hh = portrait ? 7 : 4.8, k = c.nitro > 0 ? 1.12 : 1; CAMP.set(c.x - fx*D*k, Hh, c.z - fz*D*k); CAML.set(c.x + fx*12, 1.6, c.z + fz*12); }

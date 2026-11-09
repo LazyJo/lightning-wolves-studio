@@ -585,7 +585,7 @@ const SP = {
     flyCar(this.car, t, portrait ? 0 : 6.8, portrait ? 6.6 : 3.2, -8);
     this.table.scale.setScalar(portrait ? .64 : 1);
     const lp = this.table.localToWorld(this.wastePos.clone()); ME.scale.setScalar(.45); ME.position.lerp(new THREE.Vector3(lp.x + 1.6*this.table.scale.x, lp.y - .1, lp.z + .8), Math.min(1, dt*6)); ME.rotation.set(.9, t*1.6, 0); ME.userData.beam.visible = false;
-    if (portrait){ CAMP.set(0, .5, 14); CAML.set(0, .4, 0); } else { CAMP.set(0, 1.2, 9.5); CAML.set(0, 1.1, 0); }
+    if (portrait){ CAMP.set(0, .5, Math.max(14, 3.4/(Math.tan(cam.fov*Math.PI/360)*cam.aspect))); CAML.set(0, .4, 0); }   // the bottom row fits (half-width 3.4) else { CAMP.set(0, 1.2, 9.5); CAML.set(0, 1.1, 0); }
   }
 };
 

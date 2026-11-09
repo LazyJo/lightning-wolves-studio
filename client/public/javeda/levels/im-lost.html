@@ -843,7 +843,8 @@ function render(dt){
     document.getElementById("ml").textContent = "ENDLESS \u00b7 " + mmss(S.over >= 0 ? S.over : S.t);
   }
 
-  const back = S.crash >= 0 ? 8.5 + S.crash*2.2 : 7.2;
+  // far enough back that the saucer in an outer lane stays on a narrow (phone) screen
+  const back = S.crash >= 0 ? 8.5 + S.crash*2.2 : Math.max(7.2, 2.6/(Math.tan(cam.fov*Math.PI/360)*cam.aspect));
   cam.position.set(S.camX, 3.1 + y*.30 + (S.crash >= 0 ? S.crash*.7 : 0), -S.dist + back);
   cam.lookAt(S.camX*.55, 1.4 + S.y*.5, -S.dist - 9);
   ren.render(scene, cam);

@@ -409,7 +409,9 @@ const SWING = {
     for (const g of this.far){ let x = g.position.x; while (x < st.x*.6 - 150) x += 450; g.position.x = x; g.rotation.z += dt*.05; }
     for (const r of this.rays){ let x = r.position.x; while (x < st.x - 160) x += 360; r.position.x = x; }
     const portrait = cam.aspect < .8;
-    CAMP.set(st.x + 6, 12, portrait ? 62 : 38); CAML.set(st.x + 6, 11, 0);
+    // on a phone: far enough back, and a little ahead, to see the next pendulum (gaps up to ~20)
+    if (portrait){ const fit = 18/(Math.tan(cam.fov*Math.PI/360)*cam.aspect); CAMP.set(st.x + 10, 12, Math.max(62, fit)); CAML.set(st.x + 10, 11, 0); }
+    else { CAMP.set(st.x + 6, 12, 38); CAML.set(st.x + 6, 11, 0); }
   }
 };
 

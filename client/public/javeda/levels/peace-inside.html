@@ -447,7 +447,9 @@ const HP = {
     else { this.ball.position.set(0, .9 - (st.state === "wind" || st.state === "watch" ? st.p*.25 : 0), .4); this.ball.rotation.x = 0; }
     this.glow.material.opacity = sh.money ? .55 + (beat ? .3 : 0) : 0;
     this.bar.visible = st.state !== "pause" && st.state !== "landed";
-    this.bar.position.set(portrait ? 1.6 : 2.4, 2.2, .5); this.zoneM.position.y = (sh.pz - .5)*3; this.zoneM.scale.y = sh.zw*3; this.mark.position.y = (st.p - .5)*3; this.mark.material.color.setHex(beat ? PC.gold : 0xffffff);
+    // on a phone the meter rides with the camera (right of centre, a bit low), so it never leaves the screen
+    if (portrait){ const d = (this.barV || (this.barV = new THREE.Vector3())).set(.62, -.25, .5).unproject(cam).sub(cam.position).normalize(); this.bar.position.copy(cam.position).addScaledVector(d, 8.5); }
+    else this.bar.position.set(2.4, 2.2, .5); this.zoneM.position.y = (sh.pz - .5)*3; this.zoneM.scale.y = sh.zw*3; this.mark.position.y = (st.p - .5)*3; this.mark.material.color.setHex(beat ? PC.gold : 0xffffff);
     for (const p of this.pops){ p.s.material.opacity = Math.max(0, p.life); if (p.life > 0) p.s.position.set(p.x, p.y, p.z); }
     CAMP.set(0, portrait ? 4.2 : 3.6, portrait ? 9 : 6); CAML.set(hx*.3, 3.2, -sh.D*.7);
     for (const c of this.cl || []) c.position.x += dt*.6;

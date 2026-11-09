@@ -479,7 +479,7 @@ const LK = {
     this.car.position.set(ex + (e.c >= N ? .9 : e.c < 0 ? -.9 : 0), 0, ez + (e.r >= N ? .9 : e.r < 0 ? -.9 : 0));
     this.car.rotation.y = e.c >= N ? Math.PI/2 : e.c < 0 ? -Math.PI/2 : e.r >= N ? 0 : Math.PI;
     this.car.userData.lights.forEach(l => { l.material.opacity = st.lit >= 0 ? 1 : .1; l.scale.setScalar(st.lit >= 0 ? 2.4 : 1.4); });
-    CAMP.set(0, portrait ? 10.4/cam.aspect : 10.5, portrait ? 3.8/cam.aspect : 6.2); CAML.set(0, 0, .4);
+    CAMP.set(0, portrait ? 13/cam.aspect : 10.5, portrait ? 4.75/cam.aspect : 6.2); CAML.set(0, 0, .4);   // a phone sees the car by the edge too
   }
 };
 

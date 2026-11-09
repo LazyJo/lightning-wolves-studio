@@ -518,7 +518,9 @@ const HOP = {
     ufo.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
     beam.visible = S.hold && S.hover > 0 && !S.ground; beam.scale.set(.8, 2.6, .8); beam.position.y = -1.4;
     const portrait = cam.aspect < .8;
-    cam.position.set(S.x + (portrait ? 1.8 : 6), 4.6 + S.y*.3, portrait ? 26 : 19); cam.lookAt(S.x + (portrait ? 1.8 : 6), 2.8 + S.y*.25, 0);
+    // a phone: back and ahead enough to see the next rock when you jump (6.3 m ahead of the saucer)
+    const pz = portrait ? Math.max(26, 6.3/(Math.tan(cam.fov*Math.PI/360)*cam.aspect)) : 19, lead = portrait ? 6.3 - 1.6 : 6;
+    cam.position.set(S.x + lead, 4.6 + S.y*.3, pz); cam.lookAt(S.x + lead, 2.8 + S.y*.25, 0);
     if (GOLD){ this.sea.position.x = Math.floor(S.x/20)*20 + 100; this.sand.position.x = S.x + 100;
       this.bg.forEach(o => { o.position.x = S.x - 60 + ((o.userData.ox - S.x + 60) % 200 + 200) % 200; }); }
     this.sea.position.y = this.seaLevel(t); waveSea(this.sea, t);

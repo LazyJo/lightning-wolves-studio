@@ -898,6 +898,8 @@ const KING = {
     const portrait = cam.aspect < .8;
     if (zirka){ CAMP.set(st.zx*.85, this.ROOFY + (portrait ? 4.4 : 3.2), pz - this.RZ + (portrait ? 11 : 7.5)); CAML.set(st.zx*.5 + b.x*.2, 5, b.z + 6); }
     else { CAMP.set(st.x*.35, st.y*.45 + (portrait ? 4.5 : 3.8), pz + (portrait ? 17 : 11)); CAML.set(b.x*.3, 7, b.z + 6); }
+    // a phone: the whole roof (±8 m) across, the orb marks on it too
+    if (portrait) CAMP.z = Math.max(CAMP.z, (zirka ? pz - this.RZ : pz) + 8/(Math.tan(cam.fov*Math.PI/360)*cam.aspect));
   }
 };
 const GAMES = { sky:SKY, roof:ROOF, king:KING };

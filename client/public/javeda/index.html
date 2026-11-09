@@ -2037,7 +2037,8 @@ function paintReacts(){ document.querySelectorAll("#chatLog [data-rx]").forEach(
 async function loadReacts(){ const { data } = await sb.rpc("javeda_chat_reacts").then(r => r, () => ({})); if (data && typeof data === "object"){ chatReacts = data; paintReacts(); } }
 async function react(id, e){
   const { data, error } = await sb.rpc("javeda_chat_react", { p_id:+id, p_emoji:e }).then(r => r, x => ({ error:x }));
-  if (error){ const k = Object.keys(CHAT_ERR).find(k => String(error.message || "").includes(k)); toast(k ? CHAT_ERR[k] : "Could not send. Try again."); return; }
+  // a creator sees the real reason (e.g. the database update for reactions isn't run yet); players the short one
+  if (error){ const k = Object.keys(CHAT_ERR).find(k => String(error.message || "").includes(k)); toast(k ? CHAT_ERR[k] : creator ? esc(error.message || String(error)) : "Could not send. Try again."); return; }
   chatReacts[id] = data || []; paintReacts();
 }
 function renderChat(){

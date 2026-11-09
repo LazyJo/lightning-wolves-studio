@@ -400,7 +400,8 @@ const ICE = {
     for (const b of this.bricks){ b.m.position.z += (b.z - b.m.position.z)*Math.min(1, dt*8); b.m.scale.setScalar(beat ? 1.06 : 1); }
     for (const p of this.bits){ p.s.material.opacity = Math.max(0, p.life); if (p.life > 0) p.s.position.set(p.x, .5, p.z); }
     this.sign.material.opacity = beat ? 1 : .85;
-    CAMP.set(0, portrait ? 50 : 28, portrait ? 20 : 17); CAML.set(0, 0, -3.5);
+    const fs = portrait ? Math.max(1, .47/cam.aspect) : 1;     // a phone narrower than 0.45 still sees the whole arena
+    CAMP.set(0, (portrait ? 50 : 28)*fs, (portrait ? 20 : 17)*fs); CAML.set(0, 0, -3.5);
   }
 };
 

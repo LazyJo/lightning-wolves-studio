@@ -1083,7 +1083,7 @@ function animateCraft(g, t, dt, thrust, speed){
 }
 function render(dt){
   const t = performance.now()/1000, pz = -(S ? S.dist : 0), portrait = cam.aspect < .8;
-  CAMX = portrait ? 30 : 14.5; const hw = Math.tan(cam.fov*Math.PI/360)*CAMX*cam.aspect; LEAD = hw*.45;
+  CAMX = portrait ? 30 : 14.5; const hw = Math.tan(cam.fov*Math.PI/360)*CAMX*cam.aspect; LEAD = hw*(portrait ? .72 : .45);   // a phone sees further ahead
   const live = S && S.mode !== "menu";
   if (live){
     const v = S.veh, ry = S.y, hyp = S.pw.hyper > 0, h = H(), u = CRAFT.userData;

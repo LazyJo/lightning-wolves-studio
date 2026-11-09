@@ -759,6 +759,9 @@ function camRig(x, z){
   const a = cam.aspect, tall = a < 1 ? (1 - a) : 0;
   V.set(x, FLY_Y + 8 + tall*9, z + 14 + tall*8);
   LOOK.set(x, FLY_Y - 2.5, z - 20 + tall*8);
+  // a phone: back along the same line until ±8 m round the saucer fits across (the ghosts nearby)
+  const oy = V.y - FLY_Y, oz = V.z - z, d = Math.hypot(oy, oz), k = Math.max(1, 8/(Math.tan(cam.fov*Math.PI/360)*cam.aspect)/d);
+  if (k > 1){ V.y = FLY_Y + oy*k; V.z = z + oz*k; }
 }
 function render(dt){
   const t = S.t;

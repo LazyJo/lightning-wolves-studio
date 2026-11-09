@@ -1736,6 +1736,7 @@ CREATE TABLE IF NOT EXISTS javeda_push (
 );
 ALTER TABLE javeda_push ADD COLUMN IF NOT EXISTS tz TEXT;
 ALTER TABLE javeda_push ADD COLUMN IF NOT EXISTS daily_sent DATE;
+ALTER TABLE javeda_push ADD COLUMN IF NOT EXISTS chat BOOLEAN NOT NULL DEFAULT false;   -- reactions and @mentions in the chat (logged in)
 CREATE INDEX IF NOT EXISTS javeda_push_user ON javeda_push (user_id) WHERE beaten;
 CREATE TABLE IF NOT EXISTS javeda_push_queue (
   id      BIGSERIAL PRIMARY KEY,
@@ -1757,9 +1758,11 @@ ALTER TABLE javeda_push_sent  ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON javeda_push, javeda_push_queue, javeda_push_sent FROM anon, authenticated;
 GRANT SELECT, UPDATE, DELETE ON javeda_push TO service_role;
 
--- from the page: what this phone wants (both off: it's forgotten). Only the push services browsers use are taken.
+-- from the page: what this phone wants (all off: it's forgotten). Only the push services browsers use are taken.
+-- p_chat left out (a page from before the chat ones): what this phone had, or the same as "beaten" for a new one.
 DROP FUNCTION IF EXISTS public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN);
-CREATE OR REPLACE FUNCTION public.javeda_push_set(p_endpoint TEXT, p_p256dh TEXT, p_auth TEXT, p_lang TEXT, p_daily BOOLEAN, p_beaten BOOLEAN, p_tz TEXT DEFAULT NULL)
+DROP FUNCTION IF EXISTS public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT);
+CREATE OR REPLACE FUNCTION public.javeda_push_set(p_endpoint TEXT, p_p256dh TEXT, p_auth TEXT, p_lang TEXT, p_daily BOOLEAN, p_beaten BOOLEAN, p_tz TEXT DEFAULT NULL, p_chat BOOLEAN DEFAULT NULL)
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
@@ -1767,6 +1770,7 @@ DECLARE
   uid UUID := (SELECT user_id FROM javeda_players WHERE user_id = auth.uid());   -- logged in with a player, or null
   d BOOLEAN := coalesce(p_daily, false);
   b BOOLEAN := coalesce(p_beaten, false) AND uid IS NOT NULL;
+  c BOOLEAN := coalesce(p_chat, (SELECT chat FROM javeda_push WHERE endpoint = p_endpoint), coalesce(p_beaten, false)) AND uid IS NOT NULL;
   zone TEXT;
 BEGIN
   IF p_endpoint IS NULL OR length(p_endpoint) > 1000
@@ -1776,9 +1780,9 @@ BEGIN
   IF coalesce(length(p_p256dh), 0) NOT BETWEEN 40 AND 200 OR coalesce(length(p_auth), 0) NOT BETWEEN 8 AND 100 THEN
     RAISE EXCEPTION 'not a push key' USING ERRCODE = '22023';
   END IF;
-  IF NOT d AND NOT b THEN
+  IF NOT d AND NOT b AND NOT c THEN
     DELETE FROM javeda_push WHERE endpoint = p_endpoint;
-    RETURN json_build_object('daily', false, 'beaten', false);
+    RETURN json_build_object('daily', false, 'beaten', false, 'chat', false);
   END IF;
   -- the phone's time zone, if it's a real one (a wrong one is ignored, never a reason to refuse the phone)
   IF p_tz ~ '^[A-Za-z0-9_+/-]{1,64}$' THEN
@@ -1789,11 +1793,11 @@ BEGIN
      AND (SELECT count(*) FROM javeda_push WHERE created_at > now() - interval '10 minutes') > 300 THEN
     RAISE EXCEPTION 'slow down' USING ERRCODE = '54000';
   END IF;
-  INSERT INTO javeda_push (endpoint, p256dh, auth, user_id, lang, daily, beaten, tz)
-  VALUES (p_endpoint, p_p256dh, p_auth, uid, CASE WHEN p_lang IN ('en', 'nl', 'fr', 'es', 'it', 'tr', 'ja', 'zh', 'tw') THEN p_lang ELSE 'en' END, d, b, zone)
+  INSERT INTO javeda_push (endpoint, p256dh, auth, user_id, lang, daily, beaten, chat, tz)
+  VALUES (p_endpoint, p_p256dh, p_auth, uid, CASE WHEN p_lang IN ('en', 'nl', 'fr', 'es', 'it', 'tr', 'ja', 'zh', 'tw') THEN p_lang ELSE 'en' END, d, b, c, zone)
   ON CONFLICT (endpoint) DO UPDATE SET p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, user_id = EXCLUDED.user_id,
-    lang = EXCLUDED.lang, daily = EXCLUDED.daily, beaten = EXCLUDED.beaten, tz = coalesce(EXCLUDED.tz, javeda_push.tz), updated_at = now();
-  RETURN json_build_object('daily', d, 'beaten', b);
+    lang = EXCLUDED.lang, daily = EXCLUDED.daily, beaten = EXCLUDED.beaten, chat = EXCLUDED.chat, tz = coalesce(EXCLUDED.tz, javeda_push.tz), updated_at = now();
+  RETURN json_build_object('daily', d, 'beaten', b, 'chat', c);
 END;
 $$;
 
@@ -1901,13 +1905,13 @@ BEGIN
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT, BOOLEAN) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.javeda_push_off(TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION public.javeda_push_beaten() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_push_take() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_push_awake(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_push_daily_due() FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_push_set(TEXT, TEXT, TEXT, TEXT, BOOLEAN, BOOLEAN, TEXT, BOOLEAN) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_off(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_take() TO service_role;
 GRANT EXECUTE ON FUNCTION public.javeda_push_daily_due() TO service_role;
@@ -2832,3 +2836,113 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_chat_react(BIGINT, TEXT) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_chat_react(BIGINT, TEXT) TO authenticated;
+
+-- ── Chat notifications ──────────────────────────────────────────────────────
+-- "Lazy Jo reacted 🔥 to your message" and "Lazy Jo mentioned you in the chat", on the phones of players who turned
+-- them on (javeda_push.chat). A reaction or an @name fills the queue (never in the way of the chat itself; a reaction
+-- taken back before it went takes its line with it); the javeda-push edge function sends it (javeda_push_chat_take):
+-- one message a player, everything since the last one in it, at most one an hour - a mention sooner, 15 minutes after
+-- the last one. Not at night on the phone's clock, and what's a day old is dropped.
+CREATE TABLE IF NOT EXISTS javeda_push_chat_queue (
+  id         BIGSERIAL PRIMARY KEY,
+  user_id    UUID   NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,   -- who gets it
+  kind       TEXT   NOT NULL CHECK (kind IN ('react', 'mention')),
+  by_user    UUID   NOT NULL,
+  message_id BIGINT NOT NULL REFERENCES javeda_chat(id) ON DELETE CASCADE,
+  emoji      TEXT,
+  at         TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS javeda_push_chat_sent (
+  user_id UUID PRIMARY KEY REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  at      TIMESTAMPTZ NOT NULL
+);
+ALTER TABLE javeda_push_chat_queue ENABLE ROW LEVEL SECURITY;
+ALTER TABLE javeda_push_chat_sent  ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_push_chat_queue, javeda_push_chat_sent FROM anon, authenticated;
+
+-- a reaction: to the message's writer (not your own message); taken back: gone from the queue
+CREATE OR REPLACE FUNCTION public.javeda_push_react()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE writer UUID;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    DELETE FROM javeda_push_chat_queue WHERE kind = 'react' AND message_id = OLD.message_id AND by_user = OLD.user_id AND emoji = OLD.emoji;
+    RETURN OLD;
+  END IF;
+  SELECT user_id INTO writer FROM javeda_chat WHERE id = NEW.message_id;
+  IF writer IS NOT NULL AND writer <> NEW.user_id AND EXISTS (SELECT 1 FROM javeda_push WHERE user_id = writer AND chat) THEN
+    INSERT INTO javeda_push_chat_queue (user_id, kind, by_user, message_id, emoji) VALUES (writer, 'react', NEW.user_id, NEW.message_id, NEW.emoji);
+  END IF;
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END;
+$$;
+DROP TRIGGER IF EXISTS javeda_chat_reacts_push ON javeda_chat_reacts;
+CREATE TRIGGER javeda_chat_reacts_push AFTER INSERT OR DELETE ON javeda_chat_reacts
+  FOR EACH ROW EXECUTE FUNCTION public.javeda_push_react();
+
+-- a message with @names in it (the page's own rule for an @name): to each of them, at most 5, not yourself
+CREATE OR REPLACE FUNCTION public.javeda_push_mention()
+RETURNS TRIGGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF position('@' IN NEW.body) = 0 THEN RETURN NEW; END IF;
+  INSERT INTO javeda_push_chat_queue (user_id, kind, by_user, message_id)
+  SELECT p.user_id, 'mention', NEW.user_id, NEW.id FROM javeda_players p
+  WHERE lower(p.username) IN (SELECT DISTINCT lower(m[2]) FROM regexp_matches(NEW.body, '(^|[^A-Za-z0-9_.-])@([A-Za-z0-9_.-]{3,16})(?![A-Za-z0-9_.-])', 'g') AS m LIMIT 5)
+    AND p.user_id <> NEW.user_id
+    AND EXISTS (SELECT 1 FROM javeda_push s WHERE s.user_id = p.user_id AND s.chat);
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RETURN NEW;
+END;
+$$;
+DROP TRIGGER IF EXISTS javeda_chat_push ON javeda_chat;
+CREATE TRIGGER javeda_chat_push AFTER INSERT ON javeda_chat
+  FOR EACH ROW EXECUTE FUNCTION public.javeda_push_mention();
+
+-- the edge function: one message for each player who's due, to each of their awake phones that want it
+CREATE OR REPLACE FUNCTION public.javeda_push_chat_take()
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE out JSON;
+BEGIN
+  DELETE FROM javeda_push_chat_queue WHERE at < now() - interval '1 day';
+  WITH due AS (
+    SELECT q.user_id FROM javeda_push_chat_queue q LEFT JOIN javeda_push_chat_sent s ON s.user_id = q.user_id
+    GROUP BY q.user_id, s.at
+    HAVING (s.at IS NULL OR s.at < now() - interval '1 hour' OR (bool_or(q.kind = 'mention') AND s.at < now() - interval '15 minutes'))
+      AND (EXISTS (SELECT 1 FROM javeda_push p WHERE p.user_id = q.user_id AND p.chat AND javeda_push_awake(p.tz))
+           OR NOT EXISTS (SELECT 1 FROM javeda_push p WHERE p.user_id = q.user_id AND p.chat))),
+  q AS (DELETE FROM javeda_push_chat_queue WHERE user_id IN (SELECT user_id FROM due) RETURNING *),
+  per AS (
+    SELECT user_id,
+      count(*) FILTER (WHERE kind = 'mention')::INT AS mentions,
+      (array_agg(by_user ORDER BY at DESC, id DESC) FILTER (WHERE kind = 'mention'))[1] AS m_by,
+      (array_agg(message_id ORDER BY at DESC, id DESC) FILTER (WHERE kind = 'mention'))[1] AS m_msg,
+      count(*) FILTER (WHERE kind = 'react')::INT AS reacts,
+      count(DISTINCT by_user) FILTER (WHERE kind = 'react')::INT AS people,
+      (array_agg(by_user ORDER BY at DESC, id DESC) FILTER (WHERE kind = 'react'))[1] AS r_by,
+      (array_agg(message_id ORDER BY at DESC, id DESC) FILTER (WHERE kind = 'react'))[1] AS r_msg,
+      array_to_string((array_agg(DISTINCT emoji) FILTER (WHERE kind = 'react'))[1:3], '') AS emojis
+    FROM q GROUP BY user_id),
+  mark AS (
+    INSERT INTO javeda_push_chat_sent (user_id, at) SELECT user_id, now() FROM per
+    ON CONFLICT (user_id) DO UPDATE SET at = now())
+  SELECT coalesce(json_agg(json_build_object('endpoint', p.endpoint, 'p256dh', p.p256dh, 'auth', p.auth, 'lang', p.lang,
+      'mentions', per.mentions, 'm_by', mb.username, 'm_body', mm.body,
+      'reacts', per.reacts, 'people', per.people, 'r_by', rb.username, 'emojis', per.emojis, 'r_body', rm.body)), '[]'::json)
+  INTO out
+  FROM per JOIN javeda_push p ON p.user_id = per.user_id AND p.chat AND javeda_push_awake(p.tz)
+  LEFT JOIN javeda_players mb ON mb.user_id = per.m_by LEFT JOIN javeda_chat mm ON mm.id = per.m_msg
+  LEFT JOIN javeda_players rb ON rb.user_id = per.r_by LEFT JOIN javeda_chat rm ON rm.id = per.r_msg;
+  RETURN out;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_push_chat_take() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_push_chat_take() TO service_role;

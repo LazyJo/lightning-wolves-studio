@@ -1513,7 +1513,8 @@ S: {
 "Opens at # downloads":"下载量达到 # 时开启",
 "# / # downloads":"下载量 # / #",
 "It plays offline and opens in one tap.":"可以离线玩，一点就打开。",
-"React":"回应"
+"React":"回应",
+"Someone reacts to your message or @mentions you in the chat":"有人回应你的消息或在聊天中 @ 你"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",

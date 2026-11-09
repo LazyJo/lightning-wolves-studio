@@ -1513,7 +1513,8 @@ S: {
 "Opens at # downloads":"#ダウンロードで開幕",
 "# / # downloads":"#/#ダウンロード",
 "It plays offline and opens in one tap.":"オフラインでも遊べて、ワンタップで開けるよ。",
-"React":"リアクション"
+"React":"リアクション",
+"Someone reacts to your message or @mentions you in the chat":"だれかがあなたのメッセージにリアクションしたり、チャットで@メンションしたとき"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",

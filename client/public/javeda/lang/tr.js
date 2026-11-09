@@ -1513,7 +1513,8 @@ S: {
 "Opens at # downloads":"# indirmede açılıyor",
 "# / # downloads":"İndirme: # / #",
 "It plays offline and opens in one tap.":"Çevrimdışı da çalışır, tek dokunuşla açılır.",
-"React":"Tepki ver"
+"React":"Tepki ver",
+"Someone reacts to your message or @mentions you in the chat":"Biri mesajına tepki verdiğinde veya sohbette senden @bahsettiğinde"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>İlk online oyun</small>HOOPS <i>1v1</i>",

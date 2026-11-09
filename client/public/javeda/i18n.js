@@ -430,6 +430,7 @@ const S = [
   ["Notifications", "Meldingen", "Notifications", "Notificaciones"],
   ["Today's challenge is up (every morning at #)", "De uitdaging van vandaag staat klaar (elke ochtend om # uur)", "Le défi du jour est là (chaque matin à # h)", "El reto de hoy ya está aquí (cada mañana a las #)"],
   ["Someone beats one of your scores", "Iemand verslaat een van je scores", "Quelqu'un bat un de tes scores", "Alguien supera una de tus puntuaciones"],
+  ["Someone reacts to your message or @mentions you in the chat", "Iemand reageert op je bericht of @noemt je in de chat", "Quelqu'un réagit à ton message ou te @mentionne dans le chat", "Alguien reacciona a tu mensaje o te @menciona en el chat"],
   ["log in for this one", "log in voor deze", "connecte-toi pour celle-ci", "inicia sesión para esta"],
   ["On iPhone and iPad, notifications come with the app: tap Get the app first.", "Op iPhone en iPad krijg je meldingen in de app: tik eerst op Download de app.", "Sur iPhone et iPad, les notifications viennent avec l'app : touche d'abord Télécharger l'app.", "En iPhone y iPad, las notificaciones llegan con la app: toca primero Descarga la app."],
   ["Notifications are blocked for JAVEDA in this phone's settings.", "Meldingen voor JAVEDA staan uit in de instellingen van deze telefoon.", "Les notifications de JAVEDA sont bloquées dans les réglages de ce téléphone.", "Las notificaciones de JAVEDA están bloqueadas en los ajustes de este teléfono."],

@@ -1,7 +1,8 @@
 // JAVEDA - the notifications (Supabase Edge Function "javeda-push"). How it's set up: README.md next to this file.
 // - {"run": true} with the x-javeda-key header: what pg_cron sends every 5 minutes. Sends "someone beat your score"
 //   (javeda_push_take: the queue the score triggers fill, one message a player) and, once a day at 8:00 on each phone's clock,
-//   "today's challenge is up" (javeda_push_daily_due).
+//   "today's challenge is up" (javeda_push_daily_due), and the chat ones: "X reacted 🔥 to your message" / "X mentioned
+//   you in the chat" (javeda_push_chat_take, at most one an hour a player).
 // - {"hello": "<push address>"}: from the page, right after a phone turns notifications on - a first message to that
 //   phone only, so the player sees it works. Only an address that is signed up gets one, at most every 10 minutes.
 // A phone whose push service says it's gone (404/410) is forgotten.
@@ -19,6 +20,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 type Lang = "en" | "nl" | "fr" | "es" | "it" | "tr" | "ja" | "zh" | "tw";
 type Sub = { endpoint: string; p256dh: string; auth: string; lang: Lang };
+type Chat = Sub & { mentions: number; m_by: string | null; m_body: string | null; reacts: number; people: number; r_by: string | null; emojis: string | null; r_body: string | null };
 type Beaten = Sub & { n: number; people: number; level: string; num: number; title: string; endless: boolean; daily: boolean; by: string | null; score: number };
 
 // the words, in the phone's language
@@ -60,6 +62,23 @@ const W = {
     ja: (board: string, s: string) => board + "：" + s + "。順位を取り戻す？",
     zh: (board: string, s: string) => board + "：" + s + "。要夺回你的名次吗？",
     tw: (board: string, s: string) => board + "：" + s + "。要奪回你的名次嗎？",
+  },
+  mention: {
+    en: (by: string) => by + " mentioned you in the chat", nl: (by: string) => by + " noemde je in de chat",
+    fr: (by: string) => by + " t'a mentionné dans le chat", es: (by: string) => by + " te mencionó en el chat",
+    it: (by: string) => by + " ti ha menzionato nella chat", tr: (by: string) => by + " sohbette senden bahsetti",
+    ja: (by: string) => by + "がチャットであなたをメンションしたよ", zh: (by: string) => by + " 在聊天中提到了你", tw: (by: string) => by + " 在聊天中提到了你",
+  },
+  react: {
+    en: (by: string, more: number, e: string) => by + (more ? " and " + more + (more > 1 ? " others" : " other") : "") + " reacted " + e + " to your message",
+    nl: (by: string, more: number, e: string) => by + (more ? " en nog " + more : "") + " reageerde" + (more ? "n" : "") + " " + e + " op je bericht",
+    fr: (by: string, more: number, e: string) => by + (more ? " et " + more + (more > 1 ? " autres ont" : " autre ont") : " a") + " réagi " + e + " à ton message",
+    es: (by: string, more: number, e: string) => by + (more ? " y " + more + " más reaccionaron" : " reaccionó") + " " + e + " a tu mensaje",
+    it: (by: string, more: number, e: string) => by + (more ? " e altri " + more + " hanno" : " ha") + " reagito " + e + " al tuo messaggio",
+    tr: (by: string, more: number, e: string) => by + (more ? " ve " + more + " kişi daha" : "") + " mesajına " + e + " tepkisi verdi",
+    ja: (by: string, more: number, e: string) => by + (more ? "とほか" + more + "人" : "") + "があなたのメッセージに" + e + "でリアクションしたよ",
+    zh: (by: string, more: number, e: string) => by + (more ? "和另外" + more + "人" : "") + "用 " + e + " 回应了你的消息",
+    tw: (by: string, more: number, e: string) => by + (more ? "和另外" + more + "人" : "") + "用 " + e + " 回應了你的訊息",
   },
   hello: { en: "JAVEDA notifications are on", nl: "JAVEDA-meldingen staan aan", fr: "Les notifications JAVEDA sont activées", es: "Las notificaciones de JAVEDA están activadas",
     it: "Le notifiche di JAVEDA sono attive", tr: "JAVEDA bildirimleri açık", ja: "JAVEDAの通知がオンになったよ", zh: "JAVEDA 通知已开启", tw: "JAVEDA 通知已開啟" },
@@ -138,6 +157,17 @@ Deno.serve(async req => {
     const l = L(s);
     return { title: W.daily[l], body: W.dailyBody[l](levelName(l, daily.num, daily.title)), url: "/javeda/#daily", tag: "javeda-daily" };
   }, 12 * 3600);
+
+  // the chat: a mention first (with its words), else the reactions (with the words they're on)
+  const { data: chat, error: e3 } = await db.rpc("javeda_push_chat_take");
+  if (e3) return json({ ...out, error: e3.message }, 500);
+  const quote = (t: string | null) => t ? "\u201c" + (t.length > 120 ? t.slice(0, 119) + "\u2026" : t) + "\u201d" : "";
+  out.chat = await sendAll((chat ?? []) as Chat[], s => {
+    const l = L(s);
+    return s.mentions
+      ? { title: W.mention[l](s.m_by || W.someone[l]), body: quote(s.m_body), url: "/javeda/#chat", tag: "javeda-chat" }
+      : { title: W.react[l](s.r_by || W.someone[l], Math.max(0, s.people - 1), s.emojis || ""), body: quote(s.r_body), url: "/javeda/#chat", tag: "javeda-chat" };
+  }, 6 * 3600);
 
   return json(out);
 });

@@ -413,8 +413,10 @@ input.in{font:600 17px/1 var(--ui); color:var(--ink); background:var(--panel); b
 .pic .pn{font:700 11.5px/1.1 var(--cond); letter-spacing:.06em; color:var(--dim)}
 .pic.on{border-color:var(--beam)}
 .pic.locked img{filter:grayscale(.7) brightness(.55)}
-.pictabs{display:flex; gap:6px; margin-bottom:10px}
-.pictabs button{flex:1 1 0; min-width:0; border:1px solid var(--line); background:var(--panel); color:var(--dim); border-radius:999px; padding:8px 4px; font:700 12px/1 var(--cond); letter-spacing:.06em; white-space:nowrap}
+.card > *{min-width:0}   /* nothing in a card makes it wider than the phone */
+.pictabs{display:flex; gap:6px; margin-bottom:10px; overflow-x:auto; scrollbar-width:none}   /* five tabs on a narrow phone: they scroll */
+.pictabs::-webkit-scrollbar{display:none}
+.pictabs button{flex:1 0 auto; border:1px solid var(--line); background:var(--panel); color:var(--dim); border-radius:999px; padding:8px 10px; font:700 12px/1 var(--cond); letter-spacing:.06em; white-space:nowrap}
 .pictabs small{font:inherit; font-size:10.5px; opacity:.8}
 .pictabs button[aria-pressed="true"]{background:linear-gradient(180deg,#ffe08a,#e0a41a); border-color:#e0a41a; color:#2a1a02}
 .toast img.tp{width:30px; height:30px; border-radius:8px; vertical-align:middle; margin-right:4px}
@@ -782,6 +784,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <h2>Notifications</h2>
       <label class="chk" id="pfPushDRow"><input type="checkbox" id="pfPushD"><span>Today's challenge is up (every morning at 8)</span></label>
       <label class="chk" id="pfPushBRow"><input type="checkbox" id="pfPushB"><span>Someone beats one of your scores<small class="hid" id="pfPushLogin"> &middot; log in for this one</small></span></label>
+      <label class="chk" id="pfPushCRow"><input type="checkbox" id="pfPushC"><span>Someone reacts to your message or @mentions you in the chat<small class="hid" id="pfPushLoginC"> &middot; log in for this one</small></span></label>
       <p class="note hid" id="pfPushNote"></p>
     </div>
     <div class="pushset hid" id="pfDiscord">
@@ -1470,7 +1473,8 @@ let boardTab = "points";
 let daily = null;           // today's challenge: { day, level } from javeda_daily
 let dailyBest = 0;          // your best in it today
 let weekly = null, weeklyBest = 0;   // this week's tournament (javeda_weekly) and your best in it
-// notifications on this phone: what was asked for ({ daily, beaten }; null = never). "beaten" counts once logged in.
+// notifications on this phone: what was asked for ({ daily, beaten, chat }; null = never). "beaten" and "chat" count once
+// logged in. A choice saved before the chat ones existed has no "chat": it goes with "beaten" (pushChat).
 const PUSH_OK = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && window.isSecureContext;
 let pushWish = (() => { try { return JSON.parse(localStorage.getItem("javeda.push.v1")); } catch(e){ return null; } })();
 let mode = {};              // how the level in the frame is played: { room }, { daily:true } or { marathon:true }
@@ -2670,7 +2674,7 @@ $("now").addEventListener("click", e => {
   else if (b.dataset.friends) openFriends();
   else if (b.dataset.weekly && weekly && weekly.on !== false) play(weekly.level, { weekly:true });
   else if (b.dataset.getapp) openAppSheet();
-  else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); } });
+  else if (b.dataset.bell) pushSave({ daily:true, beaten:!!(pushWish && pushWish.beaten), chat:pushChat(pushWish) }).then(ok => { if (ok){ toast("We'll tell you when the next challenge is up."); renderNow(); } });
   else if (b.dataset.door) openDoor(+b.dataset.door);
   else if (b.dataset.copycode){ navigator.clipboard && navigator.clipboard.writeText(b.dataset.copycode).then(() => toast("Copied: " + esc(b.dataset.copycode)), () => {}); }
   else if (b.dataset.board){ boardTab = b.dataset.board; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
@@ -3851,17 +3855,20 @@ addEventListener("message", e => {
 const VAPID = "BL9N7yi4w4tZDtwBEKVUu5Bcxp702LmCFtf2bKHnlDjv6yZh-HgeEFzb7fnL0DNH7W1HDGCoB7yLslvLqlQPUyI";   // public; the private one is a Supabase secret
 const PUSH_AUTO = "javeda.push.auto";
 const pushTz = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch(e){ return null; } };   // its 8:00 is on this clock
+const pushChat = w => !!w && (w.chat === undefined ? !!w.beaten : !!w.chat);
+const pushAny = w => !!w && !!(w.daily || w.beaten || pushChat(w));
 const b64u = s => Uint8Array.from(atob((s + "===".slice((s.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
 // save what this phone wants (both off: the server forgets it). Asks for the permission first, straight from the tap
 // (an iPhone only asks from a tap). quiet: the re-save at start and after logging in or out - no asking, no messages.
 async function pushSave(want, quiet){
-  const on = !!(want.daily || want.beaten);
+  want = { daily:!!want.daily, beaten:!!want.beaten, chat:pushChat(want) };
+  const on = pushAny(want);
   if (!PUSH_OK || !sb) return false;
   if (on && Notification.permission !== "granted"){
     const p = quiet ? Notification.permission : await Notification.requestPermission();
     if (p !== "granted"){ if (!quiet) toast(p === "denied" ? "Notifications are blocked for JAVEDA in this phone's settings." : "No notifications, then."); return false; }
   }
-  const was = !!(pushWish && (pushWish.daily || pushWish.beaten));
+  const was = pushAny(pushWish);
   try {
     const reg = await navigator.serviceWorker.ready;
     let s = await reg.pushManager.getSubscription();
@@ -3869,12 +3876,12 @@ async function pushSave(want, quiet){
     if (s){
       const j = s.toJSON();
       const { error } = await sb.rpc("javeda_push_set", { p_endpoint:j.endpoint, p_p256dh:j.keys.p256dh, p_auth:j.keys.auth,
-        p_lang:window.JAVEDA_LANG || "en", p_daily:!!want.daily, p_beaten:!!want.beaten, p_tz:pushTz() });
+        p_lang:window.JAVEDA_LANG || "en", p_daily:want.daily, p_beaten:want.beaten, p_tz:pushTz(), p_chat:want.chat });
       if (error) throw error;
       if (!on) s.unsubscribe().catch(() => {});
       else if (!quiet && !was) sb.functions.invoke("javeda-push", { body:{ hello:j.endpoint } }).catch(() => {});   // a first one, to see it works
     }
-    pushWish = { daily:!!want.daily, beaten:!!want.beaten };
+    pushWish = want;
     try { localStorage.setItem("javeda.push.v1", JSON.stringify(pushWish)); } catch(e){}
     return true;
   } catch(err){
@@ -3883,13 +3890,13 @@ async function pushSave(want, quiet){
   }
 }
 // at start and after logging in or out: this phone's choice again (the player, the language, a renewed address)
-function pushSync(){ if (PUSH_OK && sb && pushWish && (pushWish.daily || pushWish.beaten) && Notification.permission === "granted") pushSave(pushWish, true); }
+function pushSync(){ if (PUSH_OK && sb && pushAny(pushWish) && Notification.permission === "granted") pushSave(pushWish, true); }
 // the installed app starts with them on. Nothing can switch them on without the phone's own question, and an iPhone
 // only asks from a tap: so the first tap asks, once, and Allow turns on both kinds. A permission already given needs no
 // question. Turned off in your player stays off (pushWish remembers it).
 function pushAuto(){
   if (!STANDALONE || !PUSH_OK || !sb || pushWish) return;
-  const on = () => pushSave({ daily:true, beaten:true }).then(ok => { if (!ok) return;
+  const on = () => pushSave({ daily:true, beaten:true, chat:true }).then(ok => { if (!ok) return;
     toast(signedIn() ? "Notifications are on. You can turn them off in your player." : "Notifications are on. Log in and you'll also hear when someone beats your score.", 5000);
     renderPushSet(); renderNow(); });
   if (Notification.permission === "granted") return void on();
@@ -3906,23 +3913,25 @@ function pushAuto(){
 function renderPushSet(){
   const w = pushWish || {}, iosTab = !PUSH_OK && IOS && !STANDALONE, blocked = PUSH_OK && Notification.permission === "denied", note = $("pfPushNote");
   $("pfPush").classList.toggle("hid", !PUSH_OK && !iosTab);
-  $("pfPushDRow").classList.toggle("hid", iosTab); $("pfPushBRow").classList.toggle("hid", iosTab);
-  $("pfPushD").checked = !blocked && !!w.daily; $("pfPushB").checked = !blocked && !!w.beaten && signedIn();
-  $("pfPushD").disabled = blocked; $("pfPushB").disabled = blocked || !signedIn();
-  $("pfPushLogin").classList.toggle("hid", signedIn());
+  for (const r of ["pfPushDRow", "pfPushBRow", "pfPushCRow"]) $(r).classList.toggle("hid", iosTab);
+  $("pfPushD").checked = !blocked && !!w.daily; $("pfPushB").checked = !blocked && !!w.beaten && signedIn(); $("pfPushC").checked = !blocked && pushChat(w) && signedIn();
+  $("pfPushD").disabled = blocked; $("pfPushB").disabled = $("pfPushC").disabled = blocked || !signedIn();
+  $("pfPushLogin").classList.toggle("hid", signedIn()); $("pfPushLoginC").classList.toggle("hid", signedIn());
   note.textContent = iosTab ? "On iPhone and iPad, notifications come with the app: tap Get the app first."
     : blocked ? "Notifications are blocked for JAVEDA in this phone's settings." : "";
   note.classList.toggle("hid", !note.textContent);
 }
-for (const id of ["pfPushD", "pfPushB"]) $(id).onchange = () => {
-  const want = { daily:$("pfPushD").checked, beaten:signedIn() ? $("pfPushB").checked : !!(pushWish && pushWish.beaten) };
-  $("pfPushD").disabled = $("pfPushB").disabled = true;
-  pushSave(want).then(ok => { renderPushSet(); renderNow(); if (ok) toast(want.daily || want.beaten ? "Notifications are on." : "Notifications are off."); });
+for (const id of ["pfPushD", "pfPushB", "pfPushC"]) $(id).onchange = () => {
+  const want = { daily:$("pfPushD").checked, beaten:signedIn() ? $("pfPushB").checked : !!(pushWish && pushWish.beaten),
+    chat:signedIn() ? $("pfPushC").checked : pushChat(pushWish) };
+  $("pfPushD").disabled = $("pfPushB").disabled = $("pfPushC").disabled = true;
+  pushSave(want).then(ok => { renderPushSet(); renderNow(); if (ok) toast(pushAny(want) ? "Notifications are on." : "Notifications are off."); });
 };
-// a notification's link: /javeda/#daily (the daily card) or #board=<level, or daily> (that scoreboard)
+// a notification's link: /javeda/#daily (the daily card), #board=<level, or daily> (that scoreboard) or #chat
 function goTo(hash){
   const m = /^#board=([a-z0-9]+)$/.exec(hash || "");
-  if (hash === "#daily"){ const d = document.querySelector("#now .daily"); if (!d) return; d.scrollIntoView({ behavior:"smooth", block:"center" }); }
+  if (hash === "#chat"){ boardTab = "chat"; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
+  else if (hash === "#daily"){ const d = document.querySelector("#now .daily"); if (!d) return; d.scrollIntoView({ behavior:"smooth", block:"center" }); }
   else if (m && (m[1] === "daily" ? daily : levelById(m[1]))){ boardTab = m[1]; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else return;
   if (location.hash) history.replaceState(null, "", location.pathname + location.search);

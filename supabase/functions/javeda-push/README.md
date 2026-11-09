@@ -11,7 +11,9 @@ How it fits together:
    for "beaten" (`javeda_push_queue`).
 3. **pg_cron** calls this function every 5 minutes with `{"run": true}` and the `x-javeda-key` header. It sends the
    queue (`javeda_push_take`: one message a player, at most one every 6 hours, none during the phone's night) and, once a day at 8:00 on each phone's clock,
-   today's challenge (`javeda_push_daily_due`).
+   today's challenge (`javeda_push_daily_due`), and the chat ones (`javeda_push_chat_take`: someone reacted to your
+   message or @mentioned you - one message a player, at most one an hour, a mention after 15 minutes, none at night;
+   the queue is `javeda_push_chat_queue`, filled by triggers on `javeda_chat_reacts` and `javeda_chat`).
 4. **The service worker** (`client/public/javeda/sw.js`) shows the message; a tap opens JAVEDA on that board.
 
 The secrets are in `L:\Lazy Jo\Lightning Wolves\GAME\.env.javeda-push.local` (never in the repo). The public VAPID

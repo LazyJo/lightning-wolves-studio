@@ -348,6 +348,7 @@ function award(base, every){ const beat = onBeat(S.t); S.combo++; S.best = Math.
   S.score += (beat ? base*2 : base) * Math.min(4, 1 + Math.floor(S.combo/every)); return beat; }
 
 /* =============== HAUNTED WINDOWS: tap the ghosts =============== */
+const GRACE = .25;                 // seconds a ghost can still be caught after it sank (a tap on a phone arrives late)
 // The two old houses from the cover, from the street, the lamp glowing beside them. On the beat a
 // ghost comes up in a window for a moment - tap it and the saucer's beam takes it (on the beat x2).
 // The neighbours at the lit windows cost a heart. A ghost that ducks away haunts the houses a bit
@@ -398,8 +399,12 @@ const HW = {
       const kind = S.hearts < HEARTS && bar % 8 === 5 && b === 0 && i === 0 ? "heart" : hook && rnd(j*7.1 + i) < .2 ? "gold" : "ghost";
       w.state = "ghost"; w.kind = kind; w.t0 = tb; w.t1 = tb + up*(kind === "gold" ? .8 : 1);
       const c = { ghost:GC.ghost, gold:0xffd070, heart:0xff9ab0 }[kind]; w.gh.userData.mat.color.setHex(c); w.gh.userData.mat.emissive.setHex(c); tb = tb0; } },
+  // a finger isn't a pixel: a tap near a ghost takes that ghost (the nearest one up, a bit beyond its window frame),
+  // before a neighbour or an empty window; anything else is the window under the finger
   tap(cx, cy){ this.ray.setFromCamera({ x:cx/innerWidth*2 - 1, y:-(cy/innerHeight)*2 + 1 }, cam); const P = new THREE.Vector3(); if (!this.ray.ray.intersectPlane(this.plane, P)) return;
-    this.hit(this.wins.findIndex(w => Math.abs(P.x - w.x) < 1.5 && Math.abs(P.y - w.y) < 1.8)); },
+    let best = -1, bd = 1e9;
+    this.wins.forEach((w, i) => { if (w.state !== "ghost" || S.t < w.t0) return; const dx = (P.x - w.x)/2.6, dy = (P.y - w.y)/2.8, d = dx*dx + dy*dy; if (d < 1 && d < bd){ bd = d; best = i; } });
+    this.hit(best >= 0 ? best : this.wins.findIndex(w => Math.abs(P.x - w.x) < 1.5 && Math.abs(P.y - w.y) < 1.8)); },
   hit(i){ const w = this.wins[i], st = this.st; if (!w){ S.combo = 0; return; }
     this.zapT = .25; this.zapTo = new THREE.Vector3(w.x, w.y, .3); sfx.zap();
     if (w.state === "ghost" && S.t < w.t0){ S.combo = 0; return; }
@@ -414,7 +419,8 @@ const HW = {
   update(dt, t){
     const st = this.st;
     while (GRID.t0 + st.j*BEAT <= t){ const tb = GRID.t0 + st.j*BEAT; this.spawn(st.j, tb); st.j++; }
-    for (const w of this.wins){ if (w.state === "empty" || t < w.t1) continue;
+    // a ghost counts as gone only a moment after it sank (GRACE): a phone delivers a tap a little late
+    for (const w of this.wins){ if (w.state === "empty" || t < w.t1 + (w.state === "ghost" ? GRACE : 0)) continue;
       if (w.state === "ghost"){ st.haunt++; st.run = 0; st.calm = t; w.red = t; S.combo = 0; sfx.bad(); say("IT DUCKED AWAY", "haunted " + st.haunt + "/8", .8, "x");
         // eight got away: the houses take a heart, then they're calm again (the run ends only when the hearts are gone)
         if (st.haunt >= 8){ w.state = "empty"; st.haunt = 0; if (hurt("HAUNTED", "Eight got away. Tap each ghost while it's up in the window - ten in a row calm the houses down.")) return; } }

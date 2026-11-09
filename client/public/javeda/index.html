@@ -536,6 +536,16 @@ html[data-season="summer"]{ --blue:#f08a24 } html[data-season="halloween"]{ --bl
 .chatlog .at{color:var(--beam); font-weight:700}
 .chatlog .at.me{color:#041024; background:var(--gold); border-radius:4px; padding:0 3px}
 .chatlog li.ment{box-shadow:inset 3px 0 0 var(--gold)}
+/* emoji reactions under a message, and the little picker */
+.chatlog .reacts{display:flex; flex-wrap:wrap; gap:4px; margin-top:5px}
+.chatlog .reacts:empty{display:none}
+.chatlog .rx{border:1px solid var(--line); background:#ffffff0a; border-radius:999px; padding:2px 8px 2px 6px; font-size:14px; line-height:1.3; color:var(--ink); cursor:pointer}
+.chatlog .rx b{font:700 12px/1 var(--cond); margin-left:3px; color:var(--dim)}
+.chatlog .rx.mine{border-color:var(--beam); background:#9fe8ff22} .chatlog .rx.mine b{color:var(--beam)}
+.chatlog .rx:disabled{cursor:default}
+.chatlog .rpick{display:flex; flex-wrap:wrap; gap:2px; margin-top:6px; padding:4px; width:max-content; max-width:100%; background:var(--panel-2); border:1px solid var(--line); border-radius:12px; box-shadow:0 8px 20px #0007}
+.chatlog .rpick button{border:0; background:none; font-size:21px; line-height:1; padding:5px; border-radius:8px; cursor:pointer}
+.chatlog .rpick button:hover, .chatlog .rpick button:focus-visible{background:#ffffff14}
 #tabs .cdot{display:inline-block; width:8px; height:8px; margin-left:6px; border-radius:50%; background:var(--blue); vertical-align:2px; box-shadow:0 0 6px var(--blue)}
 #tabs .cdot.gold{background:var(--gold); box-shadow:0 0 6px var(--gold)}
 .chatnote .err{display:block; margin-top:4px}
@@ -2011,10 +2021,24 @@ const mentionsMe = m => !m.mine && !!meName() && [...String(m.body).matchAll(AT)
 function chatRow(m){
   const acts = (m.mine || creator ? '<button type="button" data-chatdel="' + m.id + '" title="Delete" aria-label="Delete">&times;</button>' : '') +
     (!m.mine && signedIn() ? '<button type="button" data-chatrep="' + m.id + '" title="Report" aria-label="Report">&#9873;</button>' : '') +
-    (creator && !m.mine ? '<button type="button" data-chatmute="' + m.id + '" title="Mute for a day" aria-label="Mute for a day">&#128263;</button>' : '');
+    (creator && !m.mine ? '<button type="button" data-chatmute="' + m.id + '" title="Mute for a day" aria-label="Mute for a day">&#128263;</button>' : '') +
+    (signedIn() && !session.offline ? '<button type="button" data-chatreact="' + m.id + '" title="React" aria-label="React">&#128578;</button>' : '');
   return '<li data-id="' + m.id + '"' + (m.mine ? ' class="you"' : mentionsMe(m) ? ' class="ment"' : '') + '><img src="' + pic(m.avatar) + '" alt=""><div><div class="ch"><b data-i18n-skip>' + esc(m.username) + '</b>' +
     (m.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + '<time data-i18n-skip>' + chatTime(m.created_at) + '</time>' +
-    (acts ? '<span class="acts">' + acts + '</span>' : '') + '</div><p data-i18n-skip>' + atHtml(m.body) + '</p></div></li>';
+    (acts ? '<span class="acts">' + acts + '</span>' : '') + '</div><p data-i18n-skip>' + atHtml(m.body) + '</p><div class="reacts" data-rx="' + m.id + '">' + reactChips(m.id) + '</div></div></li>';
+}
+/* ---- emoji reactions: one of each per player per message, tap again to take it back (javeda_chat_react); everyone's
+   come in with the chat's polling (javeda_chat_reacts) ---- */
+const REACTS = ["\u{1F525}", "\u{1F4AF}", "\u{1F601}", "\u{1F602}", "\u2764\uFE0F", "\u{1F44D}", "\u{1F43A}", "\u26A1", "\u{1F62E}", "\u{1F389}"];
+let chatReacts = {};
+const reactChips = id => (chatReacts[id] || []).map(r => '<button type="button" class="rx' + (r.mine ? ' mine' : '') + '" data-rxid="' + id + '" data-rxe="' + r.e + '"' +
+  (signedIn() && !session.offline ? '' : ' disabled') + ' aria-pressed="' + !!r.mine + '">' + r.e + '<b>' + r.n + '</b></button>').join("");
+function paintReacts(){ document.querySelectorAll("#chatLog [data-rx]").forEach(el => { const h = reactChips(el.dataset.rx); if (el.innerHTML !== h) el.innerHTML = h; }); }
+async function loadReacts(){ const { data } = await sb.rpc("javeda_chat_reacts").then(r => r, () => ({})); if (data && typeof data === "object"){ chatReacts = data; paintReacts(); } }
+async function react(id, e){
+  const { data, error } = await sb.rpc("javeda_chat_react", { p_id:+id, p_emoji:e }).then(r => r, x => ({ error:x }));
+  if (error){ const k = Object.keys(CHAT_ERR).find(k => String(error.message || "").includes(k)); toast(k ? CHAT_ERR[k] : "Could not send. Try again."); return; }
+  chatReacts[id] = data || []; paintReacts();
 }
 function renderChat(){
   const el = $("board"); el.classList.remove("short"); $("boardMore").classList.add("hid");
@@ -2036,7 +2060,7 @@ async function chatPoll(first){
     chatBusy = false;
     const log = $("chatLog"); if (boardTab !== "chat" || !log) return;
     if (error){ if (first) log.innerHTML = '<li class="empty">Could not load the chat. Try again in a bit.</li>'; }
-    else chatAdd(data || [], full);
+    else { chatAdd(data || [], full); if (full || chatN % 2 === 0) loadReacts(); }
   }
   chatT = setTimeout(chatPoll, document.hidden ? 15000 : 4000);
 }
@@ -2066,8 +2090,14 @@ $("board").addEventListener("click", e => { const w = e.target.closest("li[data-
 $("board").addEventListener("click", async e => {
   const nm = e.target.closest(".chatlog .ch b"), inp = $("chatIn");
   if (nm && inp){ const at = "@" + nm.textContent + " "; if (!inp.value.includes(at)) inp.value = (inp.value && !inp.value.endsWith(" ") ? inp.value + " " : inp.value) + at; inp.focus(); return; }
-  const b = e.target.closest("[data-chatdel],[data-chatrep],[data-chatmute],[data-chatjoin]"); if (!b) return;
+  const b = e.target.closest("[data-chatdel],[data-chatrep],[data-chatmute],[data-chatjoin],[data-chatreact],[data-pick],[data-rxe]"); if (!b) return;
   if (b.dataset.chatjoin){ openLogin(true); return; }
+  // reactions: the 🙂 opens the picker under the message; a chip or an emoji in the picker puts (or takes back) yours
+  if (b.dataset.chatreact){ const box = b.closest("li").querySelector("div"), open = box.querySelector(".rpick");
+    document.querySelectorAll("#chatLog .rpick").forEach(x => x.remove()); if (open) return;
+    box.insertAdjacentHTML("beforeend", '<div class="rpick" role="group" aria-label="React">' + REACTS.map(x => '<button type="button" data-pick="' + b.dataset.chatreact + '" data-e="' + x + '">' + x + '</button>').join("") + '</div>'); return; }
+  if (b.dataset.pick){ b.closest(".rpick").remove(); react(b.dataset.pick, b.dataset.e); return; }
+  if (b.dataset.rxe){ react(b.dataset.rxid, b.dataset.rxe); return; }
   const li = b.closest("li"), name = li && li.querySelector(".ch b").textContent, body = li && li.querySelector("p").textContent;
   if (b.dataset.chatdel){ const { error } = await sb.rpc("javeda_chat_delete", { p_id:+b.dataset.chatdel }).then(r => r, x => ({ error:x })); if (!error) li.remove(); return; }
   if (b.dataset.chatrep){ b.disabled = true; await sendReport({ kind:"player", topic:"other", message:"Chat: " + name + ": " + body, detail:"chat message " + b.dataset.chatrep, page:"/javeda/#chat" });

@@ -1512,7 +1512,8 @@ S: {
 "Weekly tournament":"每周锦标赛",
 "Opens at # downloads":"下载量达到 # 时开启",
 "# / # downloads":"下载量 # / #",
-"It plays offline and opens in one tap.":"可以离线玩，一点就打开。"
+"It plays offline and opens in one tap.":"可以离线玩，一点就打开。",
+"React":"回应"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",

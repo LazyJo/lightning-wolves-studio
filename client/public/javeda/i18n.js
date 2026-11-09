@@ -196,6 +196,7 @@ const S = [
   ["Clear # levels during a Spring event.", "Haal # levels tijdens een lente-event.", "Réussis # niveaux pendant un événement de printemps.", "Supera # niveles durante un evento de primavera."],
   ["Clear # levels during a Summer event.", "Haal # levels tijdens een zomerevent.", "Réussis # niveaux pendant un événement d'été.", "Supera # niveles durante un evento de verano."],
   ["Clear # levels during a Halloween event.", "Haal # levels tijdens een Halloween-event.", "Réussis # niveaux pendant un événement d'Halloween.", "Supera # niveles durante un evento de Halloween."],
+  ["React", "Reageer", "Réagir", "Reaccionar"],
   ["Weekly tournament · until", "Weektoernooi · tot", "Tournoi de la semaine · jusqu'à", "Torneo semanal · hasta el"],
   ["Weekly", "Week", "Semaine", "Semanal"],
   ["Last week", "Vorige week", "La semaine dernière", "La semana pasada"],

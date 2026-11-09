@@ -1512,7 +1512,8 @@ S: {
 "Weekly tournament":"Haftalık turnuva",
 "Opens at # downloads":"# indirmede açılıyor",
 "# / # downloads":"İndirme: # / #",
-"It plays offline and opens in one tap.":"Çevrimdışı da çalışır, tek dokunuşla açılır."
+"It plays offline and opens in one tap.":"Çevrimdışı da çalışır, tek dokunuşla açılır.",
+"React":"Tepki ver"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>İlk online oyun</small>HOOPS <i>1v1</i>",

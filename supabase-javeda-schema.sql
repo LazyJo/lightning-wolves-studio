@@ -2783,3 +2783,52 @@ AS $$ SELECT COALESCE(json_agg(json_build_object('event', event, 'kind', split_p
       FROM javeda_event_winners WHERE user_id = auth.uid() AND closed_at > now() - INTERVAL '120 days'; $$;
 REVOKE ALL ON FUNCTION public.javeda_my_prizes() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_my_prizes() TO authenticated;
+
+-- ── Chat reactions ──────────────────────────────────────────────────────────
+-- An emoji under a message (🔥 💯 😁 ...), from a fixed set, one of each per player per message: tap again to take it
+-- back. A deleted message takes its reactions with it. Read by anyone (javeda_chat_reacts), set through
+-- javeda_chat_react only (players with a player, not muted).
+CREATE TABLE IF NOT EXISTS javeda_chat_reacts (
+  message_id BIGINT NOT NULL REFERENCES javeda_chat(id) ON DELETE CASCADE,
+  user_id    UUID   NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  emoji      TEXT   NOT NULL,
+  at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (message_id, user_id, emoji)
+);
+ALTER TABLE javeda_chat_reacts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_chat_reacts FROM anon, authenticated;
+
+-- the reactions on the chat's messages of the last 30 days: { "<message id>": [{ "e": "🔥", "n": 3, "mine": true }, ...] }
+CREATE OR REPLACE FUNCTION public.javeda_chat_reacts()
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT COALESCE(json_object_agg(m.message_id, m.list), '{}') FROM (
+    SELECT r.message_id, json_agg(json_build_object('e', r.emoji, 'n', r.n, 'mine', r.mine) ORDER BY r.first) AS list
+    FROM (SELECT x.message_id, x.emoji, count(*)::INT AS n, bool_or(x.user_id = auth.uid()) AS mine, min(x.at) AS first
+          FROM javeda_chat_reacts x JOIN javeda_chat c ON c.id = x.message_id AND c.created_at > now() - interval '30 days'
+          GROUP BY x.message_id, x.emoji) r
+    GROUP BY r.message_id) m;
+$$;
+GRANT EXECUTE ON FUNCTION public.javeda_chat_reacts() TO anon, authenticated;
+
+-- put or take back a reaction; returns that message's reactions
+CREATE OR REPLACE FUNCTION public.javeda_chat_react(p_id BIGINT, p_emoji TEXT)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE uid UUID := auth.uid();
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'login'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'player'; END IF;
+  IF EXISTS (SELECT 1 FROM javeda_chat_mutes WHERE user_id = uid AND until > now()) THEN RAISE EXCEPTION 'muted'; END IF;
+  IF p_emoji IS NULL OR NOT (p_emoji = ANY (ARRAY['🔥', '💯', '😁', '😂', '❤️', '👍', '🐺', '⚡', '😮', '🎉'])) THEN RAISE EXCEPTION 'emoji'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_chat WHERE id = p_id AND created_at > now() - interval '30 days') THEN RAISE EXCEPTION 'gone'; END IF;
+  DELETE FROM javeda_chat_reacts WHERE message_id = p_id AND user_id = uid AND emoji = p_emoji;
+  IF NOT FOUND THEN INSERT INTO javeda_chat_reacts (message_id, user_id, emoji) VALUES (p_id, uid, p_emoji); END IF;
+  RETURN (SELECT COALESCE(json_agg(json_build_object('e', r.emoji, 'n', r.n, 'mine', r.mine) ORDER BY r.first), '[]')
+          FROM (SELECT emoji, count(*)::INT AS n, bool_or(user_id = uid) AS mine, min(at) AS first FROM javeda_chat_reacts WHERE message_id = p_id GROUP BY emoji) r);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_chat_react(BIGINT, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_chat_react(BIGINT, TEXT) TO authenticated;

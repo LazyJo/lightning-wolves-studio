@@ -1512,7 +1512,8 @@ S: {
 "Weekly tournament":"ウィークリートーナメント",
 "Opens at # downloads":"#ダウンロードで開幕",
 "# / # downloads":"#/#ダウンロード",
-"It plays offline and opens in one tap.":"オフラインでも遊べて、ワンタップで開けるよ。"
+"It plays offline and opens in one tap.":"オフラインでも遊べて、ワンタップで開けるよ。",
+"React":"リアクション"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",

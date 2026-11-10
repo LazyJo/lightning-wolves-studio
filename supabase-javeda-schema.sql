@@ -1439,6 +1439,8 @@ CREATE TABLE IF NOT EXISTS javeda_settings (
   pass_on BOOLEAN NOT NULL DEFAULT false
 );
 INSERT INTO javeda_settings (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
+-- the video box's own list, for when YouTube's feed is off (server.js /api/javeda/videos): video IDs, newest first
+ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS videos TEXT[];
 
 CREATE TABLE IF NOT EXISTS javeda_passes (
   user_id    UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,

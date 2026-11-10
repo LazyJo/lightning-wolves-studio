@@ -14,7 +14,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- ── Levels ─────────────────────────────────────────────────────────────────
--- `requires` is the gate: a level opens once the level it names is cleared -
+-- `requires` is the gate: a level opens once the level it names is cleared (a song's Part 1 opens the next song's Part 1) -
 -- and, when requires_score is set, scored at least that much there too.
 -- max_score is a sanity cap on what a client may report, just above each
 -- level's real ceiling (Level 1 and Level 2 Part 2 ~3.5k; Level 2 up to 90k; Level 9 ~140k,
@@ -77,26 +77,26 @@ INSERT INTO javeda_levels (id, num, title, requires, requires_score, max_score, 
   ('lvl17', 17, 'TRUE FIGHTER', 'lvl16', 0, 95000, 1000, 75, 500, 32),  -- Island Blocks: ~44k for a bot that stacks well and drops on the beat (3:04)
   ('lvl18', 18, 'ISSUES',       'lvl17', 0, 450000, 4000, 75, 500, 33),  -- Unblock: ~209k for a bot that solves every car park in a few seconds (3:00)
   ('lvl18b', 18, 'LIGHT LINK',  'lvl18', 0, 1100000, 7000, 75, 300, 34),  -- Part 2: ~520k for a bot that knows every mirror; a person is far slower
-  ('lvl19', 19, 'STAY UP',      'lvl18b', 0, 120000, 1200, 75, 500, 35),  -- Pad Memory: ~54k for a bot that plays every pattern back on the beat (2:31)
+  ('lvl19', 19, 'STAY UP',      'lvl18', 0, 120000, 1200, 75, 500, 35),  -- Pad Memory: ~54k for a bot that plays every pattern back on the beat (2:31)
   ('lvl20', 20, 'STAY UP 2',    'lvl19', 0, 100000, 1000, 75, 500, 36),  -- Pass It On: ~45k for a bot that plays every pattern back on the beat (2:43)
   ('lvl21', 21, 'BLIND LOVE',   'lvl20', 0, 130000, 1300, 75, 500, 37),  -- Love Cards: ~59k for a bot that remembers every card (2:57)
   ('lvl21b', 21, 'SNAP',        'lvl21', 0, 120000, 1200, 75, 300, 38),  -- Part 2: ~58k for a bot that snaps every pair
-  ('lvl22', 22, 'SPACE KID',    'lvl21b', 0, 240000, 2400, 75, 500, 39),  -- Planet Match: ~100k for a bot that takes the first swap it sees, one a beat (2:50)
+  ('lvl22', 22, 'SPACE KID',    'lvl21', 0, 240000, 2400, 75, 500, 39),  -- Planet Match: ~100k for a bot that takes the first swap it sees, one a beat (2:50)
   ('lvl22b', 22, 'RAINBOW SORT', 'lvl22', 0, 100000, 1000, 75, 300, 40),  -- Part 2: ~44k for a bot that knows the shortest way
   ('lvl22c', 22, 'STAR PEAKS',   'lvl22b', 0, 80000, 800, 75, 300, 41),  -- Part 3: ~33k for a bot that plays the first card that fits
-  ('lvl23', 23, 'FALL IN LOVE AGAIN', 'lvl22c', 0, 170000, 1700, 75, 500, 42),  -- Heart Pop: ~78k for a bot that tries every angle, a shot a beat (3:21)
+  ('lvl23', 23, 'FALL IN LOVE AGAIN', 'lvl22', 0, 170000, 1700, 75, 500, 42),  -- Heart Pop: ~78k for a bot that tries every angle, a shot a beat (3:21)
   ('lvl23b', 23, 'LOVE WORDS',  'lvl23', 0, 300000, 3000, 75, 300, 43),  -- Part 2: ~143k for a bot that finds a word every other beat
   ('lvl23c', 23, 'HEART MERGE', 'lvl23b', 0, 90000, 900, 75, 300, 44),  -- Part 3: ~39k for a bot that takes the slide that merges most
-  ('lvl24', 24, 'DOWN FOR ME', 'lvl23c', 0, 60000, 600, 75, 500, 45),  -- Sunset Swap: ~27k for a bot that puts a square in its place every other beat (2:29)
+  ('lvl24', 24, 'DOWN FOR ME', 'lvl23', 0, 60000, 600, 75, 500, 45),  -- Sunset Swap: ~27k for a bot that puts a square in its place every other beat (2:29)
   ('lvl25', 25, 'REAL LOVE',    'lvl24', 0, 170000, 1700, 75, 500, 46),  -- Heart Flow: ~77k for a bot that links a pair a beat (2:52)
   ('lvl25b', 25, 'CRAB SWEEPER', 'lvl25', 0, 45000, 450, 75, 300, 47),  -- Part 2: ~20k for a bot that digs a safe mound a beat
   ('lvl25c', 25, 'STARLIGHT',   'lvl25b', 0, 120000, 1200, 75, 300, 48),  -- Part 3: ~57k for a bot that knows the taps
   ('lvl25d', 25, 'SHELL SUDOKU', 'lvl25c', 0, 66000, 660, 75, 300, 49),  -- Part 4: ~30k for a bot that places a picture a beat
-  ('lvl26', 26, 'LIFESTYLE CRAZY', 'lvl25d', 0, 130000, 1300, 75, 500, 50),  -- Neon Pinball: ~59k (table 2) for a bot that flips when the ball is out along a flipper (3:12)
+  ('lvl26', 26, 'LIFESTYLE CRAZY', 'lvl25', 0, 130000, 1300, 75, 500, 50),  -- Neon Pinball: ~59k (table 2) for a bot that flips when the ball is out along a flipper (3:12)
   ('lvl26b', 26, 'SPEAKER PUSH', 'lvl26', 0, 66000, 660, 75, 300, 51),  -- Part 2: ~30k for a bot that takes the shortest way, a move a beat (13 floors)
-  ('lvl27', 27, 'BE ALRIGHT', 'lvl26b', 0, 100000, 1000, 75, 500, 52),  -- Untangle: ~45k (8 flocks) for a bot that puts a bird where it belongs every beat (1:30)
+  ('lvl27', 27, 'BE ALRIGHT', 'lvl26', 0, 100000, 1000, 75, 500, 52),  -- Untangle: ~45k (8 flocks) for a bot that puts a bird where it belongs every beat (1:30)
   ('lvl27b', 27, 'BIRD CODE', 'lvl27', 0, 22000, 220, 75, 300, 53),  -- Part 2: ~10k (6 codes) for a bot that plays an order that fits every answer so far
-  ('lvl28', 28, 'GO!', 'lvl27b', 0, 130000, 1300, 75, 500, 54),  -- Rooftop Golf: ~58k (28 holes, 74 strokes) for a bot that tries each putt in the game's physics first (2:35)
+  ('lvl28', 28, 'GO!', 'lvl27', 0, 130000, 1300, 75, 500, 54),  -- Rooftop Golf: ~58k (28 holes, 74 strokes) for a bot that tries each putt in the game's physics first (2:35)
   ('lvl28b', 28, 'SKY HOCKEY', 'lvl28', 0, 190000, 1900, 75, 300, 55)  -- Part 2: ~84k (6 rounds won, none lost) for a bot that drives the puck at the open post
 ON CONFLICT (id) DO UPDATE SET
   num = EXCLUDED.num, title = EXCLUDED.title, requires = EXCLUDED.requires, requires_score = EXCLUDED.requires_score,

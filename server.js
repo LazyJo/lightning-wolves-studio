@@ -297,12 +297,12 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// JAVEDA's video box: Lazy Jo's newest YouTube videos. Three sources, the first that gives any:
-//  1. the YouTube Data API, when YOUTUBE_API_KEY is set on Vercel (the channel's uploads; 1 unit of the free 10,000 a
-//     day per ask, and it's asked at most twice an hour);
-//  2. the channel's public feed (no key - but YouTube switches it off for days at a time, then it answers 404);
-//  3. a list kept in Supabase, javeda_settings.videos (video IDs, newest first), changed in the SQL Editor with
-//     UPDATE javeda_settings SET videos = ARRAY['id1','id2','id3'] WHERE id;  - titles from YouTube's oEmbed.
+// JAVEDA's video box: Lazy Jo's music videos. Three sources, the first that gives any:
+//  1. Lazy Jo's own pick, kept in Supabase: javeda_settings.videos (video IDs, in the order to show), changed in the
+//     SQL Editor with  UPDATE javeda_settings SET videos = ARRAY['id1','id2','id3'] WHERE id;  - titles from oEmbed;
+//  2. the YouTube Data API, when YOUTUBE_API_KEY is set on Vercel (the channel's uploads);
+//  3. the channel's public feed (no key - YouTube switches it off for days at a time, then it answers 404).
+// From 2 and 3 only the music videos: no #hashtag clips, no Shorts, no reactions or live shows.
 // Kept 30 minutes here and on Vercel's edge; when nothing answers, the last list (or none).
 const YT_CHANNEL = 'UCBt7oknMx1TmoRjX3hqUgWQ';
 let ytVideos = { at: 0, list: null, from: null }, ytTried = 0;
@@ -313,13 +313,14 @@ function ytFeed(xml) {
     const e = m[1], id = (e.match(/<yt:videoId>([\w-]{11})<\/yt:videoId>/) || [])[1];
     return id && { id, title: xmlText((e.match(/<title>([\s\S]*?)<\/title>/) || [])[1]).slice(0, 140), published: (e.match(/<published>([^<]+)<\/published>/) || [])[1] || null,
       short: /<link rel="alternate" href="https:\/\/www\.youtube\.com\/shorts\//.test(e) };
-  }).filter(Boolean).slice(0, 8);
+  }).filter(Boolean).slice(0, 15);
 }
 const ytGet = (url, json = true) => fetch(url, { signal: AbortSignal.timeout(6000) }).then(r => { if (!r.ok) throw new Error(r.status + ' ' + url.split('?')[0]); return json ? r.json() : r.text(); });
+const musicVideo = v => !v.short && !/#|\breact(ion|s)?\b|\blive\b|\blive show\b/i.test(v.title);
 const YT_SOURCES = {
   async api() {
     const key = process.env.YOUTUBE_API_KEY; if (!key) return [];
-    const j = await ytGet('https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=8&playlistId=UU' + YT_CHANNEL.slice(2) + '&key=' + encodeURIComponent(key));
+    const j = await ytGet('https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=25&playlistId=UU' + YT_CHANNEL.slice(2) + '&key=' + encodeURIComponent(key));
     return (j.items || []).map(it => it.snippet || {}).filter(sn => sn.resourceId && /^[\w-]{11}$/.test(sn.resourceId.videoId) && sn.title !== 'Private video' && sn.title !== 'Deleted video')
       .map(sn => ({ id: sn.resourceId.videoId, title: String(sn.title).slice(0, 140), published: sn.publishedAt || null, short: /#shorts?\b/i.test(sn.title + ' ' + (sn.description || '')) }));
   },
@@ -336,15 +337,15 @@ const YT_SOURCES = {
 app.get('/api/javeda/videos', async (req, res) => {
   if ((!ytVideos.list || Date.now() - ytVideos.at > 30 * 60e3) && Date.now() - ytTried > 5 * 60e3) {
     ytTried = Date.now();   // nothing answered: not again for 5 minutes
-    for (const from of ['api', 'feed', 'list']) {
-      try { const list = await YT_SOURCES[from](); if (list.length) { ytVideos = { at: Date.now(), list, from }; ytTried = 0; break; } }
+    for (const from of ['list', 'api', 'feed']) {
+      try { const list = (await YT_SOURCES[from]()).filter(v => from === 'list' || musicVideo(v)).slice(0, 8); if (list.length) { ytVideos = { at: Date.now(), list, from }; ytTried = 0; break; } }
       catch (e) { console.warn('[javeda videos]', from, e.message); }
     }
   }
   res.set('Cache-Control', ytVideos.list ? 'public, max-age=600, s-maxage=1800, stale-while-revalidate=86400' : 'no-store');
   res.json({ videos: ytVideos.list || [], from: ytVideos.from });
 });
-app.ytFeed = ytFeed; app.ytSources = YT_SOURCES;   // for the test
+app.ytFeed = ytFeed; app.ytSources = YT_SOURCES; app.ytMusic = musicVideo;   // for the test
 
 // Create a Stripe Checkout Session for a studio subscription tier.
 // Requires a signed-in user — tier + billing interval come from the client.

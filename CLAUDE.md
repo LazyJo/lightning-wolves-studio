@@ -72,7 +72,7 @@ October 2026 ~32 pushes at ~150-250 MB each filled the 10 GB, so:
 
 - **Big media lives in the public Supabase Storage bucket `media`**, not in `client/public`:
   the wolf videos (`media/wolves/*.mp4`), the 3D wolf (`media/3d/optimized-wolf.glb`) and the
-  JAVEDA level songs (`media/javeda/lvlN.mp3`). Point at them with `media("...")` from
+  JAVEDA level songs (`media/javeda/lvlN.mp3`), plus the JAVEDA teaser for the video box (`media/javeda/javeda-teaser.mp4`, 720p, ~7 MB). Point at them with `media("...")` from
   `client/src/lib/media.ts` (or the full public URL in plain HTML). Uploads need the
   service-role key: do them from Jo's PC, never ask Jo to paste a key.
 - **Do not add videos, `.glb` or `.mp3` files to `client/public`.** `client/dist` is ~50 MB now,

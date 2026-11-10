@@ -132,6 +132,7 @@ button{font:inherit; color:inherit; cursor:pointer}
 button:focus-visible, a:focus-visible, input:focus-visible{outline:2px solid var(--beam); outline-offset:2px}
 .hid{display:none!important}
 .wrap{max-width:980px; margin:0 auto; padding:14px 16px 48px; display:grid; grid-template-columns:minmax(0,1fr); gap:22px}
+@media (max-width:520px){ .wrap{gap:18px} }   /* a phone: Level 1's Play on the first screen */
 
 /* the seasons (season.js sets html[data-season] on the event's dates): the page's colours, its sky, the title */
 html[data-season="winter"]{ --night:#061226; --deep:#0b1d3c; --panel:#10254a; --panel-2:#16305c; --line:#2a4a7e; --cyan:#bfe9ff; --beam:#dff3ff; --season:#bfe9ff; }
@@ -390,10 +391,10 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .vslide.mp4.teaser{background:#000 url(teaser-poster.jpg) center/cover}
 .vslide video.vthumb{object-fit:cover; pointer-events:none}
 .vslide.mp4:fullscreen{border-radius:0; border:0}
-.vfollow{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px}
+.vfollow{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px}
 .vfollow .vfh{grid-column:1/-1; font:700 12px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase; color:var(--mute)}
-.vfollow a{min-width:0; text-align:center; font:700 14px/1.1 var(--cond); letter-spacing:.08em; text-transform:uppercase; text-decoration:none; padding:12px 4px; border-radius:6px; border:1.5px solid; white-space:nowrap}
-@media (max-width:400px){ .vfollow{gap:6px} .vfollow a{font-size:13px; letter-spacing:.02em; padding:12px 2px} }
+.vfollow a{min-width:0; text-align:center; font:700 14px/1.1 var(--cond); letter-spacing:.08em; text-transform:uppercase; text-decoration:none; padding:9px 4px; border-radius:6px; border:1.5px solid; white-space:nowrap}
+@media (max-width:400px){ .vfollow a{font-size:13px; letter-spacing:.02em; padding:9px 2px} }
 .vfollow .merch{color:var(--gold); border-color:#ffd60a80; background:#ffd60a14}
 .vfollow .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
 .vfollow .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}

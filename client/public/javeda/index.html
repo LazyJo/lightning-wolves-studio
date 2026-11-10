@@ -1635,7 +1635,9 @@ function renderNow(){
           : wait ? '<div class="next"><span class="nt"><small>Next &middot; ' + lvName(wait) + ' &middot; ' + needText(wait) + '</small><span>' + esc(wait.title) + '</span></span>' +
               '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>' : '') + passrow + invrow + crt + '</article>';
   }
-  hsPut($("now"), html + prizeCards() + eventCard() + adventCard() + dailyCard() + weeklyCard());
+  // the weekly tournament and the event both waiting for JAVEDA's goals: one card for the two, after the daily
+  const both = weeklyLocked() && !!evNow && evNow.on === false;
+  hsPut($("now"), html + prizeCards() + (both ? "" : eventCard()) + adventCard() + dailyCard() + (both ? lockedCard() : weeklyCard()));
 }
 // today's challenge: one song's Part 1 for everyone, a board of its own that starts empty every day
 function dailyCard(){
@@ -1650,6 +1652,15 @@ function dailyCard(){
     '<div class="row">' + (dailyBest ? '<span class="best">Your best today ' + fmt(dailyBest) + '</span>' : '<span class="tag">' + (session ? 'Not played yet today' : 'Log in for the board') + '</span>') +
       '<span class="btns">' + (PUSH_OK && !(pushWish && pushWish.daily) ? '<button class="btn small" data-bell="1" title="Tell me when the next challenge is up" aria-label="Tell me when the next challenge is up">&#128276;</button>' : '') +
       '<button class="btn small" data-board="daily">Board</button><button class="btn hot small" data-daily="1">Play &#9654;</button></span></div></article>';
+}
+// the weekly tournament and the season events, both still waiting for the downloads and accounts: what they are, how far
+function lockedCard(){
+  const nd = weekly.need || evNow.need_downloads || 100, dl = weekly.downloads != null ? weekly.downloads : evNow.downloads || 0, na = evNow.need_accounts || 30;
+  return '<article class="daily weekly"><span class="dl">Coming soon</span>' +
+    '<span class="dt">&#128274; Opens at ' + fmt(nd) + ' downloads</span>' +
+    '<p class="dd">The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at ' + fmt(nd) + ' downloads, the <b>season events</b> (prizes and double points weekends) once there are also ' + fmt(na) + ' accounts. Get the app and bring your friends.</p>' +
+    '<div class="row"><span class="evcount"><span class="tag">' + fmt(dl) + ' / ' + fmt(nd) + ' downloads</span><span class="tag">' + fmt(evNow.accounts || 0) + ' / ' + fmt(na) + ' accounts</span></span><span class="btns">' +
+    (STANDALONE ? '' : '<button class="btn small" data-getapp="1">Get the app</button>') + '<button class="btn gold small" data-friends="1">Invite</button></span></div></article>';
 }
 // the weekly tournament: one song for the week, the best score by Sunday 20:00 wins a JAVEDA Pass
 function weeklyCard(){
@@ -2616,8 +2627,7 @@ let lastPlayed = null;
 /* ---- the video box, under the title for everyone: the slides Lazy Jo picked (/api/javeda/videos - javeda_settings.videos:
    YouTube videos and video files of his own in Supabase Storage, bucket media, in his order), swipe for the next, and
    Follow on Spotify / YouTube / Instagram under it. Nothing heavy until a tap: YouTube shows its picture, a file its
-   poster or first frame; the tapped one plays in place (YouTube from youtube-nocookie.com), a vertical file fullscreen on
-   a phone held upright. Without a pick of files: the JAVEDA teaser first if it's in Storage, then the newest videos. ---- */
+   poster or first frame; the tapped one plays in place (YouTube from youtube-nocookie.com), with its own fullscreen button. Without a pick of files: the JAVEDA teaser first if it's in Storage, then the newest videos. ---- */
 let vids = (() => { try { return JSON.parse(localStorage.getItem("javeda.vids")) || null; } catch(e){ return null; } })();
 const MEDIA_URL = SONGS_URL.replace(/javeda\/$/, "");
 const mediaSrc = path => MEDIA_URL + String(path).split("/").map(encodeURIComponent).join("/");
@@ -2658,14 +2668,13 @@ function stopVideos(){ if ($("vTrack").querySelector("iframe, video:not(.vthumb)
 $("vTrack").addEventListener("click", e => {
   const m = e.target.closest("[data-mp4]");
   if (m){
-    const path = m.dataset.mp4, idx = [...$("vTrack").children].indexOf(m), vertical = m.dataset.vertical === "1", teaser = !!m.querySelector("img");
+    const path = m.dataset.mp4, idx = [...$("vTrack").children].indexOf(m), teaser = !!m.querySelector("img");
     stopVideos();
     const at = $("vTrack").children[idx]; if (!at) return;
     const f = document.createElement("div"); f.className = "vslide mp4" + (teaser ? " teaser" : ""); f.dataset.playing = path;
     const v = document.createElement("video"); v.src = mediaSrc(path); v.controls = true; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto";
     f.appendChild(v); at.replaceWith(f); v.play().catch(() => {});
-    // a vertical video on a phone held upright: fullscreen (the box is wide); an iPhone has its own fullscreen button
-    if (vertical && matchMedia("(orientation: portrait)").matches && innerWidth < 760 && f.requestFullscreen) f.requestFullscreen().catch(() => {});
+    // it plays in the box; its own fullscreen button is there for whoever wants it
     v.addEventListener("ended", () => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); });
     return;
   }

@@ -1524,7 +1524,8 @@ S: {
 "Follow Lazy Jo":"追蹤 Lazy Jo",
 "Start here":"從這裡開始",
 "Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too.":"第#部分。城市的尖峰時段：同樣的墜落，從第一小節起就更快。天橋上的洞會來回滑動，直升機和起重機在主歌裡也會出現。",
-"Part #. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only # hearts.":"第#部分。尖峰時段：同樣的墜落，從第一小節起就更快。天橋上的洞會來回滑動，直升機和起重機在主歌裡也會出現 - 而且只有#顆愛心。"
+"Part #. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only # hearts.":"第#部分。尖峰時段：同樣的墜落，從第一小節起就更快。天橋上的洞會來回滑動，直升機和起重機在主歌裡也會出現 - 而且只有#顆愛心。",
+"Coming soon":"即將推出"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款線上對戰</small>HOOPS <i>1v1</i>",
@@ -2432,7 +2433,8 @@ HTML: {
 "Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"每次安裝都算數：達到 <b>#</b> 時，每週錦標賽向所有人開放。現在：<b>#</b>。",
 "Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too. <b>Endless:</b> the fall never ends - faster every # bars, a heart back every #.":"第#部分。城市的尖峰時段：同樣的墜落，從第一小節起就更快。天橋上的洞會來回滑動，直升機和起重機在主歌裡也會出現。<b>無盡模式：</b>墜落永不停止 - 每#小節變快一次，每#小節回一顆愛心。",
 "<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you, wherever it has slid to. Cranes, helicopters and cradles cost a heart (#). Grab the lights; a gold ring on the beat is double.":"<b>拖曳</b>（或方向鍵）操控方向。每座玻璃天橋都有一個洞 - 不管洞滑到了哪裡，天橋到你面前時都要對準洞口。起重機、直升機和吊籃會扣一顆愛心（#）。收集光點；踩準節拍穿過金環得雙倍。",
-"Down through the city at rush hour.<br>Part # cleared: <b>Rush Hour ∞</b> is open in the gold Endless list.":"在尖峰時段一路穿過城市落到底。<br>第#部分已過關：<b>Rush Hour ∞</b> 已在金色無盡模式列表中開放。"
+"Down through the city at rush hour.<br>Part # cleared: <b>Rush Hour ∞</b> is open in the gold Endless list.":"在尖峰時段一路穿過城市落到底。<br>第#部分已過關：<b>Rush Hour ∞</b> 已在金色無盡模式列表中開放。",
+"The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at # downloads, the <b>season events</b> (prizes and double points weekends) once there are also # accounts. Get the app and bring your friends.":"<b>每週錦標賽</b>（最高分贏得 JAVEDA Pass）在 # 次下載時開放，<b>季節活動</b>（獎品和雙倍積分週末）要等到還有 # 個帳號時開始。下載 App，揪朋友一起來。"
 },
 P: {
 "^New best this week! (.+)$": "本週新紀錄！$1",

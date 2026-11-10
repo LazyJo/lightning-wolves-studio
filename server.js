@@ -306,7 +306,8 @@ const xmlText = s => String(s || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1'
 function ytFeed(xml) {
   return [...String(xml).matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(m => {
     const e = m[1], id = (e.match(/<yt:videoId>([\w-]{11})<\/yt:videoId>/) || [])[1];
-    return id && { id, title: xmlText((e.match(/<title>([\s\S]*?)<\/title>/) || [])[1]).slice(0, 140), published: (e.match(/<published>([^<]+)<\/published>/) || [])[1] || null };
+    return id && { id, title: xmlText((e.match(/<title>([\s\S]*?)<\/title>/) || [])[1]).slice(0, 140), published: (e.match(/<published>([^<]+)<\/published>/) || [])[1] || null,
+      short: /<link rel="alternate" href="https:\/\/www\.youtube\.com\/shorts\//.test(e) };
   }).filter(Boolean).slice(0, 8);
 }
 app.get('/api/javeda/videos', async (req, res) => {

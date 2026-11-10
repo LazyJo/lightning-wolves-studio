@@ -382,6 +382,7 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .vslide{flex:0 0 86%; max-width:560px; scroll-snap-align:start; position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#000; padding:0; margin:0; cursor:pointer; color:#fff; display:block}
 .vtrack.one .vslide{flex-basis:100%}
 .vslide img{width:100%; height:100%; object-fit:cover; display:block}
+.vslide.short img{object-fit:contain; background:radial-gradient(circle,#1b2547,#000)}   /* a vertical video (a YouTube Short): whole, not cropped */
 .vslide .vp{position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%; display:grid; place-items:center; font-size:22px; padding-left:4px; background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02; box-shadow:0 6px 24px #0009}
 .vslide .vt{position:absolute; left:0; right:0; bottom:0; padding:30px 12px 10px; background:linear-gradient(transparent,#000d); font:700 14px/1.25 var(--cond); letter-spacing:.04em; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .vslide iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
@@ -2615,7 +2616,7 @@ async function loadVideos(){
 function renderVideos(){
   const list = (vids || []).filter(v => v && /^[\w-]{11}$/.test(v.id)), isTrailer = v => /javeda/i.test(v.title) && /trailer/i.test(v.title);
   const show = list.filter(isTrailer).slice(0, 1).concat(list.filter(v => !isTrailer(v))).slice(0, 3);
-  $("vTrack").innerHTML = show.map(v => '<button class="vslide" type="button" data-yt="' + v.id + '" aria-label="&#9654; ' + esc(v.title) + '" data-i18n-skip>' +
+  $("vTrack").innerHTML = show.map(v => '<button class="vslide' + (v.short ? ' short' : '') + '" type="button" data-yt="' + v.id + '" aria-label="&#9654; ' + esc(v.title) + '" data-i18n-skip>' +
     '<img src="https://i.ytimg.com/vi/' + v.id + '/hqdefault.jpg" alt="" loading="lazy"><span class="vp" aria-hidden="true">&#9654;</span><span class="vt">' + esc(v.title) + '</span></button>').join("");
   $("vTrack").classList.toggle("one", show.length === 1); $("vTrack").classList.toggle("hid", !show.length);
   placeVideos();

@@ -1159,11 +1159,18 @@ CREATE OR REPLACE FUNCTION public.javeda_daily_level(p_day DATE)
 RETURNS TEXT
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$
-  -- never Level 1 Part 1 (it's open for everyone anyway): on its day the next song in the rotation (the other days stay as they were)
+  -- until 10 November 2026: Part 1 of a song, never Level 1 Part 1 (it's open for everyone anyway: on its day the next
+  -- song in the rotation). From 11 November: never the opening part of a song that has more - its Part 2, 3 or 4 - and
+  -- the songs with one part as they are (Level 1 still never): harder, and a new rotation.
   WITH pool AS (SELECT id, row_number() OVER (ORDER BY md5('javeda-daily-' || id)) - 1 AS i, count(*) OVER () AS n
                 FROM javeda_levels WHERE NOT endless AND id ~ '^lvl[0-9]+$'),
-       pick AS (SELECT id, i, n FROM pool WHERE i = (((p_day - DATE '2026-11-01') % n) + n) % n)
-  SELECT CASE WHEN pick.id = 'lvl1' THEN (SELECT p.id FROM pool p WHERE p.i = (pick.i + 1) % pick.n) ELSE pick.id END FROM pick;
+       pick AS (SELECT id, i, n FROM pool WHERE i = (((p_day - DATE '2026-11-01') % n) + n) % n),
+       old AS (SELECT CASE WHEN pick.id = 'lvl1' THEN (SELECT p.id FROM pool p WHERE p.i = (pick.i + 1) % pick.n) ELSE pick.id END AS id FROM pick),
+       pool2 AS (SELECT l.id, row_number() OVER (ORDER BY md5('javeda-daily2-' || l.id)) - 1 AS i, count(*) OVER () AS n
+                 FROM javeda_levels l WHERE NOT l.endless AND l.id ~ '^lvl[0-9]+[b-d]?$' AND l.id <> 'lvl1'
+                   AND NOT (l.id ~ '^lvl[0-9]+$' AND EXISTS (SELECT 1 FROM javeda_levels m WHERE m.id = l.id || 'b'))),
+       new AS (SELECT id FROM pool2 WHERE i = (((p_day - DATE '2026-11-11') % n) + n) % n)
+  SELECT CASE WHEN p_day < DATE '2026-11-11' THEN (SELECT id FROM old) ELSE (SELECT id FROM new) END;
 $$;
 
 -- today's challenge, for anyone (guests see it too)
@@ -2125,7 +2132,7 @@ BEGIN
   UPDATE javeda_invites SET rewarded_at = now() WHERE invitee = p_user AND rewarded_at IS NULL RETURNING inviter INTO inv;
   IF inv IS NULL THEN RETURN; END IF;
   -- Valentine (the duo bonus): two keys each instead of one
-  n := CASE WHEN (SELECT kind FROM javeda_event_at(now())) = 'valentine' THEN 2 ELSE 1 END;
+  n := CASE WHEN (SELECT kind FROM javeda_event_at(now())) = 'valentine' AND javeda_events_on() THEN 2 ELSE 1 END;
   UPDATE javeda_players SET level_keys = level_keys + n, keys_earned = keys_earned + 1 WHERE user_id = inv AND keys_earned < 10;
   UPDATE javeda_players SET level_keys = level_keys + n WHERE user_id = p_user;
 END;
@@ -2591,11 +2598,24 @@ END;
 $$;
 GRANT EXECUTE ON FUNCTION public.javeda_event_at(TIMESTAMPTZ) TO anon, authenticated;
 
--- 2 on a double points weekend, else 1
+-- The events' games and gifts (the event board and its prizes, the double points weekend, the event's picture and badge,
+-- the advent calendar, the Valentine duo bonus) wait for JAVEDA to have 100 downloads and 30 accounts (javeda_merch_on);
+-- the season's look comes anyway. The first run after that sets events_on_since and they stay on from then.
+ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS events_on_since TIMESTAMPTZ;
+CREATE OR REPLACE FUNCTION public.javeda_events_on()
+RETURNS BOOLEAN
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$ BEGIN RETURN COALESCE((SELECT events_on_since IS NOT NULL FROM javeda_settings WHERE id), false) OR javeda_merch_on(); END; $$;
+REVOKE ALL ON FUNCTION public.javeda_events_on() FROM PUBLIC, anon, authenticated;
+
+-- 2 on a double points weekend (once the events are on), else 1
 CREATE OR REPLACE FUNCTION public.javeda_points_x()
 RETURNS INT
-LANGUAGE sql STABLE SET search_path = public
-AS $$ SELECT COALESCE((SELECT 2 FROM javeda_event_at(now()) e WHERE now() >= e.double_from AND now() < e.double_to), 1); $$;
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$ BEGIN
+  IF NOT javeda_events_on() THEN RETURN 1; END IF;
+  RETURN COALESCE((SELECT 2 FROM javeda_event_at(now()) e WHERE now() >= e.double_from AND now() < e.double_to), 1);
+END; $$;
 
 CREATE TABLE IF NOT EXISTS javeda_event_scores (
   event      TEXT NOT NULL,
@@ -2655,7 +2675,8 @@ AS $$
 DECLARE e RECORD; today DATE := (now() AT TIME ZONE 'Europe/Brussels')::date; sc javeda_event_scores; pic BOOLEAN := false;
 BEGIN
   SELECT * INTO e FROM javeda_event_at(now());
-  IF e.key IS NULL OR EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = p_user) THEN RETURN NULL; END IF;
+  IF e.key IS NULL OR EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = p_user) OR NOT javeda_events_on() THEN RETURN NULL; END IF;
+  UPDATE javeda_settings SET events_on_since = now() WHERE id AND events_on_since IS NULL;
   INSERT INTO javeda_event_scores AS s (event, user_id, points, clears, days, last_day)
   VALUES (e.key, p_user, GREATEST(0, p_earned), CASE WHEN p_cleared THEN 1 ELSE 0 END, 1, today)
   ON CONFLICT (event, user_id) DO UPDATE SET points = s.points + GREATEST(0, p_earned), clears = s.clears + CASE WHEN p_cleared THEN 1 ELSE 0 END,
@@ -2679,7 +2700,8 @@ AS $$ SELECT CASE WHEN p_day = 24 THEN json_build_object('gift', 'picture', 'pic
                   ELSE json_build_object('gift', 'points', 'points', 50 + ((p_day * 37) % 11) * 10) END; $$;
 
 -- what's on now, for the page: the event, its double weekend, your place on its board, your days for the picture, and
--- in December the advent calendar (today's door, the doors you opened)
+-- in December the advent calendar (today's door, the doors you opened). While the events wait for the goals (on = false):
+-- the event and how far the downloads and accounts are.
 CREATE OR REPLACE FUNCTION public.javeda_event_now()
 RETURNS JSON
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
@@ -2688,6 +2710,11 @@ DECLARE e RECORD; uid UUID := auth.uid(); sc javeda_event_scores; d DATE := (now
 BEGIN
   SELECT * INTO e FROM javeda_event_at(now());
   IF e.key IS NULL THEN RETURN NULL; END IF;
+  IF NOT javeda_events_on() THEN
+    RETURN json_build_object('event', e.key, 'kind', e.kind, 'starts', e.starts, 'ends', e.ends, 'on', false, 'double', false, 'merch', false,
+      'downloads', (SELECT count(*) FROM javeda_app_devices), 'need_downloads', 100,
+      'accounts', (SELECT count(*) FROM javeda_players p WHERE NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id)), 'need_accounts', 30);
+  END IF;
   IF uid IS NOT NULL THEN SELECT * INTO sc FROM javeda_event_scores WHERE event = e.key AND user_id = uid; END IF;
   IF extract(month FROM d) = 12 AND extract(day FROM d) <= 24 THEN
     adv := json_build_object('day', extract(day FROM d)::INT, 'year', extract(year FROM d)::INT,
@@ -2695,7 +2722,7 @@ BEGIN
                  FROM javeda_advent a WHERE a.user_id = uid AND a.year = extract(year FROM d)::INT));
   END IF;
   RETURN json_build_object('event', e.key, 'kind', e.kind, 'starts', e.starts, 'ends', e.ends, 'double_from', e.double_from, 'double_to', e.double_to,
-    'double', now() >= e.double_from AND now() < e.double_to, 'merch', javeda_merch_on(), 'advent', adv,
+    'on', true, 'double', now() >= e.double_from AND now() < e.double_to, 'merch', javeda_merch_on(), 'advent', adv,
     'me', CASE WHEN sc.user_id IS NULL THEN NULL ELSE json_build_object('points', sc.points, 'days', sc.days, 'clears', sc.clears,
       'rank', (SELECT count(*) + 1 FROM javeda_event_scores o WHERE o.event = e.key AND o.points > sc.points)) END);
 END;
@@ -2710,7 +2737,7 @@ AS $$
 DECLARE uid UUID := auth.uid(); d DATE := (now() AT TIME ZONE 'Europe/Brussels')::date; dd INT := extract(day FROM d)::INT; g JSON;
 BEGIN
   IF uid IS NULL OR NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = '28000'; END IF;
-  IF extract(month FROM d) <> 12 OR dd > 24 THEN RAISE EXCEPTION 'no door today' USING ERRCODE = '42501'; END IF;
+  IF extract(month FROM d) <> 12 OR dd > 24 OR NOT javeda_events_on() THEN RAISE EXCEPTION 'no door today' USING ERRCODE = '42501'; END IF;
   g := javeda_advent_gift(dd);
   INSERT INTO javeda_advent (user_id, year, day, gift) VALUES (uid, extract(year FROM d)::INT, dd, g ->> 'gift') ON CONFLICT DO NOTHING;
   IF NOT FOUND THEN RAISE EXCEPTION 'already open' USING ERRCODE = '23505'; END IF;
@@ -2743,6 +2770,8 @@ BEGIN
   FOR i IN 1..40 LOOP
     SELECT * INTO e FROM javeda_event_at(now() - make_interval(days => i));
     CONTINUE WHEN e.key IS NULL OR e.ends > now() OR EXISTS (SELECT 1 FROM javeda_event_closed WHERE event = e.key);
+    -- an event that ended while the events were still waiting for the goals: closed, no winners
+    IF NOT javeda_events_on() THEN INSERT INTO javeda_event_closed (event, players) VALUES (e.key, 0); CONTINUE; END IF;
     SELECT count(*) INTO n FROM javeda_event_scores WHERE event = e.key AND points > 0;
     merch := javeda_merch_on() AND NOT EXISTS (SELECT 1 FROM javeda_event_winners WHERE prize = 'merch'
                AND date_trunc('month', closed_at AT TIME ZONE 'Europe/Brussels') = date_trunc('month', now() AT TIME ZONE 'Europe/Brussels'));

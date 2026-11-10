@@ -120,6 +120,11 @@ gets there it opens by itself and stays open. The number is `weekly_from` in `ja
 After adding `/link` and `/unlink`, open the register link once more (step 5).
 
 ## Season events
+
+**Locked until JAVEDA's goals** (100 downloads and 30 accounts, creators aside - `javeda_events_on`): until then the
+season's look comes, but no event board, prizes, double points, event picture, advent calendar or Valentine bonus, and the
+bot posts nothing for it (`javeda_event_now` returns `on: false`). Once both goals are reached it opens and stays open
+(`javeda_settings.events_on_since`); an event that ended while locked closes with no winners.
 Five a year, same dates (Brussels): ❄️ winter 1 Dec – 6 Jan (advent calendar 1–24 Dec), 💘 valentine 7–21 Feb (an invite gives
 2 keys each), 🌸 spring 20 Mar – 20 Apr, ☀️ summer 21 Jun – 31 Aug, 🎃 halloween 24 Oct – 2 Nov, 🍂 autumn 10 – 23 Nov. The other days the page looks as always. The JAVEDA page and the levels
 dress up by themselves (`season.js`; preview any time with `?season=winter`, back with `?season=off`).

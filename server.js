@@ -297,6 +297,32 @@ app.get('/api/config', (req, res) => {
   });
 });
 
+// JAVEDA's video box: Lazy Jo's newest YouTube videos, from the channel's public feed (no key). Kept 30 minutes here and
+// on Vercel's edge, so YouTube is asked a few times an hour at most; when it doesn't answer, the last list (or none).
+const YT_CHANNEL = 'UCBt7oknMx1TmoRjX3hqUgWQ';
+let ytVideos = { at: 0, list: null };
+const xmlText = s => String(s || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).trim();
+function ytFeed(xml) {
+  return [...String(xml).matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(m => {
+    const e = m[1], id = (e.match(/<yt:videoId>([\w-]{11})<\/yt:videoId>/) || [])[1];
+    return id && { id, title: xmlText((e.match(/<title>([\s\S]*?)<\/title>/) || [])[1]).slice(0, 140), published: (e.match(/<published>([^<]+)<\/published>/) || [])[1] || null };
+  }).filter(Boolean).slice(0, 8);
+}
+app.get('/api/javeda/videos', async (req, res) => {
+  if (!ytVideos.list || Date.now() - ytVideos.at > 30 * 60e3) {
+    try {
+      const r = await fetch('https://www.youtube.com/feeds/videos.xml?channel_id=' + YT_CHANNEL, { signal: AbortSignal.timeout(6000) });
+      if (!r.ok) throw new Error('feed ' + r.status);
+      const list = ytFeed(await r.text());
+      if (list.length) ytVideos = { at: Date.now(), list };
+    } catch (e) { console.warn('[javeda videos]', e.message); }
+  }
+  res.set('Cache-Control', ytVideos.list ? 'public, max-age=600, s-maxage=1800, stale-while-revalidate=86400' : 'no-store');
+  res.json({ videos: ytVideos.list || [] });
+});
+app.ytFeed = ytFeed;   // for the test
+
 // Create a Stripe Checkout Session for a studio subscription tier.
 // Requires a signed-in user — tier + billing interval come from the client.
 app.post('/api/create-checkout-session', async (req, res) => {

@@ -374,6 +374,21 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 
 /* links */
 .outs{display:flex; flex-wrap:wrap; gap:8px}
+.evcount{display:flex; flex-wrap:wrap; gap:6px}
+/* the video box: pictures until a tap, then that one video plays in place; swipe for the next */
+.vids{display:grid; gap:10px}
+.vtrack{display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; overscroll-behavior-x:contain}
+.vtrack::-webkit-scrollbar{display:none}
+.vslide{flex:0 0 86%; max-width:560px; scroll-snap-align:start; position:relative; aspect-ratio:16/9; border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#000; padding:0; margin:0; cursor:pointer; color:#fff; display:block}
+.vtrack.one .vslide{flex-basis:100%}
+.vslide img{width:100%; height:100%; object-fit:cover; display:block}
+.vslide .vp{position:absolute; left:50%; top:50%; width:58px; height:58px; margin:-29px 0 0 -29px; border-radius:50%; display:grid; place-items:center; font-size:22px; padding-left:4px; background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02; box-shadow:0 6px 24px #0009}
+.vslide .vt{position:absolute; left:0; right:0; bottom:0; padding:30px 12px 10px; background:linear-gradient(transparent,#000d); font:700 14px/1.25 var(--cond); letter-spacing:.04em; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.vslide iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+.vfollow{display:flex; gap:8px}
+.vfollow a{flex:1 1 0; min-width:0; text-align:center; font:700 14px/1.1 var(--cond); letter-spacing:.1em; text-transform:uppercase; text-decoration:none; padding:12px 8px; border-radius:6px; border:1.5px solid}
+.vfollow .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
+.vfollow .yt{color:#ff9a9a; border-color:#ff4d4d80; background:#ff000014}
 .outs a{font:700 15px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:12px 15px; border-radius:6px; border:1.5px solid}
 .outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
 .outs .merch{color:var(--gold); border-color:#ffd60a80; background:#ffd60a14}
@@ -709,6 +724,14 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <p>Every song is a level. Finish one to open the next, then come back and beat your score.</p>
     <div class="app hid" id="appBox"><button class="btn" id="appBtn" type="button">&#128242; Get the app</button><span id="appNote">On your home screen, and it plays offline.</span></div>
     <div class="app hid" id="carryBox"><button class="btn small" id="carryPaste" type="button" data-i18n-skip>Paste my progress</button></div>
+  </section>
+
+  <section class="vids hid" id="vids" aria-label="Videos">
+    <div class="vtrack hid" id="vTrack"></div>
+    <div class="vfollow">
+      <a class="spot" href="https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM" target="_blank" rel="noopener">&#127911; Follow on Spotify</a>
+      <a class="yt" href="https://www.youtube.com/channel/UCBt7oknMx1TmoRjX3hqUgWQ?sub_confirmation=1" target="_blank" rel="noopener">&#9654;&#65039; Subscribe on YouTube</a>
+    </div>
   </section>
 
   <section aria-labelledby="hBoard">
@@ -1613,7 +1636,7 @@ function dailyCard(){
   const lang = window.JAVEDA_LOCALE || "en-GB";   // the date in the language picked
   const day = new Date(daily.day + "T12:00:00").toLocaleDateString(lang, { weekday:"short", day:"numeric", month:"short" });
   return '<article class="daily"><span class="dl">Today\'s challenge &middot; ' + esc(day) + '</span>' +
-    '<span class="dt">Level ' + lv.num + ' &middot; ' + esc(lv.title) + '</span>' +
+    '<span class="dt">Level ' + lv.num + ' &middot; ' + esc(lv.title) + '</span>' + (lv.part > 1 ? '<span class="dl">Part ' + lv.part + '</span>' : '') +
     '<p class="dd">The same song for everyone today, with its own scoreboard - empty again tomorrow.' +
       (isOpen(lv) ? '' : ' You haven\'t got this far yet: <b>clear it and it stays open for you.</b>') + '</p>' +
     '<div class="row">' + (dailyBest ? '<span class="best">Your best today ' + fmt(dailyBest) + '</span>' : '<span class="tag">' + (session ? 'Not played yet today' : 'Log in for the board') + '</span>') +
@@ -1667,6 +1690,7 @@ async function loadEvent(){
   evNow = data && EV[data.kind] ? data : (localStorage.getItem("javeda.season") ? evPreview() : null);
   evPrizes = [];
   if (signedIn() && !session.offline){ const p = await sb.rpc("javeda_my_prizes").then(r => r, () => ({})); evPrizes = Array.isArray(p.data) ? p.data : []; }
+  if (boardTab === "event" && (!evNow || evNow.on === false)) boardTab = "points";
   renderNow(); renderTabs(); if (boardTab === "event") renderBoard();
 }
 function eventCard(){
@@ -1674,6 +1698,12 @@ function eventCard(){
   const k = EV[evNow.kind], me = evNow.me || { points:0, days:0, clears:0 }, until = evDate(new Date(evNow.ends) - 1);
   const dbl = evNow.double ? '<div class="evdbl on">&#9889; Double points weekend: every run pays double</div>'
     : new Date(evNow.double_from) > Date.now() ? '<div class="evdbl">&#9889; Double points: <span data-i18n-skip>' + esc(evDate(evNow.double_from) + " - " + evDate(new Date(evNow.double_to) - 1)) + '</span></div>' : '';
+  // waiting for JAVEDA's goals (javeda_event_now: on = false): the season's look is there, the event's games open later
+  if (evNow.on === false) return '<article class="daily event"><span class="dl">' + k.e + ' ' + k.name + ' &middot; until <span data-i18n-skip>' + esc(until) + '</span></span>' +
+    '<span class="dt">&#128274; Opens at ' + fmt(evNow.need_downloads || 100) + ' downloads and ' + fmt(evNow.need_accounts || 30) + ' accounts</span>' +
+    '<p class="dd">Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has ' + fmt(evNow.need_downloads || 100) + ' downloads and ' + fmt(evNow.need_accounts || 30) + ' accounts: get the app and bring your friends.</p>' +
+    '<div class="row"><span class="evcount"><span class="tag">' + fmt(evNow.downloads || 0) + ' / ' + fmt(evNow.need_downloads || 100) + ' downloads</span><span class="tag">' + fmt(evNow.accounts || 0) + ' / ' + fmt(evNow.need_accounts || 30) + ' accounts</span></span><span class="btns">' +
+    (STANDALONE ? '' : '<button class="btn small" data-getapp="1">Get the app</button>') + '<button class="btn gold small" data-friends="1">Invite</button></span></div></article>';
   const days = Math.min(5, me.days || 0), cl = Math.min(5, me.clears || 0);
   return '<article class="daily event"><span class="dl">' + k.e + ' ' + k.name + ' &middot; until <span data-i18n-skip>' + esc(until) + '</span></span>' +
     '<span class="dt">Climb the event board</span>' +
@@ -1925,7 +1955,7 @@ function renderTabs(){
   const kind = boardKind(boardTab), pad = n => String(n).padStart(2, "0");
   if (kind === "level" || kind === "endless") lastBoard[kind] = boardTab;
   const cdot = chatDot.n && kind !== "chat" ? '<span class="cdot' + (chatDot.by ? ' gold' : '') + '" aria-label="New messages"></span>' : "";
-  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat" + cdot], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["weekly", "&#127942; Weekly", "g"], ["marathon", "Marathon", "g"]].concat(evNow ? [["event", EV[evNow.kind].e + " " + EV[evNow.kind].tab, "ev"]] : []).filter(([k]) => k !== "weekly" || !weeklyLocked()).map(([k, t, c]) =>
+  $("tabs").innerHTML = [["points", "Points"], ["chat", "&#128172; Chat" + cdot], ["1v1", "Online"], ["level", "Levels"], ["endless", "Endless &#8734;", "g"], ["ult", ULT.title], ["daily", "Daily"], ["weekly", "&#127942; Weekly", "g"], ["marathon", "Marathon", "g"]].concat(evNow && evNow.on !== false ? [["event", EV[evNow.kind].e + " " + EV[evNow.kind].tab, "ev"]] : []).filter(([k]) => k !== "weekly" || !weeklyLocked()).map(([k, t, c]) =>
     '<button role="tab" type="button" data-kind="' + k + '"' + (c ? ' class="' + c + '"' : '') + ' aria-selected="' + (k === kind) + '">' + t + '</button>').join("");
   requestAnimationFrame(hsAll);
   const el = $("etabs"); el.classList.toggle("gold", kind === "endless" || kind === "marathon");
@@ -2148,7 +2178,7 @@ function boardMoreBtn(){
 }
 $("boardMore").onclick = () => { boardAll = !boardAll; boardMoreBtn(); };
 $("boardJoin").addEventListener("click", e => { if (e.target.closest("[data-signup]")) openLogin(true); else if (e.target.closest("[data-login]")) openLogin(); });
-function renderAll(){ try { renderCarry(); } catch(e){} renderMe(); renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); }
+function renderAll(){ try { renderCarry(); } catch(e){} renderMe(); renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); try { placeVideos(); } catch(e){} }
 
 /* ---- profile sheet ---- */
 let pickAv = "saucer";
@@ -2572,7 +2602,42 @@ let current = null;
 // how: { room } (an online game in a private room), { daily:true } (today's challenge - open whether you got
 // there or not) or { marathon:true } (the album marathon)
 let lastPlayed = null;
+/* ---- the video box: Lazy Jo's newest YouTube videos (/api/javeda/videos - the JAVEDA trailer first once it's on YouTube:
+   a title with "JAVEDA" and "trailer"), with Follow on Spotify and Subscribe on YouTube. Only pictures until a tap: the
+   YouTube player (heavy, with its cookies) loads just for the video you tap, from youtube-nocookie.com. New visitors find
+   the box under the title; once you've played (or logged in) it moves under the levels, out of the way. ---- */
+let vids = (() => { try { return JSON.parse(localStorage.getItem("javeda.vids")) || null; } catch(e){ return null; } })();
+async function loadVideos(){
+  try { const r = await fetch("/api/javeda/videos"); const j = await r.json(); if (Array.isArray(j.videos) && j.videos.length) vids = j.videos; } catch(e){}
+  try { if (vids) localStorage.setItem("javeda.vids", JSON.stringify(vids.slice(0, 4))); } catch(e){}
+  renderVideos();
+}
+function renderVideos(){
+  const list = (vids || []).filter(v => v && /^[\w-]{11}$/.test(v.id)), isTrailer = v => /javeda/i.test(v.title) && /trailer/i.test(v.title);
+  const show = list.filter(isTrailer).slice(0, 1).concat(list.filter(v => !isTrailer(v))).slice(0, 3);
+  $("vTrack").innerHTML = show.map(v => '<button class="vslide" type="button" data-yt="' + v.id + '" aria-label="&#9654; ' + esc(v.title) + '" data-i18n-skip>' +
+    '<img src="https://i.ytimg.com/vi/' + v.id + '/hqdefault.jpg" alt="" loading="lazy"><span class="vp" aria-hidden="true">&#9654;</span><span class="vt">' + esc(v.title) + '</span></button>').join("");
+  $("vTrack").classList.toggle("one", show.length === 1); $("vTrack").classList.toggle("hid", !show.length);
+  placeVideos();
+}
+function placeVideos(){
+  const box = $("vids"), played = signedIn() || Object.keys(progress || {}).length > 0;
+  const after = played ? $("hLv").closest("section") : document.querySelector("section.hero");
+  if (box.previousElementSibling !== after) after.after(box);
+  box.classList.remove("hid");
+}
+// a tap plays that one in place (any other one stops); a level starting stops it too
+function stopVideos(){ if ($("vTrack").querySelector("iframe")) renderVideos(); }
+$("vTrack").addEventListener("click", e => {
+  const b = e.target.closest("[data-yt]"); if (!b) return;
+  const id = b.dataset.yt; stopVideos();
+  const at = $("vTrack").querySelector('[data-yt="' + id + '"]'); if (!at) return;
+  const f = document.createElement("div"); f.className = "vslide"; f.dataset.playing = id;
+  f.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + id + '?autoplay=1&playsinline=1&rel=0" title="YouTube" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+  at.replaceWith(f);
+});
 function play(id, how){
+  stopVideos();
   const lv = levelById(id); if (lv) lastPlayed = id;
   how = how || {};
   if (lv && !navigator.onLine && !how.offlineOk){
@@ -3941,7 +4006,7 @@ if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("mess
 /* ---- boot ---- */
 // back from a reset email: the link carries type=recovery (read now, before the log-in library tidies the address)
 const RECOVERY = /type=recovery/.test(location.hash);
-renderAll();
+renderAll(); renderVideos(); loadVideos();
 // /javeda/#report (from the privacy page): straight to Report a problem
 if (location.hash === "#report") setTimeout(openReport, 400);
 // /javeda/#app (the QR code): straight to putting it on your phone

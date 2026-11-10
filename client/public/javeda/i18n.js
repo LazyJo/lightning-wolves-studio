@@ -126,6 +126,12 @@ const S = [
   ["Weekly tournament", "Weektoernooi", "Tournoi de la semaine", "Torneo semanal"],
   ["Opens at # downloads", "Opent bij # downloads", "Ouvre à # téléchargements", "Se abre con # descargas"],
   ["# / # downloads", "# / # downloads", "# / # téléchargements", "# / # descargas"],
+  ["Follow on Spotify", "Volg op Spotify", "Suivre sur Spotify", "Seguir en Spotify"],
+  ["Subscribe on YouTube", "Abonneer op YouTube", "S'abonner sur YouTube", "Suscríbete en YouTube"],
+  ["Videos", "Video's", "Vidéos", "Vídeos"],
+  ["Opens at # downloads and # accounts", "Opent bij # downloads en # accounts", "Ouvre à # téléchargements et # comptes", "Se abre con # descargas y # cuentas"],
+  ["# / # accounts", "# / # accounts", "# / # comptes", "# / # cuentas"],
+  ["Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.", "Seizoensevents met een eventbord, prijzen voor de top drie, dubbele-puntenweekends en een eigen profielfoto. Ze starten zodra JAVEDA # downloads en # accounts heeft: download de app en breng je vrienden mee.", "Des événements de saison avec un classement, des prix pour les trois premiers, des week-ends à points doublés et une image rien qu'à eux. Ils commencent dès que JAVEDA a # téléchargements et # comptes : télécharge l'app et amène tes amis.", "Eventos de temporada con su propia clasificación, premios para los tres primeros, fines de semana de puntos dobles y una imagen propia. Empiezan cuando JAVEDA tenga # descargas y # cuentas: descarga la app y trae a tus amigos."],
   ["It plays offline and opens in one tap.", "Hij speelt offline en opent met één tik.", "Il marche hors ligne et s'ouvre d'un seul toucher.", "Funciona sin conexión y se abre con un toque."],
   // season events
   ["Autumn event", "Herfstevent", "Événement d'automne", "Evento de otoño"],

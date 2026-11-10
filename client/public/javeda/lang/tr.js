@@ -1514,7 +1514,13 @@ S: {
 "# / # downloads":"İndirme: # / #",
 "It plays offline and opens in one tap.":"Çevrimdışı da çalışır, tek dokunuşla açılır.",
 "React":"Tepki ver",
-"Someone reacts to your message or @mentions you in the chat":"Biri mesajına tepki verdiğinde veya sohbette senden @bahsettiğinde"
+"Someone reacts to your message or @mentions you in the chat":"Biri mesajına tepki verdiğinde veya sohbette senden @bahsettiğinde",
+"Follow on Spotify":"Spotify'da takip et",
+"Subscribe on YouTube":"YouTube'da abone ol",
+"Videos":"Videolar",
+"Opens at # downloads and # accounts":"# indirme ve # hesapta açılır",
+"# / # accounts":"# / # hesap",
+"Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"Etkinlik tablosu, ilk üçe ödüller, çift puan hafta sonları ve kendine özel bir resimle sezon etkinlikleri. JAVEDA # indirme ve # hesaba ulaşınca başlar: uygulamayı indir ve arkadaşlarını getir."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>İlk online oyun</small>HOOPS <i>1v1</i>",

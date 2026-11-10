@@ -266,7 +266,8 @@ async function feed(sb) {
     summer: 'Sunset skies, fireflies, and the Sunset Saucer picture for playing on 5 days.', halloween: 'Bats, pumpkins, and the Pumpkin Saucer picture for playing on 5 days.',
     autumn: 'Falling leaves, warm colours, and the Maple Saucer picture for playing on 5 days.' };
   let ev = null; try { const r = await sb.rpc('javeda_event_now'); ev = r && r.data; } catch (e) {}
-  if (ev && EVN[ev.kind] && hour >= 10) try {
+  // (not while the events wait for JAVEDA's goals, ev.on = false: the start post comes the day they open)
+  if (ev && ev.on !== false && EVN[ev.kind] && hour >= 10) try {
     const [em, nm] = EVN[ev.kind], news = () => guildRoles().catch(() => []).then(rs => rs.find(r => ROLE.news.re.test(r.name)));
     if ((await getState(sb, 'event_posted')) !== ev.event) {
       const n = await news();

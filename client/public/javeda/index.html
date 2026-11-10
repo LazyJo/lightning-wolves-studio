@@ -373,7 +373,6 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .join .jbtn{display:flex; gap:14px; align-items:center; flex-wrap:wrap}
 
 /* links */
-.outs{display:flex; flex-wrap:wrap; gap:8px}
 .evcount{display:flex; flex-wrap:wrap; gap:6px}
 /* the video box: pictures until a tap, then that one video plays in place; swipe for the next */
 .vids{display:grid; gap:10px}
@@ -391,19 +390,16 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .vslide.mp4.teaser{background:#000 url(teaser-poster.jpg) center/cover}
 .vslide video.vthumb{object-fit:cover; pointer-events:none}
 .vslide.mp4:fullscreen{border-radius:0; border:0}
-.vfollow{display:flex; flex-wrap:wrap; gap:8px}
-.vfollow .vfh{flex:1 0 100%; font:700 12px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase; color:var(--mute)}
-.vfollow a{flex:1 1 0; min-width:0; text-align:center; font:700 14px/1.1 var(--cond); letter-spacing:.08em; text-transform:uppercase; text-decoration:none; padding:12px 4px; border-radius:6px; border:1.5px solid; white-space:nowrap}
+.vfollow{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px}
+.vfollow .vfh{grid-column:1/-1; font:700 12px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase; color:var(--mute)}
+.vfollow a{min-width:0; text-align:center; font:700 14px/1.1 var(--cond); letter-spacing:.08em; text-transform:uppercase; text-decoration:none; padding:12px 4px; border-radius:6px; border:1.5px solid; white-space:nowrap}
 @media (max-width:400px){ .vfollow{gap:6px} .vfollow a{font-size:13px; letter-spacing:.02em; padding:12px 2px} }
+.vfollow .merch{color:var(--gold); border-color:#ffd60a80; background:#ffd60a14}
+.vfollow .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
+.vfollow .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
 .vfollow .ig{color:#ff9bd2; border-color:#e1306c88; background:linear-gradient(135deg,#f5851f1a,#e1306c1f,#833ab41f)}
 .vfollow .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
 .vfollow .yt{color:#ff9a9a; border-color:#ff4d4d80; background:#ff000014}
-.outs a{font:700 15px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:12px 15px; border-radius:6px; border:1.5px solid}
-.outs .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
-.outs .merch{color:var(--gold); border-color:#ffd60a80; background:#ffd60a14}
-.outs .even{color:#ff7ac2; border-color:#ff3d8b80; background:#ff3d8b14}
-.outs .disc{color:#b9c2ff; border-color:#7b8cff80; background:#5865f214}
-.outs .yt{color:#ff9a9a; border-color:#ff4d4d80; background:#ff000014}
 footer{color:var(--mute); font-size:13px}
 
 /* sheets: profile + login */
@@ -742,6 +738,9 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <a class="spot" href="https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM" target="_blank" rel="noopener" data-i18n-skip>&#127911; Spotify</a>
       <a class="yt" href="https://www.youtube.com/channel/UCBt7oknMx1TmoRjX3hqUgWQ?sub_confirmation=1" target="_blank" rel="noopener" data-i18n-skip>&#9654;&#65039; YouTube</a>
       <a class="ig" href="https://www.instagram.com/lazyjo_/" target="_blank" rel="noopener" data-i18n-skip>&#128248; Instagram</a>
+      <a class="merch" data-link="merch" target="_blank" rel="noopener" data-i18n-skip>&#128085; Merch</a>
+      <a class="even" data-link="even" target="_blank" rel="noopener" data-i18n-skip>&#128156; True Fans</a>
+      <a class="disc" data-link="discord" target="_blank" rel="noopener" data-i18n-skip>&#128172; Discord</a>
     </div>
   </section>
 
@@ -779,17 +778,6 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <h2 id="hEn">Endless &#8734;</h2>
     <p class="sub">Clear a part and its endless opens: that part with no end. Clear every part of a song and its remix opens too, all of them in turn. Play till the hearts run out. Only a new best earns points.</p>
     <div class="levels" id="endless"></div>
-  </section>
-
-  <section aria-labelledby="hOut">
-    <h2 id="hOut">The music</h2>
-    <div class="outs">
-      <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
-      <a class="merch" data-link="merch" target="_blank" rel="noopener">&#128085; Merch</a>
-      <a class="even" data-link="even" target="_blank" rel="noopener">&#128156; EVEN &middot; true fans</a>
-      <a class="disc" data-link="discord" target="_blank" rel="noopener">&#128172; Discord</a>
-      <a class="yt" data-link="youtube" target="_blank" rel="noopener">&#9654;&#65039; YouTube</a>
-    </div>
   </section>
 
   <footer>JAVEDA by Lazy Jo &middot; <a href="/">Lightning Wolves</a>. Points are earned by playing, never by streaming.</footer>

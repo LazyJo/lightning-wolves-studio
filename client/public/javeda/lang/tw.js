@@ -1521,7 +1521,8 @@ S: {
 "Opens at # downloads and # accounts":"達到 # 次下載和 # 個帳號時開放",
 "# / # accounts":"# / # 個帳號",
 "Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"季節活動：活動排行榜、前三名獎品、雙倍積分週末，還有專屬頭像。JAVEDA 達到 # 次下載和 # 個帳號後開始：下載 App，揪朋友一起來。",
-"Follow Lazy Jo":"追蹤 Lazy Jo"
+"Follow Lazy Jo":"追蹤 Lazy Jo",
+"Start here":"從這裡開始"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款線上對戰</small>HOOPS <i>1v1</i>",

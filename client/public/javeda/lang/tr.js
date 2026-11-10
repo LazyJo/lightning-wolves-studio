@@ -1521,7 +1521,8 @@ S: {
 "Opens at # downloads and # accounts":"# indirme ve # hesapta açılır",
 "# / # accounts":"# / # hesap",
 "Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"Etkinlik tablosu, ilk üçe ödüller, çift puan hafta sonları ve kendine özel bir resimle sezon etkinlikleri. JAVEDA # indirme ve # hesaba ulaşınca başlar: uygulamayı indir ve arkadaşlarını getir.",
-"Follow Lazy Jo":"Lazy Jo'yu takip et"
+"Follow Lazy Jo":"Lazy Jo'yu takip et",
+"Start here":"Buradan başla"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>İlk online oyun</small>HOOPS <i>1v1</i>",

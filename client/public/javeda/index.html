@@ -744,6 +744,11 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     </div>
   </section>
 
+  <section aria-labelledby="hLv1">
+    <h2 id="hLv1">Start here</h2>
+    <div class="levels" id="levels1"></div>
+  </section>
+
   <section aria-labelledby="hBoard">
     <h2 id="hBoard">Scoreboard</h2>
     <div class="join hid" id="boardJoin">
@@ -1874,7 +1879,7 @@ function renderLevels(){
   const songs = new Map();
   for (const lv of LEVELS){ if (!songs.has(lv.num)) songs.set(lv.num, []); songs.get(lv.num).push(lv); }
   const pad = n => String(n).padStart(2, "0");
-  const html = [...songs.entries()].map(([num, parts]) => {
+  const cards = [...songs.entries()].map(([num, parts]) => {
     // an endless tile isn't a part to clear: it doesn't count toward the bar
     const main = parts[0], real = parts.filter(l => !l.endless), cleared = real.filter(l => progress[l.id] && progress[l.id].cleared).length;
     return '<article class="song' + (isOpen(main) ? '' : ' locked') + (cleared === real.length ? ' done' : '') + '" style="--art:' + main.art + '">' +
@@ -1887,7 +1892,10 @@ function renderLevels(){
       '</div>' +
       '<div class="parts' + (real.length > 3 ? ' four' : '') + '">' + parts.map(partTile).join("") + '</div>' +
       '</article>';
-  }).join("") +
+  });
+  // Level 1 has its own spot under the videos (where everyone starts); the list goes on from Level 2
+  $("levels1").innerHTML = cards[0] || "";
+  const html = cards.slice(1).join("") +
   (comingSoon() ? '<article class="song soon"><span class="tr" aria-hidden="true">&hellip;</span><div><span class="no">' + comingSoon() + '</span>' +
     '<p class="ds">One per song on the album. Coming as the songs come.</p></div></article>' : '');
   $("levels").innerHTML = html;
@@ -2716,7 +2724,7 @@ const playOrPass = e => {
   if (b.dataset.pass !== undefined) openPass(levelById(b.dataset.pass)); else play(b.dataset.play);
   return true;
 };
-$("levels").addEventListener("click", e => { const k = e.target.closest("[data-key]"); if (k) useKey(levelById(k.dataset.key)); else playOrPass(e); });
+for (const id of ["levels1", "levels"]) $(id).addEventListener("click", e => { const k = e.target.closest("[data-key]"); if (k) useKey(levelById(k.dataset.key)); else playOrPass(e); });
 async function useKey(lv){
   if (!lv || !keyReady(lv)) return;
   if (!confirm((window.JAVEDA_T || (x => x))("Use a key to open this song?") + "\n" + lvName(lv) + " · " + lv.title)) return;

@@ -1522,7 +1522,9 @@ S: {
 "# / # accounts":"# / # account",
 "Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"Eventi di stagione con una classifica, premi per i primi tre, weekend a punti doppi e un'immagine tutta loro. Iniziano quando JAVEDA avrà # download e # account: scarica l'app e porta i tuoi amici.",
 "Follow Lazy Jo":"Segui Lazy Jo",
-"Start here":"Inizia qui"
+"Start here":"Inizia qui",
+"Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too.":"Parte #. Ora di punta in città: la stessa caduta, più veloce dalla prima battuta. I buchi nelle passerelle scivolano avanti e indietro, ed elicotteri e gru arrivano anche nelle strofe.",
+"Part #. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only # hearts.":"Parte #. Ora di punta: la stessa caduta, più veloce dalla prima battuta. I buchi nelle passerelle scivolano avanti e indietro, elicotteri e gru arrivano anche nelle strofe - e solo # cuori."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",
@@ -2427,7 +2429,10 @@ HTML: {
 "<b>Log in</b> to compete in the weekly tournament.":"<b>Accedi</b> per partecipare al torneo settimanale.",
 "🪙 <b>+# points</b> from today's door":"🪙 <b>+# punti</b> dalla casella di oggi",
 "One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"Una canzone per tutta la settimana, il punteggio migliore vince un <b>JAVEDA Pass</b>. Parte appena JAVEDA arriva a # download: scarica l'app e porta i tuoi amici.",
-"Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"Ogni installazione conta: a <b>#</b> il torneo settimanale si apre per tutti. Ora: <b>#</b>."
+"Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"Ogni installazione conta: a <b>#</b> il torneo settimanale si apre per tutti. Ora: <b>#</b>.",
+"Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too. <b>Endless:</b> the fall never ends - faster every # bars, a heart back every #.":"Parte #. Ora di punta in città: la stessa caduta, più veloce dalla prima battuta. I buchi nelle passerelle scivolano avanti e indietro, ed elicotteri e gru arrivano anche nelle strofe. <b>Infinito:</b> la caduta non finisce mai - più veloce ogni # battute, recuperi un cuore ogni #.",
+"<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you, wherever it has slid to. Cranes, helicopters and cradles cost a heart (#). Grab the lights; a gold ring on the beat is double.":"<b>Trascina</b> (o usa le frecce) per guidare. Ogni passerella di vetro ha un solo buco - fatti trovare sopra quando arriva, ovunque il buco sia scivolato. Gru, elicotteri e navicelle costano un cuore (#). Prendi le luci; un anello d'oro a tempo vale doppio.",
+"Down through the city at rush hour.<br>Part # cleared: <b>Rush Hour ∞</b> is open in the gold Endless list.":"Giù attraverso la città all'ora di punta.<br>Parte # completata: <b>Rush Hour ∞</b> è aperto nella lista dorata Infinito."
 },
 P: {
 "^New best this week! (.+)$": "Nuovo record della settimana! $1",

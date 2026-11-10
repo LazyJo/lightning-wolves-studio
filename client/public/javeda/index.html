@@ -1208,6 +1208,9 @@ let LEVELS = [
   { id:"lvl10", num:10, title:"GOING CRAZY", requires:"lvl9", src:"levels/going-crazy.html?hub=1",
     ds:"The city from the cover at night. Freefall: Jo's orange saucer drops down between the towers - through the hole in each skybridge, past the cranes and the helicopters.",
     art:"radial-gradient(120% 90% at 80% 0%, #ff8a2a55, transparent 60%), linear-gradient(160deg,#142040,#060914)" },
+  { id:"lvl10b", num:10, part:2, title:"RUSH HOUR", requires:"lvl10", src:"levels/going-crazy.html?hub=1&part=2",
+    ds:"Part 2. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only 2 hearts.",
+    art:"radial-gradient(120% 90% at 80% 0%, #ff4a2a66, transparent 60%), linear-gradient(160deg,#2a1430,#0a0610)" },
   { id:"lvl11", num:11, title:"LA NIGHT", requires:"lvl10", src:"levels/la-night.html?hub=1",
     ds:"A night race through the city, towards the moon. Street Race: hold to drift round the corners, nitro on the beat - be first to the river.",
     art:"radial-gradient(120% 90% at 75% 0%, #f4e6d855, transparent 55%), radial-gradient(90% 60% at 100% 40%, #ff3a5a44, transparent 70%), linear-gradient(160deg,#2a1a5a,#07051a)" },
@@ -1317,7 +1320,7 @@ const ENDLESS = [
   ...endlessOf(7, "journey.html", "lvl7c", [["lvl7", "Journey"], ["lvl7b", "Meteor Shower"], ["lvl7c", "The Long Way Home"]], true),
   ...endlessOf(8, "myself.html", "lvl8c", [["lvl8", "Petal Rain"], ["lvl8b", "The Stem"], ["lvl8c", "My Shadow"]], true),
   ...endlessOf(9, "oublie-moi.html", "lvl9c", [["lvl9", "Night Flight"], ["lvl9b", "Rooftop Run"], ["lvl9c", "The King"]], true),
-  ...endlessOf(10, "going-crazy.html", "lvl10", [["lvl10", "Freefall"]], false),
+  ...endlessOf(10, "going-crazy.html", "lvl10b", [["lvl10", "Freefall"], ["lvl10b", "Rush Hour"]], false),
   ...endlessOf(11, "la-night.html", "lvl11", [["lvl11", "Street Race"]], false),
   ...endlessOf(12, "need-more-time.html", "lvl12", [["lvl12", "Pendulum Swing"]], false),
   ...endlessOf(13, "you-ready.html", "lvl13", [["lvl13", "Light Trails"]], false),
@@ -1810,7 +1813,7 @@ function endlessTile(lv){
 const GREAT = {
   lvl1:2800, lvl2:60000, lvl2b:2800, lvl3:10000, lvl3b:14000, lvl3c:16500, lvl4:85000, lvl4b:140000, lvl4c:115000,
   lvl5:18000, lvl5b:18000, lvl5c:18000, lvl6:35000, lvl6b:54000, lvl6c:18000, lvl7:57000, lvl7b:62000, lvl7c:85000,
-  lvl8:76000, lvl8b:30000, lvl8c:21500, lvl9:195000, lvl9b:83000, lvl9c:51000, lvl10:40000, lvl11:69000, lvl12:45000,
+  lvl8:76000, lvl8b:30000, lvl8c:21500, lvl9:195000, lvl9b:83000, lvl9c:51000, lvl10:40000, lvl10b:38000, lvl11:69000, lvl12:45000,
   lvl13:20000, lvl14:39000, lvl15:95000, lvl16:125000, lvl17:33000, lvl18:125000, lvl18b:230000, lvl19:40000,
   lvl20:34000, lvl21:42000, lvl21b:40000, lvl22:75000, lvl22b:28000, lvl22c:26000, lvl23:55000, lvl23b:85000,
   lvl23c:31000, lvl24:20000, lvl25:55000, lvl25b:14000, lvl25c:37000, lvl25d:18000, lvl26:45000, lvl26b:18000,
@@ -1953,7 +1956,7 @@ function renderUltimate(){
       ? (p.best ? '<span class="best">Best ' + fmt(p.best) + ' m</span>' : '<span class="tag">New</span>') + '<button class="btn gold" data-play="' + ULT.id + '">Play HYPERDRIVE</button>'
       : '<span class="tag">&#128274; ' + needText(ULT) + '</span>' + (passReady(ULT) ? '<button class="btn gold" data-pass="' + ULT.id + '">&#9889; JAVEDA Pass</button>' : '')) + '</div></article>';
 }
-const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"],["lvl28","Level 28"],["lvl28b","Level 28 Part 2"]];
+const TABS = [["points","Points"],["1v1","Online 1v1"],["lvl1","Level 1"],["lvl2","Level 2"],["lvl2b","Level 2 Part 2"],["lvl3","Level 3"],["lvl3b","Level 3 Part 2"],["lvl3c","Level 3 Part 3"],["lvl4","Level 4"],["lvl4b","Level 4 Part 2"],["lvl4c","Level 4 Part 3"],["lvl5","Level 5"],["lvl5b","Level 5 Part 2"],["lvl5c","Level 5 Part 3"],["lvl6","Level 6"],["lvl6b","Level 6 Part 2"],["lvl6c","Level 6 Part 3"],["lvl7","Level 7"],["lvl7b","Level 7 Part 2"],["lvl7c","Level 7 Part 3"],["lvl8","Level 8"],["lvl8b","Level 8 Part 2"],["lvl8c","Level 8 Part 3"],["lvl9","Level 9"],["lvl9b","Level 9 Part 2"],["lvl9c","Level 9 Part 3"],["lvl10","Level 10"],["lvl10b","Level 10 Part 2"],["lvl11","Level 11"],["lvl12","Level 12"],["lvl13","Level 13"],["lvl14","Level 14"],["lvl15","Level 15"],["lvl16","Level 16"],["lvl17","Level 17"],["lvl18","Level 18"],["lvl18b","Level 18 Part 2"],["lvl19","Level 19"],["lvl20","Level 20"],["lvl21","Level 21"],["lvl21b","Level 21 Part 2"],["lvl22","Level 22"],["lvl22b","Level 22 Part 2"],["lvl22c","Level 22 Part 3"],["lvl23","Level 23"],["lvl23b","Level 23 Part 2"],["lvl23c","Level 23 Part 3"],["lvl24","Level 24"],["lvl25","Level 25"],["lvl25b","Level 25 Part 2"],["lvl25c","Level 25 Part 3"],["lvl25d","Level 25 Part 4"],["lvl26","Level 26"],["lvl26b","Level 26 Part 2"],["lvl27","Level 27"],["lvl27b","Level 27 Part 2"],["lvl28","Level 28"],["lvl28b","Level 28 Part 2"]];
 /// the scoreboard picker: which kind of board, then (a level or an endless) the level, then its part
 const boardKind = id => id === "points" || id === "chat" || id === "1v1" || id === "daily" || id === "weekly" || id === "marathon" || id === "event" ? id : id === ULT.id ? "ult" : ENDLESS.some(l => l.id === id) ? "endless" : "level";
 const boardLevels = () => TABS.filter(([k]) => k !== "points" && k !== "1v1").map(([k]) => levelById(k)).filter(Boolean);

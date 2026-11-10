@@ -99,7 +99,7 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Mode">
-    <button type="button" data-mode="">Freefall</button><button type="button" data-mode="endless" class="gold">Freefall &#8734;</button>
+    <button type="button" data-mode="">Freefall</button><button type="button" data-mode="p2">Rush Hour</button><button type="button" data-mode="endless" class="gold">Freefall &#8734;</button><button type="button" data-mode="p2endless" class="gold">Rush Hour &#8734;</button>
   </div>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
@@ -127,6 +127,9 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
    out over the city - the cover.
    Once it's cleared, ENDLESS opens (?endless=1): the same fall with no end, in
    8-bar windows, harder each window, a heart back every 24 bars.
+   PART 2, RUSH HOUR (?part=2, its endless ?part=2&endless=1): the same fall, harder. It starts at the speed
+   Part 1 ends at and gets faster, the holes in the skybridges are the small ones from the first bar and slide to and
+   fro, helicopters and cranes come in the verses too, more cradles, and 2 hearts (one back every 12 bars).
 
    Everything comes up at you on the song's grid: it's laid out by beat, so it
    reaches you (y = 0) exactly on the beat it belongs to. */
@@ -148,12 +151,17 @@ function section(t){
   return b < 24 ? "loud" : "calm";              // the verse, then its kick-less half
 }
 const STINT = BAR * 8;                        // endless: one window
-const HEARTS = 3;
 
 const Q = new URLSearchParams(location.search);
 const ENDLESS = Q.get("endless") === "1";
-const CFG = ENDLESS ? { id:"lvl10x", title:"Freefall", by:"LEVEL 10 · ENDLESS", endless:true, board:"Level 10 ∞" }
+const P2 = Q.get("part") === "2";             // Part 2: Rush Hour
+const HEARTS = P2 ? 2 : 3;
+const CFG = P2 ? (ENDLESS ? { id:"lvl10bx", title:"Rush Hour", by:"LEVEL 10 · PART 2 · ENDLESS", endless:true, board:"Level 10 Part 2 ∞" }
+                          : { id:"lvl10b", title:"Rush Hour", by:"LEVEL 10 · PART 2" })
+  : ENDLESS ? { id:"lvl10x", title:"Freefall", by:"LEVEL 10 · ENDLESS", endless:true, board:"Level 10 ∞" }
   : { id:"lvl10", title:"Freefall", by:"LEVEL 10" };
+// how hard it starts and ends (FALL.L: 0 = the start of Part 1, 1 = its end); Part 2 goes on from there
+const LV = P2 ? { run:[.9, 1.6], stint:.9, calm:.6, heartBars:12 } : { run:[0, 1], stint:.3, calm:.25, heartBars:12 };
 
 const LINKS = {
   spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
@@ -406,7 +414,7 @@ const FALL = {
     const pos = s => [(rnd(k*3.3 + j*s) - .5)*2*A, (rnd(k*5.1 + j*1.7*s) - .5)*2*A];
     const b = j % 4, inBar = Math.floor(j/4);
     if (sec === "rest"){ if (b === 2){ const r = this.rings.find(r => !r.on); if (r){ const [rx, rz] = pos(1); Object.assign(r, { on:true, y, rx, rz }); r.r.visible = true; } } return; }
-    if (sec === "calm"){ L = Math.min(L, .25);
+    if (sec === "calm"){ L = Math.min(L, LV.calm);
       if (b === 0 && inBar % 2 === 0) this.plate(y, pos(1), 3.2);
       else if (b === 2) this.orbLine(y, pos(2));
       return; }
@@ -416,16 +424,22 @@ const FALL = {
       else this.crane(y, pos(3), f);
       return; }
     if (b === 2){
-      if (sec === "hook" && f > .15 && inBar % 2 === 1) this.heli(y, k, f);
-      else if (f > .35 && inBar % 4 === 3) this.cradle(y, k, f);
-      else if (inBar % 4 === 1){ const r = this.rings.find(r => !r.on); if (r){ const [rx, rz] = pos(4); Object.assign(r, { on:true, y, rx, rz }); r.r.visible = true; this.orbLine(y - 6, [rx, rz]); } }
+      // Part 2: helicopters in the verses too, and a cradle every 4 bars more
+      const heli = P2 ? (sec === "hook" || sec === "loud") && inBar % 2 === 1 : sec === "hook" && f > .15 && inBar % 2 === 1;
+      const cradle = P2 ? inBar % 4 === 2 || inBar % 4 === 3 : f > .35 && inBar % 4 === 3;
+      if (heli) this.heli(y, k, f);
+      else if (cradle) this.cradle(y, k, f);
+      else if (inBar % 4 === (P2 ? 0 : 1)){ const r = this.rings.find(r => !r.on); if (r){ const [rx, rz] = pos(4); Object.assign(r, { on:true, y, rx, rz }); r.r.visible = true; this.orbLine(y - 6, [rx, rz]); } }
       else this.orbLine(y, pos(2));
       return; }
-    if (sec === "hook" && f > .55 && b === 1 && inBar % 2 === 0) this.crane(y, pos(5), f);
+    if (b === 1 && f > .55 && (sec === "hook" ? inBar % 2 === 0 : P2 && sec === "loud" && inBar % 4 === 0)) this.crane(y, pos(5), f);
     else if (b === 3 && rnd(k*1.7) < .5) this.orbLine(y, pos(6));
   },
   plate(y, [hx, hz], r){ const p = this.plates.find(p => !p.on); if (!p) return; r = Math.max(1.8, r);
-    Object.assign(p, { on:true, y, hx, hz, r }); p.ring.geometry.dispose(); p.ring.geometry = new THREE.RingGeometry(r, 30, 40, 1); p.edge.scale.setScalar(r); p.g.visible = true;
+    // Part 2: the hole slides to and fro along a line (it stays inside the shaft)
+    const k = this.st.k, mv = P2 && r < 3 ? 1 + 1*clamp((this.L(S.t) - .9)/.7, 0, 1) : 0, a = rnd(k*8.3)*Math.PI, A = this.A - 1.4;
+    const dx = Math.cos(a), dz = Math.sin(a), hx0 = clamp(hx, -A + mv*Math.abs(dx), A - mv*Math.abs(dx)), hz0 = clamp(hz, -A + mv*Math.abs(dz), A - mv*Math.abs(dz));
+    Object.assign(p, { on:true, y, hx:hx0, hz:hz0, r, hx0, hz0, mv, dx, dz, w:1 + rnd(k*2.9)*.5, ph:rnd(k*4.1)*6 }); p.ring.geometry.dispose(); p.ring.geometry = new THREE.RingGeometry(r, 30, 40, 1); p.edge.scale.setScalar(r); p.g.visible = true;
     for (let i = 0; i < 3; i++) this.orb(hx, y - 3 - i*2.2, hz); },
   crane(y, [cx, cz], f){ const c = this.cranes.find(c => !c.on); if (!c) return; Object.assign(c, { on:true, y, cx:cx*.5, cz:cz*.5, a:rnd(this.st.k*7)*Math.PI, w:(rnd(this.st.k*9) < .5 ? -1 : 1)*(.45 + .8*Math.min(1.3, f)) }); c.g.visible = true; },
   heli(y, k, f){ const h = this.helis.find(h => !h.on); if (!h) return; const A = this.A - 1.4, dir = rnd(k*2) < .5 ? -1 : 1, sp = 3 + 2.5*Math.min(1.3, f);
@@ -434,6 +448,7 @@ const FALL = {
     Object.assign(c, { on:true, y, cz:(rnd(k*6.6) - .5)*2*(this.A - 1.8), ph:rnd(k)*6, amp:A, w:.9 + .6*Math.min(1.3, f) }); c.g.visible = true; },
   orb(x, y, z){ const o = this.orbs.find(o => !o.on); if (!o) return; Object.assign(o, { on:true, x, y, z }); o.s.visible = true; },
   orbLine(y, [x, z]){ for (let i = 0; i < 5; i++) this.orb(clamp(x + Math.sin(i*.7)*1.4, -5.5, 5.5), y - i*2.2, clamp(z + Math.cos(i*.7)*1.4, -5.5, 5.5)); },
+  holeAt(p, t){ if (!p.mv) return [p.hx, p.hz]; const s = Math.sin(t*p.w + p.ph)*p.mv; return [p.hx0 + p.dx*s, p.hz0 + p.dz*s]; },
   craneDist(c, x, z){ const ca = Math.cos(c.a), sa = Math.sin(c.a); return Math.abs(-(x - c.cx)*sa + (z - c.cz)*ca); },
   cradleX(c, t){ return Math.sin(t*c.w + c.ph)*c.amp; },
   update(dt, t){
@@ -445,10 +460,11 @@ const FALL = {
     // lay out the beats as they come into reach (they spawn at Y0 and arrive on their beat)
     while (GRID.t0 + st.j*BEAT - (-this.Y0)/v <= t){ const tb = GRID.t0 + st.j*BEAT; this.layout(st.j, this.L(tb), section(tb), tb); st.j++; }
     // a heart comes up now and then when you're missing one
-    if (S.hearts < HEARTS && !this.hearts[0].on && Math.floor(t/(BAR*12)) !== st.heartBar){ st.heartBar = Math.floor(t/(BAR*12)); const h = this.hearts[0];
+    if (S.hearts < HEARTS && !this.hearts[0].on && Math.floor(t/(BAR*LV.heartBars)) !== st.heartBar){ st.heartBar = Math.floor(t/(BAR*LV.heartBars)); const h = this.hearts[0];
       Object.assign(h, { on:true, y:this.Y0, hx:(rnd(t)*2 - 1)*4, hz:(rnd(t*3)*2 - 1)*4 }); h.g.visible = true; }
     const cross = o => { const was = o.y < 0; o.y += dy; return was && o.y >= 0; };
     for (const p of this.plates){ if (!p.on) continue;
+      if (p.mv) [p.hx, p.hz] = this.holeAt(p, t);
       if (cross(p)){ const off = Math.hypot(st.x - p.hx, st.z - p.hz);
         if (S.inv <= 0 && off > p.r - .75){ if (hurt("SKYBRIDGE!", "Each skybridge has one hole - get over it before you drop. Watch the blue ring.")) return; }
         else { st.bridges++; award(80, 6); sfx.glass(); } }
@@ -497,13 +513,13 @@ function reset(){
   S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
   lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
   G = FALL; FALL.root.visible = true; CITY.visible = false; camInit = false;
-  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+  if (CFG.endless) G.begin(0, STINT, LV.stint, LV.stint + .1); else G.begin(0, END_AT, LV.run[0], LV.run[1]);
 }
 // endless goes in 8-bar windows, a little harder every window. Every 24 bars: +2,000 and a heart back
 function startStint(n, t){
   S.stint = n; let back = false;
   if (n > 0 && n % 3 === 0){ S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
-  const L0 = .3 + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
+  const L0 = LV.stint + n*.1; G.begin(n*STINT, (n + 1)*STINT, L0, L0 + .1, n > 0);
   if (n > 0 && n % 3 === 0) say("24 BARS", "+2,000" + (back ? " · a heart back" : ""), 1.2, "g");
 }
 function songT(){
@@ -609,7 +625,8 @@ function finish(){
   v.querySelector(".by").textContent = CFG.by + " COMPLETE";
   v.querySelector("h1").textContent = "GOING CRAZY";
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
-  ps[1].innerHTML = "All the way down through the city." + "<br>Level 10 cleared: <b>Freefall &#8734;</b> is open in the gold Endless list.";
+  ps[1].innerHTML = P2 ? "Down through the city at rush hour.<br>Part 2 cleared: <b>Rush Hour &#8734;</b> is open in the gold Endless list."
+    : "All the way down through the city." + "<br>Level 10 cleared: <b>Freefall &#8734;</b> is open in the gold Endless list.";
 }
 function boot(){
   ren = new THREE.WebGLRenderer({ antialias:true }); ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); ren.setSize(innerWidth, innerHeight); $("cab").appendChild(ren.domElement);
@@ -647,19 +664,22 @@ $("go").addEventListener("click", () => {
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
   S.started = true; S.t = 0;
   if (HUB) toHub({ type:"javeda:start", level:CFG.id });
-  say(CFG.endless ? "ENDLESS" : "FREEFALL", CFG.endless ? "the fall with no end" : G.hint, 3, CFG.endless ? "g" : "");
+  say(CFG.endless ? "ENDLESS" : P2 ? "RUSH HOUR" : "FREEFALL", CFG.endless ? "the fall with no end" : G.hint, 3, CFG.endless ? "g" : "");
 });
 $("by").textContent = "LAZY JO · " + CFG.by;
-$("title").textContent = "GOING CRAZY" + (ENDLESS ? " ∞" : "");
-$("intro").innerHTML = "Jo's orange saucer drops into the city from the sky. Freefall down between the towers - through the skybridges, past the cranes and the helicopters - all the way to the streets." +
+$("title").textContent = (P2 ? "RUSH HOUR" : "GOING CRAZY") + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = (P2 ? "Part 2. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too."
+  : "Jo's orange saucer drops into the city from the sky. Freefall down between the towers - through the skybridges, past the cranes and the helicopters - all the way to the streets.") +
   (ENDLESS ? " <b>Endless:</b> the fall never ends - faster every 8 bars, a heart back every 24." : "");
-$("how").innerHTML = "<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you. Cranes, helicopters and cradles cost a heart (3). Grab the lights; a gold ring on the beat is double.";
+$("how").innerHTML = "<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you" + (P2 ? ", wherever it has slid to" : "") +
+  ". Cranes, helicopters and cradles cost a heart (" + HEARTS + "). Grab the lights; a gold ring on the beat is double.";
 if (!HUB){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
     const m = b.dataset.mode;
-    b.setAttribute("aria-pressed", String((m === "endless") === ENDLESS));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); if (m === "endless") q.set("endless", "1"); location.search = q.toString(); });
+    b.setAttribute("aria-pressed", String(m === (P2 ? "p2" : "") + (ENDLESS ? "endless" : "")));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part");
+      if (/^p2/.test(m)) q.set("part", "2"); if (/endless$/.test(m)) q.set("endless", "1"); location.search = q.toString(); });
   });
 }
 boot();

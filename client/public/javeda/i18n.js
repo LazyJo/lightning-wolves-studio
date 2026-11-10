@@ -127,6 +127,7 @@ const S = [
   ["Opens at # downloads", "Opent bij # downloads", "Ouvre à # téléchargements", "Se abre con # descargas"],
   ["# / # downloads", "# / # downloads", "# / # téléchargements", "# / # descargas"],
   ["Follow on Spotify", "Volg op Spotify", "Suivre sur Spotify", "Seguir en Spotify"],
+  ["Part #. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only # hearts.", "Deel #. Spitsuur: dezelfde val, sneller vanaf de eerste maat. De gaten in de luchtbruggen schuiven heen en weer, helikopters en kranen komen ook in de coupletten - en maar # hartjes.", "Partie #. L'heure de pointe : la même chute, plus rapide dès la première mesure. Les trous des passerelles glissent d'un côté à l'autre, les hélicoptères et les grues arrivent aussi dans les couplets - et seulement # cœurs.", "Parte #. Hora punta: la misma caída, más rápida desde el primer compás. Los huecos de las pasarelas se deslizan de un lado a otro, los helicópteros y las grúas también llegan en las estrofas - y solo # corazones."],
   ["Follow Lazy Jo", "Volg Lazy Jo", "Suis Lazy Jo", "Sigue a Lazy Jo"],
   ["Start here", "Begin hier", "Commence ici", "Empieza aquí"],
   ["Subscribe on YouTube", "Abonneer op YouTube", "S'abonner sur YouTube", "Suscríbete en YouTube"],

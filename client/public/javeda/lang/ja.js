@@ -1522,7 +1522,9 @@ S: {
 "# / # accounts":"# / # アカウント",
 "Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"イベントランキング、上位3人への賞品、ポイント2倍の週末、限定アイコン付きのシーズンイベント。JAVEDAが#ダウンロードと#アカウントに達したら始まるよ：アプリを入れて友だちを誘おう。",
 "Follow Lazy Jo":"Lazy Joをフォロー",
-"Start here":"ここからスタート"
+"Start here":"ここからスタート",
+"Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too.":"パート#。街のラッシュアワー：同じ落下が最初の小節から速い。空中通路の穴は行ったり来たりスライドし、ヘリとクレーンはヴァースにも現れる。",
+"Part #. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only # hearts.":"パート#。ラッシュアワー：同じ落下が最初の小節から速い。空中通路の穴は行ったり来たりスライドし、ヘリとクレーンはヴァースにも現れる - しかもハートは#つだけ。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",
@@ -2427,7 +2429,10 @@ HTML: {
 "<b>Log in</b> to compete in the weekly tournament.":"ウィークリー大会に参加するには<b>ログイン</b>してね。",
 "🪙 <b>+# points</b> from today's door":"🪙 今日の扉から<b>+#ポイント</b>",
 "One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"1週間ずっと同じ曲。最高スコアの人が<b>JAVEDA Pass</b>をゲット。JAVEDAが#ダウンロードに達したらスタート：アプリを入れて友だちを誘おう。",
-"Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"インストールごとにカウント：<b>#</b>でウィークリートーナメントがみんなに開幕。いま：<b>#</b>。"
+"Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"インストールごとにカウント：<b>#</b>でウィークリートーナメントがみんなに開幕。いま：<b>#</b>。",
+"Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too. <b>Endless:</b> the fall never ends - faster every # bars, a heart back every #.":"パート#。街のラッシュアワー：同じ落下が最初の小節から速い。空中通路の穴は行ったり来たりスライドし、ヘリとクレーンはヴァースにも現れる。<b>エンドレス：</b>落下は終わらない - #小節ごとに速くなり、#小節ごとにハートが1つ戻る。",
+"<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you, wherever it has slid to. Cranes, helicopters and cradles cost a heart (#). Grab the lights; a gold ring on the beat is double.":"<b>ドラッグ</b>（または矢印キー）で操縦。ガラスの空中通路にはそれぞれ穴が1つ - 穴がどこへスライドしていても、通路が来たら穴の上にいよう。クレーン、ヘリ、ゴンドラに当たるとハート1つ減る（#）。光を取ろう。ビートに合わせた金のリングは2倍。",
+"Down through the city at rush hour.<br>Part # cleared: <b>Rush Hour ∞</b> is open in the gold Endless list.":"ラッシュアワーの街を一番下まで落ちきった。<br>パート#クリア：<b>Rush Hour ∞</b>がゴールドのエンドレスリストで解放！"
 },
 P: {
 "^New best this week! (.+)$": "今週のベスト更新！$1",

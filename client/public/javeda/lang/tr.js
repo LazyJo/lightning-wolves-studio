@@ -1522,7 +1522,9 @@ S: {
 "# / # accounts":"# / # hesap",
 "Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"Etkinlik tablosu, ilk üçe ödüller, çift puan hafta sonları ve kendine özel bir resimle sezon etkinlikleri. JAVEDA # indirme ve # hesaba ulaşınca başlar: uygulamayı indir ve arkadaşlarını getir.",
 "Follow Lazy Jo":"Lazy Jo'yu takip et",
-"Start here":"Buradan başla"
+"Start here":"Buradan başla",
+"Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too.":"Bölüm #. Şehirde yoğun saat: aynı düşüş, ilk ölçüden itibaren daha hızlı. Gök köprülerindeki delikler bir o yana bir bu yana kayıyor, helikopterler ve vinçler kıtalarda da geliyor.",
+"Part #. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only # hearts.":"Bölüm #. Yoğun saat: aynı düşüş, ilk ölçüden itibaren daha hızlı. Gök köprülerindeki delikler bir o yana bir bu yana kayıyor, helikopterler ve vinçler kıtalarda da geliyor - ve sadece # kalp."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>İlk online oyun</small>HOOPS <i>1v1</i>",
@@ -2427,7 +2429,10 @@ HTML: {
 "Dig a whole beach - every mound without a crab - to clear Crab Sweeper. Take your time: only a crab costs a heart. <b>Go again.</b>":"Crab Sweeper bölümünü geçmek için bütün kumsalı kaz - yengeç olmayan her tümseği. Acele etme: sadece yengeç kalp götürür. <b>Tekrar dene.</b>",
 "🪙 <b>+# points</b> from today's door":"🪙 Bugünün kapısından <b>+# puan</b>",
 "One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has # downloads: get the app and bring your friends.":"Bütün hafta tek şarkı, en yüksek skor <b>JAVEDA Pass</b> kazanır. JAVEDA'nın indirme sayısı # olunca başlıyor: uygulamayı indir, arkadaşlarını da getir.",
-"Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"Her yükleme sayılır: <b>#</b> olunca haftalık turnuva herkese açılır. Şu an: <b>#</b>."
+"Every install counts: at <b>#</b> the weekly tournament opens for everyone. Now: <b>#</b>.":"Her yükleme sayılır: <b>#</b> olunca haftalık turnuva herkese açılır. Şu an: <b>#</b>.",
+"Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too. <b>Endless:</b> the fall never ends - faster every # bars, a heart back every #.":"Bölüm #. Şehirde yoğun saat: aynı düşüş, ilk ölçüden itibaren daha hızlı. Gök köprülerindeki delikler bir o yana bir bu yana kayıyor, helikopterler ve vinçler kıtalarda da geliyor. <b>Sonsuz:</b> düşüş hiç bitmez - her # ölçüde daha hızlı, her # ölçüde bir kalp geri.",
+"<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you, wherever it has slid to. Cranes, helicopters and cradles cost a heart (#). Grab the lights; a gold ring on the beat is double.":"Yön vermek için <b>sürükle</b> (ya da ok tuşları). Her cam gök köprüsünün tek bir deliği var - delik nereye kaymış olursa olsun, köprü sana ulaştığında deliğin üstünde ol. Vinçler, helikopterler ve asma iskeleler bir kalbe mal olur (#). Işıkları kap; ritimde altın halka çift sayılır.",
+"Down through the city at rush hour.<br>Part # cleared: <b>Rush Hour ∞</b> is open in the gold Endless list.":"Yoğun saatte şehrin içinden ta en aşağıya.<br>Bölüm # geçildi: <b>Rush Hour ∞</b> artık altın Sonsuz listesinde açık."
 },
 P: {
 "^New best this week! (.+)$": "Bu haftanın yeni rekoru! $1",

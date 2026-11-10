@@ -2605,8 +2605,8 @@ let current = null;
 let lastPlayed = null;
 /* ---- the video box: Lazy Jo's newest YouTube videos (/api/javeda/videos - the JAVEDA trailer first once it's on YouTube:
    a title with "JAVEDA" and "trailer"), with Follow on Spotify and Subscribe on YouTube. Only pictures until a tap: the
-   YouTube player (heavy, with its cookies) loads just for the video you tap, from youtube-nocookie.com. New visitors find
-   the box under the title; once you've played (or logged in) it moves under the levels, out of the way. ---- */
+   YouTube player (heavy, with its cookies) loads just for the video you tap, from youtube-nocookie.com. It sits under the
+   title, above the scoreboard, for everyone. ---- */
 let vids = (() => { try { return JSON.parse(localStorage.getItem("javeda.vids")) || null; } catch(e){ return null; } })();
 async function loadVideos(){
   try { const r = await fetch("/api/javeda/videos"); const j = await r.json(); if (Array.isArray(j.videos) && j.videos.length) vids = j.videos; } catch(e){}
@@ -2621,12 +2621,7 @@ function renderVideos(){
   $("vTrack").classList.toggle("one", show.length === 1); $("vTrack").classList.toggle("hid", !show.length);
   placeVideos();
 }
-function placeVideos(){
-  const box = $("vids"), played = signedIn() || Object.keys(progress || {}).length > 0;
-  const after = played ? $("hLv").closest("section") : document.querySelector("section.hero");
-  if (box.previousElementSibling !== after) after.after(box);
-  box.classList.remove("hid");
-}
+function placeVideos(){ $("vids").classList.remove("hid"); }
 // a tap plays that one in place (any other one stops); a level starting stops it too
 function stopVideos(){ if ($("vTrack").querySelector("iframe")) renderVideos(); }
 $("vTrack").addEventListener("click", e => {

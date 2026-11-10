@@ -127,6 +127,7 @@ const S = [
   ["Opens at # downloads", "Opent bij # downloads", "Ouvre à # téléchargements", "Se abre con # descargas"],
   ["# / # downloads", "# / # downloads", "# / # téléchargements", "# / # descargas"],
   ["Follow on Spotify", "Volg op Spotify", "Suivre sur Spotify", "Seguir en Spotify"],
+  ["Follow Lazy Jo", "Volg Lazy Jo", "Suis Lazy Jo", "Sigue a Lazy Jo"],
   ["Subscribe on YouTube", "Abonneer op YouTube", "S'abonner sur YouTube", "Suscríbete en YouTube"],
   ["Videos", "Video's", "Vidéos", "Vídeos"],
   ["Opens at # downloads and # accounts", "Opent bij # downloads en # accounts", "Ouvre à # téléchargements et # comptes", "Se abre con # descargas y # cuentas"],

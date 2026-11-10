@@ -1520,7 +1520,8 @@ S: {
 "Videos":"動画",
 "Opens at # downloads and # accounts":"#ダウンロードと#アカウントで開幕",
 "# / # accounts":"# / # アカウント",
-"Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"イベントランキング、上位3人への賞品、ポイント2倍の週末、限定アイコン付きのシーズンイベント。JAVEDAが#ダウンロードと#アカウントに達したら始まるよ：アプリを入れて友だちを誘おう。"
+"Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"イベントランキング、上位3人への賞品、ポイント2倍の週末、限定アイコン付きのシーズンイベント。JAVEDAが#ダウンロードと#アカウントに達したら始まるよ：アプリを入れて友だちを誘おう。",
+"Follow Lazy Jo":"Lazy Joをフォロー"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",

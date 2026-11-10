@@ -1520,7 +1520,8 @@ S: {
 "Videos":"视频",
 "Opens at # downloads and # accounts":"达到 # 次下载和 # 个账号时开放",
 "# / # accounts":"# / # 个账号",
-"Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"季节活动：活动排行榜、前三名奖品、双倍积分周末，还有专属头像。JAVEDA 达到 # 次下载和 # 个账号后开始：下载应用，叫上朋友。"
+"Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"季节活动：活动排行榜、前三名奖品、双倍积分周末，还有专属头像。JAVEDA 达到 # 次下载和 # 个账号后开始：下载应用，叫上朋友。",
+"Follow Lazy Jo":"关注 Lazy Jo"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",

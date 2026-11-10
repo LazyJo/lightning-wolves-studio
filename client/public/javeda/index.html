@@ -387,10 +387,15 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .vslide .vt{position:absolute; left:0; right:0; bottom:0; padding:30px 12px 10px; background:linear-gradient(transparent,#000d); font:700 14px/1.25 var(--cond); letter-spacing:.04em; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 .vslide iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
 .vslide video{position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:transparent}
-.vslide.mp4{background:#000 url(teaser-poster.jpg) center/cover}
+.vslide.mp4{background:#000}
+.vslide.mp4.teaser{background:#000 url(teaser-poster.jpg) center/cover}
+.vslide video.vthumb{object-fit:cover; pointer-events:none}
 .vslide.mp4:fullscreen{border-radius:0; border:0}
-.vfollow{display:flex; gap:8px}
-.vfollow a{flex:1 1 0; min-width:0; text-align:center; font:700 14px/1.1 var(--cond); letter-spacing:.1em; text-transform:uppercase; text-decoration:none; padding:12px 8px; border-radius:6px; border:1.5px solid}
+.vfollow{display:flex; flex-wrap:wrap; gap:8px}
+.vfollow .vfh{flex:1 0 100%; font:700 12px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase; color:var(--mute)}
+.vfollow a{flex:1 1 0; min-width:0; text-align:center; font:700 14px/1.1 var(--cond); letter-spacing:.08em; text-transform:uppercase; text-decoration:none; padding:12px 4px; border-radius:6px; border:1.5px solid; white-space:nowrap}
+@media (max-width:400px){ .vfollow{gap:6px} .vfollow a{font-size:13px; letter-spacing:.02em; padding:12px 2px} }
+.vfollow .ig{color:#ff9bd2; border-color:#e1306c88; background:linear-gradient(135deg,#f5851f1a,#e1306c1f,#833ab41f)}
 .vfollow .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
 .vfollow .yt{color:#ff9a9a; border-color:#ff4d4d80; background:#ff000014}
 .outs a{font:700 15px/1 var(--cond); letter-spacing:.12em; text-transform:uppercase; text-decoration:none; padding:12px 15px; border-radius:6px; border:1.5px solid}
@@ -732,9 +737,11 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 
   <section class="vids hid" id="vids" aria-label="Videos">
     <div class="vtrack hid" id="vTrack"></div>
-    <div class="vfollow">
-      <a class="spot" href="https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM" target="_blank" rel="noopener">&#127911; Follow on Spotify</a>
-      <a class="yt" href="https://www.youtube.com/channel/UCBt7oknMx1TmoRjX3hqUgWQ?sub_confirmation=1" target="_blank" rel="noopener">&#9654;&#65039; Subscribe on YouTube</a>
+    <div class="vfollow" role="group" aria-label="Follow Lazy Jo">
+      <span class="vfh">Follow Lazy Jo</span>
+      <a class="spot" href="https://open.spotify.com/artist/1gxwDVgOKYnTA3iq2CjLtM" target="_blank" rel="noopener" data-i18n-skip>&#127911; Spotify</a>
+      <a class="yt" href="https://www.youtube.com/channel/UCBt7oknMx1TmoRjX3hqUgWQ?sub_confirmation=1" target="_blank" rel="noopener" data-i18n-skip>&#9654;&#65039; YouTube</a>
+      <a class="ig" href="https://www.instagram.com/lazyjo_/" target="_blank" rel="noopener" data-i18n-skip>&#128248; Instagram</a>
     </div>
   </section>
 
@@ -2606,43 +2613,59 @@ let current = null;
 // how: { room } (an online game in a private room), { daily:true } (today's challenge - open whether you got
 // there or not) or { marathon:true } (the album marathon)
 let lastPlayed = null;
-/* ---- the video box: first the JAVEDA teaser (its own mp4 in Supabase Storage, media/javeda/javeda-teaser.mp4, played by
-   the page - fullscreen on a phone held upright, it's a vertical video), then swipe for Lazy Jo's newest YouTube videos
-   (/api/javeda/videos; a JAVEDA trailer on YouTube instead, until the mp4 is there), with Follow on Spotify and
-   Subscribe on YouTube under it. The teaser downloads only when tapped (the box checks it's there with a HEAD). Only pictures until a tap: the
-   YouTube player (heavy, with its cookies) loads just for the video you tap, from youtube-nocookie.com. It sits under the
-   title, above the scoreboard, for everyone. ---- */
+/* ---- the video box, under the title for everyone: the slides Lazy Jo picked (/api/javeda/videos - javeda_settings.videos:
+   YouTube videos and video files of his own in Supabase Storage, bucket media, in his order), swipe for the next, and
+   Follow on Spotify / YouTube / Instagram under it. Nothing heavy until a tap: YouTube shows its picture, a file its
+   poster or first frame; the tapped one plays in place (YouTube from youtube-nocookie.com), a vertical file fullscreen on
+   a phone held upright. Without a pick of files: the JAVEDA teaser first if it's in Storage, then the newest videos. ---- */
 let vids = (() => { try { return JSON.parse(localStorage.getItem("javeda.vids")) || null; } catch(e){ return null; } })();
-const TEASER = SONGS_URL + "javeda-teaser.mp4";
+const MEDIA_URL = SONGS_URL.replace(/javeda\/$/, "");
+const mediaSrc = path => MEDIA_URL + String(path).split("/").map(encodeURIComponent).join("/");
+const TEASER = { mp4:"javeda/javeda-teaser.mp4", title:"Lazy Jo · JAVEDA", teaser:true, short:true };
 let teaserOk = false;
-fetch(TEASER, { method:"HEAD" }).then(r => { teaserOk = r.ok; if (teaserOk) renderVideos(); }, () => {});
+fetch(mediaSrc(TEASER.mp4), { method:"HEAD" }).then(r => { teaserOk = r.ok; if (teaserOk) renderVideos(); }, () => {});
 async function loadVideos(){
   try { const r = await fetch("/api/javeda/videos"); const j = await r.json(); if (Array.isArray(j.videos) && j.videos.length) vids = j.videos; } catch(e){}
-  try { if (vids) localStorage.setItem("javeda.vids", JSON.stringify(vids.slice(0, 4))); } catch(e){}
+  try { if (vids) localStorage.setItem("javeda.vids", JSON.stringify(vids.slice(0, 8))); } catch(e){}
   renderVideos();
 }
+const okFile = p => typeof p === "string" && /\.mp4$/i.test(p) && !p.includes("..");
 function renderVideos(){
-  const list = (vids || []).filter(v => v && /^[\w-]{11}$/.test(v.id)), isTrailer = v => /javeda/i.test(v.title) && /trailer/i.test(v.title);
-  const show = (teaserOk ? [] : list.filter(isTrailer).slice(0, 1)).concat(list.filter(v => !isTrailer(v))).slice(0, 3);
-  if (teaserOk) show.unshift({ mp4:true });
-  $("vTrack").innerHTML = show.map(v => v.mp4 ? '<button class="vslide" type="button" data-mp4="1" aria-label="&#9654; JAVEDA" data-i18n-skip>' +
-    '<img src="teaser-poster.jpg" alt=""><span class="vp" aria-hidden="true">&#9654;</span><span class="vt">Lazy Jo &middot; JAVEDA</span></button>' : '<button class="vslide' + (v.short ? ' short' : '') + '" type="button" data-yt="' + v.id + '" aria-label="&#9654; ' + esc(v.title) + '" data-i18n-skip>' +
-    '<img src="https://i.ytimg.com/vi/' + v.id + '/hqdefault.jpg" alt="" loading="lazy"><span class="vp" aria-hidden="true">&#9654;</span><span class="vt">' + esc(v.title) + '</span></button>').join("");
+  const all = (vids || []).filter(v => v && (/^[\w-]{11}$/.test(v.id) || okFile(v.mp4)));
+  let show;
+  if (all.some(v => v.mp4)) show = all.slice(0, 6);       // Lazy Jo's pick, as it is
+  else {
+    const isTrailer = v => /javeda/i.test(v.title) && /trailer/i.test(v.title);
+    show = (teaserOk ? [] : all.filter(isTrailer).slice(0, 1)).concat(all.filter(v => !isTrailer(v))).slice(0, 3);
+    if (teaserOk) show.unshift(TEASER);
+  }
+  $("vTrack").innerHTML = show.map((v, i) => {
+    const t = '<span class="vp" aria-hidden="true">&#9654;</span><span class="vt">' + esc(v.title || "Lazy Jo") + '</span></button>';
+    if (v.mp4) return '<button class="vslide file' + (v.short ? ' short' : '') + '" type="button" data-mp4="' + esc(v.mp4) + '"' + (v.short ? ' data-vertical="1"' : '') + ' aria-label="&#9654; ' + esc(v.title || "Lazy Jo") + '" data-i18n-skip>' +
+      (v.teaser ? '<img src="teaser-poster.jpg" alt="">' : '<video class="vthumb" muted playsinline preload="metadata" src="' + esc(mediaSrc(v.mp4)) + '#t=1"></video>') + t;
+    return '<button class="vslide' + (v.short ? ' short' : '') + '" type="button" data-yt="' + v.id + '" aria-label="&#9654; ' + esc(v.title) + '" data-i18n-skip>' +
+      '<img src="https://i.ytimg.com/vi/' + v.id + '/hqdefault.jpg" alt="" loading="lazy">' + t;
+  }).join("");
+  // a file's first frame tells whether it's vertical (fullscreen on a phone held upright)
+  $("vTrack").querySelectorAll("video.vthumb").forEach(v => v.addEventListener("loadedmetadata", () => {
+    if (v.videoHeight > v.videoWidth) v.closest(".vslide").dataset.vertical = "1"; }, { once:true }));
   $("vTrack").classList.toggle("one", show.length === 1); $("vTrack").classList.toggle("hid", !show.length);
   placeVideos();
 }
 function placeVideos(){ $("vids").classList.remove("hid"); }
 // a tap plays that one in place (any other one stops); a level starting stops it too
-function stopVideos(){ if ($("vTrack").querySelector("iframe, video")) renderVideos(); }
+function stopVideos(){ if ($("vTrack").querySelector("iframe, video:not(.vthumb)")) renderVideos(); }
 $("vTrack").addEventListener("click", e => {
-  if (e.target.closest("[data-mp4]")){
+  const m = e.target.closest("[data-mp4]");
+  if (m){
+    const path = m.dataset.mp4, idx = [...$("vTrack").children].indexOf(m), vertical = m.dataset.vertical === "1", teaser = !!m.querySelector("img");
     stopVideos();
-    const at = $("vTrack").querySelector("[data-mp4]"); if (!at) return;
-    const f = document.createElement("div"); f.className = "vslide mp4"; f.dataset.playing = "mp4";
-    const v = document.createElement("video"); v.src = TEASER; v.controls = true; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto";
+    const at = $("vTrack").children[idx]; if (!at) return;
+    const f = document.createElement("div"); f.className = "vslide mp4" + (teaser ? " teaser" : ""); f.dataset.playing = path;
+    const v = document.createElement("video"); v.src = mediaSrc(path); v.controls = true; v.playsInline = true; v.setAttribute("playsinline", ""); v.preload = "auto";
     f.appendChild(v); at.replaceWith(f); v.play().catch(() => {});
-    // a phone held upright: fullscreen (the teaser is vertical, the box is wide); an iPhone has its own fullscreen button
-    if (matchMedia("(orientation: portrait)").matches && innerWidth < 760 && f.requestFullscreen) f.requestFullscreen().catch(() => {});
+    // a vertical video on a phone held upright: fullscreen (the box is wide); an iPhone has its own fullscreen button
+    if (vertical && matchMedia("(orientation: portrait)").matches && innerWidth < 760 && f.requestFullscreen) f.requestFullscreen().catch(() => {});
     v.addEventListener("ended", () => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); });
     return;
   }

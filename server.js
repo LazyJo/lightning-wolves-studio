@@ -298,8 +298,10 @@ app.get('/api/config', (req, res) => {
 });
 
 // JAVEDA's video box: Lazy Jo's music videos. Three sources, the first that gives any:
-//  1. Lazy Jo's own pick, kept in Supabase: javeda_settings.videos (video IDs, in the order to show), changed in the
-//     SQL Editor with  UPDATE javeda_settings SET videos = ARRAY['id1','id2','id3'] WHERE id;  - titles from oEmbed;
+//  1. Lazy Jo's own pick, kept in Supabase: javeda_settings.videos, in the order to show. Each one is a YouTube video ID
+//     (its title from oEmbed) or a video file in Supabase Storage, bucket media (an .mp4; without a folder it's in
+//     javeda/). A title can follow after a |. Changed in the SQL Editor with
+//     UPDATE javeda_settings SET videos = ARRAY['javeda-teaser.mp4', 'W998C_SZdxE', 'performance.mp4|Live'] WHERE id;
 //  2. the YouTube Data API, when YOUTUBE_API_KEY is set on Vercel (the channel's uploads);
 //  3. the channel's public feed (no key - YouTube switches it off for days at a time, then it answers 404).
 // From 2 and 3 only the music videos: no #hashtag clips, no Shorts, no reactions or live shows.
@@ -328,10 +330,21 @@ const YT_SOURCES = {
   async list() {
     if (!supabase) return [];
     const { data } = await supabase.from('javeda_settings').select('videos').eq('id', true).maybeSingle();
-    const ids = (data && Array.isArray(data.videos) ? data.videos : []).filter(id => /^[\w-]{11}$/.test(id)).slice(0, 8);
-    return Promise.all(ids.map(id => ytGet('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + id))
-      .then(o => ({ id, title: String(o.title || '').slice(0, 140), published: null, short: o.height > o.width }))
-      .catch(() => ({ id, title: 'Lazy Jo', published: null, short: false }))));
+    const items = (data && Array.isArray(data.videos) ? data.videos : []).map(x => String(x || '').trim()).filter(Boolean).slice(0, 8);
+    return (await Promise.all(items.map(x => {
+      const [ref, label] = x.split('|').map(t => t.trim()), title = label ? label.slice(0, 140) : null;
+      // a file in Storage: a plain path ending in .mp4 (no .., no leading /)
+      if (/^[\w .()\-]+(\/[\w .()\-]+)*\.mp4$/i.test(ref) && !ref.includes('..')) {
+        const path = ref.includes('/') ? ref : 'javeda/' + ref, teaser = /javeda/i.test(ref) && /teaser|trailer/i.test(ref);
+        return { mp4: path, title: title || (teaser ? 'Lazy Jo \u00b7 JAVEDA' : ref.replace(/^.*\//, '').replace(/\.mp4$/i, '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim()),
+          teaser, short: teaser };
+      }
+      if (!/^[\w-]{11}$/.test(ref)) return null;
+      const id = ref;
+      return ytGet('https://www.youtube.com/oembed?format=json&url=' + encodeURIComponent('https://www.youtube.com/watch?v=' + id))
+      .then(o => ({ id, title: title || String(o.title || '').slice(0, 140), published: null, short: o.height > o.width }))
+      .catch(() => ({ id, title: title || 'Lazy Jo', published: null, short: false }));
+    }))).filter(Boolean);
   },
 };
 app.get('/api/javeda/videos', async (req, res) => {

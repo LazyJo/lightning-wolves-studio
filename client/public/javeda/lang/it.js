@@ -1520,7 +1520,8 @@ S: {
 "Videos":"Video",
 "Opens at # downloads and # accounts":"Si apre a # download e # account",
 "# / # accounts":"# / # account",
-"Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"Eventi di stagione con una classifica, premi per i primi tre, weekend a punti doppi e un'immagine tutta loro. Iniziano quando JAVEDA avrà # download e # account: scarica l'app e porta i tuoi amici."
+"Season events with an event board, prizes for the top three, double points weekends and a picture of their own. They start once JAVEDA has # downloads and # accounts: get the app and bring your friends.":"Eventi di stagione con una classifica, premi per i primi tre, weekend a punti doppi e un'immagine tutta loro. Iniziano quando JAVEDA avrà # download e # account: scarica l'app e porta i tuoi amici.",
+"Follow Lazy Jo":"Segui Lazy Jo"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",

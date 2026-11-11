@@ -22,7 +22,7 @@
   }
   window.JAVEDA_DEVICE = device;
   // noise that isn't a bug in JAVEDA: blocked autoplay, an extension, a browser quirk
-  const NOISE = /^Script error\.?$|ResizeObserver loop|NotAllowedError|AbortError|The play\(\) request was interrupted|play\(\) failed|chrome-extension|moz-extension|safari-extension|Non-Error promise rejection/i;
+  const NOISE = /^Script error\.?$|ResizeObserver loop|NotAllowedError|AbortError|The play\(\) request was interrupted|play\(\) failed|chrome-extension|moz-extension|safari-extension|Non-Error promise rejection|_AutofillCallbackHandler|webkit\.messageHandlers/i;   // the last two: what Instagram's and Facebook's own browser adds to every page
   function report(message, detail){
     message = String(message || "").replace(/^Uncaught (?:exception: )?/, "").slice(0, 400); if (!message || NOISE.test(message) || NOISE.test(detail || "")) return;
     // a stack that never passes through a file: code the browser put in the page itself (Chrome on iPhone does that), not JAVEDA's

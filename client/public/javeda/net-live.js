@@ -14,9 +14,15 @@
       Back from another app: a whole new connection, the old one shut down on its own; a dead one is noticed in 10 s.
    4. Stuck anyway: a small line says what works and what doesn't (a screenshot tells where it hangs), and the
       second failed start sends a report to the creator's Reports.
+   5. Found each other, but only one of the two knows: the server sends presence in batches, so a player who comes
+      into the lobby, sees the other at once and leaves it again within a moment is never shown to the one who was
+      waiting (the friend opens the link, finds Jo, goes to the room - and Jo keeps waiting). So: a player who found
+      a match says it straight to the others, in the lobby, a few times: which room it is and which seat is theirs -
+      they follow it there. (Staying in the lobby a little longer instead would show a player who is already in a
+      game to someone new, who would then try to pair with them.)
    Loaded by the online levels; it only touches NET once it's there. */
 (function(){
-  const BEAT = 4000, STALE = 11000, FORCE = 2500;
+  const BEAT = 4000, STALE = 11000, FORCE = 2500, CALL = 700, CALLS = 6000;
   let beat = 0, away = false, patched = false, fails = 0, reported = false, lastFresh = 0;
   const seen = new Map();   // player id -> { beat, at }: when this phone last saw their beat change
   const diag = { lobby:"-", room:"-", sent:{}, heard:{}, them:false, via:"" };
@@ -34,9 +40,12 @@
     } catch(e){ return n.sb; }
   }
   function drop(c){ try { if (c.removeAllChannels) c.removeAllChannels().catch(() => {}); else if (c.realtime) c.realtime.disconnect(); } catch(e){} }
+  function hearCalls(n, ch){ if (!ch || ch._calls) return; ch._calls = true; ch.on("broadcast", { event:"pairme" }, m => called(n, (m && m.payload) || {})); }
   function patch(n){
     if (patched) return; patched = true;
     n.rt = makeRt(n);
+    // a lobby opened before this ran (Join tapped at once): it hears the calls too
+    hearCalls(n, n.lobby);
     // the line: only players who are really there (their beat moved in the last 11 s), and always yourself
     // Each player is one entry, read the same way on every phone: a player can be listed twice for a while (the old
     // page, after the phone reloaded it, stays listed until the server notices), and the level takes "the first" of
@@ -62,6 +71,8 @@
     const chan = n.chan.bind(n);
     n.chan = function(name){
       const kind = making, ch = n.rt && n.rt !== n.sb ? n.rt.channel(name, { config:{ presence:{ key:n.me }, broadcast:{ self:false } } }) : chan(name), sub = ch.subscribe.bind(ch);
+      // the lobby: a player who found you says which room (see 5.)
+      if (kind === "lobby") hearCalls(n, ch);
       ch.subscribe = (cb, t) => sub((s, err) => {
         // an old channel closing (after a reconnect) is not news: only the one in use counts
         if ((kind === "lobby" ? n.lobby : n.room) === ch){
@@ -76,15 +87,25 @@
       return ch;
     };
     const seek = n.seek.bind(n);
-    n.seek = function(){ making = "lobby"; return seek.apply(this, arguments); };
+    n.seek = function(){ making = "lobby"; clearInterval(n._callT); return seek.apply(this, arguments); };
     // the room: the waiting line, the forced go, the go/ack through presence
     const join = n.join.bind(n);
-    n.join = function(){
+    n.join = function(name, seat, o){
       making = "room"; diag.room = "joining"; diag.sent = {}; diag.heard = {}; diag.them = false; diag.via = "";
       n._go = null; n._ack = null;
+      const lobby = n.lobby;
       const r = join.apply(this, arguments);
       const at = Date.now();
       clearTimeout(n._waitT); clearInterval(n._forceT);
+      // say it to the others in the lobby too, a few times: "it's this room, you're this seat" (see 5.)
+      const group = (Array.isArray(o) ? o : seat === 0 ? [{ id:n.me, name:n.name, since:n.since }, o] : [o, { id:n.me, name:n.name, since:n.since }])
+        .filter(Boolean).map(p => ({ id:p.id, name:String(p.name || "player").slice(0, 24), since:p.since }));
+      clearInterval(n._callT);
+      const call = () => {
+        if (n.state !== "room" || n.match || !lobby || Date.now() - at > CALLS){ clearInterval(n._callT); return; }
+        try { lobby.send({ type:"broadcast", event:"pairme", payload:{ room:name, ids:group.map(p => p.id), group, from:n.me } }); diag.sent.call = (diag.sent.call || 0) + 1; } catch(e){}
+      };
+      call(); n._callT = setInterval(call, CALL);
       n._waitT = setTimeout(() => {
         if (n.state !== "room") return;
         n.status("Waiting for " + (others(n).map(p => "<b>" + esc(p.name) + "</b>").join(", ") || "them") + " to answer&hellip; keep JAVEDA open on both phones.", true);
@@ -132,6 +153,18 @@
       show(n);
       return r;
     };
+  }
+  // a player in the lobby says it found you (see 5.): follow it to that room, in the seat it gave you. Golf gets the
+  // whole group (2 to 4), a 1v1 level the other player.
+  function called(n, p){
+    if (n.state !== "seek" || !p || typeof p.room !== "string" || !Array.isArray(p.ids) || p.from === n.me) return;
+    const seat = p.ids.indexOf(n.me), group = Array.isArray(p.group) ? p.group.filter(q => q && q.id) : [];
+    if (seat < 0 || group.length !== p.ids.length || group.length < 2) return;
+    // the room's name holds the first player's id: one that doesn't is no room of ours
+    if (p.room.indexOf(String(group[0].id).slice(0, 8)) < 0) return;
+    diag.via = "call";
+    if (Array.isArray(n.players)) n.join(p.room, seat, group);
+    else { if (group.length !== 2) return; n.join(p.room, seat, group[1 - seat]); }
   }
   // the room's presence: who you are, and the go / ack you've said
   function say(n){ if (!n.room) return; try { n.room.track(Object.assign({ id:n.me, name:n.name }, n._go ? { go:n._go } : {}, n._ack ? { ack:n._ack } : {})); } catch(e){} }
@@ -186,6 +219,6 @@
     }
   });
   // patch as soon as the level has made its connection (before anyone taps Join)
-  const wait = setInterval(() => { const n = net(); if (n){ patch(n); clearInterval(wait); } }, 200);
+  const wait = setInterval(() => { const n = net(); if (n){ patch(n); clearInterval(wait); } }, 50);
   setInterval(tick, BEAT);
 })();

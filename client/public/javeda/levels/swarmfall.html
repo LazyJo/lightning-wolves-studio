@@ -56,7 +56,7 @@ body.hub #boss{top:116px}
 #next{flex:1 1 auto; font:400 15px/1 Bungee,sans-serif; background:linear-gradient(180deg,#ffe08a,#FFC23A 60%,#f09a10); color:#231300; border:0; border-radius:10px; box-shadow:0 0 18px #ffc23a55}
 #next:disabled{background:#22143f; color:var(--dim); box-shadow:none}
 #shop{display:flex; gap:5px}
-.tb{flex:1 1 0; min-width:0; background:var(--pan); border:1.5px solid var(--line); border-radius:12px; padding:5px 1px 5px; text-align:center; position:relative; overflow:hidden}
+.tb{touch-action:none; flex:1 1 0; min-width:0; background:var(--pan); border:1.5px solid var(--line); border-radius:12px; padding:5px 1px 5px; text-align:center; position:relative; overflow:hidden}
 .tb svg{display:block; width:26px; height:26px; margin:0 auto}
 .tb em{display:block; font-style:normal; font-size:10px; letter-spacing:.08em; color:var(--dim); margin-top:1px; white-space:nowrap}
 .tb b{display:block; font:700 13px/1 "Barlow Condensed",sans-serif; color:var(--gold); margin-top:2px; position:relative; white-space:nowrap}
@@ -146,7 +146,7 @@ body.hub #boss{top:116px}
   <h1 id="title">SWARMFALL</h1>
   <p class="tag" id="tag">The album was only the beginning</p>
   <p id="intro">Cute. Deadly. Endless. The swarm is falling on Javeda: keep it away from the <b>Planetary Core</b> for <b>30 waves</b>.</p>
-  <p id="how"><b>Tap a defender</b>, tap the map, then <b>Place</b>. Tap one you placed to upgrade it: three paths each. <b>Lazy Jo</b> and <b>Zirka</b> can both join, and grow with every alien you stop.</p>
+  <p id="how"><b>Drag a defender</b> onto the map and let go. Tap one you placed to upgrade it: three paths each. <b>Lazy Jo</b> and <b>Zirka</b> can both join, and grow with every alien you stop.</p>
   <button id="go" type="button">Start</button>
   <a id="home" class="hid" href="/javeda/">&#8962; Home</a>
   <small id="snd">the album plays as you defend</small>
@@ -754,10 +754,10 @@ function buildShop(){
   $("shop").innerHTML = HKINDS.map(k => '<button class="tb hero" type="button" data-k="' + k + '" aria-label="' + HEROES[k].name + '"><i style="color:#' + HEROES[k].col.toString(16) + '">' + HEROES[k].short + '</i><b></b><span class="cdw"></span></button>').join("") +
     KINDS.map(k => '<button class="tb" type="button" data-k="' + k + '" aria-label="' + TW[k].name + '">' + ICON[k] + '<em>' + TW[k].short + '</em><b>' + TW[k].cost + '</b></button>').join("");
 }
-let hudKey = "";
+let hudKey = "", skipClick = false;
 function hud(){
   const hk = HKINDS.map(k => { const h = G.heroes[k]; return h ? h.lvl + ":" + Math.ceil(h.ultCd) + (h.br || "") : "-"; }).join(",");
-  const key = [G.hp, G.credits, G.wave, G.phase, G.speed, G.auto, hk, G.phase === "wave" ? G.queue.length + G.enemies.length : 0, G.placing ? G.placing.k + G.placing.ok + (G.placing.x == null) : "", G.sel ? G.sel.up.join("") + G.sel.mode : ""].join("|");
+  const key = [G.hp, G.credits, G.wave, G.phase, G.speed, G.auto, hk, G.phase === "wave" ? G.queue.length + G.enemies.length : 0, G.placing ? G.placing.k + G.placing.ok + (G.placing.x == null) + !!G.placing.drag : "", G.sel ? G.sel.up.join("") + G.sel.mode : ""].join("|");
   if (key === hudKey) return; hudKey = key;
   $("hp").textContent = Math.max(0, Math.ceil(G.hp)); $("cr").textContent = fmt(G.credits); $("wv").textContent = G.wave + "/" + LAST;
   $("spd").textContent = "x" + G.speed; $("spd").classList.toggle("fast", G.speed > 1); $("auto").setAttribute("aria-pressed", String(G.auto));
@@ -767,6 +767,7 @@ function hud(){
       lab.textContent = !h ? heroCost(k) : rdy ? "ULT!" : h.lvl >= 3 && h.ultCd > 0 && G.phase === "wave" ? Math.ceil(h.ultCd) + "s" : "LV " + h.lvl;
       b.querySelector(".cdw").style.height = h && h.lvl >= 3 && h.ultCd > 0 ? (h.ultCd/h.st.ultCd*100).toFixed(0) + "%" : "0%"; }
     else b.classList.toggle("no", G.credits < TW[k].cost); }
+  $("place").classList.toggle("hid", !G.placing || !!G.placing.drag);
   if (G.placing){ $("placeOk").disabled = !G.placing.ok; $("placeT").textContent = G.placing.x == null ? "Tap the map: where does " + (G.placing.hero ? "he" : "it") + " go?" : G.placing.ok ? G.placing.name : G.placing.k === "zirka" && pathDist(G.placing.x, G.placing.z) > 4.5 ? "Closer to the road: he rides it" : "Not there: off the road, away from the others"; }
   if (G.sel && !$("panel").classList.contains("hid")){ const t = G.sel;
     if (t.gone || pkey(t) !== panel.key) panel(); else { for (const u of $("panel").querySelectorAll("[data-up]")){ const c = upCost(t, +u.dataset.up); u.disabled = c == null || G.credits < c; } const ub = $("panel").querySelector("[data-ult]"); if (ub) ub.disabled = !ultReady(t.k); } }
@@ -799,7 +800,7 @@ function showChoice(){ const t = G.choose; if (!t) return; const h = t.D;
   $("choice").innerHTML = '<h2>' + esc(h.name).toUpperCase() + ' · LEVEL 10</h2><p>Choose one, for this match.</p>' + ["A", "B"].map(b => '<button type="button" data-br="' + b + '"><strong>' + esc(h[b][0]) + '</strong><span>' + esc(h[b][1]) + '</span></button>').join("");
   $("choice").classList.remove("hid"); }
 function wire(){
-  $("shop").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (!b || !G) return; const k = b.dataset.k; audioInit(); hudKey = "";
+  $("shop").addEventListener("click", e => { const b = e.target.closest("[data-k]"); if (!b || !G) return; if (skipClick){ skipClick = false; return; } const k = b.dataset.k; audioInit(); hudKey = "";
     if (HEROES[k]){ if (G.heroes[k]){ if (ultReady(k)) ultimate(k); else { setPlacing(null); G.sel = G.heroes[k]; panel(); } return; }
       if (G.credits < heroCost(k)){ sfx.no(); say("NOT ENOUGH CREDITS", HEROES[k].name + " costs " + heroCost(k), 1.2, "x"); return; }
       setPlacing(G.placing && G.placing.k === k ? null : k); return; }
@@ -814,13 +815,31 @@ function wire(){
     if (e.target.closest("[data-mode]")){ t.mode = t.mode === "first" ? "strong" : t.mode === "strong" ? "last" : "first"; panel(); return; }
     if (e.target.closest("[data-sell]")){ (G.gone = G.gone || []).push(t); sell(t); G.sel = null; $("panel").classList.add("hid"); } });
   $("choice").addEventListener("click", e => { const b = e.target.closest("[data-br]"); if (!b || !G.choose) return; chooseBranch(G.choose, b.dataset.br); $("choice").classList.add("hid"); hudKey = ""; });
-  $("next").onclick = () => { audioInit(); if (!radioOn){ radioOn = true; nextSong(); } if (!G.towers.length){ say("PLACE A DEFENDER FIRST", "tap one below, then the map", 1.8, "x"); return; } startWave(); hudKey = ""; };
+  $("next").onclick = () => { audioInit(); if (!radioOn){ radioOn = true; nextSong(); } if (!G.towers.length){ say("PLACE A DEFENDER FIRST", "drag one from below onto the map", 1.8, "x"); return; } startWave(); hudKey = ""; };
   $("spd").onclick = () => { G.speed = G.speed === 1 ? 2 : G.speed === 2 ? 3 : 1; hudKey = ""; };
   $("auto").onclick = () => { G.auto = !G.auto; G.autoT = .6; hudKey = ""; };
   // the map: a tap picks a defender, or says where the one you hold goes
   const cv = ren.domElement, floor = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), at = e => { const r = cv.getBoundingClientRect(); ray.setFromCamera({ x:(e.clientX - r.left)/r.width*2 - 1, y:-((e.clientY - r.top)/r.height)*2 + 1 }, cam); const hit = new THREE.Vector3(); return ray.ray.intersectPlane(floor, hit) ? hit : null; };
   let down = false;
   const hold = e => { if (!G || !G.placing) return; const p = at(e); if (!p) return; G.placing.x = clamp(p.x, BOUNDS.x0, BOUNDS.x1); G.placing.z = clamp(p.z, BOUNDS.z0, BOUNDS.z1); G.placing.ok = canPlace(G.placing.k, G.placing.x, G.placing.z); hudKey = ""; };
+  // carried: a finger down on a button, over the map (the defender rides a little above the finger, in sight), and
+  // off the screen = it stands there. Let go over the buttons: nothing happens. Where it can't stand it waits, red,
+  // to be moved. A plain tap on a button still works the slow way (tap the map, then Place).
+  let drag = null; const LIFT = 56;
+  $("shop").addEventListener("pointerdown", e => { const b = e.target.closest("[data-k]"); if (!b || !G || G.choose || G.phase === "won" || G.phase === "lost") return; const k = b.dataset.k;
+    if (HEROES[k] ? (G.heroes[k] || G.credits < heroCost(k)) : G.credits < TW[k].cost) return;
+    drag = { k, id:e.pointerId, x0:e.clientX, y0:e.clientY, moved:false, lift:e.pointerType === "mouse" ? 0 : LIFT }; });
+  addEventListener("pointermove", e => { if (!drag || e.pointerId !== drag.id || !G) return;
+    if (!drag.moved){ if (Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 14) return; drag.moved = true; audioInit(); setPlacing(drag.k); G.placing.drag = true; $("place").classList.add("hid"); }
+    const p = G.placing; if (!p) return; const y = e.clientY - drag.lift;
+    if (y < $("bar").getBoundingClientRect().top - 4) hold({ clientX:e.clientX, clientY:y }); else { p.x = p.z = null; p.ok = false; }
+    hudKey = ""; });
+  const drop = (e, cancel) => { if (!drag || e.pointerId !== drag.id) return; const d = drag; drag = null; if (!d.moved || !G) return;
+    skipClick = true; setTimeout(() => { skipClick = false; }, 350);
+    const p = G.placing; if (!p) return;
+    if (cancel || p.x == null) setPlacing(null); else if (p.ok && place(p.k, p.x, p.z)) setPlacing(null); else p.drag = false;
+    hudKey = ""; };
+  addEventListener("pointerup", e => drop(e, false)); addEventListener("pointercancel", e => drop(e, true));
   cv.addEventListener("pointerdown", e => { if (!G || G.phase === "won" || G.phase === "lost" || G.choose) return; down = true; audioInit();
     if (G.placing){ hold(e); return; }
     const p = at(e); if (!p) return; let best = null, bd = 1.3; for (const t of G.towers){ const d = Math.hypot(t.x - p.x, t.z - p.z); if (d < bd){ bd = d; best = t; } }
@@ -835,7 +854,7 @@ function wire(){
 function begin(){
   newGame(); buildShop(); hudKey = ""; fitCam();
   $("veil").classList.add("hid"); $("hud").classList.remove("off"); $("bar").classList.remove("off");
-  audioInit(); say("DEFEND THE CORE", "place a few defenders, then start wave 1", 3.2);
+  audioInit(); say("DEFEND THE CORE", "drag a few defenders onto the map, then start wave 1", 3.2);
   if (HUB) toHub({ type:"javeda:start", level:"swarmfall" });
 }
 function finish(){

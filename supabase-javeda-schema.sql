@@ -2980,3 +2980,85 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_push_chat_take() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_chat_take() TO service_role;
+
+-- ── Online: a record of its own for every game, and who may play ────────────
+-- Every online game (Live, H-O-R-S-E, Pass It On, Love Cards, Snap, Golf, Golf for 3, Golf for 4, Hockey) keeps its
+-- own wins, losses and draws: counted from the settled matches, so the ones already played are in it. The Online
+-- board (javeda_1v1) stays the total of them all.
+CREATE OR REPLACE FUNCTION public.javeda_online_record()
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT COALESCE(json_object_agg(t.mode, json_build_object('wins', t.w, 'losses', t.l, 'draws', t.d)), '{}'::json)
+  FROM (SELECT m.mode, count(*) FILTER (WHERE m.result = 'win')::INT AS w, count(*) FILTER (WHERE m.result = 'loss')::INT AS l,
+               count(*) FILTER (WHERE m.result = 'draw')::INT AS d
+        FROM (SELECT mode, result FROM javeda_matches WHERE player = auth.uid() AND status = 'settled'
+              UNION ALL
+              SELECT mode, result FROM javeda_group_matches WHERE player = auth.uid() AND status = 'settled') m
+        GROUP BY m.mode) t;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_online_record() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_online_record() TO authenticated;
+
+-- An online game is for who has got to its song (Level 16, 20, 21 or 28 is open for them, the way the page opens it:
+-- the song before it cleared, a daily challenge's unlock, a Pass, a creator) - or for a friend they invite. An invite
+-- is a private room: the one who makes it must have got to the song, and the room is noted here, so a link somebody
+-- made up opens nothing. A room is good for a day.
+CREATE OR REPLACE FUNCTION public.javeda_reached(p_uid UUID, p_level TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT EXISTS (SELECT 1 FROM javeda_levels l WHERE l.id = p_level AND (
+           l.requires IS NULL
+        OR EXISTS (SELECT 1 FROM javeda_progress g WHERE g.user_id = p_uid AND g.level = l.requires AND g.cleared AND g.best_score >= l.requires_score)
+        OR EXISTS (SELECT 1 FROM javeda_unlocks u WHERE u.user_id = p_uid AND u.level = l.id)
+        OR EXISTS (SELECT 1 FROM javeda_passes  s WHERE s.user_id = p_uid)
+        OR EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p_uid)));
+$$;
+REVOKE ALL ON FUNCTION public.javeda_reached(UUID, TEXT) FROM PUBLIC, anon, authenticated;
+
+CREATE TABLE IF NOT EXISTS javeda_rooms (
+  room       TEXT PRIMARY KEY CHECK (room ~ '^[a-z0-9]{6,16}$'),
+  host       UUID NOT NULL REFERENCES javeda_players(user_id) ON DELETE CASCADE,
+  level      TEXT NOT NULL CHECK (level IN ('lvl16', 'lvl20', 'lvl21', 'lvl28')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS javeda_rooms_host_idx ON javeda_rooms (host, created_at DESC);
+ALTER TABLE javeda_rooms ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_rooms FROM anon, authenticated;
+
+-- the host makes a room for a song's online games
+CREATE OR REPLACE FUNCTION public.javeda_room_open(p_room TEXT, p_level TEXT)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  IF p_room IS NULL OR p_room !~ '^[a-z0-9]{6,16}$' OR p_level IS NULL OR p_level NOT IN ('lvl16', 'lvl20', 'lvl21', 'lvl28') THEN
+    RAISE EXCEPTION 'no such room' USING ERRCODE = '22023';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
+  IF NOT javeda_reached(uid, p_level) THEN RAISE EXCEPTION 'level locked' USING ERRCODE = '42501'; END IF;
+  DELETE FROM javeda_rooms WHERE created_at < now() - INTERVAL '2 days';
+  IF (SELECT count(*) FROM javeda_rooms WHERE host = uid AND created_at > now() - INTERVAL '1 day') >= 40 THEN
+    RAISE EXCEPTION 'slow down' USING ERRCODE = '53400';
+  END IF;
+  INSERT INTO javeda_rooms (room, host, level) VALUES (p_room, uid, p_level) ON CONFLICT (room) DO NOTHING;
+  RETURN json_build_object('room', p_room, 'level', p_level);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_room_open(TEXT, TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_room_open(TEXT, TEXT) TO authenticated;
+
+-- a friend with the link asks: is this a room somebody who may host made, today?
+CREATE OR REPLACE FUNCTION public.javeda_room_check(p_room TEXT)
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT COALESCE((SELECT json_build_object('ok', true, 'level', r.level) FROM javeda_rooms r
+                   WHERE r.room = p_room AND r.created_at > now() - INTERVAL '1 day'), json_build_object('ok', false));
+$$;
+REVOKE ALL ON FUNCTION public.javeda_room_check(TEXT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_room_check(TEXT) TO authenticated;

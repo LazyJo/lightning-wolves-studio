@@ -271,7 +271,10 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .ult.vs .ut{text-shadow:0 0 18px #9a6ad8, 0 0 40px #552583}
 .ult.vs .ut small{color:#fdb927}
 .ult.vs .modes{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end}
-.ult.vs .rec{font:700 14px/1.2 var(--cond); letter-spacing:.1em; color:#fdb927; text-transform:uppercase}
+.ult.vs .rec{font:700 12px/1.2 var(--cond); letter-spacing:.1em; color:#fdb927; text-transform:uppercase; min-height:14px; white-space:nowrap}
+.ult.vs .mode{display:flex; flex-direction:column; align-items:center; gap:4px}
+.ult.vs .vlock{color:#fff; background:#0009; border:1px solid #ffffff38; border-radius:10px; padding:9px 12px; line-height:1.35; white-space:normal; text-align:left}
+.ult.vs .vlock::before{content:"\1F512  "}
 #versus{display:grid; gap:14px}
 /* Level 20's Pass It On: the crowd under the blue light */
 .ult.vs.pass{border-color:#8aa0ff77; background:radial-gradient(60% 90% at 85% 0%,#f0f4ff40,transparent 60%),radial-gradient(70% 100% at 0% 100%,#3a2aff88,transparent 60%),linear-gradient(160deg,#1a1a8a,#04051a);
@@ -1345,9 +1348,10 @@ const ENDLESS = [
 // (your best distance; points only for a new best); open once Level 9 Part 3 is cleared.
 const ULT = { id:"hyperdrive", num:9, endless:true, ultimate:true, title:"HYPERDRIVE", requires:"lvl9c", src:"levels/hyperdrive.html?hub=1" };
 // Online 1v1: Level 16's Hoops, Level 20's Pass It On, Level 21's cards and Level 28's golf and hockey against a real
-// player found by quick match - and Level 28's golf for 3 or 4 (players: the size). Open to everyone who's logged in
-// (so there's someone to play); a 1v1 goes through javeda_report_match, golf for 3 or 4 through javeda_report_group,
-// and every online game counts on the one Online record.
+// player found by quick match - and Level 28's golf for 3 or 4 (players: the size). An online game is for who has got
+// to its song (vsOpen) - or for a friend they invite into a private room (play(id, { room, invited })). A 1v1 goes
+// through javeda_report_match, golf for 3 or 4 through javeda_report_group. Every game keeps a record of its own
+// (records, by its online mode); the Online board is the total of them all.
 const VERSUS = [
   { id:"lvl16live", num:16, online:"live", title:"Live 1v1", src:"levels/peace-inside.html?hub=1&online=live" },
   { id:"lvl16horse", num:16, online:"horse", title:"H-O-R-S-E", src:"levels/peace-inside.html?hub=1&online=horse" },
@@ -1499,7 +1503,8 @@ let picTab = "mine";
 const PIC_TABS = [["mine", "Yours"], ["points", "Points"], ["levels", "Levels"], ["daily", "Daily"], ["events", "Events"]];
 let news = false;           // asked for JAVEDA news by email (javeda_news)
 let creator = false;        // a creator account (javeda_creators) plays every level, cleared or not
-let record = null;          // your online 1v1 wins, losses, draws
+let record = null;          // your online 1v1 wins, losses, draws (all games together: the Online board)
+let records = null;         // the same for every online game on its own: { live:{ wins, losses, draws }, horse:... }
 let boardTab = "points";
 let daily = null;           // today's challenge: { day, level } from javeda_daily
 let dailyBest = 0;          // your best in it today
@@ -1529,7 +1534,11 @@ function early(n){
   return need.num !== n && early(need.num);
 }
 // the way in is open: you cleared what comes before it, or you have the Pass
+// an online game: its song's Part 1 is open for you
+const songP1 = n => LEVELS.find(l => l.num === n && !l.part);
+const vsOpen = lv => { const p1 = songP1(lv.num); return !p1 || reached(p1); };
 function reached(lv){
+  if (lv.online) return vsOpen(lv);
   if (hasPass() || !lv.requires || unlocks.has(lv.id)) return true;
   const need = levelById(lv.requires);
   return gateOpen(lv) && !(need && need.num !== lv.num && early(need.num));
@@ -1930,33 +1939,34 @@ function renderEndless(){
   }).join("");
 }
 function renderVersus(){
-  const r = record || { wins:0, losses:0, draws:0 };
-  // and under the quick-match buttons, a private room for friends (ids: the card's modes)
-  const foot = (buttons, ids) => '<div class="uf">' + (signedIn()
-      ? '<span class="rec">' + (r.wins + r.losses + r.draws ? r.wins + ' W &middot; ' + r.losses + ' L' + (r.draws ? ' &middot; ' + r.draws + ' D' : '') : 'No matches yet') + '</span>' +
-        '<span class="modes">' + buttons + '</span>' +
-        '<button class="btn small" data-invite="' + ids + '">&#128140; Invite a friend</button>'
-      : '<span class="tag">Log in to play online</span><button class="btn primary" data-login="1">Log in</button>') + '</div>';
+  // under every game its own wins and losses; under the quick-match buttons, a private room for friends
+  const rec = id => { if (!records) return ""; const m = records[levelById(id).online] || {}, w = m.wins | 0, l = m.losses | 0, d = m.draws | 0; return w + ' W &middot; ' + l + ' L' + (d ? ' &middot; ' + d + ' D' : ''); };
+  const foot = modes => { const ids = modes.map(m => m[0]), lv = levelById(ids[0]), p1 = songP1(lv.num);
+    return '<div class="uf">' + (!signedIn() ? '<span class="tag">Log in to play online</span><button class="btn primary" data-login="1">Log in</button>'
+      : !vsOpen(lv) ? '<span class="tag vlock">Get to Level ' + lv.num + ' to play online, or ask a friend who is there to invite you</span>' +
+        (p1 && passReady(p1) ? '<button class="btn gold" data-pass="' + p1.id + '">&#9889; JAVEDA Pass</button>' : '')
+      : '<span class="modes">' + modes.map(m => '<span class="mode"><button class="btn gold" data-play="' + m[0] + '">' + m[1] + '</button><small class="rec" data-i18n-skip>' + rec(m[0]) + '</small></span>').join("") + '</span>' +
+        '<button class="btn small" data-invite="' + ids.join(",") + '">&#128140; Invite a friend</button>') + '</div>'; };
   $("versus").innerHTML = '<article class="ult vs">' +
     '<div><span class="no">Level 16 &middot; Peace Inside &middot; Lazy Jo feat. Zirka</span><span class="ut"><small>The first online one</small>HOOPS <i>1v1</i></span>' +
     '<p class="ds">Quick match against a real player. <b>Live:</b> the same song and the same shots at the same time, side by side - the highest score wins. ' +
     '<b>H-O-R-S-E:</b> take turns - make a shot and they have to make it too, or it\'s a letter. Spell HORSE and you\'re out. A win is +25 points.</p></div>' +
-    foot('<button class="btn gold" data-play="lvl16live">Live 1v1</button><button class="btn gold" data-play="lvl16horse">H-O-R-S-E</button>', "lvl16live,lvl16horse") + '</article>' +
+    foot([["lvl16live", "Live 1v1"], ["lvl16horse", "H-O-R-S-E"]]) + '</article>' +
     '<article class="ult vs pass">' +
     '<div><span class="no">Level 20 &middot; Stay Up 2 &middot; Lazy Jo</span><span class="ut"><small>Memory, head to head</small>PASS IT ON <i>1v1</i></span>' +
     '<p class="ds">Quick match against a real player, one pattern of lights between you. Play it back, add a light of your own, pass it on - and remember every one they add. ' +
     'Get one wrong and it\'s a Z; three Z\'s and you fell asleep. A win is +25 points.</p></div>' +
-    foot('<button class="btn gold" data-play="lvl20pass">Pass It On 1v1</button>', "lvl20pass") + '</article>' +
+    foot([["lvl20pass", "Pass It On 1v1"]]) + '</article>' +
     '<article class="ult vs love">' +
     '<div><span class="no">Level 21 &middot; Blind Love &middot; Lazy Jo</span><span class="ut"><small>Two card games</small>BLIND LOVE <i>1v1</i></span>' +
     '<p class="ds">Quick match against a real player. <b>Love Cards:</b> one bed of cards between you - take turns turning two, a pair and you go again, the most pairs wins. ' +
     '<b>Snap:</b> the same cards for both at the same time - the quicker snap takes the pair. A win is +25 points.</p></div>' +
-    foot('<button class="btn gold" data-play="lvl21cards">Love Cards 1v1</button><button class="btn gold" data-play="lvl21snap">Snap 1v1</button>', "lvl21cards,lvl21snap") + '</article>' +
+    foot([["lvl21cards", "Love Cards 1v1"], ["lvl21snap", "Snap 1v1"]]) + '</article>' +
     '<article class="ult vs go">' +
     '<div><span class="no">Level 28 &middot; GO! &middot; Lazy Jo</span><span class="ut"><small>On the roofs at sunset</small>GO! <i>ONLINE</i></span>' +
     '<p class="ds">Quick match against real players. <b>Golf</b> for 2, 3 or 4: the same nine holes at the same time, the others as ghost balls - the fewest strokes takes the hole, the most holes wins. ' +
     '<b>Hockey:</b> one air hockey table, first to 3 rounds. A win is +25 points; with 3 or 4, 2nd place earns some too.</p></div>' +
-    foot('<button class="btn gold" data-play="lvl28golf">Golf 1v1</button><button class="btn gold" data-play="lvl28golf3">Golf &middot; 3</button><button class="btn gold" data-play="lvl28golf4">Golf &middot; 4</button><button class="btn gold" data-play="lvl28hockey">Hockey 1v1</button>', "lvl28golf,lvl28golf3,lvl28golf4,lvl28hockey") + '</article>';
+    foot([["lvl28golf", "Golf 1v1"], ["lvl28golf3", "Golf &middot; 3"], ["lvl28golf4", "Golf &middot; 4"], ["lvl28hockey", "Hockey 1v1"]]) + '</article>';
 }
 function renderUltimate(){
   const p = progress[ULT.id] || {}, open = isOpen(ULT);
@@ -2513,10 +2523,10 @@ const ACCT_KEY = "javeda.acct.v1", PEND_KEY = "javeda.pending.v1";
 const netErr = e => !!e && (!navigator.onLine || /fetch|network|load failed|timed? ?out|offline/i.test(e.message || String(e)));
 function saveSnap(){
   if (!session || !player || session.offline) return;
-  try { localStorage.setItem(ACCT_KEY, JSON.stringify({ uid:session.user.id, player, progress, owned:[...owned], unlocks:[...unlocks], pass, creator, record, stats })); } catch(e){}
+  try { localStorage.setItem(ACCT_KEY, JSON.stringify({ uid:session.user.id, player, progress, owned:[...owned], unlocks:[...unlocks], pass, creator, record, records, stats })); } catch(e){}
 }
 function loadSnap(uid){ try { const x = JSON.parse(localStorage.getItem(ACCT_KEY)); if (x && x.player && (!uid || x.uid === uid)) return x; } catch(e){} return null; }
-function useSnap(x){ player = x.player; progress = x.progress || {}; owned = new Set(x.owned || []); unlocks = new Set(x.unlocks || []); pass = x.pass || null; creator = !!x.creator; record = x.record || null; stats = x.stats || null; }
+function useSnap(x){ player = x.player; progress = x.progress || {}; owned = new Set(x.owned || []); unlocks = new Set(x.unlocks || []); pass = x.pass || null; creator = !!x.creator; record = x.record || null; records = x.records || null; stats = x.stats || null; }
 const pending = () => { try { const a = JSON.parse(localStorage.getItem(PEND_KEY)); return Array.isArray(a) ? a : []; } catch(e){ return []; } };
 const setPending = a => { try { a.length ? localStorage.setItem(PEND_KEY, JSON.stringify(a)) : localStorage.removeItem(PEND_KEY); } catch(e){} };
 // the runs still waiting count for this phone's view of the account
@@ -2551,7 +2561,7 @@ addEventListener("online", () => { flushPending(); });
 
 /* ---- account ---- */
 async function loadAccount(){
-  player = null; owned = new Set(); creator = false; record = null; pass = null; news = false;
+  player = null; owned = new Set(); creator = false; record = null; records = null; pass = null; news = false;
   if (!session && !navigator.onLine){
     // offline, an expired log-in can't be renewed: keep playing as the account kept on this phone
     const x = loadSnap();
@@ -2579,6 +2589,7 @@ async function loadAccount(){
   unlocks = new Set((u.data || []).map(r => r.level));
   pass = ps.data || null;
   record = v.data || null;
+  { const x = loadSnap(uid); records = x && x.records || null; }      // as this phone last saw them, until loadRecords answers
   player = p.data || null;
   creator = !!c.data;
   news = !!nw.data;
@@ -2603,6 +2614,7 @@ async function loadAccount(){
   if (news) newsWish(false); else applyNewsWish(false);
   claimFriend(); loadBadges();
   saveSnap(); withPending(uid);
+  loadRecords();
   renderAll(); showJoin();
   refreshStats(true);
   if (takePassNext()) openPass();
@@ -2693,8 +2705,9 @@ function play(id, how){
     if (lv.online){ toast("Online games need the internet."); return; }
     if ("caches" in window){ caches.match(SONGS_URL + "lvl" + lv.num + ".mp3").then(hit => hit ? play(id, { ...how, offlineOk:true }) : toast("This song isn't saved on this phone yet. Play it once with internet, or save all the songs in the app.", 5000)); return; }
   }
-  if (lv && !how.daily && !how.weekly && passReady(lv)) return openPass(lv);
-  if (!lv || !(isOpen(lv) || how.daily || how.weekly)) return;
+  const guest = !!(lv && lv.online && how.invited);      // in a friend's private room: open, whatever you've reached
+  if (lv && !how.daily && !how.weekly && !guest && passReady(lv)) return openPass(lv);
+  if (!lv || !(isOpen(lv) || how.daily || how.weekly || guest)) return;
   if (lv.online && !signedIn()){ toast("Log in to play online - the result goes on your account."); openLogin(); return; }
   runLeft(); runDone = -1;          // a run left for another level counts as giving up
   current = lv; mode = how;
@@ -3138,6 +3151,9 @@ const newRoom = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), b =>
 let invite = null;
 function openInvite(ids){
   invite = { ids:ids.filter(id => levelById(id)), room:newRoom() }; invite.id = invite.ids[0];
+  if (!invite.id || !vsOpen(levelById(invite.id))) return;
+  // noted in the database (only who has got to the song can), so a friend who hasn't can be let in with it
+  try { sb.rpc("javeda_room_open", { p_room:invite.room, p_level:"lvl" + levelById(invite.id).num }).then(() => {}, () => {}); } catch(e){}
   renderInvite(); openSheet("invite");
 }
 function renderInvite(){
@@ -3170,14 +3186,26 @@ function showJoin(){
   if (!joining || current) return;
   const lv = levelById(joining.id);
   $("jnText").innerHTML = "A friend wants to play <b>" + esc(lv.title) + "</b> with you, in a private room of your own." +
-    (signedIn() ? "" : " Log in first (free) - the result goes on your account.");
+    (signedIn() ? (vsOpen(lv) ? "" : " <span>You haven't reached Level " + lv.num + " yet: with this invite you can play anyway.</span>") : " Log in first (free) - the result goes on your account.");
   $("jnGo").textContent = signedIn() ? "Play now" : "Log in to play";
   openSheet("join");
 }
 $("jnGo").onclick = () => {
   if (!signedIn()){ closeSheet("join"); openLogin(); return; }
-  const j = joining; dropInvite(); closeSheet("join"); play(j.id, { room:j.room });
+  const j = joining, lv = levelById(j.id);
+  if (vsOpen(lv)){ dropInvite(); closeSheet("join"); play(j.id, { room:j.room }); return; }
+  // you haven't got to this song: the room must be one a friend who has made (today)
+  $("jnGo").disabled = true;
+  roomOk(j.room, lv).then(ok => { $("jnGo").disabled = false; dropInvite(); closeSheet("join");
+    if (ok) play(j.id, { room:j.room, invited:true }); else toast("That invite isn't valid any more. Ask your friend for a new link.", 6000); });
 };
+// a database that hasn't got the room functions yet lets the invite through, as before
+async function roomOk(room, lv){
+  try { const r = await sb.rpc("javeda_room_check", { p_room:room });
+    if (r.error) return /PGRST202|42883|find the function/i.test((r.error.code || "") + " " + (r.error.message || ""));
+    return !!(r.data && r.data.ok && r.data.level === "lvl" + lv.num);
+  } catch(e){ return false; }
+}
 $("jnNo").onclick = () => { dropInvite(); closeSheet("join"); };
 
 /* ---- where players get stuck (creators) ---- */
@@ -3922,6 +3950,22 @@ renderApp(); renderCarry();
 
 // an online 1v1 is over: report it. It counts once the other player's report says the same,
 // so if theirs isn't in yet, ask again a few times
+// every online game's own wins and losses: counted by the database from your settled matches (a database that
+// hasn't got the function yet: counted here from the matches you may read)
+async function loadRecords(){
+  if (!signedIn() || !sb) return;
+  const uid = session.user.id; let out = null;
+  try {
+    const r = await sb.rpc("javeda_online_record");
+    if (!r.error && r.data && typeof r.data === "object") out = r.data;
+    else {
+      const [a, b] = await Promise.all([sb.from("javeda_matches").select("mode, result").eq("player", uid).eq("status", "settled").limit(1000),
+        sb.from("javeda_group_matches").select("mode, result").eq("player", uid).eq("status", "settled").limit(1000)]);
+      if (!a.error){ out = {}; for (const m of [...(a.data || []), ...(b.data || [])]){ const o = out[m.mode] || (out[m.mode] = { wins:0, losses:0, draws:0 }); o[m.result === "win" ? "wins" : m.result === "loss" ? "losses" : "draws"]++; } }
+    }
+  } catch(e){}
+  if (out && session && session.user.id === uid){ records = out; renderVersus(); saveSnap(); }
+}
 async function reportMatch(m){
   if (!signedIn()) return;
   const group = Array.isArray(m.players), fn = group ? "javeda_report_group" : "javeda_report_match";
@@ -3938,6 +3982,7 @@ async function reportMatch(m){
   const d = res.data;
   if (d.player) player = d.player;
   if (d.record) record = d.record;
+  if (d.status === "settled") loadRecords();
   renderMe(); renderVersus(); if (boardTab === "1v1" || boardTab === "points") renderBoard();
   if (d.status === "waiting") toast(group ? "Game saved - it counts once everyone's result is in." : "Match saved - it counts once the other player's result is in.", 5000);
   else if (d.status === "disputed") toast(group ? "The results didn't all match, so this one doesn't count." : "The two results didn't match, so this one doesn't count.", 5000);
@@ -3964,7 +4009,7 @@ addEventListener("message", e => {
     const lv = levelById(m.level);
     if (marathon) return void endMarathon("You left the run.");
     // switching between online games keeps you in your private room
-    if (isOpen(lv)) play(lv.id, lv.online && mode.room ? { room:mode.room } : undefined);
+    if (isOpen(lv) || (lv.online && mode.invited)) play(lv.id, lv.online && mode.room ? { room:mode.room, invited:mode.invited } : undefined);
     else if (passReady(lv)){ stopPlay(); openPass(lv); }
     else toast(lvName(lv) + " - " + needText(lv) + ".");
   }

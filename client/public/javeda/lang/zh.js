@@ -3,7 +3,6 @@
    P / HP: the sentences with numbers or names in them, keyed by the English pattern in i18n.js. */
 window.JAVEDA_PACK = {
 S: {
-"Next level ▸":"下一关 ▸",
 "The playable album":"可以玩的专辑",
 "Every song is a level. Finish one to open the next, then come back and beat your score.":"每首歌都是一个关卡。通关一关就能解锁下一关，之后再回来刷新你的分数。",
 "Levels":"关卡",
@@ -1526,7 +1525,10 @@ S: {
 "Start here":"从这里开始",
 "Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too.":"第#部分。城市的高峰时段：同样的坠落，从第一小节起就更快。天桥上的洞会来回滑动，直升机和起重机在主歌里也会出现。",
 "Part #. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only # hearts.":"第#部分。高峰时段：同样的坠落，从第一小节起就更快。天桥上的洞会来回滑动，直升机和起重机在主歌里也会出现 - 而且只有#颗爱心。",
-"Coming soon":"即将推出"
+"Coming soon":"即将推出",
+"Get to Level # to play online, or ask a friend who is there to invite you":"到达第#关即可在线对战，或请已到达的朋友邀请你",
+"You haven't reached Level # yet: with this invite you can play anyway.":"你还没到达第#关：有了这个邀请也可以玩。",
+"That invite isn't valid any more. Ask your friend for a new link.":"这个邀请已失效。请向朋友要一个新链接。"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",
@@ -1539,11 +1541,13 @@ HTML: {
 "The same song for everyone today, with its own scoreboard - empty again tomorrow. You haven't got this far yet: <b>clear it and it stays open for you.</b>":"今天所有人玩同一首歌，有专属排行榜 - 明天清空重来。你还没玩到这里：<b>通关后它就会一直为你开放。</b>",
 "Fly the saucer. Get through the walls. <b id=\"hn\"># hearts</b> · every hit costs one, and two more wait on the road.":"驾驶飞碟，穿过墙壁。<b id=\"hn\">#颗爱心</b> · 每撞一次扣一颗，路上还有两颗等着你。",
 "<b>Tap a side</b> to bank · <b>tap the middle</b> to lift over a low wall or a hole":"<b>点击两侧</b>转向 · <b>点击中间</b>拉升，越过矮墙或坑洞",
+"Next level ▸<small># · SOMEBODY</small>":"下一关 ▸<small># · SOMEBODY</small>",
 "GO<small>tap a side to bank - tap the middle to lift</small>":"GO<small>点击两侧转向 - 点击中间拉升</small>",
 "Out at <b>#</b> metres · checkpoint&nbsp;<b>#</b>&nbsp;/&nbsp;#":"在<b>#</b>米处出局 · 检查点&nbsp;<b>#</b>&nbsp;/&nbsp;#",
 "That isn't how he was meant to go down. <b>Go again.</b>":"他不该这样倒下。<b>再来一次。</b>",
 "The Dust Sea. Hold the sand till the song ends. <b id=\"hn\"># hearts</b> · every hit costs one.":"尘之海。坚守沙地，直到歌曲结束。<b id=\"hn\">#颗爱心</b> · 每被击中一次扣一颗。",
 "<b>Drag</b> to fly · the beam fires on its own · and you won't be alone for long":"<b>拖动</b>飞行 · 光束自动发射 · 你不会孤单太久",
+"Next level ▸<small># · OUBLIE-MOI</small>":"下一关 ▸<small># · OUBLIE-MOI</small>",
 "LET THEM COME<small>I've got me.</small>":"放马过来<small>我还有我自己。</small>",
 "Down at <b>#</b> of the song · <b>#</b> taken out · score #":"在歌曲<b>#</b>处倒下 · 击落<b>#</b>个 · 分数 #",
 "Somebody is on the way. <b>Hold on longer.</b>":"有人正在赶来。<b>再坚持久一点。</b>",
@@ -1596,6 +1600,7 @@ HTML: {
 "<b>Drag</b> to fly. Stand still and your shadow gets you. It comes closer every # bars, and it steals the petals it reaches.":"<b>拖动</b>飞行。停下来就会被你的影子抓住。它每#小节逼近一次，还会偷走它碰到的花瓣。",
 "STAY AHEAD OF YOURSELF<small>keep moving - don't cross your own trail</small>":"甩开你自己<small>保持移动 - 别穿过自己的轨迹</small>",
 "<b>Drag</b> to fly. <b>Shoot:</b> hold <b>space</b> on a computer - on a phone, <b>tap</b> for a burst, or hold a second finger down. Watchers shoot on # and #, brutes take a beating. Grab the gold crystal for the <b>Lightning Storm</b>. # hearts.":"<b>拖动</b>飞行。<b>射击：</b>电脑上按住<b>Space</b> - 手机上<b>点击</b>连射，或用第二根手指按住。监视者在第#拍和第#拍开火，蛮兵很耐打。抓住金色水晶触发<b>闪电风暴</b>。#颗爱心。",
+"Next level ▸<small># · GOING CRAZY</small>":"下一关 ▸<small># · GOING CRAZY</small>",
 "CLEAR THE SKY<small>drag to fly - space or tap to shoot</small>":"清空天空<small>拖动飞行 - Space或点击射击</small>",
 "THE HOOK - HOLD THE SKY<small>drag to fly - space or tap to shoot</small>":"副歌 - 守住天空<small>拖动飞行 - Space或点击射击</small>",
 "A CRAWLER!<small># heart left</small>":"爬行怪！<small>还剩#颗爱心</small>",

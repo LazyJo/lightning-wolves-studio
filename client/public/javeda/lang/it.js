@@ -3,7 +3,6 @@
    P / HP: the sentences with numbers or names in them, keyed by the English pattern in i18n.js. */
 window.JAVEDA_PACK = {
 S: {
-"Next level ▸":"Livello successivo ▸",
 "The playable album":"L'album giocabile",
 "Every song is a level. Finish one to open the next, then come back and beat your score.":"Ogni canzone è un livello. Completane uno per aprire il successivo, poi torna e batti il tuo punteggio.",
 "Levels":"Livelli",
@@ -1526,7 +1525,10 @@ S: {
 "Start here":"Inizia qui",
 "Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too.":"Parte #. Ora di punta in città: la stessa caduta, più veloce dalla prima battuta. I buchi nelle passerelle scivolano avanti e indietro, ed elicotteri e gru arrivano anche nelle strofe.",
 "Part #. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only # hearts.":"Parte #. Ora di punta: la stessa caduta, più veloce dalla prima battuta. I buchi nelle passerelle scivolano avanti e indietro, elicotteri e gru arrivano anche nelle strofe - e solo # cuori.",
-"Coming soon":"Prossimamente"
+"Coming soon":"Prossimamente",
+"Get to Level # to play online, or ask a friend who is there to invite you":"Arriva al livello # per giocare online, o chiedi a un amico che c'è già di invitarti",
+"You haven't reached Level # yet: with this invite you can play anyway.":"Non sei ancora arrivato al livello #: con questo invito puoi giocare lo stesso.",
+"That invite isn't valid any more. Ask your friend for a new link.":"Quell'invito non è più valido. Chiedi un nuovo link al tuo amico."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",
@@ -1539,11 +1541,13 @@ HTML: {
 "The same song for everyone today, with its own scoreboard - empty again tomorrow. You haven't got this far yet: <b>clear it and it stays open for you.</b>":"La stessa canzone per tutti oggi, con la sua classifica - di nuovo vuota domani. Non sei ancora arrivato fin qui: <b>completala e resterà aperta per te.</b>",
 "Fly the saucer. Get through the walls. <b id=\"hn\"># hearts</b> · every hit costs one, and two more wait on the road.":"Pilota il disco volante. Supera i muri. <b id=\"hn\"># cuori</b> · ogni colpo ne costa uno, e altri due ti aspettano lungo la strada.",
 "<b>Tap a side</b> to bank · <b>tap the middle</b> to lift over a low wall or a hole":"<b>Tocca un lato</b> per inclinarti · <b>tocca il centro</b> per saltare un muro basso o un buco",
+"Next level ▸<small># · SOMEBODY</small>":"Livello successivo ▸<small># · SOMEBODY</small>",
 "GO<small>tap a side to bank - tap the middle to lift</small>":"VIA<small>tocca un lato per inclinarti - tocca il centro per saltare</small>",
 "Out at <b>#</b> metres · checkpoint&nbsp;<b>#</b>&nbsp;/&nbsp;#":"Fuori a <b>#</b> metri · checkpoint&nbsp;<b>#</b>&nbsp;/&nbsp;#",
 "That isn't how he was meant to go down. <b>Go again.</b>":"Non doveva andare giù così. <b>Riprova.</b>",
 "The Dust Sea. Hold the sand till the song ends. <b id=\"hn\"># hearts</b> · every hit costs one.":"Il Mare di Polvere. Difendi la sabbia fino alla fine della canzone. <b id=\"hn\"># cuori</b> · ogni colpo ne costa uno.",
 "<b>Drag</b> to fly · the beam fires on its own · and you won't be alone for long":"<b>Trascina</b> per volare · il raggio spara da solo · e non resterai solo a lungo",
+"Next level ▸<small># · OUBLIE-MOI</small>":"Livello successivo ▸<small># · OUBLIE-MOI</small>",
 "LET THEM COME<small>I've got me.</small>":"CHE VENGANO PURE<small>Ci sono io per me.</small>",
 "Down at <b>#</b> of the song · <b>#</b> taken out · score #":"Abbattuto a <b>#</b> della canzone · <b>#</b> eliminati · punteggio #",
 "Somebody is on the way. <b>Hold on longer.</b>":"Qualcuno sta arrivando. <b>Resisti più a lungo.</b>",
@@ -1596,6 +1600,7 @@ HTML: {
 "<b>Drag</b> to fly. Stand still and your shadow gets you. It comes closer every # bars, and it steals the petals it reaches.":"<b>Trascina</b> per volare. Se stai fermo, la tua ombra ti prende. Si avvicina ogni # battute, e ruba i petali che raggiunge.",
 "STAY AHEAD OF YOURSELF<small>keep moving - don't cross your own trail</small>":"RESTA UN PASSO AVANTI A TE STESSO<small>continua a muoverti - non incrociare la tua scia</small>",
 "<b>Drag</b> to fly. <b>Shoot:</b> hold <b>space</b> on a computer - on a phone, <b>tap</b> for a burst, or hold a second finger down. Watchers shoot on # and #, brutes take a beating. Grab the gold crystal for the <b>Lightning Storm</b>. # hearts.":"<b>Trascina</b> per volare. <b>Spara:</b> tieni premuto <b>spazio</b> sul computer - sul telefono, <b>tocca</b> per una raffica, o tieni giù un secondo dito. Le sentinelle sparano sul # e sul #, i bruti incassano tanti colpi. Prendi il cristallo d'oro per la <b>Tempesta di fulmini</b>. # cuori.",
+"Next level ▸<small># · GOING CRAZY</small>":"Livello successivo ▸<small># · GOING CRAZY</small>",
 "CLEAR THE SKY<small>drag to fly - space or tap to shoot</small>":"RIPULISCI IL CIELO<small>trascina per volare - spazio o tocca per sparare</small>",
 "THE HOOK - HOLD THE SKY<small>drag to fly - space or tap to shoot</small>":"IL RITORNELLO - DIFENDI IL CIELO<small>trascina per volare - spazio o tocca per sparare</small>",
 "A CRAWLER!<small># heart left</small>":"UNO STRISCIANTE!<small>resta # cuore</small>",

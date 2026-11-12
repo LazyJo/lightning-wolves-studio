@@ -3,7 +3,6 @@
    P / HP: the sentences with numbers or names in them, keyed by the English pattern in i18n.js. */
 window.JAVEDA_PACK = {
 S: {
-"Next level ▸":"Sonraki seviye ▸",
 "The playable album":"Oynanabilir albüm",
 "Every song is a level. Finish one to open the next, then come back and beat your score.":"Her şarkı bir seviye. Birini bitir, sıradaki açılsın; sonra geri gel ve skorunu geç.",
 "Levels":"Seviyeler",
@@ -1526,7 +1525,10 @@ S: {
 "Start here":"Buradan başla",
 "Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too.":"Bölüm #. Şehirde yoğun saat: aynı düşüş, ilk ölçüden itibaren daha hızlı. Gök köprülerindeki delikler bir o yana bir bu yana kayıyor, helikopterler ve vinçler kıtalarda da geliyor.",
 "Part #. Rush hour: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, helicopters and cranes come in the verses too - and only # hearts.":"Bölüm #. Yoğun saat: aynı düşüş, ilk ölçüden itibaren daha hızlı. Gök köprülerindeki delikler bir o yana bir bu yana kayıyor, helikopterler ve vinçler kıtalarda da geliyor - ve sadece # kalp.",
-"Coming soon":"Yakında"
+"Coming soon":"Yakında",
+"Get to Level # to play online, or ask a friend who is there to invite you":"Çevrimiçi oynamak için # numaralı seviyeye ulaş ya da oraya ulaşmış bir arkadaşından seni davet etmesini iste",
+"You haven't reached Level # yet: with this invite you can play anyway.":"Henüz # numaralı seviyeye ulaşmadın: bu davetle yine de oynayabilirsin.",
+"That invite isn't valid any more. Ask your friend for a new link.":"Bu davet artık geçerli değil. Arkadaşından yeni bir bağlantı iste."
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>İlk online oyun</small>HOOPS <i>1v1</i>",
@@ -1545,11 +1547,13 @@ HTML: {
 "<b>Log in</b> to compete in the weekly tournament.":"Haftalık turnuvaya katılmak için <b>giriş yap</b>.",
 "Fly the saucer. Get through the walls. <b id=\"hn\"># hearts</b> · every hit costs one, and two more wait on the road.":"Uçan daireyi uçur. Duvarları aş. <b id=\"hn\"># kalp</b> · her çarpma bir kalp götürür, yolda iki tane daha seni bekliyor.",
 "<b>Tap a side</b> to bank · <b>tap the middle</b> to lift over a low wall or a hole":"Yatmak için <b>bir kenara dokun</b> · alçak bir duvarın ya da çukurun üstünden geçmek için <b>ortaya dokun</b>",
+"Next level ▸<small># · SOMEBODY</small>":"Sonraki seviye ▸<small># · SOMEBODY</small>",
 "GO<small>tap a side to bank - tap the middle to lift</small>":"BAŞLA<small>yatmak için bir kenara dokun - yükselmek için ortaya dokun</small>",
 "Out at <b>#</b> metres · checkpoint&nbsp;<b>#</b>&nbsp;/&nbsp;#":"Mesafe: <b>#</b> metre · kontrol noktası&nbsp;<b>#</b>&nbsp;/&nbsp;#",
 "That isn't how he was meant to go down. <b>Go again.</b>":"Onun böyle düşmesi gerekmiyordu. <b>Tekrar dene.</b>",
 "The Dust Sea. Hold the sand till the song ends. <b id=\"hn\"># hearts</b> · every hit costs one.":"Toz Denizi. Şarkı bitene kadar kumda dayan. <b id=\"hn\"># kalp</b> · her darbe bir kalp götürür.",
 "<b>Drag</b> to fly · the beam fires on its own · and you won't be alone for long":"Uçmak için <b>sürükle</b> · ışın kendi kendine ateşlenir · ve uzun süre yalnız kalmayacaksın",
+"Next level ▸<small># · OUBLIE-MOI</small>":"Sonraki seviye ▸<small># · OUBLIE-MOI</small>",
 "LET THEM COME<small>I've got me.</small>":"GELSİNLER<small>Kendime yeterim.</small>",
 "Down at <b>#</b> of the song · <b>#</b> taken out · score #":"Düştüğün an: <b>#</b> · vurulan: <b>#</b> · skor #",
 "Somebody is on the way. <b>Hold on longer.</b>":"Biri yolda. <b>Biraz daha dayan.</b>",
@@ -1602,6 +1606,7 @@ HTML: {
 "<b>Drag</b> to fly. Stand still and your shadow gets you. It comes closer every # bars, and it steals the petals it reaches.":"Uçmak için <b>sürükle</b>. Durursan gölgen seni yakalar. Her # ölçüde biraz daha yaklaşır ve ulaştığı yaprakları çalar.",
 "STAY AHEAD OF YOURSELF<small>keep moving - don't cross your own trail</small>":"KENDİNİN ÖNÜNDE KAL<small>hareket etmeye devam et - kendi izini kesme</small>",
 "<b>Drag</b> to fly. <b>Shoot:</b> hold <b>space</b> on a computer - on a phone, <b>tap</b> for a burst, or hold a second finger down. Watchers shoot on # and #, brutes take a beating. Grab the gold crystal for the <b>Lightning Storm</b>. # hearts.":"Uçmak için <b>sürükle</b>. <b>Ateş:</b> bilgisayarda <b>boşluk</b> tuşunu basılı tut - telefonda seri atış için <b>dokun</b> ya da ikinci bir parmağı basılı tut. Gözcüler # ve # vuruşlarında ateş eder, devler çok dayanıklıdır. <b>Şimşek Fırtınası</b> için altın kristali kap. # kalp.",
+"Next level ▸<small># · GOING CRAZY</small>":"Sonraki seviye ▸<small># · GOING CRAZY</small>",
 "CLEAR THE SKY<small>drag to fly - space or tap to shoot</small>":"GÖKYÜZÜNÜ TEMİZLE<small>uçmak için sürükle - ateş etmek için boşluk tuşu ya da dokun</small>",
 "THE HOOK - HOLD THE SKY<small>drag to fly - space or tap to shoot</small>":"NAKARAT - GÖKYÜZÜNÜ TUT<small>uçmak için sürükle - ateş etmek için boşluk tuşu ya da dokun</small>",
 "A CRAWLER!<small># heart left</small>":"SÜRÜNGEN!<small>kalan kalp: #</small>",

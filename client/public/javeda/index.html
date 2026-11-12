@@ -1605,7 +1605,7 @@ function renderNow(){
   const st = starTotal(), stars = st ? '<em class="stt">&#9733; ' + st + ' of ' + LEVELS.length * 3 + ' stars</em>' : '';
   const crt = creator ? '<div class="crt"><div class="hs"><span>Creator</span><button class="btn small" data-reports="1">Reports' + (reportsOpen ? '<span class="nb">' + reportsOpen + '</span>' : '') + '</button><button class="btn small" data-players="1">Players &amp; downloads</button><button class="btn small" data-stats="1">Where players get stuck</button>' +
     (albumDone() ? '' : '<button class="btn small" data-marathon="1">Marathon</button><button class="btn small" data-credits="1">Credits</button>') +
-    '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
+    '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small" data-swarm="1">Swarmfall (test)</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
     (freeView ? 'Free view: on' : 'See it free') + '</button></div></div>' : '';
   // the Pass, for anyone who hasn't got it, once it's on sale; who has it gets the marathon from here too (nothing else leads there before the album's done)
   const passrow = (passOn || freeView) && !hasPass() ? '<div class="passrow"><span><b>&#9889; JAVEDA Pass</b> &middot; every part open right away' +
@@ -2707,6 +2707,14 @@ function play(id, how){
   $("play").classList.remove("hid");
   document.body.style.overflow = "hidden"; document.body.classList.add("playing");
 }
+// JAVEDA: SWARMFALL, the playable test: not a level (no score, no progress, nothing saved), and only creators get the
+// button - the page itself checks that again
+function openSwarm(){
+  if (!creator) return;
+  stopVideos(); runLeft(); runDone = -1; current = null; mode = {};
+  $("frame").src = "levels/swarmfall.html?hub=1"; $("playClose").innerHTML = "&#10005; JAVEDA";
+  $("play").classList.remove("hid"); document.body.style.overflow = "hidden"; document.body.classList.add("playing");
+}
 document.addEventListener("touchmove", e => { if (e.cancelable && document.body.classList.contains("playing")) e.preventDefault(); }, { passive:false });
 function stopPlay(){
   runLeft();
@@ -2801,6 +2809,7 @@ $("now").addEventListener("click", e => {
   else if (b.dataset.reports) openReports();
   else if (b.dataset.stats) openStats();
   else if (b.dataset.codes) openCodes();
+  else if (b.dataset.swarm) openSwarm();
   else if (b.dataset.freeview){ freeView = !freeView; renderAll(); toast(freeView ? "Free view: the hub as a player without the Pass sees it" + (passOn ? "" : " once it's switched on") + ". Only here, nothing changes." : "Back to the creator view."); }
   else if (b.dataset.share) shareCard(completeCard || (completeCard = { kind:"complete" }));
 });

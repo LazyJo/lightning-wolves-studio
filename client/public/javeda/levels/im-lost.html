@@ -115,7 +115,7 @@ body.gold #endl{color:#9fe8ff; border-color:#2f8fe099; background:#2f8fe014}
   <h1>I'M LOST</h1>
   <p>Fly the saucer. Get through the walls. <b id="hn">6 hearts</b> &middot; every hit costs one, and two more wait on the road.</p>
   <p><b>Tap a side</b> to bank &middot; <b>tap the middle</b> to lift over a low wall or a hole</p>
-  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>2 &middot; SOMEBODY</small></a>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small data-i18n-skip>2 &middot; SOMEBODY</small></a>
   <div id="rides" class="hid" role="group" aria-label="Choose your ride">
     <button type="button" data-ride="saucer" aria-pressed="true">&#128760; Saucer</button>
     <button type="button" data-ride="bike" aria-pressed="false">&#127949;&#65039; Zirka's bike</button>
@@ -177,6 +177,10 @@ document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset
    here changes. */
 const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+// the hub says which song Next level opens (?next=3 \u00b7 MY HEART): the label always names it. On its own, the label in the
+// card is the next song in the album's order
+const NEXT_NAME = HUB && new URLSearchParams(location.search).get("next");
+if (NEXT_NAME && /^\d{1,2} \u00b7 [^<>]{1,40}$/.test(NEXT_NAME)) document.querySelector("#next small").textContent = NEXT_NAME;
 // rides the hub says this player has earned (?rides=bike once Level 2 Part 2 is cleared)
 const RIDES = (new URLSearchParams(location.search).get("rides") || "").split(",");
 let ride = "saucer";

@@ -2699,7 +2699,10 @@ function play(id, how){
   runLeft(); runDone = -1;          // a run left for another level counts as giving up
   current = lv; mode = how;
   const r = lv.id === "lvl1" || lv.id === "lvl1x" ? rides() : [];
-  $("frame").src = lv.src + (how.room ? "&room=" + how.room : "") + (r.length ? "&rides=" + r.join(",") : "");
+  // the song the end card's Next level opens (the same nextMain as javeda:next), so its label names the right one
+  const nx = LEVELS.includes(lv) ? nextMain(lv.id) : null;
+  $("frame").src = lv.src + (how.room ? "&room=" + how.room : "") + (r.length ? "&rides=" + r.join(",") : "") +
+    (nx ? "&next=" + encodeURIComponent(nx.num + " \u00b7 " + nx.title) : "");
   $("playClose").innerHTML = "&#10005; " + (how.marathon ? "Marathon " + (marathon.i + 1) + "/" + MARATHON.length : how.daily ? "Daily" : how.weekly ? "Weekly" : how.room ? "Private room" : "JAVEDA");
   $("play").classList.remove("hid");
   document.body.style.overflow = "hidden"; document.body.classList.add("playing");

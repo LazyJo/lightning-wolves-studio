@@ -114,7 +114,7 @@ body.remix #pips i.on{background:#ffd65a}
   <h1>ZIRKA'S RIDE</h1>
   <p>Jo is down somewhere in the Dust Sea. Ride the purple bike to his light. <b id="hn">6 hearts</b> &middot; every hit costs one, and two more wait on the road.</p>
   <p><b>Tap a side</b> to swerve &middot; <b>tap the middle</b> to jump a low rock or a crack</p>
-  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small data-i18n-skip>3 &middot; MY HEART</small></a>
   <button id="go" type="button">Start</button>
   <a id="endl" class="hid">Endless &#8734;</a>
   <a id="rmx" class="hid">Remix &#8734;</a>
@@ -174,6 +174,10 @@ document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset
    here changes. */
 const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+// the hub says which song Next level opens (?next=3 \u00b7 MY HEART): the label always names it. On its own, the label in the
+// card is the next song in the album's order
+const NEXT_NAME = HUB && new URLSearchParams(location.search).get("next");
+if (NEXT_NAME && /^\d{1,2} \u00b7 [^<>]{1,40}$/.test(NEXT_NAME)) document.querySelector("#next small").textContent = NEXT_NAME;
 if (HUB) document.getElementById("next").addEventListener("click", e => {
   e.preventDefault(); toHub({ type:"javeda:next", level:"lvl2b" });
 });

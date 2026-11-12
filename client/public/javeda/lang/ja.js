@@ -3,6 +3,7 @@
    P / HP: the sentences with numbers or names in them, keyed by the English pattern in i18n.js. */
 window.JAVEDA_PACK = {
 S: {
+"Next level ▸":"次のレベル ▸",
 "The playable album":"プレイできるアルバム",
 "Every song is a level. Finish one to open the next, then come back and beat your score.":"1曲が1レベル。クリアすると次が開くよ。あとで戻ってスコアを更新しよう。",
 "Levels":"レベル",
@@ -1538,13 +1539,11 @@ HTML: {
 "The same song for everyone today, with its own scoreboard - empty again tomorrow. You haven't got this far yet: <b>clear it and it stays open for you.</b>":"今日は全員同じ曲、専用ランキングつき - 明日にはリセット。まだここまで進んでいないね：<b>クリアすればずっと解放されるよ。</b>",
 "Fly the saucer. Get through the walls. <b id=\"hn\"># hearts</b> · every hit costs one, and two more wait on the road.":"UFOを飛ばして壁をすり抜けよう。<b id=\"hn\">ハート#個</b> · ぶつかるたびに1つ減る。道の途中にあと2つあるよ。",
 "<b>Tap a side</b> to bank · <b>tap the middle</b> to lift over a low wall or a hole":"<b>左右をタップ</b>で旋回 · <b>真ん中をタップ</b>で低い壁や穴を飛び越える",
-"Next level ▸<small># · SOMEBODY</small>":"次のレベル ▸<small># · SOMEBODY</small>",
 "GO<small>tap a side to bank - tap the middle to lift</small>":"GO<small>左右タップで旋回 - 真ん中タップで上昇</small>",
 "Out at <b>#</b> metres · checkpoint&nbsp;<b>#</b>&nbsp;/&nbsp;#":"<b>#</b>メートルでアウト · チェックポイント&nbsp;<b>#</b>&nbsp;/&nbsp;#",
 "That isn't how he was meant to go down. <b>Go again.</b>":"こんな終わり方じゃないはず。<b>もう一回。</b>",
 "The Dust Sea. Hold the sand till the song ends. <b id=\"hn\"># hearts</b> · every hit costs one.":"塵の海。曲が終わるまで砂漠を守り抜け。<b id=\"hn\">ハート#個</b> · 当たるたびに1つ減る。",
 "<b>Drag</b> to fly · the beam fires on its own · and you won't be alone for long":"<b>ドラッグ</b>で飛ぶ · ビームは自動で撃つ · ひとりきりなのも少しの間だけ",
-"Next level ▸<small># · OUBLIE-MOI</small>":"次のレベル ▸<small># · OUBLIE-MOI</small>",
 "LET THEM COME<small>I've got me.</small>":"かかってこい<small>俺には俺がいる。</small>",
 "Down at <b>#</b> of the song · <b>#</b> taken out · score #":"曲の<b>#</b>でダウン · <b>#</b>体撃破 · スコア #",
 "Somebody is on the way. <b>Hold on longer.</b>":"誰かが向かってる。<b>もっと粘れ。</b>",
@@ -1597,7 +1596,6 @@ HTML: {
 "<b>Drag</b> to fly. Stand still and your shadow gets you. It comes closer every # bars, and it steals the petals it reaches.":"<b>ドラッグ</b>で飛ぶ。止まると影に捕まる。影は#小節ごとに近づき、届いた花びらを奪っていく。",
 "STAY AHEAD OF YOURSELF<small>keep moving - don't cross your own trail</small>":"自分の先を行け<small>動き続けろ - 自分の軌跡を横切るな</small>",
 "<b>Drag</b> to fly. <b>Shoot:</b> hold <b>space</b> on a computer - on a phone, <b>tap</b> for a burst, or hold a second finger down. Watchers shoot on # and #, brutes take a beating. Grab the gold crystal for the <b>Lightning Storm</b>. # hearts.":"<b>ドラッグ</b>で飛ぶ。<b>射撃：</b>PCは<b>Space</b>長押し - スマホは<b>タップ</b>で連射、または2本目の指を置いたまま。ウォッチャーは#拍目と#拍目に撃ってくる、ブルートはタフ。金のクリスタルを取ると<b>ライトニングストーム</b>。ハート#個。",
-"Next level ▸<small># · GOING CRAZY</small>":"次のレベル ▸<small># · GOING CRAZY</small>",
 "CLEAR THE SKY<small>drag to fly - space or tap to shoot</small>":"空を一掃しろ<small>ドラッグで飛ぶ - Spaceかタップで撃つ</small>",
 "THE HOOK - HOLD THE SKY<small>drag to fly - space or tap to shoot</small>":"サビ - 空を守れ<small>ドラッグで飛ぶ - Spaceかタップで撃つ</small>",
 "A CRAWLER!<small># heart left</small>":"クローラー！<small>残りハート#</small>",

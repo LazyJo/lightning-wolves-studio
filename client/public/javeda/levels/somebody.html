@@ -128,7 +128,7 @@ body.remix #pips i.on{background:#ffd65a}
   <h1>SOMEBODY</h1>
   <p>The Dust Sea. Hold the sand till the song ends. <b id="hn">6 hearts</b> &middot; every hit costs one.</p>
   <p><b>Drag</b> to fly &middot; the beam fires on its own &middot; and you won't be alone for long</p>
-  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small data-i18n-skip>3 &middot; MY HEART</small></a>
   <button id="go" type="button">Start</button>
   <button id="inf" class="hid" type="button">Endless &infin;</button>
   <button id="rmx" class="hid" type="button">Remix &infin;</button>
@@ -211,6 +211,10 @@ document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset
    here changes. */
 const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+// the hub says which song Next level opens (?next=3 \u00b7 MY HEART): the label always names it. On its own, the label in the
+// card is the next song in the album's order
+const NEXT_NAME = HUB && new URLSearchParams(location.search).get("next");
+if (NEXT_NAME && /^\d{1,2} \u00b7 [^<>]{1,40}$/.test(NEXT_NAME)) document.querySelector("#next small").textContent = NEXT_NAME;
 // on its own, the start card offers the endless run: the same page with ?endless=1
 if (!HUB && (!ENDLESS || REMIX)){
   const inf = document.getElementById("inf"); inf.classList.remove("hid");

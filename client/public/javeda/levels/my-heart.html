@@ -130,7 +130,7 @@ body.gold #ml{color:#e0c27a}
     <button type="button" data-part="1">Part 1</button><button type="button" data-part="2">Part 2</button><button type="button" data-part="3">Part 3</button>
     <i class="br"></i><button type="button" class="gold" data-part="1" data-mode="endless">Part 1 &infin;</button><button type="button" class="gold" data-part="2" data-mode="endless">Part 2 &infin;</button><button type="button" class="gold" data-part="3" data-mode="endless">Part 3 &infin;</button><button type="button" class="gold" data-mode="remix">Remix</button>
   </div>
-  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small>9 &middot; OUBLIE-MOI</small></a>
+  <a id="next" class="hid" data-link="next" target="_blank" rel="noopener">Next level &#9656;<small data-i18n-skip>4 &middot; ROLLERCOASTER</small></a>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
     <a class="spot" data-link="spotify" target="_blank" rel="noopener">&#127911; Spotify</a>
@@ -209,6 +209,10 @@ document.querySelectorAll("[data-link]").forEach(a => { a.href = LINKS[a.dataset
    "next level" and "home". Opened on its own, nothing here changes. */
 const HUB = window.parent !== window && new URLSearchParams(location.search).has("hub");
 const toHub = msg => { try { window.parent.postMessage(msg, location.origin); } catch(e){} };
+// the hub says which song Next level opens (?next=3 \u00b7 MY HEART): the label always names it. On its own, the label in the
+// card is the next song in the album's order
+const NEXT_NAME = HUB && new URLSearchParams(location.search).get("next");
+if (NEXT_NAME && /^\d{1,2} \u00b7 [^<>]{1,40}$/.test(NEXT_NAME)) document.querySelector("#next small").textContent = NEXT_NAME;
 if (HUB){
   document.getElementById("next").addEventListener("click", e => {
     e.preventDefault(); toHub({ type:"javeda:next", level:LID });

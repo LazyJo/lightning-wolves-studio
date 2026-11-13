@@ -82,6 +82,9 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02}
 @media (max-height:520px){ #veil{gap:9px; padding:14px} #veil p{font-size:15px} #veil h1{font-size:40px} #outs{max-width:none} }
 @media (prefers-reduced-motion:reduce){ #msg, #phase{transition:none} }
 .hid{display:none!important}
+/* the small words of the HUD keep a dark edge: they sit on the sunset now */
+#m, #info{text-shadow:0 1px 4px #000a}
+#ml, .bl, #phase small{text-shadow:0 1px 3px #000c}
 </style>
 
 <div id="cab"></div>
@@ -258,6 +261,25 @@ const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transpa
 function radial(stops, size){ const cv = document.createElement("canvas"); cv.width = cv.height = size || 128; const r = cv.width/2, x = cv.getContext("2d"), g = x.createRadialGradient(r, r, 0, r, r, r);
   stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
 const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
+/* ---- the look (pictures only: the game reads nothing from any of this) ----
+   CALM = the phone asks for less motion: no sparks, no drifting motes, no pulses.
+   hsh = decoration's own dice, a hash of an index - never the game's rnd() counters. */
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches);
+const hsh = n => { const x = Math.sin(n*91.3458 + 4.7)*47453.5453; return x - Math.floor(x); };
+const lightMat = (map, color, opacity) => new THREE.MeshBasicMaterial({ map, color, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false, fog:false, side:THREE.DoubleSide });
+const POOL = radial([[0, "rgba(255,255,255,.85)"], [.4, "rgba(255,255,255,.3)"], [1, "rgba(255,255,255,0)"]], 128);      // a pool of light
+const MARK = radial([[0, "rgba(255,255,255,.4)"], [.74, "rgba(255,255,255,.4)"], [.82, "rgba(255,255,255,1)"], [.92, "rgba(255,255,255,1)"], [1, "rgba(255,255,255,0)"]], 128);   // a landing mark: a disc with a bright rim
+const DISC = new THREE.CircleGeometry(1, 32);
+const pool = (color, opacity, r) => { const m = new THREE.Mesh(DISC, lightMat(POOL, color, opacity)); m.rotation.x = -Math.PI/2; m.scale.setScalar(r); return m; };
+// a long soft streak: the sunset clouds, and the cloud layers the stem climbs through
+const STREAK = (() => { const cv = document.createElement("canvas"); cv.width = 256; cv.height = 64; const x = cv.getContext("2d");
+  for (let i = 0; i < 9; i++){ const cx = 40 + hsh(i*2.3)*176, cy = 22 + hsh(i*4.1)*20, rx = Math.min(30 + hsh(i*6.7)*50, cx - 4, 252 - cx), ry = 4 + hsh(i*8.9)*7;
+    x.save(); x.translate(cx, cy); x.scale(rx, ry); const g = x.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, "rgba(255,255,255,.5)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, 6.3); x.fill(); x.restore(); }
+  return new THREE.CanvasTexture(cv); })();
+// top to bottom, bright to dim: the beam is strongest at the saucer
+const FADE = (() => { const cv = document.createElement("canvas"); cv.width = 4; cv.height = 64; const x = cv.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 64);
+  g.addColorStop(0, "#fff"); g.addColorStop(1, "#999"); x.fillStyle = g; x.fillRect(0, 0, 4, 64); return new THREE.CanvasTexture(cv); })();
 function buildCanyon(){
   // the sunset: dark above, a burning band on the horizon
   const cv = document.createElement("canvas"); cv.width = 4; cv.height = 256; const x = cv.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
@@ -306,6 +328,10 @@ function buildRose(stemLen){
     leaf.scale.set(1.5, .07, .6); leaf.position.set(s*1.3, stemLen*h, .3); leaf.rotation.set(.9, 0, s*-.35); g.add(leaf); }
   const bloom = buildBloom(); bloom.position.y = stemLen + .3; bloom.scale.setScalar(1.5); bloom.rotation.x = .35; g.add(bloom);
   g.userData.bloom = bloom;
+  // light: a halo in the bloom, a red pool at the foot of the stem
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xff4a3a, transparent:true, opacity:.4, depthWrite:false, blending:THREE.AdditiveBlending, fog:false }));
+  halo.position.y = stemLen + .5; halo.scale.setScalar(13); g.add(halo); g.userData.halo = halo;
+  const foot = pool(0xff4a4a, .3, 4.5); foot.position.y = .05; g.add(foot);
   return g;
 }
 // Jo's red saucer: white lights round the rim, a red dome, the green beam under it. dark = a shadow
@@ -319,8 +345,12 @@ function buildSaucer(dark){
   dome.position.y = .12; g.add(dome);
   for (let i = 0; i < 10; i++){ const a = i/10*Math.PI*2, l = new THREE.Mesh(new THREE.SphereGeometry(.08, 6, 5), new THREE.MeshBasicMaterial({ color:dark ? 0xb070ff : 0xffffff }));
     l.position.set(Math.sin(a)*1.08, .02, Math.cos(a)*1.08); g.add(l); }
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.3, 1.1, 2, 20, 1, true), glowMat(dark ? 0x9a5aff : 0x8affb0, dark ? .18 : .3)); beam.position.y = -1.1; g.add(beam);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(.3, 1.1, 2, 20, 1, true), glowMat(dark ? 0x9a5aff : 0x8affb0, dark ? .24 : .38)); beam.position.y = -1.1; g.add(beam);
+  beam.material.map = FADE;
   g.userData.beam = beam;
+  // light under the hull: seen from below (the stem) it's the engine, from above (the shadow game) a halo round the rim
+  const glow = new THREE.Mesh(DISC, lightMat(POOL, dark ? 0xa060ff : 0x8affb0, dark ? .7 : .55)); glow.rotation.x = Math.PI/2; glow.position.y = -.3; glow.scale.setScalar(1.6); g.add(glow);
+  g.userData.glow = glow;
   return g;
 }
 
@@ -365,12 +395,18 @@ const RAIN = {
     this.drops = [];
     const pm = new THREE.MeshStandardMaterial({ color:0xe01824, emissive:0x5a040a, roughness:.5, side:THREE.DoubleSide });
     const tm = new THREE.MeshStandardMaterial({ color:0x1e3a12, emissive:0x0a1406, roughness:.6 });
-    const mark = (c, o) => { const s = new THREE.Mesh(new THREE.CircleGeometry(.7, 20), glowMat(c, o)); s.rotation.x = -Math.PI/2; s.visible = false; this.root.add(s); return s; };
+    // the marks on the ground: a disc with a bright rim (same size as ever)
+    const mark = (c, o) => { const s = new THREE.Mesh(new THREE.CircleGeometry(.7, 20), glowMat(c, o)); s.material.map = MARK; s.rotation.x = -Math.PI/2; s.visible = false; this.root.add(s); return s; };
+    // every petal carries a soft pink light, every thorn a red streak behind it
+    const pg = new THREE.SpriteMaterial({ map:DOT, color:0xff7a90, transparent:true, opacity:.5, depthWrite:false, blending:THREE.AdditiveBlending, fog:false });
+    const ts = new THREE.SpriteMaterial({ map:DOT, color:0xff2a20, transparent:true, opacity:.55, depthWrite:false, blending:THREE.AdditiveBlending, fog:false });
     for (let i = 0; i < 28; i++){ const m = new THREE.Mesh(SHELL, pm); m.scale.set(.42, .55, .2); m.visible = false; this.root.add(m);
-      this.drops.push({ m, kind:"petal", on:false, mark:mark(0xff6a7a, .25) }); }
+      const lit = new THREE.Sprite(pg); lit.scale.set(4.4, 3.4, 1); m.add(lit);
+      this.drops.push({ m, kind:"petal", on:false, mark:mark(0xff6a7a, .4) }); }
     for (let i = 0; i < 10; i++){ const m = new THREE.Mesh(new THREE.ConeGeometry(.3, 1.3, 6), tm); m.visible = false; m.rotation.x = Math.PI; this.root.add(m);
       const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xff3030, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); glow.scale.setScalar(1.8); m.add(glow);
-      this.drops.push({ m, kind:"thorn", on:false, mark:mark(0xff2020, .45) }); }
+      const tail = new THREE.Sprite(ts); tail.scale.set(.75, 3.6, 1); tail.position.y = -1.9; m.add(tail);
+      this.drops.push({ m, kind:"thorn", on:false, mark:mark(0xff2a20, 1) }); }
   },
   begin(t0, t1, L0, L1, cont){
     // endless carries on: a new window only moves the difficulty on
@@ -429,9 +465,14 @@ const RAIN = {
   render(dt, t){
     const st = this.st;
     ME.position.set(st.x, 2.2, 0); ME.scale.setScalar(1); ME.userData.beam.visible = true;
-    ME.userData.beam.material.opacity = .25 + (onBeat(t) ? .15 : 0);
-    for (const d of this.drops){ if (!d.on) continue; d.m.position.set(d.x, d.y, d.z);
-      if (d.kind === "petal"){ d.m.rotation.set(t*2 + d.ph, t*1.3, Math.sin(t*4 + d.ph)); d.m.scale.set(.42*d.s, .55*d.s, .2*d.s); d.mark.material.opacity = .15 + .25*clamp((t - d.ts)/d.T, 0, 1); } }
+    ME.userData.beam.material.opacity = .32 + (onBeat(t) ? .16 : 0);
+    for (const d of this.drops){
+      // sparks where a petal is caught, a puff where something lands
+      if (d.on && d.caught && d.fx !== d.ct){ d.fx = d.ct; FX.burst(d.x, d.y, 0, 1, .55, .62, 7, 3.2); }
+      else if (d.was && !d.on && !d.wasC && Math.abs(t - d.ts - d.T) < .15){ if (d.kind === "thorn") FX.burst(d.x1, .3, 0, 1, .22, .12, 6, 2.6); else FX.burst(d.x1, .2, 0, .7, .26, .2, 4, 1.6); }
+      d.was = d.on; d.wasC = d.on && d.caught;
+      if (!d.on) continue; d.m.position.set(d.x, d.y, d.z);
+      if (d.kind === "petal"){ d.m.rotation.set(t*2 + d.ph, t*1.3, Math.sin(t*4 + d.ph)); d.m.scale.set(.42*d.s, .55*d.s, .2*d.s); d.mark.material.opacity = .4 + .5*clamp((t - d.ts)/d.T, 0, 1); } }
     this.rose.userData.bloom.rotation.y = Math.sin(t*.4)*.2;
     const portrait = cam.aspect < .8;
     CAMP.set(0, portrait ? 6.5 : 5.5, portrait ? 26 : 17); CAML.set(0, portrait ? 5.5 : 4.8, -2);
@@ -443,12 +484,18 @@ const STEM = {
   name:"stem", label:"THE STEM", tag:"CLIMB TO THE BLOOM", hint:"drag left/right to go round the stem", R:2.4,
   setup(){
     this.root = new THREE.Group(); scene.add(this.root);
-    const cv = document.createElement("canvas"); cv.width = 16; cv.height = 128; const x = cv.getContext("2d");
-    x.fillStyle = "#2e5a1c"; x.fillRect(0, 0, 16, 128); x.fillStyle = "#3a6a22"; x.fillRect(0, 0, 5, 128); x.fillStyle = "#1e3e12"; x.fillRect(0, 60, 16, 8);
+    const cv = document.createElement("canvas"); cv.width = 64; cv.height = 128; const x = cv.getContext("2d");
+    x.fillStyle = "#2e5a1c"; x.fillRect(0, 0, 64, 128); x.fillStyle = "#3a6a22"; x.fillRect(0, 0, 20, 128);
+    // fibres up the stem, and a lit edge under each joint
+    for (let i = 0; i < 14; i++){ x.fillStyle = i % 3 ? "rgba(190,235,120,.09)" : "rgba(8,26,4,.2)"; x.fillRect(hsh(i*3.7)*62, 0, 1 + hsh(i*5.9)*2, 128); }
+    x.fillStyle = "#1e3e12"; x.fillRect(0, 60, 64, 8); x.fillStyle = "rgba(170,230,110,.28)"; x.fillRect(0, 68, 64, 2);
     this.tex = new THREE.CanvasTexture(cv); this.tex.wrapS = this.tex.wrapT = THREE.RepeatWrapping; this.tex.repeat.x = 6;
     this.stem = new THREE.Mesh(new THREE.CylinderGeometry(.55, .7, 1, 14), new THREE.MeshStandardMaterial({ map:this.tex, roughness:.6, emissive:0x081404 })); this.root.add(this.stem);
     this.bloom = buildBloom(); this.bloom.scale.setScalar(4); this.root.add(this.bloom);
-    const thornGeo = new THREE.ConeGeometry(.2, 2.8, 6), thornMat = new THREE.MeshStandardMaterial({ color:0x6a1a10, roughness:.5, emissive:0x2a0604 });
+    // the thorns glow hot towards the point (one texture on the one material: no extra drawing)
+    const tc = document.createElement("canvas"); tc.width = 4; tc.height = 64; const tx = tc.getContext("2d"), tg = tx.createLinearGradient(0, 0, 0, 64);
+    tg.addColorStop(0, "#ffffff"); tg.addColorStop(.3, "#6a6a6a"); tg.addColorStop(1, "#2c2c2c"); tx.fillStyle = tg; tx.fillRect(0, 0, 4, 64);
+    const thornGeo = new THREE.ConeGeometry(.2, 2.8, 6), thornMat = new THREE.MeshStandardMaterial({ color:0x6a1a10, roughness:.5, emissive:0xff4a20, emissiveMap:new THREE.CanvasTexture(tc) });
     this.pool = [];
     for (let i = 0; i < 560; i++){ const pv = new THREE.Group(), c = new THREE.Mesh(thornGeo, thornMat); c.rotation.z = -Math.PI/2; c.position.x = 1.9; pv.add(c); pv.visible = false; this.root.add(pv); this.pool.push(pv); }
     const dewMat = new THREE.SpriteMaterial({ map:DOT, color:0x9affe0, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
@@ -456,6 +503,19 @@ const STEM = {
     for (let i = 0; i < 280; i++){ const s = new THREE.Sprite(dewMat); s.scale.setScalar(.9); s.visible = false; this.root.add(s); this.dewPool.push(s); }
     this.leaves = [];
     for (let i = 0; i < 24; i++){ const leaf = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), LEAF); leaf.scale.set(3, .1, 1.1); leaf.visible = false; this.root.add(leaf); this.leaves.push(leaf); }
+    // -- the look --
+    // a band of red light under each ring of thorns that's coming; the gap stays dark
+    this.glows = [];
+    const gm = lightMat(POOL, 0xff3a22, .7);
+    for (let i = 0; i < 3; i++){ const pv = new THREE.Group(), band = new THREE.Mesh(new THREE.RingGeometry(.55, 3.4, 40, 1), gm); band.rotation.x = Math.PI/2; pv.add(band); pv.visible = false; this.root.add(pv); this.glows.push(pv); }
+    // the bloom at the top shines
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xff4a3a, transparent:true, opacity:.5, depthWrite:false, blending:THREE.AdditiveBlending, fog:false }));
+    halo.scale.setScalar(8); halo.position.y = .2; this.bloom.add(halo);
+    // thin layers of sunset cloud round the stem, one every 24 m: you climb through them
+    const WISP = STREAK.clone(); WISP.wrapS = THREE.RepeatWrapping; WISP.repeat.x = 4; WISP.needsUpdate = true;
+    const wg = new THREE.CylinderGeometry(1, 1, 1, 40, 1, true);
+    this.wisps = [];
+    for (let i = 0; i < 5; i++){ const w = new THREE.Mesh(wg, lightMat(WISP, i % 2 ? 0xff7a4a : 0xd04a5a, .2)); w.visible = false; this.root.add(w); this.wisps.push(w); }
   },
   v(L){ return Math.min(7.5, 3 + 2.6*L); },     // climbing speed, m/s
   // what goes on the stem at beat j: a ring of thorns with one gap, thorns, or dew
@@ -546,7 +606,24 @@ const STEM = {
   render(dt, t){
     const st = this.st, a = st.a, R = this.R;
     ME.position.set(Math.cos(a)*R, st.y, Math.sin(a)*R); ME.scale.setScalar(.7); ME.userData.beam.visible = false;
-    for (const d of this.dew) if (!d.got && d.s && Math.abs(d.h - st.y) < 30) d.s.scale.setScalar(.8 + (onBeat(t) ? .35 : 0));
+    const big = .8 + (onBeat(t) ? .35 : 0);
+    for (const d of this.dew){
+      if (d.got){ if (!d.fx){ d.fx = true; FX.burst(Math.cos(d.a)*R, d.h, Math.sin(d.a)*R, .55, 1, .85, 5, 2.4); } }
+      else if (d.s && Math.abs(d.h - st.y) < 30) d.s.scale.setScalar(big); }
+    // the look: light under the rings ahead, gold sparks through a gap, the cloud layers
+    let gi = 0;
+    for (const r of this.rings){
+      if (r.done){ if (!r.fx){ r.fx = true; if (!r.hit) FX.burst(ME.position.x, st.y, ME.position.z, 1, .85, .4, 10, 3.4); } continue; }
+      if (gi >= this.glows.length || r.h > st.y + 45) continue;
+      if (r.gn === undefined){ let mask = 0, n = 0; for (const th of this.thorns) if (th.ring === r){ mask |= 1 << (Math.round(th.a/(Math.PI*2)*10) % 10); n++; }
+        let first = 0; for (let k = 0; k < 10; k++) if ((mask >> k & 1) && !(mask >> ((k + 9) % 10) & 1)) first = k;
+        r.gn = n; r.ga = first/10*Math.PI*2; }
+      const pv = this.glows[gi++]; pv.visible = r.gn > 0; pv.position.y = r.h - .06; pv.rotation.y = -(r.ga - Math.PI/20);
+      pv.children[0].geometry.setDrawRange(0, ((r.gn - 1)*4 + 2)*6); }
+    for (; gi < this.glows.length; gi++) this.glows[gi].visible = false;
+    const s0 = Math.floor(st.y/24);
+    for (let i = 0; i < 5; i++){ const slot = s0 - 1 + i, w = this.wisps[((slot % 5) + 5) % 5]; w.visible = slot >= 1;
+      if (w.visible){ const r = 30 + hsh(slot*4.7)*26; w.position.y = slot*24 + hsh(slot*1.9)*12; w.scale.set(r, 4 + hsh(slot*6.3)*5, r); w.rotation.y = hsh(slot*8.1)*6.3 + (CALM ? 0 : t*.02*(slot % 2 ? 1 : -1)); } }
     const portrait = cam.aspect < .8, D = portrait ? 11.5 : 9;
     CAMP.set(Math.cos(a)*D, st.y - 1.4, Math.sin(a)*D); CAML.set(Math.cos(a)*1.2, st.y + 3.4, Math.sin(a)*1.2);
   }
@@ -559,10 +636,21 @@ const SHADOW = {
     this.root = new THREE.Group(); scene.add(this.root);
     this.rose = buildRose(7); this.rose.position.set(0, 0, -12.5); this.rose.scale.setScalar(1.3); this.root.add(this.rose);
     this.ring = new THREE.Mesh(new THREE.RingGeometry(this.AR + .6, this.AR + .8, 96), glowMat(0xff7a3a, .35)); this.ring.rotation.x = -Math.PI/2; this.ring.position.y = .05; this.root.add(this.ring);
+    // the look: the arena's floor is lit and its edge glows
+    const AT = radial([[0, "rgba(255,255,255,.1)"], [.6, "rgba(255,255,255,.05)"], [.8, "rgba(255,255,255,.2)"], [.85, "rgba(255,255,255,.75)"], [.866, "rgba(255,255,255,.75)"], [.92, "rgba(255,255,255,.16)"], [1, "rgba(255,255,255,0)"]], 256);
+    this.floor = new THREE.Mesh(DISC, lightMat(AT, 0xff7a3a, .8)); this.floor.rotation.x = -Math.PI/2; this.floor.scale.setScalar(12.5); this.floor.position.y = .04; this.root.add(this.floor);
+    // the shadow's trail is drawn as a band of light as well as the thin line (a 1 px line is lost on a phone), brightest at the shadow
+    const T = this.TRAIL, idx = [], rc = new Float32Array(T*6);
+    for (let k = 0; k < T; k++){ const f = .22 + .78*Math.pow(1 - k/(T - 1), 1.6); for (let e = 0; e < 2; e++){ rc[k*6 + e*3] = .62*f; rc[k*6 + e*3 + 1] = .36*f; rc[k*6 + e*3 + 2] = f; }
+      if (k < T - 1) idx.push(k*2, k*2 + 1, k*2 + 2, k*2 + 1, k*2 + 3, k*2 + 2); }
+    const ribMat = new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, opacity:.6, blending:THREE.AdditiveBlending, depthWrite:false, fog:false, side:THREE.DoubleSide });
     this.shadows = [0, 1].map(() => { const sh = buildSaucer(true); sh.scale.setScalar(.8); sh.visible = false; this.root.add(sh);
       const tg = new THREE.BufferGeometry(); tg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(this.TRAIL*3), 3));
       const trail = new THREE.Line(tg, new THREE.LineBasicMaterial({ color:0xa060ff, transparent:true, opacity:.55 })); trail.frustumCulled = false; trail.visible = false; this.root.add(trail);
-      return { sh, trail, x:0, z:0, live:false }; });
+      const rg = new THREE.BufferGeometry(); rg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(T*6), 3)); rg.setAttribute("color", new THREE.BufferAttribute(rc, 3)); rg.setIndex(idx);
+      const rib = new THREE.Mesh(rg, ribMat); rib.frustumCulled = false; rib.visible = false; this.root.add(rib);
+      const lit = pool(0x9a4aff, .75, 2.5); lit.visible = false; this.root.add(lit);      // a pool of violet light under each shadow
+      return { sh, trail, rib, lit, x:0, z:0, live:false }; });
     this.petals = [];
     const pm = new THREE.MeshStandardMaterial({ color:0xff3040, emissive:0xa0101a, roughness:.4, side:THREE.DoubleSide });
     for (let i = 0; i < 3; i++){ const m = new THREE.Mesh(SHELL, pm); m.scale.set(.5, .65, .25); m.visible = false; this.root.add(m);
@@ -577,7 +665,7 @@ const SHADOW = {
     this.st = { x:0, z:5, tx:0, tz:5, next:t0 + BAR, got:0, stolen:0, k:Math.round(t0*11), delay:this.delayAt(L0), dBar:-1 };
     this.hist = [{ t:t0 - 20, x:0, z:5 }];
     this.petals.forEach(p => { p.on = false; p.m.visible = false; });
-    this.shadows.forEach(s => { s.live = false; s.sh.visible = s.trail.visible = false; });
+    this.shadows.forEach(s => { s.live = false; s.sh.visible = s.trail.visible = s.rib.visible = s.lit.visible = false; });
   },
   L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
   delayAt(L){ return clamp(3 - 1.2*L, 1.4, 3); },
@@ -614,12 +702,23 @@ const SHADOW = {
   },
   render(dt, t){
     const st = this.st;
-    ME.position.set(st.x, 1, st.z); ME.scale.setScalar(.8); ME.userData.beam.visible = true; ME.userData.beam.material.opacity = .3;
+    ME.position.set(st.x, 1, st.z); ME.scale.setScalar(.8); ME.userData.beam.visible = true; ME.userData.beam.material.opacity = .38;
     this.shadows.forEach((s, i) => { const show = s.live || (t > this.start + s.dl - .4 && (i === 0 || this.L(t) > 1.1));
       s.sh.visible = show && !(!s.live && Math.floor(t*10) % 2); s.sh.position.set(s.x, 1, s.z); s.sh.rotation.y = -t*2;
-      s.trail.visible = show;
+      s.trail.visible = s.rib.visible = show; s.lit.visible = s.sh.visible; s.lit.position.set(s.x, .08, s.z);
       if (show){ const pos = s.trail.geometry.attributes.position, from = t - s.dl, span = i === 0 ? s.dl : st.delay;
-        for (let k = 0; k < this.TRAIL; k++){ const p = this.at(from + span*k/(this.TRAIL - 1)); pos.setXYZ(k, p.x, .12, p.z); } pos.needsUpdate = true; } });
+        for (let k = 0; k < this.TRAIL; k++){ const p = this.at(from + span*k/(this.TRAIL - 1)); pos.setXYZ(k, p.x, .12, p.z); } pos.needsUpdate = true;
+        // the band of light along the same points
+        const a = pos.array, rp = s.rib.geometry.attributes.position, ra = rp.array, T = this.TRAIL; let nx = 0, nz = 1;
+        for (let k = 0; k < T; k++){ const k0 = Math.max(0, k - 1)*3, k1 = Math.min(T - 1, k + 1)*3, dx = a[k1] - a[k0], dz = a[k1 + 2] - a[k0 + 2], l = Math.hypot(dx, dz);
+          if (l > 1e-4){ nx = -dz/l*.24; nz = dx/l*.24; } const x = a[k*3], z = a[k*3 + 2], o = k*6;
+          ra[o] = x + nx; ra[o + 1] = .1; ra[o + 2] = z + nz; ra[o + 3] = x - nx; ra[o + 4] = .1; ra[o + 5] = z - nz; }
+        rp.needsUpdate = true; } });
+    // sparks when a petal is taken: pink for you, violet for the shadow
+    if (this.fxSt !== st){ this.fxSt = st; this.fxGot = st.got; this.fxStolen = st.stolen; }
+    const took = st.got > this.fxGot, lost = st.stolen > this.fxStolen; this.fxGot = st.got; this.fxStolen = st.stolen;
+    for (const q of this.petals){ if (q.was && !q.on){ if (took && Math.hypot(q.x - st.x, q.z - st.z) < 1.6) FX.burst(q.x, .9, q.z, 1, .5, .55, 8, 3.4); else if (lost) FX.burst(q.x, .9, q.z, .62, .36, 1, 6, 2.6); } q.was = q.on; }
+    this.floor.material.opacity = .7 + (onBeat(t) ? .3 : 0);
     for (const q of this.petals) if (q.on){ const life = 1 - (t - q.t0)/q.life; q.m.position.set(q.x, .8 + Math.sin(t*3 + q.x)*.2, q.z); q.m.rotation.set(-.6, t*1.5, 0);
       q.m.scale.setScalar(.55*(onBeat(t) ? 1.2 : 1)*(.5 + .5*clamp(life*3, 0, 1))); }
     this.ring.material.opacity = .25 + (onBeat(t) ? .2 : 0);
@@ -630,6 +729,99 @@ const SHADOW = {
 const GAMES = { rain:RAIN, stem:STEM, shadow:SHADOW };
 function switchTo(name){ G = GAMES[name]; for (const g of Object.values(GAMES)) g.root.visible = g === G; camInit = false;
   const fov = G === STEM ? 62 : 50; if (cam.fov !== fov){ cam.fov = fov; cam.updateProjectionMatrix(); } }
+
+/* ---------------- the look: the far sky, light under the hero, motes and sparks ----------------
+   Built once in boot(), moved once a frame from render(). Nothing here is read by the game. */
+const FX = {
+  SN:72, MN:70, si:0, sk:0,
+  build(){
+    // -- far things: they travel with the camera and the fog doesn't reach them
+    const far = this.far = new THREE.Group(); scene.add(far);
+    // stars in the dark top of the sky
+    const N = 420, sp = new Float32Array(N*3), sc = new Float32Array(N*3);
+    for (let i = 0; i < N; i++){ const el = .36 + hsh(i*1.7)*1.18, az = hsh(i*3.1)*6.2832, b = (.3 + .7*hsh(i*5.3)*hsh(i*7.7))*clamp((el - .3)/.5, .2, 1);
+      sp[i*3] = Math.cos(el)*Math.cos(az)*380; sp[i*3 + 1] = Math.sin(el)*380; sp[i*3 + 2] = Math.cos(el)*Math.sin(az)*380;
+      sc[i*3] = b; sc[i*3 + 1] = b*.85; sc[i*3 + 2] = b*.7; }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3)); sg.setAttribute("color", new THREE.BufferAttribute(sc, 3));
+    const stars = new THREE.Points(sg, new THREE.PointsMaterial({ map:DOT, size:3.2, sizeAttenuation:false, vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+    stars.frustumCulled = false; stars.renderOrder = -6; far.add(stars);
+    // the sun going down, a little to the right of the rose (where the rocks leave the horizon open)
+    const SUN = radial([[0, "rgba(255,246,214,1)"], [.075, "rgba(255,236,180,1)"], [.092, "rgba(255,190,110,.7)"], [.2, "rgba(255,130,60,.3)"], [.5, "rgba(255,90,40,.09)"], [1, "rgba(255,60,30,0)"]], 256);
+    this.sun = new THREE.Sprite(new THREE.SpriteMaterial({ map:SUN, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, fog:false }));
+    this.sun.position.set(17, 11, -370); this.sun.scale.setScalar(300); this.sun.renderOrder = -5; far.add(this.sun);
+    // the far side of the canyon: two rows of hazy buttes on the horizon, their tops lit, and the plain under them
+    const cv = document.createElement("canvas"); cv.width = 2048; cv.height = 256; const g = cv.getContext("2d"), HZ = 170;
+    let gr = g.createLinearGradient(0, HZ - 46, 0, HZ); gr.addColorStop(0, "rgba(255,150,80,0)"); gr.addColorStop(1, "rgba(255,170,95,.4)"); g.fillStyle = gr; g.fillRect(0, HZ - 46, 2048, 46);
+    const butte = (x, w, h, fill, rim) => { const top = HZ - h, tl = x - w*.42, tr = x + w*.4, dip = h*(.04 + .12*hsh(x));
+      g.beginPath(); g.moveTo(x - w*.85, HZ + 2); g.lineTo(x - w*.5, HZ - h*.38); g.lineTo(tl, top); g.lineTo(x - w*.05, top + dip*.4); g.lineTo(tr, top + dip); g.lineTo(x + w*.5, HZ - h*.34); g.lineTo(x + w*.9, HZ + 2); g.closePath(); g.fillStyle = fill; g.fill();
+      g.beginPath(); g.moveTo(x - w*.5, HZ - h*.38); g.lineTo(tl, top); g.lineTo(x - w*.05, top + dip*.4); g.lineTo(tr, top + dip); g.strokeStyle = rim; g.lineWidth = 1.6; g.stroke(); };
+    for (let i = 0; i < 24; i++) butte(190 + hsh(i*1.9)*1640, 50 + hsh(i*3.3)*110, 14 + hsh(i*5.1)*38, "#9a4424", "rgba(255,200,130,.55)");
+    butte(1905, 84, 25, "#9a4424", "rgba(255,200,130,.55)"); butte(74, 92, 21, "#9a4424", "rgba(255,200,130,.55)");     // either side of the sun (the texture's seam faces it)
+    for (let i = 0; i < 16; i++) butte(210 + hsh(i*2.7 + 40)*1600, 60 + hsh(i*4.9 + 40)*130, 10 + hsh(i*6.3 + 40)*28, "#5e2616", "rgba(255,170,100,.5)");
+    g.fillStyle = "#4a1a10"; g.fillRect(0, HZ, 2048, 256 - HZ); g.fillStyle = "rgba(255,190,120,.3)"; g.fillRect(0, HZ - 1, 2048, 1.5);
+    g.globalCompositeOperation = "destination-out"; gr = g.createLinearGradient(0, 228, 0, 256); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,1)"); g.fillStyle = gr; g.fillRect(0, 228, 2048, 28);
+    const st = new THREE.CanvasTexture(cv); st.wrapS = THREE.RepeatWrapping; st.repeat.x = 2;
+    const strip = new THREE.Mesh(new THREE.CylinderGeometry(385, 385, 1, 48, 1, true), new THREE.MeshBasicMaterial({ map:st, transparent:true, side:THREE.BackSide, fog:false, depthWrite:false }));
+    strip.scale.y = 160.7; strip.position.y = 26.4; strip.renderOrder = -4; far.add(strip);
+    // streaks of cloud, lit from below: orange near the sun, dusky red away from it
+    this.clouds = new THREE.Group(); far.add(this.clouds);
+    const c0 = new THREE.Color(0x8a2a36), c1 = new THREE.Color(0xff9a52);
+    for (let i = 0; i < 14; i++){ const az = i/14*6.2832 + hsh(i*2.9)*.3, el = .09 + hsh(i*4.3)*.34, near = Math.max(0, Math.cos(az));      // az 0 = towards the sun
+      const c = new THREE.Sprite(new THREE.SpriteMaterial({ map:STREAK, color:c0.clone().lerp(c1, near), transparent:true, opacity:.3 + .35*near, depthWrite:false, blending:THREE.AdditiveBlending, fog:false }));
+      c.position.set(Math.sin(az)*Math.cos(el)*360, Math.sin(el)*360, -Math.cos(az)*Math.cos(el)*360); c.scale.set(90 + hsh(i*6.1)*110, 12 + hsh(i*8.3)*14, 1); c.renderOrder = -3; this.clouds.add(c); }
+    // -- light on the ground: the low sun across the canyon floor, a green pool under the saucer
+    const wash = pool(0xff7a30, .3, 75); wash.position.set(10, .03, -52); scene.add(wash);
+    this.under = pool(0x8affb0, .6, 2.3); scene.add(this.under);
+    // a streak under the saucer while it climbs the stem
+    this.streak = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0x8affb0, transparent:true, opacity:.24, depthWrite:false, blending:THREE.AdditiveBlending, fog:false })); this.streak.scale.set(1.1, 5, 1); this.streak.visible = false; scene.add(this.streak);
+    // -- motes of dust in the last light (one cloud of points)
+    this.mb = new Float32Array(this.MN*3); for (let i = 0; i < this.MN*3; i++) this.mb[i] = hsh(i*1.37 + 9);
+    const mg = new THREE.BufferGeometry(); mg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(this.MN*3), 3));
+    this.motes = new THREE.Points(mg, new THREE.PointsMaterial({ map:DOT, color:0xffb070, size:2.6, sizeAttenuation:false, transparent:true, opacity:.55, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+    this.motes.frustumCulled = false; this.motes.visible = false; scene.add(this.motes);
+    // -- sparks (one cloud of points for every burst in all three games)
+    this.svel = new Float32Array(this.SN*3); this.sbase = new Float32Array(this.SN*3); this.slife = new Float32Array(this.SN);
+    const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(this.SN*3), 3)); pg.setAttribute("color", new THREE.BufferAttribute(new Float32Array(this.SN*3), 3));
+    this.sparks = new THREE.Points(pg, new THREE.PointsMaterial({ map:DOT, size:.75, vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+    this.sparks.frustumCulled = false; this.sparks.visible = false; scene.add(this.sparks);
+  },
+  burst(x, y, z, r, g, b, n, v){
+    if (CALM || !this.sparks) return;
+    const p = this.sparks.geometry.attributes.position.array;
+    for (let j = 0; j < n; j++){ const i = this.si = (this.si + 1) % this.SN, k = this.sk++, a = hsh(k*1.3)*6.2832, u = hsh(k*2.7)*2 - 1, q = Math.sqrt(1 - u*u), s = v*(.5 + hsh(k*3.9)), o = i*3;
+      p[o] = x; p[o + 1] = y; p[o + 2] = z; this.svel[o] = Math.cos(a)*q*s; this.svel[o + 1] = Math.abs(u)*s + 1; this.svel[o + 2] = Math.sin(a)*q*s;
+      this.sbase[o] = r; this.sbase[o + 1] = g; this.sbase[o + 2] = b; this.slife[i] = 1; }
+  },
+  frame(dt, t){
+    this.far.position.copy(cam.position);
+    const end = S.end >= 0, stem = G === STEM && !end;
+    // the light breathes with the beat, more when the song is loud
+    const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT, beat = CALM ? 0 : Math.pow(1 - ph, 3)*(section(t) === "loud" ? 1 : .4);
+    this.sun.scale.setScalar(300*(1 + .05*beat));
+    if (!CALM) this.clouds.rotation.y = Math.sin(t*.01)*.15;
+    RAIN.rose.userData.halo.material.opacity = .42 + .16*beat; SHADOW.rose.userData.halo.material.opacity = .22 + .1*beat;
+    // light under the hero: a pool on the ground, or the streak below it on the stem
+    this.under.visible = ME.visible && !stem; this.under.position.set(ME.position.x, .07, ME.position.z); this.under.scale.setScalar((G === SHADOW && !end ? 3.3 : 2.3)*ME.scale.x*(1 + .1*beat));
+    this.streak.visible = ME.visible && stem; this.streak.position.set(ME.position.x, ME.position.y - 2.4, ME.position.z);
+    ME.userData.glow.material.opacity = .5 + .25*beat;
+    // motes: rising in the canyon; on the stem they fall past as you climb (not in the shadow game, seen from above)
+    const m = this.motes; m.visible = !CALM && (end || G !== SHADOW);
+    if (m.visible){ const a = m.geometry.attributes.position.array, b = this.mb, y0 = stem ? STEM.st.y : 0;
+      for (let i = 0; i < this.MN; i++){ const o = i*3, h1 = b[o], h2 = b[o + 1], h3 = b[o + 2];
+        if (stem){ const az = h1*6.2832 + t*.05, r = 4.5 + h3*9; a[o] = Math.cos(az)*r; a[o + 2] = Math.sin(az)*r;
+          a[o + 1] = y0 - 8 + ((h2*34 + t*(.4 + h3) - y0*(.35 + .5*h1)) % 34 + 34) % 34; }
+        else { a[o] = (h1 - .5)*26 + Math.sin(t*.4 + i)*.6; a[o + 1] = (h2*13 + t*(.25 + h3*.4)) % 13; a[o + 2] = -12 + h3*18; } }
+      m.geometry.attributes.position.needsUpdate = true; }
+    // sparks fly, fall and fade
+    this.sparks.material.size = stem ? .3 : G === SHADOW && !end ? 1.2 : .75;      // the camera is close on the stem, far above in the shadow game
+    let any = false; const p = this.sparks.geometry.attributes.position.array, c = this.sparks.geometry.attributes.color.array;
+    for (let i = 0; i < this.SN; i++){ if (this.slife[i] <= 0) continue; any = true; const o = i*3, f = Math.max(0, this.slife[i] -= dt*2.4);
+      this.svel[o + 1] -= 7*dt; p[o] += this.svel[o]*dt; p[o + 1] += this.svel[o + 1]*dt; p[o + 2] += this.svel[o + 2]*dt;
+      c[o] = this.sbase[o]*f; c[o + 1] = this.sbase[o + 1]*f; c[o + 2] = this.sbase[o + 2]*f; }
+    if (any){ this.sparks.geometry.attributes.position.needsUpdate = true; this.sparks.geometry.attributes.color.needsUpdate = true; }
+    this.sparks.visible = any;
+  }
+};
 
 /* ---------------- the run ---------------- */
 function reset(){
@@ -707,7 +899,7 @@ function render(dt){
   if (S.end >= 0){
     // the cover: the saucer drifts down to the foot of the stem
     const u = clamp(S.end/3, 0, 1), s = u*u*(3 - 2*u), x0 = RAIN.st.x;
-    ME.visible = true; ME.position.set(x0*(1 - s), 2.2 - s*.9, -5.6*s); ME.scale.setScalar(1 - s*.25); ME.rotation.y = t*1.2; ME.userData.beam.visible = true; ME.userData.beam.material.opacity = .35;
+    ME.visible = true; ME.position.set(x0*(1 - s), 2.2 - s*.9, -5.6*s); ME.scale.setScalar(1 - s*.25); ME.rotation.y = t*1.2; ME.userData.beam.visible = true; ME.userData.beam.material.opacity = .42;
     RAIN.rose.userData.bloom.rotation.y = Math.sin(t*.4)*.2;
     const portrait = cam.aspect < .8;
     CAMP.set(0, 5, portrait ? 22 : 13); CAML.set(0, 5.6, -7);
@@ -721,6 +913,7 @@ function render(dt){
   const k = camInit && S.end < 0 ? Math.min(1, dt*6) : camInit ? Math.min(1, dt*1.5) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
   sky.position.copy(cam.position);
+  FX.frame(dt, t);
   ren.render(scene, cam);
 }
 function frame(){
@@ -773,6 +966,7 @@ function boot(){
   buildCanyon();
   ME = buildSaucer(); scene.add(ME);
   RAIN.setup(); STEM.setup(); SHADOW.setup();
+  FX.build();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }

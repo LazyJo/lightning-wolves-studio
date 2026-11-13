@@ -331,6 +331,52 @@ function heartMesh(){ const g = new THREE.Group(), hm = new THREE.MeshBasicMater
   for (const s of [-1, 1]){ const b = new THREE.Mesh(new THREE.SphereGeometry(.32, 12, 10), hm); b.position.set(s*.25, .15, 0); g.add(b); }
   const tip = new THREE.Mesh(new THREE.ConeGeometry(.44, .6, 14), hm); tip.rotation.z = Math.PI; tip.position.y = -.2; g.add(tip); g.add(sprite(0xff3d6a, 3, .6)); g.scale.setScalar(1.6); return g; }
 
+/* ---------------- the look (pictures only: nothing in here is read by the play) ----------------
+   The sky gets stars and a far skyline with the city's glow behind it (they travel with the car, the fog doesn't
+   reach them); every street gets kerbs of light that follow its true edge round the corners (lilac in the calm
+   parts, pink in the verses, gold in the hooks), a pavement, and the glow of its neon signs and corner board. */
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+const SEC_C = { calm:[.6, .55, 1], loud:[1, .36, .64], hook:[1, .78, .24] };
+const KERB_M = new THREE.MeshBasicMaterial({ vertexColors:true, side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-1 });
+const GLOW_M = new THREE.MeshBasicMaterial({ map:DOT, vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2 });
+// a pile of quads that becomes one mesh: corners a b c d ([x, y, z]), colour k0 for a and b, k1 for c and d
+function quads(){ const p = [], c = [], u = [], ix = [];
+  return { n:0,
+    quad(a, b, cc, d, k0, k1, uv){ const n = p.length/3; p.push(a[0], a[1], a[2], b[0], b[1], b[2], cc[0], cc[1], cc[2], d[0], d[1], d[2]);
+      c.push(k0[0], k0[1], k0[2], k0[0], k0[1], k0[2], k1[0], k1[1], k1[2], k1[0], k1[1], k1[2]); const q = uv || [0, 0, 1, 0, 1, 1, 0, 1]; for (let i = 0; i < 8; i++) u.push(q[i]);
+      ix.push(n, n + 1, n + 2, n, n + 2, n + 3); this.n++; },
+    mesh(mat){ const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(p, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(c, 3));
+      g.setAttribute("uv", new THREE.Float32BufferAttribute(u, 2)); g.setIndex(ix); const m = new THREE.Mesh(g, mat); m.userData.fx = true; return m; } }; }
+const mul = (c, k) => [c[0]*k, c[1]*k, c[2]*k];
+// the sparks to pick up: a bright point with a glint, so they don't read as one more lamp
+const SPARKT = canvasTex(64, 64, (x, w) => { const r = w/2, g = x.createRadialGradient(r, r, 0, r, r, r);
+  [[0, "rgba(255,255,255,1)"], [.16, "rgba(255,255,255,.85)"], [.42, "rgba(255,255,255,.2)"], [1, "rgba(255,255,255,0)"]].forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, w, w);
+  x.globalCompositeOperation = "lighter";
+  for (const v of [0, 1]){ const l = v ? x.createLinearGradient(0, 0, 0, w) : x.createLinearGradient(0, 0, w, 0); l.addColorStop(0, "rgba(255,255,255,0)"); l.addColorStop(.5, "rgba(255,255,255,.9)"); l.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = l; if (v) x.fillRect(r - 1.5, 0, 3, w); else x.fillRect(0, r - 1.5, w, 3); } });
+// the far skyline, all the way round: the city's glow, a hazy row of towers, a darker row in front, their windows
+const FARCITY = canvasTex(2048, 256, (x, w, h) => {
+  const g = x.createLinearGradient(0, h, 0, h*.15); g.addColorStop(0, "rgba(255,96,150,.5)"); g.addColorStop(.4, "rgba(176,96,255,.2)"); g.addColorStop(1, "rgba(120,80,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let L = 0; L < 2; L++){ let px = 0, k = 0;
+    while (px < w){ const q = L*500 + k++, bw = 12 + rnd(q*1.9 + 7)*26, tall = rnd(q*2.7 + 8) < .14;
+      const bh = L ? 22 + rnd(q*3.3 + 9)*52 + (tall ? 60 + rnd(q*5.1 + 3)*40 : 0) : 60 + rnd(q*3.3 + 9)*70 + (tall ? 55 : 0);
+      x.fillStyle = L ? "#150f30" : "#2c1e60"; x.fillRect(px, h - bh, bw + 1, bh);
+      if (tall && L){ x.fillRect(px + bw/2, h - bh - 12, 1.5, 12); x.fillStyle = "#ff3a4a"; x.fillRect(px + bw/2 - 1, h - bh - 15, 3, 3); }
+      for (let wy = h - bh + 3; wy < h - 5; wy += 5) for (let wx = px + 2; wx < px + bw - 3; wx += 4){ const r = rnd(q*13.7 + wy*.91 + wx*3.3);
+        if (r < (L ? .3 : .15)){ x.globalAlpha = (L ? .45 : .22) + rnd(r*77 + 1)*.4; x.fillStyle = r < .04 ? "#ff5a6a" : r < .12 ? "#f4f0ff" : r < .2 ? "#ffb060" : "#ffe2b0"; x.fillRect(wx, wy, 2, 2.4); } }
+      x.globalAlpha = 1; px += bw + (rnd(q*7.7 + 5) < .25 ? 2 + rnd(q*9.9 + 6)*10 : 0); } } }, [3, 1]);
+FARCITY.wrapT = THREE.ClampToEdgeWrapping;
+function skyExtras(g){
+  const N = 340, pos = new Float32Array(N*3), col = new Float32Array(N*3);
+  for (let i = 0; i < N; i++){ const a = rnd(i*1.7 + 900)*Math.PI*2, sy = .09 + .9*rnd(i*2.3 + 901), cy = Math.sqrt(1 - sy*sy), b = .3 + .7*Math.pow(rnd(i*3.1 + 902), 2), w = rnd(i*4.3 + 903);
+    pos[i*3] = Math.cos(a)*cy*1300; pos[i*3 + 1] = sy*1300; pos[i*3 + 2] = Math.sin(a)*cy*1300; col[i*3] = b*(w < .25 ? 1 : .84); col[i*3 + 1] = b*.84; col[i*3 + 2] = b*(w > .75 ? .78 : 1); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(pos, 3)); sg.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const stars = new THREE.Points(sg, new THREE.PointsMaterial({ map:DOT, size:4, sizeAttenuation:false, vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, fog:false }));
+  stars.renderOrder = -3; stars.frustumCulled = false; g.add(stars);
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(1000, 1000, 200, 48, 1, true), new THREE.MeshBasicMaterial({ map:FARCITY, transparent:true, side:THREE.BackSide, fog:false, depthWrite:false }));
+  ring.position.y = 94; ring.renderOrder = -2; g.add(ring);
+}
+
 /* ---------------- state, HUD ---------------- */
 let S = null, G = null;
 const keys = {};
@@ -378,6 +424,7 @@ const RACE = {
     this.sky = new THREE.Group(); scene.add(this.sky);
     this.sky.add(new THREE.Mesh(new THREE.SphereGeometry(1400, 32, 16), new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(cv), side:THREE.BackSide, fog:false, depthWrite:false })));
     this.moon = moonAndClouds(this.sky, new THREE.Vector3(.25, .4, -1).normalize(), 1100, 150);
+    skyExtras(this.sky);
     // Jo's car: silver like the saucer, the "L" on the roof, a light cone on the road, nitro flames
     this.me = buildCar(0xd8dce8); scene.add(this.me);
     const badge = new THREE.Mesh(new THREE.CircleGeometry(.5, 24), new THREE.MeshBasicMaterial({ map:BADGE, transparent:true })); badge.rotation.x = -Math.PI/2; badge.position.set(0, 1.44, .4); this.me.userData.body.add(badge);
@@ -395,6 +442,8 @@ const RACE = {
     this.smoke = []; for (let i = 0; i < 70; i++){ const s = sprite(0xe0c8ff, 2, 0); scene.add(s); this.smoke.push({ s, life:0 }); }
     this.spk = []; for (let i = 0; i < 60; i++){ const s = sprite(0xffe0f4, 1.8); s.visible = false; scene.add(s); this.spk.push({ s, on:false }); }
     this.heart = { g:heartMesh(), on:false }; this.heart.g.visible = false; scene.add(this.heart.g);
+    // (the look only) the neon under each of the other cars is its own colour - the purple one is yours; the sparks get their glint
+    this.rv.forEach((r, k) => r.m.userData.under.material.color.setHex(RIVALS[k][3])); for (const p of this.spk) p.s.material.map = SPARKT;
     this.vis = {};
   },
   L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
@@ -549,8 +598,46 @@ const RACE = {
         u += bw + 1 + rnd(k*4.4)*4; } }
     if (i !== this.fin && i + 1 < H.length){ const b = city(at3(new THREE.Mesh(CHEV_G, CHEV_M), 0, 2.6, -(len + W/2 + 2))); if (H[i + 1] < H[i]) b.scale.x = -1;
       for (const sd of [-1, 1]) city(at3(new THREE.Mesh(POLE_G, POLE_M), sd*4.6, 1, -(len + W/2 + 2.1))).scale.y = .3; }
+    this.dress(i, g, len);
   },
-  drop(k){ const g = this.vis[k]; if (!g) return; this.root.remove(g); g.traverse(o => { if (o.userData.own){ o.geometry.dispose(); if (o.material.map && o.material.map !== ROADT && !BLD.includes(o.material)){ o.material.map.dispose(); o.material.dispose(); } } }); delete this.vis[k]; },
+  // (the look only) street i's kerbs of light along its true edge - cut where another street joins - its pavement,
+  // the glow of its neon signs and of the board at its corner. One mesh for the kerbs, one for the glows.
+  dress(i, g, len){ const P = this.P, H = this.H, D = this.D, W = this.W, h = H[i], ch = Math.cos(h), sh = Math.sin(h), fin = i === this.fin;
+    const col = SEC_C[section(this.T[i])] || SEC_C.calm, A = quads(), B = quads(), yk = .12 + (i % 2)*.02, yp = .026 + (i % 4)*.005;
+    const face = mul(col, .9), lit = mul(col, .5), p0 = [.07 + col[0]*.1, .055 + col[1]*.1, .13 + col[2]*.1], p1 = [.05, .04, .1];
+    // is this point of street i (its own x, z) on another street (taken m metres wider)?
+    const taken = (lx, lz, m) => { const wx = P[i].x + ch*lx - sh*lz, wz = P[i].z + sh*lx + ch*lz;
+      for (let j = Math.max(0, i - 2); j <= i + 2 && j < P.length - 1; j++){ if (j === i) continue;
+        const a = (wx - P[j].x)*Math.sin(H[j]) - (wz - P[j].z)*Math.cos(H[j]), l = (wx - P[j].x)*Math.cos(H[j]) + (wz - P[j].z)*Math.sin(H[j]);
+        if (a > -W/2 - m && a < D[j + 1] - D[j] + W/2 + m && Math.abs(l) < W/2 + m) return true; }
+      return false; };
+    const runs = (ok, a, b, emit) => { const N = Math.ceil((b - a)/.5); let s0 = null, sp = a;
+      for (let n = 0; n <= N; n++){ const s = Math.min(b, a + n*.5), on = ok(s); if (on && s0 === null) s0 = s; if (!on && s0 !== null){ if (sp > s0) emit(s0, sp); s0 = null; } sp = s; }
+      if (s0 !== null && b > s0) emit(s0, b); };
+    // one edge: from (ox, oz) along (dx, dz) for Ln metres, (nx, nz) pointing off the road; the kerb itself from k0 to k1
+    const edge = (ox, oz, dx, dz, nx, nz, Ln, k0, k1) => { const pt = (s, o, y) => [ox + dx*s + nx*o, y, oz + dz*s + nz*o], free = (s, o, m) => !taken(ox + dx*s + nx*o, oz + dz*s + nz*o, m);
+      runs(s => free(s, .2, 0), k0, k1, (a, b) => { A.quad(pt(a, 0, yk), pt(b, 0, yk), pt(b, .32, yk), pt(a, .32, yk), col, col); A.quad(pt(a, 0, 0), pt(b, 0, 0), pt(b, 0, yk), pt(a, 0, yk), face, face);
+        const e = Math.min(2.6, (b - a)/2); B.quad(pt(a + e, -2.6, .07), pt(b - e, -2.6, .07), pt(b, .3, .07), pt(a, .3, .07), lit, lit, [1, .5, 1, .5, .5, .5, .5, .5]); });
+      runs(s => free(s, .2, .45) && free(s, 2.2, .45) && free(s, 4, .45), 0, Ln, (a, b) => A.quad(pt(a, .4, yp), pt(b, .4, yp), pt(b, 4, yp), pt(a, 4, yp), p0, p1)); };
+    for (const sd of [-1, 1]) edge(sd*W/2, W/2 + .4, 0, -1, sd, 0, len + W + .8, 0, len + W + .8);
+    edge(-W/2 - 4, W/2, 1, 0, 0, 1, W + 8, 4, W + 4);
+    if (!fin) edge(-W/2 - 4, -(len + W/2), 1, 0, 0, -1, W + 8, 4, W + 4);
+    const fx = new THREE.Group(); g.add(fx); g.userData.fx = fx;
+    // the neon signs: a halo towards the street, one along the wall, their colour spilt on the pavement
+    for (const n of g.children) if (n.isMesh && NEON.includes(n.material)){ const T = fin ? quads() : B, c = n.material.color, k = [c.r, c.g, c.b], sd = Math.sign(n.position.x), y = n.position.y, hh = n.geometry.parameters.height/2 + 2.5;
+      const x = fin ? 0 : n.position.x, z = fin ? 0 : n.position.z, k1 = mul(k, .55), k2 = mul(k, .45), xw = x - sd*.25;
+      T.quad([x - 3, y - hh, z], [x + 3, y - hh, z], [x + 3, y + hh, z], [x - 3, y + hh, z], k1, k1);
+      T.quad([xw, y - hh, z - 3.5], [xw, y - hh, z + 3.5], [xw, y + hh, z + 3.5], [xw, y + hh, z - 3.5], k2, k2);
+      T.quad([x - sd*6, .08, z - 5], [x + sd*.2, .08, z - 5], [x + sd*.2, .08, z + 5], [x - sd*6, .08, z + 5], k2, k2);
+      // on the last street each sign's glow is its own piece, so the ones past the water's edge go with their buildings
+      if (fin){ const m = T.mesh(GLOW_M); m.position.set(n.position.x, 0, n.position.z); m.userData.city = true; fx.add(m); } }
+    // the board at the corner: a red glow behind it and on the road under it
+    if (!fin){ const zb = -(len + W/2 + 2), k = [.5, .12, .19];
+      B.quad([-9, -1.4, zb - .12], [9, -1.4, zb - .12], [9, 6.6, zb - .12], [-9, 6.6, zb - .12], k, k);
+      B.quad([-8, .08, zb + .3], [8, .08, zb + .3], [8, .08, zb + 12], [-8, .08, zb + 12], k, k, [0, .5, 1, .5, 1, 1, 0, 1]); }
+    if (A.n) g.add(A.mesh(KERB_M)); if (B.n) fx.add(B.mesh(GLOW_M));
+  },
+  drop(k){ const g = this.vis[k]; if (!g) return; this.root.remove(g); g.traverse(o => { if (o.userData.fx && o.isMesh) o.geometry.dispose(); if (o.userData.own){ o.geometry.dispose(); if (o.material.map && o.material.map !== ROADT && !BLD.includes(o.material)){ o.material.map.dispose(); o.material.dispose(); } } }); delete this.vis[k]; },
   // the trail of your tail lights: red-white at the car, fading to purple
   drawTrail(c){ const P = this.tp, bx = c.x - Math.sin(c.th)*2.3, bz = c.z + Math.cos(c.th)*2.3;
     const last = P[P.length - 1]; if (last && Math.hypot(last.x - bx, last.z - bz) > 12) P.length = 0;
@@ -579,6 +666,9 @@ const RACE = {
     for (const p of this.spk) if (p.on){ p.s.position.set(p.x, 1.4, p.z); p.s.scale.setScalar((p.gold ? 2.2 : 1.8) + (beat ? .6 : 0)); }
     if (this.heart.on){ this.heart.g.position.set(this.heart.x, 1.6, this.heart.z); this.heart.g.rotation.y = t*2; }
     this.ground.position.set(Math.round(c.x/50)*50, 0, Math.round(c.z/50)*50); this.sky.position.set(c.x, 0, c.z);
+    // (the look only) the kerbs and the glows breathe with the beat; on a phone that had to drop pixels the glows go
+    for (const k in this.vis){ const f = this.vis[k].userData.fx; if (f) f.visible = !LITE.cut; }
+    KERB_M.color.setScalar(beat && !CALM ? 1.15 : 1); GLOW_M.color.setScalar(beat && !CALM ? 1.4 : 1);
     // the saucer: over the start line for the countdown (its lights go red, red, red, green), then over the next corner, beam on it
     const L = ME.userData.lights.children, cd = t < barT(1) ? 0xf0fbff : t < this.go ? (Math.floor((t - barT(1))/BEAT) < 3 ? 0xff3a5a : 0xf0fbff) : t < this.go + 1 ? 0x5aff8a : 0xf0fbff;
     for (let i = 0; i < L.length; i++) L[i].material.color.setHex(t >= barT(1) && t < this.go && i > (Math.floor((t - barT(1))/BEAT) + 1)*4 ? 0x3a2a3a : cd);
@@ -728,7 +818,7 @@ function autoLite(){
   if (avg < 28) return;
   const pr = LITE.steps.find(s => s < ren.getPixelRatio() - .01);
   if (pr == null) return;
-  ren.setPixelRatio(pr); ren.setSize(innerWidth, innerHeight); LITE.from = now + 1000;
+  ren.setPixelRatio(pr); ren.setSize(innerWidth, innerHeight); LITE.from = now + 1000; LITE.cut = (LITE.cut || 0) + 1;
 }
 function frame(){
   try {

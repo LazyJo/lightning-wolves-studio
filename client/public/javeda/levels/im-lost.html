@@ -157,6 +157,10 @@ const COYOTE = .10, BUFFER = .16;
 // low walls at full speed, which even a perfect bot clips, so 6 leaves 4 for real
 // mistakes. Measured: a good player fails 19% of runs on 5, 8% on 6.
 const HEARTS = 6;
+// the tall walls are tinted glass, so the rows behind them show through (Jo, 2026-11-13: players couldn't see
+// what was coming past a slab). Over the last few metres to a wall it clears further, and stays clear once
+// passed, so the slab beside the saucer never hides the road ahead. Its lit lip, edges and ticks keep it a wall.
+const GLASS = .62, GLASS_NEAR = .14, GLASS_FADE = 4;
 
 /* Every outbound link lives here, as in the main JAVEDA game: elements carry
    data-link="merch" etc and get their href on boot. Level 2 is still in the main
@@ -336,7 +340,7 @@ function makeWall(lanesFrom, lanesTo, low){
   const h = low ? 1.0 : 4.4;
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, .55),
-    new THREE.MeshStandardMaterial({ color: low ? C.low : C.wall, roughness:.85 }));
+    new THREE.MeshStandardMaterial(low ? { color:C.low, roughness:.85 } : { color:C.wall, roughness:.85, transparent:true, opacity:GLASS, depthWrite:false, emissive:C.wallLip, emissiveIntensity:.4 }));
   body.position.y = h/2; g.add(body);
   const lip = new THREE.Mesh(new THREE.BoxGeometry(w + .12, .17, .72),
     new THREE.MeshBasicMaterial({ color: low ? C.lowLip : C.wallLip }));
@@ -355,7 +359,7 @@ function makeWall(lanesFrom, lanesTo, low){
   pool.rotation.x = -Math.PI/2; pool.position.set(0, .03, 1.5); g.add(pool);
   if (low) for (let i = 0; i < Math.round(w/.9); i++){ const c = new THREE.Mesh(new THREE.BoxGeometry(.34, .16, .6), new THREE.MeshBasicMaterial({ color:0x10202a })); c.position.set(-w/2 + .45 + i*.9, h, 0); g.add(c); }
   g.position.x = ((lanesFrom + lanesTo)/2) * LANE;
-  g.userData = { from:lanesFrom, to:lanesTo, low, h };
+  g.userData = { from:lanesFrom, to:lanesTo, low, h, glass: low ? null : body.material };
   return g;
 }
 /* A hole in the road. Mechanically the opposite of a tall wall: a wall you go
@@ -878,6 +882,9 @@ function render(dt){
   // those, or the fall plays out behind the back of a slab
   for (const w of walls) w.visible = Math.abs(w.position.z + S.dist) < 62 &&
     !(S.crash >= 0 && w.position.z > -S.dist + .6);
+  for (const w of walls){ const m = w.visible && w.userData.glass; if (!m) continue;
+    const ahead = -(w.position.z + S.dist);                 // metres from the saucer to the wall
+    m.opacity = ahead >= GLASS_FADE ? GLASS : ahead <= 0 ? GLASS_NEAR : GLASS_NEAR + (GLASS - GLASS_NEAR) * ahead / GLASS_FADE; }
   for (const p of pickups){
     p.visible = !p.userData.got && Math.abs(p.position.z + S.dist) < 62 && !(S.crash >= 0 && p.position.z > -S.dist + .6);
     p.userData.heart.rotation.y = S.t * 2.4;

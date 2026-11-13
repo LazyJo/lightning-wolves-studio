@@ -169,12 +169,29 @@ html[data-season="autumn"] .logo::after{ content:"\1F342" } html[data-season="sp
 .logo b{font:400 26px/1 var(--display); letter-spacing:.02em;
   background:linear-gradient(172deg,#fff 20%,#67c8ff 110%); -webkit-background-clip:text; background-clip:text; color:transparent}
 .logo span{font:700 11px/1 var(--cond); letter-spacing:.3em; color:var(--mute); text-transform:uppercase}
-.me{display:flex; align-items:center; gap:9px; background:var(--panel); border:1px solid var(--line);
-  border-radius:999px; padding:4px 14px 4px 4px; min-width:0}
-.me img{width:36px; height:36px; border-radius:50%; display:block; flex:none}
-.me .who{display:grid; line-height:1.1; min-width:0}
-.me .nm{font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px}
-.me .pts{font:700 12px/1.2 var(--cond); letter-spacing:.1em; color:var(--gold); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px}
+/* your player: the picture in a gold ring once you're logged in (a mic on it for a creator, a bolt for the Pass), the name,
+   and under it the points you can spend and your badges */
+.me{display:flex; align-items:center; gap:9px; min-width:0; flex:0 1 auto; text-align:left; color:var(--ink); font:inherit; cursor:pointer;
+  background:linear-gradient(180deg,#ffffff10,#ffffff02) var(--panel); border:1px solid var(--line); border-radius:999px; padding:3px 14px 3px 3px;
+  box-shadow:inset 0 1px 0 #ffffff12, 0 6px 18px #0005; transition:border-color .2s, transform .15s}
+.me:hover{border-color:var(--beam)}
+.me:active{transform:scale(.97)}
+.me.in{border-color:#ffd60a55; background:linear-gradient(180deg,#ffd60a17,#ffd60a03) var(--panel)}
+.me .mav{position:relative; flex:none; width:40px; height:40px; border-radius:50%; padding:2px; background:var(--line)}
+.me.in .mav{background:conic-gradient(from 200deg,var(--gold),#fff3b0,var(--beam),var(--gold))}
+.me img{width:36px; height:36px; border-radius:50%; display:block; background:var(--night)}
+.me .mtag{position:absolute; right:-5px; bottom:-4px; width:19px; height:19px; border-radius:50%; display:grid; place-items:center; font:normal 10px/1 system-ui,sans-serif; background:var(--night); border:1.5px solid var(--gold)}
+.me .who{display:grid; gap:4px; min-width:0}
+.me .nm{font:700 14.5px/1.1 var(--ui); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.me .pts{display:flex; align-items:center; gap:8px; font:700 12.5px/1 var(--cond); letter-spacing:.05em; color:var(--dim); white-space:nowrap; overflow:hidden; font-variant-numeric:tabular-nums}
+.me.in .pts .mp{color:var(--gold)}
+.me .pts .mb{color:var(--ink)}
+.me .pts.tight .mb{display:none}
+.me .pts .mp{flex:none}
+.me .pts.tight .mp{flex:0 1 auto; overflow:hidden; text-overflow:ellipsis}
+.me .mtag.cr{background:var(--gold); border-color:#fff6}
+.me.pop .mav{animation:mepop .7s cubic-bezier(.3,1.6,.5,1)}
+@keyframes mepop{ 35%{ transform:scale(1.28); box-shadow:0 0 0 7px #ffd60a40, 0 0 26px #ffd60a99 } }
 .btn{border:0; border-radius:6px; padding:11px 18px; font:700 15px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase;
   background:var(--panel-2); color:var(--ink); border:1px solid var(--line); text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:7px}
 .btn:hover{border-color:var(--beam)}
@@ -469,8 +486,55 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .toast{position:fixed; left:50%; bottom:max(18px, env(safe-area-inset-bottom)); transform:translateX(-50%); z-index:40; background:var(--panel-2); border:1px solid var(--beam); color:var(--ink); border-radius:10px; padding:11px 16px; font-weight:600; max-width:calc(100vw - 32px); box-shadow:0 10px 30px #0008; text-align:center}
 .toast b{color:var(--gold)}
 .toast .ts{color:var(--gold); letter-spacing:.06em}
-@media (max-width:520px){ .pics{grid-template-columns:repeat(3,1fr)} .me .nm, .me .pts{max-width:92px} .logo span{display:none} }
+@media (max-width:520px){ .pics{grid-template-columns:repeat(3,1fr)} .logo span{display:none} }
+/* a phone: the name and the points get the room (the language is a short code there, i18n.js) */
+@media (max-width:420px){ .top{gap:6px} .logo{gap:7px} .logo b{font-size:22px} html[data-season] .logo::after{font-size:16px} .me{padding-right:12px} }
+@media (max-width:370px){ .logo b{font-size:19px} .me{gap:7px; padding-right:11px} .me .pts{gap:6px} }
 @media (prefers-reduced-motion:no-preference){ .toast{animation:up .25s ease-out} @keyframes up{from{transform:translate(-50%,12px); opacity:0}} }
+/* a new badge or picture: a medal that flips in with sparks and light, its name, then it flies into your player */
+.reveal{position:fixed; inset:0; z-index:50; display:grid; place-items:center; padding:24px; text-align:center; cursor:pointer; outline:none; opacity:0; transition:opacity .3s ease}
+/* the dark behind it on its own, so it can go while the medal is still on its way */
+.reveal::before{content:""; position:absolute; inset:0; background:radial-gradient(55% 40% at 50% 46%, #ffd60a2e, transparent 70%), #020610e6;
+  -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); transition:opacity .4s ease .15s}
+.reveal.on{opacity:1}
+.reveal .rv-in{position:relative; display:grid; justify-items:center; gap:9px; max-width:340px}
+.reveal .rv-glow{position:absolute; left:50%; top:74px; width:440px; height:440px; margin:-220px 0 0 -220px; border-radius:50%; pointer-events:none; opacity:0;
+  background:repeating-conic-gradient(from 0deg, #ffd60a40 0 7deg, transparent 7deg 22deg);
+  -webkit-mask:radial-gradient(circle, #000 16%, transparent 66%); mask:radial-gradient(circle, #000 16%, transparent 66%)}
+.reveal .rv-medal{position:relative; width:148px; height:148px; border-radius:50%; display:grid; place-items:center; margin-bottom:12px; opacity:0;
+  background:radial-gradient(circle at 50% 36%, #2e4479, #0a1530 72%);
+  box-shadow:0 0 0 5px var(--gold), 0 0 0 10px #ffd60a33, 0 0 50px #ffd60a99, inset 0 -12px 26px #000a}
+.reveal .rv-e{font-size:74px; line-height:1; filter:drop-shadow(0 4px 10px #0009)}
+.reveal .rv-e img{width:120px; height:120px; border-radius:50%; display:block}
+.reveal .rv-sparks{position:absolute; left:50%; top:74px; width:0; height:0; pointer-events:none}
+.reveal .rv-sparks i{position:absolute; left:-4px; top:-4px; width:8px; height:8px; border-radius:50%; background:var(--gold); box-shadow:0 0 10px var(--gold); opacity:0}
+.reveal .rv-sparks i:nth-child(3n){background:#fff; box-shadow:0 0 10px var(--beam); width:6px; height:6px}
+.reveal .rv-k{font:700 13px/1 var(--cond); letter-spacing:.34em; text-transform:uppercase; color:var(--gold); opacity:0}
+.reveal .rv-n{font:400 clamp(26px,7.5vw,38px)/1.05 var(--display); color:#fff; text-shadow:0 0 22px #ffd60a66; overflow-wrap:anywhere; opacity:0}
+.reveal .rv-h{margin:0; color:var(--dim); font-size:15.5px; line-height:1.35; opacity:0}
+.reveal .rv-c{font:700 12px/1 var(--cond); letter-spacing:.14em; color:var(--mute); min-height:12px; opacity:0}
+.reveal.on .rv-medal{opacity:1; animation:rvpop .85s cubic-bezier(.2,1.4,.4,1) backwards}
+.reveal.on .rv-glow{opacity:1; animation:rvglow .9s ease .15s backwards, rvspin 16s linear infinite}
+.reveal.on .rv-sparks i{animation:rvspark .95s cubic-bezier(.1,.7,.3,1) var(--w) both}
+.reveal.on .rv-k{opacity:1; animation:rvup .45s ease .4s backwards}
+.reveal.on .rv-n{opacity:1; animation:rvup .45s ease .5s backwards}
+.reveal.on .rv-h{opacity:1; animation:rvup .45s ease .62s backwards}
+.reveal.on .rv-c{opacity:1; animation:rvup .45s ease .75s backwards}
+.reveal.fly::before{opacity:0}
+.reveal.fly .rv-medal{animation:none; opacity:0; transform:translate(var(--fx,0), var(--fy,-320px)) scale(.24); transition:transform .6s cubic-bezier(.45,0,.7,.35), opacity .12s linear .56s}
+.reveal.fly .rv-glow, .reveal.fly .rv-k, .reveal.fly .rv-n, .reveal.fly .rv-h, .reveal.fly .rv-c{animation:none; opacity:0; transition:opacity .2s}
+@keyframes rvpop{ 0%{ transform:scale(.15) rotateY(0); opacity:0 } 55%{ transform:scale(1.13) rotateY(360deg); opacity:1 } 100%{ transform:scale(1) rotateY(360deg) } }
+@keyframes rvglow{ from{ opacity:0 } }
+@keyframes rvspin{ to{ transform:rotate(360deg) } }
+@keyframes rvspark{ 0%{ opacity:1; transform:rotate(var(--a)) translateX(10px) scale(1) } 100%{ opacity:0; transform:rotate(var(--a)) translateX(var(--d)) scale(.3) } }
+@keyframes rvup{ from{ opacity:0; transform:translateY(12px) } }
+@media (prefers-reduced-motion:reduce){
+  .reveal.on .rv-medal, .reveal.on .rv-glow, .reveal.on .rv-k, .reveal.on .rv-n, .reveal.on .rv-h, .reveal.on .rv-c{animation:none}
+  .reveal .rv-sparks{display:none}
+  .reveal.fly .rv-medal{transform:none}
+  .me.pop .mav{animation:none}
+}
+.namenote{margin:-4px 0 0; font-size:13.5px}
 
 /* where you are: songs cleared and the way back in (gold once the album is done), and today's challenge beside it */
 .now{display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,1fr); gap:12px}
@@ -723,8 +787,8 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
   <header class="top">
     <a class="logo" href="/javeda/"><b>JAVEDA</b><span>Lazy Jo</span></a>
     <button class="me" id="meBtn" type="button" aria-label="Your profile">
-      <img id="meImg" src="avatars/saucer.svg" alt="">
-      <span class="who"><span class="nm" id="meName">Guest</span><span class="pts" id="mePts">Guest · not saved</span></span>
+      <span class="mav"><img id="meImg" src="avatars/saucer.svg" alt=""><i class="mtag hid" id="meTag" aria-hidden="true"></i></span>
+      <span class="who"><span class="nm" id="meName">Guest</span><span class="pts" id="mePts"><span class="mp">Not saved</span></span></span>
     </button>
   </header>
 
@@ -799,6 +863,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <button class="x" type="button" data-close aria-label="Close">&times;</button>
     <h3 id="pfT">Your player</h3>
     <label class="f">Name <input class="in" id="pfName" maxlength="16" autocomplete="nickname" placeholder="3-16 letters or numbers"></label>
+    <p class="note namenote hid" id="pfNameNote"></p>
     <div>
       <h2 style="margin-bottom:8px">Profile picture</h2>
       <div class="pictabs" id="picTabs" role="group" aria-label="Pictures"></div>
@@ -1108,6 +1173,17 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 </div>
 
 <button class="sharechip hid" id="shareChip" type="button">&#128248; Share</button>
+<div class="reveal hid" id="reveal" role="dialog" aria-modal="true" aria-labelledby="rvN" aria-describedby="rvH" tabindex="-1">
+  <div class="rv-in">
+    <div class="rv-glow" aria-hidden="true"></div>
+    <div class="rv-medal" id="rvMedal"><span class="rv-e" id="rvE" aria-hidden="true"></span></div>
+    <div class="rv-sparks" id="rvSparks" aria-hidden="true"></div>
+    <small class="rv-k" id="rvK">New badge</small>
+    <b class="rv-n" id="rvN"></b>
+    <p class="rv-h" id="rvH"></p>
+    <span class="rv-c" id="rvC" data-i18n-skip></span>
+  </div>
+</div>
 <div class="toast hid" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
@@ -1605,9 +1681,19 @@ function renderMe(){
   $("meName").toggleAttribute("data-i18n-skip", !!(signedIn() || guest.name));   // "Guest" is a word, a player's name isn't
   $("meName").textContent = name;
   $("meImg").src = pic(av);
-  $("mePts").textContent = signedIn() ? fmt(player.points) + " points" + (pass ? " \u00b7 \u26A1 Pass" : "") + (creator ? " · creator, every level open" : "") : "Guest · not saved";
+  $("meBtn").classList.toggle("in", signedIn());
+  // the points you can spend, and your badges (less the ones still to pop up: they count in as they land)
+  const nb = signedIn() && meBadges ? badgesGot(meBadges).length - revealWaiting("b") : 0;
+  $("mePts").innerHTML = signedIn() ? '<span class="mp">' + fmt(player.points) + ' pts</span>' + (nb > 0 ? '<span class="mb" data-i18n-skip>\u{1F3C5} ' + nb + '</span>' : '')
+    : '<span class="mp">Not saved</span>';
+  const tag = signedIn() ? (creator ? "\u{1F3A4}" : pass ? "\u26A1" : "") : "";
+  $("meTag").textContent = tag; $("meTag").className = "mtag" + (creator ? " cr" : "") + (tag ? "" : " hid");
+  requestAnimationFrame(fitMe);
   $("boardJoin").classList.toggle("hid", !!session);
 }
+// a narrow phone: the badge count steps aside before the points get cut
+function fitMe(){ const p = $("mePts"); p.classList.remove("tight"); if (p.scrollWidth > p.clientWidth + 1) p.classList.add("tight"); }
+addEventListener("resize", () => requestAnimationFrame(fitMe));
 // where you are in the album and the way back in - or, once it's all cleared, the finale - and today's challenge
 function renderNow(){
   const songs = SONGS_N.filter(songDone).length, parts = LEVELS.filter(l => cleared(l.id)).length, nx = continueLevel();
@@ -2215,7 +2301,7 @@ function renderAll(){ try { renderCarry(); } catch(e){} renderMe(); renderNow();
 /* ---- profile sheet ---- */
 let pickAv = "saucer";
 function openSheet(id){ $(id).classList.remove("hid"); const f = $(id).querySelector("input,button:not(.x)"); if (f) f.focus(); }
-function closeSheet(id){ $(id).classList.add("hid"); }
+function closeSheet(id){ $(id).classList.add("hid"); setTimeout(() => revealSoon(), 350); }
 document.querySelectorAll(".sheet").forEach(s => {
   s.addEventListener("click", e => { if (e.target === s || e.target.closest("[data-close]")) closeSheet(s.id); });
 });
@@ -2286,7 +2372,7 @@ async function refreshStats(say){
   stats = data; saveSnap();
   if (!say || !had) return;
   const fresh = AVATARS.filter(a => a.unlock && ownsPic(a) && !had.includes(a.id));
-  if (fresh.length) setTimeout(() => toast('<img class="tp" src="' + pic(fresh[0].id) + '" alt=""> <span>New picture</span> <b>' + esc(fresh[0].name) + '</b>' + (fresh.length > 1 ? ' <span>+' + (fresh.length - 1) + ' more</span>' : ''), 6000), 6000);
+  if (fresh.length) revealAdd(fresh.map(a => ({ t:"p", id:a.id })));
 }
 /* ---- badges: on your player, and on anyone's when you tap their name on a scoreboard. javeda_badges gives the
    counters (all public already); which are earned is decided here. n/of: how far you are, on a locked one. ---- */
@@ -2324,12 +2410,13 @@ async function loadBadges(say){
   if (!signedIn() || session.offline || !sb || !navigator.onLine) return;
   const { data } = await sb.rpc("javeda_badges", { p_username:player.username }).then(r => r, () => ({}));
   if (!data) return;
-  myBadges = data;
+  myBadges = meBadges = data;
   const key = "javeda.badges." + session.user.id, now = badgesGot(data).map(b => b.id);
   let had = null; try { had = JSON.parse(localStorage.getItem(key) || "null"); } catch(e){}
   try { localStorage.setItem(key, JSON.stringify(now)); } catch(e){}
   const fresh = had ? BADGES.filter(b => now.includes(b.id) && !had.includes(b.id)) : [];
-  if (say && fresh.length) setTimeout(() => toast(fresh[0].e + ' <span>New badge</span> <b>' + fresh[0].name + '</b>' + (fresh.length > 1 ? ' <span>+' + (fresh.length - 1) + ' more</span>' : ''), 6000), 12500);
+  if (say && fresh.length) revealAdd(fresh.map(b => ({ t:"b", id:b.id })));
+  renderMe();
   if (!$("profile").classList.contains("hid")) renderBadges();
 }
 function renderBadges(){
@@ -2337,6 +2424,61 @@ function renderBadges(){
   $("pfBdNote").classList.toggle("hid", signedIn());
   $("pfBdN").textContent = mine ? badgesGot(mine).length + " / " + BADGES.filter(b => !b.ev || b.ok(badgeCtx(mine)) || (evNow && evNow.kind === b.ev)).length : "";
   $("pfBdList").innerHTML = badgeItems(mine, true);
+}
+/* ---- what you just earned, big, on the home screen: a new badge or picture pops up once you're back from the level (or
+   when it comes in while you're there), one after the other, and flies into your player at the top. The ones still to
+   show are kept on this phone until seen. Tap to go on. ---- */
+var meBadges = null, revealOn = false;     // var: renderMe can run before this part of the page has
+function revealKey(){ return "javeda.reveal." + (session && session.user ? session.user.id : ""); }
+function revealList(){ if (!session || !session.user) return []; try { const q = JSON.parse(localStorage.getItem(revealKey()) || "[]"); return Array.isArray(q) ? q : []; } catch(e){ return []; } }
+function revealPut(q){ try { localStorage.setItem(revealKey(), JSON.stringify(q.slice(-12))); } catch(e){} }
+function revealWaiting(t){ return revealList().filter(x => x.t === t).length; }
+function revealAdd(items){
+  if (!items.length || !session || !session.user) return;
+  const q = revealList(); for (const it of items) if (!q.some(x => x.t === it.t && x.id === it.id)) q.push(it);
+  revealPut(q); renderMe(); revealSoon();
+}
+// only on the home screen, with nothing else on it
+function revealFree(){ return !revealOn && !document.body.classList.contains("playing") && !document.querySelector(".sheet:not(.hid), .credits:not(.hid), .season-hello"); }
+// then: what comes next (the credits, the app card), once they've all been shown - or straight away if there are none
+function revealSoon(then){
+  if (!revealList().length || !revealFree()){ if (then) then(); return; }
+  revealOn = true;
+  setTimeout(() => revealRun().catch(() => {}).then(() => { revealOn = false; $("reveal").classList.add("hid"); renderMe(); if (then) then(); }), 450);
+}
+const revealSleep = ms => new Promise(r => setTimeout(r, ms));
+function revealWait(ms){ return new Promise(res => { const box = $("reveal"); let done = false;
+  const key = e => { if (e.key === "Escape" || e.key === "Enter" || e.key === " "){ e.preventDefault(); end(); } };
+  const end = () => { if (done) return; done = true; clearTimeout(tm); box.removeEventListener("click", end); removeEventListener("keydown", key); res(); };
+  const tm = setTimeout(end, ms); box.addEventListener("click", end); addEventListener("keydown", key); }); }
+async function revealRun(){
+  const box = $("reveal"), calm = matchMedia("(prefers-reduced-motion: reduce)").matches, back = document.activeElement;
+  const q = revealList(), drop = it => revealPut(revealList().filter(x => !(x.t === it.t && x.id === it.id)));
+  for (let i = 0; i < q.length; i++){
+    if (document.body.classList.contains("playing")) break;     // a level started meanwhile: the rest wait for the way back
+    const it = q[i], b = it.t === "b" && BADGES.find(x => x.id === it.id), a = it.t === "p" && AVATARS.find(x => x.id === it.id);
+    if (!b && !a){ drop(it); continue; }
+    if (b) $("rvE").textContent = b.e; else $("rvE").innerHTML = '<img src="' + pic(a.id) + '" alt="">';
+    $("rvK").textContent = b ? "New badge" : "New picture";
+    $("rvN").textContent = b ? b.name : a.name;
+    $("rvH").textContent = b ? b.how : ""; $("rvH").classList.toggle("hid", !b);
+    $("rvC").textContent = q.length > 1 ? (i + 1) + " / " + q.length : "";
+    let h = ""; for (let k = 0; k < 18; k++) h += '<i style="--a:' + (k * 20 + Math.random() * 14).toFixed(1) + 'deg;--d:' + (95 + Math.random() * 80).toFixed(0) + 'px;--w:' + (.18 + Math.random() * .3).toFixed(2) + 's"></i>';
+    $("rvSparks").innerHTML = h;
+    box.classList.remove("hid", "on", "fly"); void box.offsetWidth; box.classList.add("on"); box.focus({ preventScroll:true });
+    await revealWait(calm ? 2800 : 3600);
+    // into your player at the top (or the top of the screen, when that's scrolled away)
+    const m = $("rvMedal").getBoundingClientRect(), to = $("meImg").getBoundingClientRect();
+    box.style.setProperty("--fx", Math.round(to.left + to.width / 2 - m.left - m.width / 2) + "px");
+    box.style.setProperty("--fy", Math.round(Math.max(to.top + to.height / 2, 22) - m.top - m.height / 2) + "px");
+    box.classList.add("fly");
+    await revealSleep(calm ? 300 : 680);
+    drop(it); renderMe();
+    const me = $("meBtn"); me.classList.remove("pop"); void me.offsetWidth; me.classList.add("pop");
+    await revealSleep(calm ? 100 : 320);
+  }
+  box.classList.add("hid"); box.classList.remove("on", "fly");
+  if (back && back.focus && document.contains(back)) back.focus({ preventScroll:true });
 }
 // someone else's (or your own) from a scoreboard
 async function openWho(name){
@@ -2355,6 +2497,7 @@ function openProfile(){
   pickAv = signedIn() ? player.avatar : guest.avatar;
   $("pfName").value = signedIn() ? player.username : guest.name;
   $("pfErr").textContent = "";
+  renderNameNote(); loadNameCost().then(renderNameNote);
   $("pfLogin").classList.toggle("hid", !!session);
   $("pfOut").classList.toggle("hid", !session);
   $("pfDel").classList.toggle("hid", !signedIn() || !!session.offline || creator);
@@ -2397,6 +2540,37 @@ $("pics").addEventListener("click", async e => {
   player = data; owned.add(a.id); pickAv = a.id; renderPics(); renderMe(); renderBoard();
   toast("Unlocked <b>" + esc(a.name) + "</b>");
 });
+/* ---- names (Jo, 2026-11-13): your first name change is free; after that a new name costs javeda_settings.name_cost points,
+   asked first and paid through javeda_rename. Only the capitals: free. A creator: free. Until the database has
+   name_changes and name_cost, a name is saved the old way (javeda_join), which never takes points. ---- */
+var nameCost = null;
+async function loadNameCost(){
+  if (!sb || !signedIn() || session.offline) return;
+  const { data } = await sb.from("javeda_settings").select("name_cost").maybeSingle().then(r => r, () => ({}));
+  nameCost = data && typeof data.name_cost === "number" ? data.name_cost : null;
+}
+const nameRules = () => signedIn() && typeof player.name_changes === "number" && typeof nameCost === "number";
+const sameName = n => n.toLowerCase() === player.username.toLowerCase();
+const namePrice = n => !nameRules() || sameName(n) || creator || player.name_changes < 1 ? 0 : nameCost;
+function renderNameNote(){
+  const el = $("pfNameNote"), on = nameRules() && nameCost > 0;
+  el.classList.toggle("hid", !on); if (!on) return;
+  el.textContent = creator ? "Creators change names for free."
+    : player.name_changes < 1 ? "Your first name change is free. After that, a new name costs " + fmt(nameCost) + " points."
+    : "A new name costs " + fmt(nameCost) + " points. You have " + fmt(player.points) + ".";
+}
+async function renameTo(name){
+  const T = t => window.JAVEDA_T ? window.JAVEDA_T(t) : t;
+  const cost = namePrice(name), first = !sameName(name) && !creator && player.name_changes < 1 && nameCost > 0;
+  if (cost > player.points){ $("pfErr").textContent = "A new name costs " + fmt(cost) + " points. You have " + fmt(player.points) + "."; return; }
+  if (cost && !confirm(T("Change your name for " + fmt(cost) + " points?"))) return;
+  if (first && !confirm(T("Use your free name change? After this one, a new name costs " + fmt(nameCost) + " points."))) return;
+  $("pfSave").disabled = true;
+  const { data, error } = await sb.rpc("javeda_rename", { p_username:name, p_avatar:pickAv, p_cost:cost }).then(r => r, e => ({ error:e }));
+  $("pfSave").disabled = false;
+  if (error){ $("pfErr").textContent = netErr(error) ? "No internet. Try again when you're online." : error.message; loadNameCost().then(renderNameNote); return; }
+  player = data; saveSnap(); closeSheet("profile"); renderAll(); toast("Saved");
+}
 $("pfSave").onclick = async () => {
   const name = $("pfName").value.trim();
   if (!/^[A-Za-z0-9_.-]{3,16}$/.test(name)){ $("pfErr").textContent = "Name must be 3-16 letters, numbers, _ . or -"; return; }
@@ -2404,6 +2578,7 @@ $("pfSave").onclick = async () => {
     guest.name = name; guest.avatar = pickAv; saveGuest();
     closeSheet("profile"); renderMe(); toast("Saved on this phone. Log in to keep it everywhere."); return;
   }
+  if (player && name !== player.username && nameRules()) return renameTo(name);
   const { data, error } = await sb.rpc("javeda_join", { p_username:name, p_avatar:pickAv });
   if (error){ $("pfErr").textContent = error.message; return; }
   const first = !player; player = data;
@@ -2735,7 +2910,7 @@ function stopPlay(){
   $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null; mode = {};
   document.body.style.overflow = ""; document.body.classList.remove("playing");
   renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless();
-  if (creditsDue){ creditsDue = false; openCredits(); } else maybeNudge();
+  revealSoon(() => { if (creditsDue){ creditsDue = false; openCredits(); } else maybeNudge(); });
 }
 /* ---- the app: after a clear in the browser, a card to put JAVEDA on the phone - the first time, and once more a week
    later if it was "Not now". Never in the app itself. While the weekly tournament waits for downloads, it says so. ---- */
@@ -2749,7 +2924,7 @@ function maybeNudge(){
   c.classList.toggle("hid", !lock);
   if (lock) c.innerHTML = "Every install counts: at <b>" + fmt(weekly.need || 100) + "</b> the weekly tournament opens for everyone. Now: <b>" + fmt(weekly.downloads || 0) + "</b>.";
   // something else open (the share card, a toast's sheet): next clear, then
-  setTimeout(() => { if (document.body.classList.contains("playing") || document.querySelector(".sheet:not(.hid)")){ nudgeDue = true; return; }
+  setTimeout(() => { if (document.body.classList.contains("playing") || document.querySelector(".sheet:not(.hid)") || revealOn){ nudgeDue = true; return; }
     try { localStorage.setItem(NUDGE_KEY, JSON.stringify({ n:st.n + 1, at:Date.now() })); } catch(e){}
     openSheet("nudge"); }, 900);
 }

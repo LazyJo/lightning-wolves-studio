@@ -635,6 +635,14 @@ const S = [
   ["Log in to earn points.", "Log in om punten te verdienen.", "Connecte-toi pour gagner des points.", "Inicia sesión para ganar puntos."],
   ["Costs # points.", "Kost # punten.", "Coûte # points.", "Cuesta # puntos."],
   ["Unlock for # points?", "Ontgrendelen voor # punten?", "Débloquer pour # points ?", "¿Desbloquear por # puntos?"],
+  // names: one free change, then points (the hub's profile sheet)
+  ["Your first name change is free. After that, a new name costs # points.", "Je eerste naamswijziging is gratis. Daarna kost een nieuwe naam # punten.", "Ton premier changement de nom est gratuit. Ensuite, un nouveau nom coûte # points.", "Tu primer cambio de nombre es gratis. Después, un nombre nuevo cuesta # puntos."],
+  ["A new name costs # points. You have #.", "Een nieuwe naam kost # punten. Je hebt er #.", "Un nouveau nom coûte # points. Tu en as #.", "Un nombre nuevo cuesta # puntos. Tienes #."],
+  ["Use your free name change? After this one, a new name costs # points.", "Je gratis naamswijziging gebruiken? Hierna kost een nieuwe naam # punten.", "Utiliser ton changement de nom gratuit ? Après celui-ci, un nouveau nom coûte # points.", "¿Usar tu cambio de nombre gratis? Después de este, un nombre nuevo cuesta # puntos."],
+  ["Change your name for # points?", "Je naam veranderen voor # punten?", "Changer ton nom pour # points ?", "¿Cambiar tu nombre por # puntos?"],
+  ["a new name costs # points", "een nieuwe naam kost # punten", "un nouveau nom coûte # points", "un nombre nuevo cuesta # puntos"],
+  ["Creators change names for free.", "Makers veranderen hun naam gratis.", "Les créateurs changent de nom gratuitement.", "Los creadores cambian de nombre gratis."],
+  ["Not saved", "Niet bewaard", "Non sauvegardé", "Sin guardar"],
   ["You get these by clearing levels. They can't be bought. Tap one to see what it takes.", "Deze krijg je door levels uit te spelen. Je kunt ze niet kopen. Tik erop om te zien wat ervoor nodig is.", "Tu les obtiens en terminant des niveaux. Elles ne s'achètent pas. Touche-en une pour voir ce qu'il faut faire.", "Las consigues superando niveles. No se pueden comprar. Toca una para ver qué hace falta."],
   ["You get these by playing the daily challenge. They can't be bought. Tap one to see what it takes.", "Deze krijg je door de dagelijkse uitdaging te spelen. Je kunt ze niet kopen. Tik erop om te zien wat ervoor nodig is.", "Tu les obtiens en jouant le défi du jour. Elles ne s'achètent pas. Touche-en une pour voir ce qu'il faut faire.", "Las consigues jugando el reto diario. No se pueden comprar. Toca una para ver qué hace falta."],
   // the pictures' names
@@ -989,14 +997,20 @@ function picker(){
   if (document.getElementById("langPick") || !document.getElementById("meBtn")) return;
   const top = document.querySelector(".top") || document.body;
   const st = document.createElement("style");
-  st.textContent = "#langPick{position:relative;display:flex;align-items:center;margin-left:auto;margin-right:8px;border:1px solid var(--line,#ffffff26);border-radius:999px;background:var(--panel,#0b1630)}" +
-    "#langPick select{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:var(--dim,#8fb4dd);font:700 12px/1 var(--cond,'Arial Narrow',sans-serif);letter-spacing:.06em;padding:7px 24px 7px 11px;cursor:pointer;max-width:120px}" +
-    "#langPick select:focus-visible{outline:2px solid var(--blue,#2f8fe0);border-radius:999px}" +
+  st.textContent = "#langPick{position:relative;display:flex;align-items:center;gap:4px;flex:none;margin-left:auto;margin-right:6px;height:32px;padding:0 25px 0 8px;border:1px solid var(--line,#ffffff26);border-radius:999px;background:var(--panel,#0b1630);color:var(--dim,#8fb4dd);font:700 12px/1 var(--cond,'Arial Narrow',sans-serif);letter-spacing:.06em;white-space:nowrap}" +
+    "#langPick svg{width:14px;height:14px;flex:none}" +
+    "#langPick .ln{display:none}" +
+    "@media (min-width:600px){#langPick .ln{display:inline}#langPick .ls{display:none}}" +
+    "#langPick select{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;border:0;cursor:pointer;font-size:16px;appearance:none;-webkit-appearance:none}" +
+    "#langPick:focus-within{outline:2px solid var(--blue,#2f8fe0);outline-offset:2px}" +
     "#langPick option{color:#041024;background:#fff}" +
     "#langPick::after{content:'';position:absolute;right:10px;top:50%;width:6px;height:6px;margin-top:-5px;border:solid var(--dim,#8fb4dd);border-width:0 2px 2px 0;transform:rotate(45deg);pointer-events:none}";
   document.head.appendChild(st);
   const p = document.createElement("label"); p.id = "langPick"; p.setAttribute("data-i18n-skip", "");
-  p.innerHTML = '<select aria-label="Language">' + LANGS.map(([k, t]) => '<option value="' + k + '" lang="' + ({ zh:"zh-Hans", tw:"zh-Hant" }[k] || k) + '"' + (k === LANG ? " selected" : "") + '>' + t + '</option>').join("") + '</select>';
+  const SHORT = { ja:"日本語", zh:"简体", tw:"繁體" }, long = (LANGS.find(l => l[0] === LANG) || LANGS[0])[1];
+  p.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z"/></svg>' +
+    '<span class="ls">' + (SHORT[LANG] || LANG.toUpperCase()) + '</span><span class="ln">' + long + '</span>' +
+    '<select aria-label="Language">' + LANGS.map(([k, t]) => '<option value="' + k + '" lang="' + ({ zh:"zh-Hans", tw:"zh-Hant" }[k] || k) + '"' + (k === LANG ? " selected" : "") + '>' + t + '</option>').join("") + '</select>';
   p.querySelector("select").addEventListener("change", ev => { const v = ev.target.value; if (v === LANG) return;
     try { localStorage.setItem("javeda.lang", v); } catch(e){} location.reload(); });
   const me = top.querySelector("#meBtn"); if (me) top.insertBefore(p, me); else top.appendChild(p);

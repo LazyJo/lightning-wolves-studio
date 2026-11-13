@@ -336,6 +336,8 @@ CREATE TABLE IF NOT EXISTS javeda_players (
 ALTER TABLE javeda_players ADD COLUMN IF NOT EXISTS imported_at TIMESTAMPTZ;
 -- set once, the moment every level (every part of all 28 songs) is cleared: the gold JAVEDA Complete badge
 ALTER TABLE javeda_players ADD COLUMN IF NOT EXISTS album_completed_at TIMESTAMPTZ;
+-- how many times the player changed their name (javeda_join, javeda_rename): the first change is free
+ALTER TABLE javeda_players ADD COLUMN IF NOT EXISTS name_changes INT NOT NULL DEFAULT 0;
 -- one name per person, whatever the capitals
 CREATE UNIQUE INDEX IF NOT EXISTS javeda_players_username_key ON javeda_players (lower(username));
 CREATE INDEX IF NOT EXISTS javeda_players_points_idx ON javeda_players (points DESC);
@@ -594,6 +596,10 @@ WHERE p.album_completed_at IS NULL AND NOT EXISTS (
 
 -- Create or rename your player. A new player may only start with a free
 -- picture; an existing one may switch to any picture they own.
+-- Names: a player's first name change is free; after that a new name costs javeda_settings.name_cost points, paid
+-- through javeda_rename once the player has said yes to the price. Here a change that would cost points is refused
+-- with the price, so a page that doesn't know about the price never takes any. Only the capitals changed: free and
+-- not counted. A creator changes for free.
 CREATE OR REPLACE FUNCTION public.javeda_join(p_username TEXT, p_avatar TEXT)
 RETURNS javeda_players
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
@@ -602,6 +608,7 @@ DECLARE
   uid UUID := auth.uid();
   name TEXT := btrim(p_username);
   row javeda_players;
+  price INT;
 BEGIN
   IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
   IF name !~ '^[A-Za-z0-9_.-]{3,16}$' THEN
@@ -610,10 +617,88 @@ BEGIN
   IF NOT javeda_owns(uid, p_avatar) THEN
     RAISE EXCEPTION 'that picture is locked' USING ERRCODE = '42501';
   END IF;
+  SELECT * INTO row FROM javeda_players WHERE user_id = uid FOR UPDATE;
+  IF NOT FOUND THEN
+    BEGIN
+      INSERT INTO javeda_players (user_id, username, avatar) VALUES (uid, name, p_avatar) RETURNING * INTO row;
+      RETURN row;
+    EXCEPTION WHEN unique_violation THEN
+      -- two taps at once: the other one made the player, so this one goes on as a change
+      IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN
+        RAISE EXCEPTION 'that name is taken' USING ERRCODE = '23505';
+      END IF;
+      SELECT * INTO row FROM javeda_players WHERE user_id = uid FOR UPDATE;
+    END;
+  END IF;
+  -- someone else has it (in any capitals): say so before anything about points
+  IF EXISTS (SELECT 1 FROM javeda_players WHERE lower(username) = lower(name) AND user_id <> uid) THEN
+    RAISE EXCEPTION 'that name is taken' USING ERRCODE = '23505';
+  END IF;
+  price := javeda_name_price(uid, row.username, name, row.name_changes);
+  IF price > 0 THEN
+    RAISE EXCEPTION 'a new name costs % points', to_char(price, 'FM999,999,999') USING ERRCODE = '22023';
+  END IF;
   BEGIN
-    INSERT INTO javeda_players (user_id, username, avatar) VALUES (uid, name, p_avatar)
-    ON CONFLICT (user_id) DO UPDATE SET username = EXCLUDED.username, avatar = EXCLUDED.avatar, updated_at = now()
-    RETURNING * INTO row;
+    UPDATE javeda_players SET username = name, avatar = p_avatar, updated_at = now(),
+      name_changes = name_changes + CASE WHEN lower(name) = lower(row.username) THEN 0 ELSE 1 END
+    WHERE user_id = uid RETURNING * INTO row;
+  EXCEPTION WHEN unique_violation THEN
+    RAISE EXCEPTION 'that name is taken' USING ERRCODE = '23505';
+  END;
+  RETURN row;
+END;
+$$;
+
+-- what changing from p_old to p_new costs this player: nothing for the same name in other capitals, the first change
+-- or a creator; javeda_settings.name_cost after that
+CREATE OR REPLACE FUNCTION public.javeda_name_price(p_user UUID, p_old TEXT, p_new TEXT, p_changes INT)
+RETURNS INT
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF lower(p_new) = lower(p_old) OR COALESCE(p_changes, 0) < 1 OR EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = p_user) THEN
+    RETURN 0;
+  END IF;
+  RETURN COALESCE((SELECT name_cost FROM javeda_settings WHERE id), 1000);
+END;
+$$;
+
+-- A new name for the price the player saw and said yes to (p_cost; 0 for the free one). Costs more now (Jo changed the
+-- price, or the free change went on another phone): nothing happens and the player is told the price. Costs less: they
+-- pay the lower one. The points come off what they can spend, not off the Points board.
+CREATE OR REPLACE FUNCTION public.javeda_rename(p_username TEXT, p_avatar TEXT, p_cost INT)
+RETURNS javeda_players
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+  name TEXT := btrim(p_username);
+  row javeda_players;
+  price INT;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  IF name !~ '^[A-Za-z0-9_.-]{3,16}$' THEN
+    RAISE EXCEPTION 'name must be 3-16 letters, numbers, _ . or -' USING ERRCODE = '22023';
+  END IF;
+  IF NOT javeda_owns(uid, p_avatar) THEN
+    RAISE EXCEPTION 'that picture is locked' USING ERRCODE = '42501';
+  END IF;
+  -- the row lock makes two quick taps pay only once
+  SELECT * INTO row FROM javeda_players WHERE user_id = uid FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
+  -- someone else has it (in any capitals): say so before anything about points
+  IF EXISTS (SELECT 1 FROM javeda_players WHERE lower(username) = lower(name) AND user_id <> uid) THEN
+    RAISE EXCEPTION 'that name is taken' USING ERRCODE = '23505';
+  END IF;
+  price := javeda_name_price(uid, row.username, name, row.name_changes);
+  IF price > COALESCE(p_cost, 0) THEN
+    RAISE EXCEPTION 'a new name costs % points', to_char(price, 'FM999,999,999') USING ERRCODE = '22023';
+  END IF;
+  IF row.points < price THEN RAISE EXCEPTION 'not enough points' USING ERRCODE = '22003'; END IF;
+  BEGIN
+    UPDATE javeda_players SET username = name, avatar = p_avatar, points = points - price, updated_at = now(),
+      name_changes = name_changes + CASE WHEN lower(name) = lower(row.username) THEN 0 ELSE 1 END
+    WHERE user_id = uid RETURNING * INTO row;
   EXCEPTION WHEN unique_violation THEN
     RAISE EXCEPTION 'that name is taken' USING ERRCODE = '23505';
   END;
@@ -854,6 +939,9 @@ REVOKE ALL ON FUNCTION public.javeda_start_run(TEXT) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_import_guest(JSONB) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.javeda_album_check(UUID) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_join(TEXT, TEXT) TO authenticated;
+REVOKE ALL ON FUNCTION public.javeda_name_price(UUID, TEXT, TEXT, INT) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.javeda_rename(TEXT, TEXT, INT) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_rename(TEXT, TEXT, INT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_set_avatar(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_buy_avatar(TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_submit_run(TEXT, INT, INT, BOOLEAN) TO authenticated;
@@ -1444,6 +1532,9 @@ CREATE TABLE IF NOT EXISTS javeda_settings (
 INSERT INTO javeda_settings (id) VALUES (true) ON CONFLICT (id) DO NOTHING;
 -- the video box's own list, for when YouTube's feed is off (server.js /api/javeda/videos): video IDs, newest first
 ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS videos TEXT[];
+-- what a new name costs after the free one (javeda_rename). Change it any time:
+--   UPDATE javeda_settings SET name_cost = 1000;
+ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS name_cost INT NOT NULL DEFAULT 1000 CHECK (name_cost >= 0);
 
 CREATE TABLE IF NOT EXISTS javeda_passes (
   user_id    UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,

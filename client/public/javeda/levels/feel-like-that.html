@@ -237,36 +237,128 @@ function radial(stops, size){
 }
 let DOT, POOL;
 
+/* ---- the look: a handful of small textures, painted once and shared. Nothing in here (or in anything
+   marked "the look" below) is read by the game: it only draws what the game already knows. ---- */
+let GRAIN, DECK, DECK2, RING, SHAFT, DANGER, WING, GND, skyX, ufoPool, ufoGlow, flyGlow;
+const DECK_M = 9, RING_M = 3.6 / .86 * 2;       // metres across: the paved circle, the ring of light (its line at 3.6 m)
+function canvasTex(w, h, draw){
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h);
+  return new THREE.CanvasTexture(cv);
+}
+function buildLook(){
+  // fine grain for the ground - blades of grass, gravel - one tile every 5 m, used as the ground's AO map: no draw call
+  GRAIN = canvasTex(256, 256, (x, W) => {
+    x.fillStyle = "#fff"; x.fillRect(0, 0, W, W); x.lineCap = "round";
+    for (let i = 0; i < 2400; i++){
+      const px = rnd(i*1.31 + 7)*W, py = rnd(i*2.17 + 3)*W, a = rnd(i*3.9 + 1)*Math.PI, l = 1.5 + rnd(i*5.3)*4.5, v = Math.round(70 + rnd(i*7.7)*150);
+      x.strokeStyle = "rgb(" + v + "," + v + "," + v + ")"; x.lineWidth = 1 + rnd(i*9.1);
+      for (const ox of [-W, 0, W]) for (const oy of [-W, 0, W]){                      // (drawn round the edges too, so the tile has no seam)
+        if (px + ox < -8 || px + ox > W + 8 || py + oy < -8 || py + oy > W + 8) continue;
+        x.beginPath(); x.moveTo(px + ox, py + oy); x.lineTo(px + ox + Math.cos(a)*l, py + oy + Math.sin(a)*l); x.stroke(); }
+    }
+  });
+  GRAIN.wrapS = GRAIN.wrapT = THREE.RepeatWrapping; GRAIN.repeat.set(24, 24); GRAIN.anisotropy = 4;
+  // the paved circle a lamp stands on: gravel, a ring of kerb stones where the fireflies start to go in
+  // (the two old lamps by the bench get it plain, without the stones: they aren't for feeding)
+  const deck = kerb => canvasTex(256, 256, (x, W) => { const c = W/2, m = W / DECK_M;
+    const g = x.createRadialGradient(c, c, 0, c, c, 4.05*m);
+    g.addColorStop(0, "rgba(70,60,46,.96)"); g.addColorStop(.8, "rgba(62,53,41,.94)"); g.addColorStop(.93, "rgba(52,45,35,.9)"); g.addColorStop(1, "rgba(52,45,35,0)");
+    x.fillStyle = g; x.fillRect(0, 0, W, W);
+    for (let i = 0; i < 420; i++){ const a = rnd(i*2.9 + 5)*6.2832, r = Math.sqrt(rnd(i*4.3 + 2))*3.5*m;
+      x.fillStyle = i % 2 ? "rgba(112,98,78,.5)" : "rgba(34,28,21,.5)"; x.fillRect(c + Math.cos(a)*r, c + Math.sin(a)*r, 1.6, 1.6); }
+    x.strokeStyle = "rgba(38,32,24,.6)"; x.lineWidth = 1.5;
+    for (let k = 0; k < 8; k++){ const a = k/8*6.2832 + .39; x.beginPath(); x.moveTo(c + Math.cos(a)*.9*m, c + Math.sin(a)*.9*m); x.lineTo(c + Math.cos(a)*3.4*m, c + Math.sin(a)*3.4*m); x.stroke(); }
+    x.beginPath(); x.arc(c, c, .9*m, 0, 6.2832); x.stroke();
+    if (!kerb) return;
+    const arc = 6.2832*3.6*m / 48; x.strokeStyle = "rgba(122,114,128,.9)"; x.lineWidth = 4.5; x.setLineDash([arc*.8, arc*.2]);
+    x.beginPath(); x.arc(c, c, 3.6*m, 0, 6.2832); x.stroke(); x.setLineDash([]);
+  });
+  DECK = deck(true); DECK2 = deck(false); DECK.anisotropy = DECK2.anisotropy = 4;
+  // a ring of light on the ground (white: each lamp tints its own): a clear line, a soft glow inside it
+  RING = canvasTex(256, 256, (x, W) => { const c = W/2;
+    const g = x.createRadialGradient(c, c, 0, c, c, c);
+    g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.5, "rgba(255,255,255,.03)"); g.addColorStop(.83, "rgba(255,255,255,.26)");
+    g.addColorStop(.9, "rgba(255,255,255,.22)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = g; x.fillRect(0, 0, W, W);
+    x.strokeStyle = "rgba(255,255,255,.95)"; x.lineWidth = 3; x.beginPath(); x.arc(c, c, c*.86, 0, 6.2832); x.stroke();
+  });
+  // the shaft of light under a lit lantern: bright at the glass, gone at the ground
+  SHAFT = canvasTex(4, 64, (x, W, H) => { const g = x.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "rgba(255,255,255,.95)"); g.addColorStop(.35, "rgba(255,255,255,.4)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, W, H); });
+  // under a moth that is low enough to touch you: a pool of rose light, a little brighter at its rim
+  DANGER = radial([[0, "rgba(255,255,255,.3)"], [.6, "rgba(255,255,255,.26)"], [.84, "rgba(255,255,255,.62)"], [1, "rgba(255,255,255,0)"]], 128);
+  // a moth's wing: the same shape as ever, now with a pale edge, veins and a ring round the eye spot (one texture for all of them)
+  WING = canvasTex(128, 128, x => {
+    const shape = () => { x.beginPath(); x.moveTo(0, 64); x.bezierCurveTo(40, -10, 128, 0, 120, 60); x.bezierCurveTo(128, 110, 50, 128, 0, 64); };
+    const g = x.createRadialGradient(20, 64, 6, 60, 60, 80); g.addColorStop(0, "#4b4060"); g.addColorStop(.55, "#6a5c80"); g.addColorStop(1, "#8876a4");
+    x.fillStyle = g; shape(); x.fill();
+    x.save(); shape(); x.clip();                                                      // (clipped: the edge is drawn inside the wing, it doesn't grow)
+    x.strokeStyle = "rgba(60,48,84,.7)"; x.lineWidth = 2;
+    for (const [ex, ey] of [[112, 18], [122, 48], [118, 82], [84, 112], [70, 8]]){ x.beginPath(); x.moveTo(4, 64); x.quadraticCurveTo(50, 60, ex, ey); x.stroke(); }
+    x.strokeStyle = "#f1c8ff"; x.lineWidth = 9; shape(); x.stroke();
+    x.restore();
+    x.fillStyle = "#3c3350"; x.beginPath(); x.arc(70, 52, 14, 0, Math.PI*2); x.fill();
+    x.strokeStyle = "#ffd1de"; x.lineWidth = 2; x.beginPath(); x.arc(70, 52, 13, 0, Math.PI*2); x.stroke();
+    x.fillStyle = "#ffb3c8"; x.beginPath(); x.arc(70, 52, 6, 0, Math.PI*2); x.fill();
+  });
+}
+
 /* ---- the ground: grass with a gravel loop and paths painted on one big canvas ---- */
 function buildGround(){
   const W = 1024, Hh = 1024, SX = 120, SZ = 120;            // the canvas covers 120 x 120 m
   const cv = document.createElement("canvas"); cv.width = W; cv.height = Hh;
   const x = cv.getContext("2d");
-  x.fillStyle = "#0f1d16"; x.fillRect(0, 0, W, Hh);
-  for (let i = 0; i < 14000; i++){                            // grass speckle
-    const l = 9 + rnd(i*1.7)*10;
-    x.fillStyle = `hsl(${135 + rnd(i*3.1)*30},35%,${l}%)`;
+  x.fillStyle = "#15291c"; x.fillRect(0, 0, W, Hh);
+  // (the look) the lawn isn't one flat colour: lighter and darker patches, and faint mown stripes -
+  // something for the eye to hold on to while the saucer moves
+  for (let i = 0; i < 110; i++){
+    const px = rnd(i*1.9 + 40)*W, py = rnd(i*2.7 + 41)*Hh, r = 36 + rnd(i*3.3)*90, c = rnd(i*4.1) > .42 ? "46,88,52" : "5,12,11";
+    const g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, "rgba(" + c + ",.4)"); g.addColorStop(1, "rgba(" + c + ",0)");
+    x.fillStyle = g; x.fillRect(px - r, py - r, r*2, r*2);
+  }
+  x.save(); x.translate(W/2, Hh/2); x.rotate(-.5); x.fillStyle = "rgba(70,125,78,.075)";
+  for (let k = -26; k < 26; k += 2) x.fillRect(-W, k*28, W*2, 28);
+  x.restore();
+  for (let i = 0; i < 20000; i++){                            // grass speckle
+    const l = 10 + rnd(i*1.7)*15;
+    x.fillStyle = `hsl(${128 + rnd(i*3.1)*34},38%,${l}%)`;
     x.fillRect(rnd(i*2.3)*W, rnd(i*5.9)*Hh, 1.5, 1.5 + rnd(i)*1.5);
   }
   const P = (wx, wz) => [(wx / SX + .5) * W, (wz / SZ + .5) * Hh];
+  // (the look) little clumps of night flowers in the grass - white, pink, pale blue, never firefly green - and none round the lamps
+  const clear = [...LAMP_AT, [TWIN.x, TWIN.z]], FLOWER = ["#f3eaff", "#ff9ec4", "#a9dcff"];
+  for (let i = 0; i < 120; i++){
+    const wx = (rnd(i*6.1 + 9) - .5)*104, wz = (rnd(i*7.3 + 5) - .5)*84;
+    if (clear.some(([a, b]) => Math.hypot(wx - a, wz - b) < 6.5)) continue;
+    const [u, v] = P(wx, wz), n = 4 + Math.floor(rnd(i*8.9)*9); x.fillStyle = FLOWER[i % 3];
+    for (let k = 0; k < n; k++){ const a = rnd(i + k*1.7)*6.2832, r = rnd(i*2 + k*2.3)*15;
+      x.globalAlpha = .3 + rnd(i*3 + k)*.4; x.beginPath(); x.arc(u + Math.cos(a)*r, v + Math.sin(a)*r, .9 + rnd(k + i*.3)*.9, 0, 6.2832); x.fill(); }
+  }
+  x.globalAlpha = 1;
   x.lineCap = "round"; x.lineJoin = "round";
-  const stroke = (pts, w) => {
-    for (const [col, ww] of [["#2a241c", w + 10], ["#3b3226", w], ["#4a4030", w*.45]]){
-      x.strokeStyle = col; x.lineWidth = ww; x.beginPath();
+  // the loop round the park, and paths across it to the bench (layer by layer over all of them, so they join
+  // cleanly; the second layer is the look: a pale line of kerb stones along both edges)
+  const loop = []; for (let i = 0; i <= 64; i++){ const a = i/64*Math.PI*2; loop.push([Math.cos(a)*29, Math.sin(a)*17 + 1]); }
+  const WAYS = [[loop, 26], [[[0, 26], [0, 12], [0, 1], [-2, -10], [0, -18]], 22],
+    [[[-38, 6], [-22, 2], [-8, 1], [8, 1], [22, 0], [38, -4]], 20], [[[-33, -21], [-24, -16], [-12, -17], [0, -18], [14, -15], [24, -12]], 18]];
+  for (const [col, mul, add] of [["#231d16", 1, 11], ["#5d5768", 1, 3.6], ["#42382a", 1, 0], ["#53483a", .45, 0]])
+    for (const [pts, w] of WAYS){
+      x.strokeStyle = col; x.lineWidth = w*mul + add; x.beginPath();
       pts.forEach(([a, b], i) => { const [u, v] = P(a, b); i ? x.lineTo(u, v) : x.moveTo(u, v); }); x.stroke();
     }
-  };
-  // the loop round the park, and paths across it to the bench
-  const loop = []; for (let i = 0; i <= 64; i++){ const a = i/64*Math.PI*2; loop.push([Math.cos(a)*29, Math.sin(a)*17 + 1]); }
-  stroke(loop, 26);
-  stroke([[0, 26], [0, 12], [0, 1], [-2, -10], [0, -18]], 22);
-  stroke([[-38, 6], [-22, 2], [-8, 1], [8, 1], [22, 0], [38, -4]], 20);
-  stroke([[-33, -21], [-24, -16], [-12, -17], [0, -18], [14, -15], [24, -12]], 18);
+  // (the look) darker towards the edge of the canvas, where it meets the plain grass beyond
+  const vg = x.createRadialGradient(W/2, Hh/2, W*.4, W/2, Hh/2, W*.5);
+  vg.addColorStop(0, "rgba(11,21,16,0)"); vg.addColorStop(1, "rgba(11,21,16,1)"); x.fillStyle = vg; x.fillRect(0, 0, W, Hh);
   const tex = new THREE.CanvasTexture(cv); tex.anisotropy = 4;
-  const g = new THREE.Mesh(new THREE.PlaneGeometry(SX, SZ), new THREE.MeshLambertMaterial({ map:tex }));
+  GND = { x, P };                                               // (buildTrees paints the trees' shadows on it)
+  // the grain tile goes on as the AO map, on its own set of UVs: metres / 120, the same for the lawn and the grass beyond
+  const grainUV = geo => { const p = geo.attributes.position, uv = new Float32Array(p.count*2);
+    for (let i = 0; i < p.count; i++){ uv[i*2] = p.getX(i)/SX + .5; uv[i*2 + 1] = p.getY(i)/SZ + .5; }
+    geo.setAttribute("uv2", new THREE.BufferAttribute(uv, 2)); return geo; };
+  const g = new THREE.Mesh(grainUV(new THREE.PlaneGeometry(SX, SZ)), new THREE.MeshLambertMaterial({ map:tex, aoMap:GRAIN, aoMapIntensity:.8 }));
   g.rotation.x = -Math.PI/2; scene.add(g);
   // beyond the canvas, plain dark grass to the horizon
-  const far = new THREE.Mesh(new THREE.RingGeometry(58, 600, 48, 1), new THREE.MeshLambertMaterial({ color:0x0b1510 }));
+  const far = new THREE.Mesh(grainUV(new THREE.RingGeometry(58, 600, 48, 1)), new THREE.MeshLambertMaterial({ color:0x0b1510, aoMap:GRAIN, aoMapIntensity:.8 }));
   far.rotation.x = -Math.PI/2; far.position.y = -.02; scene.add(far);
 }
 
@@ -282,7 +374,8 @@ function buildSky(){
   for (let i = 0; i < n; i++){ const a = rnd(i*1.1)*Math.PI*2, e = .05 + rnd(i*2.7)*1.4, r = 850;
     pos.set([Math.cos(a)*Math.cos(e)*r, Math.sin(e)*r, Math.sin(a)*Math.cos(e)*r], i*3); }
   const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
-  sky.add(new THREE.Points(sg, new THREE.PointsMaterial({ color:0xffffff, size:1.4, sizeAttenuation:false, fog:false, transparent:true, opacity:.85 })));
+  const stars = new THREE.Points(sg, new THREE.PointsMaterial({ color:0xffffff, size:1.4, sizeAttenuation:false, fog:false, transparent:true, opacity:.85 }));
+  stars.renderOrder = -4; sky.add(stars);                       // (the far things are drawn first, in order of distance)
   // purple cloud banks low over the trees
   const cm = new THREE.SpriteMaterial({ map:radial([[0, "rgba(170,140,230,.45)"], [.6, "rgba(110,80,180,.18)"], [1, "rgba(60,40,120,0)"]]), transparent:true, depthWrite:false, fog:false });
   for (let i = 0; i < 26; i++){
@@ -290,6 +383,37 @@ function buildSky(){
     const s = new THREE.Sprite(cm); s.position.set(Math.cos(a)*r, 60 + rnd(i*7.7)*90, Math.sin(a)*r);
     s.scale.set(260 + rnd(i)*200, 90 + rnd(i*3)*60, 1); sky.add(s);
   }
+  /* (the look) the far side of the night. You only see the sky in the ending, when the camera comes down to
+     the bench, so all of this is switched off while you play: a hazy line of hills and far trees with a few
+     windows lit, the pale planet from the cover (low on the right, clear of the lyric), and some bigger stars. */
+  skyX = new THREE.Group(); skyX.visible = false; sky.add(skyX);
+  const m = 44, bp = new Float32Array(m*3);
+  for (let i = 0; i < m; i++){ const a = rnd(i*5.7 + 3)*Math.PI*2, e = .12 + rnd(i*8.3 + 1)*1.1, r = 840;
+    bp.set([Math.cos(a)*Math.cos(e)*r, Math.sin(e)*r, Math.sin(a)*Math.cos(e)*r], i*3); }
+  const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.BufferAttribute(bp, 3));
+  const big = new THREE.Points(bg, new THREE.PointsMaterial({ color:0xe6dcff, size:5, map:DOT, sizeAttenuation:false, fog:false, transparent:true, opacity:.9, depthWrite:false, blending:THREE.AdditiveBlending }));
+  big.renderOrder = -4; skyX.add(big);
+  const planet = new THREE.Sprite(new THREE.SpriteMaterial({ map:canvasTex(256, 256, (x, W) => { const c = W/2;
+    let g = x.createRadialGradient(c, c, 44, c, c, c); g.addColorStop(0, "rgba(190,170,255,.38)"); g.addColorStop(1, "rgba(190,170,255,0)"); x.fillStyle = g; x.fillRect(0, 0, W, W);
+    g = x.createRadialGradient(c - 18, c - 20, 4, c, c, 58); g.addColorStop(0, "rgba(232,222,255,1)"); g.addColorStop(.6, "rgba(184,164,236,1)"); g.addColorStop(1, "rgba(108,88,180,1)");
+    x.fillStyle = g; x.beginPath(); x.arc(c, c, 56, 0, 6.2832); x.fill();
+    x.fillStyle = "rgba(112,92,184,.22)"; for (const [a, b, r] of [[-16, -6, 15], [17, 12, 19], [-8, 24, 10], [22, -22, 8]]){ x.beginPath(); x.arc(c + a, c + b, r, 0, 6.2832); x.fill(); }
+  }), transparent:true, opacity:.8, depthWrite:false, fog:false }));
+  planet.position.set(182, 169, -760); planet.scale.set(150, 150, 1); planet.renderOrder = -3; skyX.add(planet);
+  const hz = canvasTex(2048, 256, (x, W, H) => {
+    const ridge = (f, amp, ph) => u => amp*(Math.sin(u*f*6.2832 + ph) + .5*Math.sin(u*f*3*6.2832 + ph*2.3) + .25*Math.sin(u*f*7*6.2832 + ph*4.1));
+    let r = ridge(1, 16, 1.3);
+    const fill = (col, base) => { x.fillStyle = col; x.beginPath(); x.moveTo(0, H); for (let px = 0; px <= W; px += 4) x.lineTo(px, H - base - r(px/W)); x.lineTo(W, H); x.fill(); };
+    fill("#2a1f4e", 118);                                                             // far hills, hazy
+    for (let i = 0; i < 34; i++){ const px = rnd(i*9.3 + 1)*W, py = H - 62 - rnd(i*4.9)*44;   // a few far windows
+      x.fillStyle = i % 3 ? "rgba(255,200,97,.95)" : "rgba(201,182,255,.85)"; x.fillRect(px, py, 3, 3); }
+    r = ridge(2, 7, 4.1); fill("#110b24", 52);                                         // nearer: a dark line of round trees
+    for (let i = 0; i < 170; i++){ const px = rnd(i*3.7 + 2)*W, rr = 9 + rnd(i*5.1)*15, py = H - 52 - r(px/W) - rr*.25;
+      for (const o of [-W, 0, W]){ x.beginPath(); x.arc(px + o, py, rr, 0, 6.2832); x.fill(); } }
+  });
+  hz.wrapS = THREE.RepeatWrapping; hz.repeat.set(4, 1);
+  const hills = new THREE.Mesh(new THREE.CylinderGeometry(700, 700, 160, 48, 1, true), new THREE.MeshBasicMaterial({ map:hz, transparent:true, side:THREE.BackSide, fog:false, depthWrite:false }));
+  hills.position.y = 72; hills.renderOrder = -2; skyX.add(hills);
 }
 
 /* ---- trees: dark round crowns on short trunks, thick round the edge ---- */
@@ -297,6 +421,7 @@ function buildTrees(){
   const trunkG = new THREE.CylinderGeometry(.25, .35, 3, 6), crownG = new THREE.IcosahedronGeometry(1, 1);
   const trunkM = new THREE.MeshLambertMaterial({ color:0x1d1510 });
   const crownM = new THREE.MeshLambertMaterial({ color:0x13281b, flatShading:true });
+  const crownTop = new THREE.MeshLambertMaterial({ color:0x1d3d2a, flatShading:true });      // (the look) the top of the crown catches the moon
   const keepOut = [...LAMP_AT.map(([a, b]) => [a, b, 6]), [TWIN.x, TWIN.z, 9], [START.x, START.z, 6]];
   const spots = [];
   for (let i = 0; i < 116; i++){
@@ -311,10 +436,13 @@ function buildTrees(){
   for (const [px, pz, s] of spots){
     const t = new THREE.Mesh(trunkG, trunkM); t.position.set(px, 1.5*s, pz); t.scale.setScalar(s); scene.add(t);
     for (let k = 0; k < 3; k++){
-      const c = new THREE.Mesh(crownG, crownM);
+      const c = new THREE.Mesh(crownG, k === 2 ? crownTop : crownM);
       c.position.set(px + (rnd(px + k)*2 - 1)*1.2*s, (3.6 + k*.9)*s, pz + (rnd(pz + k*3)*2 - 1)*1.2*s);
       c.scale.setScalar((2.3 - k*.4)*s); scene.add(c);
     }
+    // (the look) its shadow on the lawn, away from the moon
+    const [u, v] = GND.P(px + 1.9*s, pz - .9*s), r = 3.1*s*1024/120, g = GND.x.createRadialGradient(u, v, r*.25, u, v, r);
+    g.addColorStop(0, "rgba(2,7,7,.6)"); g.addColorStop(1, "rgba(2,7,7,0)"); GND.x.fillStyle = g; GND.x.fillRect(u - r, v - r, r*2, r*2);
   }
 }
 
@@ -344,6 +472,21 @@ function lantern(){
   g.userData = { glass, halo };
   return g;
 }
+// (the look) what every lamp gets on the ground and under its lantern; shared shapes, built once
+let DECK_G, DECK_MAT, RING_G, SHAFT_G;
+function lampLook(g, top, size, twin){
+  if (!DECK_G){ DECK_G = new THREE.PlaneGeometry(DECK_M, DECK_M); RING_G = new THREE.PlaneGeometry(RING_M, RING_M);
+    SHAFT_G = new THREE.CylinderGeometry(.3, 3.1, 1, 20, 1, true);
+    DECK_MAT = new THREE.MeshLambertMaterial({ map:DECK, transparent:true, depthWrite:false }); }
+  const deck = new THREE.Mesh(DECK_G, twin ? new THREE.MeshLambertMaterial({ map:DECK2, transparent:true, depthWrite:false }) : DECK_MAT);
+  deck.rotation.x = -Math.PI/2; deck.position.y = .03; deck.scale.setScalar(size);
+  deck.renderOrder = -1; g.add(deck);                           // (under every glow that lies on the ground)
+  let ring = null;
+  if (!twin){ ring = new THREE.Mesh(RING_G, glow(0xffffff, 0, RING)); ring.rotation.x = -Math.PI/2; ring.position.y = .05; ring.visible = false; g.add(ring); }
+  const shafts = top.map(([x, y, z]) => { const c = new THREE.Mesh(SHAFT_G, glow(C.warm, 0, SHAFT));
+    c.scale.set(1, y - .1, 1); c.position.set(x, .1 + (y - .1)/2, z); c.visible = false; g.add(c); return c; });
+  return { deck, ring, shafts };
+}
 function buildLamp(i){
   const [x, z] = LAMP_AT[i], need = CFG.need[i] || 6 + (i & 1);
   const g = new THREE.Group(), metal = new THREE.MeshLambertMaterial({ color:C.metal });
@@ -358,8 +501,9 @@ function buildLamp(i){
     d.position.set(Math.cos(a)*1.1, 6.1, Math.sin(a)*1.1); g.add(d); dots.push(d);
   }
   const pool = new THREE.Mesh(new THREE.CircleGeometry(7, 32), glow(C.warm, 0, POOL)); pool.rotation.x = -Math.PI/2; pool.position.y = .06; g.add(pool);
+  const look = lampLook(g, [[0, 4.45, 0]], 1, false);
   g.position.set(x, 0, z); scene.add(g);
-  return { i, x, z, need, got:0, lit:false, burn:0, g, L, dots, pool, pulse:0 };
+  return { i, x, z, need, got:0, lit:false, burn:0, g, L, dots, pool, pulse:0, look };
 }
 // (endless: a new round can want more fireflies - a new ring of dots)
 const DOTG = new THREE.SphereGeometry(.17, 8, 6);
@@ -389,9 +533,11 @@ function buildTwin(){
   });
   const Ls = tops.map(([x, y, z], k) => { const L = lantern(); L.position.set(x, y + .55, z); L.rotation.z = k ? .25 : -.2; g.add(L); return L; });
   const pool = new THREE.Mesh(new THREE.CircleGeometry(10, 32), glow(C.warm, 0, POOL)); pool.rotation.x = -Math.PI/2; pool.position.y = .07; g.add(pool);
+  const look = lampLook(g, tops.map(([x, y, z]) => [x, y + .2, z]), 1.75, true);
+  look.deck.position.z = -1;                                     // (the bench stands on it too)
   g.position.set(TWIN.x, 0, TWIN.z); scene.add(g);
   bench = buildBench(TWIN.x, TWIN.z - 2.4, 0, 1.25);
-  return { g, Ls, pool, lit:0 };
+  return { g, Ls, pool, lit:0, look };
 }
 
 /* ---- Jo's green saucer from the cover: olive hull, dark dome, yellow lights, the L ---- */
@@ -419,12 +565,8 @@ function buildUFO(){
 /* ---- moths: a dark body and two dusty wings that beat ---- */
 function buildMoth(k){
   const g = new THREE.Group();
-  const cv = document.createElement("canvas"); cv.width = 128; cv.height = 128;
-  const x = cv.getContext("2d");
-  x.fillStyle = "#6a5c80"; x.beginPath(); x.moveTo(0, 64); x.bezierCurveTo(40, -10, 128, 0, 120, 60); x.bezierCurveTo(128, 110, 50, 128, 0, 64); x.fill();
-  x.fillStyle = "#3c3350"; x.beginPath(); x.arc(70, 52, 14, 0, Math.PI*2); x.fill();
-  x.fillStyle = "#ffb3c8"; x.beginPath(); x.arc(70, 52, 6, 0, Math.PI*2); x.fill();
-  const wm = new THREE.MeshLambertMaterial({ map:new THREE.CanvasTexture(cv), transparent:true, side:THREE.DoubleSide, alphaTest:.1 });
+  // (the look: the wing texture is shared, and glows a little by itself so its pale edge reads against the dark park)
+  const wm = new THREE.MeshLambertMaterial({ map:WING, emissive:0xffffff, emissiveMap:WING, emissiveIntensity:.3, transparent:true, side:THREE.DoubleSide, alphaTest:.1 });
   const wings = [];
   for (const s of [-1, 1]){
     const pivot = new THREE.Group(); g.add(pivot);
@@ -435,9 +577,12 @@ function buildMoth(k){
   const sh = new THREE.Mesh(new THREE.CircleGeometry(1.6, 20), new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:.35, depthWrite:false }));
   sh.rotation.x = -Math.PI/2; scene.add(sh);
   scene.add(g);
+  // (the look) rose light on the ground under it while it is low enough to touch you
+  if (!buildMoth.G) buildMoth.G = new THREE.CircleGeometry(2.3 / .84, 28);
+  const pool = new THREE.Mesh(buildMoth.G, glow(0xff4d7d, 0, DANGER)); pool.rotation.x = -Math.PI/2; pool.position.y = .065; pool.visible = false; scene.add(pool);
   // each moth loops round its own patch of the park
   const cx = (rnd(k*3.1) - .5)*44, cz = (rnd(k*4.7) - .5)*30;
-  return { g, wings, sh, cx, cz, rx:10 + rnd(k*5.3)*9, rz:7 + rnd(k*6.1)*7, w:CFG.mothV*(.8 + rnd(k)*.4)*(k % 2 ? 1 : -1), w0:(.8 + rnd(k)*.4)*(k % 2 ? 1 : -1), p:rnd(k*7)*6, a:rnd(k*7)*6, y:16, x:cx, z:cz, k };
+  return { g, wings, sh, cx, cz, rx:10 + rnd(k*5.3)*9, rz:7 + rnd(k*6.1)*7, w:CFG.mothV*(.8 + rnd(k)*.4)*(k % 2 ? 1 : -1), w0:(.8 + rnd(k)*.4)*(k % 2 ? 1 : -1), p:rnd(k*7)*6, a:rnd(k*7)*6, y:16, x:cx, z:cz, k, pool };
 }
 
 /* ---- fireflies: one cloud of points, each one free, in the trail, or on its way into a lamp ---- */
@@ -449,6 +594,15 @@ function buildFlies(){
   geo.setAttribute("color", new THREE.BufferAttribute(new Float32Array(MAXF*3), 3));
   flyPts = new THREE.Points(geo, new THREE.PointsMaterial({ size:2.6, map:DOT, vertexColors:true, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
   flyPts.frustumCulled = false; scene.add(flyPts);
+  // (the look) the light each one throws on the grass under it: a soft dim patch lying flat on the ground, all of
+  // them in one mesh (four corners a firefly, moved every frame like the points above)
+  const gg = new THREE.BufferGeometry(), gu = new Float32Array(MAXF*8), gi = new Uint16Array(MAXF*6);
+  for (let i = 0; i < MAXF; i++){ gu.set([0, 0, 1, 0, 1, 1, 0, 1], i*8); gi.set([i*4, i*4 + 2, i*4 + 1, i*4, i*4 + 3, i*4 + 2], i*6); }
+  gg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(MAXF*12), 3));
+  gg.setAttribute("color", new THREE.BufferAttribute(new Float32Array(MAXF*12), 3));
+  gg.setAttribute("uv", new THREE.BufferAttribute(gu, 2)); gg.setIndex(new THREE.BufferAttribute(gi, 1));
+  flyGlow = new THREE.Mesh(gg, new THREE.MeshBasicMaterial({ map:DOT, vertexColors:true, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide }));
+  flyGlow.frustumCulled = false; scene.add(flyGlow);
 }
 let seedN = 0;
 function spawnFly(near){
@@ -496,6 +650,7 @@ function boot(){
   const moon = new THREE.DirectionalLight(0xb9b0ff, .45); moon.position.set(-20, 40, 10); scene.add(moon);
   DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
   POOL = radial([[0, "rgba(255,220,150,.9)"], [.5, "rgba(255,190,100,.35)"], [1, "rgba(255,170,80,0)"]]);
+  buildLook();
   sky = new THREE.Group(); scene.add(sky);
   buildSky(); buildGround(); buildTrees();
   for (let i = 0; i < (EMODE ? LAMP_AT.length : CFG.lamps); i++) lamps.push(buildLamp(i));
@@ -511,6 +666,10 @@ function boot(){
   scene.add(ufo);
   shadow = new THREE.Mesh(new THREE.CircleGeometry(1.5, 24), new THREE.MeshBasicMaterial({ color:0xf2ffd0, transparent:true, opacity:.22, depthWrite:false, blending:THREE.AdditiveBlending }));
   shadow.rotation.x = -Math.PI/2; shadow.position.y = .08; scene.add(shadow);
+  // (the look) a wide soft pool of the saucer's light on the grass, and a faint glow round the hull
+  ufoPool = new THREE.Mesh(new THREE.CircleGeometry(5.5, 32), glow(0xd9ff8a, .16, DOT)); ufoPool.rotation.x = -Math.PI/2; ufoPool.position.y = .045; scene.add(ufoPool);
+  ufoGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xd9ff8a, transparent:true, opacity:.2, depthWrite:false, blending:THREE.AdditiveBlending }));
+  ufoGlow.scale.setScalar(6.5); ufo.add(ufoGlow);
   for (let k = 0; k < (EMODE ? MAXM : CFG.moths); k++) moths.push(buildMoth(k));
   ALLM = moths.slice();
   buildFlies();
@@ -823,6 +982,7 @@ function endUpdate(dt){
 /* ---- drawing ---- */
 const V = new THREE.Vector3(), LOOK = new THREE.Vector3(), CAMP = new THREE.Vector3(), CAML = new THREE.Vector3();
 const WARM = new THREE.Color(C.warm), OFF = new THREE.Color(0x000000), DIM = new THREE.Color(0x4a3f68), FILL = new THREE.Color(0xe9ff7a);
+const COLD = new THREE.Color(0x232b5c), LAV = new THREE.Color(0x8fb2ff);    // (the look)
 let camInit = false;
 function render(dt){
   const t = Math.max(0, S.t), beatPhase = ((t - T0) / BEAT) % 1, onBeat = Math.max(0, 1 - beatPhase*3);
@@ -837,6 +997,10 @@ function render(dt){
   beam.scale.set(1, uy - .2, 1); beam.position.y = -(uy - .2)/2 - .2;
   beam.material.opacity = .13 + onBeat*.05;
   shadow.position.set(ux, .08, uz); shadow.scale.setScalar(S.end >= 0 ? .7 : 1);
+  // (the look) everything below marked so only reads the game, and breathes on the beat unless motion is reduced
+  const beat = REDUCED ? 0 : onBeat, playing = S.end < 0;
+  ufoPool.position.set(ux, .045, uz); ufoPool.material.opacity = (playing ? .17 : .1) + beat*.05;
+  skyX.visible = !playing;
   // camera: high over the saucer, looking down at the park; at the end, down at the bench
   const portrait = cam.aspect < .8, H = portrait ? 30 : 23, D = portrait ? 15 : 15;
   CAMP.set(S.x, H, S.z + D); CAML.set(S.x, 0, S.z - 3);
@@ -851,6 +1015,19 @@ function render(dt){
     l.L.userData.glass.emissive.copy(WARM).multiplyScalar(on*1.2 + l.pulse*.6);
     l.L.userData.halo.material.opacity = on*.9 + l.pulse*.4;
     l.pool.material.opacity = on*.75;
+    // (the look) a cold glint on the dark glass, the halo breathing, the shaft of light, the ring on the ground:
+    // moon blue while the lamp is dark (it flashes firefly green as each one goes in), a burst of gold as it lights,
+    // and in Part 3 the blue ring comes back, stronger the lower it burns, once a lamp is half burned down and wants feeding
+    const em = l.L.userData.glass.emissive, cold = Math.max(0, 1 - on*2);
+    em.r += COLD.r*cold; em.g += COLD.g*cold; em.b += COLD.b*cold;
+    l.L.userData.halo.scale.setScalar(5*(1 + beat*.07*on));
+    const sh = l.look.shafts[0]; sh.visible = on > .01; sh.material.opacity = on*(.085 + beat*.02);
+    const ring = l.look.ring; let ro = 0, rs = 1;
+    if (!playing) ro = 0;
+    else if (!l.lit){ ro = .36 + beat*.16 + l.pulse*.9; ring.material.color.copy(LAV); if (l.got > 0) ring.material.color.lerp(FILL, Math.min(1, l.pulse*2.2)); }
+    else if (CFG.burn && l.burn < .5){ ro = (.14 + (.5 - l.burn)*1.1 + beat*.14)*(l.burn < .2 && !REDUCED ? .6 + .4*Math.sin(t*20) : 1) + l.pulse*.6; ring.material.color.copy(LAV); }
+    else if (l.pulse > 0){ ro = l.pulse*.9; rs = 1 + (1 - l.pulse)*.75; ring.material.color.copy(WARM); }
+    ring.visible = ro > .01; ring.material.opacity = Math.min(1, ro); ring.scale.setScalar(rs);
     l.dots.forEach((d, k) => d.material.color.copy(l.lit ? WARM : k < l.got ? FILL : DIM));
     l.dots.forEach(d => d.visible = !l.lit || !!CFG.burn);
     if (l.lit && CFG.burn) l.dots.forEach((d, k) => d.material.color.copy(k < Math.ceil(l.burn*l.need) ? WARM : DIM));
@@ -858,6 +1035,7 @@ function render(dt){
   const tw = twin.lit ? Math.min(1, (S.end - END.light)*1.5) : 0;
   twin.Ls.forEach(L => { L.userData.glass.emissive.copy(WARM).multiplyScalar(tw*1.4); L.userData.halo.material.opacity = tw; L.userData.halo.scale.setScalar(7); });
   twin.pool.material.opacity = tw*.9;
+  for (const c of twin.look.shafts){ c.visible = tw > .01; c.material.opacity = tw*(.1 + beat*.02); }      // (the look)
   // moths
   for (const m of moths){
     m.g.position.set(m.x, m.y + Math.sin(t*5 + m.k)*.15, m.z);
@@ -868,17 +1046,28 @@ function render(dt){
     m.g.visible = S.end < 0;
     m.sh.visible = S.end < 0;
   }
+  // (the look) the rose pool under every moth that is out: full while it can touch you (below 4.2 m), fading as it climbs away
+  for (const m of ALLM){
+    const o = m.sh.visible ? clamp((7 - m.y) / 2.8, 0, 1)*(.3 + beat*.1) : 0;
+    m.pool.visible = o > .01; m.pool.material.opacity = o; m.pool.position.set(m.x, .065, m.z);
+  }
   // fireflies: they blink on the beat
   const pos = flyPts.geometry.attributes.position, col = flyPts.geometry.attributes.color;
+  const gpos = flyGlow.geometry.attributes.position, gcol = flyGlow.geometry.attributes.color, GP = gpos.array, GC = gcol.array;   // (the look: their light on the grass)
   let n = 0;
   for (const f of F){
     if (n >= MAXF) break;
     pos.setXYZ(n, f.x, f.y, f.z);
     const b = f.st === "free" ? .45 + .55*Math.max(0, Math.sin(t*3 + f.ph*2)) * (.6 + onBeat*.4) : .8 + onBeat*.2;
-    col.setXYZ(n, .91*b, 1*b, .48*b); n++;
+    col.setXYZ(n, .91*b, 1*b, .48*b);
+    const gb = b*.34*clamp(1.5 - f.y*.18, .2, 1);
+    for (let c = 0, o = n*12; c < 4; c++, o += 3){ GP[o] = f.x + (c === 1 || c === 2 ? 2.2 : -2.2); GP[o + 1] = .12; GP[o + 2] = f.z + (c > 1 ? 2.2 : -2.2);
+      GC[o] = .91*gb; GC[o + 1] = gb; GC[o + 2] = .48*gb; }
+    n++;
   }
   for (let i = n; i < MAXF; i++) pos.setXYZ(i, 0, -50, 0);
-  pos.needsUpdate = true; col.needsUpdate = true;
+  flyGlow.geometry.setDrawRange(0, n*6);                        // (only the ones in use)
+  pos.needsUpdate = true; col.needsUpdate = true; gpos.needsUpdate = true; gcol.needsUpdate = true;
   // arrows to the lamps that still want you, when they're off screen
   for (const l of lamps){
     const want = S.end < 0 && S.started && (!l.lit || (CFG.burn && l.burn < .5));

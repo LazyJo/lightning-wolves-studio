@@ -189,6 +189,13 @@ const FLY_Y = 8.5, SPEED = 6.6;         // just over the treetops; the beam reac
 // how far (m) the camera sits ahead of the saucer: a little down the screen at rest (it used to show almost no
 // ground below the saucer), more going down, back to the old view going up (it already looks ahead that way)
 const LEAD = { rest:4, down:8, up:4, side:2 };
+// Ghosts. A touch counts this close (m, centre to centre). The saucer's hull is 1 m round and a ghost's head .55, so
+// they look like they touch at 1.55: at 1.0 the head is half over the rim, a graze no longer counts. (It was 1.3; on a
+// phone, where the ghosts were hard to see, players called that a huge hitbox.)
+const GHOST_HIT = 1.0;
+// They show by their distance from the saucer, as if seen from GHOST_SEEN m back, not through the fog counted from the
+// camera: a phone's camera sits twice as far back as a computer's, and there they all but vanished, even beside you.
+const GHOST_SEEN = 14;
 let FOG = CFG.fog; const FOG_STAR = .011;   // fog density, and how far a shooting star thins it
 /* Where the hook lands in lvl3.mp3: the first chorus downbeat at 0:24.0, read
    off the song's loudness (the pickup is at 0:23.25). The ending starts the song
@@ -547,14 +554,18 @@ function buildPetal(i){
 }
 function buildGhost(i){
   const g = new THREE.Group();
-  const mat = new THREE.MeshBasicMaterial({ color:C.ghost, transparent:true, opacity:.32, depthWrite:false });
+  const mat = new THREE.MeshBasicMaterial({ color:C.ghost, transparent:true, opacity:.32, depthWrite:false, fog:false });
   const head = new THREE.Mesh(new THREE.SphereGeometry(.55, 16, 12), mat); g.add(head);
   const tail = new THREE.Mesh(new THREE.ConeGeometry(.55, 1.6, 14, 1, true), mat);
   tail.rotation.x = Math.PI; tail.position.y = -.8; g.add(tail);
+  const eyeM = new THREE.MeshBasicMaterial({ color:0x0a0d14, transparent:true, fog:false });
   for (const x of [-.18, .18]){
-    const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color:0x0a0d14 }));
+    const e = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), eyeM);
     e.position.set(x, .1, .5); g.add(e);
   }
+  // a soft cold glow round it, stronger once it has seen you (render)
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:TEX.soft, color:0xbfe4ff, blending:THREE.AdditiveBlending, depthWrite:false, fog:false, opacity:0 }));
+  halo.scale.setScalar(3.4); halo.position.y = -.25; g.add(halo);
   // the first roam wander; the rest each guard a piece, circling it (Endless adds EXTRA wanderers after those)
   const B = GB, nb = B.roam + POOL*B.guards, extra = i >= nb ? i - nb : -1;
   const guard = i < B.roam || extra >= 0 ? -1 : Math.floor((i - B.roam) / B.guards);
@@ -565,7 +576,7 @@ function buildGhost(i){
   const half = Math.ceil(B.roam / 2);
   const from = REMIX || extra >= 0 || guard >= 0 || i < half ? 0 : Math.ceil((i - half + 1) / (B.roam - half) * (SHARDS - 2));
   g.userData = { home:g.position.clone(), to:new THREE.Vector3(), wob:i*1.7, from, guard, phase:a,
-    ri:i, slot: guard >= 0 ? (i - B.roam) % B.guards : -1, extra };
+    ri:i, slot: guard >= 0 ? (i - B.roam) % B.guards : -1, extra, mat, eyeM, halo, hunt:0 };
   return g;
 }
 
@@ -821,7 +832,7 @@ function update(dt){
     if (l > .01) g.position.addScaledVector(V, Math.min(1, sp*dt/l));
     g.position.y = FLY_Y + Math.sin(u.wob*2) * .25;
     g.rotation.y = Math.atan2(dx, dz);
-    if (d < 1.3 && S.grace <= 0){
+    if (d < GHOST_HIT && S.grace <= 0){
       S.chill = 0; S.moved = false; S.chills++; sfx.chill(); S.why = "ghost";
       if (CFG.lives || EX){
         S.lives--;
@@ -1064,6 +1075,18 @@ function render(dt){
     r.scale.setScalar(1 + (1 - (1 - u)*(1 - u))*(big ? 7 : 3.5)); r.material.opacity = (1 - u)*(1 - u)*.75;
   }
 
+  // the ghosts fade with their distance from the saucer, the same on a phone as on a computer (a shooting star's thinner
+  // fog shows them further); one that has seen you and is coming gets icy eyes and a glow
+  const ch = EX ? CFG.chase + 5*S.D : CFG.chase, fd = scene.fog.density;
+  for (const g of ghosts){
+    if (!g.visible) continue;
+    const u = g.userData, d = Math.hypot(g.position.x - S.x, g.position.z - S.z), vis = Math.exp(-Math.pow(fd*(GHOST_SEEN + d), 2));
+    u.hunt += ((d < ch && S.end < 0 ? 1 : 0) - u.hunt) * Math.min(1, dt*4);
+    const h = u.hunt;
+    u.mat.opacity = (.32 + .1*h) * vis;
+    u.eyeM.opacity = vis; u.eyeM.color.setRGB(.039 + .585*h, .051 + .812*h, .078 + .922*h);    // 0x0a0d14 -> 0x9fdcff
+    u.halo.visible = !FX.low; u.halo.material.opacity = (.07 + .2*h) * vis;
+  }
   for (const p of petals){ if (!p.visible) continue; p.userData.p.rotation.y = t*2; p.position.y = 1.3 + Math.sin(t*2 + p.position.x)*.15; p.children[1].quaternion.copy(cam.quaternion); }
   for (const s of spark.children){
     if (!s.visible) continue;

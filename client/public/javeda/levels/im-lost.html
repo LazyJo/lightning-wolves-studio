@@ -229,7 +229,7 @@ const C = {
   pit:0x02060f, pitLip:0xff3d8b
 };
 
-let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spark, bikeG;
+let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spark, bikeG, sky;
 let vortex, cine, cineCam, cs;          // the ending: its own scene, see renderEnd()
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const walls = [], lamps = [], pickups = [];
@@ -327,6 +327,10 @@ function buildBeam(){
 /* ---- the walls. They have to read instantly as "you cannot pass here", so the
    tall ones get a bright lip along the top and the low ones a gold lip, which is
    the only thing on screen that colour. ---- */
+// a soft patch of light, for the road under a wall or a lamp
+let GLOW_T = null;
+function glowTex(){ if (GLOW_T) return GLOW_T; const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
+  g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(.4, "rgba(255,255,255,.35)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return (GLOW_T = new THREE.CanvasTexture(c)); }
 function makeWall(lanesFrom, lanesTo, low){
   const w = (lanesTo - lanesFrom + 1) * LANE;
   const h = low ? 1.0 : 4.4;
@@ -343,6 +347,13 @@ function makeWall(lanesFrom, lanesTo, low){
         transparent:true, opacity:.22 }));
     t.position.set(-w/2 + (i+.5)*(w/Math.max(2, Math.round(w/1.1))), h/2, 0); g.add(t);
   }
+  // an outline of light on the side you come from, and light on the road under it
+  const lit = new THREE.MeshBasicMaterial({ color: low ? C.lowLip : C.wallLip });
+  for (const sx of [-1, 1]){ const e = new THREE.Mesh(new THREE.BoxGeometry(.09, h, .09), lit); e.position.set(sx*(w/2 - .045), h/2, .3); g.add(e); }
+  const foot = new THREE.Mesh(new THREE.BoxGeometry(w, .06, .09), lit); foot.position.set(0, .04, .3); g.add(foot);
+  const pool = new THREE.Mesh(new THREE.PlaneGeometry(w + .8, 2.6), new THREE.MeshBasicMaterial({ map:glowTex(), color: low ? C.lowLip : C.wallLip, transparent:true, opacity: low ? .3 : .26, depthWrite:false, blending:THREE.AdditiveBlending }));
+  pool.rotation.x = -Math.PI/2; pool.position.set(0, .03, 1.5); g.add(pool);
+  if (low) for (let i = 0; i < Math.round(w/.9); i++){ const c = new THREE.Mesh(new THREE.BoxGeometry(.34, .16, .6), new THREE.MeshBasicMaterial({ color:0x10202a })); c.position.set(-w/2 + .45 + i*.9, h, 0); g.add(c); }
   g.position.x = ((lanesFrom + lanesTo)/2) * LANE;
   g.userData = { from:lanesFrom, to:lanesTo, low, h };
   return g;
@@ -367,11 +378,38 @@ function makeHole(from, to){
       new THREE.MeshBasicMaterial({ color:C.pitLip }));
     lip.position.set(dx, .04, 0); g.add(lip);
   }
+  const up = new THREE.Mesh(new THREE.PlaneGeometry(w + 1.2, 4.6), new THREE.MeshBasicMaterial({ map:glowTex(), color:C.pitLip, transparent:true, opacity:.34, depthWrite:false, blending:THREE.AdditiveBlending }));
+  up.rotation.x = -Math.PI/2; up.position.y = .05; g.add(up);
   g.position.x = ((from + to) / 2) * LANE;
   g.userData = { from, to, hole:true, h:0 };
   return g;
 }
 function rnd(n){ const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); }
+function buildSky(){
+  const g = new THREE.Group(), far = { fog:false, depthWrite:false, transparent:true };
+  // stars
+  const N = 520, pos = new Float32Array(N*3); for (let i = 0; i < N; i++){ const a = (rnd(i*1.7) - .5)*2.4, e = .04 + rnd(i*2.9)*1.1, R = 330;
+    pos[i*3] = Math.sin(a)*Math.cos(e)*R; pos[i*3 + 1] = Math.sin(e)*R; pos[i*3 + 2] = -Math.cos(a)*Math.cos(e)*R; }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  g.add(new THREE.Points(sg, new THREE.PointsMaterial(Object.assign({ color:0xcfe8ff, size:1.6, sizeAttenuation:false, opacity:.85 }, far))));
+  // the light on the horizon, and the moon in it
+  const hz = new THREE.Mesh(new THREE.PlaneGeometry(900, 150), new THREE.MeshBasicMaterial(Object.assign({ map:horizonTex(), opacity:.95 }, far))); hz.position.set(0, 60, -345); g.add(hz);
+  const moon = new THREE.Sprite(new THREE.SpriteMaterial(Object.assign({ map:glowTex(), color:0xa8dcff, opacity:.5, blending:THREE.AdditiveBlending }, far))); moon.scale.setScalar(150); moon.position.set(58, 92, -340); g.add(moon);
+  const disc = new THREE.Mesh(new THREE.CircleGeometry(17, 40), new THREE.MeshBasicMaterial(Object.assign({ color:0xe6f6ff }, far, { transparent:false }))); disc.position.set(58, 92, -338); g.add(disc);
+  const dark = new THREE.Mesh(new THREE.CircleGeometry(15.5, 40), new THREE.MeshBasicMaterial(Object.assign({ color:0x071127 }, far, { transparent:false }))); dark.position.set(64, 96, -337); g.add(dark);   // a crescent
+  // the town he can't find his way to: far roofs with a few windows on
+  const tw = new THREE.Mesh(new THREE.PlaneGeometry(760, 95), new THREE.MeshBasicMaterial(Object.assign({ map:townTex() }, far))); tw.position.set(0, 35, -330); g.add(tw);
+  g.renderOrder = -1; g.children.forEach(m => { m.renderOrder = -1; });
+  return g;
+}
+function horizonTex(){ const c = document.createElement("canvas"); c.width = 8; c.height = 128; const x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 128);
+  g.addColorStop(0, "rgba(10,24,54,0)"); g.addColorStop(.62, "rgba(22,64,130,.55)"); g.addColorStop(.86, "rgba(60,140,220,.75)"); g.addColorStop(1, "rgba(120,210,255,.9)"); x.fillStyle = g; x.fillRect(0, 0, 8, 128); return new THREE.CanvasTexture(c); }
+function townTex(){ const c = document.createElement("canvas"); c.width = 2048; c.height = 256; const x = c.getContext("2d");
+  for (const [k, col, hmax] of [[1, "#0a1a3a", 150], [2, "#060f24", 105]]){ let px = 0, i = 0;
+    while (px < 2048){ const w = 26 + rnd(i*3.1 + k)*58, h = 30 + rnd(i*5.3 + k*7)*hmax*(.35 + .65*Math.abs(Math.sin(px/2048*Math.PI*2.5 + k))); x.fillStyle = col; x.fillRect(px, 256 - h, w, h);
+      if (k === 2) for (let wy = 256 - h + 8; wy < 250; wy += 11) for (let wx = px + 5; wx < px + w - 6; wx += 9) if (rnd(wx*.37 + wy*1.3) < .2){ x.fillStyle = rnd(wx + wy) < .25 ? "#ffd98a" : "#7fdcff"; x.fillRect(wx, wy, 4, 5); }
+      px += w + 2 + rnd(i*7.7)*10; i++; } }
+  return new THREE.CanvasTexture(c); }
 // every wall leaves at least one lane open, and never the same one twice running
 let last = 0, rowN = 0, lifts = 0;     // the last open lane, the last row built, lift rows running (endless)
 /* Where the rows are. The first is 50 m out, and the space between them starts wide - ~24 m, two and a
@@ -500,11 +538,13 @@ function boot(){
     const k = new THREE.Mesh(new THREE.BoxGeometry(.3, .22, 2600),
       new THREE.MeshStandardMaterial({ color:C.kerb, roughness:.9 }));
     k.position.set(sx * (LANE*1.5 + .45), .11, -1200); scene.add(k); strips.push(k);
+    const n = new THREE.Mesh(new THREE.BoxGeometry(.07, .04, 2600), new THREE.MeshBasicMaterial({ color:C.rim }));
+    n.position.set(sx * (LANE*1.5 + .28), .235, -1200); scene.add(n); strips.push(n);
   }
   for (const lx of [-.5, .5]){                                  // lane dashes
     for (let i = 0; i < 300; i++){
       const d = new THREE.Mesh(new THREE.BoxGeometry(.12, .02, 2.0),
-        new THREE.MeshBasicMaterial({ color:C.rim, transparent:true, opacity:.45 }));
+        new THREE.MeshBasicMaterial({ color:C.rim, transparent:true, opacity:.7 }));
       d.position.set(lx*LANE*2, .02, -i*6.2); scene.add(d);
       d.userData.loop = 300*6.2; loops.push(d);
     }
@@ -517,10 +557,15 @@ function boot(){
       const b = new THREE.Mesh(new THREE.SphereGeometry(.26, 10, 8),
         new THREE.MeshBasicMaterial({ color:0xbfe2ff }));
       b.position.set(sx*(LANE*1.5 + 1.5), 5.25, -i*21); scene.add(b); lamps.push(b);
-      p.userData.loop = b.userData.loop = 120*21; loops.push(p, b);
+      // a halo round the bulb (it goes with the bulb) and its light on the road
+      const hal = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex(), color:0x9fd4ff, transparent:true, opacity:.75, depthWrite:false, blending:THREE.AdditiveBlending })); hal.scale.setScalar(2.6); b.add(hal);
+      const lp = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 7), new THREE.MeshBasicMaterial({ map:glowTex(), color:0x4f8fe0, transparent:true, opacity:.22, depthWrite:false, blending:THREE.AdditiveBlending }));
+      lp.rotation.x = -Math.PI/2; lp.position.set(sx*(LANE*1.5 - .6), .03, -i*21); scene.add(lp);
+      p.userData.loop = b.userData.loop = lp.userData.loop = 120*21; loops.push(p, b, lp);
     }
   }
   strips.concat(loops).forEach(m => m.userData.z0 = m.position.z);
+  sky = buildSky(); scene.add(sky);
 
   ufo = new THREE.Group();
   hullGrp = buildUFO(); ufo.add(hullGrp);
@@ -851,6 +896,7 @@ function render(dt){
   const back = S.crash >= 0 ? 8.5 + S.crash*2.2 : Math.max(7.2, 2.6/(Math.tan(cam.fov*Math.PI/360)*cam.aspect));
   cam.position.set(S.camX, 3.1 + y*.30 + (S.crash >= 0 ? S.crash*.7 : 0), -S.dist + back);
   cam.lookAt(S.camX*.55, 1.4 + S.y*.5, -S.dist - 9);
+  sky.position.set(cam.position.x*.5, 0, cam.position.z);
   ren.render(scene, cam);
   document.getElementById("m").textContent = ENDLESS ? score() : Math.floor(S.dist);
 }

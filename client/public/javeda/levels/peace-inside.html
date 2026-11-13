@@ -349,15 +349,144 @@ function hurt(why, tip){
 // green: in - on the beat it's a swish. Each shot is from a new spot (further means the green sits
 // higher); later the hoop slides about and the green gets smaller. The shots come from a seed, so
 // two players online get exactly the same ones.
+/* =============== THE LOOK: depth and light (picture only) =============== */
+// Nothing in here is read by the game: it only looks at where things already are and draws round them.
+// The white sky gets a pale haze so that white can show on it: the sun behind the overcast, shafts of
+// light, three banks of cloud drifting at their own speeds, two small flocks far off - all riding with
+// the camera, out of the fog. On the court: lit edges that pulse on the beat, soft shadows under the
+// saucers, the ball and the hoop, a streak behind the ball, a ring of light when it drops, a net you can
+// see, gold round the backboard, and a frame round the wind-up bar (the green and the marker are exactly
+// what and where they were). Its own little hash for where things sit; no dice.
+const hsh = n => { const x = Math.sin(n*91.7 + 3.3)*15731.743; return x - Math.floor(x); };
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+const FX = {
+  T:0, bp:0, ringT:0, ringSw:false, seenF:null, flyD:10, sh0:{ D:10 },
+  // flat cards in one mesh: P = four corners each (x, y, z), U = their (u, v)
+  cards(P, U, mat){ const g = new THREE.BufferGeometry(), idx = [];
+    for (let i = 0; i < P.length/12; i++) idx.push(i*4, i*4 + 1, i*4 + 2, i*4, i*4 + 2, i*4 + 3);
+    g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(P), 3)); g.setAttribute("uv", new THREE.BufferAttribute(new Float32Array(U), 2)); g.setIndex(idx);
+    const m = new THREE.Mesh(g, mat); m.frustumCulled = false; return m; },
+  // a bank of cloud: n clouds over one period P, laid out twice so it can drift round for ever at v
+  bank(tex, n, P, v, k0, at, op, order){ const A = [], U = [];
+    for (let c = 0; c < 2; c++) for (let i = 0; i < n; i++){ const [x, y, z, w, h] = at(i, k0 + i), X = x + c*P, half = i % 2, f = hsh(k0 + i*8.1) > .5, u0 = (half + (f ? 1 : 0))/2, u1 = (half + (f ? 0 : 1))/2;
+      A.push(X - w/2, y - h/2, z, X + w/2, y - h/2, z, X + w/2, y + h/2, z, X - w/2, y + h/2, z); U.push(u0, 0, u1, 0, u1, 1, u0, 1); }
+    const m = this.cards(A, U, new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:op, depthWrite:false, fog:false })); m.renderOrder = order; m.userData.P = P; m.userData.v = v; this.sky.add(m); return m; },
+  build(){
+    const gold = !!CFG.endless, sky = this.sky = new THREE.Group(), basic = c => new THREE.MeshBasicMaterial({ color:c }); scene.add(sky);
+    // the haze: lilac (gold in endless), thickest at the horizon, thin where the score sits
+    const stops = gold ? [[0, "rgba(226,190,120,.3)"], [.36, "rgba(240,210,150,.24)"], [.44, "rgba(244,212,150,.4)"], [.5, "rgba(246,208,136,.62)"], [.6, "rgba(226,188,120,.55)"], [1, "rgba(200,160,100,.55)"]]
+      : [[0, "rgba(150,128,216,.14)"], [.3, "rgba(176,160,228,.22)"], [.4, "rgba(186,172,232,.4)"], [.5, "rgba(196,184,236,.66)"], [.6, "rgba(180,166,228,.6)"], [1, "rgba(150,130,205,.6)"]];
+    const shell = new THREE.Mesh(new THREE.SphereGeometry(560, 24, 12), new THREE.MeshBasicMaterial({ side:THREE.BackSide, transparent:true, fog:false, depthWrite:false,
+      map:canvasTex(4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, w, h); }) })); shell.renderOrder = -10; sky.add(shell);
+    // the sun behind the overcast, up and a little left of the hoop, and its shafts
+    const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map:radial([[0, "rgba(255,255,255,1)"], [.12, "rgba(255,253,244,.95)"], [.35, "rgba(255,240,200,.5)"], [.7, "rgba(255,232,180,.15)"], [1, "rgba(255,232,180,0)"]], 128), transparent:true, depthWrite:false, fog:false }));
+    sun.scale.setScalar(210); sun.position.set(-37, 69, -300); sun.renderOrder = -9; sky.add(sun);
+    const RP = [], RU = [];
+    for (let i = 0; i < 7; i++){ const a = -1.05 + i*.35 + (hsh(i*2.3) - .5)*.14, L = 230 + hsh(i*3.1)*130, w = 34 + hsh(i*5.3)*34, dx = Math.sin(a)*L, dy = -Math.cos(a)*L, px = Math.cos(a)*w/2, py = Math.sin(a)*w/2;
+      RP.push(-px, -py, 0, dx - px, dy - py, 0, dx + px, dy + py, 0, px, py, 0); RU.push(0, 1, 0, 0, 1, 0, 1, 1); }
+    this.rays = this.cards(RP, RU, new THREE.MeshBasicMaterial({ transparent:true, opacity:.4, depthWrite:false, fog:false, side:THREE.DoubleSide,
+      map:canvasTex(64, 128, (x, w, h) => { for (let y = 0; y < h; y++){ const ww = w*(.1 + .9*y/h), g = x.createLinearGradient(w/2 - ww/2, 0, w/2 + ww/2, 0), al = ((y < 30 ? y/30*.7 : Math.pow(1 - y/h, 1.3))*.9).toFixed(3);
+        g.addColorStop(0, "rgba(255,250,236,0)"); g.addColorStop(.5, "rgba(255,250,236," + al + ")"); g.addColorStop(1, "rgba(255,250,236,0)"); x.fillStyle = g; x.fillRect(0, y, w, 1); } }) }));
+    this.rays.position.copy(sun.position); this.rays.renderOrder = -7; sky.add(this.rays);
+    // two clouds on one sheet: white on top, lilac in the shade underneath
+    const cloudT = canvasTex(512, 128, (x, w, h) => {
+      for (let c = 0; c < 2; c++) for (let i = 0; i < 11; i++){ const k = c*40 + i, px = c*256 + 56 + hsh(k)*144, r = 20 + hsh(k*3)*20, py = 92 - hsh(k*5)*34 - (1 - Math.abs(px - c*256 - 128)/72)*14;
+        const g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(.6, "rgba(255,255,255,.85)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(px - r, py - r, r*2, r*2); }
+      x.globalCompositeOperation = "source-atop"; const s = x.createLinearGradient(0, 34, 0, h); s.addColorStop(0, "rgba(160,142,214,0)"); s.addColorStop(.55, "rgba(160,142,214,.24)"); s.addColorStop(1, "rgba(132,112,196,.62)"); x.fillStyle = s; x.fillRect(0, 0, w, h);
+      x.globalCompositeOperation = "destination-out"; const f = x.createLinearGradient(0, 100, 0, h); f.addColorStop(0, "rgba(0,0,0,0)"); f.addColorStop(1, "rgba(0,0,0,1)"); x.fillStyle = f; x.fillRect(0, 100, w, 28); });
+    this.banks = [
+      this.bank(cloudT, 6, 720, .5, 11, (i, k) => { const w = 150 + hsh(k*6.3)*80; return [-360 + (i + hsh(k*2.1)*.6)*120, 6 + hsh(k*4.7)*40, -330 - hsh(k*1.7)*20, w, w*.42]; }, .92, -8),      // the tall ones, far off
+      this.bank(cloudT, 10, 600, 1.3, 57, (i, k) => { const w = 120 + hsh(k*6.3)*60; return [-300 + (i + hsh(k*3.3)*.7)*60, -30 + hsh(k*5.9)*18, -175 - hsh(k*1.7)*60, w, w*.3]; }, .95, -6), // the sea of cloud the court floats over
+      this.bank(cloudT, 5, 400, 2.6, 91, (i, k) => { const w = 70 + hsh(k*6.3)*40; return [-200 + (i + hsh(k*2.1)*.6)*80, 30 + hsh(k*4.7)*30, -120, w, w*.2]; }, .5, -5) ];                            // thin ones passing overhead
+    // two small flocks, far off: [flock, x, y] for each bird
+    this.birdB = [[0, 0, 0], [0, -3, -1.2], [0, 3, -1.4], [0, -6, -2.6], [0, 6.2, -2.9], [1, 0, 0], [1, -3.2, 1.1], [1, -6, -.4], [1, -9.5, .9]];
+    const bg = new THREE.BufferGeometry(); bg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(this.birdB.length*18), 3));
+    this.birds = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ color:gold ? 0x8a6a3a : 0x6a5a9a, transparent:true, opacity:.7, side:THREE.DoubleSide, depthWrite:false, fog:false }));
+    this.birds.frustumCulled = false; this.birds.renderOrder = -4; sky.add(this.birds);
+
+    // the court: lines of light along the two sides and the far end
+    const R = HP.root, sideG = new THREE.BoxGeometry(.14, .08, 26);
+    this.stripM = basic(0xffc640); this.c0 = new THREE.Color(0xffc640); this.c1 = new THREE.Color(0xfff6d0);
+    R.add(at3(new THREE.Mesh(sideG, this.stripM), -8.93, .04, -9), at3(new THREE.Mesh(sideG, this.stripM), 8.93, .04, -9), at3(new THREE.Mesh(new THREE.BoxGeometry(18, .08, .14), this.stripM), 0, .04, -21.93));
+    // soft shadows on the floor: the two saucers, the ball, the hoop
+    const blobT = radial([[0, "rgba(34,16,64,.6)"], [.5, "rgba(34,16,64,.3)"], [1, "rgba(34,16,64,0)"]], 64), flat = new THREE.PlaneGeometry(1, 1); flat.rotateX(-Math.PI/2);
+    const blob = () => { const m = new THREE.Mesh(flat, new THREE.MeshBasicMaterial({ map:blobT, transparent:true, depthWrite:false })); m.renderOrder = -1; m.visible = false; R.add(m); return m; };
+    this.sau = [JO, ZI]; this.shSau = [blob(), blob()]; this.shBall = blob(); this.shHoop = blob();
+    // and under the saucer with its beam on, a pool of its own light
+    this.pool = new THREE.Mesh(flat, new THREE.MeshBasicMaterial({ map:DOT, transparent:true, opacity:.5, depthWrite:false })); this.pool.renderOrder = -1; R.add(this.pool);
+    // the streak behind the ball, and the ring of light when it drops (a second one for a swish)
+    this.trail = []; for (let j = 0; j < 6; j++){ const s = sprite(0xf2a20c, .72 - j*.075, 0); s.visible = false; R.add(s); this.trail.push(s); }
+    const ringT = radial([[0, "rgba(255,255,255,0)"], [.6, "rgba(255,255,255,0)"], [.8, "rgba(255,255,255,1)"], [.95, "rgba(255,255,255,0)"], [1, "rgba(255,255,255,0)"]], 128);
+    const ring = c => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:ringT, color:c, transparent:true, opacity:0, depthWrite:false })); s.visible = false; R.add(s); return s; };
+    this.ring1 = ring(PC.gold); this.ring2 = ring(0x7a4ac8); this.ringP = new THREE.Vector3();
+    // the hoop: a net you can see against the white, a glow on the rim, gold round the backboard
+    const netT = canvasTex(128, 64, (x, w, h) => { x.strokeStyle = "rgba(112,92,168,.95)"; x.lineWidth = 2.2; x.beginPath(); for (let i = -4; i <= 8; i++){ x.moveTo(i*16, 0); x.lineTo(i*16 + 32, h); x.moveTo(i*16 + 32, 0); x.lineTo(i*16, h); } x.stroke(); }, [1.5, 1]);
+    HP.hoop.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.53, .34, .78, 24, 1, true), new THREE.MeshBasicMaterial({ map:netT, transparent:true, side:THREE.DoubleSide, depthWrite:false })), 0, -.4, 0));
+    this.rimG = new THREE.Mesh(new THREE.TorusGeometry(.55, .1, 8, 32), new THREE.MeshBasicMaterial({ color:0xff7a2a, transparent:true, opacity:.3, depthWrite:false })); this.rimG.rotation.x = Math.PI/2; HP.hoop.add(this.rimG);
+    HP.hoop.add(at3(new THREE.Mesh(new THREE.PlaneGeometry(3.84, 2.64), basic(PC.gold)), 0, 1.2, -.985));
+    // the wind-up bar: a dark back and a gold line round the track, dark tips on the marker (so its ends show against the sky)
+    HP.bar.add(at3(new THREE.Mesh(new THREE.PlaneGeometry(.46, 3.16), basic(PC.gold)), 0, 0, -.031), at3(new THREE.Mesh(new THREE.PlaneGeometry(.37, 3.07), basic(0x2a1650)), 0, 0, -.028));
+    HP.mark.add(new THREE.Mesh(new THREE.BoxGeometry(.62, .076, .066), basic(0x2a1650)));
+  },
+  put(m, x, z, sx, sz, op){ const on = op > .01 && Math.abs(x) < 8.7 && z > -21.7 && z < 3.7; m.visible = on; if (on){ m.position.set(x, .03, z); m.scale.set(sx, 1, sz); m.material.opacity = op; } },
+  frame(dt, t, beat){
+    const T = this.T += dt, st = HP.st, sh = st.shot || this.sh0, hot = !!sh.money;
+    this.bp += ((beat && !CALM ? 1 : 0) - this.bp)*Math.min(1, dt*14); const bp = this.bp;
+    // the sky rides with the camera; each bank at its own speed
+    this.sky.position.copy(cam.position);
+    for (let i = 0; i < this.banks.length; i++){ const m = this.banks[i], P = m.userData.P; m.position.x = (T*m.userData.v) % P - P; }
+    this.rays.rotation.z = CALM ? 0 : Math.sin(T*.13)*.04; this.rays.material.opacity = .4 + (hot ? .14 + bp*.08 : 0);
+    const bpos = this.birds.geometry.attributes.position, a = bpos.array;
+    for (let i = 0; i < this.birdB.length; i++){ const b = this.birdB[i], cx = -110 + ((T*3.2 + b[0]*110) % 220) + b[1], cy = 27 + b[0]*7 + b[2] + Math.sin(T*.5 + i)*.4, f = cy + (CALM ? .3 : Math.sin(T*5.5 + i*1.7)*.6);
+      let o = i*18;
+      for (let s = -1; s <= 1; s += 2){ a[o] = cx; a[o + 1] = cy + .1; a[o + 2] = -150; a[o + 3] = cx + s*1.25; a[o + 4] = f; a[o + 5] = -150; a[o + 6] = cx; a[o + 7] = cy - .16; a[o + 8] = -150; o += 9; } }
+    bpos.needsUpdate = true;
+    if (!HP.root.visible) return;
+    this.stripM.color.copy(this.c0).lerp(this.c1, Math.min(1, bp*.75 + (hot ? .25 : 0)));
+    this.rimG.material.opacity = .3 + bp*.22;
+    // shadows - but under the saucer with its beam on there is light, not shade
+    this.pool.visible = false;
+    for (let i = 0; i < 2; i++){ const s = this.sau[i], p = s.position, lit = s.userData.beam.visible, k = 3*s.scale.x*(1 + p.y*.04);
+      this.put(this.shSau[i], p.x, p.z, k, k, s.visible && !lit ? clamp(.3 - p.y*.03, .08, .24) : 0);
+      if (lit && s.visible){ this.pool.material.color.copy(s.userData.under.material.color); this.put(this.pool, p.x, p.z, k*1.9, k*1.9, .42 + bp*.14); } }
+    const b = HP.ball.position, hp = HP.hoop.position;
+    this.put(this.shBall, b.x, b.z, .95 + b.y*.1, .95 + b.y*.1, clamp(.5 - b.y*.05, .08, .45));
+    this.put(this.shHoop, hp.x, hp.z - .7, 3.8, 1.7, .26);
+    // the streak: where the ball was a moment ago on this same throw
+    const F = st.fly, fl = st.state === "fly" && F && !F.clock;
+    if (fl){ this.flyD = sh.D; const u = clamp((t - F.t0)/F.T, 0, 1), endZ = -sh.D*(1 + F.off*.9), endX = F.inn ? F.hx : F.hx + F.off*3;
+      for (let j = 0; j < 6; j++){ const s = this.trail[j], v = u - (j + 1)*.032; s.visible = v > 0;
+        if (v > 0){ s.position.set(endX*v, 1.4 + (4.2 - 1.4)*v + Math.sin(v*Math.PI)*(3 + sh.D*.25), endZ*v); s.material.opacity = .72 - j*.11; } } }
+    else for (let j = 0; j < 6; j++) this.trail[j].visible = false;
+    // it dropped: a ring of light where the hoop was (the hoop is already off to the next spot)
+    if (F && F !== this.seenF && t >= F.t0 + F.T){ this.seenF = F; if (F.inn && !F.clock){ this.ringT = 1; this.ringSw = !!F.swish; this.ringP.set(F.hx, 4.2, -this.flyD); } }
+    if (this.ringT > 0){ this.ringT -= dt/.55; const life = Math.max(0, this.ringT), k = 1 - life;
+      this.ring1.visible = true; this.ring1.position.copy(this.ringP); this.ring1.scale.setScalar(1.3 + k*(this.ringSw ? 4.6 : 3.4)); this.ring1.material.opacity = life*.85;
+      this.ring2.visible = this.ringSw; this.ring2.position.copy(this.ringP); this.ring2.scale.setScalar(1 + k*2.6); this.ring2.material.opacity = life*.7; }
+    else this.ring1.visible = this.ring2.visible = false;
+  }
+};
+
 let SEED = 0;
 const HP = {
   name:"hoops", tag:"HOOPS", hint:"hold to wind up - let go in the green",
   setup(){
     const root = this.root = new THREE.Group(); scene.add(root);
-    const floor = new THREE.MeshStandardMaterial({ map:canvasTex(256, 256, (x, w, h) => { x.fillStyle = "#c89a5a"; x.fillRect(0, 0, w, h);
-      for (let i = 0; i < 16; i++){ x.fillStyle = i % 2 ? "rgba(0,0,0,.05)" : "rgba(255,255,255,.05)"; x.fillRect(i*16, 0, 16, h); }
-      x.strokeStyle = "#552583"; x.lineWidth = 6; x.strokeRect(6, 6, w - 12, h - 12); x.beginPath(); x.arc(w/2, 30, 70, 0, Math.PI); x.stroke();
-      x.fillStyle = "#fdb927"; x.beginPath(); x.arc(w/2, h/2, 26, 0, Math.PI*2); x.fill(); }), roughness:.6 });
+    const floor = new THREE.MeshStandardMaterial({ map:canvasTex(512, 512, (x, w, h) => { x.fillStyle = "#a27c46"; x.fillRect(0, 0, w, h);
+      // the boards: sixteen down the court, each its own shade, a seam between them and where they butt
+      for (let i = 0; i < 16; i++){ const k = hsh(i*7.3); x.fillStyle = i % 2 ? "rgba(40,18,4,.07)" : "rgba(255,236,190,.07)"; x.fillRect(i*32, 0, 32, h);
+        x.fillStyle = k > .5 ? "rgba(255,232,180," + ((k - .5)*.16).toFixed(3) + ")" : "rgba(50,24,8," + ((.5 - k)*.16).toFixed(3) + ")"; x.fillRect(i*32, 0, 32, h);
+        x.fillStyle = "rgba(60,32,12,.3)"; x.fillRect(i*32, 0, 1.5, h); for (let j = 0; j < 3; j++) x.fillRect(i*32, Math.floor(hsh(i*13 + j*5)*h), 32, 1.5); }
+      // light (the top of this sheet is the far end): warm at the line, a shade cooler far off; a glow in from the lit edges
+      // (the near end stays pale: the gold words at the bottom of the screen are read against it)
+      let g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(70,36,110,.16)"); g.addColorStop(.55, "rgba(70,36,110,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+      g = x.createLinearGradient(0, 290, 0, h); g.addColorStop(0, "rgba(255,244,200,0)"); g.addColorStop(1, "rgba(255,244,200,.32)"); x.fillStyle = g; x.fillRect(0, 290, w, h - 290);
+      for (const [x0, y0, x1, y1] of [[0, 0, 44, 0], [w, 0, w - 44, 0], [0, 0, 0, 44]]){ g = x.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, "rgba(255,220,130,.6)"); g.addColorStop(1, "rgba(255,220,130,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); }
+      x.beginPath(); x.arc(w/2, 60, 140, 0, Math.PI); x.fillStyle = "rgba(85,37,131,.13)"; x.fill();
+      x.strokeStyle = "#552583"; x.lineWidth = 12; x.strokeRect(12, 12, w - 24, h - 24); x.beginPath(); x.arc(w/2, 60, 140, 0, Math.PI); x.stroke();
+      x.strokeStyle = "#fdb927"; x.lineWidth = 3; x.strokeRect(23, 23, w - 46, h - 46); x.beginPath(); x.arc(w/2, 60, 129, 0, Math.PI); x.stroke();
+      x.fillStyle = "#fdb927"; x.beginPath(); x.arc(w/2, h/2, 52, 0, Math.PI*2); x.fill(); x.strokeStyle = "#552583"; x.lineWidth = 5; x.stroke();
+      x.strokeStyle = "rgba(255,255,255,.5)"; x.lineWidth = 3; x.beginPath(); x.arc(w/2, h/2, 38, 0, Math.PI*2); x.stroke(); }), roughness:.6 });
     const court = new THREE.Mesh(new THREE.BoxGeometry(18, .6, 26), [mat(PC.purple, .2), mat(PC.purple, .2), floor, mat(PC.purple, .2), mat(PC.gold, .2), mat(PC.gold, .2)]);
     court.position.set(0, -.3, -9); root.add(court);
     // the checks of the lanyard round the edge of the court
@@ -761,6 +890,7 @@ function render(dt){
   } else G.render(dt, t);
   const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  FX.frame(dt, t, beat);
   ren.render(scene, cam);
 }
 function frame(){
@@ -831,7 +961,7 @@ function boot(){
   skyDome(); park(-40, -40);
   JO = buildSaucer(false); ZI = buildSaucer(true); scene.add(JO, ZI);
   ME = JO; OPP = ZI;
-  HP.setup(); HP.cl = clouds(26, [200, 50, 200], -10, -20); buildEnd();
+  HP.setup(); HP.cl = clouds(26, [200, 50, 200], -10, -20); buildEnd(); FX.build();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }

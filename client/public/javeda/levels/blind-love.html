@@ -23,6 +23,8 @@ body{margin:0; background:#1a0c34; color:#f8eeff; overflow:hidden; font-family:"
   -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
 #cab{position:fixed; inset:0}
 canvas{display:block; touch-action:none}
+/* (look) the room falls into dusk toward the top and the bottom: the HUD and the line at the bottom read on it */
+#cab::after{content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg, #2a0f5c6b 0, #2a0f5c00 17%, #2a0f5c00 82%, #1a0c3455 100%)}
 #hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
 #hud.off{opacity:0}
 #m{font-family:Bungee,sans-serif; font-size:24px; color:#fff4fc; line-height:1; text-shadow:0 0 14px #c8a0ff}
@@ -270,6 +272,57 @@ function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas")
 const flat = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.85, metalness:0, emissive:c, emissiveIntensity:e == null ? .1 : e*.45 });
 const box = (w, h, d, c, e) => new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flat(c, e));
 
+/* ---- the look (visual only): light and shade, painted once into small canvases. The games read nothing of this ---- */
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches);
+const hash = n => { const x = Math.sin(n*91.7 + 3.3)*15731.743; return x - Math.floor(x); };     // for decoration only, never the games' rnd()
+const lay = o => Object.assign({ transparent:true, depthWrite:false, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2 }, o);
+// the back wall in one piece, the halves where they were (hers pink, his purple), each deeper toward its corner and the
+// ceiling; the evening in her window and the moon in his throw a little light on the wall around them
+const WALL = canvasTex(512, 384, (x, w, h) => { const u = w/24, X = wx => (wx + 12)*u, Y = wy => (16 - wy)*u, split = wy => .2 - (wy - 4)*Math.tan(.55);
+  let g = x.createLinearGradient(w/2, 0, w, 0); g.addColorStop(0, "#8c64fc"); g.addColorStop(1, "#5434c8"); x.fillStyle = g; x.fillRect(w/2, 0, w/2, h);
+  g = x.createRadialGradient(X(3.2), Y(6), 12, X(3.2), Y(6), 125); g.addColorStop(0, "rgba(196,196,255,.55)"); g.addColorStop(1, "rgba(196,196,255,0)"); x.fillStyle = g; x.fillRect(w/2, 0, w/2, h);
+  g = x.createLinearGradient(0, 0, w/2, 0); g.addColorStop(0, "#c058c6"); g.addColorStop(1, "#f096ec"); x.fillStyle = g; x.fillRect(0, 0, w/2, h);
+  g = x.createRadialGradient(X(-4.2), Y(3.6), 12, X(-4.2), Y(3.6), 115); g.addColorStop(0, "rgba(255,218,196,.6)"); g.addColorStop(1, "rgba(255,218,196,0)"); x.fillStyle = g; x.fillRect(0, 0, w/2, h);
+  g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(40,14,110,.55)"); g.addColorStop(.5, "rgba(40,14,110,0)"); g.addColorStop(.9, "rgba(40,14,110,0)"); g.addColorStop(1, "rgba(40,14,110,.28)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  // the wall is taller than it was (the cover looked over its top): up there the white line goes on past the end of the bar that draws it
+  x.strokeStyle = "#fbf7ff"; x.lineWidth = .18*u; x.beginPath(); x.moveTo(X(split(16)), 0); x.lineTo(X(split(10.9)), Y(10.9)); x.stroke(); });
+// the floor: boards running to the wall...
+const PLANK = canvasTex(128, 128, (x, w, h) => { for (let b = 0; b < 2; b++){ x.fillStyle = b ? "#d2a4ff" : "#ca9afc"; x.fillRect(b*64, 0, 64, h);
+  x.fillStyle = "rgba(92,50,170,.4)"; x.fillRect(b*64, 0, 2, h); x.fillRect(b*64, b ? 84 : 20, 64, 2); x.fillStyle = "rgba(255,255,255,.2)"; x.fillRect(b*64 + 2, 0, 1.5, h); } }, [12.5, 4]);
+// ...and the light on it: bright in the middle of the room, dusk in the corners, a soft shadow round what stands on it ([x, z, wide, deep, how dark, round])
+function roomLight(shades){ return canvasTex(256, 128, (x, w, h) => { const ux = w/30, uz = h/20;
+  x.save(); x.translate(w/2, h/2); x.scale(w/2, h/2); const g = x.createRadialGradient(0, 0, .28, 0, 0, 1.12);
+  g.addColorStop(0, "#ffffff"); g.addColorStop(.42, "#d6c8f2"); g.addColorStop(1, "#7a5ac4"); x.fillStyle = g; x.fillRect(-1, -1, 2, 2); x.restore();
+  for (const [cx, cz, sw, sd, a, round] of shades){ x.fillStyle = x.shadowColor = "rgba(52,18,118," + a + ")"; x.shadowBlur = 9; x.beginPath();
+    if (round) x.ellipse((cx + 15)*ux, (cz + 10)*uz, sw*ux/2, sd*uz/2, 0, 0, 7); else x.rect((cx + 15 - sw/2)*ux, (cz + 10 - sd/2)*uz, sw*ux, sd*uz); x.fill(); } x.shadowBlur = 0; }); }
+// a string of little lights along her wall (one cloud of points and the wire)
+function fairy(g, x0, x1, y){ const n = 15, pos = new Float32Array(n*3), col = new Float32Array(n*3), wire = [], tint = [[1, .84, .55], [1, .58, .8], [1, .95, .9]];
+  const at = f => new THREE.Vector3(x0 + (x1 - x0)*f, y - Math.abs(Math.sin(f*3*Math.PI))*.42, -5.6);
+  for (let i = 0; i <= 45; i++) wire.push(at(i/45));
+  for (let i = 0; i < n; i++){ const p = at((i + .5)/n); pos.set([p.x, p.y - .08, p.z + .02], i*3); col.set(tint[i % 3], i*3); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map:DOT, size:1.3, vertexColors:true, transparent:true, opacity:.95, blending:THREE.AdditiveBlending, depthWrite:false }));
+  pts.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(wire), new THREE.LineBasicMaterial({ color:0x7a3a8a }))); g.add(pts); return pts; }      // the wire goes with the lights
+// the shadow under a card: one soft shape, the same for every card
+const SHADE = canvasTex(64, 64, (x, w, h) => { x.fillStyle = x.shadowColor = "#6a2494"; x.shadowBlur = 9; x.beginPath(); x.roundRect(13, 13, w - 26, h - 26, 6); x.fill(); });
+// little glints when a pair is found or snapped: one pooled cloud, one burst at a time, nothing is made while it plays
+const GLINT = canvasTex(64, 64, (x, w, h) => { x.translate(32, 32); x.beginPath(); for (let i = 0; i < 8; i++){ const r = i % 2 ? 7 : 27, a = i/8*Math.PI*2; x.lineTo(Math.cos(a)*r, Math.sin(a)*r); } x.closePath();
+  x.shadowColor = "#e040d8"; x.shadowBlur = 6; x.fillStyle = "#ffffff"; x.fill(); x.shadowBlur = 0; x.lineWidth = 2.5; x.strokeStyle = "#d848d0"; x.stroke(); x.fill(); });
+const SPK = { n:20, k:0, live:0, dur:.75 };
+function buildSparks(){ const n = SPK.n, geo = SPK.geo = new THREE.BufferGeometry(), col = new Float32Array(n*3), tints = [[1, 1, 1], [1, .92, .62], [1, .82, .95]]; SPK.pos = new Float32Array(n*3).fill(-99); SPK.vel = new Float32Array(n*3);
+  for (let i = 0; i < n; i++) col.set(tints[i % 3], i*3);
+  geo.setAttribute("position", new THREE.BufferAttribute(SPK.pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  SPK.pts = new THREE.Points(geo, new THREE.PointsMaterial({ map:GLINT, size:1.15, vertexColors:true, transparent:true, depthWrite:false }));
+  SPK.pts.frustumCulled = false; SPK.pts.visible = false; SPK.pts.renderOrder = 5; scene.add(SPK.pts); }
+function sparks(x, y, z, n, r0, r1, a0, a1, out){ if (CALM || !SPK.pts) return; const P = SPK.pos, V = SPK.vel;
+  if (SPK.live < SPK.dur) P.fill(-99);                          // the burst before this one is put away
+  for (let j = 0; j < n; j++){ const i = SPK.k++ % SPK.n, a = a0 + (a1 - a0)*hash(SPK.k*1.7), d = r0 + (r1 - r0)*hash(SPK.k*2.9);
+    P[i*3] = x + Math.cos(a)*d; P[i*3 + 1] = y; P[i*3 + 2] = z + Math.sin(a)*d; V[i*3] = Math.cos(a)*out; V[i*3 + 1] = 1.3 + hash(SPK.k*4.3); V[i*3 + 2] = Math.sin(a)*out; }
+  SPK.live = SPK.dur; SPK.pts.visible = true; }
+function sparksStep(dt){ if (SPK.live <= 0) return; SPK.live -= dt; const P = SPK.pos, V = SPK.vel;
+  for (let i = 0; i < SPK.n*3; i++) if (P[i] > -90) P[i] += V[i]*dt;
+  SPK.pts.material.opacity = clamp(SPK.live/SPK.dur*1.6, 0, 1); SPK.geo.attributes.position.needsUpdate = true; if (SPK.live <= 0) SPK.pts.visible = false; }
+
 /* ---- the icons on the cards, the phone and the pictures: drawn, not copied ---- */
 const ICONS = ["heart", "smile", "phone", "book", "phones", "flower", "moon", "tape", "star", "letter", "lamp", "sun", "broken", "note"];
 function drawIcon(x, name, cx, cy, s, col, bg){
@@ -348,10 +401,12 @@ function guy(){ const g = new THREE.Group(), skin = flat(0x6a4030, .2);
   const ph = box(.16, .28, .03, 0x1a1a24, .1); ph.position.set(.1, .95, .5); ph.rotation.x = -.6; g.add(ph);
   const glow = sprite(0x7ae8ff, .9, .7); glow.position.set(.1, 1, .55); g.add(glow); return g; }
 // the whole cover as a set: her side on the left (pink), his on the right (purple), split on the diagonal
-function rooms(parent){ const g = new THREE.Group(); (parent || scene).add(g);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 20), flat(0x9a7ae0, .25)); floor.rotation.x = -Math.PI/2; floor.position.set(0, -2, 0); g.add(floor);
-  const herW = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), flat(0xf0a0d8, .3)); herW.position.set(-6, 4, -6); g.add(herW);
-  const hisW = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), flat(0x8a6ae8, .3)); hisW.position.set(6, 4, -6); g.add(hisW);
+function rooms(parent, lightsY, lightsX, shades){ const g = new THREE.Group(); (parent || scene).add(g);
+  const fg = new THREE.PlaneGeometry(30, 20); fg.setAttribute("uv2", fg.attributes.uv);
+  const floor = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ map:PLANK, lightMap:roomLight(shades || []) })); floor.rotation.x = -Math.PI/2; floor.position.set(0, -2, 0); g.add(floor);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(24, 18), new THREE.MeshBasicMaterial({ map:WALL })); wall.position.set(0, 7, -6); g.add(wall);
+  g.add(at3(box(24, .3, .1, SC.white, .35), 0, -1.85, -5.94));
+  if (lightsY != null) parent.userData.fairy = fairy(g, -11.6, lightsX, lightsY);      // not on the cover, so not in the ending
   const split = box(.18, 17, .05, SC.white, .6); split.position.set(.2, 4, -5.9); split.rotation.z = .55; g.add(split);
   const hw = windowMesh(HER_WIN, 1.8, 1.6, 0xff8ad0); hw.position.set(-4.2, 3.6, -5.85); g.add(hw);
   const sw = windowMesh(HIS_WIN, 3, 2, 0x8ab8ff); sw.position.set(3.2, 6, -5.85); g.add(sw);
@@ -422,7 +477,7 @@ const LC = {
   name:"LOVE CARDS", start:0, clockName:"TURN CLOCK",
   get tag(){ return "LOVE CARDS"; }, get hint(){ return "turn two - find the pairs"; },
   setup(){
-    const g = new THREE.Group(); scene.add(g); this.root = g; rooms(g);
+    const g = new THREE.Group(); scene.add(g); this.root = g; rooms(g, 2.3, -.5, [[0, -.2, 10.9, 8.5, .55]]);
     g.add(at3(box(10, .7, 7.6, SC.white, .3), 0, -1.6, -.2));
     const quilt = new THREE.Mesh(new THREE.PlaneGeometry(9.6, 7.2), new THREE.MeshStandardMaterial({ roughness:.9, map:canvasTex(64, 64, (x, w, h) => { x.fillStyle = "#e8b8f0"; x.fillRect(0, 0, w, h);
       drawIcon(x, "heart", 16, 16, 14, "#f8d8f8"); drawIcon(x, "heart", 48, 48, 14, "#f8d8f8"); }, [6, 4.5]) }));
@@ -434,6 +489,17 @@ const LC = {
     for (let i = 0; i < 20; i++){ const face = new THREE.MeshBasicMaterial();
       const m = new THREE.Mesh(new THREE.BoxGeometry(1.1, .05, 1.5), [side, side, new THREE.MeshBasicMaterial({ map:backTex("her") }), face, side, side]);
       m.visible = false; g.add(m); this.cards.push({ m, face, icon:"", state:"off", rot:0, fly:0, i }); }
+    // (look) the quilt a little deeper toward its edges; under every card on the bed the same soft shadow; a rug at the foot of the bed
+    const fx = this.fx = {};
+    const qs = new THREE.Mesh(new THREE.PlaneGeometry(9.6, 7.2), new THREE.MeshBasicMaterial(lay({ map:canvasTex(128, 128, (x, w, h) => { x.translate(w/2, h/2); x.scale(w/2, h/2);
+      const gr = x.createRadialGradient(0, 0, .55, 0, 0, 1.4); gr.addColorStop(0, "rgba(204,92,196,0)"); gr.addColorStop(1, "rgba(204,92,196,.6)"); x.fillStyle = gr; x.fillRect(-1, -1, 2, 2); }) })));
+    qs.rotation.x = -Math.PI/2; qs.position.set(0, -1.232, -.2); qs.renderOrder = 1; g.add(qs);
+    fx.shade = new THREE.InstancedMesh(new THREE.PlaneGeometry(1.5, 1.9).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial(lay({ map:SHADE, opacity:.55 })), 20);
+    fx.shade.frustumCulled = false; fx.shade.renderOrder = 2; fx.shade.count = 0; g.add(fx.shade);
+    fx.rug = new THREE.Mesh(new THREE.CircleGeometry(1.4, 40), new THREE.MeshBasicMaterial({ map:canvasTex(256, 256, (x, w, h) => { x.scale(2, 2); const gr = x.createRadialGradient(64, 64, 6, 64, 64, 64);
+      gr.addColorStop(0, "#f99ad6"); gr.addColorStop(.8, "#ee70c0"); gr.addColorStop(.815, "#fbe6ff"); gr.addColorStop(.875, "#fbe6ff"); gr.addColorStop(.89, "#ee6cbc"); gr.addColorStop(1, "#e25cb0"); x.fillStyle = gr; x.fillRect(0, 0, 128, 128);
+      x.translate(64, 62); x.scale(1/1.65, 1); drawIcon(x, "heart", 0, 0, 50, "#fff0fa"); }) }));
+    fx.rug.rotation.x = -Math.PI/2; fx.rug.scale.set(1.65, 1, 1); fx.rug.position.set(0, -1.985, 5.4); g.add(fx.rug);
   },
   begin(t0, t1, L0, L1, cont){
     this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1;
@@ -545,9 +611,14 @@ const SN = {
   name:"SNAP", start:0, clockName:"THE CARDS",
   get tag(){ return "SNAP"; }, get hint(){ return "the same on both piles? tap!"; },
   setup(){
-    const g = new THREE.Group(); scene.add(g); this.root = g; rooms(g);
+    const g = new THREE.Group(); scene.add(g); this.root = g; rooms(g, 1.45, -.5, [[0, .4, 9.3, 5.5, .3], [-4.6, -2.2, 1.5, 2, .3], [4.6, -2.2, 1.5, 2, .3]]);
     const rug = new THREE.Mesh(new THREE.PlaneGeometry(9, 5.2), new THREE.MeshStandardMaterial({ roughness:.9, map:canvasTex(256, 148, (x, w, h) => { x.fillStyle = "#f4a8dc"; x.fillRect(0, 0, w, h);
-      x.fillStyle = "#7a5ae8"; x.beginPath(); x.moveTo(w*.62, 0); x.lineTo(w, 0); x.lineTo(w, h); x.lineTo(w*.38, h); x.closePath(); x.fill(); x.strokeStyle = "#faf6ff"; x.lineWidth = 6; x.beginPath(); x.moveTo(w*.62, 0); x.lineTo(w*.38, h); x.stroke(); }) }));
+      x.fillStyle = "#7a5ae8"; x.beginPath(); x.moveTo(w*.62, 0); x.lineTo(w, 0); x.lineTo(w, h); x.lineTo(w*.38, h); x.closePath(); x.fill(); x.strokeStyle = "#faf6ff"; x.lineWidth = 6; x.beginPath(); x.moveTo(w*.62, 0); x.lineTo(w*.38, h); x.stroke();
+      // (look) a stitched edge; a soft shadow where each pile lands and under each deck - the same on both sides, whatever the cards are
+      x.strokeStyle = "rgba(250,246,255,.6)"; x.lineWidth = 2; x.setLineDash([7, 5]); x.strokeRect(7, 7, w - 14, h - 14); x.setLineDash([]);
+      const u = w/9; x.fillStyle = x.shadowColor = "rgba(58,20,120,.2)"; x.shadowBlur = 7;
+      for (const sx of [-1, 1]){ x.beginPath(); x.roundRect(w/2 + sx*1.5*u - 24, 2.8*u - 31, 48, 62, 7); x.fill(); x.fillRect(w/2 + sx*3.6*u - 22, .9*u - 29, 44, 58); }
+      x.shadowBlur = 0; }) }));
     rug.rotation.x = -Math.PI/2; rug.position.set(0, -1.98, .4); g.add(rug);
     const her = girl(); her.position.set(-4.6, -2, -2.4); her.rotation.y = .7; g.add(her);
     const him = guy(); him.position.set(4.6, -2, -2.4); him.rotation.y = -.7; g.add(him);
@@ -556,6 +627,8 @@ const SN = {
       const m = new THREE.Mesh(new THREE.BoxGeometry(1.4, .04, 1.9), [side, side, face, new THREE.MeshBasicMaterial({ map:backTex(i % 2 ? "his" : "her") }), side, side]);
       m.visible = false; g.add(m); this.pool.push({ m, face, on:false }); }
     for (const sx of [-1, 1]) g.add(at3(box(1.4, .5, 1.9, sx < 0 ? 0xff8ad0 : 0x7a5ae8, .3), sx*3.6, -1.72, -1.3));
+    // (look) the two decks the cards come from show the back of their cards on top
+    for (const sx of [-1, 1]){ const top = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 1.9), new THREE.MeshBasicMaterial({ map:backTex(sx < 0 ? "her" : "his") })); top.rotation.x = -Math.PI/2; g.add(at3(top, sx*3.6, -1.462, -1.3)); }
   },
   begin(t0, t1, L0, L1, cont){
     this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1;
@@ -846,7 +919,7 @@ function update(dt){
 const END = { out:8.5, root:null, X:300 };
 function buildEnd(){
   const g = new THREE.Group(); g.visible = false; g.position.x = END.X; scene.add(g);
-  rooms(g);
+  rooms(g, null, 0, [[-3.4, -2.6, 5, 3.2, .5], [3.4, -3.4, 4.6, 3, .3], [4.6, -1.6, 3.4, 2, .22]]);
   const herBed = box(4.4, .8, 2.6, SC.white, .3); herBed.position.set(-3.4, -1.6, -2.6); g.add(herBed);
   g.add(at3(box(4.2, .2, 2.4, 0xc8b0f4, .3), -3.4, -1.1, -2.6));
   const her = girl(); her.position.set(-3.4, -1, -2.8); her.rotation.y = .5; her.scale.setScalar(1.2); g.add(her);
@@ -876,6 +949,25 @@ function over(why){
 }
 
 /* ---------------- drawing ---------------- */
+// (look) what moves in the dressing. It only READS the games: nothing here is seen by update()
+let POOL = null; const M4 = new THREE.Matrix4();
+function look(dt, t){
+  const set = END.on ? END.root : G.root, fl = set.userData.fairy;
+  if (fl){ fl.visible = cam.aspect < .8; if (!CALM) fl.material.opacity = .8 + .18*Math.sin(t*1.7); }      // on a wide screen they would sit behind the score
+  if (!END.on && G === LC && LC.fx){ const fx = LC.fx;
+    for (const c of LC.cards){ const on = c.m.visible && (c.state === "down" || c.state === "up");
+      if (on) M4.makeTranslation(c.home.x + .05, -1.222, c.home.z + .08); else M4.makeScale(0, 0, 0);          // the same under every card
+      fx.shade.setMatrixAt(c.i, M4);
+      if (c.state !== "gone") c.lit = false; else if (!c.lit){ c.lit = true; sparks(c.home.x, c.home.y + .3, c.home.z, 5, .1, .36, 0, 6.283, .22); } }      // over the two places just emptied
+    fx.shade.count = 20; fx.shade.instanceMatrix.needsUpdate = true; fx.rug.visible = cam.aspect < .8; }
+  if (!END.on && G === SN && SN.st){ const s = SN.st, f = s.fly.length ? s.fly[s.fly.length - 1] : null;
+    if (!f) SN.litT = -1; else if (f.flyT !== SN.litT){ SN.litT = f.flyT; for (const sx of [-1, 1]) sparks(sx*1.5, -1.6, .6, 8, 1.15, 1.5, Math.PI*1.05, Math.PI*1.95, .5); } }      // behind the piles, going away: never over a card
+  sparksStep(dt);
+  // the light of the beam on the floor: Snap on your own, and the cover
+  if (END.on){ POOL.visible = true; POOL.position.set(ME.position.x, -1.985, ME.position.z); POOL.scale.setScalar(3.4); POOL.material.opacity = .6*clamp(1 - (ME.position.y + .8)/6, 0, 1); }
+  else if (G === SN && !ONLINE){ POOL.visible = ME.visible; POOL.position.set(ME.position.x, -1.972, ME.position.z); POOL.scale.setScalar(2.2); POOL.material.opacity = Math.min(.8, ME.userData.beam.material.opacity*1.5); }
+  else POOL.visible = false;
+}
 function render(dt){
   const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
   animSaucer(ME, t, beat);
@@ -898,6 +990,7 @@ function render(dt){
   }
   const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  look(dt, t);
   ren.render(scene, cam);
 }
 function frame(){
@@ -964,6 +1057,7 @@ function boot(){
   scene.add(new THREE.HemisphereLight(0xfff0ff, 0x6a4ab8, .75));
   const key = new THREE.DirectionalLight(0xfff4f8, .55); key.position.set(-6, 20, 14); scene.add(key);
   ME = buildSaucer(); scene.add(ME);
+  buildSparks(); POOL = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial(lay({ map:DOT, color:0xf4e8ff, blending:THREE.AdditiveBlending }))); POOL.visible = false; scene.add(POOL);
   G = PART === 2 ? SN : LC; G.setup(); if (REMIX) SN.setup(); buildEnd();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });

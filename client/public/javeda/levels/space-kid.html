@@ -22,7 +22,7 @@ body{margin:0; background:#140838; color:#fff0e8; overflow:hidden; font-family:"
   -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
 #cab{position:fixed; inset:0}
 canvas{display:block; touch-action:none}
-#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
+#hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px 30px; z-index:3; background:linear-gradient(180deg,#140838c8 0%,#14083880 55%,#14083800 100%); display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
 #hud.off{opacity:0}
 #m{font-family:Bungee,sans-serif; font-size:24px; color:#fff6f0; line-height:1; text-shadow:0 0 14px #ffc83a}
 #ml{font-size:11px; letter-spacing:.18em; color:#ffe8c8; margin-top:3px; text-shadow:0 0 6px #000}
@@ -32,7 +32,7 @@ canvas{display:block; touch-action:none}
 .bar{width:120px; height:6px; border-radius:3px; background:#ff5a4a22; margin:4px 0 0 auto; overflow:hidden}
 .bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#ff5a4a,#ff5a4a)}
 .bl{font-size:11px; letter-spacing:.18em; color:#ffe8c8; text-align:right; text-shadow:0 0 6px #000}
-#info{font-family:Bungee,sans-serif; font-size:14px; color:#ff5a4a; margin-top:8px; text-align:right; text-shadow:0 0 8px #000}
+#info{font-family:Bungee,sans-serif; font-size:14px; color:#ff5a4a; margin-top:8px; text-align:right; text-shadow:0 0 3px #1a0a2a, 0 0 8px #000, 0 1px 0 #1a0a2a}
 body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
 body.gold #m{color:#ffc83a}
 /* the other player, top middle: both of you and your pairs */
@@ -262,28 +262,81 @@ const at3 = (m, x, y, z) => { m.position.set(x, y, z); return m; };
 function canvasTex(w, h, draw, rep){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); const t = new THREE.CanvasTexture(cv);
   if (rep){ t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(rep[0], rep[1]); } return t; }
 const toon = (c, e) => new THREE.MeshStandardMaterial({ color:c, roughness:.5, metalness:.15, emissive:c, emissiveIntensity:e == null ? .12 : e });
-// the sky: purple at the top to deep blue, full of little stars and a few big sparkles
-const SKY = canvasTex(512, 512, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#2a0a5a"); g.addColorStop(.5, "#3a1a8a"); g.addColorStop(1, "#140838"); x.fillStyle = g; x.fillRect(0, 0, w, h);
-  for (let i = 0; i < 500; i++){ x.fillStyle = "rgba(255,255,255," + (.3 + rnd(i*3)*.7) + ")"; const s = rnd(i*7) < .9 ? 1 : 2; x.fillRect(rnd(i)*w, rnd(i*5)*h, s, s); } });
+/* ---- the look (pictures only: nothing from here on down to space() is read by the play) ---- */
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+const beatPulse = t => Math.exp(-((((t - GRID.t0) % BEAT) + BEAT) % BEAT)/BEAT*5);     // 1 on the beat, fading till the next one
+const FX = { tw:[], rb:[], lit:0, far:null, near:null, halo:null, moon:null, mg:null, shoot:null };
+const V3 = new THREE.Vector3();
+// the sky: deep space in purple and blue, darker to the top and the bottom, with clouds of colour in it. The picture is
+// laid 4 x 2 round the sphere, so what's in view is its middle and it stays sharp enough on a phone
+const SKY = canvasTex(1024, 512, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#140838"); g.addColorStop(.25, "#1c0a50"); g.addColorStop(.5, "#3a1a8a"); g.addColorStop(.75, "#1e0e5c"); g.addColorStop(1, "#140838"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.globalCompositeOperation = "lighter";
+  const COL = ["200,58,216", "58,106,255", "138,74,255", "58,200,208", "255,90,140"];
+  for (let i = 0; i < 34; i++){ const cx = w*(.12 + rnd(i*11 + 2)*.76), cy = h*(.22 + rnd(i*13 + 5)*.56), r = 46 + rnd(i*17 + 1)*100, a = [.11, .13, .12, .05, .05][i % 5];
+    x.save(); x.translate(cx, cy); x.scale(1, .5); const q = x.createRadialGradient(0, 0, 0, 0, 0, r); q.addColorStop(0, "rgba(" + COL[i % 5] + "," + a + ")"); q.addColorStop(1, "rgba(" + COL[i % 5] + ",0)"); x.fillStyle = q; x.fillRect(-r, -r, r*2, r*2); x.restore(); } }, [4, 2]);
+SKY.offset.set(.5, .5);
+// the stars: points on a disc far behind everything, in the cover's whites, creams, blues and pinks
+function starField(n, seed, px, op){ const pos = new Float32Array(n*3), col = new Float32Array(n*3), c = new THREE.Color(), D = 250;
+  for (let i = 0; i < n; i++){ const a = rnd(seed + i*1.3)*Math.PI*2, r = Math.sqrt(rnd(seed + i*2.7))*1.08*D, k = rnd(seed + i*5.1);
+    pos[i*3] = Math.cos(a)*r; pos[i*3 + 1] = Math.sin(a)*r; pos[i*3 + 2] = -D;
+    c.setHex(k < .55 ? 0xffffff : k < .75 ? 0xffe8c8 : k < .9 ? 0xb8c8ff : 0xffb0e0).multiplyScalar(.4 + rnd(seed + i*7.7)*.6); col[i*3] = c.r; col[i*3 + 1] = c.g; col[i*3 + 2] = c.b; }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const p = new THREE.Points(g, new THREE.PointsMaterial({ map:DOT, size:px, sizeAttenuation:false, vertexColors:true, transparent:true, opacity:op, depthWrite:false, blending:THREE.AdditiveBlending, fog:false })); p.frustumCulled = false; return p; }
+// the moon's face: lit from the top left, a few craters
+const MOON = canvasTex(256, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, w*.5, h); g.addColorStop(0, "#fff2b8"); g.addColorStop(.4, "#ffc44a"); g.addColorStop(.75, "#f0903a"); g.addColorStop(1, "#b8506a"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 12; i++){ const cx = w*(.03 + rnd(i*3.1 + 40)*.44), cy = h*(.14 + rnd(i*5.3 + 41)*.72), r = 2.5 + rnd(i*7.9 + 42)*7;
+    x.fillStyle = "rgba(170,84,40,.19)"; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill(); x.strokeStyle = "rgba(255,244,200,.3)"; x.lineWidth = 1; x.beginPath(); x.arc(cx + .5, cy + .7, r, .3, 2.3); x.stroke(); } });
+// a glow round the rainbow, a streak for a shooting star, a ring of light for what's picked, a soft dark pad behind a game
+const HALO = canvasTex(256, 256, (x, w) => { const g = x.createRadialGradient(w/2, w/2, w/2*.46, w/2, w/2, w/2); [[0, 0], [.32, .5], [.478, .9], [.67, .5], [1, 0]].forEach(([o, a]) => g.addColorStop(o, "rgba(255,236,255," + a + ")")); x.fillStyle = g; x.fillRect(0, 0, w, w); });
+const STREAK = canvasTex(128, 8, (x, w, h) => { const g = x.createLinearGradient(0, 0, w, 0); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.8, "rgba(255,255,255,.6)"); g.addColorStop(1, "rgba(255,255,255,1)"); x.fillStyle = g; x.fillRect(0, 2, w, 4); });
+const RING = radial([[0, "rgba(255,255,255,0)"], [.4, "rgba(255,255,255,0)"], [.55, "rgba(255,255,255,1)"], [.7, "rgba(255,255,255,.35)"], [1, "rgba(255,255,255,0)"]], 128);
+const ringSprite = (color, size) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:RING, color, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); s.visible = false; return s; };
+const PAD = canvasTex(128, 128, (x, w, h) => { x.shadowColor = "rgba(12,4,36,1)"; x.shadowBlur = 26; x.shadowOffsetX = 1000; x.fillStyle = "#000"; x.beginPath(); x.roundRect(30 - 1000, 30, w - 60, h - 60, 10); x.fill(); x.fill(); });   // only its soft shadow lands on the picture: no edge
+const padMesh = op => new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map:PAD, transparent:true, opacity:op, depthWrite:false }));
+// the jets' flames: one cone of light behind each jet, the same two shapes for every car
+const JET_G = new THREE.CylinderGeometry(.03, .27, 1, 10, 1, true);
+const JET_M = new THREE.MeshBasicMaterial({ map:canvasTex(4, 64, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(255,255,255,1)"); x.fillStyle = g; x.fillRect(0, 0, w, h); }),
+  color:0xffa04a, transparent:true, opacity:.6, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
 function space(){ const g = new THREE.Group(); scene.add(g);
   g.add(new THREE.Mesh(new THREE.SphereGeometry(400, 32, 16), new THREE.MeshBasicMaterial({ map:SKY, side:THREE.BackSide, fog:false })));
+  FX.far = starField(1500, 11, 2.4, .95); FX.near = starField(170, 977, 5.2, 1); g.add(FX.far, FX.near);
+  FX.halo = new THREE.Mesh(new THREE.RingGeometry(40, 87, 64, 1, 0, Math.PI), new THREE.MeshBasicMaterial({ map:HALO, transparent:true, opacity:.3, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })); FX.halo.position.set(30, -20, -161); FX.halo.rotation.z = -.15; g.add(FX.halo);
+  FX.shoot = new THREE.Mesh(new THREE.PlaneGeometry(18, .8), new THREE.MeshBasicMaterial({ map:STREAK, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })); FX.shoot.visible = false; g.add(FX.shoot);
   // the rainbow: six bands in a big arc across the back
-  RAINBOW.forEach((c, i) => { const r = new THREE.Mesh(new THREE.TorusGeometry(70 - i*3, 1.5, 8, 64, Math.PI), new THREE.MeshBasicMaterial({ color:c, fog:false, transparent:true, opacity:.85 })); r.position.set(30, -20, -160); r.rotation.z = -.15; g.add(r); });
+  RAINBOW.forEach((c, i) => { const r = new THREE.Mesh(new THREE.TorusGeometry(70 - i*3, 1.5, 8, 64, Math.PI), new THREE.MeshBasicMaterial({ color:c, fog:false, transparent:true, opacity:.85 })); r.position.set(30, -20, -160); r.rotation.z = -.15; g.add(r); FX.rb.push(r.material); });
   // the big gold moon, low on the right
-  const moon = new THREE.Mesh(new THREE.SphereGeometry(26, 32, 16), new THREE.MeshBasicMaterial({ color:0xffb83a, fog:false })); moon.position.set(90, 10, -190); g.add(moon);
-  const mg = sprite(0xffc86a, 120, .5); mg.position.copy(moon.position); g.add(mg);
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(26, 32, 16), new THREE.MeshBasicMaterial({ map:MOON, fog:false })); moon.position.set(90, 10, -190); g.add(moon); FX.moon = moon;
+  const mg = sprite(0xffc86a, 120, .5); mg.position.copy(moon.position); g.add(mg); FX.mg = mg;
   // the dark planets, like the shadows on the cover
   for (const [x, y, z, r] of [[-70, 30, -150, 16], [-40, -30, -120, 10], [60, -40, -110, 12], [-90, -10, -200, 22]]){ const p = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 12), new THREE.MeshBasicMaterial({ color:0x2a1a4a, fog:false })); p.position.set(x, y, z); g.add(p);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(r*1.6, r*.08, 4, 48), new THREE.MeshBasicMaterial({ color:0x3a2a6a, fog:false })); ring.position.copy(p.position); ring.rotation.set(1.2, .3, 0); g.add(ring); }
-  for (let i = 0; i < 18; i++){ const s = sprite(0xffffff, 2 + rnd(i*3)*3, .9); s.position.set((rnd(i) - .5)*260, (rnd(i*5) - .3)*120, -100 - rnd(i*7)*120); g.add(s); }
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r*1.6, r*.08, 4, 48), new THREE.MeshBasicMaterial({ color:0x3a2a6a, fog:false })); ring.position.copy(p.position); ring.rotation.set(1.2, .3, 0); g.add(ring);
+    const rim = sprite(0x8a6aff, r*3.6, .5); rim.position.set(x - r*.22, y + r*.22, z - r - 2); g.add(rim); }       // light from behind: a planet, not a hole
+  for (let i = 0; i < 18; i++){ const s = sprite(0xffffff, 2 + rnd(i*3)*3, .9); s.position.set((rnd(i) - .5)*260, (rnd(i*5) - .3)*120, -100 - rnd(i*7)*120); g.add(s); s.userData.s = s.scale.x; FX.tw.push(s); }
   return g; }
+// the sky, every frame: the stars drift (two layers, two speeds) and twinkle, the rainbow's glow breathes with the beat and
+// lights up when a mix is sorted, a shooting star now and then. On a phone the moon sits low on the right, where the
+// cover has it (it used to be off the screen there)
+function skyAnim(dt, t){ const p = beatPulse(t), hook = S.started && hookNow(t), portrait = cam.aspect < .8;
+  if (!CALM){ FX.far.rotation.z = t*.004; FX.near.rotation.z = -t*.009; }
+  FX.near.material.size = 5.2 + (CALM ? 0 : p*(hook ? 2.2 : 1));
+  for (let i = 0; i < FX.tw.length; i++){ const s = FX.tw[i]; s.scale.setScalar(s.userData.s*(CALM ? 1 : .8 + .3*Math.sin(t*(1.1 + i*.23) + i*2.1))); }
+  const want = G === RS && RS.st && RS.st.nextAt && S.end < 0 && !S.done ? 1 : 0; FX.lit += (want - FX.lit)*Math.min(1, dt*5);
+  FX.halo.material.opacity = Math.min(1, .3 + (CALM ? 0 : (hook ? .25 : .08)*p) + FX.lit*.7);
+  for (let i = 0; i < FX.rb.length; i++) FX.rb[i].opacity = .85 + .15*FX.lit;
+  if (portrait){ cam.updateMatrixWorld(); V3.set(.6, -.66, .5).unproject(cam).sub(cam.position).normalize().multiplyScalar(207).add(cam.position); FX.moon.position.copy(V3); FX.moon.scale.setScalar(.5); }
+  else { FX.moon.position.set(90, 10, -190); FX.moon.scale.setScalar(1); }
+  FX.mg.position.copy(FX.moon.position); FX.mg.scale.setScalar(portrait ? 60 : 120);
+  const n = Math.floor(t/11), u = (t - n*11)/.9, sh = FX.shoot; sh.visible = !CALM && S.started && u < 1 && n > 0;
+  if (sh.visible){ const a = Math.PI + .3 + rnd(n*9.1)*.35, d = u*110; sh.position.set(-20 + rnd(n*3.3 + 7)*90 + Math.cos(a)*d, 45 + rnd(n*5.7 + 3)*55 + Math.sin(a)*d, -245); sh.rotation.z = a; sh.material.opacity = Math.sin(u*Math.PI)*.9; }
+}
 // the red flying car: long and low, the glass bubble, the two of them inside (her waving), the jets glowing at the back
 function redCar(){ const g = new THREE.Group(), red = toon(SC.red, .2), dark = toon(0x6a0a14, .1);
   const body = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), red); body.scale.set(1.1, .42, 2.6); g.add(body);
   const nose = new THREE.Mesh(new THREE.ConeGeometry(.9, 2, 16), red); nose.rotation.x = -Math.PI/2; nose.scale.set(1.1, .5, 1); nose.position.z = -2.6; g.add(nose);
   for (const sx of [-1, 1]){ const fin = new THREE.Mesh(new THREE.BoxGeometry(.12, .5, 1.2), red); fin.position.set(sx*.9, .3, 2); fin.rotation.x = -.4; g.add(fin);
     const jet = new THREE.Mesh(new THREE.CylinderGeometry(.28, .34, .5, 14), dark); jet.rotation.x = Math.PI/2; jet.position.set(sx*.6, -.05, 2.6); g.add(jet);
-    const fire = sprite(0xffb05a, 1.6, .9); fire.position.set(sx*.6, -.05, 3.1); g.add(fire); (g.userData.fire = g.userData.fire || []).push(fire); }
+    const fire = sprite(0xffb05a, 1.6, .9); fire.position.set(sx*.6, -.05, 3.1); g.add(fire); (g.userData.fire = g.userData.fire || []).push(fire);
+    const flame = new THREE.Mesh(JET_G, JET_M); flame.rotation.x = Math.PI/2; flame.position.set(sx*.6, -.05, 3.6); flame.scale.y = 1.5; g.add(flame); (g.userData.flame = g.userData.flame || []).push(flame); }
   const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.25, .06, .25), new THREE.MeshBasicMaterial({ color:0xfff0f0 })); stripe.position.set(0, -.08, 1.6); g.add(stripe);
   for (let i = 0; i < 3; i++){ const vent = new THREE.Mesh(new THREE.BoxGeometry(.5, .04, .08), new THREE.MeshBasicMaterial({ color:0x1a0a10 })); vent.position.set(-.4 + i*.18, .38, -1.4 - i*.2); vent.rotation.y = .6; g.add(vent); }
   const glass = new THREE.Mesh(new THREE.SphereGeometry(.85, 20, 10, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color:0xb8c8ff, transparent:true, opacity:.35, roughness:.1, metalness:.3 })); glass.scale.set(1, .8, 1.5); glass.position.set(0, .3, .3); g.add(glass);
@@ -299,7 +352,8 @@ function redCar(){ const g = new THREE.Group(), red = toon(SC.red, .2), dark = t
   him.position.set(.32, .35, .25); g.add(him);
   const under = sprite(0xff5a3a, 3, .4); under.position.y = -.5; g.add(under);
   g.userData.her = her; return g; }
-function animCar(g, t){ for (const f of g.userData.fire) f.scale.setScalar(1.3 + Math.sin(t*30 + f.position.x)*.25); g.userData.her.userData.arm.rotation.z = .5 + Math.sin(t*6)*.35; }
+function animCar(g, t){ for (const f of g.userData.fire) f.scale.setScalar(1.3 + Math.sin(t*30 + f.position.x)*.25);
+  for (const f of g.userData.flame){ const L = 1.5 + Math.sin(t*23 + f.position.x*5)*.22; f.scale.y = L; f.position.z = 2.85 + L/2; } g.userData.her.userData.arm.rotation.z = .5 + Math.sin(t*6)*.35; }
 
 /* ---- Jo's saucer as it is on this cover: the dark hull, the red dome with the "L", red rim lights, the white beam ---- */
 const BADGE = (letter, bg) => { const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d");
@@ -372,13 +426,18 @@ const fmt0 = n => Math.max(0, Math.round(n)).toLocaleString("en");
 /* ---------------- PART 1 · PLANET MATCH ---------------- */
 // Swap two planets side by side to line up three or more of a colour; they burst, the ones above drop,
 // new ones fall in, chains multiply. Reach each stage's score before the time's up.
+const BOARD = canvasTex(512, 512, (x, w) => { x.fillStyle = "rgba(18,7,48,.9)"; x.fillRect(0, 0, w, w); const c = w*1.02/7.6;
+  for (let i = 0; i < 7; i++) for (let j = 0; j < 7; j++){ x.fillStyle = (i + j) % 2 ? "rgba(120,92,240,.17)" : "rgba(120,92,240,.09)"; x.beginPath(); x.roundRect(w/2 + (i - 3)*c - c*.45, w/2 + (j - 3)*c - c*.45, c*.9, c*.9, 13); x.fill(); } });
+const FRAME = canvasTex(256, 256, (x, w) => { x.strokeStyle = "#ffc83a"; x.lineWidth = 5; x.shadowColor = "#ffb030"; x.shadowBlur = 20; for (let i = 0; i < 3; i++) x.strokeRect(14.3, 14.3, w - 28.6, w - 28.6); });
 const PM = {
   name:"PLANET MATCH", start:0, N:7,
   get tag(){ return "PLANET MATCH"; }, get hint(){ return "swap two - three in a line burst"; },
   setup(){ const g = new THREE.Group(); scene.add(g); this.root = g;
     this.car = redCar(); this.car.scale.setScalar(1.3); g.add(this.car);
     this.board = new THREE.Group(); g.add(this.board);
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 7.6), new THREE.MeshBasicMaterial({ color:0x1a0a3a, transparent:true, opacity:.55 })); back.position.z = -.6; this.board.add(back);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(7.6, 7.6), new THREE.MeshBasicMaterial({ map:BOARD, transparent:true })); back.position.z = -.6; this.board.add(back);
+    this.frameGlow = new THREE.Mesh(new THREE.PlaneGeometry(8.6, 8.6), new THREE.MeshBasicMaterial({ map:FRAME, transparent:true, opacity:.5, blending:THREE.AdditiveBlending, depthWrite:false })); this.frameGlow.position.z = -.58; this.board.add(this.frameGlow);
+    this.selGlow = ringSprite(0xffffff, 2.05); this.board.add(this.selGlow); this.flash = 0; this.seenChain = 0;
     const frame = new THREE.Mesh(new THREE.TorusGeometry(5.4, .06, 4, 4), new THREE.MeshBasicMaterial({ color:0xffc83a })); frame.rotation.z = Math.PI/4; frame.position.z = -.55; this.board.add(frame);
     this.pool = []; this.burst = []; for (let i = 0; i < 24; i++){ const s = sprite(0xffffff, 1.4, 0); this.board.add(s); this.burst.push(s); } },
   begin(t0, t1, L0, L1, cont){ this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1; if (cont) return; this.start = t0;
@@ -438,7 +497,12 @@ const PM = {
   },
   render(dt, t){ const s = this.st, beat = onBeat(t), portrait = cam.aspect < .8;
     for (const o of this.pool){ o.position.lerp(this.pos(o.userData.c, o.userData.r), Math.min(1, dt*14)); o.rotation.y += dt*.8; o.scale.setScalar(s.sel === o ? 1.18 + (beat ? .06 : 0) : 1); }
-    for (const b of this.burst){ if (b.material.opacity > 0){ b.material.opacity = Math.max(0, b.material.opacity - dt*2.5); b.scale.multiplyScalar(1 + dt*2); } }
+    for (const b of this.burst){ if (b.material.opacity > 0){ b.material.opacity = Math.max(0, b.material.opacity - dt*2.5); b.scale.multiplyScalar(1 + dt*2); } b.visible = b.material.opacity > 0; }
+    // the look: the picked planet in a ring of light, the frame glowing with the beat and flashing on a chain
+    const pu = beatPulse(t), sg = this.selGlow; sg.visible = !!s.sel && this.pool.includes(s.sel);
+    if (sg.visible){ sg.position.set(s.sel.position.x, s.sel.position.y, -.3); sg.material.opacity = .8 + .2*pu; }
+    if (s.chain !== this.seenChain){ if (s.chain > this.seenChain) this.flash = Math.min(1, .3 + s.chain*.2); this.seenChain = s.chain; }
+    this.flash = Math.max(0, this.flash - dt*2.2); this.frameGlow.material.opacity = Math.min(1, .5 + pu*(hookNow(t) ? .3 : .12) + this.flash*.6);
     flyCar(this.car, t, portrait ? 0 : -7.5, portrait ? -6.2 : -2.5, -6);
     this.board.scale.setScalar(portrait ? .82 : 1);
     const lp = s.last ? this.board.localToWorld(s.last.clone()) : new THREE.Vector3(0, 4.5, 0); ME.scale.setScalar(.5); ME.position.lerp(new THREE.Vector3(lp.x, lp.y + 1.2, lp.z + 1), Math.min(1, dt*6)); ME.rotation.set(.9, t*1.6, 0); ME.userData.beam.visible = false;
@@ -453,7 +517,12 @@ const PM = {
 const RS = {
   name:"RAINBOW SORT", start:0, CAP:4,
   get tag(){ return "RAINBOW SORT"; }, get hint(){ return "one colour to a tube"; },
-  setup(){ const g = new THREE.Group(); scene.add(g); this.root = g; this.car = redCar(); this.car.scale.setScalar(1.2); g.add(this.car); this.tubes = []; this.balls = []; },
+  setup(){ const g = new THREE.Group(); scene.add(g); this.root = g; this.car = redCar(); this.car.scale.setScalar(1.2); g.add(this.car); this.tubes = []; this.balls = [];
+    this.pad = padMesh(.6); g.add(this.pad); this.glow = []; for (let i = 0; i < 7; i++){ const s = sprite(SC.gold, 1, .5); s.visible = false; g.add(s); this.glow.push(s); }
+    this.heldGlow = ringSprite(0xffffff, 1.95); g.add(this.heldGlow); },
+  // the look: the pad sits behind all the tubes and the room above them where a planet is lifted
+  dress(){ let a = 1e9, b = -1e9, lo = 1e9, hi = -1e9; for (const tb of this.tubes){ const p = tb.g.position; a = Math.min(a, p.x); b = Math.max(b, p.x); lo = Math.min(lo, p.y); hi = Math.max(hi, p.y); }
+    this.pad.position.set((a + b)/2, (lo + hi)/2 + 1.425, -.75); this.pad.scale.set((b - a + 1.3)/.56, (hi - lo + 3.55)/.56, 1); },
   begin(t0, t1, L0, L1, cont){ this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1; if (cont) return; this.start = t0;
     const o = (REMIX && this.st) || {};
     this.st = { level:REMIX ? 1 + S.lap : CFG.endless ? 1 : 0, solved:o.solved || 0, moves:o.moves || 0, beatMoves:o.beatMoves || 0, held:-1, deadline:0, nextAt:0, k:o.k || (CFG.endless ? 300 : 1), got:o.got || 0 }; this.make(t0 + BAR); },
@@ -489,7 +558,7 @@ const RS = {
       const hit = new THREE.Mesh(new THREE.BoxGeometry(1.1, 3.4, 1.1), new THREE.MeshBasicMaterial({ visible:false })); hit.position.y = 1.2; g.add(hit);
       this.root.add(g); const tube = { g, hit, list:[] }; this.tubes.push(tube);
       for (const k of list){ const b = planetPiece(k); b.scale.setScalar(1.05); this.root.add(b); this.balls.push(b); tube.list.push(b); b.position.copy(this.slot(tube, tube.list.length - 1)); } });
-    s.nextAt = 0; s.allow = (5.2 + n*4.7)*(1.15 - .25*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; },
+    s.nextAt = 0; s.allow = (5.2 + n*4.7)*(1.15 - .25*clamp(this.L(t), 0, 1.4)); s.deadline = t + s.allow; this.dress(); },
   slot(tube, i){ return tube.g.position.clone().add(new THREE.Vector3(0, .1 + i*.56, 0)); },
   press(cx, cy){ if (this.st.nextAt) return; const hit = rayAt(cx, cy, this.tubes.map(t => t.hit)); if (hit) this.pick(this.tubes.findIndex(t => t.hit === hit.object)); },
   pick(i){ const s = this.st, tube = this.tubes[i];
@@ -508,6 +577,13 @@ const RS = {
   render(dt, t){ const s = this.st, beat = onBeat(t), portrait = cam.aspect < .8;
     this.tubes.forEach((tube, i) => tube.list.forEach((b, j) => { const p = this.slot(tube, j); if (s.held === i && j === tube.list.length - 1) p.y = tube.g.position.y + 3.1 + (beat ? .08 : 0); b.position.lerp(p, Math.min(1, dt*14)); b.rotation.y += dt; }));
     flyCar(this.car, t, portrait ? 2 : 7, portrait ? 7.5 : 4.2, -8);
+    const pu = beatPulse(t);
+    for (let i = 0; i < this.glow.length; i++){ const gl = this.glow[i], tube = this.tubes[i]; gl.visible = !!tube; if (!tube) continue;
+      const L = tube.list, q = tube.g.position; let full = L.length === this.CAP; for (let j = 1; full && j < L.length; j++) full = L[j].userData.k === L[0].userData.k;
+      if (full){ gl.material.color.setHex(RAINBOW[L[0].userData.k]); gl.position.set(q.x, q.y + 1.1, -.6); gl.scale.set(2.3, 4.4, 1); gl.material.opacity = .6 + .25*pu; }
+      else { gl.material.color.setHex(SC.gold); gl.position.set(q.x, q.y - .14, -.55); gl.scale.set(2.1, .75, 1); gl.material.opacity = .55; } }
+    const hg = this.heldGlow, ht = s.held >= 0 ? this.tubes[s.held] : null; hg.visible = !!ht && ht.list.length > 0;
+    if (hg.visible){ const b = ht.list[ht.list.length - 1]; hg.position.set(b.position.x, b.position.y, -.5); hg.material.opacity = .85; }
     const h = s.held >= 0 ? this.tubes[s.held].g.position : new THREE.Vector3(0, 3.6, 0); ME.scale.setScalar(.5); ME.position.lerp(new THREE.Vector3(h.x, h.y + (s.held >= 0 ? 4.4 : 1.2), h.z), Math.min(1, dt*8)); ME.rotation.set(0, t*1.6, 0);
     ME.userData.beam.visible = true; ME.userData.beam.scale.set(.3, .5, .3); ME.userData.beam.position.y = -1;
     if (portrait){ CAMP.set(0, 1.8, 17); CAML.set(0, .4, 0); } else { CAMP.set(0, 2.2, 11.5); CAML.set(0, 1, 0); }
@@ -538,7 +614,9 @@ const SP = {
   setup(){ const g = new THREE.Group(); scene.add(g); this.root = g; this.car = redCar(); g.add(this.car);
     this.table = new THREE.Group(); g.add(this.table); this.cards = [];
     for (let i = 0; i < 52; i++){ const face = new THREE.MeshBasicMaterial({ map:CARD_BACK }); const m = new THREE.Mesh(new THREE.PlaneGeometry(.92, 1.26), face); m.visible = false; this.table.add(m); this.cards.push({ m, face }); }
-    this.stockHit = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshBasicMaterial({ visible:false })); this.table.add(this.stockHit); },
+    this.stockHit = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshBasicMaterial({ visible:false })); this.table.add(this.stockHit);
+    this.felt = padMesh(.62); this.felt.position.set(0, .575, -.3); this.felt.scale.set(18.4, 9.7, 1); this.table.add(this.felt);
+    this.wasteGlow = sprite(SC.gold, 2.5, .5); this.deckGlow = sprite(0x8ab8ff, 2.1, .4); this.table.add(this.wasteGlow, this.deckGlow); },
   begin(t0, t1, L0, L1, cont){ this.t0 = t0; this.t1 = t1; this.L0 = L0; this.L1 = L1; if (cont) return; this.start = t0;
     const o = (REMIX && this.st) || {};
     this.st = { deals:o.deals || 0, cleared:o.cleared || 0, played:o.played || 0, streak:0, best:o.best || 0, beatPlays:o.beatPlays || 0, deadline:0, nextAt:0, k:o.k || (CFG.endless ? 700 : 1), got:o.got || 0, last:null }; this.deal(t0 + BAR); },
@@ -583,9 +661,12 @@ const SP = {
     for (const c of this.cards) if (c.target) c.m.position.lerp(c.target, Math.min(1, dt*12));
     for (const c of this.tab) c.c.m.scale.setScalar(!c.gone && this.free(c) && this.fits(c) && beat ? 1.05 : 1);
     flyCar(this.car, t, portrait ? 0 : 6.8, portrait ? 6.6 : 3.2, -8);
+    const pu = beatPulse(t), wg = this.wasteGlow, dg = this.deckGlow;
+    wg.position.set(this.wastePos.x, this.wastePos.y, -.15); wg.scale.setScalar(2.5 + Math.min(8, s.streak)*.14 + pu*.25); wg.material.opacity = .5 + .2*pu;
+    dg.position.set(this.stockPos.x, this.stockPos.y, -.15); dg.visible = this.stock.length > 0;
     this.table.scale.setScalar(portrait ? .64 : 1);
     const lp = this.table.localToWorld(this.wastePos.clone()); ME.scale.setScalar(.45); ME.position.lerp(new THREE.Vector3(lp.x + 1.6*this.table.scale.x, lp.y - .1, lp.z + .8), Math.min(1, dt*6)); ME.rotation.set(.9, t*1.6, 0); ME.userData.beam.visible = false;
-    if (portrait){ CAMP.set(0, .5, Math.max(14, 3.4/(Math.tan(cam.fov*Math.PI/360)*cam.aspect))); CAML.set(0, .4, 0); }   // the bottom row fits (half-width 3.4) else { CAMP.set(0, 1.2, 9.5); CAML.set(0, 1.1, 0); }
+    if (portrait){ CAMP.set(0, .5, Math.max(14, 3.4/(Math.tan(cam.fov*Math.PI/360)*cam.aspect))); CAML.set(0, .4, 0); } else { CAMP.set(0, 1.2, 9.5); CAML.set(0, 1.1, 0); }   // on a phone the bottom row fits (half-width 3.4)
   }
 };
 
@@ -693,6 +774,7 @@ function render(dt){
   }
   const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  skyAnim(dt, t);
   ren.render(scene, cam);
 }
 function frame(){

@@ -22,6 +22,7 @@ body{margin:0; background:#060914; color:#fff4e6; overflow:hidden; font-family:"
   -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent}
 #cab{position:fixed; inset:0}
 canvas{display:block; touch-action:none}
+#cab::after{content:""; position:absolute; inset:0; pointer-events:none; background:linear-gradient(180deg, #060914b8 0, #06091400 14%, #06091400 80%, #060914c0 100%)}
 #hud{position:fixed; left:0; right:0; top:0; pointer-events:none; padding:16px 18px; z-index:3; display:flex; justify-content:space-between; align-items:flex-start; transition:opacity .4s}
 #hud.off{opacity:0}
 #m{font-family:Bungee,sans-serif; font-size:24px; color:#ffb347; line-height:1; text-shadow:0 0 12px #ff8a2a88}
@@ -248,6 +249,25 @@ function windowTex(k){
     x.globalAlpha = .55 + rnd(q*31)*.45; x.fillRect(c*8 + 2, r*8 + 2, 4, 5); x.globalAlpha = 1; }
   const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
 }
+// the shaft's windows: the same lit and dark panes as windowTex(k), drawn finer - a soft halo round every lit one,
+// a shaded sill, a floor slab every four rows and a pier every four panes
+function shaftTex(k){
+  const cv = document.createElement("canvas"); cv.width = 128; cv.height = 256; const x = cv.getContext("2d");
+  x.fillStyle = "#090c18"; x.fillRect(0, 0, 128, 256);
+  for (let pass = 0; pass < 2; pass++) for (let r = 0; r < 16; r++) for (let c = 0; c < 8; c++){ const q = rnd(k*97 + r*13 + c*7);
+    if (q < .28) continue;
+    const a = .55 + rnd(q*31)*.45; x.fillStyle = q < .78 ? (q < .5 ? "#ffb347" : "#ffd88a") : q < .9 ? "#cfe8ff" : "#ff8a3a";
+    if (!pass){ x.globalAlpha = a*.2; x.fillRect(c*16 + 1, r*16 + 1, 14, 16); }
+    else { x.globalAlpha = a; x.fillRect(c*16 + 4, r*16 + 4, 8, 10); x.globalAlpha = a*.4; x.fillStyle = "#1a0d04"; x.fillRect(c*16 + 4, r*16 + 11, 8, 3); } }
+  x.globalAlpha = 1; x.fillStyle = "#1c2648"; for (let r = 0; r < 16; r += 4) x.fillRect(0, r*16, 128, 2);
+  x.fillStyle = "#04060c"; for (let c = 0; c < 8; c += 4) x.fillRect(c*16, 0, 2, 256);
+  const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+// a ring of light with nothing in the middle (round a hole, round a gold ring): the bright edge sits at .64 of the radius
+const HALO = radial([[0, "rgba(255,255,255,0)"], [.6, "rgba(255,255,255,0)"], [.64, "rgba(255,255,255,.9)"], [.76, "rgba(255,255,255,.3)"], [1, "rgba(255,255,255,0)"]], 128);
+// a strip of colour up a canvas, for the glows that fade one way: stops are [place from the top, grey level 0-255]
+function fadeTex(stops){ const cv = document.createElement("canvas"); cv.width = 4; cv.height = 128; const x = cv.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 128);
+  stops.forEach(([o, v]) => g.addColorStop(o, "rgb(" + v + "," + v + "," + v + ")")); x.fillStyle = g; x.fillRect(0, 0, 4, 128); return new THREE.CanvasTexture(cv); }
 const WIN = [];
 const TOWER_ROOF = new THREE.MeshStandardMaterial({ color:0x10131e, roughness:.8 });
 function tower(w, h, d, k){
@@ -296,6 +316,14 @@ const ROADS = [];
 function buildCity(){
   const root = new THREE.Group(); root.position.x = CITY_X; scene.add(root);
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshStandardMaterial({ color:0x0a0b10, roughness:1 })); ground.rotation.x = -Math.PI/2; root.add(ground);
+  // the streets between the towers (they stand on a 9 m grid), lit gold, out to the horizon
+  { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d"); x.fillStyle = "#000"; x.fillRect(0, 0, 64, 64);
+    for (const [w, a] of [[14, .1], [6, .22], [2, .8]]){ x.fillStyle = "rgba(255,150,50," + a + ")"; x.fillRect(0, 0, 64, w/2); x.fillRect(0, 64 - w/2, 64, w/2); x.fillRect(0, 0, w/2, 64); x.fillRect(64 - w/2, 0, w/2, 64); }
+    for (let i = 0; i < 7; i++){ x.fillStyle = i % 3 ? "#fff0d0" : "#ff5a3a"; x.fillRect(i % 2 ? 1 + i*9 : 0, i % 2 ? 0 : 3 + i*8, 2, 2); }
+    const t = new THREE.CanvasTexture(cv); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(500/9, 500/9); t.offset.set(6.5/9, 6.5/9);
+    ground.material.emissiveMap = t; ground.material.emissive.set(0xffffff); ground.material.emissiveIntensity = .4; }
+  const haze = new THREE.Mesh(new THREE.PlaneGeometry(900, 110), new THREE.MeshBasicMaterial({ map:fadeTex([[0, 0], [.5, 70], [.86, 255], [1, 0]]), color:0xff7a2a, transparent:true, opacity:.4,
+    blending:THREE.AdditiveBlending, depthWrite:false, fog:false })); haze.position.set(0, 55, -235); root.add(haze);
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(160, 500), new THREE.MeshStandardMaterial({ color:0x061428, roughness:.15, metalness:.7, emissive:0x020a18 })); sea.rotation.x = -Math.PI/2; sea.position.set(120, .05, 0); root.add(sea);
   for (let i = 0; i < 30; i++){ const s = sprite(i % 3 ? 0xffe0a0 : 0x7ad8ff, 1.4); s.position.set(40 + rnd(i*3)*3, .5, -160 + i*11); root.add(s); }
   // towers on a loose grid, taller toward the middle like the cover
@@ -357,7 +385,7 @@ const FALL = {
     // the shaft: four towers round you, their windows rushing up as you fall
     this.walls = [];
     for (const [x, z, w, d] of [[-12, 0, 10, 38], [12, 0, 10, 38], [0, -12, 14, 10], [0, 12, 14, 10]]){
-      const k = this.walls.length, t = windowTex(k + 7); t.repeat.set((x ? d : w)/5, 500/10);
+      const k = this.walls.length, t = shaftTex(k + 7); t.repeat.set((x ? d : w)/5, 500/10);
       const m = new THREE.MeshStandardMaterial({ map:t, emissiveMap:t, emissive:0xffffff, emissiveIntensity:1, color:0x2a2a38, roughness:.6 });
       const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 500, d), m); wall.position.set(x, -225, z); this.root.add(wall); this.walls.push(t); }
     // neon signs on the walls, passing by
@@ -395,6 +423,89 @@ const FALL = {
       for (const s of [-1, 1]){ const b = new THREE.Mesh(new THREE.SphereGeometry(.32, 12, 10), hm); b.position.set(s*.25, .15, 0); g.add(b); }
       const tip = new THREE.Mesh(new THREE.ConeGeometry(.44, .6, 14), hm); tip.rotation.z = Math.PI; tip.position.y = -.2; g.add(tip); g.add(sprite(0xff3d6a, 3, .6)); g.visible = false; this.root.add(g); this.hearts.push({ g, on:false }); }
     this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    this.dress();
+  },
+  /* ---- the look. Nothing in dress() or dressRender() is read by the game: no hitbox, no timing, no dice ---- */
+  dress(){
+    const R = this.root, hot = P2 ? 0xff5a36 : 0xffb347, add = (o, extra) => Object.assign({ transparent:true, blending:THREE.AdditiveBlending, depthWrite:false }, o, extra);
+    const flat = (w, d) => { const g = new THREE.PlaneGeometry(w, d); g.rotateX(-Math.PI/2); return g; };
+    this.M4 = new THREE.Matrix4(); this.dummy = new THREE.Object3D(); this.tint = new THREE.Color(); this.glow = .5;
+    this.calm = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+    // the edges of the shaft: a line of light down each corner, and a lit ledge round the walls every 20 m, rushing up
+    this.corners = new THREE.InstancedMesh(new THREE.BoxGeometry(.16, 500, .16), new THREE.MeshBasicMaterial(add({ color:hot, opacity:.5 })), 4);
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz], i) => this.corners.setMatrixAt(i, this.M4.makeTranslation(sx*6.9, -225, sz*6.9)));
+    const lg = new THREE.RingGeometry(6.66*Math.SQRT2, 6.98*Math.SQRT2, 4, 1, Math.PI/4); lg.rotateX(-Math.PI/2);
+    this.ledges = new THREE.InstancedMesh(lg, new THREE.MeshBasicMaterial(add({ color:hot, opacity:.3 })), 9);
+    // speed: thin streaks of light close to the walls (in Rush Hour, head- and tail-lights)
+    this.streakP = []; const col = new THREE.Color();
+    this.streaks = new THREE.InstancedMesh(new THREE.BoxGeometry(.09, 1, .09), new THREE.MeshBasicMaterial(add({ color:0xffffff, opacity:.4 })), 26);
+    for (let i = 0; i < 26; i++){ const side = i % 4, a = (rnd(i*9.1 + 2)*2 - 1)*6.5, w = 6.55 + rnd(i*4.3)*.3;
+      this.streakP.push([side < 2 ? (side ? w : -w) : a, side < 2 ? a : (side === 2 ? -w : w), rnd(i*6.7 + 1)*80]);
+      this.streaks.setColorAt(i, col.set(P2 ? (i % 3 ? 0xff4a3a : 0xfff4e0) : (i % 3 ? 0xffd8a0 : 0xcfe8ff))); }
+    this.streaks.visible = !this.calm;
+    for (let i = 0; i < 9; i++) this.ledges.setColorAt(i, col.setScalar(1));
+    // drawn before the glass, so a skybridge tints and mutes whatever is behind it
+    for (const m of [this.corners, this.ledges, this.streaks]){ m.frustumCulled = false; m.renderOrder = -1; R.add(m); }
+    // far below: the streets, and their glow coming up the walls. They ignore the fog and come nearer as the song goes
+    const sv = document.createElement("canvas"); sv.width = sv.height = 256; { const x = sv.getContext("2d"), g = x.createRadialGradient(128, 128, 0, 128, 128, 180);
+      g.addColorStop(0, "#4a2408"); g.addColorStop(1, "#100704"); x.fillStyle = g; x.fillRect(0, 0, 256, 256); x.lineCap = "round"; x.shadowColor = "#ff8a2a"; x.shadowBlur = 8;
+      for (let i = 0; i < 8; i++){ const a = 20 + rnd(i*2.3 + 1)*216, b = a + (rnd(i*5.9 + 2) - .5)*90; x.strokeStyle = "rgba(255,170,70," + (.2 + rnd(i*1.9)*.3) + ")"; x.lineWidth = 2 + rnd(i*3.1)*2;
+        x.beginPath(); if (i % 2){ x.moveTo(a, -5); x.lineTo(b, 261); } else { x.moveTo(-5, a); x.lineTo(261, b); } x.stroke(); }
+      x.strokeStyle = "#ffd890"; x.lineWidth = 7; x.beginPath(); x.moveTo(-10, 210); x.quadraticCurveTo(110, 170, 150, 100); x.quadraticCurveTo(180, 40, 266, 20); x.stroke();
+      x.strokeStyle = "#ffb04a"; x.lineWidth = 5; x.beginPath(); x.moveTo(60, -10); x.quadraticCurveTo(90, 120, 266, 190); x.stroke(); x.shadowBlur = 0;
+      for (let i = 0; i < (P2 ? 240 : 130); i++){ x.fillStyle = rnd(i*5.3) < (P2 ? .55 : .25) ? "#ff3a2a" : rnd(i*2.9) < .5 ? "#fffbe8" : "#ffc060"; const d = 2 + (i % 3 === 0);
+        x.fillRect(rnd(i*3.7 + 4)*254, rnd(i*7.9 + 5)*254, d, d); } }
+    this.street = new THREE.Mesh(flat(14, 14), new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(sv), fog:false })); R.add(this.street);
+    this.rise = new THREE.Mesh(new THREE.CylinderGeometry(6.8*Math.SQRT2, 6.8*Math.SQRT2, 1, 4, 1, true),
+      new THREE.MeshBasicMaterial(add({ map:fadeTex([[0, 0], [.45, 22], [.8, 110], [1, 255]]), color:P2 ? 0xff6030 : 0xffa040, opacity:.6, side:THREE.BackSide, fog:false })));
+    this.rise.rotation.y = Math.PI/4; this.rise.renderOrder = -1; R.add(this.rise);
+    // the saucer lights what it comes near (the one new light)
+    const lamp = new THREE.PointLight(0xffa050, 1.1, 26, 2); lamp.position.y = -1.2; ME.add(lamp);
+    // skybridge: the hole's edge throws light onto the glass around it
+    const hg = flat(3.125, 3.125);
+    for (const p of this.plates){ p.halo = new THREE.Mesh(hg, new THREE.MeshBasicMaterial(add({ map:HALO, color:0x9ae4ff, opacity:.6 }))); p.halo.position.y = .05; p.g.add(p.halo); }
+    // gold ring: a halo of its own (round it, nothing in the middle)
+    const rm = new THREE.MeshBasicMaterial(add({ map:HALO, color:0xffc040, opacity:.6, side:THREE.DoubleSide })), rg = new THREE.PlaneGeometry(1.7*3.125, 1.7*3.125);
+    for (const r of this.rings) r.r.add(new THREE.Mesh(rg, rm));
+    // crane: warning bands on the arm, a glow along it, the hub it swings round
+    const band = document.createElement("canvas"); band.width = band.height = 64; { const x = band.getContext("2d"); x.fillStyle = "#fff"; x.fillRect(0, 0, 64, 64); x.fillStyle = "#33240c";
+      for (const o of [0, -64]){ x.beginPath(); x.moveTo(o, 0); x.lineTo(o + 22, 0); x.lineTo(o + 86, 64); x.lineTo(o + 64, 64); x.fill(); } }
+    const bt = new THREE.CanvasTexture(band); bt.wrapS = bt.wrapT = THREE.RepeatWrapping; bt.repeat.set(12, 1);
+    const steel = this.cranes[0].g.children[0].material; steel.map = bt; steel.needsUpdate = true;
+    const cg = flat(25, 2.6), cgm = new THREE.MeshBasicMaterial(add({ map:fadeTex([[0, 0], [.5, 255], [1, 0]]), color:0xff7a1a, opacity:.5 }));
+    const hubG = new THREE.CylinderGeometry(.5, .5, .8, 12), hubM = new THREE.MeshStandardMaterial({ color:0x4a3a1c, metalness:.6, roughness:.4, emissive:0x1a0e00 });
+    for (const c of this.cranes){ const g = new THREE.Mesh(cg, cgm); g.position.y = -.36; c.g.add(g); c.g.add(new THREE.Mesh(hubG, hubM)); }
+    // helicopter: it was a dark shape under a pale cone - a lighter hull, the rotor's disc with a red rim, navigation lights, a strobe on the tail
+    const disc = new THREE.CircleGeometry(2.3, 32); disc.rotateX(-Math.PI/2);
+    const dm = new THREE.MeshBasicMaterial(add({ map:radial([[0, "rgba(255,255,255,.2)"], [.84, "rgba(255,255,255,.1)"], [.92, "rgba(255,80,60,1)"], [1, "rgba(255,80,60,0)"]], 128), side:THREE.DoubleSide }));
+    for (const h of this.helis){ const body = h.g.children[0].material; body.color.set(0x8a94aa); body.emissive.set(0x1c2436); body.roughness = .45;
+      const d = new THREE.Mesh(disc, dm); d.position.y = .84; h.g.add(d);
+      const gr = sprite(0x4aff8a, .8), rd = sprite(0xff3a3a, .8); gr.position.set(.2, .2, .85); rd.position.set(.2, .2, -.85); h.g.add(gr); h.g.add(rd);
+      h.strobe = sprite(0xffffff, 1.3); h.strobe.position.set(-3.1, .25, 0); h.g.add(h.strobe); }
+    // cradle: a deck with a warning border, a red light at each end
+    const dk = document.createElement("canvas"); dk.width = 160; dk.height = 64; { const x = dk.getContext("2d"); x.fillStyle = "#c4c8d4"; x.fillRect(0, 0, 160, 64);
+      x.strokeStyle = "#9096a8"; x.lineWidth = 1; for (let i = 8; i < 160; i += 8){ x.beginPath(); x.moveTo(i, 0); x.lineTo(i, 64); x.stroke(); }
+      x.save(); x.beginPath(); x.rect(0, 0, 160, 64); x.rect(8, 8, 144, 48); x.clip("evenodd"); x.fillStyle = "#ffc020"; x.fillRect(0, 0, 160, 64); x.fillStyle = "#1c1608";
+      for (let i = -64; i < 160; i += 20){ x.beginPath(); x.moveTo(i, 0); x.lineTo(i + 9, 0); x.lineTo(i + 73, 64); x.lineTo(i + 64, 64); x.fill(); } x.restore(); }
+    const dt = new THREE.CanvasTexture(dk), cm = this.cradles[0].g.children[0].material;
+    const top = new THREE.MeshStandardMaterial({ map:dt, emissiveMap:dt, emissive:0xffffff, emissiveIntensity:.3, metalness:.3, roughness:.5 });
+    for (const c of this.cradles){ c.g.children[0].material = [cm, cm, top, cm, cm, cm];
+      for (const s of [-1, 1]){ const l = sprite(0xff3a2a, 1); l.position.set(s*2.4, .5, 0); c.g.add(l); } }
+  },
+  dressRender(dt, t, beat){
+    const st = this.st, sec = section(t), e = sec === "hook" ? 1 : sec === "loud" ? .75 : sec === "calm" ? .5 : .35, v = this.v(this.L(t)), b = beat && !this.calm ? 1 : 0;
+    this.glow += (e - this.glow)*Math.min(1, dt*3); const g = this.glow;
+    this.corners.material.opacity = .3 + .4*g + b*.2; this.ledges.material.opacity = .12 + .24*g + b*.1;
+    // a ledge goes out as it comes up past you, so nothing sweeps across the score
+    const off = st.depth % 20; for (let i = 0; i < 9; i++){ const y = 16 - i*20 + off; this.ledges.setMatrixAt(i, this.M4.makeTranslation(0, y, 0)); this.ledges.setColorAt(i, this.tint.setScalar(clamp((6 - y)/10, 0, 1))); }
+    this.ledges.instanceMatrix.needsUpdate = true; this.ledges.instanceColor.needsUpdate = true;
+    if (this.streaks.visible){ const D = this.dummy, len = 2 + v*.22;
+      for (let i = 0; i < 26; i++){ const p = this.streakP[i]; D.position.set(p[0], -62 + (p[2] + st.depth*1.6) % 80, p[1]); D.scale.set(1, len, 1); D.updateMatrix(); this.streaks.setMatrixAt(i, D.matrix); }
+      this.streaks.instanceMatrix.needsUpdate = true; this.streaks.material.opacity = .1 + .3*clamp((v - 12)/16, 0, 1) + .12*g; }
+    const deep = 260 - 120*(CFG.endless ? .5 : clamp(t/END_AT, 0, 1)), h = deep - 95;
+    this.street.position.y = -deep; this.rise.position.y = -deep + h/2; this.rise.scale.y = h; this.rise.material.opacity = .4 + .25*g + b*.1;
+    for (const p of this.plates) if (p.on){ p.halo.scale.set(p.r, 1, p.r); p.halo.material.opacity = (.45 + b*.3)*(p.y > 0 ? clamp(1 - p.y/5, 0, 1) : 1); }
+    for (let i = 0; i < this.helis.length; i++){ const h = this.helis[i]; if (h.on) h.strobe.visible = (t*1.7 + i*.37) % 1 < .16; }
   },
   v(L){ return Math.min(28, 12 + 9*L); },     // falling speed, m/s
   L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
@@ -492,6 +603,7 @@ const FALL = {
   },
   render(dt, t){
     const st = this.st, beat = onBeat(t);
+    this.dressRender(dt, t, beat);
     ME.position.set(st.x, 0, st.z); ME.rotation.set((st.tz - st.z)*.06, t*1.6, -(st.tx - st.x)*.06);
     for (const p of this.plates) if (p.on){ p.g.position.set(p.hx, p.y, p.hz); const fade = p.y > 0 ? clamp(1 - p.y/5, 0, 1) : 1;   // once passed, it fades as it goes up past the camera
       p.ring.material.opacity = .55*fade; p.edge.material.opacity = (.6 + (beat ? .4 : 0))*fade; }

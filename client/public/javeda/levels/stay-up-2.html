@@ -274,16 +274,61 @@ function buildSaucer(dc, gc, letter, rim){
 }
 function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .18 + (beat ? .14 : 0); g.userData.under.material.opacity = .45 + (beat ? .3 : 0); }
 
-// the room: a deep blue back wall, the big white light up behind the hands, haze, the floor
+// the room: a deep blue back wall (a drape, in folds), the big white light up behind the hands and the rays round
+// it, haze, the floor - and, look only: a truss up the back with shafts of blue light, more of the crowd behind,
+// dust in the light. None of it knows the pattern.
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+const hsh = n => { const x = Math.sin(n*91.7 + 4.1)*24634.6345; return x - Math.floor(x); };
+const addM = (map, color, op) => new THREE.MeshBasicMaterial({ map, color, transparent:true, opacity:op, blending:THREE.AdditiveBlending, depthWrite:false, fog:false });
+const UNIT = new THREE.PlaneGeometry(1, 1), HUNG = new THREE.PlaneGeometry(1, 1).translate(0, -.5, 0);
+const DRAPE = canvasTex(256, 512, (x, w, h) => { const gr = x.createLinearGradient(0, 0, 0, h);
+  gr.addColorStop(0, "#1a1a8a"); gr.addColorStop(.45, "#2a2ad8"); gr.addColorStop(1, "#04051a"); x.fillStyle = gr; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < w; i++){ const a = i/w*Math.PI*2, f = Math.sin(a*5)*.5 + Math.sin(a*13 + 1.3)*.3 + Math.sin(a*3 + .5)*.2;
+    x.fillStyle = f > 0 ? "rgba(150,170,255," + (f*.07).toFixed(3) + ")" : "rgba(0,0,24," + (-f*.2).toFixed(3) + ")"; x.fillRect(i, 0, 1, h); } }, [8, 1]);
+const RAYS = canvasTex(512, 512, (x, w) => { const r = w/2; x.globalCompositeOperation = "lighter";
+  for (let k = 0; k < 30; k++){ const a = (k + hsh(k)*.7)/30*Math.PI*2, d = .025 + hsh(k + 40)*.06, len = r*(.55 + hsh(k + 80)*.45), g = x.createRadialGradient(r, r, 0, r, r, len);
+    g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.2, "rgba(255,255,255,.5)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = g; x.beginPath(); x.moveTo(r, r); x.arc(r, r, len, a - d, a + d); x.closePath(); x.fill(); } });
+const SHAFT = canvasTex(64, 256, (x, w, h) => { x.globalCompositeOperation = "lighter";
+  for (let j = 0; j < 8; j++){ const g = x.createLinearGradient(0, 0, 0, h), a = 6 - j*.7, b = 2 + j*3.6;
+    g.addColorStop(0, "rgba(255,255,255,.2)"); g.addColorStop(.5, "rgba(255,255,255,.07)"); g.addColorStop(1, "rgba(255,255,255,0)");
+    x.fillStyle = g; x.beginPath(); x.moveTo(w/2 - a, 0); x.lineTo(w/2 + a, 0); x.lineTo(w - b, h); x.lineTo(b, h); x.closePath(); x.fill(); } });
+// the crowd further back, as a strip of heads and hands up against the light (a few phones held up)
+const FAR = (seed, body, rim, phones) => canvasTex(1024, 256, (x, w, h) => { x.lineCap = "round";
+  const one = (cx, cy, s, arm, lean) => { x.beginPath(); x.ellipse(cx, cy + 36*s, 27*s, 20*s, 0, 0, Math.PI*2); x.rect(cx - 27*s, cy + 36*s, 54*s, h); x.fill(); x.beginPath(); x.arc(cx, cy, 15*s, 0, Math.PI*2); x.fill();
+    if (arm){ x.lineWidth = 10*s; x.beginPath(); x.moveTo(cx + arm*23*s, cy + 28*s); x.lineTo(cx + (arm*23 + lean)*s, cy - 44*s); x.stroke(); } };
+  for (let pass = 0; pass < 2; pass++){ x.fillStyle = x.strokeStyle = pass ? body : rim;
+    for (let i = 0; i < 22; i++){ const k = seed + i*7, cx = (i + hsh(k)*.8)/22*w, cy = 100 + hsh(k + 1)*30 + pass*3, s = .9 + hsh(k + 2)*.3, arm = hsh(k + 3) < .7 ? (hsh(k + 4) < .5 ? -1 : 1) : 0, lean = (hsh(k + 5) - .5)*30;
+      for (const dx of [0, -w, w]) one(cx + dx, cy, s, arm, lean); } }
+  if (phones) for (let i = 0; i < 22; i++){ const k = seed + i*7, s = .9 + hsh(k + 2)*.3, arm = hsh(k + 3) < .7 ? (hsh(k + 4) < .5 ? -1 : 1) : 0;
+    if (arm && i % 4 === 1){ x.fillStyle = "#9fb4ff"; x.fillRect((i + hsh(k)*.8)/22*w + (arm*23 + (hsh(k + 5) - .5)*30)*s - 4, 100 + hsh(k + 1)*30 - 44*s - 6, 8, 5); } } }, [3.2, 1]);
+const noWrapT = t => { t.wrapT = THREE.ClampToEdgeWrapping; return t; };
+const VEN = [];                               // each room's moving bits (the show's, the cover's)
 function venue(){ const g = new THREE.Group();
-  const wall = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshBasicMaterial({ map:canvasTex(16, 256, (x, w, h) => { const gr = x.createLinearGradient(0, 0, 0, h);
-    gr.addColorStop(0, "#1a1a8a"); gr.addColorStop(.45, "#2a2ad8"); gr.addColorStop(1, "#04051a"); x.fillStyle = gr; x.fillRect(0, 0, w, h); }) }));
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshBasicMaterial({ map:noWrapT(DRAPE) }));
   wall.position.set(0, 8, -14); g.add(wall);
   const lamp = new THREE.Mesh(new THREE.CircleGeometry(3.2, 48), new THREE.MeshBasicMaterial({ color:0xf4f8ff })); lamp.position.set(3.5, 12.6, -13.8); g.add(lamp);
-  for (const [s, op] of [[11, .55], [22, .35], [40, .2]]){ const h = sprite(0xb8c8ff, s, op); h.position.set(3.5, 12.6, -13.5); g.add(h); }
+  // its glow, flat on the wall (as sprites the wall cut them in half)
+  [[11, .55], [22, .35], [40, .2]].forEach(([s, op], i) => { const h = new THREE.Mesh(UNIT, addM(DOT, 0xb8c8ff, op)); h.scale.set(s, s, 1); h.position.set(3.5, 12.6, -13.6 + i*.03); g.add(h); });
+  const v = { g, n:VEN.length };
+  v.rays = new THREE.Mesh(UNIT, addM(RAYS, 0xc8d4ff, .2)); v.rays.scale.set(46, 46, 1); v.rays.position.set(3.5, 12.6, -13.7); g.add(v.rays);
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(120, 60), new THREE.MeshBasicMaterial({ color:0x05061a })); floor.rotation.x = -Math.PI/2; floor.position.set(0, -2, 0); g.add(floor);
   for (let i = 0; i < 10; i++){ const p = new THREE.Sprite(new THREE.SpriteMaterial({ map:PUFF, color:0x6a7aff, transparent:true, opacity:.18, depthWrite:false }));
     p.scale.set(14 + rnd(i)*10, 5 + rnd(i*3)*4, 1); p.position.set((rnd(i*5) - .5)*36, 2 + rnd(i*7)*10, -10 + rnd(i*9)*6); g.add(p); }
+  // the truss up the back: nine heads, a shaft of blue from each, slowly crossing
+  const truss = new THREE.Mesh(new THREE.BoxGeometry(80, .22, .22), new THREE.MeshBasicMaterial({ color:0x080a26 })); truss.position.set(0, 17.3, -10.2); g.add(truss);
+  v.shaftM = addM(SHAFT, 0x7088ff, .1); v.shafts = new THREE.InstancedMesh(HUNG, v.shaftM, 9); v.shafts.position.set(0, 17.2, -10); v.shafts.frustumCulled = false; g.add(v.shafts);
+  const hp = new Float32Array(27); for (let i = 0; i < 9; i++){ hp[i*3] = (i - 4)*3.4; hp[i*3 + 1] = 17.15; hp[i*3 + 2] = -9.9; }
+  const hg = new THREE.BufferGeometry(); hg.setAttribute("position", new THREE.BufferAttribute(hp, 3));
+  v.heads = new THREE.Points(hg, new THREE.PointsMaterial({ map:DOT, color:0xd8e2ff, size:1.5, transparent:true, opacity:.9, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })); v.heads.frustumCulled = false; g.add(v.heads);
+  // more of the crowd, behind
+  [[-3.2, 1, "#06082a", "#3444c8", 0], [-8, 1.6, "#0b0f4c", "#4658e8", 1]].forEach(([z, y, body, rim, ph], i) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(80, 6), new THREE.MeshBasicMaterial({ map:noWrapT(FAR(i*200 + 11, body, rim, ph)), alphaTest:.5 })); m.position.set(i*4.3, y, z); g.add(m); });
+  // dust in the light
+  const mp = new Float32Array(64*3); for (let i = 0; i < 64; i++){ mp[i*3] = (hsh(i + 300) - .5)*32; mp[i*3 + 1] = hsh(i + 400)*21 - 1; mp[i*3 + 2] = -12 + hsh(i + 500)*10; }
+  const mg = new THREE.BufferGeometry(); mg.setAttribute("position", new THREE.BufferAttribute(mp, 3));
+  v.motes = new THREE.Points(mg, new THREE.PointsMaterial({ map:DOT, color:0xaab8ff, size:.24, transparent:true, opacity:.5, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })); v.motes.frustumCulled = false; g.add(v.motes);
+  VEN.push(v);
   g.userData.lamp = lamp; return g; }
 // one of the crowd: a body, a head, maybe a cap or a headband, and one or two arms up pointing (they turn
 // to whatever lights up). Shirts from the cover: the sand hoodie, black tees, the red stripes, the logo tee
@@ -319,15 +364,57 @@ function crowd(n, z0, rows){ const out = [];
   for (let i = 0; i < n; i++){ const r = i % rows, p = person(i + rows*7);
     p.position.set(((i/n) - .5)*13 + (rnd(i*3) - .5)*.9, -1.2 - r*.25 + rnd(i*5)*.4, z0 + r*1.4 + rnd(i*7)*.5); p.rotation.y = (rnd(i*11) - .5)*.5; p.scale.setScalar(1 + rnd(i*13)*.15); out.push(p); }
   return out; }
-// one of the nine lights: a black can, the coloured lens, a glow in front
+// one of the nine lights: a black can, the coloured lens (glass: faint rings, a little darker at the rim), a glow in front
+const LENS = canvasTex(128, 128, (x, w) => { const r = w/2, g = x.createRadialGradient(r, r, 0, r, r, r); g.addColorStop(0, "#ffffff"); g.addColorStop(.75, "#f6f6f6"); g.addColorStop(1, "#d6d6d6"); x.fillStyle = g; x.fillRect(0, 0, w, w);
+  x.strokeStyle = "rgba(0,0,0,.09)"; x.lineWidth = 2; for (let k = 1; k < 7; k++){ x.beginPath(); x.arc(r, r, k*9, 0, Math.PI*2); x.stroke(); } });
 const LIGHTS = [0x6a8aff, 0xf4f8ff, 0xb06aff, 0x4ad8ff, 0xff6ab8, 0x6affc8, 0xffd25a, 0x7a6aff, 0xff8a5a];
 function lamp(color){ const g = new THREE.Group();
   const can = new THREE.Mesh(new THREE.CylinderGeometry(.62, .7, .7, 20), new THREE.MeshStandardMaterial({ color:0x10121e, roughness:.4, metalness:.7 })); can.rotation.x = Math.PI/2; g.add(can);
-  const lens = new THREE.Mesh(new THREE.CircleGeometry(.56, 28), new THREE.MeshStandardMaterial({ color:0x181a2a, emissive:color, emissiveIntensity:.35, roughness:.3 })); lens.position.z = .36; g.add(lens);
+  const lens = new THREE.Mesh(new THREE.CircleGeometry(.56, 28), new THREE.MeshStandardMaterial({ color:0x181a2a, emissive:color, emissiveIntensity:.35, emissiveMap:LENS, roughness:.3 })); lens.position.z = .36; g.add(lens);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(.66, .05, 6, 28), new THREE.MeshBasicMaterial({ color:0x2a2e4a })); ring.position.z = .37; g.add(ring);
   const glow = sprite(color, 2.6, 0); glow.position.z = .6; g.add(glow);
   const hit = new THREE.Mesh(new THREE.CircleGeometry(.95, 16), new THREE.MeshBasicMaterial({ visible:false })); hit.position.z = .4; g.add(hit);
   g.userData = { lens, ring, glow, hit, color }; return g; }
+/* ---------------- look only: what the light does to the room ----------------
+   A lit light falls on the crowd in its colour (from above and behind) and glows in the haze behind the rig, for exactly as long as the light
+   itself is lit (nothing stays behind: this is a memory game). The frame of the rig lights up while it's your turn
+   to tap (alone and online alike: the same "you" the line at the bottom goes by). The shafts follow the song. */
+const _o = new THREE.Object3D();
+const FX = { on:0, lvl:.1,
+  build(){
+    const P = [], U = [], I = [];
+    const quad = (x0, y0, x1, y1, up) => { const n = P.length/3; P.push(x0, y0, -.2, x1, y0, -.2, x1, y1, -.2, x0, y1, -.2); U.push(...(up ? [0,0, 1,0, 1,1, 0,1] : [0,0, 0,1, 1,1, 1,0])); I.push(n, n + 1, n + 2, n, n + 2, n + 3); };
+    for (let r = 0; r < 3; r++) quad(-3.7, 8.9 - r*1.95 - .2, 3.7, 8.9 - r*1.95 + .2, true);
+    for (const sx of [-1, 1]) quad(sx*3.75 - .2, .1, sx*3.75 + .2, 9.1, false);
+    const eg = new THREE.BufferGeometry(); eg.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); eg.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2)); eg.setIndex(I);
+    const line = canvasTex(4, 32, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.38, "rgba(255,255,255,.3)"); g.addColorStop(.5, "rgba(255,255,255,1)"); g.addColorStop(.62, "rgba(255,255,255,.3)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+    this.edge = new THREE.Mesh(eg, addM(line, CFG.endless ? 0xffe08a : 0xc8d4ff, 0)); this.edge.visible = false; PO.root.add(this.edge);
+    this.back = sprite(0xffffff, 7, 0); this.back.visible = false; PO.root.add(this.back);
+    // from above and behind the rig, so it never falls on a lens (a lens that shines is a light that's lit)
+    this.wash = new THREE.DirectionalLight(0xffffff, 0); this.wash.position.set(0, 10, -3); scene.add(this.wash);
+  },
+  frame(dt, t){
+    const v = VEN[END.on ? 1 : 0], play = !END.on, a = CALM ? 0 : t, beat = !CALM && onBeat(t);
+    const sec = S.end >= 0 ? "hook" : S.started ? section(t) : "calm";
+    this.lvl += ((sec === "hook" ? .2 : sec === "loud" ? .15 : .1) - this.lvl)*Math.min(1, dt*2);
+    v.shaftM.opacity = this.lvl + (beat && sec !== "calm" ? .03 : 0);
+    for (let i = 0; i < 9; i++){ _o.position.set((i - 4)*3.4, 0, i*.01); _o.rotation.z = (i % 2 ? .3 : -.3) + (i - 4)*.035 + Math.sin(a*.23 + i*1.7)*.2; _o.scale.set(4.2, 19, 1); _o.updateMatrix(); v.shafts.setMatrixAt(i, _o.matrix); }
+    v.shafts.instanceMatrix.needsUpdate = true;
+    v.rays.rotation.z = a*.02; v.rays.material.opacity = play ? .2 : .3;
+    const mp = v.motes.geometry.attributes.position; for (let i = 0; i < 64; i++) mp.array[i*3 + 1] = (hsh(i + 400)*21 + a*(.1 + hsh(i + 600)*.14)) % 21 - 1; mp.needsUpdate = true;
+    // the light that's lit (the brightest one), for as long as it is
+    let b = -1; if (play) for (let i = 0; i < 9; i++) if (PO.lamps[i].lit > .02 && (b < 0 || PO.lamps[i].lit > PO.lamps[b].lit)) b = i;
+    if (b >= 0){ const p = PO.lamps[b], c = p.g.userData.color;
+      this.wash.color.setHex(c); this.wash.intensity = p.lit*1.5;
+      this.back.material.color.setHex(c); this.back.material.opacity = p.lit*.3; this.back.position.set(p.g.position.x, p.g.position.y, -1.6); this.back.visible = true; }
+    else { this.wash.intensity = 0; this.back.visible = false; }
+    // your turn to tap: the frame of the rig is lit
+    const you = play && S.started && !S.done && S.end < 0 && PO.st.phase === "you";
+    this.on += ((you ? 1 : 0) - this.on)*Math.min(1, dt*8);
+    this.edge.visible = this.on > .01; this.edge.material.opacity = this.on*(.55 + (beat ? .2 : 0));
+  }
+};
+
 /* ---------------- state, HUD ---------------- */
 let S = null, G = null;
 const keys = {};
@@ -734,6 +821,7 @@ function render(dt){
   }
   const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  FX.frame(dt, t);
   ren.render(scene, cam);
 }
 function frame(){
@@ -801,7 +889,7 @@ function boot(){
   const key = new THREE.DirectionalLight(0xc8d4ff, .9); key.position.set(2, 10, 14); scene.add(key);
   const back = new THREE.DirectionalLight(0x8aa0ff, .7); back.position.set(2, 10, -14); scene.add(back);
   ME = buildSaucer(); scene.add(ME);
-  PO.setup(); buildEnd();
+  PO.setup(); buildEnd(); FX.build();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }

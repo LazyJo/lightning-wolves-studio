@@ -314,6 +314,107 @@ function buildSaucer(){
   return g;
 }
 function animSaucer(g, t, beat){ g.userData.lights.rotation.y = t*2.5; g.userData.beam.material.opacity = .16 + (beat ? .16 : 0); g.userData.under.material.opacity = .5 + (beat ? .3 : 0); }
+/* ---------------- dressing the street (the picture only: the game reads nothing in here) ---------------- */
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+const tile = (g, su, sv) => { const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i)*su, uv.getY(i)*sv); return g; };
+// the front of an old brick house (14 x 16 m): courses of brick, a stone foot, a band under the eaves, soot under the sills, mist low down
+const BRICKT = canvasTex(512, 512, (x, w, h) => {
+  const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#2c1c1e"); g.addColorStop(.6, "#3e2823"); g.addColorStop(1, "#42303a"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let r = 0; r < 32; r++) for (let c = -1; c < 12; c++){ const q = rnd(r*13.1 + c*7.7 + 5);
+    x.fillStyle = q < .5 ? "rgba(0,0,0," + (q*.4).toFixed(2) + ")" : "rgba(255,140,90," + ((q - .5)*.22).toFixed(2) + ")"; x.fillRect(c*44 + (r % 2)*22 + 2, r*16 + 2, 42, 14); }
+  x.fillStyle = "rgba(8,5,8,.5)"; for (let r = 0; r < 32; r++){ x.fillRect(0, r*16, w, 2); for (let c = -1; c < 12; c++) x.fillRect(c*44 + (r % 2)*22, r*16, 2, 16); }
+  for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++){ const X = (7 + (col - 1)*4.2)*w/14, Y = (16 - (3.4 + row*4.4))*h/16 + 54,
+    s = x.createLinearGradient(0, Y, 0, Y + 60); s.addColorStop(0, "rgba(0,0,0,.45)"); s.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = s; x.fillRect(X - 44, Y, 88, 60); }
+  x.fillStyle = "#231a22"; x.fillRect(0, 36, w, 20); x.fillStyle = "#3a2c36"; for (let i = 0; i < 32; i++) x.fillRect(i*16 + 4, 40, 8, 12); x.fillStyle = "#5a4654"; x.fillRect(0, 56, w, 3);
+  x.fillStyle = "#2c2832"; x.fillRect(0, h - 36, w, 36); x.fillStyle = "#544a5c"; x.fillRect(0, h - 36, w, 3); x.fillStyle = "rgba(0,0,0,.4)"; for (let i = 0; i < 9; i++) x.fillRect(i*64 + 20, h - 33, 2, 33);
+  const f = x.createLinearGradient(0, h - 170, 0, h); f.addColorStop(0, "rgba(138,128,152,0)"); f.addColorStop(1, "rgba(138,128,152,.3)"); x.fillStyle = f; x.fillRect(0, h - 170, w, 170); });
+const brickM = cool => new THREE.MeshStandardMaterial({ map:BRICKT, emissiveMap:BRICKT, emissive:cool ? 0xe6dcea : 0xffffff, emissiveIntensity:.62, color:0xb8a8a8, roughness:1 });
+// slates on the roof, in rows
+const SLATEM = new THREE.MeshStandardMaterial({ roughness:.9, map:canvasTex(128, 64, (x, w, h) => { x.fillStyle = "#15111a"; x.fillRect(0, 0, w, h);
+  for (let r = 0; r < 4; r++) for (let c = -1; c < 8; c++){ const q = rnd(r*5.3 + ((c + 8) % 8)*3.1 + 2), X = c*16 + (r % 2)*8;
+    x.fillStyle = "rgb(" + (34 + q*12 | 0) + "," + (29 + q*10 | 0) + "," + (44 + q*14 | 0) + ")"; x.fillRect(X + 1, r*16, 14, 13); x.fillStyle = "rgba(255,200,220,.07)"; x.fillRect(X + 1, r*16, 14, 2); } }, [4, 1.5]) });
+SLATEM.emissiveMap = SLATEM.map; SLATEM.emissive.setHex(0xffffff); SLATEM.emissiveIntensity = .3;
+// the room behind a window: brighter in the middle, curtains at the sides (it only shows when the window is lit)
+const GLASST = canvasTex(64, 128, (x, w, h) => { const g = x.createRadialGradient(32, 72, 4, 32, 72, 84); g.addColorStop(0, "#fff"); g.addColorStop(1, "#cfc4c4"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.fillStyle = "rgba(70,30,26,.42)"; x.beginPath(); x.moveTo(0, 0); x.lineTo(21, 0); x.quadraticCurveTo(15, 50, 0, 80); x.fill(); x.beginPath(); x.moveTo(64, 0); x.lineTo(43, 0); x.quadraticCurveTo(49, 50, 64, 80); x.fill(); });
+// cobbles on the road, slabs on the pavements
+const COBBLET = canvasTex(256, 256, (x, w, h) => { x.fillStyle = "#15131a"; x.fillRect(0, 0, w, h);
+  for (let r = 0; r < 8; r++) for (let c = -1; c < 8; c++){ const q = rnd(r*9.1 + ((c + 8) % 8)*4.3 + 1), X = c*32 + (r % 2)*16;
+    x.fillStyle = "rgb(" + (36 + q*16 | 0) + "," + (33 + q*14 | 0) + "," + (44 + q*16 | 0) + ")"; x.fillRect(X + 2, r*32 + 2, 28, 28); x.fillStyle = "rgba(255,220,230,.06)"; x.fillRect(X + 2, r*32 + 2, 28, 4); } }, [14, 7]);
+const PAVET = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#454150"; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 260; i++){ x.fillStyle = "rgba(" + (rnd(i*2.3) < .5 ? "0,0,0," : "255,255,255,") + (rnd(i*3.1)*.07).toFixed(3) + ")"; x.fillRect(rnd(i*5.7)*w, rnd(i*7.3)*h, 3, 2); }
+  x.fillStyle = "rgba(0,0,0,.5)"; x.fillRect(0, 0, w, 3); x.fillRect(0, 64, w, 3); x.fillRect(0, 0, 3, 64); x.fillRect(64, 0, 3, 64); x.fillRect(32, 64, 3, 64); x.fillRect(96, 64, 3, 64); }, [1, 1]);
+// a railing on this side of the street: iron bars with spear tips
+const FENCET = canvasTex(64, 128, (x, w, h) => { x.fillStyle = "#0d0a12";
+  for (const X of [16, 48]){ x.fillRect(X - 3, 22, 6, 106); x.beginPath(); x.moveTo(X - 7, 26); x.lineTo(X, 2); x.lineTo(X + 7, 26); x.fill(); } x.fillRect(0, 36, w, 6); x.fillRect(0, 112, w, 6);
+  x.fillStyle = "#4a3c5c"; for (const X of [16, 48]) x.fillRect(X - 3, 26, 2, 102); x.fillRect(0, 36, w, 2); }, [1, 1]);
+// a bare tree and the house at the end of the street, far off on the rise behind the roofs
+const TREET = canvasTex(256, 256, (x, w, h) => { x.strokeStyle = "#fff"; x.lineCap = "round";
+  const br = (px, py, a, len, wd, d, k) => { const ex = px + Math.sin(a)*len, ey = py - Math.cos(a)*len; x.lineWidth = wd; x.beginPath(); x.moveTo(px, py); x.lineTo(ex, ey); x.stroke();
+    if (d > 0) for (let i = 0; i < 3; i++) br(ex, ey, a + (rnd(k*3.1 + i*17.3 + d) - .5)*1.5, len*(.6 + rnd(k + i*5.7)*.16), Math.max(1.2, wd*.6), d - 1, k*3 + i + 1); };
+  br(128, 256, 0, 66, 9, 5, 1); });
+const FARHT = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#33254a"; x.fillRect(14, 58, 100, 70); x.beginPath(); x.moveTo(4, 60); x.lineTo(64, 14); x.lineTo(124, 60); x.fill(); x.fillRect(84, 14, 12, 30);
+  [[30, 74, 1], [58, 74, 0], [86, 74, 1], [30, 102, 0], [58, 102, 1], [86, 102, 0]].forEach(([X, Y, lit]) => { x.fillStyle = lit ? "#ffb060" : "#1e1630"; x.fillRect(X, Y, 12, 17); }); });
+const CLOUDT = canvasTex(256, 64, (x, w, h) => { for (let i = 0; i < 9; i++){ const X = 34 + i*23.5, Y = 32 + (rnd(i*3.3) - .5)*14, R = 26 + rnd(i*5.1)*14;
+  x.save(); x.translate(X, Y); x.scale(1, .34 + rnd(i*7.7)*.2); const g = x.createRadialGradient(0, 0, 0, 0, 0, R); g.addColorStop(0, "rgba(255,255,255,.5)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(-R, -R, R*2, R*2); x.restore(); } });
+const MOONT = canvasTex(128, 128, (x, w, h) => { x.fillStyle = "#fff"; x.beginPath(); x.arc(64, 64, 40, 0, Math.PI*2); x.fill(); x.globalCompositeOperation = "destination-out"; x.beginPath(); x.arc(84, 52, 38, 0, Math.PI*2); x.fill(); });
+const HEARTT = canvasTex(64, 64, (x, w, h) => { x.fillStyle = "#fff"; x.shadowColor = "#fff"; x.shadowBlur = 7; x.beginPath(); x.moveTo(32, 54); x.bezierCurveTo(2, 34, 10, 6, 32, 22); x.bezierCurveTo(54, 6, 62, 34, 32, 54); x.fill(); });
+const RINGT = radial([[0, "rgba(255,255,255,0)"], [.5, "rgba(255,255,255,.08)"], [.72, "rgba(255,255,255,1)"], [.84, "rgba(255,255,255,.25)"], [1, "rgba(255,255,255,0)"]], 128);
+// the sky that goes with the camera (the fog doesn't reach it): the first stars, a thin moon, long clouds lit pink from below
+let SKY = null;
+function buildSky(){ const g = SKY = new THREE.Group(); scene.add(g);
+  const at = (o, az, el, R) => { az *= Math.PI/180; el *= Math.PI/180; o.position.set(R*Math.sin(az)*Math.cos(el), 9 + R*Math.sin(el), 64 - R*Math.cos(az)*Math.cos(el)); return o; };
+  const N = 150, pos = new Float32Array(N*3), col = new Float32Array(N*3), v = new THREE.Object3D();
+  for (let i = 0; i < N; i++){ const el = 11 + rnd(i*3.7 + 1)*46, b = (.3 + .7*rnd(i*7.9 + 3))*clamp((el - 9)/12, .15, 1); at(v, (rnd(i*5.3 + 2) - .5)*120, el, 440);
+    pos[i*3] = v.position.x; pos[i*3 + 1] = v.position.y; pos[i*3 + 2] = v.position.z; col[i*3] = b; col[i*3 + 1] = b*.9; col[i*3 + 2] = b*(.82 + rnd(i*1.3)*.18); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(pos, 3)); sg.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  g.add(new THREE.Points(sg, new THREE.PointsMaterial({ map:DOT, size:3.4, sizeAttenuation:false, vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })));
+  const halo = sprite(0xffb8a0, 120, .2); halo.material.fog = false; g.add(at(halo, 7.5, 17, 422));
+  const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map:MOONT, color:0xffe8d6, transparent:true, depthWrite:false, fog:false })); moon.scale.setScalar(37); g.add(at(moon, 7.5, 17, 420));
+  g.userData.clouds = [[-9, 13.5, 150, 20], [5, 19, 190, 22], [17, 12.5, 130, 16], [-24, 16, 160, 18]].map(([az, el, w, h], i) => { const c = new THREE.Sprite(new THREE.SpriteMaterial({ map:CLOUDT, color:0xd894a4, transparent:true, opacity:.42, depthWrite:false, fog:false }));
+    c.scale.set(w, h, 1); g.add(at(c, az, el, 400)); return { c, x0:c.position.x, v:.5 + rnd(i*3.3) }; }); }
+// everything added to the two houses and their street. Returns what fx() moves.
+function dress(root, wins){
+  const F = { wins:[], rings:[], wisps:[], st:null, gulp:0, aura:0, ri:0 }, boxes = [];
+  // stone sills and lintels, the ridge and the eaves catching the last light, chimney caps, the kerbs: one instanced mesh
+  for (const w of wins) boxes.push([w.x, w.y - 1.85, .3, 3.2, .26, .5, 0x5c5059], [w.x, w.y + 1.86, .18, 3.2, .3, .34, 0x443a42]);
+  for (const hx of [-7.5, 7.5]) boxes.push([hx, 20.26, -3, 14.6, .16, .16, 0x9a6c88], [hx, 16, 1.26, 14.6, .14, .14, 0x4a3c50], [hx + 4, 21.1, -3, 1.6, .22, 1.6, 0x2c2432]);
+  boxes.push([0, .17, 3.5, 70, .16, .22, 0x7c7088], [0, .17, 29.1, 70, .16, .22, 0x6c6078]);
+  const trim = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color:0xffffff }), boxes.length), o = new THREE.Object3D(), c = new THREE.Color();
+  boxes.forEach((b, i) => { o.position.set(b[0], b[1], b[2]); o.scale.set(b[3], b[4], b[5]); o.updateMatrix(); trim.setMatrixAt(i, o.matrix); trim.setColorAt(i, c.setHex(b[6])); }); trim.frustumCulled = false; root.add(trim);
+  // the light of a lit window on the bricks round it (red for a moment when a ghost got away); it lies behind the frame, so nothing in the window changes
+  const hg = new THREE.PlaneGeometry(7.6, 8.4);
+  for (const w of wins){ const m = new THREE.Mesh(hg, new THREE.MeshBasicMaterial({ map:DOT, color:GC.lamp, transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false })); m.position.set(w.x, w.y, .04); m.visible = false; root.add(m);
+    F.wins.push({ halo:m, state:"empty", t0:0, red:null, kind:"" }); }
+  // caught: a ring where it was, the ghost drawn along the beam into the saucer, a few sparks (one Points for all of them)
+  for (let i = 0; i < 4; i++){ const r = new THREE.Sprite(new THREE.SpriteMaterial({ map:RINGT, transparent:true, opacity:0, depthWrite:false, blending:THREE.AdditiveBlending })); r.visible = false; root.add(r); F.rings.push({ s:r, t:9 });
+    const s = sprite(GC.ghost, 1.8, 0); s.visible = false; root.add(s); F.wisps.push({ s, t:9, from:new THREE.Vector3() }); }
+  const N = 48, P = F.sp = { n:0, live:0, pos:new Float32Array(N*3), col:new Float32Array(N*3), v:new Float32Array(N*3), c0:new Float32Array(N*3), life:new Float32Array(N) }, pg = new THREE.BufferGeometry();
+  pg.setAttribute("position", new THREE.BufferAttribute(P.pos, 3)); pg.setAttribute("color", new THREE.BufferAttribute(P.col, 3));
+  F.sparks = new THREE.Points(pg, new THREE.PointsMaterial({ map:DOT, size:.75, vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false })); F.sparks.frustumCulled = false; root.add(F.sparks);
+  F.flash = sprite(0xffd8a0, 2.4, 0); F.flash.visible = false; root.add(F.flash);
+  // the saucer: its light on the road under it, and a glow when it takes a ghost in
+  F.pool = new THREE.Mesh(new THREE.CircleGeometry(3.6, 28), new THREE.MeshBasicMaterial({ map:DOT, color:GC.lamp, transparent:true, opacity:.28, blending:THREE.AdditiveBlending, depthWrite:false })); F.pool.rotation.x = -Math.PI/2; F.pool.position.set(0, .09, 10); root.add(F.pool);
+  F.halo = sprite(0xffc890, 4, 0); ME.add(F.halo);
+  // the pavements, this side's railing, lamp light from just out of the picture, fog on this side too
+  const pm = new THREE.MeshStandardMaterial({ map:PAVET, roughness:1 });
+  for (const [z0, z1] of [[-.2, 3.5], [29.1, 53]]){ const p = new THREE.Mesh(tile(new THREE.PlaneGeometry(70, z1 - z0), 29, (z1 - z0)/2.4), pm); p.rotation.x = -Math.PI/2; p.position.set(0, .08, (z0 + z1)/2); root.add(p); }
+  const fence = new THREE.Mesh(tile(new THREE.PlaneGeometry(20, 1.7), 20, 1), new THREE.MeshBasicMaterial({ map:FENCET, alphaTest:.5 })); fence.position.set(0, .9, 40); root.add(fence);
+  for (const s of [-1, 1]){ const pool = new THREE.Mesh(new THREE.CircleGeometry(5.5, 28), new THREE.MeshBasicMaterial({ map:DOT, color:GC.lamp, transparent:true, opacity:.3, blending:THREE.AdditiveBlending, depthWrite:false })); pool.rotation.x = -Math.PI/2; pool.position.set(s*6.6, .11, 34.5); root.add(pool); }
+  F.fog = fogPuffs(5, [14, 6], .5); for (const p of F.fog){ p.s.position.z += 35; root.add(p.s); }
+  // far behind the roofs: a rise in the dusk haze, bare trees and the house at the end of the street on it
+  const top = x => 10 + 44*Math.exp(-(x/80)*(x/80)), HN = 52, hp = [], hc = [], hi = [], HC = [[.94, .63, .56], [.56, .37, .5], [.23, .165, .32]];
+  for (let i = 0; i <= HN; i++){ const X = -260 + i*10, T = top(X); [-25, T*.5, T].forEach((y, r) => { hp.push(X, y, -170); hc.push(HC[r][0], HC[r][1], HC[r][2]); });
+    if (i < HN){ const a = i*3; hi.push(a, a + 3, a + 1, a + 1, a + 3, a + 4, a + 1, a + 4, a + 2, a + 2, a + 4, a + 5); } }
+  const hgeo = new THREE.BufferGeometry(); hgeo.setAttribute("position", new THREE.Float32BufferAttribute(hp, 3)); hgeo.setAttribute("color", new THREE.Float32BufferAttribute(hc, 3)); hgeo.setIndex(hi);
+  root.add(new THREE.Mesh(hgeo, new THREE.MeshBasicMaterial({ vertexColors:true, fog:false, side:THREE.DoubleSide })));
+  const tm = new THREE.MeshBasicMaterial({ map:TREET, color:0x33254a, transparent:true, depthWrite:false, fog:false }), tg = new THREE.PlaneGeometry(1, 1);
+  [[-55, 20], [-44, 16], [-23, 16], [-12, 13], [-2, 12], [9, 15], [21, 18], [32, 14], [44, 16], [55, 20]].forEach(([X, H], i) => { const m = new THREE.Mesh(tg, tm); m.scale.set(i % 2 ? -H : H, H, 1); m.position.set(X, top(X) - 1.5 + H/2, -169); root.add(m); });
+  const fh = new THREE.Mesh(tg, new THREE.MeshBasicMaterial({ map:FARHT, transparent:true, depthWrite:false, fog:false })); fh.scale.set(10, 9, 1); fh.position.set(-33, top(-33) + 3.4, -168.5); root.add(fh);
+  // the more the houses are haunted, the redder the air over the roofs
+  F.glow = sprite(0xff2848, 1, 0); F.glow.scale.set(72, 22, 1); F.glow.position.set(0, 17.5, -9); F.glow.visible = false; root.add(F.glow);
+  return F;
+}
 /* ---------------- state, HUD ---------------- */
 let S = null, G = null;
 const keys = {};
@@ -358,24 +459,52 @@ const HW = {
   name:"windows", tag:"HAUNTED WINDOWS", hint:"tap the ghosts in the windows - not the neighbours",
   setup(){
     const root = this.root = new THREE.Group(); scene.add(root);
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(70, 34), new THREE.MeshStandardMaterial({ map:ROADT, roughness:.95 })); road.rotation.x = -Math.PI/2; road.position.z = 12; root.add(road);
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(70, 34), new THREE.MeshStandardMaterial({ map:COBBLET, roughness:.95 })); road.rotation.x = -Math.PI/2; road.position.z = 12; root.add(road);
     for (let i = 0; i < 3; i++){ const tr = tree(1.4, i*5); tr.position.set(-22 + i*22, 0, -10); root.add(tr); }
     const l = lamp(); l.position.set(16, 0, 6); root.add(l);
     this.fog = fogPuffs(14, [44, 12], .5); for (const p of this.fog) root.add(p.s);
     this.wins = [];
-    for (const hx of [-7.5, 7.5]){ const h = new THREE.Mesh(new THREE.BoxGeometry(14, 16, 6), new THREE.MeshStandardMaterial({ color:0x3a2622, roughness:1, emissive:0x1a0e0a })); h.position.set(hx, 8, -3); root.add(h);
-      const r = new THREE.Mesh(new THREE.BoxGeometry(14.6, 6, 6), ROOF); r.rotation.x = Math.PI/4; r.position.set(hx, 16, -3); root.add(r);
+    for (const hx of [-7.5, 7.5]){ const h = new THREE.Mesh(new THREE.BoxGeometry(14, 16, 6), brickM(hx > 0)); h.position.set(hx, 8, -3); root.add(h);
+      const r = new THREE.Mesh(new THREE.BoxGeometry(14.6, 6, 6), SLATEM); r.rotation.x = Math.PI/4; r.position.set(hx, 16, -3); root.add(r);
       const ch = new THREE.Mesh(new THREE.BoxGeometry(1.2, 4, 1.2), ROOF); ch.position.set(hx + 4, 19, -3); root.add(ch);
       for (let row = 0; row < 3; row++) for (let col = 0; col < 3; col++){ const x = hx + (col - 1)*4.2, y = 3.4 + row*4.4;
         root.add(at3(new THREE.Mesh(new THREE.BoxGeometry(2.8, 3.4, .3), new THREE.MeshStandardMaterial({ color:0x18141a })), x, y, .05));
-        const glass = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.9), new THREE.MeshBasicMaterial({ color:0x0e0c12 })); glass.position.set(x, y, .22); root.add(glass);
+        const glass = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 2.9), new THREE.MeshBasicMaterial({ color:0x0e0c12, map:GLASST })); glass.position.set(x, y, .22); root.add(glass);
         root.add(at3(new THREE.Mesh(new THREE.BoxGeometry(.12, 2.9, .05), new THREE.MeshBasicMaterial({ color:0x18141a })), x, y, .3));
         const person = new THREE.Group(), pm = new THREE.MeshBasicMaterial({ color:0x1a0e08 }); person.add(at3(new THREE.Mesh(new THREE.SphereGeometry(.38, 12, 8), pm), 0, .35, 0)); person.add(at3(new THREE.Mesh(new THREE.CylinderGeometry(.35, .6, 1.4, 10), pm), 0, -.65, 0)); person.position.set(x, y - .3, .26); person.visible = false; root.add(person);
         const gh = ghostMesh(); gh.scale.setScalar(1.1); gh.visible = false; root.add(gh);
-        const hs = sprite(0xff4a6a, 1.4); hs.visible = false; root.add(hs);
+        const hs = sprite(0xff4a6a, 1.4); hs.material.map = HEARTT; hs.visible = false; root.add(hs);
         this.wins.push({ x, y, glass, person, gh, hs, state:"empty", kind:"", t0:0, t1:0 }); } }
     this.zap = new THREE.Mesh(new THREE.CylinderGeometry(.15, .6, 1, 12, 1, true), glowM(GC.lamp, 0)); root.add(this.zap); this.zapT = 0;
     this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), -.25);
+    this.F = dress(root, this.wins);
+  },
+  // the picture side of a catch (fx() sees it happen: a window that had a ghost up and now hasn't, without the red of one that got away)
+  pop(w, kind){ const F = this.F, c = kind === "gold" ? 0xffd070 : kind === "heart" ? 0xff9ab0 : 0xcfe0ff, i = F.ri = (F.ri + 1) % 4, r = F.rings[i], q = F.wisps[i];
+    r.t = 0; r.s.position.set(w.x, w.y - .2, 1); r.s.material.color.setHex(c); r.s.visible = true;
+    q.t = 0; q.from.set(w.x, w.y - .3, 1); q.s.material.color.setHex(c); q.s.visible = true;
+    if (CALM) return;
+    const P = F.sp, R = (c >> 16)/255, Gc = (c >> 8 & 255)/255, B = (c & 255)/255;
+    for (let n = 0; n < 8; n++){ const j = P.n++ % 48, a = j*3, an = rnd(P.n*1.7)*6.283, v = 2 + rnd(P.n*2.9)*2.6;
+      P.pos[a] = w.x; P.pos[a + 1] = w.y - .2; P.pos[a + 2] = 1.05; P.v[a] = Math.cos(an)*v; P.v[a + 1] = Math.sin(an)*v + 1.2; P.c0[a] = R; P.c0[a + 1] = Gc; P.c0[a + 2] = B; P.life[j] = 1; }
+    P.live = .7; },
+  fx(dt, t, beat){ const F = this.F, st = this.st, fresh = F.st !== st, pulse = beat && !CALM; F.st = st;
+    this.wins.forEach((w, i) => { const p = F.wins[i], red = w.red != null && t - w.red < .45, on = red || w.state === "person";
+      if (!fresh && p.state === "ghost" && (w.state !== "ghost" || w.t0 !== p.t0) && w.red === p.red) this.pop(w, p.kind);
+      p.state = w.state; p.t0 = w.t0; p.red = w.red; p.kind = w.kind;
+      p.halo.visible = on; if (on){ p.halo.material.color.setHex(red ? 0xff3040 : GC.lamp); p.halo.material.opacity = red ? .8*(1 - (t - w.red)/.45) : .4 + (pulse ? .08 : 0); }
+      if (w.gh.visible) w.gh.userData.glow.material.color.setHex(w.kind === "gold" ? 0xffc860 : w.kind === "heart" ? 0xff8aa8 : 0xc8d8ff); });
+    for (const r of F.rings) if (r.t < .4){ r.t += dt; const k = Math.min(1, r.t/.4); r.s.scale.setScalar(1.6 + k*2.8); r.s.material.opacity = (1 - k)*.9; if (k >= 1) r.s.visible = false; }
+    for (const q of F.wisps) if (q.t < .32){ q.t += dt; const k = Math.min(1, q.t/.32), e = k*k; q.s.position.lerpVectors(q.from, ME.position, e); q.s.scale.setScalar(2 - e*1.2); q.s.material.opacity = .85; if (k >= 1){ q.s.visible = false; F.gulp = 1; } }
+    if (F.gulp > 0) F.gulp = Math.max(0, F.gulp - dt*3.5); F.halo.material.opacity = F.gulp*.7; F.halo.scale.setScalar(3.4 + F.gulp*2);
+    const P = F.sp; if (P.live > 0){ P.live -= dt;
+      for (let j = 0; j < 48; j++){ if (P.life[j] <= 0) continue; const L = P.life[j] = Math.max(0, P.life[j] - dt*2.2), a = j*3;
+        P.pos[a] += P.v[a]*dt; P.pos[a + 1] += P.v[a + 1]*dt; P.v[a + 1] -= 5*dt; P.col[a] = P.c0[a]*L; P.col[a + 1] = P.c0[a + 1]*L; P.col[a + 2] = P.c0[a + 2]*L; }
+      F.sparks.geometry.attributes.position.needsUpdate = true; F.sparks.geometry.attributes.color.needsUpdate = true; }
+    const z = this.zapT > 0 && !!this.zapTo; F.flash.visible = z; if (z){ F.flash.position.set(this.zapTo.x, this.zapTo.y, 1.1); F.flash.material.opacity = Math.min(1, this.zapT*3.4); }
+    F.pool.material.opacity = .26 + (pulse ? .12 : 0);
+    F.aura += (st.haunt/8 - F.aura)*Math.min(1, dt*3); F.glow.visible = F.aura > .01; F.glow.material.opacity = F.aura*.6;
+    driftFog(F.fog, t, 4);
   },
   L(t){ return this.L0 + (this.L1 - this.L0)*clamp((t - this.t0)/(this.t1 - this.t0), 0, 1); },
   begin(t0, t1, L0, L1, cont){
@@ -439,7 +568,7 @@ const HW = {
       const red = w.red != null && t - w.red < .45;            // a ghost just got away from this one
       w.glass.material.color.setHex(red ? 0xb02030 : w.state === "person" ? 0xffa850 : w.state === "ghost" ? 0x2a3040 : 0x0e0c12); }
     if (this.zapT > 0 && this.zapTo){ const a = ME.position.clone(), b = this.zapTo, len = a.distanceTo(b); this.zap.position.copy(a).add(b).multiplyScalar(.5); this.zap.scale.set(1, len, 1); this.zap.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize()); this.zap.material.opacity = this.zapT*2; } else this.zap.material.opacity = 0;
-    driftFog(this.fog, t, 5);
+    driftFog(this.fog, t, 5); this.fx(dt, t, beat);
     // far enough back that both houses fit across the screen, every window in view (a tall phone needs more room)
     const fit = 13.9 / (Math.tan(cam.fov * Math.PI / 360) * cam.aspect);
     CAMP.set(0, portrait ? 9 : 7.5, Math.max(portrait ? 44 : 26, fit)); CAML.set(0, 8, 0);
@@ -532,6 +661,7 @@ function render(dt){
   }
   const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  SKY.position.x = cam.position.x; if (!CALM) for (const c of SKY.userData.clouds) c.c.position.x = c.x0 + Math.sin(t*.02*c.v + c.x0)*26;
   ren.render(scene, cam);
 }
 function frame(){
@@ -577,7 +707,7 @@ function boot(){
   cam = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, .1, 2000);
   scene.add(new THREE.HemisphereLight(0x9a8ab8, 0x1a1418, .75));
   const key = new THREE.DirectionalLight(0xffb0a0, .45); key.position.set(-10, 20, -60); scene.add(key);
-  skyDome();
+  skyDome(); buildSky();
   ME = buildSaucer(); scene.add(ME);
   HW.setup(); buildEnd();
   clockR = new THREE.Clock();

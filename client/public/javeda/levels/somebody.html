@@ -396,13 +396,14 @@ function buildWorld(){
   sun.position.set(-40, 26, -300); sky.add(sun);
   const sunHalo = new THREE.Mesh(new THREE.CircleGeometry(60, 40), new THREE.MeshBasicMaterial({ color:0xffb48a, fog:false,
     transparent:true, opacity:.25, blending:THREE.AdditiveBlending, depthWrite:false }));
-  sunHalo.position.set(-40, 26, -301); sky.add(sunHalo);
+  sunHalo.position.set(-40, 26, -301); sky.add(sunHalo); FX.halo = sunHalo;
 
   const geo = new THREE.PlaneGeometry(520, 520, 130, 130); geo.rotateX(-Math.PI/2);
   const p = geo.attributes.position;
   for (let i = 0; i < p.count; i++) p.setY(i, duneH(p.getX(i), p.getZ(i)));
   geo.computeVertexNormals();
-  scene.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:C.sand, roughness:1, flatShading:true })));
+  FX.sand = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color:C.sand, roughness:1, flatShading:true }));
+  scene.add(FX.sand);
 
   // the arena edge: a faint ring, so a player can feel the limit before they hit it
   const edge = new THREE.Mesh(new THREE.RingGeometry(ARENA + .9, ARENA + 1.05, 72), glowMat(0xffe1c8, .22));
@@ -484,6 +485,7 @@ function boot(){
   scene.add(ufo);
   bike = buildBike(); scene.add(bike);
   heartMesh = buildHeart(); scene.add(heartMesh);
+  buildLook();
 
   spark = new THREE.Group(); scene.add(spark);
   for (let i = 0; i < 90; i++){
@@ -940,6 +942,261 @@ function updateEnd(dt){
   if (t >= END.out && !S.done){ S.done = true; finish(); }
 }
 
+/* ================= THE LOOK =================
+   Light and depth, and nothing else: the game never reads anything in here, and nothing in here touches the game's
+   own numbers (it has its own little hash, so the seeded waves stay as they are). Built once; a frame only moves
+   what is already there. What it adds:
+   - the sand: wind ripples, a clearing of light inside the arena and dusk outside it, a band of light on the
+     arena's edge that pulses on the beat, long dusk shadows behind the rocks
+   - one pool of soft lights (a single instanced mesh): under every monster and every orb, under the saucer, the
+     bike and the spare heart, a streak behind the bolts, the orbs, the saucer and the bike, gusts of lit dust
+   - Zirka's headlight coming down the dunes before he does
+   - the sky: stars, two moons, a far canyon range and a soft glow round the sun, all travelling with the camera
+   - the ending: the two of them throw long shadows at the camera, the low sun on the sand between them */
+const FX = { max:128, n:0, bx:0, bz:0, bv:0 };
+const FXM = new THREE.Matrix4(), FXQ = new THREE.Quaternion(), FXP = new THREE.Vector3(), FXS = new THREE.Vector3(),
+      FXC = new THREE.Color(), FXUP = new THREE.Vector3(0, 1, 0);
+const COL = { hurt:new THREE.Color(C.glow), orb:new THREE.Color(0xff7ab0), beam:new THREE.Color(C.beam),
+              zirka:new THREE.Color(0xc084fc), sun:new THREE.Color(0xffc9a0) };
+const SUN_X = .13, SUN_Z = .99;         // which way the low sun throws a shadow along the ground
+const hsh = n => { const x = Math.sin(n*91.7 + 13.1)*15731.743; return x - Math.floor(x); };
+// the sand as it is drawn: 4 m flat triangles, so whatever is laid on the dunes follows those and not duneH's curve
+// (n, if given, gets the triangle's normal)
+function sandAt(x, z, n){
+  const gx = (x + 260)/4, gz = (z + 260)/4, ix = Math.floor(gx), iz = Math.floor(gz), fx = gx - ix, fz = gz - iz;
+  const x0 = ix*4 - 260, z0 = iz*4 - 260;
+  let h, sx, sz;
+  if (fx + fz <= 1){ const a = duneH(x0, z0); sx = duneH(x0 + 4, z0) - a; sz = duneH(x0, z0 + 4) - a; h = a + sx*fx + sz*fz; }
+  else { const c = duneH(x0 + 4, z0 + 4); sx = c - duneH(x0, z0 + 4); sz = c - duneH(x0 + 4, z0); h = c - sx*(1 - fx) - sz*(1 - fz); }
+  if (n) n.set(-sx/4, 1, -sz/4).normalize();
+  return h;
+}
+function buildLook(){
+  const tex = (w, h, draw) => { const c = document.createElement("canvas"); c.width = w; c.height = h;
+    draw(c.getContext("2d"), w, h); return new THREE.CanvasTexture(c); };
+  const ground = o => Object.assign({ transparent:true, depthWrite:false, side:THREE.DoubleSide,
+    polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2 }, o);
+  const add = THREE.AdditiveBlending;
+  // one soft round light, used for nearly everything
+  const soft = tex(64, 64, (g, w) => { const r = g.createRadialGradient(w/2, w/2, 0, w/2, w/2, w/2);
+    r.addColorStop(0, "rgba(255,255,255,1)"); r.addColorStop(.22, "rgba(255,255,255,.62)");
+    r.addColorStop(.55, "rgba(255,255,255,.16)"); r.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = r; g.fillRect(0, 0, w, w); });
+  const flat = new THREE.PlaneGeometry(1, 1); flat.rotateX(-Math.PI/2);
+
+  /* ---- the sand: ripples the wind left, the same tile over and over ---- */
+  const sand = tex(256, 256, (g, w) => { const im = g.createImageData(w, w), d = im.data, TAU = Math.PI*2;
+    for (let y = 0; y < w; y++) for (let x = 0; x < w; x++){ const u = x/w, v = y/w;
+      const f = Math.sin(TAU*(10*u + v) + 1.3*Math.sin(TAU*(2*v + u)) + .5*Math.sin(TAU*(5*v - 2*u)));
+      const f2 = Math.sin(TAU*(27*u - 3*v) + 1.2*Math.sin(TAU*(4*v + 2*u)));
+      const n = hsh(x*.731 + y*57.31);
+      const val = 226 + Math.pow(.5 + .5*f, 2.2)*21 + f2*3 + (n - .5)*9 - (n > .985 ? 26 : 0);
+      const i = (y*w + x)*4; d[i] = val; d[i+1] = val*.985; d[i+2] = val*.97; d[i+3] = 255; }
+    g.putImageData(im, 0, 0); });
+  sand.wrapS = sand.wrapT = THREE.RepeatWrapping; sand.repeat.set(72, 72);
+  sand.anisotropy = Math.min(4, ren.capabilities.getMaxAnisotropy());
+  FX.sand.material.map = sand; FX.sand.material.color.multiplyScalar(1.08);   // (the tile is a little under white)
+
+  /* ---- the arena: a clearing of light, dusk on the dunes round it. One disc laid on the sand ---- */
+  const RMAX = 24, rings = [0, 4, 8, 10.5, 11.6, 12.3, 13, 14, 15.5, 17, 19, 21.5, RMAX], SEG = 64;
+  const fp = [], fu = [], fi = [];
+  rings.forEach(r => { for (let i = 0; i <= SEG; i++){ const a = i/SEG*Math.PI*2, x = Math.cos(a)*r, z = Math.sin(a)*r;
+    fp.push(x, r > 13.5 ? sandAt(x, z) + .07 : .045, z); fu.push(r/RMAX, .5); } });
+  for (let j = 0; j < rings.length - 1; j++) for (let i = 0; i < SEG; i++){
+    const a = j*(SEG + 1) + i, b = a + SEG + 1; fi.push(a, b, a + 1, b, b + 1, a + 1); }
+  const fg = new THREE.BufferGeometry(); fg.setIndex(fi);
+  fg.setAttribute("position", new THREE.Float32BufferAttribute(fp, 3)); fg.setAttribute("uv", new THREE.Float32BufferAttribute(fu, 2));
+  const floorTex = tex(256, 2, (g, w, h) => { const l = g.createLinearGradient(0, 0, w, 0), at = r => r/RMAX;
+    l.addColorStop(0, "rgba(255,210,168,.14)"); l.addColorStop(at(7), "rgba(255,210,168,.07)"); l.addColorStop(at(11.3), "rgba(255,210,168,0)");
+    l.addColorStop(at(12.1), "rgba(44,12,18,0)"); l.addColorStop(at(12.7), "rgba(44,12,18,.2)");
+    l.addColorStop(at(17), "rgba(44,12,18,.11)"); l.addColorStop(1, "rgba(44,12,18,0)");
+    g.fillStyle = l; g.fillRect(0, 0, w, h); });
+  const floor = new THREE.Mesh(fg, new THREE.MeshBasicMaterial(ground({ map:floorTex })));
+  floor.renderOrder = -4; scene.add(floor);
+
+  // the edge: light spilling inward from the ring that was always there, and it takes the beat
+  const b0 = ARENA - 1.7, b1 = ARENA + 1.5, bp = [], bu = [], bi = [], BS = 96;
+  for (let i = 0; i <= BS; i++){ const a = i/BS*Math.PI*2, c = Math.cos(a), s = Math.sin(a);
+    bp.push(c*b0, .05, s*b0, c*b1, .05, s*b1); bu.push(0, .5, 1, .5); }
+  for (let i = 0; i < BS; i++){ const a = i*2; bi.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); }
+  const bg = new THREE.BufferGeometry(); bg.setIndex(bi);
+  bg.setAttribute("position", new THREE.Float32BufferAttribute(bp, 3)); bg.setAttribute("uv", new THREE.Float32BufferAttribute(bu, 2));
+  const bandTex = tex(64, 2, (g, w, h) => { const l = g.createLinearGradient(0, 0, w, 0), at = r => (r - b0)/(b1 - b0);
+    l.addColorStop(0, "rgba(255,255,255,0)"); l.addColorStop(at(ARENA - .2), "rgba(255,255,255,.1)");
+    l.addColorStop(at(ARENA + .7), "rgba(255,255,255,.3)"); l.addColorStop(at(ARENA + .97), "rgba(255,255,255,.75)");
+    l.addColorStop(at(ARENA + 1.2), "rgba(255,255,255,.2)"); l.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = l; g.fillRect(0, 0, w, h); });
+  FX.band = new THREE.Mesh(bg, new THREE.MeshBasicMaterial(ground({ color:0xffcfa6, map:bandTex, blending:add, opacity:.4, fog:false })));
+  FX.band.renderOrder = -3; scene.add(FX.band);
+
+  /* ---- the rocks at dusk: one long shadow each, laid over the dunes (the same rocks, so the same hash) ---- */
+  const sp = [], su = [], si = [], SN = 5;
+  for (let i = 0; i < 26; i++){
+    const a = rnd(i*4.4)*Math.PI*2, d = 17 + rnd(i*6.6)*40, s = .6 + rnd(i*8.8)*1.6;
+    const x0 = Math.cos(a)*d, z0 = Math.sin(a)*d, L = s*4.6, wd = s*1.15, base = sp.length/3;
+    for (let k = 0; k <= SN; k++){ const f = k/SN, cx = x0 + SUN_X*L*f, cz = z0 + SUN_Z*L*f;
+      for (const side of [-1, 0, 1]){ const x = cx + SUN_Z*wd*side, z = cz - SUN_X*wd*side;
+        sp.push(x, sandAt(x, z) + .07, z); su.push(side*.5 + .5, f); } }
+    for (let k = 0; k < SN; k++) for (let j = 0; j < 2; j++){ const p = base + k*3 + j; si.push(p, p + 1, p + 3, p + 3, p + 1, p + 4); }
+  }
+  const sg = new THREE.BufferGeometry(); sg.setIndex(si);
+  sg.setAttribute("position", new THREE.Float32BufferAttribute(sp, 3)); sg.setAttribute("uv", new THREE.Float32BufferAttribute(su, 2));
+  // across: soft at both sides; along: dark at the rock, gone at the far end (row 0 of the canvas is the far end)
+  const strip = cut => tex(32, 64, (g, w, h) => { const im = g.createImageData(w, h), d = im.data;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++){ const u = (x + .5)/w*2 - 1, v = 1 - (y + .5)/h;
+      const along = cut ? clamp01((.5 - v)/.1) : Math.pow(1 - v, .9);
+      const i = (y*w + x)*4; d[i] = d[i+1] = d[i+2] = 255; d[i+3] = 255 * Math.pow(Math.max(0, 1 - u*u), 1.5) * along; }
+    g.putImageData(im, 0, 0); });
+  const shadeTex = strip(false);
+  const shadows = new THREE.Mesh(sg, new THREE.MeshBasicMaterial(ground({ color:0x2c0c14, map:shadeTex, opacity:.72 })));
+  shadows.renderOrder = -3; scene.add(shadows);
+
+  /* ---- the pool of soft lights: flat on the sand or lying along whatever flies ---- */
+  FX.glow = new THREE.InstancedMesh(flat, new THREE.MeshBasicMaterial({ map:soft, transparent:true, blending:add,
+    depthWrite:false, fog:false }), FX.max);
+  FX.glow.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  for (let i = 0; i < FX.max; i++) FX.glow.setColorAt(i, FXC.setRGB(0, 0, 0));
+  FX.glow.instanceColor.setUsage(THREE.DynamicDrawUsage);
+  FX.glow.count = 0; FX.glow.frustumCulled = false; FX.glow.renderOrder = -1; scene.add(FX.glow);
+
+  /* ---- the light on the dunes: Zirka's lamp reaches down the sand to the arena's edge before he does ---- */
+  const lx = -7, lz = -70, ll = Math.hypot(lx, lz), dx = -lx/ll, dz = -lz/ll, LL = ll - (ARENA + 1.2), LN = 40;
+  const lp = [], lu = [], li = [];
+  for (let k = 0; k <= LN; k++){ const f = k/LN, cx = lx + dx*LL*f, cz = lz + dz*LL*f, wd = .8 + f*2.3;
+    for (const side of [-1, 1]){ const x = cx + dz*wd*side, z = cz - dx*wd*side;
+      lp.push(x, sandAt(x, z) + .08, z); lu.push(side < 0 ? 0 : 1, f); } }
+  for (let k = 0; k < LN; k++){ const p = k*2; li.push(p, p + 1, p + 2, p + 2, p + 1, p + 3); }
+  const lg = new THREE.BufferGeometry(); lg.setIndex(li);
+  lg.setAttribute("position", new THREE.Float32BufferAttribute(lp, 3)); lg.setAttribute("uv", new THREE.Float32BufferAttribute(lu, 2));
+  const lampTex = strip(true); lampTex.repeat.y = .5;
+  FX.lamp = new THREE.Mesh(lg, new THREE.MeshBasicMaterial(ground({ color:0x7a58ff, map:lampTex, blending:add, opacity:0, fog:false })));
+  FX.lamp.renderOrder = -2; FX.lamp.visible = false; scene.add(FX.lamp);
+  // and the lamp itself is a glow, not a disc
+  headGlow.material.map = soft; headGlow.geometry.scale(2.4, 2.4, 1);
+
+  /* ---- the spare heart: a column of light over it, so it is found at a glance ---- */
+  const riseTex = tex(2, 64, (g, w, h) => { const l = g.createLinearGradient(0, 0, 0, h);
+    l.addColorStop(0, "rgba(255,255,255,0)"); l.addColorStop(1, "rgba(255,255,255,1)"); g.fillStyle = l; g.fillRect(0, 0, w, h); });
+  const beacon = new THREE.Mesh(new THREE.CylinderGeometry(.3, .6, 5.6, 14, 1, true), new THREE.MeshBasicMaterial({ color:C.beam,
+    map:riseTex, transparent:true, opacity:.34, blending:add, depthWrite:false, side:THREE.DoubleSide, fog:false }));
+  beacon.position.y = -FLY_Y + 2.85; heartMesh.add(beacon);
+
+  /* ---- the ending: the sun is behind them, so their shadows come at the camera ---- */
+  // (turned half round, so the dark end of the strip is at their feet)
+  const shadeMat = new THREE.MeshBasicMaterial(ground({ color:0x2c0c14, map:shadeTex, opacity:0 }));
+  FX.shBike = new THREE.Mesh(flat, shadeMat); FX.shBike.scale.set(3.4, 1, 8); FX.shBike.rotation.y = Math.PI + SUN_X;
+  FX.shUfo = new THREE.Mesh(flat, shadeMat); FX.shUfo.scale.set(2.7, 1, 7); FX.shUfo.rotation.y = Math.PI + SUN_X;
+  for (const m of [FX.shBike, FX.shUfo]){ m.renderOrder = -3; m.visible = false; scene.add(m); }
+
+  /* ---- the sky, all of it riding on the sky's own sphere so it follows the camera and the fog never reaches it ---- */
+  // the sun's halo was a hard disc: now it fades out, and a low glow lies along the horizon under it
+  FX.halo.material.map = soft; FX.halo.material.opacity = .6; FX.halo.scale.setScalar(2.3);
+  const low = new THREE.Mesh(new THREE.PlaneGeometry(460, 64), new THREE.MeshBasicMaterial({ color:0xffb48a, map:soft, fog:false,
+    transparent:true, opacity:.42, blending:add, depthWrite:false }));
+  low.position.set(-40, 6, -302); sky.add(low);
+  // stars, only where the sky has gone dark
+  const NS = 150, st = new Float32Array(NS*3), sc = new Float32Array(NS*3);
+  for (let i = 0; i < NS; i++){ const az = hsh(i*1.7)*Math.PI*2, el = .25 + hsh(i*3.1 + 5)*.95, R = 306;
+    st[i*3] = Math.cos(el)*Math.cos(az)*R; st[i*3+1] = Math.sin(el)*R; st[i*3+2] = Math.cos(el)*Math.sin(az)*R;
+    const b = clamp01((el - .22)/.3) * (.4 + hsh(i*7.7)*.6); sc[i*3] = b; sc[i*3+1] = b*.9; sc[i*3+2] = b*.84; }
+  const stg = new THREE.BufferGeometry(); stg.setAttribute("position", new THREE.BufferAttribute(st, 3)); stg.setAttribute("color", new THREE.BufferAttribute(sc, 3));
+  const stars = new THREE.Points(stg, new THREE.PointsMaterial({ size:1.7, sizeAttenuation:false, vertexColors:true, transparent:true,
+    blending:add, fog:false, depthWrite:false }));
+  stars.frustumCulled = false; sky.add(stars);
+  // two moons, because this planet isn't his: thin, lit from the sun's side
+  const moonTex = tex(128, 128, (g, w) => { const c2 = document.createElement("canvas"); c2.width = c2.height = w; const h2 = c2.getContext("2d");
+    h2.fillStyle = "#ffe6d6"; h2.beginPath(); h2.arc(64, 64, 56, 0, 7); h2.fill();
+    h2.globalCompositeOperation = "destination-out"; h2.beginPath(); h2.arc(64 + 24, 64 - 15, 55, 0, 7); h2.fill();
+    g.fillStyle = "rgba(255,200,180,.07)"; g.beginPath(); g.arc(64, 64, 56, 0, 7); g.fill(); g.drawImage(c2, 0, 0); });
+  const moonMat = new THREE.MeshBasicMaterial({ map:moonTex, transparent:true, opacity:.9, fog:false, depthWrite:false });
+  for (const [az, el, size] of [[.12, .3, 20], [.03, .215, 8]]){ const m = new THREE.Mesh(new THREE.PlaneGeometry(size, size), moonMat);
+    m.position.set(Math.sin(az)*Math.cos(el)*300, Math.sin(el)*300, -Math.cos(az)*Math.cos(el)*300); m.lookAt(0, 0, 0); sky.add(m); }
+  // the far side of the canyon: a hazy range past the mesas, in front of the sun
+  const rangeTex = tex(1024, 128, (g, w, h) => { const l = g.createLinearGradient(0, 0, 0, h);
+    l.addColorStop(0, "#cf8f72"); l.addColorStop(.36, "#b9735c"); l.addColorStop(.6, "#9f5a49"); l.addColorStop(1, "#9a5546");
+    g.fillStyle = l; g.beginPath(); g.moveTo(0, h); g.lineTo(0, 40);
+    let x = 0, y = 40, i = 0;
+    while (x < w - 70){ const wide = 16 + hsh(i*2.3)*52, top = hsh(i*4.9) < .34 ? 38 + hsh(i*6.1)*5 : 9 + hsh(i*8.3)*26;
+      g.lineTo(x + 4 + Math.abs(top - y)*.22, top); x += wide; g.lineTo(x, top + hsh(i*3.7)*3); y = top; i++; }
+    g.lineTo(x + 8, 40); g.lineTo(w, 40); g.lineTo(w, h); g.fill(); });
+  rangeTex.wrapS = THREE.RepeatWrapping; rangeTex.repeat.x = 2;
+  const range = new THREE.Mesh(new THREE.CylinderGeometry(296, 296, 44, 64, 1, true), new THREE.MeshBasicMaterial({ map:rangeTex,
+    transparent:true, side:THREE.BackSide, fog:false, depthWrite:false }));
+  range.position.y = -6; range.renderOrder = -6; sky.add(range);
+}
+// one soft light into the pool: sx wide, sz long, turned so its length lies along yaw
+function glowAt(x, y, z, sx, sz, yaw, col, k, tilt){
+  if (FX.n >= FX.max) return;
+  if (!tilt) FXQ.setFromAxisAngle(FXUP, yaw);
+  FXP.set(x, y, z); FXS.set(sx, 1, sz); FXM.compose(FXP, FXQ, FXS);
+  FX.glow.setMatrixAt(FX.n, FXM); FX.glow.setColorAt(FX.n, FXC.copy(col).multiplyScalar(k)); FX.n++;
+}
+// a round one lying on the sand, tipped to the slope once it is out on the dunes
+function poolAt(x, z, d, col, k){
+  const out = x*x + z*z > 196;
+  if (!out){ glowAt(x, .07, z, d, d, 0, col, k); return; }
+  const h = sandAt(x, z, FXP); FXQ.setFromUnitVectors(FXUP, FXP);
+  glowAt(x, h + .09, z, d, d, 0, col, k, true);
+}
+function lookFrame(dt, t, ux, uy, uz, bx, bz, bh){
+  FX.n = 0;
+  const ending = S.end >= 0, play = !ending && S.crash < 0;
+  // the beat: 80 bpm from the first downbeat, the 1 of each bar a little harder, the hooks harder still
+  const ph = (((t - BAR0)/(BAR/4)) % 1 + 1) % 1, inBar = (((t - BAR0)/BAR) % 1 + 1) % 1;
+  const hook = ENDLESS ? t >= T.hook1 : (t >= T.hook1 && t < T.zirka) || (t >= T.hook2 && t < T.end);
+  const beat = REDUCED || !S.started || !play ? 0 : Math.pow(1 - ph, 3) * (inBar < .25 ? 1 : .6) * (hook ? 1 : .45);
+  FX.band.material.opacity = .4 + beat*.45;
+
+  // what hurts stands in its own light
+  for (const e of enemies){ const u = e.userData, p = e.position, s = e.scale.x;
+    poolAt(p.x, p.z, (u.type === "crawler" ? 3.1 : u.type === "swarm" ? 2 : 3.8)*s, COL.hurt, (u.type === "swarm" ? .6 : .85) * (u.hitT > 0 ? 1.5 : 1)); }
+  for (const o of orbs){ const p = o.position, v = o.userData.v, sp = Math.hypot(v.x, v.z) || 1;
+    poolAt(p.x, p.z, 1.9, COL.orb, .5);
+    glowAt(p.x - v.x/sp*.7, p.y, p.z - v.z/sp*.7, .62, 1.8, Math.atan2(v.x, v.z), COL.orb, .5); }
+  for (const b of bolts){ const p = b.position, v = b.userData.v, sp = Math.hypot(v.x, v.z) || 1;
+    glowAt(p.x - v.x/sp*.8, p.y, p.z - v.z/sp*.8, .42, 2.4, Math.atan2(v.x, v.z), b.userData.zirka ? COL.zirka : COL.beam, .8); }
+
+  // the saucer: its light on the sand, and a streak behind it when it moves
+  if (ufo.visible){
+    glowAt(ux, .07, uz, 3.6, 3.6, 0, COL.beam, S.crash >= 0 ? .1 : ending ? .5 : .28);
+    const sv = Math.hypot(S.vx, S.vz);
+    if (play && sv > 1.5){ const L = sv*.3;
+      glowAt(ux - S.vx/sv*(.5 + L/2), uy - .06, uz - S.vz/sv*(.5 + L/2), 1.5, L, Math.atan2(S.vx, S.vz), COL.beam, .3*sv/SPEED); }
+  }
+  if (heartMesh.visible){ const d = 3.2 + Math.sin(t*4)*.3; glowAt(heartMesh.position.x, .07, heartMesh.position.z, d, d, 0, COL.beam, .5); }
+
+  // Zirka: his light on the sand, his tail light drawn out behind him, and before all that the lamp on the dunes
+  if (bike.visible){
+    const arrive = S.t - T.zirka, far = !ending && arrive < 0;
+    if (dt > 0) FX.bv += (Math.min(30, Math.hypot(bx - FX.bx, bz - FX.bz)/dt) - FX.bv) * Math.min(1, dt*8);
+    FX.bx = bx; FX.bz = bz;
+    if (!far){
+      poolAt(bx, bz, 3.2, COL.zirka, .4);
+      if (FX.bv > 2){ const fx = Math.cos(bh), fz = -Math.sin(bh), L = FX.bv*.24;
+        glowAt(bx - fx*(.9 + L/2), .5, bz - fz*(.9 + L/2), .7, L, Math.atan2(fx, fz), COL.zirka, .85); }
+    }
+    const lamp = !ending && arrive < .6;
+    FX.lamp.visible = lamp;
+    if (lamp){ FX.lamp.material.map.offset.y = .5 - smooth(clamp01((arrive + 3.2)/2.4))*.5;
+      FX.lamp.material.opacity = (arrive < 0 ? 1 : 1 - arrive/.6) * (.5 + Math.sin(t*9)*.03); }
+  } else { FX.lamp.visible = false; FX.bv = 0; }
+
+  // gusts: long thin lights of blown dust crossing the arena with the wind (they die down with it in the ending)
+  const wind = ending ? Math.max(0, 1 - S.end*.14) : 1;
+  if (!REDUCED && wind > 0) for (let i = 0; i < 5; i++){
+    const x = ((t*(3 + hsh(i*5.3)*2.5) + hsh(i*9.1)*40) % 40) - 20, z = -9 + hsh(i*2.9)*18;
+    const k = 1 - (x*x + z*z)/100; if (k > 0) glowAt(x, .35, z, 1.5, 9, Math.PI/2, COL.sun, .11*k*wind); }
+
+  // the ending: long shadows toward the camera, and the low sun lying on the sand between the two
+  const c = ending ? smooth(clamp01((S.end - 1.2)/3)) : 0;
+  FX.shBike.visible = FX.shUfo.visible = c > 0;
+  if (c > 0){ FX.shBike.material.opacity = .8*c;
+    FX.shBike.position.set(bx + SUN_X*4, .05, bz + SUN_Z*4 - .3); FX.shUfo.position.set(ux + SUN_X*3.5, .05, uz + SUN_Z*3.5 + .5);
+    glowAt(-1.2, .06, -1.5, 8, 24, SUN_X, COL.sun, .2*c); }
+
+  FX.glow.count = FX.n; FX.glow.instanceMatrix.needsUpdate = true; FX.glow.instanceColor.needsUpdate = true;
+}
+
 /* ---- render ---- */
 const V = new THREE.Vector3(), LOOK = new THREE.Vector3();
 function camRig(x, z){
@@ -1039,6 +1296,7 @@ function render(dt){
   if (fo > 0 && S.end < 0) f.style.opacity = Math.max(0, fo - dt*1.6);
   if (S.end > END.out - 1.2) f.style.background = "#12070a", f.style.opacity = clamp01((S.end - (END.out - 1.2))/1.1);
 
+  lookFrame(dt, t, ux, uy, uz, bx, bz, bh);
   ren.render(scene, cam);
 }
 

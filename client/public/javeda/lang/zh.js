@@ -1528,7 +1528,8 @@ S: {
 "Coming soon":"即将推出",
 "Get to Level # to play online, or ask a friend who is there to invite you":"到达第#关即可在线对战，或请已到达的朋友邀请你",
 "You haven't reached Level # yet: with this invite you can play anyway.":"你还没到达第#关：有了这个邀请也可以玩。",
-"That invite isn't valid any more. Ask your friend for a new link.":"这个邀请已失效。请向朋友要一个新链接。"
+"That invite isn't valid any more. Ask your friend for a new link.":"这个邀请已失效。请向朋友要一个新链接。",
+"swipe for a lane - swipe up to jump the gaps":"滑动换车道 - 上滑跳过缺口"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",
@@ -2437,7 +2438,12 @@ HTML: {
 "Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too. <b>Endless:</b> the fall never ends - faster every # bars, a heart back every #.":"第#部分。城市的高峰时段：同样的坠落，从第一小节起就更快。天桥上的洞会来回滑动，直升机和起重机在主歌里也会出现。<b>无尽模式：</b>坠落永不停止 - 每#小节变快一次，每#小节回一颗爱心。",
 "<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you, wherever it has slid to. Cranes, helicopters and cradles cost a heart (#). Grab the lights; a gold ring on the beat is double.":"<b>拖动</b>（或方向键）操控方向。每座玻璃天桥都有一个洞 - 不管洞滑到了哪里，天桥到你面前时都要对准洞口。起重机、直升机和吊篮会扣一颗爱心（#）。收集光点；踩准节拍穿过金环得双倍。",
 "Down through the city at rush hour.<br>Part # cleared: <b>Rush Hour ∞</b> is open in the gold Endless list.":"在高峰时段一路穿过城市落到底。<br>第#部分已通关：<b>Rush Hour ∞</b> 已在金色无尽模式列表中开放。",
-"The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at # downloads, the <b>season events</b> (prizes and double points weekends) once there are also # accounts. Get the app and bring your friends.":"<b>每周锦标赛</b>（最高分赢得 JAVEDA Pass）在 # 次下载时开放，<b>季节活动</b>（奖品和双倍积分周末）要等到还有 # 个账号时开始。下载应用，叫上朋友。"
+"The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at # downloads, the <b>season events</b> (prizes and double points weekends) once there are also # accounts. Get the app and bring your friends.":"<b>每周锦标赛</b>（最高分赢得 JAVEDA Pass）在 # 次下载时开放，<b>季节活动</b>（奖品和双倍积分周末）要等到还有 # 个账号时开始。下载应用，叫上朋友。",
+"<b>Swipe</b> left/right for a lane, <b>swipe up</b> to jump. The gaps open on the # of a bar. Pink marks are where monsters dive - Zirka shoots them, or get out of the way. # hearts.":"左右<b>滑动</b>换跑道，<b>上滑</b>跳跃。缺口会在每小节的第#拍出现。粉色标记是怪物俯冲的位置 - Zirka会射击它们，或者你自己躲开。#颗爱心。",
+"RIDE THE ROOFS<small>swipe for a lane - swipe up to jump the gaps</small>":"飞驰屋顶<small>滑动换跑道 - 上滑跳过缺口</small>",
+"THE HOOK - JUMP ON THE #<small>swipe for a lane - swipe up to jump the gaps</small>":"副歌 - 在第#拍跳<small>滑动换跑道 - 上滑跳过缺口</small>",
+"Swipe up to jump - the gaps open on the # of the bar. <b>Go again.</b>":"上滑跳跃 - 缺口会在每小节的第#拍出现。<b>再来一次。</b>",
+"ROOFTOP RUN<small>swipe for a lane - swipe up to jump the gaps</small>":"屋顶狂奔<small>滑动换道 - 上滑跳过缺口</small>"
 },
 P: {
 "^New best this week! (.+)$": "本周新纪录！$1",

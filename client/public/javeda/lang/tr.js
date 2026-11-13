@@ -1528,7 +1528,8 @@ S: {
 "Coming soon":"Yakında",
 "Get to Level # to play online, or ask a friend who is there to invite you":"Çevrimiçi oynamak için # numaralı seviyeye ulaş ya da oraya ulaşmış bir arkadaşından seni davet etmesini iste",
 "You haven't reached Level # yet: with this invite you can play anyway.":"Henüz # numaralı seviyeye ulaşmadın: bu davetle yine de oynayabilirsin.",
-"That invite isn't valid any more. Ask your friend for a new link.":"Bu davet artık geçerli değil. Arkadaşından yeni bir bağlantı iste."
+"That invite isn't valid any more. Ask your friend for a new link.":"Bu davet artık geçerli değil. Arkadaşından yeni bir bağlantı iste.",
+"swipe for a lane - swipe up to jump the gaps":"şerit için kaydır - boşluklardan atlamak için yukarı kaydır"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>İlk online oyun</small>HOOPS <i>1v1</i>",
@@ -2437,7 +2438,12 @@ HTML: {
 "Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too. <b>Endless:</b> the fall never ends - faster every # bars, a heart back every #.":"Bölüm #. Şehirde yoğun saat: aynı düşüş, ilk ölçüden itibaren daha hızlı. Gök köprülerindeki delikler bir o yana bir bu yana kayıyor, helikopterler ve vinçler kıtalarda da geliyor. <b>Sonsuz:</b> düşüş hiç bitmez - her # ölçüde daha hızlı, her # ölçüde bir kalp geri.",
 "<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you, wherever it has slid to. Cranes, helicopters and cradles cost a heart (#). Grab the lights; a gold ring on the beat is double.":"Yön vermek için <b>sürükle</b> (ya da ok tuşları). Her cam gök köprüsünün tek bir deliği var - delik nereye kaymış olursa olsun, köprü sana ulaştığında deliğin üstünde ol. Vinçler, helikopterler ve asma iskeleler bir kalbe mal olur (#). Işıkları kap; ritimde altın halka çift sayılır.",
 "Down through the city at rush hour.<br>Part # cleared: <b>Rush Hour ∞</b> is open in the gold Endless list.":"Yoğun saatte şehrin içinden ta en aşağıya.<br>Bölüm # geçildi: <b>Rush Hour ∞</b> artık altın Sonsuz listesinde açık.",
-"The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at # downloads, the <b>season events</b> (prizes and double points weekends) once there are also # accounts. Get the app and bring your friends.":"<b>Haftalık turnuva</b> (en yüksek skor bir JAVEDA Pass kazanır) # indirmede açılır, <b>sezon etkinlikleri</b> (ödüller ve çift puan hafta sonları) ise ayrıca # hesap olunca başlar. Uygulamayı indir ve arkadaşlarını getir."
+"The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at # downloads, the <b>season events</b> (prizes and double points weekends) once there are also # accounts. Get the app and bring your friends.":"<b>Haftalık turnuva</b> (en yüksek skor bir JAVEDA Pass kazanır) # indirmede açılır, <b>sezon etkinlikleri</b> (ödüller ve çift puan hafta sonları) ise ayrıca # hesap olunca başlar. Uygulamayı indir ve arkadaşlarını getir.",
+"<b>Swipe</b> left/right for a lane, <b>swipe up</b> to jump. The gaps open on the # of a bar. Pink marks are where monsters dive - Zirka shoots them, or get out of the way. # hearts.":"Şerit için sola/sağa <b>kaydır</b>, zıplamak için <b>yukarı kaydır</b>. Boşluklar ölçünün # numaralı vuruşunda açılır. Pembe işaretler canavarların dalacağı yerler - Zirka onları vurur, ya da yoldan çekil. # kalp.",
+"RIDE THE ROOFS<small>swipe for a lane - swipe up to jump the gaps</small>":"ÇATILARDA SÜR<small>şerit için kaydır - boşluklardan atlamak için yukarı kaydır</small>",
+"THE HOOK - JUMP ON THE #<small>swipe for a lane - swipe up to jump the gaps</small>":"NAKARAT - # NUMARALI VURUŞTA ZIPLA<small>şerit için kaydır - boşluklardan atlamak için yukarı kaydır</small>",
+"Swipe up to jump - the gaps open on the # of the bar. <b>Go again.</b>":"Zıplamak için yukarı kaydır - boşluklar ölçünün # vuruşunda açılır. <b>Tekrar dene.</b>",
+"ROOFTOP RUN<small>swipe for a lane - swipe up to jump the gaps</small>":"ROOFTOP RUN<small>şerit için kaydır - boşlukları atlamak için yukarı kaydır</small>"
 },
 P: {
 "^New best this week! (.+)$": "Bu haftanın yeni rekoru! $1",

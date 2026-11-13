@@ -41,7 +41,7 @@ canvas{display:block; touch-action:none}
 @media (max-width:600px){ #boss{top:86px; width:72vw} }
 body.gold #m{color:#ffd65a; text-shadow:0 0 12px #ffb000aa}
 body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
-#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); text-align:center; pointer-events:none; z-index:3;
+#phase{position:fixed; left:0; right:0; bottom:calc(14px + env(safe-area-inset-bottom)); padding:0 14px; text-align:center; pointer-events:none; z-index:3;
   font-family:Bungee,sans-serif; font-size:17px; letter-spacing:.06em; transition:opacity .3s; color:#38d9ff; text-shadow:0 0 12px #38d9ff88}
 #phase small{display:block; font-family:"Barlow Condensed",sans-serif; font-weight:700; font-size:13px; letter-spacing:.18em; color:#e6d8ff; margin-top:2px}
 #phase.ready{color:#ffd60a; text-shadow:0 0 12px #ffd60a88}
@@ -137,9 +137,10 @@ body.gold #go{background:linear-gradient(180deg,#ffe08a,#e0a41a); color:#2a1a02;
      Part 1 NIGHT FLIGHT  Jo's blue saucer between the towers. Drag to fly; shoot
                           with space or a tap - on the song's sixteenths. Crawlers,
                           swarms, watchers that shoot, brutes that take a beating.
-     Part 2 ROOFTOP RUN   Zirka's bike over the roofs. Swipe for a lane, tap to
-                          jump the gaps (they open on the 1 of a bar). Zirka's gun
-                          finds the monsters diving at her.
+     Part 2 ROOFTOP RUN   Zirka's bike over the roofs. Swipe left or right for a
+                          lane, swipe up to jump the gaps (they open on the 1 of a
+                          bar) - the hands of Level 1. Zirka's gun finds the
+                          monsters diving at him.
      Part 3 THE KING      The King of Forgetting over District 9. His orbs fall
                           in patterns with the song - every one marked where it
                           will land. His core opens in the hooks. Gadgets float up
@@ -360,12 +361,22 @@ function buildSaucer(){
   const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0x38d9ff, transparent:true, opacity:.5, depthWrite:false, blending:THREE.AdditiveBlending })); glow.scale.setScalar(4.5); g.add(glow);
   return g;
 }
-// Zirka's bike: purple, a headlight that cuts the rain
-function buildBike(){
+// Zirka's bike: purple, a headlight that cuts the rain, neon in the wheels and a streak of light behind
+let STREAK_T = null;
+function streakTex(){ if (STREAK_T) return STREAK_T; const c = document.createElement("canvas"); c.width = 8; c.height = 64; const x = c.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 64);
+  g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, 8, 64); return (STREAK_T = new THREE.CanvasTexture(c)); }
+function buildBike(){ const STREAK = streakTex();
   const g = new THREE.Group(), purple = new THREE.MeshStandardMaterial({ color:0x8a3ad8, roughness:.35, metalness:.4, emissive:0x2a0a48 }), dark = new THREE.MeshStandardMaterial({ color:0x140a20, roughness:.6 });
   const body = new THREE.Mesh(new THREE.BoxGeometry(.5, .45, 1.9), purple); body.position.y = .75; g.add(body);
   const tank = new THREE.Mesh(new THREE.SphereGeometry(.35, 12, 8), purple); tank.scale.set(1, .7, 1.4); tank.position.set(0, 1.0, -.3); g.add(tank);
-  for (const z of [-.85, .85]){ const w = new THREE.Mesh(new THREE.TorusGeometry(.42, .14, 8, 18), dark); w.rotation.y = Math.PI/2; w.position.set(0, .42, z); g.add(w); }
+  const neon = new THREE.MeshBasicMaterial({ color:0xd9a0ff });
+  for (const z of [-.85, .85]){ const w = new THREE.Mesh(new THREE.TorusGeometry(.42, .14, 8, 18), dark); w.rotation.y = Math.PI/2; w.position.set(0, .42, z); g.add(w);
+    for (const x of [-.15, .15]){ const r = new THREE.Mesh(new THREE.TorusGeometry(.3, .035, 6, 20), neon); r.rotation.y = Math.PI/2; r.position.set(x, .42, z); g.add(r); } }
+  const under = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xb04dff, transparent:true, opacity:.55, depthWrite:false, blending:THREE.AdditiveBlending })); under.scale.set(3.2, 1.4, 1); under.position.set(0, .12, 0); g.add(under);
+  const streak = new THREE.Mesh(new THREE.PlaneGeometry(.5, 4.5), new THREE.MeshBasicMaterial({ map:STREAK, color:0xff5ab0, transparent:true, opacity:.75, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide }));
+  streak.rotation.x = -Math.PI/2; streak.position.set(0, .5, 3.2); g.add(streak);
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(.36, .1, .12), new THREE.MeshBasicMaterial({ color:0x38d9ff })); visor.position.set(0, 1.9, -.26); g.add(visor);
+  for (const x of [-.24, .24]){ const st = new THREE.Mesh(new THREE.BoxGeometry(.05, .1, 1.5), neon); st.position.set(x, .78, .05); g.add(st); }
   const rider = new THREE.Mesh(new THREE.CylinderGeometry(.24, .3, .8, 10), new THREE.MeshStandardMaterial({ color:0x1a1030, roughness:.7 })); rider.position.set(0, 1.45, .2); rider.rotation.x = -.5; g.add(rider);
   const helmet = new THREE.Mesh(new THREE.SphereGeometry(.26, 12, 10), new THREE.MeshStandardMaterial({ color:0xc77dff, roughness:.2, metalness:.5, emissive:0x3a1060 })); helmet.position.set(0, 1.9, -.05); g.add(helmet);
   const lamp = new THREE.Mesh(new THREE.ConeGeometry(1.4, 7, 16, 1, true), glowMat(0xd8b0ff, .14)); lamp.rotation.x = Math.PI/2; lamp.position.set(0, .9, -4.6); g.add(lamp);
@@ -584,17 +595,31 @@ function planeHit(cx, cy, z){ cam.updateMatrixWorld(); RAY.setFromCamera({ x:cx/
 
 /* =============== Part 2: ROOFTOP RUN - Zirka's bike over the roofs =============== */
 const ROOF = {
-  name:"roof", label:"ROOFTOP RUN", tag:"RIDE THE ROOFS", hookTag:"THE HOOK - JUMP ON THE 1", hint:"swipe for a lane - tap to jump the gaps", LANES:[-2.6, 0, 2.6],
+  name:"roof", label:"ROOFTOP RUN", tag:"RIDE THE ROOFS", hookTag:"THE HOOK - JUMP ON THE 1", hint:"swipe for a lane - swipe up to jump the gaps", LANES:[-2.6, 0, 2.6],
   setup(){
     this.root = new THREE.Group(); scene.add(this.root);
     const roofM = new THREE.MeshLambertMaterial({ color:0x2a1a40, emissive:0x120822 }), edgeM = new THREE.MeshBasicMaterial({ color:0xc77dff });
+    const laneM = new THREE.MeshBasicMaterial({ color:0x6f4fb0 }), endM = new THREE.MeshBasicMaterial({ color:0xff3d8b }), lipM = new THREE.MeshBasicMaterial({ color:0x38d9ff });
+    // three arrows pointing on, drawn once
+    const ac = document.createElement("canvas"); ac.width = 256; ac.height = 320; const ax = ac.getContext("2d"); ax.lineCap = "round"; ax.lineJoin = "round"; ax.shadowColor = "#ff3d8b"; ax.shadowBlur = 14;
+    [[40, 1], [130, .7], [220, .42]].forEach(([y, a]) => { ax.strokeStyle = "rgba(255,120,180," + a + ")"; ax.lineWidth = 16; for (const x of [44, 128, 212]){ ax.beginPath(); ax.moveTo(x - 30, y + 46); ax.lineTo(x, y + 8); ax.lineTo(x + 30, y + 46); ax.stroke(); } });
+    const arrowM = this.arrowM = new THREE.MeshBasicMaterial({ map:new THREE.CanvasTexture(ac), transparent:true, opacity:.9, depthWrite:false, blending:THREE.AdditiveBlending });
     this.roofs = Array.from({ length:14 }, () => { const g = new THREE.Group(), m = new THREE.Mesh(new THREE.BoxGeometry(9, 30, 1), roofM); m.position.y = -15; g.add(m);
       for (const s of [-1, 1]){ const e = new THREE.Mesh(new THREE.BoxGeometry(.12, .12, 1), edgeM); e.position.set(s*4.5, 0, 0); g.add(e); }
-      g.userData = { m, edges:g.children.slice(1) }; g.visible = false; this.root.add(g); return { g, on:false }; });
+      // the three lanes: two soft lines between them
+      for (const s of [-1, 1]){ const e = new THREE.Mesh(new THREE.BoxGeometry(.07, .02, 1), laneM); e.position.set(s*1.3, .01, 0); g.add(e); }
+      // where the roof ends: a bright lip and arrows that say jump; where the next one starts: a landing line
+      const end = new THREE.Mesh(new THREE.BoxGeometry(9, .16, .45), endM), lip = new THREE.Mesh(new THREE.BoxGeometry(9, .1, .3), lipM),
+        arrows = new THREE.Mesh(new THREE.PlaneGeometry(7.4, 9), arrowM); arrows.rotation.x = -Math.PI/2; arrows.position.y = .03; g.add(end, lip, arrows);
+      g.userData = { m, edges:g.children.slice(1, 5), end, lip, arrows }; g.visible = false; this.root.add(g); return { g, on:false }; });
+    const warnM = new THREE.MeshBasicMaterial({ color:0xff5a8f });
     const boxM = new THREE.MeshLambertMaterial({ color:0x3a2a50, emissive:0x1a0a2a }), tankM = new THREE.MeshLambertMaterial({ color:0x4a3a5a, emissive:0x140a1e });
     this.obs = Array.from({ length:24 }, (_, i) => { const g = new THREE.Group();
-      if (i % 2){ const m = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.3, 1.6), boxM); m.position.y = .65; g.add(m); const f = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .08, 12), new THREE.MeshBasicMaterial({ color:0x8ae9ff })); f.position.y = 1.32; g.add(f); }
-      else { const m = new THREE.Mesh(new THREE.CylinderGeometry(.8, .8, 1.6, 12), tankM); m.position.y = .8; g.add(m); const l = new THREE.Mesh(new THREE.SphereGeometry(.15, 6, 4), new THREE.MeshBasicMaterial({ color:0xff2a4a })); l.position.y = 1.7; g.add(l); }
+      if (i % 2){ const m = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.3, 1.6), boxM); m.position.y = .65; g.add(m); const f = new THREE.Mesh(new THREE.CylinderGeometry(.5, .5, .08, 12), new THREE.MeshBasicMaterial({ color:0x8ae9ff })); f.position.y = 1.32; g.add(f);
+        const b = new THREE.Mesh(new THREE.BoxGeometry(1.86, .12, 1.66), warnM); b.position.y = .32; g.add(b); const b2 = new THREE.Mesh(new THREE.BoxGeometry(1.86, .06, 1.66), warnM); b2.position.y = 1.24; g.add(b2); }
+      else { const m = new THREE.Mesh(new THREE.CylinderGeometry(.8, .8, 1.6, 12), tankM); m.position.y = .8; g.add(m); const l = new THREE.Mesh(new THREE.SphereGeometry(.15, 6, 4), new THREE.MeshBasicMaterial({ color:0xff2a4a })); l.position.y = 1.7; g.add(l);
+        for (const y of [.34, 1.5]){ const b = new THREE.Mesh(new THREE.TorusGeometry(.82, .05, 6, 20), warnM); b.rotation.x = Math.PI/2; b.position.y = y; g.add(b); } }
+      const sh = new THREE.Mesh(new THREE.CircleGeometry(1.25, 18), glowMat(0xff3d8b, .16)); sh.rotation.x = -Math.PI/2; sh.position.y = .03; g.add(sh);
       g.visible = false; this.root.add(g); return { g, on:false }; });
     const coinM = new THREE.MeshBasicMaterial({ color:0xffd60a });
     this.coins = Array.from({ length:30 }, () => { const m = new THREE.Mesh(new THREE.OctahedronGeometry(.35, 0), coinM); halo(m, 0xffd60a, 1.6); m.visible = false; this.root.add(m); return { m, on:false }; });
@@ -611,7 +636,7 @@ const ROOF = {
     // the course is laid out ahead by time: where the bike will be at each beat
     this.items = []; this.track = [{ a:S.dist - 30, b:Infinity }];
     this.genT = t0; this.genD = S.dist; this.genJ = Math.ceil((t0 - GRID.t0)/BEAT);
-    this.st = { lane:1, x:0, y:0, vy:0, air:false, fall:0, fire:0, coins:0, jumps:0, k:Math.round(t0*17) };
+    this.st = { lane:1, x:0, y:0, vy:0, air:false, fall:0, fire:0, coins:0, jumps:0, coy:0, buf:0, k:Math.round(t0*17) };
     this.roofs.forEach(r => { r.on = false; r.g.visible = false; }); this.obs.forEach(o => { o.on = false; o.g.visible = false; });
     this.coins.forEach(c => { c.on = false; c.m.visible = false; }); this.divers.forEach(d => { d.on = false; d.g.visible = false; }); this.marks.forEach(m => m.visible = false);
     this.shots.forEach(s => { s.on = false; s.m.visible = false; });
@@ -652,13 +677,17 @@ const ROOF = {
     // and roofs
     const segs = this.track.filter(r => r.b > S.dist - 20 && r.a < S.dist + 120);
     this.roofs.forEach((r, i) => { const s = segs[i]; r.on = !!s; r.g.visible = !!s; if (s){ const b = Math.min(s.b, S.dist + 160), len = b - s.a;
-      r.g.position.set(0, 0, -(s.a + len/2)); r.g.userData.m.scale.z = len; r.g.userData.edges.forEach(e => e.scale.z = len); } });
+      const u = r.g.userData, gap = isFinite(s.b), first = s.a < this.track[0].a + 1;
+      r.g.position.set(0, 0, -(s.a + len/2)); u.m.scale.z = len; u.edges.forEach(e => e.scale.z = len);
+      u.end.visible = u.arrows.visible = gap; u.end.position.z = -len/2 + .22; u.arrows.position.z = -len/2 + 5.2; u.lip.visible = !first; u.lip.position.z = len/2 - .15; } });
   },
   roofUnder(d){ return this.track.some(r => d > r.a - .2 && d < r.b + .2); },
   lane(dir){ const st = this.st; if (st.fall > 0) return; st.lane = clamp(st.lane + dir, 0, 2); },
-  jump(){ const st = this.st; if (st.air || st.fall > 0) return; st.air = true; st.vy = 10.5; st.jumps++; sfx.jump(); },
+  jump(){ const st = this.st; if (st.fall > 0) return; if (st.air && !(st.coy > 0)){ st.buf = .16; return; }
+    st.air = true; st.coy = 0; st.buf = 0; st.vy = 10.5; st.jumps++; sfx.jump(); },
   update(dt, t){
     const st = this.st, L = this.L(t), v = this.speed(L);
+    if (st.buf > 0) st.buf -= dt; if (st.coy > 0) st.coy -= dt;
     S.dist += v*dt; this.grow(t);
     st.x += (this.LANES[st.lane] - st.x)*(1 - Math.exp(-dt*14));
     // jumping, falling
@@ -666,8 +695,9 @@ const ROOF = {
       if (st.fall <= 0){ const next = this.track.find(r => r.a > S.dist - 1); if (next) S.dist = next.a + 1; st.y = 0; st.vy = 0; st.air = false; S.inv = Math.max(S.inv, 1.4); } }
     else if (st.air){ st.vy -= 26*dt; st.y += st.vy*dt; if (st.y <= 0){ if (this.roofUnder(S.dist)){ st.y = 0; st.air = false;
           // landed over a gap: a clean jump
-          if (this.track.some(r => r.b < S.dist && r.b > S.dist - 16)){ const g = this.track.find(r => r.b < S.dist && r.b > S.dist - 16); if (!g.cleared){ g.cleared = true; kill(300); say("JUMP", "", .4, "b"); } } } else if (st.y < -1){ st.fall = .7; if (hurt("FELL!", "Tap to jump - the gaps open on the 1 of the bar.")) return; } } }
-    else if (!this.roofUnder(S.dist)){ st.air = true; st.vy = 0; }
+          if (this.track.some(r => r.b < S.dist && r.b > S.dist - 16)){ const g = this.track.find(r => r.b < S.dist && r.b > S.dist - 16); if (!g.cleared){ g.cleared = true; kill(300); say("JUMP", "", .4, "b"); } } } else if (st.y < -1){ st.fall = .7; if (hurt("FELL!", "Swipe up to jump - the gaps open on the 1 of the bar.")) return; } } }
+    else if (!this.roofUnder(S.dist)){ st.air = true; st.vy = 0; st.coy = .1; }
+    if (!st.air && st.fall <= 0 && st.buf > 0) this.jump();
     // things on the roof
     for (const it of this.items){ if (it.done || !it.mesh) continue; const dz = it.d - S.dist, lx = this.LANES[it.lane];
       if (it.kind === "obs" && Math.abs(dz) < 1 && Math.abs(lx - st.x) < 1.2 && st.y < 1.3 && st.fall <= 0){ it.done = true; burst(lx, .8, -it.d, 0xc77dff, 14, 8); if (hurt("CRASH!", "Swipe to the lane that's clear.")) return; }
@@ -702,7 +732,8 @@ const ROOF = {
         it.mark.position.set(lx, .05, -it.d); it.mark.material.opacity = .2 + .5*clamp(1 - (it.t - t)/1.5, 0, 1); } }
     for (const s of this.shots) if (s.on) s.m.position.set(s.x, s.y, s.z);
     const portrait = cam.aspect < .8;
-    CAMP.set(st.x*.5, Math.max(-6, st.y) + (portrait ? 4.2 : 3.4), -S.dist + (portrait ? 11 : 8.5)); CAML.set(st.x*.3, 1.2, -S.dist - 16);
+    CAMP.set(st.x*.5, Math.max(-6, st.y) + (portrait ? 4.9 : 3.4), -S.dist + (portrait ? 11.5 : 8.5)); CAML.set(st.x*.3, 1.2, -S.dist - (portrait ? 19 : 16));
+    this.arrowM.opacity = .55 + .4*Math.abs(Math.sin(t*Math.PI/BEAT));
   }
 };
 
@@ -1075,10 +1106,13 @@ function boot(){
 
 /* ---------------- input ----------------
    Night Flight: drag to fly; hold space (or the mouse button, or a second finger) to shoot, or tap for a burst.
-   Rooftop Run: swipe for a lane, tap to jump. The King: drag to fly; on Zirka's turn drag along the roof,
-   tap to jump. */
+   Rooftop Run: the hands of Level 1 (I'm Lost) - a swipe left or right is a lane, a swipe up a jump, and it counts
+   the moment the finger has gone far enough (one move a touch, so a long or a slanted swipe is still one lane); a
+   tap on a side is that lane too, a tap in the middle a jump. The King: drag to fly; on Zirka's turn drag along the
+   roof, tap to jump. */
 const veilUp = () => !$("veil").classList.contains("hid");
 let held = false, anchorX = 0, downX = 0, downY = 0, downT = 0, swiped = false, movePtr = null, lastX = 0, lastY = 0;
+const SWIPE = 26;
 const touches = new Set();
 const live = () => S.started && !S.done && S.end < 0;
 const zirkaTurn = () => G === KING && KING.zirkaOn();
@@ -1090,7 +1124,8 @@ addEventListener("pointerdown", e => { if (veilUp() || !live()) return; e.preven
   movePtr = e.pointerId; held = true; anchorX = downX = lastX = e.clientX; downY = lastY = e.clientY; downT = performance.now(); swiped = false;
   if (G.point && G !== SKY || (G === SKY && e.pointerType === "mouse")) G.point(e.clientX, e.clientY, e.pointerType !== "mouse"); }, { passive:false });
 addEventListener("pointermove", e => { if (!live()) return;
-  if (G === ROOF){ if (held && e.pointerId === movePtr && Math.abs(e.clientX - anchorX) > 34){ ROOF.lane(Math.sign(e.clientX - anchorX)); anchorX = e.clientX; swiped = true; } return; }
+  if (G === ROOF){ if (held && e.pointerId === movePtr && !swiped){ const dx = e.clientX - downX, dy = e.clientY - downY;
+      if (Math.hypot(dx, dy) >= SWIPE){ swiped = true; if (Math.abs(dx) > Math.abs(dy)) ROOF.lane(dx > 0 ? 1 : -1); else if (dy < 0) ROOF.jump(); } } return; }
   if (e.pointerType === "mouse" || (held && e.pointerId === movePtr)){
     if (Math.hypot(e.clientX - downX, e.clientY - downY) > 12) swiped = true;
     // Night Flight on a phone: drag anywhere, the saucer follows the finger's moves (so a tap to shoot doesn't move it)
@@ -1103,7 +1138,7 @@ addEventListener("pointerup", e => {
   if (e.pointerId !== movePtr){ if (G === SKY && e.pointerType === "touch") S.fireHeld = false; return; }
   const tap = !swiped && Math.hypot(e.clientX - downX, e.clientY - downY) < 24 && performance.now() - downT < 350;
   if (held && live()){
-    if (G === ROOF && tap) ROOF.jump();
+    if (G === ROOF && !swiped){ const f = downX/innerWidth; if (f < .32) ROOF.lane(-1); else if (f > .68) ROOF.lane(1); else ROOF.jump(); }
     if (G === SKY && tap && e.pointerType === "touch") S.fireQ += 4;       // a tap: a burst of four
     if (zirkaTurn() && tap) KING.jump(); }
   held = false; movePtr = null; });
@@ -1137,7 +1172,7 @@ $("intro").innerHTML = REMIX ? "Night Flight, Rooftop Run, The King - 8 bars eac
 }[PART] + (ENDLESS && !REMIX ? " <b>Endless:</b> no end - harder every 8 bars, a heart back every 24." : "");
 $("how").innerHTML = REMIX ? "Every part's rules in turn, one score, 5 hearts. Your best goes on the <b>Level 9 Remix</b> scoreboard." : {
   1: "<b>Drag</b> to fly. <b>Shoot:</b> hold <b>space</b> on a computer - on a phone, <b>tap</b> for a burst, or hold a second finger down. Watchers shoot on 2 and 4, brutes take a beating. Grab the gold crystal for the <b>Lightning Storm</b>. 5 hearts.",
-  2: "<b>Swipe</b> left/right for a lane, <b>tap</b> to jump. The gaps open on the 1 of a bar. Pink marks are where monsters dive - Zirka shoots them, or get out of the way. 5 hearts.",
+  2: "<b>Swipe</b> left/right for a lane, <b>swipe up</b> to jump. The gaps open on the 1 of a bar. Pink marks are where monsters dive - Zirka shoots them, or get out of the way. 5 hearts.",
   3: "<b>Drag</b> to fly - Jo fires on his own. Every orb is marked with a ring where it lands - don't be there. His core opens in the hooks: <b>fire into it</b>. Fly into the gadgets: <b>triple</b> lightning, <b>rapid</b> fire, a <b>heart</b>, and the <b>Zirka</b> token - 8 bars on the roof below: drag to ride, tap to jump the orbs, Zirka's big shots go for the core. 5 hearts" + (ENDLESS ? "; every king that falls, a stronger one rises." : ".")
 }[PART];
 if (!HUB){

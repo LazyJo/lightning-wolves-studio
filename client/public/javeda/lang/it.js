@@ -1528,7 +1528,8 @@ S: {
 "Coming soon":"Prossimamente",
 "Get to Level # to play online, or ask a friend who is there to invite you":"Arriva al livello # per giocare online, o chiedi a un amico che c'è già di invitarti",
 "You haven't reached Level # yet: with this invite you can play anyway.":"Non sei ancora arrivato al livello #: con questo invito puoi giocare lo stesso.",
-"That invite isn't valid any more. Ask your friend for a new link.":"Quell'invito non è più valido. Chiedi un nuovo link al tuo amico."
+"That invite isn't valid any more. Ask your friend for a new link.":"Quell'invito non è più valido. Chiedi un nuovo link al tuo amico.",
+"swipe for a lane - swipe up to jump the gaps":"scorri per cambiare corsia - scorri in su per saltare i buchi"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",
@@ -2437,7 +2438,12 @@ HTML: {
 "Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too. <b>Endless:</b> the fall never ends - faster every # bars, a heart back every #.":"Parte #. Ora di punta in città: la stessa caduta, più veloce dalla prima battuta. I buchi nelle passerelle scivolano avanti e indietro, ed elicotteri e gru arrivano anche nelle strofe. <b>Infinito:</b> la caduta non finisce mai - più veloce ogni # battute, recuperi un cuore ogni #.",
 "<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you, wherever it has slid to. Cranes, helicopters and cradles cost a heart (#). Grab the lights; a gold ring on the beat is double.":"<b>Trascina</b> (o usa le frecce) per guidare. Ogni passerella di vetro ha un solo buco - fatti trovare sopra quando arriva, ovunque il buco sia scivolato. Gru, elicotteri e navicelle costano un cuore (#). Prendi le luci; un anello d'oro a tempo vale doppio.",
 "Down through the city at rush hour.<br>Part # cleared: <b>Rush Hour ∞</b> is open in the gold Endless list.":"Giù attraverso la città all'ora di punta.<br>Parte # completata: <b>Rush Hour ∞</b> è aperto nella lista dorata Infinito.",
-"The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at # downloads, the <b>season events</b> (prizes and double points weekends) once there are also # accounts. Get the app and bring your friends.":"Il <b>torneo settimanale</b> (il punteggio migliore vince un JAVEDA Pass) si apre a # download, gli <b>eventi di stagione</b> (premi e weekend a punti doppi) quando ci saranno anche # account. Scarica l'app e porta i tuoi amici."
+"The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at # downloads, the <b>season events</b> (prizes and double points weekends) once there are also # accounts. Get the app and bring your friends.":"Il <b>torneo settimanale</b> (il punteggio migliore vince un JAVEDA Pass) si apre a # download, gli <b>eventi di stagione</b> (premi e weekend a punti doppi) quando ci saranno anche # account. Scarica l'app e porta i tuoi amici.",
+"<b>Swipe</b> left/right for a lane, <b>swipe up</b> to jump. The gaps open on the # of a bar. Pink marks are where monsters dive - Zirka shoots them, or get out of the way. # hearts.":"<b>Scorri</b> a sinistra/destra per cambiare corsia, <b>scorri in su</b> per saltare. I buchi si aprono sul # della battuta. I segni rosa mostrano dove piombano i mostri - Zirka li abbatte, oppure spostati. # cuori.",
+"RIDE THE ROOFS<small>swipe for a lane - swipe up to jump the gaps</small>":"CORRI SUI TETTI<small>scorri per cambiare corsia - scorri in su per saltare i buchi</small>",
+"THE HOOK - JUMP ON THE #<small>swipe for a lane - swipe up to jump the gaps</small>":"IL RITORNELLO - SALTA SUL #<small>scorri per cambiare corsia - scorri in su per saltare i buchi</small>",
+"Swipe up to jump - the gaps open on the # of the bar. <b>Go again.</b>":"Scorri in su per saltare - i varchi si aprono sul # della battuta. <b>Riprova.</b>",
+"ROOFTOP RUN<small>swipe for a lane - swipe up to jump the gaps</small>":"CORSA SUI TETTI<small>scorri per cambiare corsia - scorri in su per saltare i varchi</small>"
 },
 P: {
 "^New best this week! (.+)$": "Nuovo record della settimana! $1",

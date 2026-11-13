@@ -1528,7 +1528,8 @@ S: {
 "Coming soon":"近日公開",
 "Get to Level # to play online, or ask a friend who is there to invite you":"レベル#に到達するとオンラインで遊べます。到達済みの友だちに招待してもらうこともできます",
 "You haven't reached Level # yet: with this invite you can play anyway.":"まだレベル#に到達していませんが、この招待があれば遊べます。",
-"That invite isn't valid any more. Ask your friend for a new link.":"この招待は無効になりました。友だちに新しいリンクをもらってください。"
+"That invite isn't valid any more. Ask your friend for a new link.":"この招待は無効になりました。友だちに新しいリンクをもらってください。",
+"swipe for a lane - swipe up to jump the gaps":"スワイプでレーン移動 - 上にスワイプで穴を飛び越えよう"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",
@@ -2437,7 +2438,12 @@ HTML: {
 "Part #. Rush hour in the city: the same fall, faster from the first bar. The holes in the skybridges slide to and fro, and the helicopters and cranes come in the verses too. <b>Endless:</b> the fall never ends - faster every # bars, a heart back every #.":"パート#。街のラッシュアワー：同じ落下が最初の小節から速い。空中通路の穴は行ったり来たりスライドし、ヘリとクレーンはヴァースにも現れる。<b>エンドレス：</b>落下は終わらない - #小節ごとに速くなり、#小節ごとにハートが1つ戻る。",
 "<b>Drag</b> (or the arrow keys) to steer. Each glass skybridge has one hole - be over it when it reaches you, wherever it has slid to. Cranes, helicopters and cradles cost a heart (#). Grab the lights; a gold ring on the beat is double.":"<b>ドラッグ</b>（または矢印キー）で操縦。ガラスの空中通路にはそれぞれ穴が1つ - 穴がどこへスライドしていても、通路が来たら穴の上にいよう。クレーン、ヘリ、ゴンドラに当たるとハート1つ減る（#）。光を取ろう。ビートに合わせた金のリングは2倍。",
 "Down through the city at rush hour.<br>Part # cleared: <b>Rush Hour ∞</b> is open in the gold Endless list.":"ラッシュアワーの街を一番下まで落ちきった。<br>パート#クリア：<b>Rush Hour ∞</b>がゴールドのエンドレスリストで解放！",
-"The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at # downloads, the <b>season events</b> (prizes and double points weekends) once there are also # accounts. Get the app and bring your friends.":"<b>ウィークリートーナメント</b>（最高スコアでJAVEDA Passがもらえる）は#ダウンロードで開幕、<b>シーズンイベント</b>（賞品とポイント2倍の週末）はさらに#アカウントに達したら始まるよ。アプリを入れて友だちを誘おう。"
+"The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at # downloads, the <b>season events</b> (prizes and double points weekends) once there are also # accounts. Get the app and bring your friends.":"<b>ウィークリートーナメント</b>（最高スコアでJAVEDA Passがもらえる）は#ダウンロードで開幕、<b>シーズンイベント</b>（賞品とポイント2倍の週末）はさらに#アカウントに達したら始まるよ。アプリを入れて友だちを誘おう。",
+"<b>Swipe</b> left/right for a lane, <b>swipe up</b> to jump. The gaps open on the # of a bar. Pink marks are where monsters dive - Zirka shoots them, or get out of the way. # hearts.":"左右に<b>スワイプ</b>でレーン変更、<b>上にスワイプ</b>でジャンプ。隙間は小節の#拍目に開く。ピンクの印はモンスターが急降下してくる場所 - Zirkaが撃ってくれるか、自分でよけよう。ハート#個。",
+"RIDE THE ROOFS<small>swipe for a lane - swipe up to jump the gaps</small>":"屋根を駆けろ<small>スワイプでレーン変更 - 上にスワイプで隙間をジャンプ</small>",
+"THE HOOK - JUMP ON THE #<small>swipe for a lane - swipe up to jump the gaps</small>":"サビ - #拍目でジャンプ<small>スワイプでレーン変更 - 上にスワイプで隙間をジャンプ</small>",
+"Swipe up to jump - the gaps open on the # of the bar. <b>Go again.</b>":"上にスワイプでジャンプ - すき間は小節の#拍目に開く。<b>もう一回。</b>",
+"ROOFTOP RUN<small>swipe for a lane - swipe up to jump the gaps</small>":"屋上ラン<small>スワイプでレーン変更 - 上にスワイプですき間をジャンプ</small>"
 },
 P: {
 "^New best this week! (.+)$": "今週のベスト更新！$1",

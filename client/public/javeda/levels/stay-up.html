@@ -483,6 +483,121 @@ function over(why){
   setTimeout(finish, 1500);
 }
 
+/* ================= THE LOOK =================
+   Pictures only: nothing in here is read by the game (the pads, their order, the clock and the taps are all above).
+   The pads get the light from under them that the intro talks about - out round each pad, up its front edge, a
+   tint on its face - and it follows that pad's own light, frame for frame (same colour, same fade, red when the
+   game shows red), so it never says more than the pad does. The room gets its night: foam on the wall, the purple
+   strips where a phone can see them, a level meter that moves with the song, the desk light spilling on the floor.
+   One draw call each (the pads' light and the meter are instanced); the textures are made once. */
+const STILL = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+const FX = { COLS:24, ROWS:10, q:1,
+  build(){
+    const add = (map, c, op) => new THREE.MeshBasicMaterial({ map, color:c == null ? 0xffffff : c, transparent:true, opacity:op == null ? 1 : op, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
+    const flat = (w, d, m) => { const q = new THREE.Mesh(new THREE.PlaneGeometry(w, d), m); q.rotation.x = -Math.PI/2; return q; };
+    const pool = (x, cx, cy, r, rgb, a) => { const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, "rgba(" + rgb + "," + a + ")"); g.addColorStop(1, "rgba(" + rgb + ",0)"); x.fillStyle = g; x.fillRect(cx - r, cy - r, r*2, r*2); };
+    // --- the back wall: foam tiles, the screen's light in the middle, purple either side, dark up the top
+    const WALL = canvasTex(1024, 512, (x, w, h) => {
+      const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#031a20"); g.addColorStop(.62, "#083c46"); g.addColorStop(1, "#052a32"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+      for (let j = 0; j < 16; j++) for (let i = 0; i < 32; i++){ const k = rnd(i*13.1 + j*7.7 + 5), X = i*32, Y = j*32;
+        x.fillStyle = "rgba(0,10,14," + (.08 + k*.17).toFixed(3) + ")"; x.fillRect(X + 1, Y + 1, 30, 30);
+        x.fillStyle = "rgba(150,240,255,.06)"; x.fillRect(X + 1, Y + 1, 30, 2); x.fillStyle = "rgba(0,0,0,.24)"; x.fillRect(X, Y + 30, 32, 2); x.fillRect(X + 30, Y, 2, 32); }
+      x.globalCompositeOperation = "lighter";
+      pool(x, w/2, 350, 250, "40,170,200", .2);
+      for (const sx of [-1, 1]){ pool(x, w/2 + sx*140, 340, 120, "120,40,220", .26); pool(x, w/2 + sx*384, 250, 300, "120,40,220", .4); }
+      x.globalCompositeOperation = "source-over";
+      const v = x.createLinearGradient(0, 0, 0, h); v.addColorStop(0, "rgba(1,8,10,.8)"); v.addColorStop(.5, "rgba(1,8,10,0)"); x.fillStyle = v; x.fillRect(0, 0, w, h); });
+    const wallG = new THREE.PlaneGeometry(32, 16), wallM = new THREE.MeshBasicMaterial({ map:WALL });
+    const stripG = new THREE.PlaneGeometry(.13, 13), stripM = new THREE.MeshBasicMaterial({ color:0xb878ff });
+    // --- the floor in front of the desk: the cyan strip's light on it, the boards running away
+    const FLOOR = canvasTex(512, 128, (x, w, h) => { x.fillStyle = "#000"; x.fillRect(0, 0, w, h);
+      const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(58,232,255,.36)"); g.addColorStop(.2, "rgba(58,232,255,.1)"); g.addColorStop(.6, "rgba(58,232,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+      const l = x.createLinearGradient(0, 0, 0, h); l.addColorStop(0, "rgba(120,230,255,.13)"); l.addColorStop(.7, "rgba(120,230,255,0)"); x.fillStyle = l;
+      for (let i = 0; i < 22; i++) x.fillRect(Math.round(i*w/22 + rnd(i*9.1)*6), 0, 2, h); });
+    const floorG = new THREE.PlaneGeometry(16, 4.5), floorM = add(FLOOR);
+    // --- dust in the screen's light
+    const dp = []; for (let i = 0; i < 40; i++) dp.push((rnd(i*3.1 + 1) - .5)*12, -1 + rnd(i*5.3 + 2)*7, -8.4 + rnd(i*7.7 + 3)*4);
+    const dustG = new THREE.BufferGeometry(); dustG.setAttribute("position", new THREE.Float32BufferAttribute(dp, 3));
+    const dustM = new THREE.PointsMaterial({ map:DOT, color:0xa8f0ff, size:.15, transparent:true, opacity:.42, blending:THREE.AdditiveBlending, depthWrite:false });
+    const room = (g, floorZ) => {
+      g.add(at3(new THREE.Mesh(wallG, wallM), 0, 6, -8.96));
+      for (const sx of [-1, 1]) g.add(at3(new THREE.Mesh(stripG, stripM), sx*3.9, 4.5, -8.93));
+      if (floorZ != null) g.add(at3(flat(16, 4.5, floorM), 0, -1.985, floorZ + 2.25));
+      const d = new THREE.Points(dustG, dustM); g.add(d); return d; };
+
+    /* ----- the game: the drum machine on the desk ----- */
+    const g = PM.root, body = PM.body;
+    this.dust = room(g, 2.5);
+    // the desk: a pool of light round the machine, purple out at the ends, the strip's light along the front edge
+    const DESK = canvasTex(256, 128, (x, w, h) => { x.fillStyle = "#000"; x.fillRect(0, 0, w, h); x.globalCompositeOperation = "lighter";
+      pool(x, w/2, 70, 110, "58,232,255", .5); pool(x, 14, 60, 90, "154,58,255", .5); pool(x, w - 14, 60, 90, "154,58,255", .5);
+      const e = x.createLinearGradient(0, h - 16, 0, h); e.addColorStop(0, "rgba(58,232,255,0)"); e.addColorStop(1, "rgba(58,232,255,.6)"); x.fillStyle = e; x.fillRect(0, h - 16, w, 16); });
+    g.add(at3(flat(14, 7, add(DESK, 0xffffff, .8)), 0, -1.343, -1));
+    const halo = sprite(SC.cyan, 3, .16); halo.scale.set(17, .9, 1); halo.position.set(0, -1.35, 2.62); g.add(halo);
+    // the machine: a line of light round its edge, a ring round each knob, a frame round the little screen
+    const PLATE = canvasTex(512, 512, (x, w) => { const u = w/5.6, X = v => (v + 2.8)*u;
+      x.fillStyle = "#000"; x.fillRect(0, 0, w, w); x.lineJoin = "round"; x.shadowColor = "#3ae8ff"; x.shadowBlur = 14;
+      x.strokeStyle = "rgba(58,232,255,.95)"; x.lineWidth = 3; x.strokeRect(6, 6, w - 12, w - 12);
+      x.shadowBlur = 7; x.lineWidth = 2; x.strokeStyle = "rgba(58,232,255,.75)";
+      for (let i = 0; i < 4; i++){ x.beginPath(); x.arc(X(.6 + i*.55), X(-2.45), u*.24, Math.PI*.75, Math.PI*2.25); x.stroke(); }
+      x.strokeStyle = "rgba(58,232,255,.5)"; x.strokeRect(X(-2.36), X(-2.76), u*1.92, u*.62); });
+    this.plate = flat(5.6, 5.6, add(PLATE)); this.plate.position.y = .2535; body.add(this.plate);
+    // the little screen: a waveform on a dark glass instead of a blank lit panel (a blank cyan slab reads like a lit pad)
+    const LCD = canvasTex(128, 32, (x, w, h) => { x.fillStyle = "#04303c"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(58,232,255,.25)"; x.fillRect(0, h/2 - .5, w, 1);
+      for (let i = 0; i < 40; i++){ const a = (.15 + rnd(i*4.7 + 2)*.85)*(.35 + .65*Math.abs(Math.sin(i*.33)))*13; x.fillStyle = i % 9 === 4 ? "#ff8ae8" : "#5af0ff"; x.fillRect(5 + i*3, h/2 - a, 2, a*2); } });
+    const lcd = body.children[0]; lcd.material.map = LCD; lcd.material.color.setHex(0xffffff);
+    // the pads: rubber with a soft edge, and the light from under each one
+    const FACE = canvasTex(64, 64, (x, w) => { const r = x.createRadialGradient(w/2, w/2, 4, w/2, w/2, w*.72); r.addColorStop(0, "#9a9a9a"); r.addColorStop(.7, "#c8c8c8"); r.addColorStop(1, "#ffffff"); x.fillStyle = r; x.fillRect(0, 0, w, w);
+      x.strokeStyle = "rgba(0,0,0,.35)"; x.lineWidth = 2; x.strokeRect(1, 1, w - 2, w - 2); });
+    for (const p of PM.pads) p.m.material.map = FACE;
+    const GLOW = canvasTex(256, 128, (x, w, h) => { x.fillStyle = "#000"; x.fillRect(0, 0, w, h);
+      for (let k = 0; k < 30; k++){ x.strokeStyle = "rgba(255,255,255," + (.44*Math.pow(1 - k/30, 2.2)).toFixed(3) + ")"; x.lineWidth = 1.9; x.strokeRect(1 + k*1.5, 1 + k*1.5, 126 - k*3, 126 - k*3); }
+      x.fillStyle = "rgba(255,255,255,.06)"; x.fillRect(0, 0, 128, h);                                 // the face: lit at its edges
+      x.fillStyle = "rgba(255,255,255,.85)"; x.fillRect(128, 0, 64, h);                                // out from under it
+      const s = x.createLinearGradient(0, 0, 0, h); s.addColorStop(0, "rgba(255,255,255,.1)"); s.addColorStop(1, "rgba(255,255,255,.95)"); x.fillStyle = s; x.fillRect(192, 0, 64, h); });   // up its front edge
+    GLOW.minFilter = THREE.LinearFilter; GLOW.generateMipmaps = false;
+    const P = [], U = [], I = [];
+    const quad = (pts, u0, u1) => { const n = P.length/3; pts.forEach(q => P.push(q[0], q[1], q[2])); U.push(u0, 0, u1, 0, u1, 1, u0, 1); I.push(n, n + 1, n + 2, n, n + 2, n + 3); };
+    quad([[-.55, .458, .55], [.55, .458, .55], [.55, .458, -.55], [-.55, .458, -.55]], .004, .496);
+    quad([[-.625, .2545, .6], [.625, .2545, .6], [.625, .2545, -.6], [-.625, .2545, -.6]], .52, .73);
+    quad([[-.55, .25, .553], [.55, .25, .553], [.55, .45, .553], [-.55, .45, .553]], .77, .98);
+    const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); pg.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2)); pg.setIndex(I);
+    this.rim = new THREE.InstancedMesh(pg, add(GLOW), 16); this.rim.frustumCulled = false; this.C = new THREE.Color();
+    const M = new THREE.Matrix4(); PM.pads.forEach((p, i) => { M.makeTranslation(p.m.position.x, 0, p.m.position.z); this.rim.setMatrixAt(i, M); this.rim.setColorAt(i, this.C.setHex(p.color).multiplyScalar(.57)); });
+    body.add(this.rim);
+    // the level meter on the wall under the screen: little lamps, cyan in the middle to purple at the ends, pink at the top
+    const n = this.COLS*this.ROWS; this.eq = new THREE.InstancedMesh(new THREE.PlaneGeometry(.2, .17), new THREE.MeshBasicMaterial({ transparent:true, opacity:.85, blending:THREE.AdditiveBlending, depthWrite:false }), n); this.eq.frustumCulled = false;
+    this.lit = []; this.dim = []; this.peak = new THREE.Color(SC.pink).multiplyScalar(.6); this.lv = new Float32Array(this.COLS);
+    for (let c = 0; c < this.COLS; c++){ const k = Math.abs(c - (this.COLS - 1)/2)/((this.COLS - 1)/2), col = new THREE.Color(SC.cyan).lerp(new THREE.Color(SC.purple), k*k);
+      this.lit.push(col.clone().multiplyScalar(.55)); this.dim.push(col.clone().multiplyScalar(.05));
+      for (let r = 0; r < this.ROWS; r++){ M.makeTranslation((c - (this.COLS - 1)/2)*.285, -1.6 + r*.25, -8.9); this.eq.setMatrixAt(c*this.ROWS + r, M); this.eq.setColorAt(c*this.ROWS + r, this.dim[c]); } }
+    g.add(this.eq);
+
+    /* ----- the ending: the cover ----- */
+    const e = END.root; this.dustE = room(e, null);
+    this.joHalo = sprite(SC.cyan, 4.2, .4); this.joHalo.position.set(0, .8, -1.1); e.add(this.joHalo);            // the screen's light round Jo's hood
+    this.land = flat(3.6, 3.6, add(DOT, 0xe0b0ff, 0)); this.land.position.set(0, -1.975, 1.6); e.add(this.land);   // where the saucer's beam lands
+  },
+  tick(dt, t, beat){
+    const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT, env = STILL ? .5 : Math.exp(-ph*3.4);
+    if (PM.root.visible){
+      for (let i = 0; i < 16; i++){ const m = PM.pads[i].m.material; this.rim.setColorAt(i, this.C.copy(m.emissive).multiplyScalar(.5 + m.emissiveIntensity*.9)); }
+      this.rim.instanceColor.needsUpdate = true;
+      this.plate.material.opacity = .72 + env*.28;
+      const sec = section(t), amp = sec === "hook" ? 1 : sec === "loud" ? .8 : .5, bi = STILL ? 0 : Math.floor((t - GRID.t0)/BEAT) % 32;
+      for (let c = 0; c < this.COLS; c++){ const lv = amp*(.3 + .7*rnd(c*3.3 + bi*17.7 + 1))*(.3 + .7*env)*this.ROWS;
+        for (let r = 0; r < this.ROWS; r++) this.eq.setColorAt(c*this.ROWS + r, r < lv ? (r >= this.ROWS - 2 ? this.peak : this.lit[c]) : this.dim[c]); }
+      this.eq.instanceColor.needsUpdate = true;
+      this.q += ((S.msgT > 0 ? .22 : 1) - this.q)*Math.min(1, dt*8); this.eq.material.opacity = .85*this.q;   // it steps back while a message is up over it
+      if (!STILL) this.dust.position.set(Math.sin(t*.07)*.6, Math.sin(t*.11)*.3, 0);
+    } else {
+      const u = clamp((S.end - 1.2)/2.6, 0, 1);
+      this.land.material.opacity = u*u*(.4 + (beat ? .2 : 0)); this.joHalo.material.opacity = .36 + env*.1;
+      if (!STILL) this.dustE.position.set(Math.sin(t*.07)*.6, Math.sin(t*.11)*.3, 0);
+    }
+  }
+};
+
 /* ---------------- drawing ---------------- */
 function render(dt){
   const t = Math.max(0, S ? S.t : 0), beat = onBeat(t);
@@ -508,6 +623,7 @@ function render(dt){
   }
   const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.1 : 7)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  FX.tick(dt, t, beat);
   ren.render(scene, cam);
 }
 function frame(){
@@ -555,7 +671,7 @@ function boot(){
   scene.add(new THREE.HemisphereLight(0x6ae8ff, 0x1a0a2a, 1.2));
   const key = new THREE.DirectionalLight(0xb8f0ff, .9); key.position.set(-10, 30, 20); scene.add(key);
   ME = buildSaucer(); scene.add(ME);
-  PM.setup(); buildEnd();
+  PM.setup(); buildEnd(); FX.build();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }

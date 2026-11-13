@@ -165,6 +165,8 @@ const LEN = GRID.len, END_AT = LEN;        // the part ends here; the cover foll
 const Q = new URLSearchParams(location.search), flag = k => Q.has(k) && Q.get(k) !== "0";
 const REMIX = flag("remix"), ENDLESS = !REMIX && flag("endless"), GOLD = REMIX || ENDLESS;
 const PART = REMIX ? 1 : Math.min(3, Math.max(1, +Q.get("part") || 1));
+// Island Hopper's hearts: 5 in Part 1 (Jo, 2026-11-13: it was 3), 3 in its endless; the remix keeps its own 3 shared ones
+const HOP_HEARTS = ENDLESS ? 3 : 5;
 const CFG = REMIX ? { id:"lvl6r", title:"No Rest/No Work", by:"LEVEL 6 REMIX" } : {
   1: { id:"lvl6",  title:"Island Hopper",   by:"LEVEL 6" },
   2: { id:"lvl6b", title:"Crab Night",      by:"LEVEL 6 PART 2" },
@@ -587,7 +589,7 @@ const HOP = {
     if (this.stars.length && this.stars[0].position.x < S.x - 30) this.stars = this.stars.filter(s => s.position.x >= S.x - 30 || (this.root.remove(s), false));
   },
   reset(){
-    Object.assign(S, { hearts:3, maxHearts:3, x:-2.5, y:2.05, vy:0, ground:true, coyote:0, hover:1, hold:false, last:0, inv:0, starsGot:0, falls:0, wait:0, waited:0 });
+    Object.assign(S, { hearts:HOP_HEARTS, maxHearts:HOP_HEARTS, x:-2.5, y:2.05, vy:0, ground:true, coyote:0, hover:1, hold:false, last:0, inv:0, starsGot:0, falls:0, wait:0, waited:0 });
     if (GOLD){ this.course(); this.grow(0); }
     else this.stars.forEach(s => s.visible = true);
     $("pads").classList.remove("hid");
@@ -1182,7 +1184,7 @@ $("title").textContent = PART === 1 && !ENDLESS ? "No Rest/No Work" : CFG.title;
 $("intro").innerHTML = PART === 1 ? "The beach from the cover, at sunset. Hop the saucer across the sea to the stone arch before the sun goes down."
   : PART === 2 ? "The sun goes down and the crabs come out of the sea - no rest. The saucer holds the stone arch: <b>beam them back</b>."
   : "The saucer skims the sea toward the sun. Jump the big waves, keep off the rocks, grab the lights.";
-$("how").innerHTML = PART === 1 ? "<b>Tap</b> for a short hop, <b>hold</b> for a high jump and to hover with the beam (the HOVER bar refills when you land). Fall in the sea and it costs a heart - you have 3, and green hearts float over some gaps."
+$("how").innerHTML = PART === 1 ? "<b>Tap</b> for a short hop, <b>hold</b> for a high jump and to hover with the beam (the HOVER bar refills when you land). Fall in the sea and it costs a heart - you have " + HOP_HEARTS + ", and green hearts float over some gaps."
   : PART === 2 ? "<b>Tap</b> where you want the beam to go - it shoots from the saucer and knocks the first crab it meets back to the sea. Big purple crabs take two hits. The beam <b>overheats</b> if you fire too fast - but a shot <b>on the beat is free</b> and scores double. Every crab that gets through climbs onto the arch: <b>five and it falls</b>."
   : "<b>◀ ▶</b> (or the sides of the screen) to change lane, <b>▲</b> (or the middle) to jump. A big wave across all lanes has to be jumped; rocks have to be dodged. 3 hearts.";
 if (ENDLESS){

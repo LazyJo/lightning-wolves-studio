@@ -231,6 +231,7 @@ const C = {
 };
 
 let scene, cam, ren, clock, ufo, hullGrp, beam, beamLight, spot, sky, skyHeart, stars, streak, spark;
+let lowSky, lowStars, motes, PR0 = 1;      // the look: the low sky round the heart, the dust in the beam, the first pixel ratio
 const REDUCED = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const cab = document.getElementById("cab");
 const trees = [], shards = [], petals = [], ghosts = [];
@@ -238,26 +239,130 @@ const glow = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparen
   blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
 function rnd(n){ const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); }
 
+/* ---- the look: small pictures drawn once, for the glows, the beam, the forest floor and the far sky.
+   Decoration only. It has its own hash, so it never touches what the game itself draws from. ---- */
+const hash = n => { const x = Math.sin(n*91.345 + 7.13)*24634.6345; return x - Math.floor(x); };
+function tex(w, h, draw, repeat){
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c);
+  if (repeat) t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  return t;
+}
+// a round light on black, for the additive glows: [how far out 0-1, how bright 0-1], ...
+const radial = stops => tex(128, 128, (g, w) => {
+  const gr = g.createRadialGradient(w/2, w/2, 0, w/2, w/2, w/2);
+  for (const [r, v] of stops){ const b = Math.round(v*255); gr.addColorStop(r, "rgb(" + b + "," + b + "," + b + ")"); }
+  g.fillStyle = "#000"; g.fillRect(0, 0, w, w); g.fillStyle = gr; g.fillRect(0, 0, w, w);
+});
+const TEX = {
+  soft: radial([[0, 1], [.15, .72], [.4, .3], [.7, .08], [1, 0]]),
+  halo: radial([[0, 1], [.7, .95], [.88, .6], [1, 0]]),       // a piece's glow: the same disc, with a soft edge
+  pad:  radial([[0, 1], [.2, .8], [.62, .5], [.84, .62], [.92, 1], [.97, .5], [1, 0]]),   // the pool under the beam, a rim where it lands
+  rim:  radial([[0, 0], [.5, .12], [.7, 1], [.86, .22], [1, 0]]),
+  // the beam: brightest at the saucer, with soft shafts round the cone (the top of the picture is the tip on the ground)
+  beam: tex(64, 128, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, 0, h);
+    gr.addColorStop(0, "#707070"); gr.addColorStop(.25, "#8c8c8c"); gr.addColorStop(1, "#ffffff");
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    for (let x = 0; x < w; x++){
+      const a = x/w*Math.PI*2, v = .5 + .5*Math.sin(a*3 + 1)*Math.sin(a*7 + 2);
+      g.fillStyle = "rgba(0,0,0," + (.34*(1 - v)).toFixed(3) + ")"; g.fillRect(x, 0, 1, h);
+    }
+  }, true),
+  // a shooting star, and the tail of a piece on its way up: a bright head that thins out
+  streak: tex(256, 16, (g, w, h) => {
+    let gr = g.createLinearGradient(0, 0, w, 0);
+    gr.addColorStop(0, "#000"); gr.addColorStop(.03, "#fff"); gr.addColorStop(.3, "#777"); gr.addColorStop(1, "#000");
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    gr = g.createLinearGradient(0, 0, 0, h);
+    gr.addColorStop(0, "#000"); gr.addColorStop(.5, "rgba(0,0,0,0)"); gr.addColorStop(1, "#000");
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  }),
+  // the forest floor: needles, moss and bare patches, so the beam finds something. It tiles.
+  ground: tex(256, 256, (g, w) => {
+    g.fillStyle = "#c4c4c4"; g.fillRect(0, 0, w, w);
+    for (let i = 0; i < 150; i++){
+      const x = hash(i*3.1)*w, y = hash(i*5.7)*w, r = 6 + hash(i*7.3)*26, v = hash(i*9.9);
+      g.fillStyle = v < .55 ? "rgba(0,0,0," + (.05 + v*.14).toFixed(3) + ")" : "rgba(255,255,255," + (.03 + (v - .55)*.16).toFixed(3) + ")";
+      for (const ox of [-w, 0, w]) for (const oy of [-w, 0, w]){
+        g.beginPath(); g.ellipse(x + ox, y + oy, r, r*(.5 + hash(i*11.3)*.5), hash(i*2.3)*3.14, 0, 6.2832); g.fill(); }
+    }
+    g.lineWidth = 1;
+    for (let i = 0; i < 520; i++){
+      const x = hash(i*13.7 + 1)*w, y = hash(i*17.9 + 2)*w, a = hash(i*4.3)*3.14, l = 2 + hash(i*6.1)*4;
+      g.strokeStyle = hash(i*8.7) < .5 ? "rgba(0,0,0,.3)" : "rgba(255,255,255,.22)";
+      g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a)*l, y + Math.sin(a)*l); g.stroke();
+    }
+  }, true),
+  // the far edge of the forest, under the heart: mist that the heart reddens, with the last ridge of pines cut out
+  // of it. 360 m wide and 64 m tall at the heart's distance, the heart 26 m above its bottom edge.
+  band: tex(2048, 256, (g, w, h) => {
+    const X = m => (m + 180)/360*w, Y = m => h - (m + 26)/64*h;
+    g.fillStyle = "#000"; g.fillRect(0, 0, w, h);
+    let gr = g.createLinearGradient(0, Y(-22), 0, Y(34));
+    gr.addColorStop(0, "rgb(11,19,36)"); gr.addColorStop(.35, "rgb(6,11,23)"); gr.addColorStop(1, "rgb(0,0,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = "lighten";
+    g.save(); g.translate(X(0), Y(-18)); g.scale(w/360, h/64);
+    gr = g.createRadialGradient(0, 0, 0, 0, 0, 78);
+    gr.addColorStop(0, "rgb(58,9,16)"); gr.addColorStop(.4, "rgb(26,5,10)"); gr.addColorStop(1, "rgb(0,0,0)");
+    g.fillStyle = gr; g.fillRect(-180, -64, 360, 128); g.restore();
+    g.globalCompositeOperation = "source-over"; g.fillStyle = "#000";
+    const top = m => -21.5 + 1.4*Math.sin(m*.045 + 1) + .7*Math.sin(m*.13 + 2.2);
+    g.beginPath(); g.moveTo(0, h);
+    for (let m = -180; m <= 180; m += 2) g.lineTo(X(m), Y(top(m)));
+    g.lineTo(w, h); g.closePath(); g.fill();
+    for (let i = 0; i < 260; i++){
+      const m = -180 + hash(i*1.9)*360, th = 1.6 + hash(i*4.7)*3.2, tw = th*.24, b = top(m) - .3;
+      g.beginPath(); g.moveTo(X(m - tw), Y(b)); g.lineTo(X(m), Y(b + th)); g.lineTo(X(m + tw), Y(b)); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(X(m - tw*1.5), Y(b)); g.lineTo(X(m), Y(b + th*.6)); g.lineTo(X(m + tw*1.5), Y(b)); g.closePath(); g.fill();
+    }
+    gr = g.createLinearGradient(0, 0, w, 0);     // and no edge to it: out to nothing at the sides and the top
+    gr.addColorStop(0, "#000"); gr.addColorStop(.1, "rgba(0,0,0,0)"); gr.addColorStop(.9, "rgba(0,0,0,0)"); gr.addColorStop(1, "#000");
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    gr = g.createLinearGradient(0, Y(37), 0, Y(8)); gr.addColorStop(0, "#000"); gr.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  })
+};
+// an additive glow with one of those pictures on it
+const lit = (map, color, opacity, fog) => { const m = glow(color, opacity); m.map = map; m.fog = fog !== false; return m; };
+/* The sky (the far ridge, the low stars, the heart and its glow) is drawn last and without a depth test. On a phone
+   the camera looks down, the "sky" at the top of the screen is really the far ground lost in the fog, and the heart
+   was cut in half by that ground's edge. Drawn last it is all there, and what it covers was already lost in the fog
+   (on the tallest phone nothing nearer than about 65 m is ever under it). SKY + n is the order they are drawn in. */
+const SKY = 100;
+const skyLayer = m => { m.transparent = true; m.depthTest = false; m.depthWrite = false; m.fog = false; return m; };
+const HALO = .42;      // a piece's glow at its middle (it was a flat .35 disc: about the same light in all, with a soft edge)
+
 /* ---- the small red saucer, with the blue beam from the cover ---- */
 function buildUFO(){
   const g = new THREE.Group();
   const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 28, 12),
-    new THREE.MeshStandardMaterial({ color:C.hull, roughness:.4, metalness:.35, emissive:0x3a0408, emissiveIntensity:.6 }));
+    new THREE.MeshStandardMaterial({ color:C.hull, roughness:.4, metalness:.35, emissive:0x3a0408, emissiveIntensity:.6, fog:false }));
   hull.scale.set(1, .22, 1); g.add(hull);
-  const under = new THREE.Mesh(new THREE.SphereGeometry(.82, 24, 10), new THREE.MeshStandardMaterial({ color:C.hullDark, roughness:.6 }));
+  const under = new THREE.Mesh(new THREE.SphereGeometry(.82, 24, 10), new THREE.MeshStandardMaterial({ color:C.hullDark, roughness:.6, fog:false }));
   under.scale.set(1, .2, 1); under.position.y = -.1; g.add(under);
   const dome = new THREE.Mesh(new THREE.SphereGeometry(.44, 22, 14, 0, Math.PI*2, 0, Math.PI/2),
-    new THREE.MeshStandardMaterial({ color:C.dome, roughness:.12, transparent:true, opacity:.9, emissive:0x8a2a34, emissiveIntensity:.5 }));
+    new THREE.MeshStandardMaterial({ color:C.dome, roughness:.12, transparent:true, opacity:.9, emissive:0x8a2a34, emissiveIntensity:.5, fog:false }));
   dome.position.y = .12; g.add(dome);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(.86, .055, 8, 40), new THREE.MeshBasicMaterial({ color:0xffb3bb }));
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(.86, .055, 8, 40), new THREE.MeshBasicMaterial({ color:0xffb3bb, fog:false }));
   ring.rotation.x = Math.PI/2; ring.position.y = -.02; g.add(ring);
   const lightGrp = new THREE.Group();
   for (let i = 0; i < 10; i++){
     const a = i/10*Math.PI*2;
-    const b = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffffff : 0xffd24a }));
+    const b = new THREE.Mesh(new THREE.SphereGeometry(.07, 8, 6), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffffff : 0xffd24a, fog:false }));
     b.position.set(Math.cos(a)*.88, -.04, Math.sin(a)*.88); lightGrp.add(b);
   }
   g.add(lightGrp); g.userData.lights = lightGrp;
+  // The fog is counted from the camera, and on a phone the camera sits far back: the saucer all but vanished in
+  // Parts 2 and 3. So the saucer itself (not its beam, not the world) ignores the fog, and it has a glow of its own:
+  // a soft red one all round, and a line of light under its edge.
+  const aura = new THREE.Sprite(new THREE.SpriteMaterial({ map:TEX.soft, color:0xff3a4c, blending:THREE.AdditiveBlending, depthWrite:false, fog:false, opacity:.3 }));
+  aura.scale.setScalar(4.4); g.add(aura);
+  const edge = new THREE.Mesh(new THREE.CircleGeometry(1.5, 32), lit(TEX.rim, 0xff8a96, .34, false));
+  edge.rotation.x = -Math.PI/2; edge.position.y = -.06; g.add(edge);
+  g.userData.aura = aura; g.userData.edge = edge;
   return g;
 }
 
@@ -287,19 +392,36 @@ function buildSkyHeart(){
   const g = new THREE.Group(), halves = [];
   for (const side of [1, -1]){
     const geo = new THREE.ShapeGeometry(halfHeart(side), 24);
-    const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color:C.heart, fog:false, side:THREE.DoubleSide }));
-    const rim = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color:C.heartDeep, fog:false, side:THREE.DoubleSide }));
-    rim.scale.setScalar(1.035); rim.position.z = -.01;
+    // lighter at the top, deeper at the point, so it has some body
+    const gp = geo.attributes.position, col = new Float32Array(gp.count*3);
+    for (let i = 0; i < gp.count; i++){ const f = .66 + .52*(gp.getY(i) + .5); col[i*3] = f; col[i*3 + 1] = f*f; col[i*3 + 2] = f; }
+    geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+    const m = new THREE.Mesh(geo, skyLayer(new THREE.MeshBasicMaterial({ color:0xd6161f, side:THREE.DoubleSide, vertexColors:true })));
+    const rim = new THREE.Mesh(geo, skyLayer(new THREE.MeshBasicMaterial({ color:C.heartDeep, side:THREE.DoubleSide })));
+    rim.scale.setScalar(1.035); rim.position.z = -.01; rim.renderOrder = SKY + 4; m.renderOrder = SKY + 5;
     const h = new THREE.Group(); h.add(rim, m); g.add(h); halves.push(h);
   }
+  // a soft shine on the left half
+  const shine = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), skyLayer(lit(TEX.soft, 0xffb0b6, .13)));
+  shine.position.set(-.25, .27, .02); shine.rotation.z = .6; shine.scale.set(.34, .19, 1); shine.renderOrder = SKY + 6; halves[0].add(shine);
+  // the crack lets light through: a soft band along it, which goes out as the heart closes (the thin line is not enough on a phone)
+  const sp = [], sc = [], si = [], n = ZIG.length;
+  ZIG.forEach(([x, y], i) => { const w = i === 0 || i === n - 1 ? .008 : .03;
+    sp.push(x - w, y, .012, x, y, .012, x + w, y, .012); sc.push(0, 0, 0, 1, 1, 1, 0, 0, 0);
+    if (i < n - 1){ const a = i*3, b = a + 3; si.push(a, a + 1, b + 1, a, b + 1, b, a + 1, a + 2, b + 2, a + 1, b + 2, b + 1); } });
+  const sg2 = new THREE.BufferGeometry(); sg2.setAttribute("position", new THREE.Float32BufferAttribute(sp, 3));
+  sg2.setAttribute("color", new THREE.Float32BufferAttribute(sc, 3)); sg2.setIndex(si);
+  const seam = new THREE.Mesh(sg2, skyLayer(new THREE.MeshBasicMaterial({ color:C.crack, vertexColors:true, side:THREE.DoubleSide, opacity:.6, blending:THREE.AdditiveBlending })));
+  seam.renderOrder = SKY + 7; g.add(seam);
   // the glow in the crack, which fades as it closes
   const pts = ZIG.map(([x, y]) => new THREE.Vector3(x, y, .01));
   const crack = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
-    new THREE.LineBasicMaterial({ color:C.crack, fog:false, transparent:true }));
-  g.add(crack);
-  const halo = new THREE.Mesh(new THREE.CircleGeometry(.9, 40), glow(0xff2a3d, .12));
-  halo.material.fog = false; halo.position.z = -.05; g.add(halo);
-  g.userData = { halves, crack, halo };
+    skyLayer(new THREE.LineBasicMaterial({ color:C.crack })));
+  crack.renderOrder = SKY + 8; g.add(crack);
+  // its glow: soft and wide instead of a flat disc with an edge
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(.9, 40), skyLayer(lit(TEX.soft, 0xff2a3d, .14)));
+  halo.position.z = -.05; halo.scale.setScalar(1.8); halo.renderOrder = SKY + 3; g.add(halo);
+  g.userData = { halves, crack, halo, seam };
   return g;
 }
 
@@ -315,12 +437,25 @@ function buildWorld(){
   stars = new THREE.Points(sg, new THREE.PointsMaterial({ color:0xffffff, size:1.4, sizeAttenuation:false, fog:false, transparent:true, opacity:.9 }));
   sky.add(stars);
   skyHeart = buildSkyHeart(); skyHeart.scale.setScalar(40); skyHeart.position.set(0, 13, -200); sky.add(skyHeart);
-  // one shooting star, reused
-  streak = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color:0xffffff, fog:false,
-    transparent:true, opacity:0, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide }));
-  sky.add(streak);
+  // round the heart, and moving with it: the far ridge in its mist, and the low stars a phone can see
+  lowSky = new THREE.Group(); sky.add(lowSky);
+  const band = new THREE.Mesh(new THREE.PlaneGeometry(360, 64), skyLayer(new THREE.MeshBasicMaterial({ map:TEX.band, blending:THREE.AdditiveBlending })));
+  band.position.set(0, 6, -201); band.renderOrder = SKY; lowSky.add(band);
+  const ln = 110, lp = new Float32Array(ln*3), lc = new Float32Array(ln*3);
+  for (let i = 0; i < ln; i++){
+    lp.set([(hash(i*2.9) - .5)*340, -11 + Math.pow(hash(i*6.3), 1.3)*49, -202], i*3);
+    const b = .3 + hash(i*8.1)*hash(i*3.3)*.7; lc.set([b, b*(.86 + hash(i*5.9)*.14), b*(.8 + hash(i*7.7)*.2)], i*3);
+  }
+  const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.BufferAttribute(lp, 3)); lg.setAttribute("color", new THREE.BufferAttribute(lc, 3));
+  lowStars = new THREE.Points(lg, skyLayer(new THREE.PointsMaterial({ size:1.5, sizeAttenuation:false, vertexColors:true, blending:THREE.AdditiveBlending })));
+  lowStars.renderOrder = SKY + 1; lowSky.add(lowStars);
+  // one shooting star, reused: it crosses the sky you can see, behind the heart
+  streak = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), skyLayer(new THREE.MeshBasicMaterial({ color:0xffffff, map:TEX.streak, opacity:0, side:THREE.DoubleSide, blending:THREE.AdditiveBlending })));
+  streak.renderOrder = SKY + 2; sky.add(streak);
 
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400, 1, 1), new THREE.MeshStandardMaterial({ color:C.ground, roughness:1 }));
+  // the ground keeps its darkness (the colour is raised by what the picture takes away)
+  TEX.ground.repeat.set(32, 32);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400, 1, 1), new THREE.MeshStandardMaterial({ color:0x131720, map:TEX.ground, roughness:1 }));
   ground.rotation.x = -Math.PI/2; scene.add(ground);
 
   // the pines: three instanced meshes, so 600 trees are three draw calls
@@ -344,7 +479,43 @@ function buildWorld(){
     k++;
   }
   trunkM.count = k; coneM.count = ci;
+  // no two pines quite the same green, and the top tier a little paler: it only shows where light falls
+  const TC = new THREE.Color();
+  for (let j = 0; j < ci; j++){
+    const ti = Math.floor(j/3), b = .8 + hash(ti*3.7)*.45 + (j % 3 === 2 ? .3 : 0);
+    coneM.setColorAt(j, TC.setRGB(b*(.88 + hash(ti*5.3)*.24), b, b*(.9 + hash(ti*8.1)*.3)));
+  }
+  coneM.instanceColor.needsUpdate = true;
   scene.add(trunkM, coneM);
+  buildFloor();
+}
+/* What the beam finds on the forest floor: stones, ferns, fallen logs. Small (nothing reaches a piece or a petal),
+   lit only by the lights that were already there, three draw calls, and off on a phone that can't keep up. */
+const floorBits = [];
+function buildFloor(){
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), P = new THREE.Vector3(), SC = new THREE.Vector3(), E = new THREE.Euler();
+  const spots = SHARD_AT.concat(PETAL_AT);
+  const place = (mesh, n, seed, fn) => {
+    let k = 0;
+    for (let i = 0; k < n && i < n*2; i++){
+      const a = hash(seed + i*1.37)*Math.PI*2, d = 3 + Math.sqrt(hash(seed + i*2.71))*(WORLD + 26), x = Math.cos(a)*d, z = Math.sin(a)*d;
+      if (spots.some(c => Math.hypot(x - c[0], z - c[1]) < 2)) continue;
+      fn(i, x, z); mesh.setMatrixAt(k++, M);
+    }
+    mesh.count = k; scene.add(mesh); floorBits.push(mesh);
+  };
+  place(new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color:0x2b303b, roughness:1, flatShading:true }), 560), 560, 11, (i, x, z) => {
+    const s = .16 + hash(i*3.3 + 1)*.34;
+    M.compose(P.set(x, s*.22, z), Q.setFromEuler(E.set(hash(i*4.1)*.6, hash(i*5.7)*6.28, hash(i*6.9)*.6)), SC.set(s*(1 + hash(i*7.3)*.7), s*.62, s));
+  });
+  place(new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 6, 1, true), new THREE.MeshStandardMaterial({ color:0x10201a, roughness:1, flatShading:true, side:THREE.DoubleSide }), 640), 640, 53, (i, x, z) => {
+    const r = .32 + hash(i*2.3 + 2)*.42, h = .22 + hash(i*8.3)*.3;
+    M.compose(P.set(x, h/2, z), Q.setFromEuler(E.set(Math.PI, hash(i*3.9)*6.28, 0)), SC.set(r, h, r));
+  });
+  place(new THREE.InstancedMesh(new THREE.CylinderGeometry(.15, .2, 1, 6, 1, true), new THREE.MeshStandardMaterial({ color:0x261c18, roughness:1, flatShading:true }), 100), 100, 97, (i, x, z) => {
+    const l = 1.6 + hash(i*6.7 + 3)*2.2;
+    M.compose(P.set(x, .16, z), Q.setFromEuler(E.set(Math.PI/2, 0, hash(i*9.1)*6.28)), SC.set(1, l, 1));
+  });
 }
 
 /* where things are: the start, the five pieces, the three petals - each in a
@@ -359,7 +530,7 @@ function buildShard(i){
   const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(.6, 0), new THREE.MeshStandardMaterial({
     color:C.shard, emissive:0xb0101c, emissiveIntensity:1.2, roughness:.25, flatShading:true }));
   crystal.scale.set(.8, 1.3, .5); g.add(crystal);
-  const halo = new THREE.Mesh(new THREE.CircleGeometry(2.2, 28), glow(C.shard, .35)); g.add(halo);
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(2.2, 28), lit(TEX.halo, C.shard, HALO)); g.add(halo);
   const light = new THREE.PointLight(C.shard, 1.6, 11, 2); g.add(light);
   g.position.set(SHARD_AT[i][0], 1.2, SHARD_AT[i][1]);
   g.userData = { crystal, halo, light, got:false, fly:-1, i, hx:SHARD_AT[i][0], hz:SHARD_AT[i][1] };
@@ -369,7 +540,7 @@ function buildPetal(i){
   const g = new THREE.Group();
   const s = new THREE.Shape(); s.moveTo(0, -.3); s.quadraticCurveTo(.3, 0, 0, .35); s.quadraticCurveTo(-.3, 0, 0, -.3);
   const p = new THREE.Mesh(new THREE.ShapeGeometry(s, 8), new THREE.MeshBasicMaterial({ color:0xff5a6e, side:THREE.DoubleSide }));
-  g.add(p); g.add(new THREE.Mesh(new THREE.CircleGeometry(.6, 20), glow(0xff5a6e, .18)));
+  g.add(p); g.add(new THREE.Mesh(new THREE.CircleGeometry(.6, 20), lit(TEX.halo, 0xff5a6e, .24)));
   g.position.set(PETAL_AT[i][0], 1.3, PETAL_AT[i][1]);
   g.userData = { got:false, p };
   return g;
@@ -400,7 +571,7 @@ function buildGhost(i){
 
 function boot(){
   ren = new THREE.WebGLRenderer({ antialias:true });
-  ren.setPixelRatio(Math.min(2, devicePixelRatio || 1));
+  ren.setPixelRatio(Math.min(2, devicePixelRatio || 1)); PR0 = ren.getPixelRatio();
   ren.setSize(innerWidth, innerHeight);
   cab.appendChild(ren.domElement);
   scene = new THREE.Scene();
@@ -414,11 +585,21 @@ function boot(){
   ufo = new THREE.Group();
   hullGrp = buildUFO(); ufo.add(hullGrp);
   beam = new THREE.Mesh(new THREE.ConeGeometry(2.2, 1, 22, 1, true),
-    new THREE.MeshBasicMaterial({ color:C.beam, transparent:true, opacity:.2, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
+    new THREE.MeshBasicMaterial({ color:C.beam, map:TEX.beam, transparent:true, opacity:.2, side:THREE.DoubleSide, depthWrite:false, blending:THREE.AdditiveBlending }));
   beam.rotation.x = Math.PI; ufo.add(beam);
+  // a brighter heart to the beam, and dust caught in it
+  const core = new THREE.Mesh(beam.geometry, lit(TEX.beam, 0xcfefff, .05)); core.scale.set(.42, 1, .42); beam.add(core);
+  const mn = 40, mp = new Float32Array(mn*3);
+  for (let i = 0; i < mn; i++){
+    const d = .08 + hash(i*3.7 + 5)*.86, a = hash(i*5.1)*Math.PI*2, r = 2.2*(1 - d)*Math.sqrt(hash(i*7.9))*.9;
+    mp.set([Math.cos(a)*r, -d*FLY_Y, Math.sin(a)*r], i*3);
+  }
+  const mg = new THREE.BufferGeometry(); mg.setAttribute("position", new THREE.BufferAttribute(mp, 3));
+  motes = new THREE.Points(mg, new THREE.PointsMaterial({ color:0xbfe8ff, size:.1, transparent:true, opacity:.7, blending:THREE.AdditiveBlending, depthWrite:false }));
+  ufo.add(motes);
   // the beam is the lamp: it lights the trees and the ground around you
   beamLight = new THREE.PointLight(C.beam, 3.2, 12, 1.4); beamLight.position.y = -FLY_Y + 2.2; ufo.add(beamLight);
-  const pad = new THREE.Mesh(new THREE.CircleGeometry(2.4, 32), glow(C.beam, .22));
+  const pad = new THREE.Mesh(new THREE.CircleGeometry(2.4, 32), lit(TEX.pad, C.beam, .26));
   pad.rotation.x = -Math.PI/2; pad.position.y = -FLY_Y + .03; ufo.add(pad); ufo.userData.pad = pad;
   scene.add(ufo);
   for (let i = 0; i < POOL; i++){ const s = buildShard(i); scene.add(s); shards.push(s); }
@@ -426,11 +607,39 @@ function boot(){
   for (let i = 0; i < GB.roam + POOL*GB.guards + EXTRA; i++){ const g = buildGhost(i); scene.add(g); ghosts.push(g); }
   spark = new THREE.Group(); scene.add(spark);
   for (let i = 0; i < 60; i++){
-    const s = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .1), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xff5a68 : 0xffffff }));
+    const s = new THREE.Mesh(new THREE.BoxGeometry(.1, .1, .1), new THREE.MeshBasicMaterial({ color: i % 3 ? 0xff5a68 : 0xffffff, fog:false }));
     s.visible = false; s.userData = { v:new THREE.Vector3() }; spark.add(s);
   }
+  buildFX();
   clock = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
+}
+
+/* ---- a piece or a petal found: a thin ring runs out over the ground, and the piece goes up bright, with a tail,
+   whatever the fog (it is found: nothing to hide any more). Pooled; nothing here is read by the game. ---- */
+const FX = { rings:[], fly:[], low:false, QZ:null, AZ:null, D:null };
+function buildFX(){
+  const rg = new THREE.RingGeometry(.94, 1, 56);
+  for (let i = 0; i < 3; i++){
+    const r = new THREE.Mesh(rg, glow(0xff5a68, 0)); r.material.fog = false;
+    r.rotation.x = -Math.PI/2; r.visible = false; r.userData = { t:0, big:true }; scene.add(r); FX.rings.push(r);
+  }
+  const og = new THREE.OctahedronGeometry(.6, 0), fg = new THREE.PlaneGeometry(1, 1), tg = new THREE.PlaneGeometry(1, 1);
+  tg.rotateZ(-Math.PI/2); tg.translate(0, -.5, 0);       // the bright end at the piece, the rest behind it
+  for (let i = 0; i < 2; i++){
+    const g = new THREE.Group();
+    const core = new THREE.Mesh(og, new THREE.MeshBasicMaterial({ color:0xff4a5e, fog:false, transparent:true })); core.scale.set(.84, 1.36, .53);
+    const tail = new THREE.Mesh(tg, lit(TEX.streak, 0xff6a78, .8, false));
+    const flare = new THREE.Mesh(fg, lit(TEX.soft, 0xff4a5e, .5, false)); flare.scale.setScalar(3.2);
+    for (const m of [core, tail, flare]) m.renderOrder = SKY + 10;      // it flies into the heart: drawn after the sky
+    g.add(core, tail, flare); g.visible = false; g.userData = { core, tail, flare }; scene.add(g); FX.fly.push(g);
+  }
+  FX.QZ = new THREE.Quaternion(); FX.AZ = new THREE.Vector3(0, 0, 1); FX.D = new THREE.Vector3();
+}
+function ringAt(x, z, big){
+  const r = FX.rings.find(r => !r.visible) || FX.rings[0];
+  r.visible = true; r.position.set(x, .2, z); r.scale.setScalar(1); r.material.opacity = 0;
+  r.userData.t = 0; r.userData.big = big; r.material.color.setHex(big ? 0xff5a68 : 0xff9aa6);
 }
 
 /* ---- state ---- */
@@ -509,6 +718,7 @@ function say(a, b, t, cls){
   msgEl.className = "on" + (cls ? " " + cls : ""); S.msgT = t;
 }
 function burst(x, y, z, n){
+  if (FX.rings.length) ringAt(x, z, n > 10);     // a piece (18 sparks) or a petal (8)
   let k = 0;
   for (const s of spark.children){
     if (s.visible) continue;
@@ -523,8 +733,8 @@ function setMend(p){
   // halves[0] is the left half: broken, it leans out to the left, and the right one to the right
   U.halves[0].position.set(-gap, -gap*.3, 0); U.halves[0].rotation.z = gap*.9;
   U.halves[1].position.set(gap, -gap*.3, 0); U.halves[1].rotation.z = -gap*.9;
-  U.crack.material.opacity = .9*(1 - p);
-  U.halo.material.opacity = .08 + p*.22;
+  U.crack.material.opacity = .9*(1 - p); U.seam.material.opacity = .6*(1 - p);
+  U.halo.material.opacity = .12 + p*.26;
 }
 function nextShard(){
   let best = null, bd = 1e9;
@@ -774,10 +984,12 @@ function render(dt){
   if (S.star >= 0) thin = S.star < .3 ? S.star/.3 : Math.max(0, 1 - (S.star - .3)/2.6);
   scene.fog.density = FOG - (FOG - FOG_STAR)*thin;
   if (S.star >= 0){
-    const u = clamp01(S.star / .9);
-    streak.material.opacity = (1 - u) * .9;
-    streak.position.set(120 - u*240, 140 - u*50, -200);
-    streak.scale.set(60, 1.2, 1); streak.rotation.z = .2;
+    // it used to pass above the top of every screen: now it crosses the sky you can see, from the top right down
+    // behind the heart, on a phone as on a wide screen (hw = half that sky's width at the heart's distance)
+    const u = clamp01(S.star / .9), hw = 200*Math.tan(cam.fov*Math.PI/360)*cam.aspect, sx = hw*1.15*(1 - 2*u);
+    streak.material.opacity = (1 - u) * .9 * Math.min(1, u*10);
+    streak.position.set(sx, skyHeart.position.y + 6 + sx*12/hw, -200.5);
+    streak.scale.set(Math.min(60, hw*.9), 2.2, 1); streak.rotation.z = Math.atan(12/hw);
   } else streak.material.opacity = 0;
 
   // the saucer
@@ -786,8 +998,15 @@ function render(dt){
   ufo.rotation.z = -S.vx*.05; ufo.rotation.x = S.vz*.05; hullGrp.rotation.y = t*.6;
   hullGrp.userData.lights.rotation.y = -t*1.9;
   beam.scale.set(1, FLY_Y, 1); beam.position.y = -FLY_Y/2;
-  beam.material.opacity = .13 + Math.sin(t*5)*.015;
+  beam.material.opacity = .19 + Math.sin(t*5)*.02; TEX.beam.offset.x = t*.02;      // the shafts turn slowly
   hullGrp.visible = !(S.grace > 0 && Math.floor(S.grace*12) % 2 === 0);
+  // its glow beats with the heart; the dust drifts round in the beam
+  const pb = REDUCED ? 0 : (S.pulse || 0);
+  hullGrp.userData.aura.material.opacity = .3 + pb*.14; hullGrp.userData.edge.material.opacity = .34 + pb*.16;
+  motes.rotation.y = t*.22; motes.position.y = Math.sin(t*.7)*.3;
+  // a phone that had to drop to the low quality steps (autoLite) loses the extras
+  const low = ren.getPixelRatio() < PR0 - .01 && ren.getPixelRatio() <= 1;
+  if (low !== FX.low){ FX.low = low; motes.visible = lowStars.visible = !low; for (const m of floorBits) m.visible = !low; }
 
   // the pieces: pulse with the heartbeat; a found one flies up to the sky heart
   for (const s of shards){
@@ -800,12 +1019,13 @@ function render(dt){
     if (CFG.flicker && !u.got){
       const near = Math.hypot(s.position.x - S.x, s.position.z - S.z) < 6;
       const on = near || S.star >= 0 ? 1 : clamp01((S.pulse || 0) * 1.6);
-      u.crystal.visible = on > .15; u.halo.material.opacity = .35*on; u.light.intensity *= on;
-    } else if (EX){ u.crystal.visible = true; u.halo.material.opacity = .35; }     // a remix just left Part 3
+      u.crystal.visible = on > .15; u.halo.material.opacity = HALO*on; u.light.intensity *= on;
+    } else if (EX){ u.crystal.visible = true; u.halo.material.opacity = HALO; }     // a remix just left Part 3
     if (u.fly >= 0){
       const p = clamp01(u.fly / 2);
       skyHeart.getWorldPosition(V);
-      s.position.set(u.hx + (V.x - u.hx)*p*p, 1.2 + p*p*60, u.hz + (V.z - u.hz)*p*p);
+      // up over the trees and into the heart itself (it used to climb 60 m whatever the screen, past the heart and out of the top)
+      s.position.set(u.hx + (V.x - u.hx)*p*p, 1.2 + (V.y - 1.2)*p*p + 14*Math.sin(Math.PI*p), u.hz + (V.z - u.hz)*p*p);
       s.scale.setScalar(1 + p*2);
       if (p >= 1 && s.visible){ s.visible = false; }
     }
@@ -817,6 +1037,32 @@ function render(dt){
   if (S.end >= 0) mend = .8 + .2*smooth(clamp01((S.end - END.close) / (END.whole - END.close)));
   setMend(mend);
   const hb = S.end > END.whole ? 1 + Math.max(0, Math.sin((S.end - END.whole)*7))*.04 : 1;
+
+  // a found piece on its way up: bright, with a tail along its path as the camera sees it; when it arrives the heart swells
+  let fi = 0, arr = 0;
+  for (const s of shards){
+    const u = s.userData;
+    if (u.fly > 2 && u.fly < 2.8) arr = Math.max(arr, 1 - (u.fly - 2)/.8);
+    if (u.fly < 0 || u.fly >= 2 || !s.visible || fi >= FX.fly.length || (low && fi)) continue;
+    const f = FX.fly[fi++], F = f.userData, p = u.fly/2, e = cam.matrixWorld.elements;
+    f.visible = true; f.position.copy(s.position); f.scale.copy(s.scale);
+    // behind the trees while it is still among them, then over everything, the sky included
+    F.core.material.depthTest = F.tail.material.depthTest = F.flare.material.depthTest = p < .3;
+    F.core.rotation.y = u.crystal.rotation.y;
+    F.flare.quaternion.copy(cam.quaternion); F.flare.material.opacity = .5*(1 - p*.5);
+    skyHeart.getWorldPosition(V); FX.D.set(2*p*(V.x - u.hx), 2*p*(V.y - 1.2) + 14*Math.PI*Math.cos(Math.PI*p), 2*p*(V.z - u.hz));
+    const ang = Math.atan2(FX.D.x*e[0] + FX.D.y*e[1] + FX.D.z*e[2], FX.D.x*e[4] + FX.D.y*e[5] + FX.D.z*e[6]);
+    F.tail.quaternion.copy(cam.quaternion).multiply(FX.QZ.setFromAxisAngle(FX.AZ, -ang));
+    F.tail.scale.set(.8, Math.min(1, u.fly*4)*(1.5 + 5*p), 1); F.tail.material.opacity = .8*(1 - p*p);
+  }
+  for (; fi < FX.fly.length; fi++) FX.fly[fi].visible = false;
+  skyHeart.userData.halo.material.opacity += arr*.3;
+  for (const r of FX.rings){
+    if (!r.visible) continue;
+    const big = r.userData.big, u = (r.userData.t += dt) / (big ? .9 : .6);
+    if (u >= 1){ r.visible = false; continue; }
+    r.scale.setScalar(1 + (1 - (1 - u)*(1 - u))*(big ? 7 : 3.5)); r.material.opacity = (1 - u)*(1 - u)*.75;
+  }
 
   for (const p of petals){ if (!p.visible) continue; p.userData.p.rotation.y = t*2; p.position.y = 1.3 + Math.sin(t*2 + p.position.x)*.15; p.children[1].quaternion.copy(cam.quaternion); }
   for (const s of spark.children){
@@ -833,7 +1079,14 @@ function render(dt){
   const pitch = Math.atan2(V.y - LOOK.y, Math.hypot(V.z - LOOK.z, V.x - LOOK.x));
   const elev = cam.fov/2*Math.PI/180 - pitch - .1 - (cam.aspect < 1 ? (1 - cam.aspect)*.08 : 0), HD = 200;
   skyHeart.position.set(0, Math.tan(elev)*HD, -HD);
-  skyHeart.scale.setScalar(2*HD*Math.tan(.075) * hb);
+  // Whole, its point would reach the messages on a tall phone (they start 24% down, .205 rad under the top edge
+  // whatever the shape of the screen): there it is drawn smaller, so the point stays above them.
+  // In the ending the camera turns up to it and it is in the middle of the screen: full size again.
+  const fit0 = Math.min(1, (.197 - (cam.fov/2*Math.PI/180 - pitch - elev)) / .0765);
+  const fit = S.end >= 0 ? fit0 + (1 - fit0)*smooth(clamp01((S.end - END.look) / 2.4)) : fit0;
+  skyHeart.scale.setScalar(2*HD*Math.tan(.075) * fit * hb * (1 + arr*.06 + (S.end < 0 ? pb*.02 : 0)));     // it swells for a piece, and beats
+  lowSky.position.y = skyHeart.position.y;
+  lowSky.scale.x = Math.max(1, HD*Math.tan(cam.fov*Math.PI/360)*cam.aspect/140);     // a very wide screen: the ridge reaches both edges
   if (S.end >= 0){
     const c = smooth(clamp01((S.end - END.look) / 2.4));
     cam.position.set(V.x, V.y - c*4, V.z + c*2);

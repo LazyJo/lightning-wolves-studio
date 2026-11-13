@@ -267,6 +267,15 @@ let scene, cam, ren, sky, sea, seaGeo, ufo, beam, clockR, flashEl = $("flash");
 const glowMat = (color, opacity) => new THREE.MeshBasicMaterial({ color, transparent:true, opacity, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide });
 function radial(stops){ const cv = document.createElement("canvas"); cv.width = cv.height = 128; const x = cv.getContext("2d"), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
   stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(cv); }
+/* ---- the look: light, far things, marks (pictures only - the game never reads anything from here) ---- */
+const SUN_AZ = Math.atan2(SUN_DIR.x, -SUN_DIR.z);      // where the sun stands in the sky as built: 19 degrees right of straight ahead
+const hash = n => { const x = Math.sin(n*91.7 + 3.1)*24634.6345; return x - Math.floor(x); };   // for decoration only
+const beatPulse = t => REDUCED ? 0 : Math.exp(-((((t - GRID.t0) % BEAT) + BEAT) % BEAT)*4.5);   // 1 on the beat, gone before the next
+function canvasTex(w, h, draw){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); return new THREE.CanvasTexture(cv); }
+let sunL, farSea, lookT = 0;
+// a green heart with its own glow (the glyph is as big as it was: the sprite is 2 across where it was 1.4)
+const heartTex = () => canvasTex(128, 128, x => { x.font = "73px serif"; x.textAlign = "center"; x.fillStyle = "#7dff4d"; x.shadowColor = "#7dff4d"; x.shadowBlur = 16; x.fillText("\u2665", 64, 89); x.shadowBlur = 0; x.fillText("\u2665", 64, 89); });
+const softRing = new THREE.RingGeometry(.55, 1, 28).rotateX(-Math.PI/2);
 function buildSky(){
   const cv = document.createElement("canvas"); cv.width = 8; cv.height = 256; const x = cv.getContext("2d"), g = x.createLinearGradient(0, 0, 0, 256);
   g.addColorStop(0, "#120a1e"); g.addColorStop(.3, "#3a1a34"); g.addColorStop(.44, "#8a3a2a"); g.addColorStop(.49, "#ff8a3a"); g.addColorStop(.52, "#6a2a22"); g.addColorStop(1, "#1a0d10");
@@ -279,9 +288,49 @@ function buildSky(){
   sky.add(new THREE.Points(sg, new THREE.PointsMaterial({ color:0xffe8d0, size:1.3, sizeAttenuation:false, fog:false, transparent:true, opacity:.8 })));
   const sun = new THREE.Sprite(new THREE.SpriteMaterial({ map:radial([[0, "rgba(255,240,200,1)"], [.12, "rgba(255,190,90,1)"], [.3, "rgba(255,120,40,.55)"], [1, "rgba(255,80,20,0)"]]), fog:false, depthWrite:false, transparent:true }));
   sun.position.copy(SUN_DIR).multiplyScalar(700).setY(8); sun.scale.set(260, 260, 1); sky.add(sun);
+  // the sun itself, a disc inside its glow: the two sink with the SUNSET bar (dress())
+  const disc = new THREE.Sprite(new THREE.SpriteMaterial({ map:radial([[0, "rgba(255,252,232,1)"], [.5, "rgba(255,236,170,1)"], [.72, "rgba(255,196,96,1)"], [.8, "rgba(255,150,60,.5)"], [1, "rgba(255,120,40,0)"]]), fog:false, depthWrite:false, transparent:true }));
+  disc.position.copy(sun.position); disc.scale.set(52, 52, 1); sky.add(disc);
+  sun.renderOrder = -6; disc.renderOrder = -4; sky.userData.sun = [sun, disc];   // glow, clouds, disc, far islands: in that order
   const cm = new THREE.SpriteMaterial({ map:radial([[0, "rgba(90,30,30,.9)"], [.6, "rgba(70,25,30,.5)"], [1, "rgba(40,15,20,0)"]]), fog:false, depthWrite:false, transparent:true });
   for (let i = 0; i < 18; i++){ const a = Math.atan2(SUN_DIR.z, SUN_DIR.x) + (rnd(i*3.3) - .5)*1.6, r = 650;
-    const s = new THREE.Sprite(cm); s.position.set(Math.cos(a)*r, 40 + rnd(i*5.1)*80, Math.sin(a)*r); s.scale.set(220 + rnd(i)*200, 26 + rnd(i*2)*24, 1); sky.add(s); }
+    const s = new THREE.Sprite(cm); s.position.set(Math.cos(a)*r, 40 + rnd(i*5.1)*80, Math.sin(a)*r); s.scale.set(220 + rnd(i)*200, 26 + rnd(i*2)*24, 1); s.renderOrder = -5; sky.add(s); }
+  // far islands on the horizon, hazy ones behind dark ones: they stand still while the beach goes by
+  const isl = canvasTex(2048, 128, (x, w, h) => {
+    const ux = 2048/(2*690), uy = 128/36;                 // pixels per metre along the band and up it
+    for (const [n, col, k0, big] of [[10, "#8a3d28", 11, .62], [8, "#2a121c", 47, 1]]) for (let i = 0; i < n; i++){
+      const u = (i + .15 + hash(k0 + i)*.7)/n; if (Math.abs(u - .5) < .04) continue;        // the sun goes down into open sea
+      const cx = u*w, wid = (46 + hash(k0 + i*3)*80)*big, ht = (2.2 + hash(k0 + i*5)*2.6)*big;
+      x.fillStyle = x.strokeStyle = col; x.beginPath(); x.ellipse(cx, h, wid/2*ux, ht*uy, 0, Math.PI, 0); x.fill();
+      for (let p = 0, np = 1 + Math.floor(hash(k0 + i*7)*4); p < np; p++){
+        const px = cx + (hash(k0 + i*11 + p) - .5)*wid*.55*ux, ph = (8 + hash(k0 + i*13 + p)*7)*big, lean = (hash(k0 + i*17 + p) - .5)*7*big, tx = px + lean*ux, ty = h - ph*uy;
+        x.lineWidth = 1.5; x.beginPath(); x.moveTo(px, h - ht*uy*.5); x.quadraticCurveTo(px + lean*ux*.15, h - ph*uy*.55, tx, ty); x.stroke();
+        x.lineWidth = 1.2; for (let f = 0; f < 7; f++){ const a = Math.PI*(.04 + f/6*.92), fl = 4.2*big;
+          x.beginPath(); x.moveTo(tx, ty); x.quadraticCurveTo(tx + Math.cos(a)*fl*.6*ux, ty - Math.sin(a)*fl*uy - 1.2*big*uy, tx + Math.cos(a)*fl*ux, ty - Math.sin(a)*fl*.3*uy + 1.6*big*uy); x.stroke(); }
+      }
+    }
+  });
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(690, 690, 36, 40, 1, true, Math.PI - SUN_AZ - 1, 2), new THREE.MeshBasicMaterial({ map:isl, side:THREE.BackSide, transparent:true, fog:false, depthWrite:false }));
+  band.position.y = 14.6; band.renderOrder = -3; sky.add(band);
+  // the sea out to the horizon with the sun's road on it: it travels with the camera and the fog doesn't reach it
+  farSea = new THREE.Mesh(new THREE.CircleGeometry(640, 48).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({ fog:false, map:canvasTex(512, 512, (x, w) => {
+    const c = w/2, g = x.createRadialGradient(c, c, 0, c, c, c); g.addColorStop(0, "#441d2c"); g.addColorStop(.45, "#3a1a22"); g.addColorStop(1, "#3a1a22"); x.fillStyle = g; x.fillRect(0, 0, w, w);
+    for (const [half, a] of [[.26, .2], [.08, .45], [.03, .6]]){       // toward the top of the canvas = straight ahead; dress() turns it under the sun
+      const gr = x.createLinearGradient(0, c, 0, 0); gr.addColorStop(0, "rgba(255,138,58,0)"); gr.addColorStop(.3, "rgba(255,138,58," + a*.45 + ")"); gr.addColorStop(1, "rgba(255,176,96," + a + ")");
+      x.fillStyle = gr; x.beginPath(); x.moveTo(c, c); x.lineTo(c - Math.tan(half)*c, 0); x.lineTo(c + Math.tan(half)*c, 0); x.closePath(); x.fill(); }
+  }) }));
+  scene.add(farSea);
+}
+// the sky's side of a frame: where the sun stands for this game on this screen, and how low it is
+function dress(){
+  const cover = S.end >= END.flash, P = cover ? null : G; lookT = S.t;
+  const half = Math.atan(Math.tan(cam.fov*Math.PI/360)*cam.aspect);      // half of what the screen sees, side to side
+  const az = P === SURF ? 0 : P === CRAB ? .24 : Math.min(SUN_AZ, half*.55);
+  sky.rotation.y = SUN_AZ - az; sunL.position.set(Math.sin(az)*40, 6, -Math.cos(az)*40);
+  // the SUNSET bar, in the sky (the golden runs have no sunset; on the cover the sun is on the sea)
+  const up = GOLD ? .5 : cover ? 0 : 1 - clamp((S.t - Math.min(S.waited || 0, 12))/END_AT, 0, 1);
+  for (const s of sky.userData.sun) s.position.y = 8 + up*44;
+  farSea.visible = P !== CRAB; farSea.position.set(cam.position.x, -1.2, cam.position.z); farSea.rotation.y = -az;
 }
 function buildSea(w, d, cx, cz, parent){
   const geo = new THREE.PlaneGeometry(w, d, 60, 60); geo.rotateX(-Math.PI/2);
@@ -305,17 +354,28 @@ function drop(o){
   o.traverse(c => { if (c.isSprite) return; if (c.geometry) c.geometry.dispose();
     const m = c.material; if (m && !m.userData.keep){ if (m.map) m.map.dispose(); m.dispose(); } });
 }
+// one frond; a palm's eight are turned and set into a single crown, so a palm is two things to draw instead of nine
+const frond = (() => { const shape = new THREE.Shape(); shape.moveTo(0, 0); shape.quadraticCurveTo(.5, 1.4, 0, 3.2); shape.quadraticCurveTo(-.5, 1.4, 0, 0); return new THREE.ShapeGeometry(shape, 6); })();
+const _m = new THREE.Matrix4(), _m2 = new THREE.Matrix4(), _v = new THREE.Vector3();
+function buildCrown(k){
+  const src = frond.attributes.position, idx = frond.index, n = src.count, pos = new Float32Array(n*8*3), nor = new Float32Array(n*8*3), ind = [];
+  for (let i = 0; i < 8; i++){
+    _m.makeRotationY(i/8*Math.PI*2 + rnd(k + i)).multiply(_m2.makeRotationX(-Math.PI/2 + .55 + rnd(k*3 + i)*.4));
+    for (let j = 0; j < n; j++){ _v.fromBufferAttribute(src, j).applyMatrix4(_m).toArray(pos, (i*n + j)*3); _v.set(0, 0, 1).transformDirection(_m).toArray(nor, (i*n + j)*3); }
+    for (let j = 0; j < idx.count; j++) ind.push(idx.getX(j) + i*n);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.BufferAttribute(nor, 3)); g.setIndex(ind);
+  const crown = new THREE.Mesh(g, leafM); if (!REDUCED) crown.onBeforeRender = sway;
+  return crown;
+}
+// the palms move a little in the evening wind (only the ones on screen are asked)
+function sway(){ const x = this.matrixWorld.elements[12]; this.rotation.z = Math.sin(lookT*1.3 + x*.37)*.05; this.rotation.x = Math.sin(lookT*.9 + x*.21 + 1)*.04; }
 function buildPalm(h, lean, k){
   const g = new THREE.Group(), pts = [];
   for (let i = 0; i <= 6; i++){ const u = i/6; pts.push(new THREE.Vector3(Math.sin(u*1.4)*lean, u*h, Math.sin(u*2.1)*lean*.25)); }
   const tex = trunkTex.clone(); tex.needsUpdate = true; tex.repeat.set(1, h*1.6);
   g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, .22, 6), new THREE.MeshLambertMaterial({ map:tex })));
-  const crown = new THREE.Group(); crown.position.copy(pts[6]); g.add(crown);
-  for (let i = 0; i < 8; i++){
-    const shape = new THREE.Shape(); shape.moveTo(0, 0); shape.quadraticCurveTo(.5, 1.4, 0, 3.2); shape.quadraticCurveTo(-.5, 1.4, 0, 0);
-    const leaf = new THREE.Mesh(new THREE.ShapeGeometry(shape, 6), leafM);
-    const piv = new THREE.Group(); piv.rotation.y = i/8*Math.PI*2 + rnd(k + i); leaf.rotation.x = -Math.PI/2 + .55 + rnd(k*3 + i)*.4; piv.add(leaf); crown.add(piv);
-  }
+  const crown = buildCrown(k); crown.position.copy(pts[6]); g.add(crown);
   g.userData = { crown };
   return g;
 }
@@ -350,6 +410,9 @@ function buildUFO(){
     l.position.set(Math.sin(a)*1.08, .02, Math.cos(a)*1.08); g.add(l); }
   const b = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1, 20, 1, true), glowMat(C.glow, .22)); b.position.y = -.5; g.add(b);
   const pl = new THREE.PointLight(C.glow, 1.4, 12, 2); pl.position.y = -.6; g.add(pl);
+  // a soft light around the saucer: it reads against the dark sea and in front of the palms
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map:radial([[0, "rgba(190,255,140,.5)"], [.3, "rgba(125,255,77,.2)"], [1, "rgba(125,255,77,0)"]]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+  halo.scale.set(5.2, 3.4, 1); g.add(halo);
   g.userData.beam = b;
   return g;
 }
@@ -392,8 +455,12 @@ const HOP = {
   speed: t => 7 + 1.6*Math.min(1, t/60) + (GOLD ? 2.2*clamp((t - END_AT)/320, 0, 1) : 0),
   setup(){
     this.padM = new THREE.MeshLambertMaterial({ color:0x4a6a2a }); this.topM = new THREE.MeshLambertMaterial({ color:0x6a5a56, flatShading:true });
-    this.starM = new THREE.SpriteMaterial({ map:radial([[0, "#fff8d0"], [.3, "rgba(255,200,90,.9)"], [1, "rgba(255,140,40,0)"]]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
-    this.heartM = new THREE.SpriteMaterial({ map:(() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d"); x.font = "52px serif"; x.textAlign = "center"; x.fillStyle = "#7dff4d"; x.fillText("♥", 32, 50); return new THREE.CanvasTexture(cv); })(), transparent:true, depthWrite:false });
+    // a sun-star: the glow it had, with four points that turn
+    this.starM = new THREE.SpriteMaterial({ map:canvasTex(128, 128, x => { const g = x.createRadialGradient(64, 64, 0, 64, 64, 64); g.addColorStop(0, "#fff8d0"); g.addColorStop(.3, "rgba(255,200,90,.9)"); g.addColorStop(1, "rgba(255,140,40,0)");
+      x.fillStyle = g; x.fillRect(0, 0, 128, 128); x.globalCompositeOperation = "lighter"; x.fillStyle = "rgba(255,246,206,.9)"; x.translate(64, 64);
+      for (let i = 0; i < 4; i++){ x.rotate(Math.PI/2); x.beginPath(); x.moveTo(0, -8); x.quadraticCurveTo(12, -2.5, 62, 0); x.quadraticCurveTo(12, 2.5, 0, 8); x.closePath(); x.fill(); } }), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+    this.heartM = new THREE.SpriteMaterial({ map:heartTex(), transparent:true, depthWrite:false });
+    this.look();
     [this.padM, this.topM, this.starM, this.heartM].forEach(m => m.userData.keep = true);
     this.pads = '<button type="button" id="jp">&#9650; TAP = HOP &middot; HOLD = FLY</button>';
     $("pads").innerHTML = this.pads;
@@ -422,7 +489,58 @@ const HOP = {
       if (rnd(i*5.7) < .6){ const p = buildPalm(7 + rnd(i)*7, .6 + rnd(i*2)*1.4, i + 100); p.position.set(px, -.5, z); this.root.add(p); }
       else { const r = buildRock(1.2 + rnd(i)*2.5, i + 50); r.position.set(px, 0, z); this.root.add(r); } }
     const sand = new THREE.Mesh(new THREE.PlaneGeometry(L + 200, 60), new THREE.MeshLambertMaterial({ color:C.sand })); sand.rotation.x = -Math.PI/2; sand.position.set(L/2, .15, -45); this.root.add(sand);
-    this.sea = buildSea(L + 200, 120, L/2, -20, this.root);
+    this.sea = buildSea(300, 120, 0, -20, this.root); this.sea.material.specular.set(0xb87044);      // a piece of sea that goes along with the saucer (render): small waves instead of one 1.5 km sheet
+    // the arch is the goal: evening light stands behind it
+    const bea = new THREE.Sprite(new THREE.SpriteMaterial({ map:radial([[0, "rgba(255,226,160,.7)"], [.4, "rgba(255,160,70,.28)"], [1, "rgba(255,120,40,0)"]]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, fog:false }));
+    bea.scale.set(14, 22, 1); bea.position.set(this.goal, 7, -2.5); this.root.add(bea);
+  },
+  // ---- the look of Part 1 (pictures only) ----
+  look(){
+    // evening light on every top you can land on: one drawn thing for all the rocks, one for all the palm tops
+    const capM = new THREE.MeshBasicMaterial({ color:0xffb873 });
+    this.capR = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), capM, 24); this.capP = new THREE.InstancedMesh(new THREE.CylinderGeometry(1.17, 1.17, 1, 14), capM, 24);
+    for (const c of [this.capR, this.capP]){ c.frustumCulled = false; c.count = 0; this.root.add(c); }
+    // the saucer's streak: a ribbon through where it has just been, bright at the saucer and gone at the end
+    const N = this.trailN = 18, tg = new THREE.BufferGeometry(), tc = new Float32Array(N*6), ti = [];
+    this.trailP = new Float32Array(N*2).fill(NaN);
+    for (let i = 0; i < N; i++){ const f = Math.pow(1 - i/(N - 1), 1.5)*.5; tc.set([.5*f, f, .3*f, .5*f, f, .3*f], i*6); if (i < N - 1) ti.push(i*2, i*2 + 1, i*2 + 2, i*2 + 1, i*2 + 3, i*2 + 2); }
+    tg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(N*6), 3)); tg.setAttribute("color", new THREE.BufferAttribute(tc, 3)); tg.setIndex(ti);
+    this.trail = new THREE.Mesh(tg, new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide, fog:false }));
+    this.trail.frustumCulled = false; this.trail.visible = !REDUCED; this.root.add(this.trail);
+    // a splash where the saucer went in (drops: one drawn thing; a ring of foam on the sea), and a ring of light where it lands
+    const dg = new THREE.BufferGeometry(); dg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(16*3), 3));
+    this.drops = new THREE.Points(dg, new THREE.PointsMaterial({ map:radial([[0, "rgba(255,255,255,1)"], [.5, "rgba(255,226,210,.6)"], [1, "rgba(255,200,180,0)"]]), color:0xffe8d8, size:.6, transparent:true, depthWrite:false }));
+    this.foam = new THREE.Mesh(softRing, new THREE.MeshBasicMaterial({ color:0xffe8d8, transparent:true, depthWrite:false, side:THREE.DoubleSide }));
+    this.puff = new THREE.Mesh(softRing, glowMat(0xd8ffb0, .6));
+    for (const o of [this.drops, this.foam, this.puff]){ o.frustumCulled = false; o.visible = false; this.root.add(o); }
+    this.spT = this.puT = -1;
+  },
+  dress(dt, t){
+    // light on the tops near the saucer
+    let nr = 0, np = 0;
+    for (let i = Math.max(0, S.last - 4), e = Math.min(this.plat.length, S.last + 14); i < e; i++){ const p = this.plat[i]; if (GOLD && !p.ms) continue;
+      if (p.kind === "rock" && nr < 24) this.capR.setMatrixAt(nr++, _m.makeScale(p.w + .04, .07, 2.44).setPosition(p.x, p.y + .02, 0));
+      else if (p.kind === "palm" && np < 24) this.capP.setMatrixAt(np++, _m.makeScale(1, .07, 1).setPosition(p.x + .3, p.y + .02, 0)); }
+    this.capR.count = nr; this.capP.count = np; this.capR.instanceMatrix.needsUpdate = this.capP.instanceMatrix.needsUpdate = true;
+    // the streak: a new point every .4 m of flight; put back on a rock it starts again
+    const T = this.trailP, N = this.trailN, ux = ufo.position.x, uy = ufo.position.y, d = Math.hypot(ux - T[2], uy - T[3]);
+    T[0] = ux; T[1] = uy;
+    if (!(d <= 4)) for (let i = 1; i < N; i++){ T[i*2] = ux; T[i*2 + 1] = uy; }
+    else if (d > .4) T.copyWithin(2, 0, N*2 - 2);
+    const tp = this.trail.geometry.attributes.position.array;
+    for (let i = 0; i < N; i++){ const a = Math.max(0, i - 1)*2, b = Math.min(N - 1, i + 1)*2, dx = T[a] - T[b], dy = T[a + 1] - T[b + 1], l = Math.hypot(dx, dy) || 1, w = .3*(1 - i/N);
+      tp[i*6] = T[i*2] - dy/l*w; tp[i*6 + 1] = T[i*2 + 1] + dx/l*w; tp[i*6 + 3] = T[i*2] + dy/l*w; tp[i*6 + 4] = T[i*2 + 1] - dx/l*w; tp[i*6 + 2] = tp[i*6 + 5] = -.25; }
+    this.trail.geometry.attributes.position.needsUpdate = true;
+    // a fall: the game has already put the saucer back on its rock, so the splash goes where it was a frame ago
+    if (S.falls > (this.fell || 0)){ this.spT = 0; this.spX = this.lastX; this.spY = this.seaLevel(t) + .25; }
+    if (S.ground && this.wasGround === false && !(S.inv > .9)){ this.puT = 0; this.puff.position.set(S.x, S.y - .4, 0); }
+    this.fell = S.falls; this.lastX = S.x; this.wasGround = S.ground;
+    if (this.spT >= 0){ const u = this.spT += dt, a = this.drops.geometry.attributes.position.array;
+      for (let i = 0; i < 16; i++){ a[i*3] = this.spX + (hash(i) - .5)*5*u; a[i*3 + 1] = this.spY + (5 + hash(i*3)*5)*u - 11*u*u; a[i*3 + 2] = (hash(i*7) - .5)*1.5; }
+      this.drops.geometry.attributes.position.needsUpdate = true; this.drops.material.opacity = clamp(1.5 - u*1.7, 0, 1); this.drops.visible = !REDUCED;
+      this.foam.position.set(this.spX, this.spY, 0); this.foam.scale.setScalar(1 + u*4); this.foam.material.opacity = clamp(.9 - u, 0, .9); this.foam.visible = true;
+      if (u > .9){ this.spT = -1; this.drops.visible = this.foam.visible = false; } }
+    if (this.puT >= 0){ const u = this.puT += dt; this.puff.scale.setScalar(1 + u*5); this.puff.material.opacity = clamp(.55 - u*2.2, 0, 1); this.puff.visible = u < .25; if (u >= .25) this.puT = -1; }
   },
   // one rock / palm / the arch; returns what it built (endless takes it away again)
   platMesh(p, i){
@@ -436,7 +554,7 @@ const HOP = {
     return out;
   },
   star(a, b){
-    const s = new THREE.Sprite(b.heart ? this.heartM : this.starM); s.scale.setScalar(b.heart ? 1.4 : 1.3); s.position.set((a.x + a.w/2 + b.x - b.w/2)/2, Math.max(a.y, b.y) + 2.2, 0);
+    const s = new THREE.Sprite(b.heart ? this.heartM : this.starM); s.scale.setScalar(b.heart ? 2 : 1.3); s.position.set((a.x + a.w/2 + b.x - b.w/2)/2, Math.max(a.y, b.y) + 2.2, 0);
     s.userData.heart = !!b.heart; this.root.add(s); return s;
   },
   // endless/remix: the beach never ends - the course is made as you go and the dusk behind moves along
@@ -447,7 +565,7 @@ const HOP = {
       else { o = buildRock(1.2 + rnd(i)*2.5, i + 50); o.position.set(ox, 0, z); }
       o.userData.ox = ox; this.root.add(o); this.bg.push(o); }
     this.sand = new THREE.Mesh(new THREE.PlaneGeometry(460, 60), new THREE.MeshLambertMaterial({ color:C.sand })); this.sand.rotation.x = -Math.PI/2; this.sand.position.set(100, .15, -45); this.root.add(this.sand);
-    this.sea = buildSea(400, 120, 100, -20, this.root);
+    this.sea = buildSea(300, 120, 0, -20, this.root); this.sea.material.specular.set(0xb87044);
   },
   course(){
     this.plat.forEach(p => p.ms && p.ms.forEach(drop)); this.stars.forEach(s => this.root.remove(s));
@@ -525,10 +643,12 @@ const HOP = {
     // a phone: back and ahead enough to see the next rock when you jump (6.3 m ahead of the saucer)
     const pz = portrait ? Math.max(26, 6.3/(Math.tan(cam.fov*Math.PI/360)*cam.aspect)) : 19, lead = portrait ? 6.3 - 1.6 : 6;
     cam.position.set(S.x + lead, 4.6 + S.y*.3, pz); cam.lookAt(S.x + lead, 2.8 + S.y*.25, 0);
-    if (GOLD){ this.sea.position.x = Math.floor(S.x/20)*20 + 100; this.sand.position.x = S.x + 100;
+    this.sea.position.x = Math.floor(S.x/15)*15 + 15;      // in steps of three of its squares, so the waves don't jump
+    if (GOLD){ this.sand.position.x = S.x + 100;
       this.bg.forEach(o => { o.position.x = S.x - 60 + ((o.userData.ox - S.x + 60) % 200 + 200) % 200; }); }
     this.sea.position.y = this.seaLevel(t); waveSea(this.sea, t);
-    this.stars.forEach((s, i) => { s.material.rotation = s.userData.heart ? 0 : t; s.scale.setScalar((s.userData.heart ? 1.4 : 1.2) + Math.sin(t*6 + i)*.15); });
+    this.stars.forEach((s, i) => { s.material.rotation = s.userData.heart ? 0 : t; s.scale.setScalar((s.userData.heart ? 2 : 1.2) + Math.sin(t*6 + i)*.15); });
+    this.dress(dt, t);
   }
 };
 
@@ -542,9 +662,11 @@ const CRAB = {
     sand.rotation.x = -Math.PI/2; sand.position.set(0, .05, 0); this.root.add(sand);
     const wet = new THREE.Mesh(new THREE.PlaneGeometry(80, 4), new THREE.MeshLambertMaterial({ color:0x3a2430 })); wet.rotation.x = -Math.PI/2; wet.position.set(0, .07, -18); this.root.add(wet);
     this.arch = buildArch(); this.arch.position.set(0, 0, ARCH_Z); this.arch.scale.setScalar(.7); this.root.add(this.arch);
-    [[-11, -6, 9], [12, -9, 11], [-15, 4, 8], [16, 3, 10], [-7, -14, 7], [9, -15, 8]].forEach(([x, z, h], i) => { const p = buildPalm(h, .8 + rnd(i)*.8, i); p.position.set(x, 0, z); this.root.add(p); });
-    [[-17, 8], [17, 7], [-6, 13], [6, 12.5]].forEach(([x, z], i) => { const b = buildBush(i); b.position.set(x, 0, z); b.scale.setScalar(1.6); this.root.add(b); });
-    [[-19, -2, 2.4], [19, -5, 2], [-14, 10, 1.6]].forEach(([x, z, s], i) => { const r = buildRock(s, i); r.position.set(x, 0, z); this.root.add(r); });
+    const PALMS = [[-11, -6, 9], [12, -9, 11], [-15, 4, 8], [16, 3, 10], [-7, -14, 7], [9, -15, 8]], BUSHES = [[-17, 8], [17, 7], [-6, 13], [6, 12.5]], ROCKS = [[-19, -2, 2.4], [19, -5, 2], [-14, 10, 1.6]];
+    PALMS.forEach(([x, z, h], i) => { const p = buildPalm(h, .8 + rnd(i)*.8, i); p.position.set(x, 0, z); this.root.add(p); });
+    BUSHES.forEach(([x, z], i) => { const b = buildBush(i); b.position.set(x, 0, z); b.scale.setScalar(1.6); this.root.add(b); });
+    ROCKS.forEach(([x, z, s], i) => { const r = buildRock(s, i); r.position.set(x, 0, z); this.root.add(r); });
+    this.look(sand, PALMS, BUSHES, ROCKS);
     // crabs: small, big (two hits) and fast sand-runners; built once, reused
     this.pool = [];
     const shell = c => new THREE.MeshLambertMaterial({ color:c, flatShading:true });
@@ -567,6 +689,71 @@ const CRAB = {
     $("gwrap").classList.remove("hid"); $("gl").textContent = "BEAM";
     $("awrap").classList.remove("hid"); $("arch").innerHTML = "<i></i>".repeat(SLOTS);
     this.ray = new THREE.Raycaster(); this.plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -.4);
+    // (look) every beam shot pulls a streak, and a crab that is beamed leaves a flash
+    const tailG = new THREE.CylinderGeometry(.16, .03, 1, 6, 1, true), tailM = glowMat(C.glow, .4);
+    for (const b of this.bolts){ b.tail = new THREE.Mesh(tailG, tailM); b.m.add(b.tail); }
+    const shadeM = new THREE.MeshBasicMaterial({ map:radial([[0, "rgba(14,4,10,.62)"], [.5, "rgba(14,4,10,.42)"], [1, "rgba(14,4,10,0)"]]), transparent:true, depthWrite:false });
+    this.shade = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI/2), shadeM, this.pool.length); this.shade.frustumCulled = false; this.shade.count = 0; this.root.add(this.shade);
+    const popM = new THREE.SpriteMaterial({ map:radial([[0, "rgba(255,255,236,1)"], [.25, "rgba(200,255,150,.7)"], [.5, "rgba(125,255,77,.25)"], [1, "rgba(125,255,77,0)"]]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
+    this.pops = []; for (let i = 0; i < 5; i++){ const m = new THREE.Sprite(popM.clone()); m.visible = false; this.root.add(m); this.pops.push({ m, t:-1 }); }
+    this.popped = new WeakSet();
+  },
+  // ---- the look of Part 2 (pictures only) ----
+  look(sand, PALMS, BUSHES, ROCKS){
+    // sand with ripples: cooler and wetter toward the sea, darker at the sides
+    const rip = canvasTex(256, 256, (x, w) => { const im = x.createImageData(w, w), d = im.data, T = Math.PI*2/w;
+      for (let j = 0; j < w; j++) for (let i = 0; i < w; i++){
+        const v = .9 + .06*Math.sin(j*T*7 + 1.3*Math.sin(i*T*2) + .7*Math.sin((i + j)*T*3)) + .03*Math.sin(i*T*5 + j*T*11) + (hash(i*.37 + j*57.3) - .5)*.07;
+        const o = (j*w + i)*4, c = Math.round(clamp(v, 0, 1)*255); d[o] = d[o + 1] = d[o + 2] = c; d[o + 3] = 255; }
+      x.putImageData(im, 0, 0); });
+    rip.wrapS = rip.wrapT = THREE.RepeatWrapping; rip.repeat.set(8, 4);
+    sand.material.map = rip; sand.material.vertexColors = true;
+    const sp = sand.geometry.attributes.position, sc = new Float32Array(sp.count*3);
+    for (let i = 0; i < sp.count; i++){ const x = sp.getX(i), z = -sp.getY(i);          // the plane lies down: its y is the world's -z
+      const sea = clamp((-6 - z)/13, 0, 1), side = clamp((Math.abs(x) - 13)/16, 0, 1), k = 1.08 - side*.4;
+      sc.set([k*(1 - sea*.12), k*(1 - sea*.05), k*(1 + sea*.55)], i*3); }
+    sand.geometry.setAttribute("color", new THREE.BufferAttribute(sc, 3));
+    // the long evening shadows of the palms, the rocks, the bushes and the arch, all on one sheet
+    const W = 52, sh = canvasTex(512, 512, (x, w) => { const X = v => (v + W/2)/W*w, Z = v => (v + 24)/W*w, m = w/W, dx = -.24, dz = .97, rot = Math.atan2(dz, dx);
+      x.fillStyle = x.strokeStyle = x.shadowColor = "#0e040a"; x.shadowBlur = 7; x.lineCap = "round";
+      PALMS.forEach(([px, pz, h], k) => { const L = h*1.45, ex = px + dx*L, ez = pz + dz*L;
+        x.lineWidth = .5*m; x.beginPath(); x.moveTo(X(px), Z(pz)); x.lineTo(X(ex), Z(ez)); x.stroke();
+        for (let f = 0; f < 8; f++){ const a = f/8*Math.PI*2 + hash(f + k*9), cx = Math.cos(a)*1.3, cz = Math.sin(a)*2;
+          x.beginPath(); x.ellipse(X(ex + cx), Z(ez + cz), 1.5*m, .4*m, Math.atan2(cz, cx), 0, 7); x.fill(); } });
+      ROCKS.forEach(([rx, rz, r]) => { x.beginPath(); x.ellipse(X(rx + dx*r*1.3), Z(rz + dz*r*1.3), r*2.1*m, r*1.05*m, rot, 0, 7); x.fill(); });
+      BUSHES.forEach(([bx, bz]) => { x.beginPath(); x.ellipse(X(bx + dx*1.6), Z(bz + dz*1.6), 2.6*m, 1.3*m, rot, 0, 7); x.fill(); });
+      x.lineWidth = 1.3*m; x.lineCap = "butt"; x.beginPath();                    // the arch: two legs and the stone across
+      for (const lx of [-1.7, 1.7]){ x.moveTo(X(lx), Z(ARCH_Z + .4)); x.lineTo(X(lx + dx*4.4), Z(ARCH_Z + dz*4.4)); }
+      x.moveTo(X(-2.7 + dx*4.6), Z(ARCH_Z + dz*4.6)); x.lineTo(X(2.7 + dx*4.6), Z(ARCH_Z + dz*4.6)); x.stroke(); });
+    const shadow = new THREE.Mesh(new THREE.PlaneGeometry(W, W).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({ map:sh, transparent:true, opacity:.36, depthWrite:false }));
+    shadow.position.set(0, .09, 2); this.root.add(shadow);
+    // the surf: a lace of foam that runs up the wet sand with the swell of every bar - the crabs come out of it
+    const lace = this.laceT = canvasTex(256, 64, (x, w, h) => { const im = x.createImageData(w, h), d = im.data, T = Math.PI*2/w;
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++){ const edge = 22 + 15*Math.pow(Math.abs(Math.sin(i*T*2 + .5*Math.sin(i*T*3))), .6) + 3*Math.sin(i*T*9 + 1);   // rounded tongues of foam
+        const a = clamp((edge - j)/9, 0, 1)*clamp(j/10, 0, 1)*(.5 + .5*hash(i*1.7 + j*31.1)) + (j > edge && j < edge + 14 && hash(i*3.3 + j*7.7) > .9 ? .5 : 0);
+        const o = (j*w + i)*4; d[o] = 255; d[o + 1] = 234; d[o + 2] = 222; d[o + 3] = Math.round(clamp(a, 0, 1)*255); }
+      x.putImageData(im, 0, 0); });
+    lace.wrapS = THREE.RepeatWrapping; lace.repeat.set(6, 1);
+    this.surf = new THREE.Mesh(new THREE.PlaneGeometry(84, 3.4).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({ map:lace, transparent:true, opacity:.8, depthWrite:false }));
+    this.surf.position.set(0, .11, -18.6); this.root.add(this.surf);
+    this.sea.material.specular.set(0x8a5230);
+    // the saucer's light on the sand round the arch: green while the arch is free, redder with every crab on it
+    this.glow = new THREE.Mesh(new THREE.PlaneGeometry(14, 14).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({ map:radial([[0, "rgba(255,255,255,.5)"], [.4, "rgba(255,255,255,.22)"], [1, "rgba(255,255,255,0)"]]), color:C.glow, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+    this.glow.position.set(0, .12, ARCH_Z - .8); this.root.add(this.glow);
+  },
+  dress(dt, t){
+    // a shadow under every crab on the sand (one drawn thing); a crab in the air leaves a smaller one behind
+    let n = 0;
+    for (const c of this.crabs){ if (c.slot >= 0) continue; const s = c.g.scale.x, u = Math.max(0, c.up), k = 1 - u*1.5; if (k <= 0) continue;
+      this.shade.setMatrixAt(n++, _m.makeScale(2.5*s*k, 1, 1.8*s*k).setPosition(c.x - .1*s, .1, c.z + .32*s - u*16)); }
+    this.shade.count = n; this.shade.instanceMatrix.needsUpdate = true;
+    for (const c of this.crabs) if (c.up >= 0 && !this.popped.has(c)){ this.popped.add(c); const p = this.pops.find(p => p.t < 0); if (p){ p.t = 0; p.m.position.set(c.x, .9, c.z); } }
+    for (const p of this.pops) if (p.t >= 0){ p.t += dt; p.m.visible = p.t < .3; p.m.scale.setScalar(2 + p.t*12); p.m.material.opacity = clamp(1 - p.t/.3, 0, 1); if (p.t >= .3) p.t = -1; }
+    for (const b of this.bolts) if (b.on){ const L = Math.min(5, b.d); b.tail.scale.y = L + .01; b.tail.position.y = -.8 - L/2; }
+    const sw = Math.max(0, Math.sin((((t - GRID.t0) % BAR) / BAR)*Math.PI*2));
+    this.surf.position.z = -18.9 + sw*1.3; this.laceT.offset.x = t*.012;      // on the wet sand, just clear of the sea's own waves
+    const danger = REMIX ? 0 : clamp(S.onArch/(SLOTS - 1), 0, 1), m = this.glow.material;
+    m.color.setRGB(.49 + danger*.51, 1 - danger*.72, .3 - danger*.12); m.opacity = .55 + danger*.25 + beatPulse(t)*.22;
   },
   reset(){
     Object.assign(S, { hearts:0, maxHearts:0, energy:100, hot:false, onArch:0, beamed:0, combo:0, best:0, nextSpawn:barT(1), k:0, shots:0, onBeat:0, ringT:0, tilt:0 });
@@ -683,6 +870,7 @@ const CRAB = {
     const portrait = cam.aspect < .8;
     cam.position.set(0, portrait ? 40 : 25, portrait ? 21 : 17); cam.lookAt(0, 0, portrait ? -3 : -4);
     waveSea(this.sea, t, (x, z) => Math.max(0, Math.sin((((t - GRID.t0) % BAR) / BAR)*Math.PI*2))*.35);
+    this.dress(dt, t);
   }
 };
 
@@ -704,14 +892,37 @@ const SURF = {
     const waveM = new THREE.MeshPhongMaterial({ color:0x5a3a6a, emissive:0x2a1430, specular:0xffb070, shininess:40, flatShading:true, transparent:true, opacity:.92 });
     const foamM = new THREE.MeshBasicMaterial({ color:0xffe8d8 });
     const lightM = new THREE.SpriteMaterial({ map:radial([[0, "#fffbe0"], [.3, "rgba(160,255,110,.9)"], [1, "rgba(80,255,40,0)"]]), transparent:true, depthWrite:false, blending:THREE.AdditiveBlending });
-    const heartM = new THREE.SpriteMaterial({ map:(() => { const cv = document.createElement("canvas"); cv.width = cv.height = 64; const x = cv.getContext("2d"); x.font = "52px serif"; x.textAlign = "center"; x.fillStyle = "#7dff4d"; x.fillText("♥", 32, 50); return new THREE.CanvasTexture(cv); })(), transparent:true, depthWrite:false });
+    const heartM = new THREE.SpriteMaterial({ map:heartTex(), transparent:true, depthWrite:false });
+    // ---- the look of Part 3 (pictures only) ----
+    // a rock: an edge of evening light all round it and a ring of foam where it stands in the sea
+    const edgeM = new THREE.MeshBasicMaterial({ color:0xff9050, side:THREE.BackSide });
+    const ringG = new THREE.PlaneGeometry(3.3, 3.3).rotateX(-Math.PI/2), ringM = new THREE.MeshBasicMaterial({ transparent:true, depthWrite:false, map:canvasTex(128, 128, x => { x.translate(64, 64);
+      for (let i = 0; i < 44; i++){ const a = i/44*Math.PI*2, r = 43 + hash(i*3)*9; x.fillStyle = "rgba(255,236,224," + (.3 + hash(i*5)*.4).toFixed(2) + ")"; x.beginPath(); x.ellipse(Math.cos(a)*r, Math.sin(a)*r, 8 + hash(i)*6, 4.5, a + Math.PI/2, 0, 7); x.fill(); } }) });
+    // a wave: spray in the light over its crest
+    const crestG = new THREE.PlaneGeometry(LANE*3.4 + 1.4, 1.8), crestM = new THREE.MeshBasicMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, opacity:.55, map:canvasTex(256, 64, (x, w, h) => {
+      const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,214,190,0)"); g.addColorStop(.5, "rgba(255,228,208,.9)"); g.addColorStop(1, "rgba(255,214,190,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+      x.globalCompositeOperation = "destination-in"; const e = x.createLinearGradient(0, 0, w, 0); e.addColorStop(0, "rgba(0,0,0,0)"); e.addColorStop(.1, "#000"); e.addColorStop(.9, "#000"); e.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = e; x.fillRect(0, 0, w, h); }) });
+    // the three lanes: dashes of foam that lie on the sea, so they rush past
+    const laneT = this.laneT = canvasTex(64, 128, x => { for (const u of [3, 22, 42, 61]){ const g = x.createLinearGradient(0, 6, 0, 70); g.addColorStop(0, "rgba(255,226,206,0)"); g.addColorStop(.3, "rgba(255,226,206,.9)"); g.addColorStop(.7, "rgba(255,226,206,.9)"); g.addColorStop(1, "rgba(255,226,206,0)");
+      x.fillStyle = g; x.fillRect(u - 1.3, 6, 2.6, 64); } });
+    laneT.wrapT = THREE.RepeatWrapping; laneT.repeat.set(1, 20); laneT.anisotropy = 4;
+    this.lanes = new THREE.Mesh(new THREE.PlaneGeometry(LANE*3 + .6, 140).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({ map:laneT, transparent:true, opacity:.32, depthWrite:false, blending:THREE.AdditiveBlending }));
+    // the saucer's wake
+    this.wake = new THREE.Mesh(new THREE.PlaneGeometry(3.6, 8).rotateX(-Math.PI/2), new THREE.MeshBasicMaterial({ transparent:true, depthWrite:false, blending:THREE.AdditiveBlending, map:canvasTex(64, 128, x => {
+      const g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, "rgba(255,236,220,.9)"); g.addColorStop(1, "rgba(255,236,220,0)"); x.strokeStyle = g; x.lineWidth = 4; x.lineCap = "round";
+      for (const e of [5, 59]){ x.beginPath(); x.moveTo(32, 4); x.quadraticCurveTo(32 + (e - 32)*.75, 40, e, 124); x.stroke(); }
+      x.lineWidth = 9; x.globalAlpha = .3; x.beginPath(); x.moveTo(32, 4); x.lineTo(32, 90); x.stroke(); }) }));
+    this.root.add(this.lanes, this.wake);
+    this.sea.material.specular.set(0x8a5230);      // the sun's road on the sea, soft enough that the green lights stay green on it
     this.make = {
-      rock: () => { const m = new THREE.Mesh(rockG, rockM); m.scale.set(1.1, .9, 1); return m; },
+      rock: () => { const m = new THREE.Mesh(rockG, rockM); m.scale.set(1.1, .9, 1);
+        const e = new THREE.Mesh(rockG, edgeM); e.scale.setScalar(1.1); const f = new THREE.Mesh(ringG, ringM); f.position.y = .14; m.add(e, f); return m; },
       wave: () => { const g = new THREE.Group(); const w = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, LANE*3.4, 16, 1, false, 0, Math.PI), waveM);
         w.rotation.z = Math.PI/2; w.rotation.y = Math.PI/2; w.scale.set(1, 1, .9); g.add(w);
-        const f = new THREE.Mesh(new THREE.BoxGeometry(LANE*3.4, .18, .5), foamM); f.position.y = 1.4; g.add(f); return g; },
+        const f = new THREE.Mesh(new THREE.BoxGeometry(LANE*3.4, .18, .5), foamM); f.position.y = 1.4; g.add(f);
+        const c = new THREE.Mesh(crestG, crestM); c.position.set(0, 1.5, .3); g.add(c); return g; },
       light: () => { const s = new THREE.Sprite(lightM); s.scale.setScalar(1.4); return s; },
-      heart: () => { const s = new THREE.Sprite(heartM); s.scale.setScalar(1.5); return s; }
+      heart: () => { const s = new THREE.Sprite(heartM); s.scale.setScalar(2.15); return s; }
     };
     this.pads = '<button type="button" data-a="-1">&#9664;</button><button type="button" data-a="0">&#9650;</button><button type="button" data-a="1">&#9654;</button>';
     $("pads").innerHTML = this.pads;
@@ -770,6 +981,9 @@ const SURF = {
     this.sea.position.z = Math.floor(S.z / 40)*40 - 150; waveSea(this.sea, t);
     this.side.forEach(g => { if (g.position.z - S.z > 20) g.position.z -= 26*28; });
     this.items.forEach(it => { if (it.kind === "light") it.m.scale.setScalar(1.3 + Math.sin(t*8)*.15); });
+    // (look) the lane dashes stay where they are on the sea; the wake goes with the saucer and lifts off with it
+    this.lanes.position.set(0, .45, S.z - 58); this.laneT.offset.y = -((S.z + 12)/7 % 1);
+    this.wake.position.set(S.lx, .47, S.z + 4.5); this.wake.material.opacity = clamp(1 - S.y*2.5, 0, 1)*.36;
   }
 };
 
@@ -848,7 +1062,7 @@ function boot(){
   scene = new THREE.Scene(); scene.background = new THREE.Color(0x1a0d14); scene.fog = new THREE.Fog(0x3a1a22, 50, 300);
   cam = new THREE.PerspectiveCamera(PART === 1 ? 42 : PART === 2 ? 52 : 62, innerWidth/innerHeight, .1, 2000);
   scene.add(new THREE.HemisphereLight(0xffb080, 0x1a0a14, .75));
-  const sunL = new THREE.DirectionalLight(0xffa060, .9); sunL.position.set(-10, 6, -40); scene.add(sunL);
+  sunL = new THREE.DirectionalLight(0xffa060, .9); sunL.position.set(-10, 6, -40); scene.add(sunL);
   buildSky();
   ufo = buildUFO(); beam = ufo.userData.beam; scene.add(ufo);
   coverG = buildCover();
@@ -887,7 +1101,7 @@ function frame(){
     const dt = Math.min(.05, clockR ? clockR.getDelta() : .016);
     if (S.started){ synthBeat(); if (!S.finished) update(dt); if (!S.done || S.end >= 0) hud(); }
     if (S.end >= 0) renderCover(dt); else G.render(dt, Math.max(0, S.t));
-    sky.position.copy(cam.position);
+    sky.position.copy(cam.position); dress();
     ren.render(scene, cam);
   } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
   requestAnimationFrame(frame);

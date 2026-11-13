@@ -285,7 +285,7 @@ function buildSky(){
   const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
   skyM.add(new THREE.Points(sg, new THREE.PointsMaterial({ size:1.4, sizeAttenuation:false, color:0xd8c8ff, fog:false })));
   const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map:radial([[0, "rgba(255,240,255,1)"], [.42, "rgba(240,220,255,1)"], [.46, "rgba(200,140,255,.35)"], [1, "rgba(120,60,220,0)"]]), fog:false, depthWrite:false }));
-  moon.position.set(-120, 150, -380); moon.scale.setScalar(110); skyM.add(moon);
+  moon.position.set(-120, 150, -380); moon.scale.setScalar(110); skyM.add(moon); skyM.userData.moon = moon;
 }
 // building fronts: rows of windows, some lit warm, some cyan, some pink
 function windowTex(k){
@@ -940,6 +940,141 @@ const KING = {
 const GAMES = { sky:SKY, roof:ROOF, king:KING };
 function switchTo(name){ G = GAMES[name]; for (const g of Object.values(GAMES)) g.root.visible = g === G; camInit = false; ME.visible = name === "sky" || name === "king"; BIKE.visible = name === "roof"; }
 
+/* ---------------- the look of Parts 1 and 3 ----------------
+   Light and depth only: nothing in here is read by the games, and nothing here moves what they move. It is built
+   once (FX.build) and drawn from render() (FX.frame). Part 2, Rooftop Run, keeps its own look: all of this is off
+   while G === ROOF. Decoration rolls its own dice (hash of an index) - never the games' rnd(k++) counters.
+     the sky    a big moon low over the end of the street, forks of lightning in the storm and in the King's hooks
+                (kept below the HUD's rows)
+     Part 1     an outline of light on crawlers, swarms and brutes; a ring where one bursts; lit roof tops below; a wake
+                behind the saucer; a beam of light on the storm crystal
+     Part 3     the King outlined and lit: eyes, crown tips, a flash when he is hit, a gold reticle on the open core;
+                searchlights behind him, traffic on the street far below, lit roofs for Zirka, a beam under the saucer */
+const hash = n => { const x = Math.sin(n*91.7 + 13.1)*15731.743; return x - Math.floor(x); };
+const FX = {
+  build(){
+    const ADD = THREE.AdditiveBlending;
+    const cvs = (w, h) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return [c, c.getContext("2d")]; };
+    const grad = stops => { const [c, x] = cvs(8, 64), g = x.createLinearGradient(0, 0, 0, 64); stops.forEach(([o, a]) => g.addColorStop(o, "rgba(255,255,255," + a + ")"));
+      x.fillStyle = g; x.fillRect(0, 0, 8, 64); return new THREE.CanvasTexture(c); };
+    const lit = (map, color, opacity, more) => new THREE.MeshBasicMaterial(Object.assign({ map, color, transparent:true, opacity, blending:ADD, depthWrite:false, side:THREE.DoubleSide }, more));
+
+    /* --- the sky --- */
+    { const [c, x] = cvs(256, 256);
+      let g = x.createRadialGradient(128, 128, 60, 128, 128, 128); g.addColorStop(0, "rgba(190,110,255,.5)"); g.addColorStop(.3, "rgba(150,70,255,.2)"); g.addColorStop(1, "rgba(120,60,220,0)");
+      x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+      g = x.createRadialGradient(108, 104, 6, 128, 128, 64); g.addColorStop(0, "#dfaaf0"); g.addColorStop(.55, "#a968e2"); g.addColorStop(1, "#7440cc");
+      x.fillStyle = g; x.beginPath(); x.arc(128, 128, 64, 0, 7); x.fill();
+      x.save(); x.beginPath(); x.arc(128, 128, 64, 0, 7); x.clip();
+      for (let i = 0; i < 10; i++){ x.fillStyle = "rgba(90,45,170," + (.1 + hash(i)*.14).toFixed(3) + ")"; x.beginPath(); x.arc(128 + (hash(i*2.3) - .5)*104, 128 + (hash(i*3.7) - .5)*104, 6 + hash(i*5.1)*17, 0, 7); x.fill(); }
+      x.restore();
+      // thin clouds drifting across it
+      for (let i = 0; i < 4; i++){ const y = 122 + i*16 + hash(i*7)*8, w = 62 + hash(i*9)*60, x0 = 128 + (hash(i*11) - .5)*80, cg = x.createLinearGradient(x0 - w, 0, x0 + w, 0);
+        cg.addColorStop(0, "rgba(30,12,56,0)"); cg.addColorStop(.5, "rgba(30,12,56,.6)"); cg.addColorStop(1, "rgba(30,12,56,0)"); x.fillStyle = cg; x.shadowColor = "rgba(30,12,56,.7)"; x.shadowBlur = 5; x.fillRect(x0 - w, y, 2*w, 2 + hash(i*13)*3); }
+      this.moon = new THREE.Sprite(new THREE.SpriteMaterial({ map:new THREE.CanvasTexture(c), fog:false, depthWrite:false, transparent:true }));
+      this.moon.position.set(0, 86, -442); this.moon.scale.setScalar(216); this.moon.visible = false; skyM.add(this.moon); }
+    this.forks = [0, 1].map(v => { const [c, x] = cvs(128, 256); x.lineCap = x.lineJoin = "round"; x.shadowColor = "#c77dff";
+      const pts = [], br = []; let px = 64;
+      for (let i = 0; i <= 10; i++){ pts.push([px, 6 + 24.4*i]); px = clamp(px + (hash(v*40 + i*1.9) - .5)*38, 22, 106); }
+      let bx = pts[4][0]; for (let i = 0; i <= 4; i++){ br.push([bx, pts[4][1] + 19*i]); bx += (v ? 1 : -1)*(7 + hash(v*50 + i)*11); }
+      for (const [lw, col, blur] of [[7, "rgba(190,120,255,.5)", 14], [2.2, "#ffffff", 4]]){ x.strokeStyle = col; x.shadowBlur = blur;
+        for (const [P, k] of [[pts, 1], [br, .55]]){ x.lineWidth = lw*k; x.beginPath(); P.forEach(([a, b], i) => i ? x.lineTo(a, b) : x.moveTo(a, b)); x.stroke(); } }
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(52, 104), lit(new THREE.CanvasTexture(c), 0xffffff, 0, { fog:false })); m.visible = false; skyM.add(m); return m; });
+
+    /* --- Part 1: Night Flight --- */
+    const rimV = new THREE.MeshBasicMaterial({ color:0xa678ff, side:THREE.BackSide }), rimP = new THREE.MeshBasicMaterial({ color:0xff3d8b, side:THREE.BackSide });
+    const hull = { crawler:[new THREE.IcosahedronGeometry(.9, 0), rimV, 1.17], swarm:[new THREE.TetrahedronGeometry(.5, 0), rimP, 1.5], brute:[new THREE.BoxGeometry(2.6, 2.2, 2), rimP, 1.09] };
+    this.skyFoes = Object.values(SKY.pool).flat(); this.wasOn = new Uint8Array(this.skyFoes.length);
+    for (const f of this.skyFoes){ const h = hull[f.type]; if (!h) continue; const m = new THREE.Mesh(h[0], h[1]); m.scale.setScalar(h[2]); f.g.add(m); }
+    const ringG = new THREE.RingGeometry(.84, 1, 28);
+    this.rings = Array.from({ length:6 }, () => { const m = new THREE.Mesh(ringG, glowMat(0xffffff, 0)); m.visible = false; SKY.root.add(m); return { m, life:0, r:1 }; }); this.ringI = 0;
+    // the roofs far below: a frame of light round each top, skylights, a landing pad now and then
+    this.topM = [0, 1, 2].map(v => { const [c, x] = cvs(128, 128); x.shadowColor = "#c77dff"; x.shadowBlur = 8; x.strokeStyle = "#b98cff"; x.lineWidth = 3; x.strokeRect(5, 5, 118, 118);
+      x.shadowBlur = 5;
+      if (v === 2){ x.strokeStyle = x.shadowColor = "#ff7ad8"; x.lineWidth = 2.5; x.beginPath(); x.arc(64, 64, 26, 0, 7); x.stroke(); x.lineWidth = 1.5; x.beginPath(); x.arc(64, 64, 15, 0, 7); x.stroke(); }
+      for (let i = 0; i < 3 + v; i++){ const w = 8 + hash(v*17 + i)*14, h = 6 + hash(v*19 + i*3)*8, px = 14 + hash(v*23 + i*5)*(100 - w), py = 14 + hash(v*29 + i*7)*(100 - h);
+        if (v === 2 && Math.hypot(px + w/2 - 64, py + h/2 - 64) < 40) continue;
+        const col = ["#ffd27a", "#8ae9ff", "#ff7ad8"][Math.floor(hash(v*31 + i*11)*3)]; x.shadowColor = x.fillStyle = x.strokeStyle = col;
+        if (i % 2){ x.globalAlpha = .8; x.fillRect(px, py, w, h); } else { x.globalAlpha = .7; x.lineWidth = 2; x.strokeRect(px, py, w, h); } x.globalAlpha = 1; }
+      return lit(new THREE.CanvasTexture(c), 0xffffff, .62); });
+    const topG = new THREE.PlaneGeometry(12, 14);
+    const top = (on, w, d) => { const m = new THREE.Mesh(topG, this.topM[0]); m.rotation.x = -Math.PI/2; m.position.y = 15.04; m.scale.set(w/12, d/14, 1); on.add(m); return m; };
+    this.tops = SKY.low.map(m => top(m, 12, 14));
+    // the saucer's wake (it flies on; the wake lies behind it)
+    this.wake = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 6.5), lit(streakTex(), 0x38d9ff, .34)); this.wake.rotation.x = -Math.PI/2; this.wake.visible = false; SKY.root.add(this.wake);
+    // the storm crystal: a beam of light you can see from far off
+    this.beacon = new THREE.Mesh(new THREE.CylinderGeometry(.3, .3, 24, 8, 1, true), lit(grad([[0, 0], [.5, 1], [1, 0]]), 0xffd60a, .2)); SKY.power.add(this.beacon);
+
+    /* --- Part 3: The King --- */
+    const K = KING, body = K.boss.children[0];
+    this.kBase = new THREE.Color(0xa63dff); this.kHot = new THREE.Color(0xffe6f4); this.kHp = 0; this.kFlash = 0;
+    this.kRim = new THREE.MeshBasicMaterial({ color:0xa63dff, side:THREE.BackSide });
+    const kh = new THREE.Mesh(body.geometry, this.kRim); kh.scale.copy(body.scale).multiplyScalar(1.055); K.boss.add(kh);
+    for (const a of K.arms){ const up = a.children[0], h = new THREE.Mesh(up.geometry, this.kRim); h.position.copy(up.position); h.scale.set(1.17, 1.035, 1.17); a.add(h); }
+    // his eyes and the tips of his crown burn
+    { const P = []; for (let i = 0; i < 7; i++){ const a = (i/6 - .5)*1.9, h = (3 + (i % 2)*1.4)/2, rz = a*.8; P.push(Math.sin(a)*4.3 + Math.sin(rz)*h, 3.6 + Math.cos(a)*1.4 + Math.cos(rz)*h, -.4); }
+      P.push(-1.6, 1.8, 4.3, 1.6, 1.8, 4.3);
+      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(P), 3));
+      this.kLights = new THREE.Points(g, new THREE.PointsMaterial({ size:3, map:DOT, color:0xff5aa0, transparent:true, opacity:.9, depthWrite:false, blending:ADD })); this.kLights.frustumCulled = false; K.boss.add(this.kLights); }
+    // the open core: a gold reticle the size of what counts as a core hit
+    { const [c, x] = cvs(128, 128); x.strokeStyle = "#ffd60a"; x.shadowColor = "#ffb000"; x.shadowBlur = 8; x.lineCap = "round";
+      for (let i = 0; i < 4; i++){ const a = i*Math.PI/2; x.lineWidth = 5; x.beginPath(); x.arc(64, 64, 50, a + .28, a + Math.PI/2 - .28); x.stroke();
+        x.lineWidth = 4; x.beginPath(); x.moveTo(64 + Math.cos(a)*58, 64 + Math.sin(a)*58); x.lineTo(64 + Math.cos(a)*44, 64 + Math.sin(a)*44); x.stroke(); }
+      this.aim = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 5.2), lit(new THREE.CanvasTexture(c), 0xffffff, 0)); this.aim.position.set(0, -.6, 4.75); this.aim.visible = false; K.boss.add(this.aim); }
+    // searchlights from the street, behind him
+    const beamG = new THREE.CylinderGeometry(2.6, .3, 78, 12, 1, true); beamG.translate(0, 39, 0);
+    const beamM = lit(grad([[0, 0], [.5, .55], [1, 1]]), 0xb9a0ff, .17);
+    this.beams = [-1, 1].map(() => { const m = new THREE.Mesh(beamG, beamM); K.root.add(m); return m; });
+    // the street far below: headlights one way, tail lights the other
+    { const [c, x] = cvs(64, 256);
+      for (let i = 0; i < 14; i++){ const px = i % 2 ? 44 : 20, py = 9 + hash(i*4.7)*238, g = x.createRadialGradient(px, py, 0, px, py, 7); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(1, "rgba(255,255,255,0)");
+        x.fillStyle = g; x.fillRect(px - 7, py - 7, 14, 14); }
+      this.carT = new THREE.CanvasTexture(c); this.carT.wrapT = THREE.RepeatWrapping; this.carT.repeat.set(1, 6);
+      this.cars = new THREE.Group(); K.root.add(this.cars);
+      [[-1, 0xffe2a8], [1, 0xff3a55]].forEach(([s, color]) => { const g = new THREE.PlaneGeometry(7.5, 260, 1, 13), p = g.attributes.position, col = new Float32Array(p.count*3);
+        for (let i = 0; i < p.count; i++){ const u = (p.getY(i) + 130)/260, b = Math.min(1, u/.08)*Math.pow(1 - u, 1.3); col.set([b, b, b], i*3); if (s > 0) g.attributes.uv.setY(i, 1 - g.attributes.uv.getY(i)); }
+        g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+        const m = new THREE.Mesh(g, lit(this.carT, color, .85, { vertexColors:true, fog:false })); m.rotation.x = -Math.PI/2; m.position.set(s*4.6, -39.7, -170); this.cars.add(m); }); }
+    // Zirka's roofs: the side roof gets its frame of light; the big one a frame and a dashed line where the ride ends
+    top(K.zroof, 10, 12);
+    { const [c, x] = cvs(256, 96); x.shadowColor = "#c77dff"; x.shadowBlur = 8; x.strokeStyle = "#b98cff"; x.lineWidth = 3; x.strokeRect(4, 4, 248, 88);
+      x.shadowBlur = 4; x.strokeStyle = "#8f6fe0"; x.lineWidth = 2; x.setLineDash([7, 7]); for (const u of [-7.9, 7.9]){ const px = 128 + u/22*256; x.beginPath(); x.moveTo(px, 8); x.lineTo(px, 88); x.stroke(); }
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(22, 8), lit(new THREE.CanvasTexture(c), 0xffffff, .8)); m.rotation.x = -Math.PI/2; m.position.y = 15.04; K.bigRoof.add(m); }
+    // a beam of light under the saucer while it hovers in front of him
+    this.beam = new THREE.Mesh(new THREE.CylinderGeometry(.25, 1.5, 6, 14, 1, true), lit(streakTex(), 0x38d9ff, .17)); this.beam.position.y = -3.1; this.beam.visible = false; ME.add(this.beam);
+  },
+  frame(dt, t){
+    const on = G !== ROOF, play = S.end < 0, sky = on && play && G === SKY, king = on && play && G === KING;
+    const bn = Math.floor((t - GRID.t0)/BEAT), ph = (t - GRID.t0)/BEAT - bn, pulse = REDUCED ? .35 : Math.exp(-ph*5);
+    // the sky
+    this.moon.visible = on; skyM.userData.moon.visible = !on;
+    let fk = -1;
+    if (!REDUCED && ph < .2){ if (sky && S.storm > 0) fk = bn; else if (king && !KING.st.down && bn % 4 === 0 && section(t) === "hook") fk = bn; }
+    for (let i = 0; i < 2; i++){ const f = this.forks[i], show = fk >= 0 && (fk & 1) === i; f.visible = show;
+      if (show){ const az = (hash(fk*3.3) - .5)*.28; f.position.set(Math.sin(az)*430, 91 + hash(fk*5.7)*12, -Math.cos(az)*430); f.material.opacity = (1 - ph/.2)*.8; } }
+    // Part 1
+    this.wake.visible = sky && ME.visible; this.beam.visible = king;
+    if (G === SKY && play){ const st = SKY.st, fs = this.skyFoes;
+      this.wake.position.set(st.x, st.y - .06, -S.dist + 3.85); this.wake.material.opacity = .3 + .12*pulse;
+      for (let i = 0; i < fs.length; i++){ const f = fs[i];
+        if (this.wasOn[i] && !f.on && f.hp <= 0){ const r = this.rings[this.ringI = (this.ringI + 1) % this.rings.length]; r.life = 1; r.r = FOE[f.type].r; r.m.visible = true;
+          r.m.position.set(f.x, f.y, f.z); r.m.material.color.setHex(f.type === "crawler" || f.type === "watcher" ? 0xc77dff : 0xff3d8b); }
+        this.wasOn[i] = f.on ? 1 : 0; }
+      const k0 = Math.floor(S.dist/16) - 2; for (let i = 0; i < this.tops.length; i++) this.tops[i].material = this.topM[(((k0 + i) % 3) + 3) % 3];
+      this.beacon.material.opacity = .14 + .12*pulse; }
+    for (const r of this.rings){ if (r.life <= 0) continue; r.life -= dt/.32; if (r.life <= 0){ r.m.visible = false; continue; }
+      r.m.scale.setScalar(r.r*(1 + (1 - r.life)*2.2)); r.m.material.opacity = r.life*.8; }
+    // Part 3
+    if (G === KING && play){ const st = KING.st, bz = KING.boss.position.z;
+      if (st.hp < this.kHp) this.kFlash = REDUCED ? .35 : 1; this.kHp = st.hp; this.kFlash *= Math.exp(-dt*9);
+      this.kRim.color.copy(this.kBase).lerp(this.kHot, this.kFlash*.85);
+      this.kLights.material.size = 2.6 + 1.6*pulse + st.open*.8;
+      this.aim.visible = st.open > .05 && !st.down; this.aim.material.opacity = st.open*(.45 + .45*pulse); this.aim.rotation.z = REDUCED ? 0 : t*.6; this.aim.scale.setScalar(1 + .06*pulse);
+      this.beams.forEach((m, i) => { const s = i ? 1 : -1; m.position.set(s*8, -40, bz - 9); m.rotation.z = s*(.02 + (REDUCED ? 0 : .06*Math.sin(t*.45 + i*2))); });
+      this.cars.position.z = -S.dist; this.carT.offset.y = REDUCED ? 0 : (t*.3) % 1; }
+  }
+};
+
 /* ---------------- the run ---------------- */
 function reset(){
   S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, hearts:HEARTS, inv:0, combo:1, comboT:0, kills:0, storm:0, stint:-1, lap:0, loops:0, dist:0, flashT:0,
@@ -1047,6 +1182,7 @@ function render(dt){
   const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 2 : 6)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
   skyM.position.copy(cam.position);
+  FX.frame(dt, t);
   ren.render(scene, cam);
 }
 function frame(){
@@ -1099,7 +1235,7 @@ function boot(){
   const pinkL = new THREE.DirectionalLight(0xff3d8b, .35); pinkL.position.set(20, 10, -40); scene.add(pinkL);
   buildSky(); buildCity(); buildRain(); buildSparks();
   ME = buildSaucer(); scene.add(ME); BIKE = buildBike(); scene.add(BIKE);
-  SKY.setup(); ROOF.setup(); KING.setup();
+  SKY.setup(); ROOF.setup(); KING.setup(); FX.build();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }

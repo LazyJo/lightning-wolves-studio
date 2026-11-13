@@ -360,7 +360,7 @@ function dropObj(o){ scene.remove(o); o.traverse(c => { if (c.geometry && c.geom
 function addGap(gi){
   const a = P(gi), b = P(gi + 1), n = rulesFor(gi, blockOf(gi)[0]).rocks;
   for (let k = 1; k <= 2; k++){ const s = new THREE.Sprite(starMat); s.scale.setScalar(1.6); s.position.set(a.x + (b.x - a.x)*k/3, .5, a.z + (b.z - a.z)*k/3); s.userData.gap = gi; scene.add(s); stars.push(s); }
-  for (let k = 0; k < n; k++){ const u = (k + 1)/(n + 1), m = new THREE.Mesh(rockGeo, rockMat); scene.add(m);
+  for (let k = 0; k < n; k++){ const u = (k + 1)/(n + 1), m = new THREE.Mesh(rockGeo, rockMat); scene.add(m); rockHalo(m);
     rocks.push({ m, gap:gi, cx:a.x + (b.x - a.x)*u, cz:a.z + (b.z - a.z)*u, amp:5 + rnd(gi*3 + k*1.7)*3, w:.6 + rnd(gi*4 + k*2.9)*.5, ph:rnd(gi*5 + k*3.3)*6 }); }
 }
 function extendRoute(at){
@@ -573,6 +573,119 @@ function lose(why){
   setTimeout(finish, 1500);
 }
 
+/* ================= THE LOOK =================
+   Pictures only: nothing in here is read by the game (no hitbox, no timing, no dice - the decoration has its own
+   hash). A galaxy and bright stars far below that travel with the camera; two sheets of star dust and three far
+   galaxies fixed in space, so they slide by as you fly (the journey moves); tails on the meteors; light under the
+   ship and a streak behind it; a pool of light on the planet in play, pulsing with the beat; a gold pull on the next
+   planet and a beam under the aim line while you launch; a danger glow round the asteroids. */
+const FX = { sparks:[], si:0, len:1.8, stars:0, arrived:0, wasOut:new Uint8Array(30) };
+const hash = n => { const x = Math.sin(n*91.7 + 3.1)*24634.6345; return x - Math.floor(x); };
+const W1 = a => "rgba(255,255,255," + a + ")";
+function paint(w, h, draw){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const x = cv.getContext("2d"); x.globalCompositeOperation = "lighter"; draw(x); return new THREE.CanvasTexture(cv); }
+function blob(x, cx, cy, r, rgb, a){ const g = x.createRadialGradient(cx, cy, 0, cx, cy, r); g.addColorStop(0, "rgba(" + rgb + "," + a + ")"); g.addColorStop(1, "rgba(" + rgb + ",0)"); x.fillStyle = g; x.fillRect(cx - r, cy - r, r*2, r*2); }
+function galaxyTex(){ return paint(512, 512, x => {       // on black, no see-through: it is added to the sky, so black is nothing
+  x.globalCompositeOperation = "source-over"; x.fillStyle = "#000"; x.fillRect(0, 0, 512, 512); x.globalCompositeOperation = "lighter";
+  const cols = ["45,95,225", "95,70,215", "35,140,205", "60,120,255", "150,90,220", "50,70,190"];
+  const at = (u, s) => [110 + u*300 + Math.sin(u*6)*26 - s*.82, 500 - u*440 - s*.56];   // a band from bottom left to top right; s = across it
+  for (let i = 0; i < 90; i++){ const wide = hash(i*7.7) < .2, [bx, by] = at(hash(i*1.7), (hash(i*2.9) - .5)*(wide ? 200 : 80)); blob(x, bx, by, 22 + hash(i*4.3)*(wide ? 60 : 42), cols[i % 6], wide ? .09 : .13 + hash(i*5.1)*.15); }
+  for (let i = 0; i < 9; i++){ const [bx, by] = at(.42 + hash(i*3.1)*.22, (hash(i*6.3) - .5)*40); blob(x, bx, by, 14 + hash(i*2.3)*26, i % 3 ? "255,200,150" : "230,120,200", .18); }
+  x.globalCompositeOperation = "source-over";       // dark lanes of dust along the band, and black before the edge of the sheet
+  for (let i = 0; i < 16; i++){ const u = hash(i*4.7 + 2), [bx, by] = at(u, 12 + Math.sin(u*11)*14); blob(x, bx, by, 10 + hash(i*9.1)*20, "0,0,0", .5); }
+  const g = x.createRadialGradient(256, 256, 150, 256, 256, 256); g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,1)"); x.fillStyle = g; x.fillRect(0, 0, 512, 512);
+  // a little grain, so the soft clouds don't show steps when the sheet is stretched over the whole screen
+  const im = x.getImageData(0, 0, 512, 512), d = im.data; let sd = 20261113;
+  for (let i = 0; i < d.length; i += 4){ sd = (sd*1103515245 + 12345) & 0x7fffffff; if (d[i + 2] < 8) continue; const nz = ((sd >> 16) & 3) - 1.5; d[i] += nz; d[i + 1] += nz; d[i + 2] += nz; }
+  x.putImageData(im, 0, 0);
+}); }
+function rockHalo(m){ const h = new THREE.Sprite(FX.rockMat); h.scale.setScalar(3.6); m.add(h); }
+function spark(x, z, color, size){ const s = FX.sparks[FX.si++ % FX.sparks.length]; s.life = 1; s.size = size || 1; s.sp.position.set(x, .6, z); s.sp.material.color.setHex(color); s.sp.visible = true; }
+function buildLook(){
+  const fx = FX.g = new THREE.Group(); scene.add(fx);
+  const add = THREE.AdditiveBlending, flat = new THREE.PlaneGeometry(1, 1); flat.rotateX(-Math.PI/2);
+  const strip = flat.clone(); strip.translate(0, 0, .5);                    // from 0 to 1 along z: tails, streaks, the beam
+  const mat = (map, color, opacity) => new THREE.MeshBasicMaterial({ map, color, transparent:true, opacity, blending:add, depthWrite:false });
+  const lay = (geo, map, color, opacity, y, parent) => { const m = new THREE.Mesh(geo, mat(map, color, opacity)); m.position.y = y; (parent || fx).add(m); return m; };
+  const tStreak = paint(64, 128, x => { blob(x, 32, 16, 16, "255,255,255", 1);
+    x.save(); x.translate(32, 14); x.scale(1, 7); x.beginPath(); x.rect(-32, 0, 64, 20); x.clip(); blob(x, 0, 0, 16, "255,255,255", .8); x.restore(); });
+  const tPool = radial([[0, W1(0)], [.5, W1(.07)], [.86, W1(.28)], [.95, W1(1)], [1, W1(0)]], 128);
+  const tRing = radial([[.76, W1(0)], [.92, W1(1)], [1, W1(0)]], 128);
+  // far below, travelling with the camera: the galaxy and the bright stars
+  const D = 420, gal = lay(flat, galaxyTex(), 0xffffff, .3, -D, sky); gal.scale.set(D*1.8, 1, D*2.3); gal.position.z = -D*.62;
+  const n = 420, pos = new Float32Array(n*3), col = new Float32Array(n*3), c = new THREE.Color();
+  for (let i = 0; i < n; i++){ const u = -1 + hash(i*1.3)*.62, a = hash(i*2.7)*Math.PI*2, s = Math.sqrt(1 - u*u), k = hash(i*3.9);
+    pos.set([Math.cos(a)*s*560, u*560, Math.sin(a)*s*560], i*3); c.setHSL(k < .5 ? .6 : k < .8 ? .11 : .76, .75, .5 + hash(i*5.3)*.35); col.set([c.r, c.g, c.b], i*3); }
+  const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(pos, 3)); sg.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  sky.add(new THREE.Points(sg, new THREE.PointsMaterial({ map:DOT, size:5, sizeAttenuation:false, vertexColors:true, transparent:true, blending:add, depthWrite:false })));
+  // fixed in space under the route (the same sheet again every 120): star dust at two depths
+  FX.dust = [[260, -8, -24, .8, .75, 0x9fd0ff], [REDUCED ? 0 : 320, -40, -95, .85, .6, 0xb8a8ff]].map(([m, y0, y1, size, opacity, color]) => {
+    const p = new Float32Array(m*12);
+    for (let i = 0; i < m; i++){ const x = (hash(i*1.9 + y0) - .5)*240, y = y0 + hash(i*3.3 + y0)*(y1 - y0), z = hash(i*5.7 + y0)*120; for (let k = 0; k < 4; k++) p.set([x, y, z + (k - 2)*120], (i*4 + k)*3); }
+    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(p, 3));
+    const d = new THREE.Points(g, new THREE.PointsMaterial({ map:DOT, color, size, sizeAttenuation:true, transparent:true, opacity, blending:add, depthWrite:false })); fx.add(d); return d; });
+  // three far galaxies, deep under the route (again every 500)
+  const tSpiral = paint(128, 128, x => { blob(x, 64, 64, 62, "255,255,255", .16); blob(x, 64, 64, 30, "255,255,255", .5); blob(x, 64, 64, 13, "255,255,255", 1);
+    for (let i = 0; i < 240; i++){ const u = hash(i*1.3), th = u*3.6 + (i % 2)*Math.PI, r = 8 + u*44; blob(x, 64 + Math.cos(th)*r + (hash(i*2.1) - .5)*9, 64 + Math.sin(th)*r + (hash(i*3.7) - .5)*9, 7 + hash(i*4.9)*7, "255,255,255", .012 + .022*(1 - u)); } });
+  FX.far = [[-14, -70, 38, 0x9fb8ff], [-34, -215, 30, 0xffc8a0], [30, -345, 44, 0xc8a0ff]].map(([x, z, s, color], i) => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:tSpiral, color, transparent:true, opacity:.42, blending:add, depthWrite:false, rotation:.4 + i*1.1 }));
+    sp.position.set(x, -220, z); sp.scale.set(s, s*.5, 1); sp.userData.z = z; fx.add(sp); return sp; });
+  // the planet in play: a pool of light up to its orbit, a ripple on the beat; gold on the next one while you launch
+  FX.pool = lay(flat, tPool, 0x7fd6ff, .2, -.05); FX.rip = lay(flat, tRing, 0x7fd6ff, 0, -.04); FX.shock = lay(flat, tRing, 0xff5a3a, 0, .05); FX.shock.visible = false;
+  if (!ENDLESS){ const h = PL[STOPS - 1]; FX.home = lay(flat, DOT, 0xc9a0ff, .3, -.3); FX.home.position.set(h.x, -.3, h.z); FX.home.scale.setScalar(h.orbit*4.4); }
+  // the ship: light under it, a streak behind it
+  FX.glow = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color:0xffc890, transparent:true, opacity:.55, blending:add, depthWrite:false })); FX.glow.scale.setScalar(5.5); fx.add(FX.glow);
+  FX.streak = lay(strip, tStreak, 0xffb060, .9, -.05, ship); FX.streak.position.z = 1.3;
+  // the aim: a beam under the dotted line, an arrow at its tip
+  FX.beam = lay(strip, tStreak, 0xffd27a, .5, .15); FX.beam.scale.set(.9, 1, 16);
+  FX.tip = lay(flat, paint(64, 64, x => { x.shadowColor = "#fff"; x.shadowBlur = 8; x.fillStyle = "#fff"; x.beginPath(); x.moveTo(32, 56); x.lineTo(10, 14); x.lineTo(32, 24); x.lineTo(54, 14); x.closePath(); x.fill(); }), 0xffd27a, .95, .2);
+  FX.tip.scale.setScalar(2.2);
+  // meteors: one tail each, all in one draw call
+  FX.tails = new THREE.InstancedMesh(strip, mat(tStreak, 0xffffff, .85), meteors.length); FX.tails.frustumCulled = false;
+  FX.cIn = new THREE.Color(0xff7a2a); FX.cOut = new THREE.Color(0x4fd88a); FX.dummy = new THREE.Object3D();
+  for (let i = 0; i < meteors.length; i++){ FX.tails.setMatrixAt(i, FX.dummy.matrix); FX.tails.setColorAt(i, FX.cIn); } FX.tails.count = 0; fx.add(FX.tails);
+  for (let i = 0; i < 6; i++){ const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, transparent:true, opacity:0, blending:add, depthWrite:false })); sp.visible = false; fx.add(sp); FX.sparks.push({ sp, life:0, size:1 }); }
+  // the shield: a bright line where the meteors bounce; the stars to grab: a sparkle; the asteroids: a danger glow
+  shieldM.material.map = radial([[.8, W1(.5)], [.893, W1(.72)], [.909, W1(1)], [.925, W1(.72)], [1, W1(.45)]], 256);
+  FX.starMat = ENDLESS ? starMat : stars[0].material;
+  FX.starMat.map = paint(64, 64, x => { blob(x, 32, 32, 30, "255,255,255", .22); blob(x, 32, 32, 13, "255,255,255", 1);
+    for (const [w, h] of [[60, 3], [3, 60]]){ const g = w > h ? x.createLinearGradient(2, 0, 62, 0) : x.createLinearGradient(0, 2, 0, 62); g.addColorStop(0, W1(0)); g.addColorStop(.5, W1(.9)); g.addColorStop(1, W1(0)); x.fillStyle = g; x.fillRect(32 - w/2, 32 - h/2, w, h); } });
+  FX.rockMat = new THREE.SpriteMaterial({ map:radial([[.3, W1(0)], [.56, W1(.9)], [1, W1(0)]], 64), color:0xff5a3a, transparent:true, opacity:.7, blending:add, depthWrite:false });
+  rocks.forEach(r => rockHalo(r.m));
+}
+function drawLook(dt, t, p){
+  const F = FX, live = S.end < 0 && !S.done, ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT, pulse = REDUCED ? 0 : (1 - ph)*(1 - ph)*(1 - ph);
+  for (const d of F.dust) d.position.z = Math.round(cam.position.z / 120)*120;
+  for (const g of F.far) g.position.z = g.userData.z + 500*Math.floor((cam.position.z + 90 - g.userData.z) / 500);
+  // meteors: a tail behind each (orange coming in, green bounced away), a spark where the shield sends one back
+  let n = 0;
+  for (let i = 0; i < meteors.length; i++){ const m = meteors[i], out = m.on && m.out ? 1 : 0;
+    if (out && !F.wasOut[i] && live) spark(m.x, m.z, 0x8affb0, 1.2);
+    F.wasOut[i] = out; if (!m.on) continue;
+    const sp = Math.hypot(m.vx, m.vz) || 1, d = F.dummy;
+    d.position.set(m.x + m.vx/sp*.5, .25, m.z + m.vz/sp*.5); d.rotation.y = Math.atan2(-m.vx, -m.vz); d.scale.set(m.out ? 1.3 : 1.9, 1, 2.4 + sp*.5); d.updateMatrix();
+    F.tails.setMatrixAt(n, d.matrix); F.tails.setColorAt(n, m.out ? F.cOut : F.cIn); n++; }
+  F.tails.count = n; F.tails.visible = n > 0; F.tails.instanceMatrix.needsUpdate = true; F.tails.instanceColor.needsUpdate = true;
+  if (S.starsGot > F.stars) spark(S.x, S.z, 0xffd27a, 1.5); F.stars = S.starsGot;
+  if (S.arrived !== F.arrived && S.arrived > 0 && live) spark(S.x, S.z, 0x7fd6ff, 2); F.arrived = S.arrived;
+  for (const s of F.sparks){ if (s.life <= 0) continue; s.life -= dt*2.8; s.sp.visible = s.life > 0; s.sp.material.opacity = Math.max(0, s.life)*.9; s.sp.scale.setScalar(s.size*(1.2 + (1 - s.life)*2.6)); }
+  // the ship
+  F.glow.position.set(S.x, .1, S.z);
+  F.len += ((S.phase === "fly" ? 8 : S.phase === "launch" ? 3 : 1.8) - F.len)*Math.min(1, dt*8); F.streak.scale.set(S.phase === "fly" ? 1.4 : 1, 1, F.len);
+  F.beam.visible = F.tip.visible = aim.visible;
+  if (aim.visible){ const d = Math.sign(p.spin), dx = -Math.sin(S.a)*d, dz = Math.cos(S.a)*d, ry = Math.atan2(dx, dz);
+    F.beam.position.set(S.x, .15, S.z); F.beam.rotation.y = ry; F.tip.position.set(S.x + dx*16, .2, S.z + dz*16); F.tip.rotation.y = ry; }
+  // the planet in play (blue, with a ripple on the beat while its shower is on) or the next one while you launch (gold, the ripple falls in: its pull)
+  const nx = nextP(), go = S.phase !== "defend" && !!nx && nx.i !== S.at, q = go ? nx : p, color = go ? 0xffb347 : 0x7fd6ff;
+  const ba = ENDLESS ? barT(4 + CYCLE*S.at) : BLOCKS[S.at][0], bb = ENDLESS ? barT(12 + CYCLE*S.at) : BLOCKS[S.at][1];
+  F.pool.visible = live; F.pool.position.set(q.x, -.05, q.z); F.pool.scale.setScalar(q.orbit*2/.95); F.pool.material.color.setHex(color); F.pool.material.opacity = go ? .45 + pulse*.25 : .2 + pulse*.16;
+  F.rip.visible = live && !REDUCED && (go || (t >= ba && t < bb));
+  if (F.rip.visible){ F.rip.position.set(q.x, -.04, q.z); F.rip.scale.setScalar(q.orbit*2/.92*(go ? 1.7 - ph*.7 : 1 + ph*.5)); F.rip.material.color.setHex(color); F.rip.material.opacity = go ? ph*.45 : (1 - ph)*.3; }
+  let hit = null; for (const k of PL) if (k.flash > 0 && (!hit || k.flash > hit.flash)) hit = k;
+  F.shock.visible = !!hit; if (hit){ F.shock.position.set(hit.x, .05, hit.z); F.shock.scale.setScalar(hit.r*2*(1.2 + (1 - hit.flash)*1.6)); F.shock.material.opacity = hit.flash*.9; }
+  if (F.home) F.home.material.opacity = .3 + pulse*.12;
+  F.rockMat.opacity = REDUCED ? .7 : .6 + Math.sin(t*5)*.22;
+}
+
 /* ---------------- drawing ---------------- */
 const CAMP = new THREE.Vector3(), CAML = new THREE.Vector3(), LOOK = new THREE.Vector3();
 let camInit = false;
@@ -583,7 +696,7 @@ function render(dt){
   ship.position.set(S.x, .4, S.z); ship.rotation.set(0, tang + Math.PI, 0);
   // the shield: a green arc on the orbit, as wide as what it can catch, centred on the ship
   shieldG.visible = S.phase === "defend" && S.end < 0 && !S.done;
-  if (shieldG.visible){ shieldG.position.set(p.x, .1, p.z); shieldG.rotation.y = -S.a; shieldG.scale.setScalar(p.orbit / 4); shieldM.material.opacity = .45 + (S.shield > 0 ? .5 : 0); }
+  if (shieldG.visible){ shieldG.position.set(p.x, .1, p.z); shieldG.rotation.y = -S.a; shieldG.scale.setScalar(p.orbit / 4); shieldM.material.opacity = .7 + (S.shield > 0 ? .3 : 0); }
   ship.userData.flame.scale.set(1, S.phase === "fly" ? 1.5 : .6 + Math.sin(t*20)*.1, 1);
   // the aim line while launching
   const pos = aim.geometry.attributes.position; aim.visible = S.phase === "launch" && S.end < 0 && !S.done;
@@ -592,7 +705,7 @@ function render(dt){
   PL.forEach(q => { q.ball.rotation.y = t*.25; q.flash = Math.max(0, (q.flash || 0) - dt*2);
     q.ball.material.emissiveIntensity = (q.i === 0 ? .5 : .18) + q.flash*1.2; q.ball.material.emissive.setHex(q.flash > 0 ? 0xff3a2a : q.i === 0 ? 0x0a2a4a : q.ball.material.color.getHex());
     q.ring.material.opacity = q.i === S.at && S.phase === "defend" ? .35 + (onBeat(t) ? .25 : 0) : q.i === S.at + 1 && S.phase !== "defend" ? .4 + Math.sin(t*6)*.15 : .15; });
-  stars.forEach((s, i) => s.scale.setScalar(1.4 + Math.sin(t*6 + i)*.2));
+  stars.forEach((s, i) => s.scale.setScalar(2.3 + Math.sin(t*6 + i)*.3));
   // camera: over the planet you're defending; between it and the next while you launch; on the ship in flight
   const H = portrait ? 46 : 32, back = portrait ? 8 : 15;
   if (S.end >= 0){
@@ -607,6 +720,7 @@ function render(dt){
   sky.position.copy(cam.position);
   if (S.end >= 0){ flashEl.style.background = "#05060f"; flashEl.style.opacity = S.end > END.out - 1.2 ? Math.min(1, (S.end - (END.out - 1.2))/1.2) : 0;
     if (S.end > 1 && !S.saidEnd){ S.saidEnd = true; say("JOURNEY", "from the Earth to Planet Javeda", 4); } }
+  drawLook(dt, t, p);
   ren.render(scene, cam);
 }
 function frame(){
@@ -660,6 +774,7 @@ function boot(){
   shieldM.rotation.x = -Math.PI/2; shieldG.add(shieldM); scene.add(shieldG);
   const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(2*3), 3));
   aim = new THREE.Line(pg, new THREE.LineDashedMaterial({ color:0xffd27a, dashSize:.7, gapSize:.5, transparent:true, opacity:.8 })); scene.add(aim);
+  buildLook();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }

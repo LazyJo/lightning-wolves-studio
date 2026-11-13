@@ -231,6 +231,14 @@ function radial(stops, size){ const cv = document.createElement("canvas"); cv.wi
   stops.forEach(([o, c]) => g.addColorStop(o, c)); x.fillStyle = g; x.fillRect(0, 0, cv.width, cv.width); return new THREE.CanvasTexture(cv); }
 const DOT = radial([[0, "rgba(255,255,255,1)"], [.25, "rgba(255,255,255,.6)"], [1, "rgba(255,255,255,0)"]], 64);
 const sprite = (color, size, op) => { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map:DOT, color, transparent:true, opacity:op == null ? 1 : op, depthWrite:false, blending:THREE.AdditiveBlending })); s.scale.setScalar(size); return s; };
+// --- the look (picture only): its own little hash, a soft-edged light shaft, and a way to push the far clockwork back into the haze
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches);
+const hsh = n => { const v = Math.sin(n*91.7 + 3.1)*15731.743; return v - Math.floor(v); };
+const recede = (g, k, hex) => g.traverse(o => { if (o.material){ o.material.opacity *= k; if (hex != null) o.material.color.setHex(hex); } });
+const SHAFT = (() => { const cv = document.createElement("canvas"); cv.width = 64; cv.height = 128; const x = cv.getContext("2d");
+  let g = x.createLinearGradient(0, 0, 64, 0); [[0, 0], [.2, .3], [.5, 1], [.8, .3], [1, 0]].forEach(([o, a]) => g.addColorStop(o, "rgba(255,255,255," + a + ")")); x.fillStyle = g; x.fillRect(0, 0, 64, 128);
+  g = x.createLinearGradient(0, 0, 0, 128); g.addColorStop(0, "rgba(0,0,0,1)"); g.addColorStop(.85, "rgba(0,0,0,.4)"); g.addColorStop(1, "rgba(0,0,0,.25)"); x.globalCompositeOperation = "destination-in"; x.fillStyle = g; x.fillRect(0, 0, 64, 128);
+  return new THREE.CanvasTexture(cv); })();
 // the stage: old planks, blue-grey, a little worn
 const PLANKS = (() => { const cv = document.createElement("canvas"); cv.width = 256; cv.height = 256; const x = cv.getContext("2d");
   for (let i = 0; i < 8; i++){ const v = 38 + rnd(i)*16; x.fillStyle = "rgb(" + (v - 8) + "," + (v + 4) + "," + (v + 14) + ")"; x.fillRect(0, i*32, 256, 32);
@@ -314,6 +322,7 @@ function award(base, every){ const beat = onBeat(S.t); S.combo++; S.best = Math.
   S.score += (beat ? base*2 : base) * Math.min(4, 1 + Math.floor(S.combo/every)); return beat; }
 
 /* =============== PENDULUM SWING: hook on, swing, let go, fly =============== */
+const FARK = [.28, .3];
 const SWING = {
   name:"swing", tag:"PENDULUM SWING", hint:"hold to hook on - let go to fly", R:12.5, G:26, PUMP:7, VMAX:24,
   setup(){
@@ -322,8 +331,8 @@ const SWING = {
     const t = PLANKS.clone(); t.needsUpdate = true; t.repeat.set(80, 14);
     this.floor = new THREE.Mesh(new THREE.PlaneGeometry(1200, 200), new THREE.MeshStandardMaterial({ map:t, roughness:.85, metalness:.1, color:0x8aa0b8 })); this.floor.rotation.x = -Math.PI/2; this.root.add(this.floor);
     // far back: the clockwork - big slow gears and hologram clocks, and the light rays
-    this.far = []; for (let i = 0; i < 10; i++){ const big = i % 3 === 1, g = big ? alarmClock(CYAN, 7) : gearMesh(5 + rnd(i)*6, CYAN, .35); g.position.set(i*45, big ? 16 : 10 + rnd(i*3)*20, -50 - rnd(i*5)*30); this.root.add(g); this.far.push(g); }
-    this.rays = []; for (let i = 0; i < 9; i++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(5 + rnd(i)*8, 140), glowMat(0x4ac8ff, .05 + rnd(i*3)*.05)); m.position.set(i*40, 50, -70); m.rotation.z = (rnd(i*9) - .5)*.5; this.root.add(m); this.rays.push(m); }
+    this.far = []; for (let i = 0; i < 10; i++){ const big = i % 3 === 1, g = big ? alarmClock(CYAN, 7) : gearMesh(5 + rnd(i)*6, CYAN, .35); g.position.set(i*45, big ? 16 : 10 + rnd(i*3)*20, -50 - rnd(i*5)*30); recede(g, big ? FARK[0] : FARK[1], big ? null : 0x1787c2); g.userData.bx = i*45; g.userData.s0 = g.scale.x; this.root.add(g); this.far.push(g); }
+    this.rays = []; for (let i = 0; i < 9; i++){ const m = new THREE.Mesh(new THREE.PlaneGeometry(5 + rnd(i)*8, 140), glowMat(0x4ac8ff, .05 + rnd(i*3)*.05)); m.material.map = SHAFT; m.material.opacity *= 2.1; m.position.set(i*40, 50, -70); m.rotation.z = (rnd(i*9) - .5)*.5; this.root.add(m); this.rays.push(m); }
     // the pendulums: a gear to hook on, with its reach shown as a faint ring, and a pendulum hanging from it
     this.piv = []; for (let i = 0; i < 9; i++){ const g = gearMesh(1, ICE, .95), rng = new THREE.Mesh(new THREE.RingGeometry(this.R - .1, this.R, 72), glowMat(CYAN, .1)); g.add(rng);
       const rod = new THREE.Group(), bar = new THREE.Mesh(new THREE.BoxGeometry(.12, 6, .12), glowMat(CYAN, .35)); bar.position.y = -3; rod.add(bar);
@@ -332,7 +341,8 @@ const SWING = {
     this.rope = new THREE.Mesh(new THREE.CylinderGeometry(.12, .55, 1, 10, 1, true), glowMat(0xd8f8ff, .55)); this.root.add(this.rope);
     this.sparks = []; for (let i = 0; i < 40; i++){ const s = sprite(ICE, 1.3); s.visible = false; this.root.add(s); this.sparks.push({ s, on:false }); }
     // the spinning red gears between the pendulums
-    this.saws = []; for (let i = 0; i < 6; i++){ const g = gearMesh(1.4, 0xff4a6a, .95); g.add(sprite(0xff4a6a, 6, .35)); g.visible = false; this.root.add(g); this.saws.push({ g, on:false }); }
+    const sawBody = new THREE.CircleGeometry(1.4, 28), sawMat = new THREE.MeshBasicMaterial({ color:0x9a0a26, transparent:true, opacity:.62, depthWrite:false });
+    this.saws = []; for (let i = 0; i < 6; i++){ const g = gearMesh(1.4, 0xff4a6a, .95); g.add(sprite(0xff4a6a, 6, .35)); const body = new THREE.Mesh(sawBody, sawMat); body.position.z = -.12; g.add(body); g.visible = false; this.root.add(g); this.saws.push({ g, on:false }); }
     this.heart = (() => { const g = new THREE.Group(), hm = new THREE.MeshBasicMaterial({ color:0xff3d6a });
       for (const s of [-1, 1]){ const b = new THREE.Mesh(new THREE.SphereGeometry(.32, 12, 10), hm); b.position.set(s*.25, .15, 0); g.add(b); }
       const tip = new THREE.Mesh(new THREE.ConeGeometry(.44, .6, 14), hm); tip.rotation.z = Math.PI; tip.position.y = -.2; g.add(tip); g.add(sprite(0xff3d6a, 3, .6)); g.scale.setScalar(1.4); g.visible = false; this.root.add(g); return { g, on:false }; })();
@@ -406,12 +416,132 @@ const SWING = {
     if (this.heart.on){ this.heart.g.position.set(this.heart.x, this.heart.y, 0); this.heart.g.rotation.y = t*2; }
     // the stage and the back move along in whole steps, so they never end
     this.floor.position.x = Math.round(st.x/15)*15; this.floor.material.map.offset.x = 0;
-    for (const g of this.far){ let x = g.position.x; while (x < st.x*.6 - 150) x += 450; g.position.x = x; g.rotation.z += dt*.05; }
+    for (const g of this.far){ const u = g.userData.bx - st.x*.45; g.position.x = st.x + 10 + ((u % 450) + 450) % 450 - 225; g.rotation.z += dt*.05; }   // its own slow layer, round and round
     for (const r of this.rays){ let x = r.position.x; while (x < st.x - 160) x += 360; r.position.x = x; }
     const portrait = cam.aspect < .8;
     // on a phone: far enough back, and a little ahead, to see the next pendulum (gaps up to ~20)
     if (portrait){ const fit = 18/(Math.tan(cam.fov*Math.PI/360)*cam.aspect); CAMP.set(st.x + 10, 12, Math.max(62, fit)); CAML.set(st.x + 10, 11, 0); }
     else { CAMP.set(st.x + 6, 12, 38); CAML.set(st.x + 6, 11, 0); }
+  }
+};
+
+/* ================= THE LOOK =================
+   Picture only: the play never reads anything in here, and this never calls into the
+   play (it only looks at where things already are). The hall behind the stage: haze
+   on the horizon, the big clock in the dark that runs from 11 to 12 over the song
+   (its minute hand is the song bar), dust in the light. On the stage: the glow of
+   the clockwork along the way, the reflections of the pendulums, the red gears and
+   the saucer on the planks, the saucer's own pool of light. On the way: a halo on
+   every pendulum's gear (gold in the hooks) and the chain it hangs from, a streak
+   behind the saucer. With "reduce motion": no streak, no pulses, the dust stands still. */
+const FX = {
+  N:18, DN:150, heat:0, acc:0, beats:0, boost:0, quiet:1,
+  build(){
+    const free = m => { m.frustumCulled = false; scene.add(m); return m; };
+    const lit = (color, op, map) => new THREE.MeshBasicMaterial({ color, map:map || null, transparent:true, opacity:op, blending:THREE.AdditiveBlending, depthWrite:false, fog:false });
+    this.D = new THREE.Object3D(); this.C = new THREE.Color();
+    // the back of the hall: lit haze over the far edge of the stage (it travels with the camera; the fog doesn't reach it)
+    // (the gradient is in the corners of a mesh and the clouds are worked out by hand: a canvas gradient gets dithered, and blown up that shows as a weave)
+    const STOPS = [[0, 4, 18, 30], [.24, 10, 54, 78], [.32, 15, 76, 106], [.48, 7, 34, 47], [.7, 4, 18, 30], [1, 2, 10, 18]], sg = new THREE.PlaneGeometry(680, 300, 1, 30), sp = sg.attributes.position, sc = new Float32Array(sp.count*3);
+    for (let i = 0; i < sp.count; i++){ const v = sp.getY(i)/300 + .5; let k = 0; while (k < STOPS.length - 2 && v > STOPS[k + 1][0]) k++;
+      const A = STOPS[k], B = STOPS[k + 1], f = clamp((v - A[0])/(B[0] - A[0]), 0, 1), e = f*f*(3 - 2*f); for (let c = 0; c < 3; c++) sc[i*3 + c] = (A[c + 1] + (B[c + 1] - A[c + 1])*e)/255; }
+    sg.setAttribute("color", new THREE.BufferAttribute(sc, 3));
+    let cv = document.createElement("canvas"); cv.width = 128; cv.height = 64; let x = cv.getContext("2d"), g = null; const im = x.createImageData(128, 64), px = im.data;
+    for (let j = 0; j < 64; j++) for (let i = 0; i < 128; i++){ let a = 0;
+      for (let b = 0; b < 10; b++){ let dx = Math.abs(i - hsh(b)*128); dx = Math.min(dx, 128 - dx)/(7 + hsh(b*7 + 2)*9); const dy = (j - (27 + hsh(b*3 + 1)*17))/(2.5 + hsh(b*5 + 4)*3); a += Math.exp(-dx*dx - dy*dy)*.6; }
+      const k = (j*128 + i)*4, val = 170 + 85*Math.min(1, a); px[k] = px[k + 1] = px[k + 2] = val; px[k + 3] = 255; }
+    x.putImageData(im, 0, 0);
+    const ht = new THREE.CanvasTexture(cv); ht.wrapS = THREE.RepeatWrapping; ht.repeat.x = 3;
+    this.sky = free(new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ map:ht, vertexColors:true, fog:false }))); this.sky.position.set(0, 45, -210);
+    // the big clock in the dark: a face of ticks, three hands
+    cv = document.createElement("canvas"); cv.width = cv.height = 512; x = cv.getContext("2d"); x.translate(256, 256); x.strokeStyle = "#fff"; x.lineCap = "round"; x.shadowColor = "#fff"; x.shadowBlur = 14;
+    x.lineWidth = 7; x.beginPath(); x.arc(0, 0, 232, 0, Math.PI*2); x.stroke();
+    x.globalAlpha = .5; x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 196, 0, Math.PI*2); x.stroke();
+    for (let i = 0; i < 60; i++){ const big = i % 5 === 0, a = i/60*Math.PI*2, r0 = big ? 176 : 204; x.globalAlpha = big ? 1 : .55; x.lineWidth = big ? 7 : 2; x.beginPath(); x.moveTo(Math.sin(a)*r0, -Math.cos(a)*r0); x.lineTo(Math.sin(a)*218, -Math.cos(a)*218); x.stroke(); }
+    const tint = CFG.endless ? 0xd89a22 : CYAN, ck = this.clk = new THREE.Group(); this.clkM = [];
+    const part = (geo, op, map) => { const m = new THREE.Mesh(geo, lit(tint, op, map)); m.material.userData.op = op; this.clkM.push(m.material); ck.add(m); return m; };
+    const hand = (w, len, op) => { const gm = new THREE.PlaneGeometry(w, len); gm.translate(0, len*.38, 0); return part(gm, op); };
+    part(new THREE.PlaneGeometry(74, 74), .27, new THREE.CanvasTexture(cv));
+    this.hMin = hand(1.1, 30, .34); this.hHour = hand(1.9, 20, .34); this.hSec = hand(.4, 34, .24);
+    ck.position.set(0, 85, -200); scene.add(ck);
+    // dust in the light, behind the way across
+    const pos = new Float32Array(this.DN*3); this.dust0 = new Float32Array(this.DN*3);
+    for (let i = 0; i < this.DN; i++){ this.dust0[i*3] = hsh(i*1.7 + 5)*220; this.dust0[i*3 + 1] = 3 + hsh(i*2.9 + 6)*44; pos[i*3 + 2] = this.dust0[i*3 + 2] = -8 - hsh(i*4.3 + 7)*45; }
+    const dg = new THREE.BufferGeometry(); dg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    this.dust = free(new THREE.Points(dg, new THREE.PointsMaterial({ map:DOT, color:0x9adfff, size:.7, transparent:true, opacity:.5, blending:THREE.AdditiveBlending, depthWrite:false, fog:false })));
+    // the glow of the clockwork on the planks, along the way
+    cv = document.createElement("canvas"); cv.width = 4; cv.height = 64; x = cv.getContext("2d"); g = x.createLinearGradient(0, 0, 0, 64);
+    [[0, 0], [.25, .12], [.5, 1], [.75, .12], [1, 0]].forEach(([o, a]) => g.addColorStop(o, "rgba(255,255,255," + a + ")")); x.fillStyle = g; x.fillRect(0, 0, 4, 64);
+    this.band = free(new THREE.Mesh(new THREE.PlaneGeometry(420, 34), lit(0x2ab8e8, .1, new THREE.CanvasTexture(cv)))); this.band.rotation.x = -Math.PI/2; this.band.position.y = .03;
+    this.band.material.polygonOffset = true; this.band.material.polygonOffsetFactor = this.band.material.polygonOffsetUnits = -2;
+    // every soft light in one go: 9 halos, 9 + 6 + 3 reflections on the planks, 9 pools where the shafts land
+    const gm = lit(0xffffff, 1, DOT); gm.polygonOffset = true; gm.polygonOffsetFactor = gm.polygonOffsetUnits = -3;
+    this.glow = free(new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), gm, 36));
+    for (let i = 0; i < 36; i++) this.put(i, 0, -9, 0, 0, 0, true, 0, 0, 0);
+    // the chains the pendulums hang from
+    cv = document.createElement("canvas"); cv.width = 4; cv.height = 256; x = cv.getContext("2d");
+    for (let i = 0; i < 32; i++){ x.fillStyle = "rgba(255,255,255," + Math.pow(i/31, 1.7).toFixed(3) + ")"; x.fillRect(0, i*8, 4, 5); }   // links, fading out upwards
+    const cg = new THREE.PlaneGeometry(.2, 24); cg.translate(0, 12.9, 0);
+    this.chain = free(new THREE.InstancedMesh(cg, lit(CYAN, .26, new THREE.CanvasTexture(cv)), 9));
+    // the streak behind the saucer: one ribbon
+    const N = this.N, tg = new THREE.BufferGeometry(), idx = [];
+    tg.setAttribute("position", new THREE.BufferAttribute(new Float32Array(N*6), 3)); tg.setAttribute("color", new THREE.BufferAttribute(new Float32Array(N*6), 3));
+    for (let i = 0; i < N - 1; i++) idx.push(i*2, i*2 + 1, i*2 + 2, i*2 + 1, i*2 + 3, i*2 + 2); tg.setIndex(idx);
+    this.trail = free(new THREE.Mesh(tg, new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false, side:THREE.DoubleSide, fog:false })));
+    this.hx = new Float32Array(N); this.hy = new Float32Array(N);
+  },
+  put(i, x, y, z, sx, sy, flat, r, g, b){ const D = this.D; D.position.set(x, y, z); D.rotation.x = flat ? -Math.PI/2 : 0; D.scale.set(sx, sy, 1); D.updateMatrix(); this.glow.setMatrixAt(i, D.matrix); this.glow.setColorAt(i, this.C.setRGB(r, g, b)); },
+  // where the planks would mirror something at (ox, oy, oz), seen from the camera: a soft streak towards you
+  refl(i, ox, oy, oz, w, r, g, b){ if (!(w > 0) || oy < .2){ this.put(i, 0, -9, 0, 0, 0, true, 0, 0, 0); return; }
+    const c = cam.position, s = c.y/(c.y + oy); this.put(i, c.x + (ox - c.x)*s, .04, c.z + (oz - c.z)*s, w*s*1.25, w*s*8, true, r, g, b); },
+  frame(dt, t){
+    const st = SWING.st, cx = cam.position.x, ending = S.end >= 0, TAU = Math.PI*2;
+    const bf = (t - GRID.t0)/BEAT, fr = bf - Math.floor(bf), pulse = CALM ? 0 : Math.exp(-fr*4);
+    const sec = section(t), want = ending ? .35 : sec === "hook" ? 1 : sec === "loud" ? .55 : sec === "calm" ? .25 : .1;
+    this.heat += (want - this.heat)*Math.min(1, dt*2);
+    const heat = this.heat, out = ending ? 1 - clamp(S.end/1.5, 0, 1) : 1;
+    // the hall
+    const sk = (.72 + .28*heat + .06*pulse*heat)*1.2; this.sky.position.x = cx; this.sky.material.map.offset.x = cx*.0004; this.sky.material.color.setRGB(sk, sk, sk);
+    const u = CFG.endless ? (t % STINT)/STINT : clamp(t/END_AT, 0, 1);
+    this.clk.position.x = cx + 6; this.clk.visible = out > 0;
+    this.hMin.rotation.z = -u*TAU; this.hHour.rotation.z = -(11 + (CFG.endless ? Math.max(0, S.stint) : 0) + u)/12*TAU; this.hSec.rotation.z = -(Math.floor(bf) + Math.min(1, fr*5))/60*TAU;
+    this.quiet += ((S.msgT > 0 ? .35 : 1) - this.quiet)*Math.min(1, dt*8);                         // a message is up: the clock steps back behind it
+    for (const m of this.clkM) m.opacity = m.userData.op*out*this.quiet*(.8 + .2*heat + .3*pulse*heat);
+    const dp = this.dust.geometry.attributes.position, da = dp.array, d0 = this.dust0;
+    for (let i = 0; i < this.DN; i++){ const k = i*3; da[k] = cx - 110 + (((d0[k] - cx + 110) % 220) + 220) % 220; da[k + 1] = d0[k + 1] + (CALM ? 0 : Math.sin(t*.25 + i*1.7)*1.6); }
+    dp.needsUpdate = true;
+    this.band.position.x = cx; this.band.material.opacity = .07 + .07*heat + .05*pulse;
+    for (const g of SWING.far){ g.visible = out > 0; g.scale.setScalar(g.userData.s0*Math.max(out, .001)); }      // in the ending the clockwork folds away, so the cover stands alone
+    // the pendulums: halo, chain, reflection
+    const n0 = Math.max(0, st.last - 1), D = this.D;
+    for (let i = 0; i < 9; i++){ const pv = SWING.piv[i]; if (ending) pv.scale.setScalar(out);
+      const p = st.pv[n0 + i], k = pv.scale.x, gold = !!p && p.sec === "hook", a = .3 + .2*pulse*(gold ? 1 : .5), px = pv.position.x, py = pv.position.y;
+      this.put(i, px, py, -.5, 6.5*k, 6.5*k, false, gold ? a : a*.42, gold ? a*.72 : a*.85, gold ? a*.25 : a);
+      this.refl(9 + i, px, py, 0, 2.6*k, .1, .34, .42);
+      D.position.set(px, py, -.6); D.rotation.x = 0; D.scale.set(k, k, 1); D.updateMatrix(); this.chain.setMatrixAt(i, D.matrix); }
+    this.chain.instanceMatrix.needsUpdate = true;
+    for (let i = 0; i < 6; i++){ const w = SWING.saws[i]; this.refl(18 + i, w.g.position.x, w.g.position.y, 0, w.on ? 3.4 : 0, .36, .05, .1); }
+    // the saucer: its reflection, and its own pool of light on the planks right under it
+    const mp = ME.position, a = .5/(1 + mp.y*.12);
+    this.refl(24, mp.x, mp.y, mp.z, 3.4, .32, .5, .56);
+    this.put(25, mp.x, .04, mp.z, 5 + mp.y*.5, 14 + mp.y, true, a*.45, a*.85, a);
+    const hh = SWING.heart; this.refl(26, hh.x || 0, hh.y || 0, 0, hh.on ? 2.4 : 0, .5, .1, .2);
+    for (let i = 0; i < 9; i++){ const r = SWING.rays[i], o = r.material.opacity*1.1; this.put(27 + i, r.position.x + 50*Math.tan(r.rotation.z), .04, -70, r.geometry.parameters.width*1.6, 34, true, o*.3, o*.8, o); }
+    this.glow.instanceMatrix.needsUpdate = true; this.glow.instanceColor.needsUpdate = true;
+    END.root.userData.halo.material.opacity = ending ? .3*clamp((S.end - 1.2)/2.5, 0, 1) : 0;
+    // the streak
+    const T = this.trail; T.visible = !ending && !CALM; if (!T.visible) return;
+    const N = this.N, hx = this.hx, hy = this.hy, x0 = st.x, y0 = st.y, lx = hx[0], ly = hy[0];
+    if (st.beats > this.beats) this.boost = 1; this.beats = st.beats; this.boost = Math.max(0, this.boost - dt*2);
+    if (Math.abs(x0 - lx) + Math.abs(y0 - ly) > 4){ hx.fill(x0); hy.fill(y0); this.acc = 0; }      // a new run, or hung back after a fall
+    else { this.acc += dt; let n = 0; while (this.acc >= 1/60 && n < 2){ this.acc -= 1/60; n++; } if (this.acc > 1/60) this.acc = 0;
+      for (let k = 0; k < n; k++){ hx.copyWithin(1, 0, N - 1); hy.copyWithin(1, 0, N - 1); }
+      if (n === 2){ hx[1] = (lx + x0)/2; hy[1] = (ly + y0)/2; } hx[0] = x0; hy[0] = y0; }
+    const bst = this.boost, W = .8 + .6*bst, pa = T.geometry.attributes.position.array, ca = T.geometry.attributes.color.array;
+    for (let i = 0; i < N; i++){ const j = i < N - 1 ? i : i - 1, dx = hx[j] - hx[j + 1], dy = hy[j] - hy[j + 1], l = Math.hypot(dx, dy) || 1, f = 1 - i/(N - 1), w = W*f, nx = -dy/l*w, ny = dx/l*w, q = f*f*(.62 + .38*bst), k = i*6;
+      pa[k] = hx[i] + nx; pa[k + 1] = hy[i] + ny; pa[k + 2] = -.3; pa[k + 3] = hx[i] - nx; pa[k + 4] = hy[i] - ny; pa[k + 5] = -.3;
+      ca[k] = ca[k + 3] = q*(.3 + .7*bst); ca[k + 1] = ca[k + 4] = q*(.8 + .05*bst); ca[k + 2] = ca[k + 5] = q*(1 - .6*bst); }
+    T.geometry.attributes.position.needsUpdate = true; T.geometry.attributes.color.needsUpdate = true;
   }
 };
 
@@ -459,7 +589,8 @@ function buildEnd(){
   const proj = new THREE.Mesh(new THREE.PlaneGeometry(22, 22), new THREE.MeshBasicMaterial({ map:PROJ, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false })); proj.rotation.x = -Math.PI/2; proj.position.set(0, .06, -2); g.add(proj);
   const clk = alarmClock(CYAN, 6.5); clk.position.set(0, 12, -4); g.add(clk);
   const column = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 5, 10, 32, 1, true), glowMat(0x9ae8ff, .12)); column.position.set(0, 5, -3); g.add(column);
-  g.userData = { proj, clk, column }; END.root = g;
+  const halo = sprite(0x2aa8ff, 44, 0); halo.position.set(0, 12, -9); g.add(halo);
+  g.userData = { proj, clk, column, halo }; END.root = g;
 }
 function win(){
   if (S.end >= 0 || S.done) return;
@@ -502,6 +633,7 @@ function render(dt){
   }
   const k = camInit ? Math.min(1, dt*(S.end >= 0 ? 1.2 : 6)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
+  FX.frame(dt, t);
   ren.render(scene, cam);
 }
 function frame(){
@@ -549,7 +681,7 @@ function boot(){
   scene.add(new THREE.HemisphereLight(0x9ad8ff, 0x0a1018, .8));
   const key = new THREE.DirectionalLight(0xc8eeff, .6); key.position.set(0, 50, 40); scene.add(key);
   ME = buildSaucer(); scene.add(ME);
-  SWING.setup(); buildEnd();
+  SWING.setup(); buildEnd(); FX.build();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); });
 }

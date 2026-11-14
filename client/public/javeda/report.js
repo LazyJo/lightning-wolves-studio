@@ -43,6 +43,17 @@
     const r = e.reason; report(r && (r.message || r.name) || String(r), r && r.stack);
   });
 
+  /* The Google Play and App Store apps open the JAVEDA page at ?src=play or ?src=appstore, and it's kept for the visit
+     (javeda.store; a level runs in the page's frame, so it sees the same). There, no link to EVEN: buying there gives
+     a Pass code, and the stores want their own payment for anything that opens the game. Merch stays. */
+  try {
+    const src = new URLSearchParams(location.search).get("src");
+    if (/^(play|appstore)$/.test(src || "") || /^(play|appstore)$/.test(sessionStorage.getItem("javeda.store") || "")){
+      const off = () => document.querySelectorAll('a[data-link="even"]').forEach(a => a.remove());
+      if (document.readyState === "loading") addEventListener("DOMContentLoaded", off); else off();
+    }
+  } catch(e){}
+
   /* Where players get stuck: in a level (in the JAVEDA page's frame), keep an eye on the run - how far into the song
      it is while it's going, and why it ended. The JAVEDA page asks (JAVEDA_RUN) when a run ends or is left, and sends
      only that: the level, cleared / out / gave up, the second in the song and the reason. Every level keeps its run in

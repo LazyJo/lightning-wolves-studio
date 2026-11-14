@@ -1372,17 +1372,23 @@ GRANT EXECUTE ON FUNCTION public.javeda_level_stats() TO authenticated;
 CREATE TABLE IF NOT EXISTS javeda_app_devices (
   device_id  UUID PRIMARY KEY,
   platform   TEXT NOT NULL CHECK (platform IN ('ios', 'android', 'desktop')),
+  -- where it came from: web = Get the app (home screen), play = Google Play, appstore = Apple's App Store
+  source     TEXT NOT NULL DEFAULT 'web' CHECK (source IN ('web', 'play', 'appstore')),
   user_id    UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   first_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   opened_at  TIMESTAMPTZ,
   opens      INT NOT NULL DEFAULT 0
 );
+-- (the source came on 2026-11-14, with the store apps: every install before it is a home-screen one)
+ALTER TABLE javeda_app_devices ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'web' CHECK (source IN ('web', 'play', 'appstore'));
 ALTER TABLE javeda_app_devices ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON javeda_app_devices FROM anon, authenticated;
 
--- the hub says so when the app is installed (where the browser tells it) and every time it opens from the home screen;
--- an open counts once per half hour
-CREATE OR REPLACE FUNCTION public.javeda_app_seen(p_device UUID, p_platform TEXT, p_how TEXT)
+-- the hub says so when the app is installed (where the browser tells it) and every time it opens from the home screen
+-- or a store app; an open counts once per half hour. p_source is new and 'web' when it isn't sent, so the hub that's
+-- live today (it sends three) keeps counting the same way. The old three-part one goes, so a call can't match both.
+DROP FUNCTION IF EXISTS public.javeda_app_seen(UUID, TEXT, TEXT);
+CREATE OR REPLACE FUNCTION public.javeda_app_seen(p_device UUID, p_platform TEXT, p_how TEXT, p_source TEXT DEFAULT 'web')
 RETURNS VOID
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
@@ -1390,11 +1396,13 @@ DECLARE
   opened BOOLEAN := COALESCE(p_how = 'open', false);
 BEGIN
   IF p_device IS NULL OR p_platform IS NULL OR p_platform NOT IN ('ios', 'android', 'desktop') THEN RETURN; END IF;
+  IF p_source IS NULL OR p_source NOT IN ('web', 'play', 'appstore') THEN RETURN; END IF;
   -- a flood of made-up installs is cut off (60 new ones a minute is far more than real)
   IF (SELECT count(*) FROM javeda_app_devices WHERE first_at > now() - interval '1 minute') >= 60
      AND NOT EXISTS (SELECT 1 FROM javeda_app_devices WHERE device_id = p_device) THEN RETURN; END IF;
-  INSERT INTO javeda_app_devices (device_id, platform, user_id, opened_at, opens)
-  VALUES (p_device, p_platform, auth.uid(), CASE WHEN opened THEN now() END, CASE WHEN opened THEN 1 ELSE 0 END)
+  -- an install keeps the source it came with (each source has its own id on the phone)
+  INSERT INTO javeda_app_devices (device_id, platform, source, user_id, opened_at, opens)
+  VALUES (p_device, p_platform, p_source, auth.uid(), CASE WHEN opened THEN now() END, CASE WHEN opened THEN 1 ELSE 0 END)
   ON CONFLICT (device_id) DO UPDATE SET
     user_id = COALESCE(auth.uid(), javeda_app_devices.user_id),
     opens = javeda_app_devices.opens + CASE WHEN opened AND (javeda_app_devices.opened_at IS NULL
@@ -1402,8 +1410,8 @@ BEGIN
     opened_at = CASE WHEN opened THEN now() ELSE javeda_app_devices.opened_at END;
 END;
 $$;
-REVOKE ALL ON FUNCTION public.javeda_app_seen(UUID, TEXT, TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.javeda_app_seen(UUID, TEXT, TEXT) TO anon, authenticated;
+REVOKE ALL ON FUNCTION public.javeda_app_seen(UUID, TEXT, TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.javeda_app_seen(UUID, TEXT, TEXT, TEXT) TO anon, authenticated;
 
 -- Delete my account (the hub asks twice first). A JAVEDA login is a Lightning Wolves login, so when it is also used
 -- for the Studio or the Wolf Hub (a paid plan, or anything of theirs in those tables) only the JAVEDA player goes -
@@ -1484,7 +1492,7 @@ REVOKE ALL ON FUNCTION public.javeda_set_news(BOOLEAN) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_set_news(BOOLEAN) TO authenticated;
 
 -- The creator's overview: every player with an account (newest first) with their email and whether they want
--- news, and the app downloads.
+-- news, and the app downloads: by device, and by where they came from (home screen, Google Play, App Store).
 CREATE OR REPLACE FUNCTION public.javeda_creator_overview()
 RETURNS JSON
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
@@ -1495,12 +1503,16 @@ BEGIN
   END IF;
   RETURN json_build_object(
     'downloads', (SELECT json_build_object(
-        'total',   count(*),
-        'ios',     count(*) FILTER (WHERE platform = 'ios'),
-        'android', count(*) FILTER (WHERE platform = 'android'),
-        'desktop', count(*) FILTER (WHERE platform = 'desktop'),
-        'week',    count(*) FILTER (WHERE first_at > now() - interval '7 days'),
-        'active',  count(*) FILTER (WHERE opened_at > now() - interval '7 days'))
+        'total',    count(*),
+        'ios',      count(*) FILTER (WHERE platform = 'ios'),
+        'android',  count(*) FILTER (WHERE platform = 'android'),
+        'desktop',  count(*) FILTER (WHERE platform = 'desktop'),
+        'web',      count(*) FILTER (WHERE source = 'web'),
+        'play',     count(*) FILTER (WHERE source = 'play'),
+        'appstore', count(*) FILTER (WHERE source = 'appstore'),
+        'stores_week', count(*) FILTER (WHERE source <> 'web' AND first_at > now() - interval '7 days'),
+        'week',     count(*) FILTER (WHERE first_at > now() - interval '7 days'),
+        'active',   count(*) FILTER (WHERE opened_at > now() - interval '7 days'))
       FROM javeda_app_devices),
     'players', (SELECT COALESCE(json_agg(x ORDER BY x.joined DESC), '[]'::json) FROM (
         SELECT p.username AS name, u.email, p.avatar, p.points, p.created_at AS joined, p.last_run_at AS played,

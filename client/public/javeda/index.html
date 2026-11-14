@@ -421,6 +421,8 @@ h2{margin:0 0 10px; font:700 13px/1 var(--cond); letter-spacing:.3em; text-trans
 .vfollow .ig{color:#ff9bd2; border-color:#e1306c88; background:linear-gradient(135deg,#f5851f1a,#e1306c1f,#833ab41f)}
 .vfollow .spot{color:#4ade80; border-color:#1db95499; background:#1db9541c}
 .vfollow .yt{color:#ff9a9a; border-color:#ff4d4d80; background:#ff000014}
+/* a store app: no True Fans (EVEN), so Merch and Discord share the last row */
+.vfollow.store{grid-template-columns:repeat(6,minmax(0,1fr))} .vfollow.store a{grid-column:span 2} .vfollow.store .merch, .vfollow.store .disc{grid-column:span 3}
 footer{color:var(--mute); font-size:13px}
 
 /* sheets: profile + login */
@@ -1126,7 +1128,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <button class="x" type="button" data-close aria-label="Close">&times;</button>
     <h3 id="plT">Players &amp; downloads</h3>
     <div class="ptiles" id="plTiles"></div>
-    <p class="small">A download is a phone or computer with JAVEDA on its home screen, counted from 2 November 2026: when it's installed, or (iPhone) the first time it's opened from the home screen.</p>
+    <p class="small">A download is a phone or computer with JAVEDA on its home screen, counted from 2 November 2026: when it's installed, or (iPhone) the first time it's opened from the home screen. A Google Play or App Store app counts the first time it's opened.</p>
     <div class="plbar"><input class="in" id="plFind" type="search" placeholder="Find a name or email" autocomplete="off"><button class="btn small" id="plCopy" type="button">Copy news emails</button></div>
     <div class="err" id="plErr"></div>
     <ol class="st pll" id="plList"></ol>
@@ -1596,6 +1598,17 @@ let passOn = false;         // the JAVEDA Pass is on sale (javeda_settings). A P
 let pass = null;            // your Pass (javeda_passes): every part opens straight away
 let passCents = null;       // its price from /api/config; null: payments aren't set up (a code still works)
 let freeView = false;       // a creator seeing the hub as a player without the Pass would (here only, nothing saved)
+// the Google Play and App Store apps open the game at /javeda/?src=play and ?src=appstore; it's kept for the visit
+// (a level comes back to the hub without it). There the Pass isn't sold and no code is taken, since the stores want
+// their own payment for that; a Pass already on the account still works. null: the website or the home-screen app
+const STORE = (() => {
+  let s = null;
+  try { s = new URLSearchParams(location.search).get("src"); } catch(e){}
+  try { if (s === "play" || s === "appstore") sessionStorage.setItem("javeda.store", s); else s = sessionStorage.getItem("javeda.store"); } catch(e){}
+  return s === "play" || s === "appstore" ? s : null;
+})();
+// and no link to EVEN there (buying there gives a Pass code): the Follow row without True Fans
+if (STORE){ const f = document.querySelector(".vfollow"); if (f){ f.classList.add("store"); f.querySelectorAll('a[data-link="even"]').forEach(a => a.remove()); } }
 
 const signedIn = () => !!(session && player);
 const hasPass = () => !freeView && (creator || !!pass);
@@ -1621,7 +1634,7 @@ function reached(lv){
 }
 const isOpen = reached;
 // locked, and the Pass is on sale: it could open it right now
-const passReady = lv => (passOn || freeView) && !hasPass() && !reached(lv);
+const passReady = lv => !STORE && (passOn || freeView) && !hasPass() && !reached(lv);
 // what a locked card says it's waiting for
 function needText(lv){
   if (lv.ultimate) return "Clear Level 9 Part 3 to open";
@@ -1703,7 +1716,7 @@ function renderNow(){
     '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small" data-swarm="1">Swarmfall (test)</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
     (freeView ? 'Free view: on' : 'See it free') + '</button></div></div>' : '';
   // the Pass, for anyone who hasn't got it, once it's on sale; who has it gets the marathon from here too (nothing else leads there before the album's done)
-  const passrow = (passOn || freeView) && !hasPass() ? '<div class="passrow"><span><b>&#9889; JAVEDA Pass</b> &middot; every part open right away' +
+  const passrow = !STORE && (passOn || freeView) && !hasPass() ? '<div class="passrow"><span><b>&#9889; JAVEDA Pass</b> &middot; every part open right away' +
     (passCents ? ' &middot; ' + euro(passCents) + ' once' : '') + '</span><button class="btn gold small" data-pass="">Get it</button></div>'
     : pass && !creator ? '<div class="passrow"><span><b>&#9889; JAVEDA Pass</b> &middot; every part open</span><button class="btn gold small" data-marathon="1">Album marathon</button></div>' : '';
   // invite friends: a key each (not for a creator or a Pass: everything's open there)
@@ -3441,6 +3454,7 @@ const PASS_KEY = "javeda.passNext";
 const euro = c => (c / 100).toLocaleString("en-IE", { style:"currency", currency:"EUR" });
 function takePassNext(){ try { const v = sessionStorage.getItem(PASS_KEY); sessionStorage.removeItem(PASS_KEY); return !!v; } catch(e){ return false; } }
 function openPass(lv){
+  if (STORE) return;          // not in the store apps (see STORE)
   $("psErr").textContent = "";
   $("psWhy").innerHTML = lv ? "<b>" + esc(lv === ULT ? "JAVEDA: HYPERDRIVE" : lvName(lv)) + "</b> is still locked. The Pass opens it right now, and the rest of the album with it." : "";
   $("psHave").classList.toggle("hid", !pass);
@@ -3647,6 +3661,7 @@ async function openPlayers(){
     tile(plRows.filter(p => recent(p.played)).length, "Played this week") +
     tile(plRows.filter(p => p.news).length, "Want news by email") +
     tile(d.total, "App downloads", "+" + fmt(d.week) + " this week<br>" + fmt(d.ios) + " iPhone &middot; " + fmt(d.android) + " Android &middot; " + fmt(d.desktop) + " computer") +
+    (d.play != null ? tile(d.play + d.appstore, "From the stores", "+" + fmt(d.stores_week) + " this week<br>" + fmt(d.play) + " Google Play &middot; " + fmt(d.appstore) + " App Store<br>" + fmt(d.web) + " from the home screen") : "") +
     tile(d.active, "Opened the app this week");
   listPlayers();
 }
@@ -3675,7 +3690,8 @@ let codeKind = "even";
 const codeText = c => c.replace(/^(EVEN|MERCH)([A-Z0-9]{4})([A-Z0-9]{4})$/, "$1-$2-$3");
 async function openCodes(){
   openSheet("codes"); $("cdErr").textContent = ""; $("cdNew").innerHTML = "";
-  $("cdState").innerHTML = passOn ? "The Pass is <b>on sale</b>: anyone can buy it to open every part right away." : "The Pass is <b>not on sale yet</b>. Codes already work: whoever uses one gets every part open right away.";
+  $("cdState").innerHTML = STORE ? "This is the <b>" + (STORE === "play" ? "Google Play" : "App Store") + " app</b>: the Pass isn't sold here and codes aren't taken (the store wants its own payment for that). On the website both work as usual."
+    : passOn ? "The Pass is <b>on sale</b>: anyone can buy it to open every part right away." : "The Pass is <b>not on sale yet</b>. Codes already work: whoever uses one gets every part open right away.";
   await listCodes();
 }
 async function listCodes(){
@@ -3840,7 +3856,7 @@ const CHROMIUM = /Chrome|Chromium|Edg|OPR/.test(UA) && !/Firefox/.test(UA);
 // Samsung Internet installs a site as an Android app built for an old Android, and Google Play Protect blocks it on
 // newer phones ("Unsafe app blocked"). So there, JAVEDA is installed from Chrome instead.
 const SAMSUNG = /SamsungBrowser/.test(UA);
-const STANDALONE = matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || navigator.standalone === true;
+const STANDALONE = !!STORE || matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || navigator.standalone === true;
 const SONG_URLS = [...new Set(LEVELS.map(l => SONGS_URL + "lvl" + l.num + ".mp3"))];
 let installEvt = null, songsSaved = null, songsBusy = false;
 if ("serviceWorker" in navigator) addEventListener("load", () => { navigator.serviceWorker.register("/javeda/sw.js", { scope:"/javeda/" }).then(() => STANDALONE && countSongs()).catch(() => {}); });
@@ -3853,8 +3869,9 @@ function askSW(msg, onReply){
   return true;
 }
 // the app downloads the creators see: a random id for this install (nothing else about the phone), sent when the
-// app is installed and when it's opened from the home screen (javeda_app_seen counts an open once per half hour)
-const DEV_KEY = "javeda.device.v1";
+// app is installed and when it's opened from the home screen (javeda_app_seen counts an open once per half hour).
+// A store app's install has its own id and says where it came from (play / appstore); the home screen's says nothing ('web')
+const DEV_KEY = STORE ? "javeda.device." + STORE + ".v1" : "javeda.device.v1";
 function appSeen(how){
   if (!sb) return;
   let id = null;
@@ -3865,7 +3882,9 @@ function appSeen(how){
       localStorage.setItem(DEV_KEY, id);
     }
   } catch(e){ return; }      // nowhere to keep the id: not counted, rather than counted again on every open
-  sb.rpc("javeda_app_seen", { p_device:id, p_platform:IOS ? "ios" : ANDROID ? "android" : "desktop", p_how:how }).then(() => {}, () => {});
+  const args = { p_device:id, p_platform:IOS ? "ios" : ANDROID ? "android" : "desktop", p_how:how };
+  if (STORE) args.p_source = STORE;
+  sb.rpc("javeda_app_seen", args).then(() => {}, () => {});
 }
 function countSongs(){ askSW({ type:"songs:saved" }, d => { songsSaved = SONG_URLS.filter(u => d.saved.includes(u)).length; renderApp(); }); }
 function renderApp(){
@@ -4312,7 +4331,7 @@ if (location.hash === "#app"){ history.replaceState(null, "", location.pathname 
   // the live catalogue wins over the built-in copy, so prices can change without a deploy
   sb.from("javeda_avatars").select("*").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
   // is the Pass on sale?
-  const passInfo = sb.from("javeda_settings").select("pass_on").maybeSingle().then(st => { passOn = !!(st.data && st.data.pass_on); });
+  const passInfo = sb.from("javeda_settings").select("pass_on").maybeSingle().then(st => { passOn = !STORE && !!(st.data && st.data.pass_on); });
   const [{ data }] = await Promise.all([sb.auth.getSession(), passInfo]);
   session = data.session; await loadAccount(); loadDaily().then(() => goTo(location.hash)); passReturn();
   if (RECOVERY && session) openNewPassword();

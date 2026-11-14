@@ -1357,8 +1357,8 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <li>Creators can play to test it, but never win.</li>
       <li>Before a prize is sent, Lazy Jo checks the winning runs. A real prize comes by email or a direct message from Lazy Jo, and nobody will ever ask you for a password or for payment details.</li>
       <li>A gift card goes to the same player at most once every 3 months: if you win again sooner, it goes to the next one down.</li>
-      <li class="chweb">Already have the Pass? Then third place in a Monthly gets 5,000 points instead; in a Super, second place gets 5,000 points instead of a Pass and third place 2,500 points instead of the keys.</li>
-      <li class="chstore">Already have every part open? Then third place in a Monthly gets 5,000 points; in a Super, second place gets 5,000 points and third place 2,500 points.</li>
+      <li class="chweb">Already have the Pass? Then third place gets 2,500 points instead of the keys, and second place in a Super gets 5,000 points instead of a Pass.</li>
+      <li class="chstore">Already have every part open? Then third place gets 2,500 points instead of the keys, and second place in a Super gets 5,000 points.</li>
       <li>Prize points can be spent like any points, but they don't change your place on the Points board.</li>
       <li>Apple and Google are not sponsors of these challenges and are not involved in them in any way.</li>
       <li id="chrGoal">The Monthly starts once JAVEDA has 100 downloads and 30 accounts, the Super once it has 50 accounts.</li>
@@ -2147,7 +2147,7 @@ const CH_OWN = new Set(CH_TEASE.flatMap(g => [g.title, g.note]));
 const chWords = s => CH_OWN.has(s) ? esc(s) : '<span data-i18n-skip>' + esc(s) + '</span>';   // Lazy Jo's own words stay as typed
 // the prizes when Lazy Jo didn't write his own (the store apps never name the Pass)
 const CH_PRIZE = {
-  monthly:() => ["A gift card + 30% off in the shop", "A Super invite + 30% off in the shop", STORE ? "Every part open + 20% off in the shop" : "A JAVEDA Pass + 20% off in the shop"],
+  monthly:() => ["A gift card + a Super invite + 30% off in the shop", "A Super invite + 20% off in the shop", "2 keys + 20% off in the shop"],
   super:() => ["The gift you picked + a Lazy Jo hoodie", STORE ? "A hoodie or T-shirt + every part open" : "A hoodie or T-shirt + a JAVEDA Pass", "A T-shirt + 2 keys + 30% off in the shop"]
 };
 const chList = () => ((chalDemo || chal) || {}).list || [];

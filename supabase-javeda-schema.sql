@@ -3194,9 +3194,9 @@ GRANT EXECUTE ON FUNCTION public.javeda_room_check(TEXT) TO authenticated;
 --   that Monthly ends; a Super that closed with nobody on its board doesn't use the invite up).
 -- * A Super can offer 3 gifts: each player picks one before their first run (then it's locked); only #1 gets it.
 -- * When it ends, the top 3 (creators aside) get their pictures and in-game prizes by themselves:
---   #1 the Champion picture + the Top 3 picture + a Pass if they haven't got one; #2 and #3 the Top 3 picture; and
---   a Monthly: #1 and #2 an invite to the next Super, #3 a Pass, or 5,000 points if they have one;
---   a Super: #2 a Pass, or 5,000 points if they have one; #3 2 keys, or 2,500 points.
+--   #1 the Champion picture + the Top 3 picture, #2 and #3 the Top 3 picture; and
+--   a Monthly: #1 and #2 an invite to the next Super; #3 2 keys, or 2,500 points if they have the Pass;
+--   a Super: #1 a Pass if they haven't got one; #2 a Pass, or 5,000 points; #3 2 keys, or 2,500 points.
 --   Prize points are spendable points; they don't count on the Points board (points_earned).
 --   Real prizes (gift card, merch, store gifts) Lazy Jo sends himself: addresses by DM or email, never in the game.
 -- ============================================================================
@@ -3445,15 +3445,9 @@ BEGIN
              ORDER BY 4 LIMIT 3 LOOP
       has_pass := EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = r.user_id);
       pr := NULL; pts := 0;
-      IF c.kind = 'monthly' THEN
-        -- #1 a Pass (if none) + the invite, #2 the invite (javeda_challenge_ticket), #3 a Pass or 5,000 points
-        IF r.place IN (1, 3) AND NOT has_pass THEN
-          PERFORM javeda_grant_pass(r.user_id, 'gift', c.kind || ' challenge ' || c.id); pr := 'pass';
-        ELSIF r.place = 3 THEN
-          pts := 5000; pr := 'points';
-        END IF;
-        IF r.place <= 2 THEN pr := concat_ws('+', pr, 'invite'); END IF;
-      ELSIF r.place <= 2 AND NOT has_pass THEN
+      IF c.kind = 'monthly' AND r.place <= 2 THEN
+        pr := 'invite';                             -- a Monthly's #1 and #2: in the next Super (javeda_challenge_ticket)
+      ELSIF c.kind = 'super' AND r.place <= 2 AND NOT has_pass THEN
         PERFORM javeda_grant_pass(r.user_id, 'gift', c.kind || ' challenge ' || c.id); pr := 'pass';
       ELSIF r.place = 3 AND NOT has_pass THEN
         UPDATE javeda_players SET level_keys = level_keys + 2, updated_at = now() WHERE user_id = r.user_id; pr := 'keys';

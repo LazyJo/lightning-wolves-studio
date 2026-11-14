@@ -3177,7 +3177,7 @@ GRANT EXECUTE ON FUNCTION public.javeda_room_check(TEXT) TO authenticated;
 
 -- ============================================================================
 -- JAVEDA challenges: the Monthly (one song's endless, a calendar month, for everyone who has it open) and the Super
--- (a remix, 2 weeks, 3 a year, invite only by the bar Lazy Jo sets). (Came on 2026-11-14 as
+-- (an endless or a remix, 2 weeks, 3 a year, invite only by the bar Lazy Jo sets). (Came on 2026-11-14 as
 -- push-setup/fn-challenges.sql; javeda_submit_run, javeda_badges and javeda_unlock_met above were changed with it.)
 --
 -- * Nothing can be played until JAVEDA has 100 downloads and 30 accounts (creators aside), the season events' goal
@@ -3188,8 +3188,8 @@ GRANT EXECUTE ON FUNCTION public.javeda_room_check(TEXT) TO authenticated;
 --   Every challenge can be reached by playing: no purchase needed.
 -- * A challenge's runs are endless runs (javeda_start_run / javeda_submit_run): the same clock and the same score
 --   cap. Only runs that start inside its dates count; your best run is your score; on a tie the earlier one wins.
--- * Who may join (the bar): parts with 3 stars (javeda_levels.great, the hub's GREAT table), songs fully cleared,
---   played in the last N days, or names Lazy Jo picks. You join the moment you meet it, also while it runs; once
+-- * Who may join (the bar): parts with 3 stars (javeda_levels.great, the hub's GREAT table), 3 stars on every part of
+--   the challenge's own song, songs fully cleared, played in the last N days, or names Lazy Jo picks. You join the moment you meet it, also while it runs; once
 --   you've joined you stay in. The top two of a Monthly are always in the next Super (the first one that starts after
 --   that Monthly ends; a Super that closed with nobody on its board doesn't use the invite up).
 -- * A Super can offer 3 gifts: each player picks one before their first run (then it's locked); only #1 gets it.
@@ -3225,6 +3225,15 @@ RETURNS INT
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$ SELECT count(*)::INT FROM (SELECT l.num FROM javeda_levels l LEFT JOIN javeda_progress g ON g.level = l.id AND g.user_id = p_user
       WHERE NOT l.endless GROUP BY l.num HAVING bool_and(COALESCE(g.cleared, false))) s; $$;
+-- 3 stars on every part of a level's song (an endless or a remix belongs to the song with its number)
+CREATE OR REPLACE FUNCTION public.javeda_song_three(p_user UUID, p_level TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT count(*) > 0 AND bool_and(COALESCE(g.cleared AND g.best_score >= s.great, false))
+      FROM javeda_levels l JOIN javeda_levels s ON s.num = l.num AND NOT s.endless AND s.great IS NOT NULL
+      LEFT JOIN javeda_progress g ON g.level = s.id AND g.user_id = p_user
+      WHERE l.id = p_level; $$;
+REVOKE ALL ON FUNCTION public.javeda_song_three(UUID, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_three_stars(UUID) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.javeda_songs_done(UUID) FROM PUBLIC, anon, authenticated;
 
@@ -3296,6 +3305,7 @@ CREATE TABLE IF NOT EXISTS javeda_challenges (
   min_songs   INT NOT NULL DEFAULT 0 CHECK (min_songs BETWEEN 0 AND 28),    -- songs with every part cleared
   min_days    INT CHECK (min_days BETWEEN 1 AND 365),                       -- played in the last N days
   only_picked BOOLEAN NOT NULL DEFAULT false,   -- only the names Lazy Jo picked (javeda_challenge_invites)
+  song_stars  BOOLEAN NOT NULL DEFAULT false,   -- 3 stars on every part of its own song
   gifts       JSONB NOT NULL DEFAULT '[]',      -- up to 3: [{ "key", "title", "note", "icon" }]
   prizes      JSONB NOT NULL DEFAULT '{}',      -- { "1": text, "2": text, "3": text }; empty = the game's own wording
   created_by  UUID,
@@ -3381,7 +3391,8 @@ AS $$
                  WHERE c.id = p_challenge AND NOT c.only_picked
                    AND (c.min_three = 0 OR javeda_three_stars(p_user) >= c.min_three)
                    AND (c.min_songs = 0 OR javeda_songs_done(p_user) >= c.min_songs)
-                   AND (c.min_days IS NULL OR p.last_run_at > now() - make_interval(days => c.min_days)));
+                   AND (c.min_days IS NULL OR p.last_run_at > now() - make_interval(days => c.min_days))
+                   AND (NOT c.song_stars OR javeda_song_three(p_user, c.level)));
 $$;
 REVOKE ALL ON FUNCTION public.javeda_challenge_in(BIGINT, UUID) FROM PUBLIC, anon, authenticated;
 
@@ -3502,6 +3513,7 @@ BEGIN
       'ticket', javeda_challenge_ticket(p_id, p_user),
       'three', javeda_three_stars(p_user), 'songs', javeda_songs_done(p_user), 'open', javeda_reached(p_user, c.level),
       'played_days', (SELECT CASE WHEN last_run_at IS NULL THEN NULL ELSE floor(EXTRACT(EPOCH FROM now() - last_run_at) / 86400)::INT END FROM javeda_players WHERE user_id = p_user),
+      'song_three', javeda_song_three(p_user, c.level),
       'gift', e.gift, 'best', COALESCE(e.best_score, 0), 'runs', COALESCE(e.runs, 0),
       'rank', CASE WHEN COALESCE(e.best_score, 0) > 0 AND NOT cr THEN
         (SELECT count(*) + 1 FROM javeda_challenge_entries o WHERE o.challenge = p_id AND o.best_score > 0
@@ -3511,7 +3523,7 @@ BEGIN
   RETURN json_build_object('id', c.id, 'kind', c.kind, 'level', c.level, 'title', c.title,
     'shows_at', c.shows_at, 'starts_at', c.starts_at, 'ends_at', c.ends_at,
     'state', CASE WHEN c.closed_at IS NOT NULL THEN 'over' WHEN now() < c.starts_at THEN 'soon' WHEN now() < c.ends_at THEN 'open' ELSE 'ending' END,
-    'bar', json_build_object('three', c.min_three, 'songs', c.min_songs, 'days', c.min_days, 'picked', c.only_picked),
+    'bar', json_build_object('three', c.min_three, 'songs', c.min_songs, 'days', c.min_days, 'picked', c.only_picked, 'song', c.song_stars),
     'gifts', c.gifts, 'prizes', c.prizes,
     'players', (SELECT count(*) FROM javeda_challenge_entries o WHERE o.challenge = p_id AND o.runs > 0
                   AND NOT EXISTS (SELECT 1 FROM javeda_creators k WHERE k.user_id = o.user_id)),
@@ -3610,6 +3622,7 @@ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE three INT := GREATEST(0, COALESCE((p ->> 'min_three')::INT, 0)); songs INT := GREATEST(0, COALESCE((p ->> 'min_songs')::INT, 0));
         days INT := NULLIF(COALESCE((p ->> 'min_days')::INT, 0), 0); picked_only BOOLEAN := COALESCE((p ->> 'only_picked')::BOOLEAN, false);
+        ss BOOLEAN := COALESCE((p ->> 'song_stars')::BOOLEAN, false);
         lvl TEXT := p ->> 'level'; kd TEXT := p ->> 'kind'; st TIMESTAMPTZ := NULLIF(p ->> 'starts_at', '')::TIMESTAMPTZ; me_id BIGINT := NULLIF(p ->> 'id', '')::BIGINT;
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()) THEN RAISE EXCEPTION 'creators only' USING ERRCODE = '42501'; END IF;
@@ -3624,7 +3637,7 @@ BEGIN
             AND (pl.user_id IN (SELECT n.user_id FROM javeda_challenge_names(p -> 'names') n WHERE n.known)
                  OR (kd IS NOT DISTINCT FROM 'super' AND javeda_challenge_ticket_at(pl.user_id, st, me_id))
                  OR (NOT picked_only AND (three = 0 OR javeda_three_stars(pl.user_id) >= three) AND (songs = 0 OR javeda_songs_done(pl.user_id) >= songs)
-                     AND (days IS NULL OR pl.last_run_at > now() - make_interval(days => days))))) m);
+                     AND (days IS NULL OR pl.last_run_at > now() - make_interval(days => days)) AND (NOT ss OR javeda_song_three(pl.user_id, lvl))))) m);
 END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_challenge_match(JSONB) FROM PUBLIC, anon;
@@ -3647,7 +3660,7 @@ BEGIN
     IF old.id IS NULL OR old.cancelled OR old.closed_at IS NOT NULL THEN RAISE EXCEPTION 'that challenge can''t be changed' USING ERRCODE = '42501'; END IF;
     IF now() >= old.starts_at THEN      -- running: the rules stay as they started
       k := old.kind; lvl := old.level; s1 := old.shows_at; s2 := old.starts_at; s3 := GREATEST(old.ends_at, COALESCE(s3, old.ends_at)); g := old.gifts;
-      p := p || jsonb_build_object('min_three', old.min_three, 'min_songs', old.min_songs, 'min_days', old.min_days, 'only_picked', old.only_picked);
+      p := p || jsonb_build_object('min_three', old.min_three, 'min_songs', old.min_songs, 'min_days', old.min_days, 'only_picked', old.only_picked, 'song_stars', old.song_stars);
     END IF;
   END IF;
   IF k IS NULL OR k NOT IN ('monthly', 'super') THEN RAISE EXCEPTION 'monthly or super' USING ERRCODE = '22023'; END IF;
@@ -3674,16 +3687,16 @@ BEGIN
   pz := jsonb_strip_nulls(jsonb_build_object('1', NULLIF(left(btrim(COALESCE(pz ->> '1', '')), 200), ''), '2', NULLIF(left(btrim(COALESCE(pz ->> '2', '')), 200), ''),
                                              '3', NULLIF(left(btrim(COALESCE(pz ->> '3', '')), 200), '')));
   IF old.id IS NULL THEN
-    INSERT INTO javeda_challenges (kind, level, title, shows_at, starts_at, ends_at, min_three, min_songs, min_days, only_picked, gifts, prizes, created_by)
+    INSERT INTO javeda_challenges (kind, level, title, shows_at, starts_at, ends_at, min_three, min_songs, min_days, only_picked, song_stars, gifts, prizes, created_by)
     VALUES (k, lvl, NULLIF(left(btrim(COALESCE(p ->> 'title', '')), 60), ''), s1, s2, s3,
             LEAST(200, GREATEST(0, COALESCE((p ->> 'min_three')::INT, 0))), LEAST(28, GREATEST(0, COALESCE((p ->> 'min_songs')::INT, 0))),
-            NULLIF(LEAST(365, GREATEST(0, COALESCE((p ->> 'min_days')::INT, 0))), 0), COALESCE((p ->> 'only_picked')::BOOLEAN, false), gi, pz, auth.uid())
+            NULLIF(LEAST(365, GREATEST(0, COALESCE((p ->> 'min_days')::INT, 0))), 0), COALESCE((p ->> 'only_picked')::BOOLEAN, false), COALESCE((p ->> 'song_stars')::BOOLEAN, false), gi, pz, auth.uid())
     RETURNING * INTO c;
   ELSE
     UPDATE javeda_challenges SET kind = k, level = lvl, title = NULLIF(left(btrim(COALESCE(p ->> 'title', '')), 60), ''), shows_at = s1, starts_at = s2, ends_at = s3,
       min_three = LEAST(200, GREATEST(0, COALESCE((p ->> 'min_three')::INT, 0))), min_songs = LEAST(28, GREATEST(0, COALESCE((p ->> 'min_songs')::INT, 0))),
       min_days = NULLIF(LEAST(365, GREATEST(0, COALESCE((p ->> 'min_days')::INT, 0))), 0), only_picked = COALESCE((p ->> 'only_picked')::BOOLEAN, false),
-      gifts = gi, prizes = pz
+      song_stars = COALESCE((p ->> 'song_stars')::BOOLEAN, false), gifts = gi, prizes = pz
     WHERE id = old.id RETURNING * INTO c;
   END IF;
   -- the picked names: as typed now (a name can be added while it runs; one already in stays in once they've played)
@@ -3708,7 +3721,7 @@ BEGIN
   PERFORM javeda_challenge_close_due();
   RETURN (SELECT COALESCE(json_agg(json_build_object(
       'id', c.id, 'kind', c.kind, 'level', c.level, 'title', c.title, 'shows_at', c.shows_at, 'starts_at', c.starts_at, 'ends_at', c.ends_at,
-      'min_three', c.min_three, 'min_songs', c.min_songs, 'min_days', c.min_days, 'only_picked', c.only_picked, 'gifts', c.gifts, 'prizes', c.prizes,
+      'min_three', c.min_three, 'min_songs', c.min_songs, 'min_days', c.min_days, 'only_picked', c.only_picked, 'song_stars', c.song_stars, 'gifts', c.gifts, 'prizes', c.prizes,
       'cancelled', c.cancelled, 'closed_at', c.closed_at,
       'state', CASE WHEN c.cancelled THEN 'cancelled' WHEN c.closed_at IS NOT NULL THEN 'over' WHEN now() < c.shows_at THEN 'hidden'
                     WHEN now() < c.starts_at THEN 'soon' WHEN now() < c.ends_at THEN 'open' ELSE 'ending' END,

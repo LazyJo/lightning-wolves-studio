@@ -618,6 +618,8 @@ html[data-season="summer"]{ --blue:#f08a24 } html[data-season="halloween"]{ --bl
 .chbar li.ok{color:var(--good); border-color:#3ddc9755}
 .chbar em{font-style:normal; color:var(--gold)}
 .chlock{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.chfirst{display:grid; gap:8px}
+.chfirst .cf{font:700 12.5px/1.35 var(--cond); letter-spacing:.06em; color:#fff}
 .chlinks{display:flex; flex-wrap:wrap; gap:4px 16px; border-top:1px solid #ffffff12; padding-top:9px}
 .chlinks button{background:none; border:0; padding:3px 0; font:700 12px/1 var(--cond); letter-spacing:.16em; text-transform:uppercase; color:var(--dim); cursor:pointer}
 .chlinks button:hover{color:var(--ink)}
@@ -1351,7 +1353,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <li><b>No purchase needed.</b> Every challenge is played in an endless or a remix that you open for free by clearing its levels.</li>
       <li class="chweb">The JAVEDA Pass only skips the wait: it gives no extra tries and no better scores.</li>
       <li>The Monthly runs for a calendar month on one song's endless. Everyone who has that endless open can play.</li>
-      <li>The Super runs for two weeks on a remix, three times a year. Lazy Jo invites the best players (by stars, by songs cleared or by name), and you can still get in while it runs. The winner picks a gift before their first run.</li>
+      <li>The Super runs for two weeks on an endless or a remix, three times a year. Lazy Jo invites the best players (by stars, by songs cleared or by name), and you can still get in while it runs. The winner picks a gift before their first run.</li>
       <li>The top two of a Monthly are invited to the next Super, whatever their stars.</li>
       <li>Only runs started during the challenge count. Your best run is your score; on a tie, whoever got there first is ahead.</li>
       <li>Creators can play to test it, but never win.</li>
@@ -1385,6 +1387,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <label class="f">Played in the last days <input class="in" id="caDays" type="number" min="0" max="365" inputmode="numeric" placeholder="Any"></label>
       <label class="f full">Names: always in (one per line) <textarea class="in" id="caNames" rows="3" placeholder="Player names"></textarea></label>
       <label class="ck full"><input type="checkbox" id="caOnly"> Only these names (no bar)</label>
+      <label class="ck full"><input type="checkbox" id="caSong"> 3 stars on every part of its song</label>
       <div class="full" id="caGifts">
         <p class="small">The winner's gifts, up to 3: a title, a short note, an icon.</p>
         <div class="ca-g"><input class="in" id="caG0t" maxlength="40" placeholder="Title"><input class="in" id="caG0n" maxlength="140" placeholder="Note"><select class="in" id="caG0i"><option value="gaming">Gaming</option><option value="scent">Scent</option><option value="music">Music</option><option value="gift">Gift</option><option value="shirt">Shirt</option><option value="star">Star</option></select></div>
@@ -2171,8 +2174,8 @@ const chDates = c => '<span data-i18n-skip>' + esc(chDay(c.starts_at) + " - " + 
 const chJoin = (...xs) => xs.filter(Boolean).join('<span class="sep" aria-hidden="true"> &middot; </span>');
 const chSp = s => s ? '<span>' + s + '</span>' : '';
 const chWhere = (c, lv) => chJoin(lv ? chSp(lvName(lv)) : '', chDates(c), chSp(chLeft(c)));
-// the song a remix belongs to: its Part 1's title
-const chSong = lv => lv.remix ? (LEVELS.find(l => l.num === lv.num && !l.part) || lv).title : lv.title;
+// the song a challenge is on: a remix's Part 1 title; an endless's own part (I'M LOST, LIGHTS OUT), not its game's name
+const chSong = lv => ((lv.remix ? LEVELS.find(l => l.num === lv.num && !l.part) : lv.endless ? LEVELS.find(l => l.num === lv.num && (l.part || 1) === (lv.part || 1)) : null) || lv).title;
 function chLeft(c){
   const soon = c.state === "soon", ms = new Date(soon ? c.starts_at : c.ends_at) - Date.now();
   if (ms <= 0 || c.state === "over") return "";
@@ -2183,9 +2186,19 @@ function chPrizeList(c, kind){
   const p = (c && c.prizes) || {}, d = CH_PRIZE[kind]();
   return '<ol class="chp">' + [1, 2, 3].map(i => '<li><b>#' + i + '</b>' + (p[i] ? '<span data-i18n-skip>' + esc(p[i]) + '</span>' : '<span>' + esc(d[i - 1]) + '</span>') + '</li>').join("") + '</ol>';
 }
+// rules with a tick, or how far you are
+const chRows = rows => rows.length ? '<ul class="chbar">' + rows.map(([t, ok, n]) => '<li class="' + (ok ? 'ok' : '') + '"><span>' + (ok ? '&#10003; ' : '') + esc(t) + '</span>' + (!ok && n ? '<em>' + n + '</em>' : '') + '</li>').join("") + '</ul>' : "";
+// 3 stars on every part of a challenge's song: the tick from the database once there's a challenge (me), else from this
+// phone; how far: the score (one part) or the parts with 3 stars
+function chSongRow(lv, me){
+  const ps = LEVELS.filter(l => l.num === lv.num), n3 = ps.filter(l => starsOf(l.id) === 3).length, ok = me ? !!me.song_three : n3 === ps.length;
+  if (ps.length > 1) return ["3 stars on every part of this song", ok, n3 + " / " + ps.length];
+  const g = GREAT[ps[0].id], p = progress[ps[0].id], b = p && p.cleared ? p.best || 0 : 0;
+  return ["3 stars on this song", ok, g ? fmt(Math.min(b, g)) + " / " + fmt(g) : ""];
+}
 // who may join: each rule with a tick, or how far you are
 function chBar(c){
-  const b = c.bar || {}, me = c.me, rows = [], by = !!me && (me.invited || me.ticket);   // in by name or by a Monthly place: no bar to show
+  const b = c.bar || {}, me = c.me, rows = [], by = !!me && (me.invited || me.ticket), lv = levelById(c.level);   // in by name or by a Monthly place: no bar to show
   if (me && me.invited) rows.push(["Picked by Lazy Jo", true, ""]);
   if (me && me.ticket) rows.push(["Invited for your Monthly place", true, ""]);
   if (b.picked){ if (!by) rows.push(["Picked by Lazy Jo", false, ""]); }
@@ -2193,9 +2206,9 @@ function chBar(c){
     if (b.three) rows.push(["3 stars on " + b.three + (b.three === 1 ? " part" : " parts"), !!me && me.three >= b.three, me ? Math.min(me.three, b.three) + " / " + b.three : ""]);
     if (b.songs) rows.push(["Every part of " + b.songs + (b.songs === 1 ? " song" : " songs") + " cleared", !!me && me.songs >= b.songs, me ? Math.min(me.songs, b.songs) + " / " + b.songs : ""]);
     if (b.days) rows.push(["Played in the last " + b.days + " days", !!me && me.played_days != null && me.played_days < b.days, ""]);
+    if (b.song && lv) rows.push(chSongRow(lv, me));
   }
-  if (!rows.length) return "";
-  return '<ul class="chbar">' + rows.map(([t, ok, n]) => '<li class="' + (ok ? 'ok' : '') + '"><span>' + (ok ? '&#10003; ' : '') + esc(t) + '</span>' + (!ok && n ? '<em>' + n + '</em>' : '') + '</li>').join("") + '</ul>';
+  return chRows(rows);
 }
 // where you stand, and the way in: [what it says, the button]
 function chMe(c, lv, g){
@@ -2218,6 +2231,18 @@ function chLocked(c, lv){
   if (!me || !me.in || me.open || c.state === "over" || c.state === "ending") return "";
   return '<p class="dd chlock"><span>&#128274; ' + needText(lv) + '</span>' + (passReady(lv) ? ' <span>Or skip the wait with the Pass.</span>' + passBolt(lv) : '') + '</p>';
 }
+// the first ones (Jo, 2026-11-14), shown on the locked cards until the goal is reached: time to get there by playing.
+// The Monthly: Ghost's endless. The Super: Need More Time's endless, for players with 3 stars on it. (The panel fills
+// them in for the first of each kind.)
+const CH_FIRST = { monthly:{ level:"lvl15x" }, super:{ level:"lvl12x", song:true } };
+function chFirst(kind){
+  const f = CH_FIRST[kind], lv = f && levelById(f.level), p1 = lv && LEVELS.find(l => l.num === lv.num && !l.part);
+  if (!lv || !p1) return "";
+  const way = f.song ? p1 : lv;        // the 3-star rule: play the song itself; else open its endless
+  return '<div class="chfirst"><span class="cf">' + chJoin(chSp("The first one"), '<span data-i18n-skip>' + esc(chSong(lv)) + '</span>', chSp(lvName(lv))) + '</span>' +
+    (f.song ? chRows([chSongRow(lv, null)]) : '') +
+    (reached(way) ? '' : '<p class="dd chlock"><span>&#128274; ' + needText(way) + '</span>' + (passReady(way) ? ' <span>Or skip the wait with the Pass.</span>' + passBolt(way) : '') + '</p>') + '</div>';
+}
 const chGrow = () => (STANDALONE ? '' : '<button class="btn small" type="button" data-getapp="1">Get the app</button>') + '<button class="btn gold small" type="button" data-friends="1">Invite</button>';
 const chCounts = g => '<span class="evcount">' + (g.dl != null ? '<span class="tag">' + fmt(g.dl) + ' / ' + fmt(g.nd) + ' downloads</span>' : '') +
   (g.ac != null ? '<span class="tag">' + fmt(g.ac) + ' / ' + fmt(g.na) + ' accounts</span>' : '') + '</span>';
@@ -2234,7 +2259,7 @@ function monthlyCard(){
   if (!c || !lv) return '<article class="daily monthly"><span class="dl">Monthly challenge</span>' +
     '<span class="dt">' + (g.on ? 'Coming soon' : '&#128274; Opens at ' + fmt(g.nd) + ' downloads and ' + fmt(g.na) + ' accounts') + '</span>' +
     '<p class="dd">One song\'s endless for a whole month. The best score wins a gift card; the top three win prizes and a picture only winners get.</p>' +
-    chPrizeList(null, "monthly") +
+    chPrizeList(null, "monthly") + (g.on ? '' : chFirst("monthly")) +
     '<div class="row">' + (g.on ? '<span class="tag">The next one is on its way</span><span class="btns"></span>' : chCounts(g) + '<span class="btns">' + chGrow() + '</span>') + '</div>' + chLinks(null) + '</article>';
   const [st, btn] = chMe(c, lv, g);
   return '<article class="daily monthly"><span class="dl"><span>Monthly challenge</span><span data-i18n-skip> &middot; ' + esc(chMonth(c.starts_at)) + '</span></span>' +
@@ -2263,7 +2288,7 @@ function superCard(){
   const left = c ? chLeft(c) : "";
   let mid, foot;
   if (!c || !lv){
-    mid = '<p class="sp-dd">Three a year, two weeks each, on a remix. Invite only: the best players get in. The winner picks a gift:</p>' + tiles;
+    mid = '<p class="sp-dd">Three a year, two weeks each, on an endless or a remix. Invite only: the best players get in. The winner picks a gift:</p>' + tiles;
   } else if (c.state === "over"){
     mid = '<p class="sp-dd">' + chJoin(chSp(lvName(lv)), chDates(c)) + '</p>' + chWinners(c);
   } else {
@@ -2272,7 +2297,7 @@ function superCard(){
   const prizes = c && c.state === "over" ? '' : chPrizeList(c, "super");
   if (!g.on){
     const m = (n, of, what) => n == null ? '' : '<span class="sp-meter"><span><b>' + fmt(n) + ' / ' + fmt(of) + '</b> <span>' + what + '</span></span><i><b style="width:' + Math.min(100, n / of * 100).toFixed(1) + '%"></b></i></span>';
-    foot = '<div class="sp-box"><p class="sp-lock">&#128274; Opens at ' + fmt(g.nd) + ' downloads and ' + fmt(g.na) + ' accounts</p>' + (c && lv && c.state !== "over" ? chBar(c) + chLocked(c, lv) : '') +
+    foot = '<div class="sp-box"><p class="sp-lock">&#128274; Opens at ' + fmt(g.nd) + ' downloads and ' + fmt(g.na) + ' accounts</p>' + (c && lv && c.state !== "over" ? chBar(c) + chLocked(c, lv) : c ? '' : chFirst("super")) +
       '<div class="sp-meters">' + m(g.dl, g.nd, "downloads") + m(g.ac, g.na, "accounts") + '</div><div class="row"><span class="btns">' + chGrow() + '</span></div></div>';
   } else if (!c || !lv){
     foot = '<div class="sp-box"><p class="sp-lock">The next Super challenge is on its way.</p></div>';
@@ -2416,7 +2441,7 @@ function caList(){
     return '<div class="ca-c k-' + c.kind + '"><div class="ca-h"><b>' + (c.kind === "super" ? "Super" : "Monthly") + '</b> ' + esc(c.title || (lv ? caLvName(lv) : c.level)) +
       ' <span class="tg">' + st[c.state] + '</span></div>' +
       '<p class="small">' + esc(lv ? caLvName(lv) : c.level) + ' &middot; shows ' + esc(chDay(c.shows_at)) + ' &middot; ' + esc(chDay(c.starts_at)) + ' - ' + esc(chDay(new Date(c.ends_at) - 1)) +
-      ' &middot; who: ' + esc([c.min_three ? c.min_three + "x 3 stars" : "", c.min_songs ? c.min_songs + " songs" : "", c.min_days ? "played in " + c.min_days + " days" : "", c.only_picked ? "only the names" : "", c.names.length ? c.names.length + " names" : ""].filter(Boolean).join(", ") || "everyone with it open") + '</p>' +
+      ' &middot; who: ' + esc([c.min_three ? c.min_three + "x 3 stars" : "", c.min_songs ? c.min_songs + " songs" : "", c.min_days ? "played in " + c.min_days + " days" : "", c.song_stars ? "3 stars on the song" : "", c.only_picked ? "only the names" : "", c.names.length ? c.names.length + " names" : ""].filter(Boolean).join(", ") || "everyone with it open") + '</p>' +
       '<p class="small">' + played.length + ' played &middot; ' + (c.entries || []).length + ' joined' + ((c.gifts || []).length ? ' &middot; gifts: ' + c.gifts.map(x => esc(x.title) + ' ' + (picks[x.key] || 0)).join(", ") : '') + '</p>' +
       ((c.tickets || []).length ? '<p class="small">In by a Monthly place: ' + c.tickets.map(esc).join(", ") + '</p>' : '') +
       ((c.winners || []).length ? '<ol class="ca-w">' + c.winners.map(w => '<li>#' + w.place + ' <b>' + esc(w.username || "(deleted account)") + '</b> ' + fmt(w.score) +
@@ -2433,22 +2458,24 @@ function caList(){
 function caOpenForm(kind, c){
   caEdit = c ? c.id : null;
   const d = c ? { shows:caDate(c.shows_at), starts:caDate(c.starts_at), last:caDate(new Date(c.ends_at) - 1) } : caDefaults(kind);
-  const lvs = CA_LV().filter(l => kind !== "super" || l.remix);     // a Super is on a remix
+  const lvs = CA_LV();               // any endless or remix; the very first of each kind: Jo's pick (CH_FIRST)
+  const first = !c && !caRows.some(r => r.kind === kind && r.state !== "cancelled") ? CH_FIRST[kind] : null;
   caKind = kind; $("caFormT").textContent = (c ? "Change the " : "New ") + (kind === "super" ? "Super" : "Monthly");
   $("caLevel").innerHTML = lvs.map(l => '<option value="' + l.id + '">' + esc(caLvName(l)) + '</option>').join("");
-  $("caLevel").value = c ? c.level : kind === "super" ? "lvl5r" : "lvl1x";
+  $("caLevel").value = c ? c.level : first ? first.level : kind === "super" ? "lvl5r" : "lvl1x";
   $("caTitle").value = c ? c.title || "" : "";
   $("caShows").value = d.shows; $("caStarts").value = d.starts; $("caLast").value = d.last;
-  $("caThree").value = c ? c.min_three || "" : kind === "super" ? 3 : "";
+  $("caThree").value = c ? c.min_three || "" : kind === "super" && !(first && first.song) ? 3 : "";
   $("caSongs").value = c ? c.min_songs || "" : ""; $("caDays").value = c && c.min_days ? c.min_days : "";
   $("caNames").value = c ? (c.names || []).join("\n") : ""; $("caOnly").checked = !!(c && c.only_picked);
+  $("caSong").checked = c ? !!c.song_stars : !!(first && first.song);
   const gifts = c ? c.gifts || [] : kind === "super" ? CH_TEASE : [];
   $("caGifts").classList.toggle("hid", kind !== "super");
   for (let i = 0; i < 3; i++){ const x = gifts[i] || {}; $("caG" + i + "t").value = x.title || ""; $("caG" + i + "n").value = x.note || ""; $("caG" + i + "i").value = x.icon || ["gaming", "scent", "music"][i]; }
   const dp = CH_PRIZE[kind]();
   for (let i = 1; i <= 3; i++){ $("caP" + i).value = c && c.prizes && c.prizes[i] || ""; $("caP" + i).placeholder = dp[i - 1] + " (shown in each player's language)"; }
   const running = !!(c && c.state === "open");
-  ["caLevel", "caShows", "caStarts", "caThree", "caSongs", "caDays", "caOnly"].forEach(id => $(id).disabled = running);
+  ["caLevel", "caShows", "caStarts", "caThree", "caSongs", "caDays", "caOnly", "caSong"].forEach(id => $(id).disabled = running);
   $("caRunNote").classList.toggle("hid", !running);
   $("caErr").textContent = ""; $("caForm").classList.remove("hid"); $("caForm").scrollIntoView({ block:"nearest" });
   caMatch();
@@ -2460,14 +2487,14 @@ function caPayload(){
   return { id:caEdit, kind, level:$("caLevel").value, title:$("caTitle").value.trim(),
     shows_at:caAt($("caShows").value), starts_at:caAt($("caStarts").value), ends_at:caAt($("caLast").value, 1),
     min_three:+$("caThree").value || 0, min_songs:+$("caSongs").value || 0, min_days:+$("caDays").value || 0,
-    only_picked:$("caOnly").checked, names:caNames(), gifts:g, prizes:{ 1:$("caP1").value.trim(), 2:$("caP2").value.trim(), 3:$("caP3").value.trim() } };
+    only_picked:$("caOnly").checked, song_stars:$("caSong").checked, names:caNames(), gifts:g, prizes:{ 1:$("caP1").value.trim(), 2:$("caP2").value.trim(), 3:$("caP3").value.trim() } };
 }
 function caMatch(){
   clearTimeout(caMatchT);
   caMatchT = setTimeout(async () => {
     if (!sb || !chal) { $("caMatch").textContent = ""; return; }
     const p = caPayload();
-    const { data, error } = await sb.rpc("javeda_challenge_match", { p:{ id:p.id, kind:p.kind, starts_at:p.starts_at, level:p.level, min_three:p.min_three, min_songs:p.min_songs, min_days:p.min_days, only_picked:p.only_picked, names:p.names } }).then(r => r, x => ({ error:x }));
+    const { data, error } = await sb.rpc("javeda_challenge_match", { p:{ id:p.id, kind:p.kind, starts_at:p.starts_at, level:p.level, min_three:p.min_three, min_songs:p.min_songs, min_days:p.min_days, only_picked:p.only_picked, song_stars:p.song_stars, names:p.names } }).then(r => r, x => ({ error:x }));
     if (error){ $("caMatch").textContent = error.message; return; }
     $("caMatch").innerHTML = '<b>' + data.count + (data.count === 1 ? ' player matches' : ' players match') + ' right now</b> (' + data.open + ' with it open)' +
       (data.names.length ? ': ' + data.names.map(n => esc(n.username) + (n.ticket ? ' (Monthly place)' : '') + (n.open ? '' : ' (not open)')).join(", ") : '') +

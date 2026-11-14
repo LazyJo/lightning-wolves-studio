@@ -603,6 +603,154 @@ html[data-season="summer"]{ --blue:#f08a24 } html[data-season="halloween"]{ --bl
 .btn.hot{background:var(--magenta); border-color:var(--magenta); color:#fff}
 .btn.hot:hover{background:#ff5a9e}
 @media (max-width:760px){ .now{grid-template-columns:minmax(0,1fr)} }
+/* the challenges: the Monthly (the daily's card, in cyan) and the Super (a look of its own: the night sky, Lazy Jo's
+   purple saucer, gold), their board, the halls of fame, the rules, a Super's gift, and the creator's panel */
+.daily.monthly{border-color:#67e8f966; background:radial-gradient(90% 120% at 100% 0%,#67e8f92e,transparent 60%),radial-gradient(70% 100% at 0% 100%,#2f8fe026,transparent 60%),var(--panel)}
+.daily.monthly .dl{color:#9fe8ff}
+.daily.monthly .dt{background:linear-gradient(180deg,#fff,#9fe8ff 55%,#3fc8e8); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 10px #67e8f955)}
+.daily .dl2, .chsub{font:700 12.5px/1.35 var(--cond); letter-spacing:.06em; color:var(--dim)}
+.chp{list-style:none; margin:0; padding:0; display:grid; gap:5px}
+.chp li{display:flex; gap:8px; align-items:baseline; font-size:13px; color:var(--ink); min-width:0}
+.chp li b{flex:none; min-width:22px; font:700 13px/1 var(--cond); color:var(--gold)}
+.chp li:nth-child(2) b{color:#d6e4f5} .chp li:nth-child(3) b{color:#e3a36b}
+.chbar{list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px}
+.chbar li{display:flex; gap:6px; align-items:center; font:700 12px/1.2 var(--cond); letter-spacing:.04em; padding:5px 8px; border-radius:6px; background:#ffffff0d; border:1px solid var(--line); color:var(--dim)}
+.chbar li.ok{color:var(--good); border-color:#3ddc9755}
+.chbar em{font-style:normal; color:var(--gold)}
+.chlock{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
+.chlinks{display:flex; flex-wrap:wrap; gap:4px 16px; border-top:1px solid #ffffff12; padding-top:9px}
+.chlinks button{background:none; border:0; padding:3px 0; font:700 12px/1 var(--cond); letter-spacing:.16em; text-transform:uppercase; color:var(--dim); cursor:pointer}
+.chlinks button:hover{color:var(--ink)}
+.chwin{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px}
+.chwin > span{display:grid; justify-items:center; gap:3px; padding:8px 4px; border-radius:10px; background:#ffffff0a; border:1px solid var(--line); text-align:center; min-width:0}
+.chwin .p1{border-color:#ffd60a77; background:#ffd60a14}
+.chwin img{width:40px; height:40px; border-radius:50%}
+.chwin b{font:700 13px/1 var(--cond); color:var(--gold)}
+.chwin .p2 b{color:#d6e4f5} .chwin .p3 b{color:#e3a36b}
+.chwin .nm{font-weight:700; font-size:13px; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.chwin em{font:700 12px/1 var(--cond); font-style:normal; color:var(--dim)}
+/* the Super: a gold border that turns, stars, a slow aurora, the saucer floating over its beam, a shining title */
+@property --spa{syntax:"<angle>"; inherits:false; initial-value:0deg}
+.super{grid-column:1 / -1; position:relative; overflow:hidden; isolation:isolate; border-radius:18px; padding:20px; display:grid; gap:14px; align-content:start;
+  border:2px solid transparent;
+  background:linear-gradient(160deg,#1d0b4a 0%,#2a0d5e 38%,#140a3c 70%,#07102a 100%) padding-box,
+             conic-gradient(from var(--spa),#ffd60a,#9a4dff 22%,#ff74d4 38%,#ffd60a 52%,#5a1fc0 74%,#ffd60a) border-box;
+  box-shadow:0 0 34px #9a4dff40}
+.super > *{position:relative; z-index:1; min-width:0}
+.super > .sp-sky, .super > .sp-aur{position:absolute; inset:0; z-index:0; pointer-events:none}
+.sp-sky{background:
+  radial-gradient(1.6px 1.6px at 6% 14%,#fff,transparent 70%), radial-gradient(1.2px 1.2px at 17% 62%,#f0dcff,transparent 70%),
+  radial-gradient(1.8px 1.8px at 28% 26%,#fff6c8,transparent 70%), radial-gradient(1.2px 1.2px at 39% 82%,#fff,transparent 70%),
+  radial-gradient(1.4px 1.4px at 52% 10%,#fff,transparent 70%), radial-gradient(1.2px 1.2px at 61% 48%,#f0dcff,transparent 70%),
+  radial-gradient(2px 2px at 72% 20%,#fff6c8,transparent 70%), radial-gradient(1.3px 1.3px at 83% 70%,#fff,transparent 70%),
+  radial-gradient(1.6px 1.6px at 93% 34%,#fff,transparent 70%), radial-gradient(1.1px 1.1px at 46% 64%,#fff,transparent 70%),
+  radial-gradient(1.2px 1.2px at 12% 90%,#f0dcff,transparent 70%), radial-gradient(1.5px 1.5px at 88% 92%,#fff6c8,transparent 70%)}
+.sp-aur{inset:-20% !important; background:radial-gradient(38% 46% at 82% 16%,#ff74d440,transparent 70%),radial-gradient(42% 52% at 14% 8%,#67e8f92a,transparent 70%),radial-gradient(56% 44% at 50% 104%,#ffd60a26,transparent 70%)}
+.sp-top{display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap}
+.sp-inv{font:700 11px/1 var(--cond); letter-spacing:.26em; text-transform:uppercase; color:#2a1a02; background:linear-gradient(180deg,#fff0b8,#ffd60a 55%,#e09400); padding:6px 11px; border-radius:999px; box-shadow:0 0 16px #ffd60a66}
+.sp-when{font:700 12px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase; color:#f0dcff; padding:6px 10px; border-radius:999px; border:1px solid #f0dcff44; background:#ffffff0d}
+.sp-hero{display:flex; align-items:center; gap:14px}
+.sp-ufo{flex:none; width:100px; height:80px; filter:drop-shadow(0 6px 18px #9a4dff99)}
+.sp-ufo svg{width:100%; height:100%; display:block; overflow:visible}
+.sp-h{display:grid; gap:6px; min-width:0}
+.sp-k{font:700 12px/1 var(--cond); letter-spacing:.34em; text-transform:uppercase; color:#ffe27a}
+.sp-t{font:400 clamp(24px,4.4vw,38px)/1.05 var(--display); overflow-wrap:anywhere; color:var(--gold);
+  background:linear-gradient(100deg,#fff4b8 0%,#ffd60a 20%,#fff 30%,#ffd60a 40%,#ff9de6 68%,#ffd60a 100%); background-size:220% 100%;
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 14px #ffd60a55)}
+.sp-dd{margin:0; font-size:14px; color:#e6d9ff}
+.sp-lab{margin:0; font:700 12px/1.2 var(--cond); letter-spacing:.2em; text-transform:uppercase; color:#ffe27a}
+.sp-gifts{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px}
+.sp-gift{display:grid; justify-items:center; align-content:start; gap:5px; padding:14px 8px 12px; border-radius:14px; text-align:center; color:var(--ink); font:inherit; min-width:0;
+  background:linear-gradient(180deg,#ffffff14,#ffffff05); border:1px solid #f0dcff33; transition:transform .2s, border-color .2s, box-shadow .2s}
+.sp-gift .gi{width:42px; height:42px; color:var(--gold); filter:drop-shadow(0 0 10px #ffd60a66)}
+.sp-gift b{font:700 14px/1.1 var(--cond); letter-spacing:.14em; text-transform:uppercase; color:#fff; overflow-wrap:anywhere}
+.sp-gift small{font-size:12px; line-height:1.3; color:#cdbef0}
+.sp-gift em{font:700 11px/1 var(--cond); font-style:normal; letter-spacing:.12em; text-transform:uppercase; color:#2a1a02; background:var(--gold); border-radius:999px; padding:4px 8px}
+button.sp-gift{cursor:pointer}
+button.sp-gift:hover{transform:translateY(-3px); border-color:#ffd60a99; box-shadow:0 8px 24px #9a4dff55}
+.sp-gift.on{border-color:var(--gold); background:linear-gradient(180deg,#ffd60a2e,#ffd60a0a); box-shadow:0 0 22px #ffd60a55}
+.sp-gift.off{opacity:.45}
+.super .chp{grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px}
+.super .chp li{display:grid; gap:5px; align-content:start; padding:10px; border-radius:12px; background:#00000033; border:1px solid #ffffff1a; font-size:12.5px; color:#efe6ff}
+.super .chp li:nth-child(1){border-color:#ffd60a88; background:linear-gradient(180deg,#ffd60a26,#00000033)}
+.super .chp li b{font:400 18px/1 var(--display)}
+.sp-box{display:grid; gap:10px; padding:12px; border-radius:14px; background:#0000003d; border:1px solid #ffffff17}
+.sp-box .row{display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap}
+.sp-box .btns{display:flex; gap:6px; margin-left:auto}
+.sp-lock{margin:0; font:700 15px/1.25 var(--cond); letter-spacing:.06em; color:#fff}
+.sp-meters{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.sp-meter{display:grid; gap:6px; font:700 12px/1 var(--cond); letter-spacing:.1em; text-transform:uppercase; color:#cdbef0}
+.sp-meter > span > b{color:#fff; letter-spacing:.04em}
+.sp-meter i{display:block; height:8px; border-radius:4px; background:#ffffff1a; overflow:hidden}
+.sp-meter i b{display:block; height:100%; border-radius:4px; background:linear-gradient(90deg,#9a4dff,#ff74d4,#ffd60a,#ff74d4,#9a4dff); background-size:200% 100%}
+.super .tag{font:700 12px/1.1 var(--cond); letter-spacing:.12em; text-transform:uppercase; padding:5px 8px; border-radius:4px; background:#ffffff17; color:#e6d9ff}
+.super .best{font:700 15px/1.2 var(--cond); letter-spacing:.08em; color:var(--gold)}
+.super .dd{font-size:13.5px; color:#e6d9ff; margin:0}
+.super .chbar li{background:#ffffff0f; border-color:#ffffff22; color:#e6d9ff}
+.super .chbar li.ok{color:var(--good); border-color:#3ddc9766}
+.super .chlinks{border-top-color:#ffffff1a}
+.super .chlinks button{color:#cdbef0}
+.super .chlinks button:hover{color:#fff}
+.btn.sp-go{background:linear-gradient(180deg,#b57bff,#7a2fe0); border:1px solid var(--gold); color:#fff; box-shadow:0 0 16px #9a4dff88}
+.btn.sp-go:hover{background:linear-gradient(180deg,#c895ff,#8a3ff0)}
+@media (prefers-reduced-motion:no-preference){
+  .super{animation:spspin 8s linear infinite}
+  .sp-ufo .sp-craft{animation:spbob 3.6s ease-in-out infinite}
+  .sp-ufo .sp-beam{transform-box:fill-box; transform-origin:50% 0; animation:spbeam 3.6s ease-in-out infinite}
+  .sp-t{animation:spshine 6s ease-in-out infinite alternate}
+  .sp-sky{animation:sptw 3.2s ease-in-out infinite alternate}
+  .sp-aur{animation:spaur 16s ease-in-out infinite alternate}
+  .sp-meter i b{animation:spshine 3s linear infinite alternate}
+}
+@keyframes spspin{to{--spa:360deg}}
+@keyframes spbob{0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)}}
+@keyframes spbeam{0%,100%{opacity:.5; transform:scaleY(.9)} 50%{opacity:1; transform:scaleY(1.04)}}
+@keyframes spshine{from{background-position:0% 0} to{background-position:100% 0}}
+@keyframes sptw{from{opacity:.5} to{opacity:1}}
+@keyframes spaur{from{transform:translate3d(-4%,0,0) scale(1)} to{transform:translate3d(4%,3%,0) scale(1.08)}}
+@media (max-width:560px){
+  .super{padding:16px; gap:12px} .sp-ufo{width:74px; height:60px} .sp-hero{gap:10px}
+  .super .chp{grid-template-columns:minmax(0,1fr)} .super .chp li{display:flex; align-items:baseline; gap:8px} .super .chp li b{font-size:15px}
+  .sp-gifts{gap:6px} .sp-gift{padding:10px 4px 9px} .sp-gift .gi{width:34px; height:34px} .sp-gift b{font-size:12.5px; letter-spacing:.08em} .sp-gift small{font-size:11px}
+  .sp-meters{grid-template-columns:minmax(0,1fr)}
+}
+/* the sheets */
+.chk{font:700 12px/1 var(--cond); letter-spacing:.28em; text-transform:uppercase; color:#9fe8ff}
+.chk.sup{color:#ffe27a}
+.chhs{margin:4px 0 0; font:700 12px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase}
+.chhs.sup{color:#ffe27a} .chhs.mon{color:#9fe8ff}
+.chh{list-style:none; margin:0; padding:0; display:grid; gap:6px}
+.chh li{display:grid; grid-template-columns:28px 40px minmax(0,1fr) auto; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; background:var(--panel); border:1px solid var(--line)}
+.chh li.none{display:block; color:var(--dim); font-size:14px}
+.chh li.p1{border-color:#ffd60a55}
+.chh .rk{font:700 15px/1 var(--cond); color:var(--gold); text-align:right}
+.chh li.p2 .rk{color:#d6e4f5} .chh li.p3 .rk{color:#e3a36b}
+.chh img{width:40px; height:40px; border-radius:50%}
+.chh .nm{display:grid; gap:2px; min-width:0}
+.chh .nm b{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.chh .nm small{font-size:12px; color:var(--mute); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.chh em{font:700 15px/1 var(--cond); font-style:normal; color:var(--ink)}
+#chPick .card{background:linear-gradient(170deg,#24104f,#0c0f2e); border-color:#9a4dff66}
+#cpGifts{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px}
+.chrl{margin:0; padding-left:20px; display:grid; gap:8px; color:var(--dim); font-size:14.5px}
+.chrl b{color:var(--ink)}
+/* the creator's panel */
+.ca-top{display:flex; flex-wrap:wrap; gap:6px}
+.ca-f{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#ffffff05}
+.ca-f h4{margin:0; font:400 17px/1.1 var(--display)}
+.ca-f .full{grid-column:1 / -1}
+.ca-g{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.6fr) 110px; gap:6px; margin-top:6px}
+label.ck{display:flex; gap:8px; align-items:center; font-size:14px; color:var(--dim)}
+.ca-match{margin:0; font-size:13px; color:var(--dim)}
+.ca-c{border:1px solid var(--line); border-radius:10px; padding:10px 12px; display:grid; gap:6px; background:var(--panel); margin-top:8px}
+.ca-c.k-super{border-color:#9a4dff77}
+.ca-c.k-monthly{border-color:#67e8f966}
+.ca-c .small{margin:0}
+.ca-h .tg{font:700 11px/1 var(--cond); letter-spacing:.14em; text-transform:uppercase; padding:3px 7px; border-radius:4px; background:#ffffff14; color:var(--dim); margin-left:6px}
+.ca-w{margin:0; padding-left:18px; display:grid; gap:8px; font-size:13.5px}
+.ca-runs{font-size:12.5px; color:var(--mute)}
+.ca-a{display:flex; gap:6px; flex-wrap:wrap}
+.warn{color:#ffb86b}
 /* the gold badge beside a name on the boards: everyone who finished the album */
 /* the chat: a tab of the scoreboard */
 .board.chatbox{display:flex; flex-direction:column}
@@ -1159,6 +1307,102 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
   </div>
 </div>
 
+<!-- the challenges: one's board, the halls of fame, the rules, a Super's gift -->
+<div class="sheet hid" id="chBoard" role="dialog" aria-modal="true" aria-labelledby="cbT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <span class="chk" id="cbK">Monthly challenge</span>
+    <h3 id="cbT" data-i18n-skip></h3>
+    <p class="chsub" id="cbSub"></p>
+    <div id="cbPrizes"></div>
+    <div class="board" id="cbList"></div>
+    <p class="small" id="cbMe"></p>
+  </div>
+</div>
+
+<div class="sheet hid" id="chHall" role="dialog" aria-modal="true" aria-labelledby="chhT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="chhT">Hall of fame</h3>
+    <p>The top three of every challenge, for good.</p>
+    <h4 class="chhs sup">Super champions</h4>
+    <ol class="chh" id="chHS"></ol>
+    <h4 class="chhs mon">Monthly champions</h4>
+    <ol class="chh" id="chHM"></ol>
+  </div>
+</div>
+
+<div class="sheet hid" id="chPick" role="dialog" aria-modal="true" aria-labelledby="cpT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="cpT">Pick your gift</h3>
+    <p>If you win this Super challenge, this is your gift. Pick it before your first run: after that it's locked.</p>
+    <div id="cpGifts"></div>
+    <div class="err" id="cpErr"></div>
+    <button class="btn gold" id="cpOk" type="button" disabled>Pick this gift</button>
+  </div>
+</div>
+
+<div class="sheet hid" id="chRules" role="dialog" aria-modal="true" aria-labelledby="crT">
+  <div class="card">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="crT">Challenge rules</h3>
+    <ul class="chrl">
+      <li><b>No purchase needed.</b> Every challenge is played in an endless or a remix that you open for free by clearing its levels.</li>
+      <li class="chweb">The JAVEDA Pass only skips the wait: it gives no extra tries and no better scores.</li>
+      <li>The Monthly runs for a calendar month on one song's endless. Everyone who has that endless open can play.</li>
+      <li>The Super runs for two weeks on a remix, three times a year. Lazy Jo invites the best players (by stars, by songs cleared or by name), and you can still get in while it runs. The winner picks a gift before their first run.</li>
+      <li>Only runs started during the challenge count. Your best run is your score; on a tie, whoever got there first is ahead.</li>
+      <li>Creators can play to test it, but never win.</li>
+      <li>Before a prize is sent, Lazy Jo checks the winning runs. A real prize comes by email or a direct message from Lazy Jo, and nobody will ever ask you for a password or for payment details.</li>
+      <li>A gift card goes to the same player at most once every 3 months: if you win again sooner, it goes to the next one down.</li>
+      <li class="chweb">Already have the Pass? Then second place gets 5,000 points instead of a Pass, and third place gets 2,500 points instead of the keys.</li>
+      <li class="chstore">Already have every part open? Then second place gets 5,000 points and third place gets 2,500 points instead.</li>
+      <li>Prize points can be spent like any points, but they don't change your place on the Points board.</li>
+      <li>Apple and Google are not sponsors of these challenges and are not involved in them in any way.</li>
+      <li>The challenges start once JAVEDA has 100 downloads and 30 accounts.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- the challenges (creators): make a Monthly or a Super, and see how they went -->
+<div class="sheet hid" id="chAdmin" role="dialog" aria-modal="true" aria-labelledby="caT" data-i18n-skip>
+  <div class="card wide">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <h3 id="caT">Challenges</h3>
+    <p id="caGoal"></p>
+    <div class="ca-top"><button class="btn gold small" type="button" data-cnew="monthly">New Monthly</button><button class="btn gold small" type="button" data-cnew="super">New Super</button><button class="btn small" type="button" id="caDemo">Preview: running</button></div>
+    <form class="ca-f hid" id="caForm" autocomplete="off">
+      <h4 class="full" id="caFormT">New Monthly</h4>
+      <label class="f full">Song <select class="in" id="caLevel"></select></label>
+      <label class="f full">Title (optional) <input class="in" id="caTitle" maxlength="60" placeholder="The song's name"></label>
+      <label class="f">Shows from <input class="in" id="caShows" type="date"></label>
+      <label class="f">Starts <input class="in" id="caStarts" type="date"></label>
+      <label class="f">Last day <input class="in" id="caLast" type="date"></label>
+      <label class="f">3-star parts (min) <input class="in" id="caThree" type="number" min="0" max="200" inputmode="numeric" placeholder="0"></label>
+      <label class="f">Songs done (min) <input class="in" id="caSongs" type="number" min="0" max="28" inputmode="numeric" placeholder="0"></label>
+      <label class="f">Played in the last days <input class="in" id="caDays" type="number" min="0" max="365" inputmode="numeric" placeholder="Any"></label>
+      <label class="f full">Names: always in (one per line) <textarea class="in" id="caNames" rows="3" placeholder="Player names"></textarea></label>
+      <label class="ck full"><input type="checkbox" id="caOnly"> Only these names (no bar)</label>
+      <div class="full" id="caGifts">
+        <p class="small">The winner's gifts, up to 3: a title, a short note, an icon.</p>
+        <div class="ca-g"><input class="in" id="caG0t" maxlength="40" placeholder="Title"><input class="in" id="caG0n" maxlength="140" placeholder="Note"><select class="in" id="caG0i"><option value="gaming">Gaming</option><option value="scent">Scent</option><option value="music">Music</option><option value="gift">Gift</option><option value="shirt">Shirt</option><option value="star">Star</option></select></div>
+        <div class="ca-g"><input class="in" id="caG1t" maxlength="40" placeholder="Title"><input class="in" id="caG1n" maxlength="140" placeholder="Note"><select class="in" id="caG1i"><option value="gaming">Gaming</option><option value="scent">Scent</option><option value="music">Music</option><option value="gift">Gift</option><option value="shirt">Shirt</option><option value="star">Star</option></select></div>
+        <div class="ca-g"><input class="in" id="caG2t" maxlength="40" placeholder="Title"><input class="in" id="caG2n" maxlength="140" placeholder="Note"><select class="in" id="caG2i"><option value="gaming">Gaming</option><option value="scent">Scent</option><option value="music">Music</option><option value="gift">Gift</option><option value="shirt">Shirt</option><option value="star">Star</option></select></div>
+      </div>
+      <label class="f full">Prize for #1 <input class="in" id="caP1" maxlength="200"></label>
+      <label class="f full">Prize for #2 <input class="in" id="caP2" maxlength="200"></label>
+      <label class="f full">Prize for #3 <input class="in" id="caP3" maxlength="200"></label>
+      <p class="small full hid" id="caRunNote">It's running: only the title, the prizes, the names and a later last day can change.</p>
+      <p class="ca-match full" id="caMatch"></p>
+      <div class="full ca-a"><button class="btn gold" id="caSave" type="submit">Save</button><button class="btn" type="button" data-cform="1">Close the form</button></div>
+    </form>
+    <div class="err" id="caErr"></div>
+    <div id="caList"></div>
+    <p class="small">Players see a challenge from its "shows from" day; runs count from the start day to the end of the last day (this phone's time). When it ends, the top 3 get their in-game prizes and pictures by themselves; the real prizes are yours to send: tick them off here. Leave a prize empty and players see the usual one in their own language. Creators can play, but are never on the board.</p>
+  </div>
+</div>
+
 <div class="credits hid" id="credits" role="dialog" aria-modal="true" aria-label="Credits">
   <button class="close" id="crClose" type="button">&#10005; Close</button>
   <div class="roll" id="crRoll"></div>
@@ -1458,6 +1702,8 @@ let AVATARS = [
   { id:"ev-spring", name:"Blossom Saucer", cost:0, sort:202, unlock:"event:spring" }, { id:"ev-summer", name:"Sunset Saucer", cost:0, sort:203, unlock:"event:summer" },
   { id:"ev-halloween", name:"Pumpkin Saucer", cost:0, sort:204, unlock:"event:halloween" }, { id:"ev-gift", name:"Gift Saucer", cost:0, sort:205, unlock:"event:advent" },
   { id:"ev-autumn", name:"Maple Saucer", cost:0, sort:206, unlock:"event:autumn" },
+  { id:"ch-monthly", name:"Monthly Champion", cost:0, sort:210, unlock:"prize:monthly" }, { id:"ch-monthly3", name:"Monthly Top 3", cost:0, sort:211, unlock:"prize:monthly3" },
+  { id:"ch-super", name:"Super Champion", cost:0, sort:212, unlock:"prize:super" }, { id:"ch-super3", name:"Super Top 3", cost:0, sort:213, unlock:"prize:super3" },
   { id:"bike", name:"Zirka's Bike", cost:0 },
   { id:"wolf", name:"Wolf", cost:0 },
   { id:"planet", name:"Planet Javeda", cost:0 },
@@ -1713,7 +1959,7 @@ function renderNow(){
   const st = starTotal(), stars = st ? '<em class="stt">&#9733; ' + st + ' of ' + LEVELS.length * 3 + ' stars</em>' : '';
   const crt = creator ? '<div class="crt"><div class="hs"><span>Creator</span><button class="btn small" data-reports="1">Reports' + (reportsOpen ? '<span class="nb">' + reportsOpen + '</span>' : '') + '</button><button class="btn small" data-players="1">Players &amp; downloads</button><button class="btn small" data-stats="1">Where players get stuck</button>' +
     (albumDone() ? '' : '<button class="btn small" data-marathon="1">Marathon</button><button class="btn small" data-credits="1">Credits</button>') +
-    '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small" data-swarm="1">Swarmfall (test)</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
+    '<button class="btn small" data-codes="1">Pass codes</button><button class="btn small" data-chadmin="1">Challenges</button><button class="btn small" data-swarm="1">Swarmfall (test)</button><button class="btn small' + (freeView ? ' gold' : '') + '" data-freeview="1" aria-pressed="' + freeView + '">' +
     (freeView ? 'Free view: on' : 'See it free') + '</button></div></div>' : '';
   // the Pass, for anyone who hasn't got it, once it's on sale; who has it gets the marathon from here too (nothing else leads there before the album's done)
   const passrow = !STORE && (passOn || freeView) && !hasPass() ? '<div class="passrow"><span><b>&#9889; JAVEDA Pass</b> &middot; every part open right away' +
@@ -1745,7 +1991,7 @@ function renderNow(){
   }
   // the weekly tournament and the event both waiting for JAVEDA's goals: one card for the two, after the daily
   const both = weeklyLocked() && !!evNow && evNow.on === false;
-  hsPut($("now"), html + prizeCards() + (both ? "" : eventCard()) + adventCard() + dailyCard() + (both ? lockedCard() : weeklyCard()));
+  hsPut($("now"), html + prizeCards() + (both ? "" : eventCard()) + adventCard() + dailyCard() + (both ? lockedCard() : weeklyCard()) + monthlyCard() + superCard());
 }
 // today's challenge: one song's Part 1 for everyone, a board of its own that starts empty every day
 function dailyCard(){
@@ -1877,6 +2123,391 @@ function prizeCards(){
       (p.prize === "key" ? '' : '<div class="row"><span class="btns">' + (p.code ? '<button class="btn small" type="button" data-copycode="' + esc(p.code) + '">Copy</button>' : '') +
       '<a class="btn gold small" href="' + LINKS.merch + '" target="_blank" rel="noopener">Open the shop</a></span></div>') + '</article>'; }).join("");
 }
+/* ---- the challenges (javeda_challenges_now): the Monthly (one song's endless for a calendar month) and the Super (a
+   remix, two weeks, three a year, invite only). Both wait for 100 downloads and 30 accounts: until then a locked card
+   says how far it is. A challenge opens nothing: it's played in that endless or remix, so that has to be open (cleared,
+   or the Pass); the endless run itself is what counts (javeda_submit_run says how it went). The board, the halls of
+   fame, the rules and the gift pick are sheets; Lazy Jo makes them in his panel (creators). ---- */
+let chal = null, chalDemo = null;     // chalDemo: a creator's preview of running ones (made up, nothing saved)
+const CH_ICON = {
+  gaming:'<path d="M14 15h20c5 0 8 4 9 9l2 9c1 4-3 7-6 5l-6-5H15l-6 5c-3 2-7-1-6-5l2-9c1-5 4-9 9-9z" fill="currentColor"/><path d="M14 21v8M10 25h8" stroke="#1a0b3d" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="23" r="2.4" fill="#1a0b3d"/><circle cx="36.5" cy="28" r="2.4" fill="#1a0b3d"/>',
+  scent:'<rect x="13" y="19" width="22" height="24" rx="7" fill="currentColor"/><rect x="19.5" y="11" width="9" height="9" rx="2" fill="currentColor" opacity=".8"/><path d="M28.5 13.5h6" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="39" cy="10" r="2" fill="currentColor" opacity=".6"/><circle cx="42" cy="15" r="1.5" fill="currentColor" opacity=".45"/><path d="M18 27h12" stroke="#1a0b3d" stroke-width="2.6" stroke-linecap="round" opacity=".45"/>',
+  music:'<path d="M9 30v-5a15 15 0 0 1 30 0v5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><rect x="6" y="27" width="10" height="15" rx="4.5" fill="currentColor"/><rect x="32" y="27" width="10" height="15" rx="4.5" fill="currentColor"/>',
+  gift:'<rect x="9" y="21" width="30" height="20" rx="3" fill="currentColor"/><rect x="7" y="15" width="34" height="8" rx="2" fill="currentColor" opacity=".85"/><path d="M24 15v26" stroke="#1a0b3d" stroke-width="3"/><path d="M24 15c-3-6-11-7-11-2s8 2 11 2zM24 15c3-6 11-7 11-2s-8 2-11 2z" fill="none" stroke="currentColor" stroke-width="2.5"/>',
+  shirt:'<path d="M17 9l-10 6 4 9 5-2v18h16V22l5 2 4-9-10-6c-1 3-4 5-7 5s-6-2-7-5z" fill="currentColor"/>',
+  star:'<path d="M24 5l5.6 11.6 12.8 1.6-9.4 8.8 2.4 12.6L24 33.4l-11.4 6.2 2.4-12.6-9.4-8.8 12.8-1.6z" fill="currentColor"/>'
+};
+const chIcon = k => '<svg class="gi" viewBox="0 0 48 48" aria-hidden="true">' + (CH_ICON[k] || CH_ICON.gift) + '</svg>';
+// what a Super's winner can pick, before Lazy Jo has made one (themes anyone can pick)
+const CH_TEASE = [{ key:"gaming", title:"Gaming", note:"A controller for your console", icon:"gaming" },
+                  { key:"scent", title:"Scent", note:"A perfume of your choice", icon:"scent" },
+                  { key:"music", title:"Music", note:"Wireless earbuds or a speaker", icon:"music" }];
+const CH_OWN = new Set(CH_TEASE.flatMap(g => [g.title, g.note]));
+const chWords = s => CH_OWN.has(s) ? esc(s) : '<span data-i18n-skip>' + esc(s) + '</span>';   // Lazy Jo's own words stay as typed
+// the prizes when Lazy Jo didn't write his own (the store apps never name the Pass)
+const CH_PRIZE = {
+  monthly:() => ["A gift card (games, Spotify or perfume)", STORE ? "Every part open + 30% off in the shop" : "A JAVEDA Pass + 30% off in the shop", "2 keys + 20% off in the shop"],
+  super:() => ["The gift you picked + a Lazy Jo hoodie", STORE ? "A hoodie or T-shirt + every part open" : "A hoodie or T-shirt + a JAVEDA Pass", "A T-shirt + 2 keys + 30% off in the shop"]
+};
+const chList = () => ((chalDemo || chal) || {}).list || [];
+// the one a card shows: running, else the next, else the last one that ended (for 14 days)
+function chOf(kind){
+  const l = chList().filter(c => c.kind === kind);
+  return l.find(c => c.state === "open" || c.state === "ending") || l.find(c => c.state === "soon") || l.filter(c => c.state === "over").pop() || null;
+}
+// how far JAVEDA is from the goal: from javeda_challenges_now, or (a database without it yet) from the weekly and the event
+function chGoal(){
+  const c = chalDemo || chal;
+  if (c) return { on:!!c.on, dl:c.downloads, nd:c.need_downloads || 100, ac:c.accounts, na:c.need_accounts || 30 };
+  const dl = weekly && weekly.downloads != null ? weekly.downloads : evNow && evNow.downloads != null ? evNow.downloads : null;
+  return { on:false, dl, nd:100, ac:evNow && evNow.accounts != null ? evNow.accounts : null, na:30 };
+}
+const chDay = t => new Date(t).toLocaleDateString(window.JAVEDA_LOCALE || "en-GB", { day:"numeric", month:"short" });
+const chMonth = t => new Date(t).toLocaleDateString(window.JAVEDA_LOCALE || "en-GB", { month:"long", year:"numeric" });
+const chDates = c => '<span data-i18n-skip>' + esc(chDay(c.starts_at) + " - " + chDay(new Date(c.ends_at) - 1)) + '</span>';
+// a line of parts with dots between, each part its own span (so each is translated on its own; dates and names aren't)
+const chJoin = (...xs) => xs.filter(Boolean).join('<span class="sep" aria-hidden="true"> &middot; </span>');
+const chSp = s => s ? '<span>' + s + '</span>' : '';
+const chWhere = (c, lv) => chJoin(lv ? chSp(lvName(lv)) : '', chDates(c), chSp(chLeft(c)));
+// the song a remix belongs to: its Part 1's title
+const chSong = lv => lv.remix ? (LEVELS.find(l => l.num === lv.num && !l.part) || lv).title : lv.title;
+function chLeft(c){
+  const soon = c.state === "soon", ms = new Date(soon ? c.starts_at : c.ends_at) - Date.now();
+  if (ms <= 0 || c.state === "over") return "";
+  const d = Math.round(ms / 864e5), h = Math.max(1, Math.round(ms / 36e5));
+  return (soon ? "Starts in " : "Ends in ") + (d >= 2 ? d + " days" : h + (h === 1 ? " hour" : " hours"));
+}
+function chPrizeList(c, kind){
+  const p = (c && c.prizes) || {}, d = CH_PRIZE[kind]();
+  return '<ol class="chp">' + [1, 2, 3].map(i => '<li><b>#' + i + '</b>' + (p[i] ? '<span data-i18n-skip>' + esc(p[i]) + '</span>' : '<span>' + esc(d[i - 1]) + '</span>') + '</li>').join("") + '</ol>';
+}
+// who may join: each rule with a tick, or how far you are
+function chBar(c){
+  const b = c.bar || {}, me = c.me, rows = [];
+  if (me && me.invited) rows.push(["Picked by Lazy Jo", true, ""]);
+  if (b.picked){ if (!(me && me.invited)) rows.push(["Picked by Lazy Jo", false, ""]); }
+  else {
+    if (b.three) rows.push(["3 stars on " + b.three + (b.three === 1 ? " part" : " parts"), !!me && me.three >= b.three, me ? Math.min(me.three, b.three) + " / " + b.three : ""]);
+    if (b.songs) rows.push(["Every part of " + b.songs + (b.songs === 1 ? " song" : " songs") + " cleared", !!me && me.songs >= b.songs, me ? Math.min(me.songs, b.songs) + " / " + b.songs : ""]);
+    if (b.days) rows.push(["Played in the last " + b.days + " days", !!me && me.played_days != null && me.played_days < b.days, ""]);
+  }
+  if (!rows.length) return "";
+  return '<ul class="chbar">' + rows.map(([t, ok, n]) => '<li class="' + (ok ? 'ok' : '') + '"><span>' + (ok ? '&#10003; ' : '') + esc(t) + '</span>' + (!ok && n ? '<em>' + n + '</em>' : '') + '</li>').join("") + '</ul>';
+}
+// where you stand, and the way in: [what it says, the button]
+function chMe(c, lv, g){
+  const me = c.me;
+  if (c.state === "over" || c.state === "ending") return ['<span class="tag">Over</span>', ''];
+  if (!signedIn()) return ['<span class="tag">Log in to compete</span>', ''];
+  if (!me) return ['', ''];
+  if (!me.in) return ['<span class="tag">Not in yet</span>', ''];
+  const gift = c.kind === "super" && (c.gifts || []).length && !me.gift;
+  if (!me.open) return ['<span class="tag">' + (c.kind === "super" ? "You're in!" : "&#128274; " + needText(lv)) + '</span>',
+    gift ? '<button class="btn small sp-go" type="button" data-chpick="' + c.id + '">Pick your gift</button>' : ''];
+  const st = me.creator ? '<span class="tag">Creators don\'t compete</span>' : me.best ? '<span class="best">#' + me.rank + ' &middot; ' + fmt(me.best) + '</span>'
+    : '<span class="tag">' + (c.kind === "super" ? "You're in!" : "Not played yet") + '</span>';
+  if (gift) return [st, '<button class="btn small sp-go" type="button" data-chpick="' + c.id + '">Pick your gift</button>'];
+  return [st, c.state === "open" && g.on ? '<button class="btn ' + (c.kind === "super" ? 'sp-go' : 'primary') + ' small" type="button" data-play="' + lv.id + '">Play &#8734;</button>' : ''];
+}
+// in, but the endless or remix isn't open yet: what opens it (playing; or, on the website, the Pass)
+function chLocked(c, lv){
+  const me = c.me;
+  if (!me || !me.in || me.open || c.state === "over" || c.state === "ending") return "";
+  return '<p class="dd chlock"><span>&#128274; ' + needText(lv) + '</span>' + (passReady(lv) ? ' <span>Or skip the wait with the Pass.</span>' + passBolt(lv) : '') + '</p>';
+}
+const chGrow = () => (STANDALONE ? '' : '<button class="btn small" type="button" data-getapp="1">Get the app</button>') + '<button class="btn gold small" type="button" data-friends="1">Invite</button>';
+const chCounts = g => '<span class="evcount">' + (g.dl != null ? '<span class="tag">' + fmt(g.dl) + ' / ' + fmt(g.nd) + ' downloads</span>' : '') +
+  (g.ac != null ? '<span class="tag">' + fmt(g.ac) + ' / ' + fmt(g.na) + ' accounts</span>' : '') + '</span>';
+const chLinks = c => '<div class="chlinks">' + (c ? '<button type="button" data-chboard="' + c.id + '">Board</button>' : '') +
+  '<button type="button" data-chhall="1">Hall of fame</button><button type="button" data-chrules="1">Rules</button></div>';
+function chWinners(c){
+  if (!(c.winners || []).length) return c.state === "over" ? '<p class="dd">Nobody made the board this time.</p>' : '';
+  return '<div class="chwin">' + c.winners.map(w => '<span class="p' + w.place + '"><img src="' + pic(w.avatar) + '" alt=""><b>#' + w.place + '</b>' +
+    '<span class="nm" data-i18n-skip>' + esc(w.username || "-") + '</span><em>' + fmt(w.score) + '</em></span>').join("") + '</div>';
+}
+// the Monthly: the daily's card, in cyan
+function monthlyCard(){
+  const g = chGoal(), c = chOf("monthly"), lv = c && levelById(c.level);
+  if (!c || !lv) return '<article class="daily monthly"><span class="dl">Monthly challenge</span>' +
+    '<span class="dt">' + (g.on ? 'Coming soon' : '&#128274; Opens at ' + fmt(g.nd) + ' downloads and ' + fmt(g.na) + ' accounts') + '</span>' +
+    '<p class="dd">One song\'s endless for a whole month. The best score wins a gift card; the top three win prizes and a picture only winners get.</p>' +
+    chPrizeList(null, "monthly") +
+    '<div class="row">' + (g.on ? '<span class="tag">The next one is on its way</span><span class="btns"></span>' : chCounts(g) + '<span class="btns">' + chGrow() + '</span>') + '</div>' + chLinks(null) + '</article>';
+  const [st, btn] = chMe(c, lv, g);
+  return '<article class="daily monthly"><span class="dl"><span>Monthly challenge</span><span data-i18n-skip> &middot; ' + esc(chMonth(c.starts_at)) + '</span></span>' +
+    '<span class="dt"><span data-i18n-skip>' + esc(c.title || chSong(lv)) + '</span></span>' +
+    '<span class="dl2">' + chWhere(c, lv) + '</span>' +
+    (c.state === "over" ? chWinners(c) : chPrizeList(c, "monthly")) + chBar(c) + chLocked(c, lv) +
+    (g.on ? '' : '<p class="dd">&#128274; Opens at ' + fmt(g.nd) + ' downloads and ' + fmt(g.na) + ' accounts</p>') +
+    '<div class="row">' + (g.on ? st : chCounts(g)) + '<span class="btns">' + (g.on ? btn : chGrow()) + '</span></div>' + chLinks(c) + '</article>';
+}
+// the Super: its own look - the night sky, Lazy Jo's purple saucer, gold
+const SP_UFO = '<svg viewBox="0 0 120 96" aria-hidden="true"><defs><linearGradient id="spHull" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9d5ff"/><stop offset=".5" stop-color="#9a4dff"/><stop offset="1" stop-color="#4c1aa8"/></linearGradient>' +
+  '<linearGradient id="spDome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#e2b8ff"/></linearGradient><linearGradient id="spBeam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a" stop-opacity=".85"/><stop offset="1" stop-color="#ffe27a" stop-opacity="0"/></linearGradient>' +
+  '<linearGradient id="spGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff4b8"/><stop offset=".5" stop-color="#ffd60a"/><stop offset="1" stop-color="#e09400"/></linearGradient></defs>' +
+  '<path class="sp-beam" d="M48 56h24l20 40H28z" fill="url(#spBeam)"/><g class="sp-craft"><ellipse cx="60" cy="58" rx="16" ry="5" fill="#2f0f78"/><ellipse cx="60" cy="48" rx="44" ry="13" fill="#2f0f78"/><ellipse cx="60" cy="44" rx="44" ry="13" fill="url(#spHull)"/>' +
+  '<path d="M40 38a20 20 0 0 1 40 0a20 5 0 0 1-40 0z" fill="url(#spDome)"/><g fill="#ffd60a"><circle cx="60" cy="53" r="2.4"/><circle cx="44" cy="52" r="2.4"/><circle cx="76" cy="52" r="2.4"/><circle cx="29" cy="49" r="2.2"/><circle cx="91" cy="49" r="2.2"/></g>' +
+  '<path d="M47 22l-2-11 8 6 7-11 7 11 8-6-2 11z" fill="url(#spGold)" stroke="#8a5a00" stroke-width="1.2" stroke-linejoin="round"/></g></svg>';
+function superCard(){
+  const g = chGoal(), c = chOf("super"), lv = c && levelById(c.level), me = c && c.me;
+  const gifts = c ? c.gifts || [] : CH_TEASE, picked = me && me.gift;
+  const canPick = !!(c && me && me.in && !picked && signedIn() && (c.state === "soon" || c.state === "open"));
+  const tiles = gifts.length ? '<div class="sp-gifts">' + gifts.map(x => {
+    const on = picked === x.key, inner = chIcon(x.icon) + '<b>' + chWords(x.title) + '</b>' + (x.note ? '<small>' + chWords(x.note) + '</small>' : '') + (on ? '<em>&#128274; Your gift</em>' : '');
+    return canPick ? '<button class="sp-gift" type="button" data-chpick="' + c.id + '" data-gift="' + esc(x.key) + '">' + inner + '</button>'
+      : '<div class="sp-gift' + (on ? ' on' : picked ? ' off' : '') + '">' + inner + '</div>';
+  }).join("") + '</div>' : '';
+  const left = c ? chLeft(c) : "";
+  let mid, foot;
+  if (!c || !lv){
+    mid = '<p class="sp-dd">Three a year, two weeks each, on a remix. Invite only: the best players get in. The winner picks a gift:</p>' + tiles;
+  } else if (c.state === "over"){
+    mid = '<p class="sp-dd">' + chJoin(chSp(lvName(lv)), chDates(c)) + '</p>' + chWinners(c);
+  } else {
+    mid = '<p class="sp-dd">' + chJoin(chSp(lvName(lv)), chDates(c)) + '</p>' + (gifts.length ? '<p class="sp-lab">' + (canPick ? "Pick your gift before your first run:" : "The winner picks a gift:") + '</p>' + tiles : '');
+  }
+  const prizes = c && c.state === "over" ? '' : chPrizeList(c, "super");
+  if (!g.on){
+    const m = (n, of, what) => n == null ? '' : '<span class="sp-meter"><span><b>' + fmt(n) + ' / ' + fmt(of) + '</b> <span>' + what + '</span></span><i><b style="width:' + Math.min(100, n / of * 100).toFixed(1) + '%"></b></i></span>';
+    foot = '<div class="sp-box"><p class="sp-lock">&#128274; Opens at ' + fmt(g.nd) + ' downloads and ' + fmt(g.na) + ' accounts</p>' + (c && lv && c.state !== "over" ? chBar(c) + chLocked(c, lv) : '') +
+      '<div class="sp-meters">' + m(g.dl, g.nd, "downloads") + m(g.ac, g.na, "accounts") + '</div><div class="row"><span class="btns">' + chGrow() + '</span></div></div>';
+  } else if (!c || !lv){
+    foot = '<div class="sp-box"><p class="sp-lock">The next Super challenge is on its way.</p></div>';
+  } else {
+    const [st, btn] = chMe(c, lv, g);
+    foot = '<div class="sp-box">' + (c.state === "over" ? '' : chBar(c)) + chLocked(c, lv) + '<div class="row">' + st + '<span class="btns">' + btn + '</span></div></div>';
+  }
+  return '<article class="super' + (g.on ? '' : ' lock') + '"><i class="sp-sky" aria-hidden="true"></i><i class="sp-aur" aria-hidden="true"></i>' +
+    '<div class="sp-top"><span class="sp-inv">&#9733; Invite only</span>' + (left ? '<span class="sp-when">' + left + '</span>' : '') + '</div>' +
+    '<div class="sp-hero"><span class="sp-ufo">' + SP_UFO + '</span><span class="sp-h"><span class="sp-k">' + (c && lv ? 'Super challenge' : 'Coming soon') + '</span>' +
+      '<b class="sp-t">' + (c && lv ? '<span data-i18n-skip>' + esc(c.title || chSong(lv)) + '</span>' : 'Super challenge') + '</b></span></div>' +
+    mid + prizes + foot + chLinks(c) + '</article>';
+}
+async function loadChallenges(){
+  if (!sb) return;
+  const { data } = await sb.rpc("javeda_challenges_now").then(r => r, () => ({}));
+  chal = data && Array.isArray(data.list) ? data : null;      // a database without the challenges yet: the locked cards
+  renderNow();
+}
+// a run that counted (from javeda_submit_run): a word for the toast, and the cards again
+function chRunNote(x){
+  if (!x) return "";
+  loadChallenges();
+  if (x.need_gift) return " &middot; Pick your gift on the Super card first: then your runs count";
+  return x.rank ? " &middot; " + (x.kind === "super" ? "Super challenge: place " : "Monthly challenge: place ") + x.rank : "";
+}
+// the board of one: everyone on it (up to 50), the prizes, your place
+async function openChBoard(id){
+  const c0 = chList().find(c => c.id === id); if (!c0) return;
+  openSheet("chBoard");
+  const draw = c => {
+    const lv = levelById(c.level);
+    $("cbK").textContent = c.kind === "super" ? "Super challenge" : "Monthly challenge";
+    $("cbK").className = "chk" + (c.kind === "super" ? " sup" : "");
+    $("cbT").textContent = c.title || (lv ? chSong(lv) : c.level);
+    $("cbSub").innerHTML = chWhere(c, lv);
+    $("cbPrizes").innerHTML = c.state === "over" ? chWinners(c) : chPrizeList(c, c.kind);
+    $("cbList").innerHTML = (c.top || []).length ? boardRows(c.top.map(t => ({ username:t.username, avatar:t.avatar, album_complete:t.album, best:t.best })), r => fmt(r.best))
+      : '<p class="empty">Nobody on the board yet. Be the first.</p>';
+    $("cbMe").innerHTML = c.me && c.me.best && !c.me.creator ? '<span>Your place</span> <b>#' + c.me.rank + ' &middot; ' + fmt(c.me.best) + '</b>' : '';
+  };
+  draw(c0);
+  if (chalDemo || !sb) return;
+  const { data } = await sb.rpc("javeda_challenge_board", { p_id:id }).then(r => r, () => ({}));
+  if (data && data.id === id && !$("chBoard").classList.contains("hid")) draw(data);
+}
+// the halls of fame: every winner, Super and Monthly
+async function openChHall(){
+  openSheet("chHall");
+  const empty = '<li class="none">No champions yet. The first challenges start once JAVEDA has 100 downloads and 30 accounts.</li>';
+  $("chHS").innerHTML = $("chHM").innerHTML = '<li class="none">Loading&hellip;</li>';
+  let rows = [];
+  if (chalDemo) rows = chalDemo.hall || [];
+  else if (sb){ const { data } = await sb.rpc("javeda_champions").then(r => r, () => ({})); rows = Array.isArray(data) ? data : []; }
+  const item = w => { const lv = levelById(w.level);
+    return '<li class="p' + w.place + '"><span class="rk">#' + w.place + '</span><img src="' + pic(w.avatar) + '" alt=""><span class="nm"><b data-i18n-skip>' + esc(w.username || "-") + '</b>' +
+      '<small><span data-i18n-skip>' + esc(w.title || (lv ? chSong(lv) : w.level)) + ' &middot; ' + esc(chMonth(w.starts_at)) + '</span></small></span><em>' + fmt(w.score) + '</em></li>'; };
+  const part = k => { const r = rows.filter(w => w.kind === k); return r.length ? r.map(item).join("") : empty; };
+  $("chHS").innerHTML = part("super"); $("chHM").innerHTML = part("monthly");
+}
+// a Super's gift: the pick sheet (one tap picks, a second confirms; then it's locked)
+let chPickAt = null;
+function openChPick(id, key){
+  const c = chList().find(x => x.id === id); if (!c) return;
+  if (!signedIn()){ openLogin(); return; }
+  chPickAt = { id, key:key || null };
+  $("cpErr").textContent = "";
+  const draw = () => {
+    $("cpGifts").innerHTML = (c.gifts || []).map(x => '<button class="sp-gift' + (chPickAt.key === x.key ? ' on' : '') + '" type="button" data-gift="' + esc(x.key) + '">' +
+      chIcon(x.icon) + '<b>' + chWords(x.title) + '</b>' + (x.note ? '<small>' + chWords(x.note) + '</small>' : '') + '</button>').join("");
+    $("cpOk").disabled = !chPickAt.key;
+  };
+  draw(); chPickAt.draw = draw;
+  openSheet("chPick");
+}
+$("cpGifts").addEventListener("click", e => { const b = e.target.closest("[data-gift]"); if (!b || !chPickAt) return; chPickAt.key = b.dataset.gift; chPickAt.draw(); });
+$("cpOk").onclick = async () => {
+  if (!chPickAt || !chPickAt.key) return;
+  if (chalDemo){ const c = chalDemo.list.find(x => x.id === chPickAt.id); if (c && c.me) c.me.gift = chPickAt.key; closeSheet("chPick"); renderNow(); toast("Your gift is picked. Good luck!"); return; }
+  $("cpOk").disabled = true;
+  const { data, error } = await sb.rpc("javeda_challenge_pick", { p_id:chPickAt.id, p_gift:chPickAt.key }).then(r => r, x => ({ error:x }));
+  $("cpOk").disabled = false;
+  if (error){ $("cpErr").textContent = netErr(error) ? "No internet." : /locked/.test(error.message) ? "Your gift is already picked: it's locked." : /not invited/.test(error.message) ? "You're not in this one yet." : error.message; return; }
+  const l = chal && chal.list, i = l ? l.findIndex(x => x.id === data.id) : -1; if (i >= 0) l[i] = data;
+  closeSheet("chPick"); renderNow(); toast("Your gift is picked. Good luck!");
+};
+$("now").addEventListener("click", e => {
+  const b = e.target.closest("[data-chboard], [data-chhall], [data-chrules], [data-chpick]"); if (!b) return;
+  if (b.dataset.chboard) openChBoard(+b.dataset.chboard);
+  else if (b.dataset.chhall) openChHall();
+  else if (b.dataset.chrules) openSheet("chRules");
+  else if (b.dataset.chpick) openChPick(+b.dataset.chpick, b.dataset.gift);
+});
+$("cbList").addEventListener("click", e => { const w = e.target.closest("li[data-who]"); if (w) openWho(w.dataset.who); });
+// the rules: the store apps never name the Pass
+document.querySelectorAll(STORE ? "#chRules .chweb" : "#chRules .chstore").forEach(e => e.remove());
+
+/* ---- the creator's panel: make a Monthly or a Super, who may join (stars, songs, days, names), its gifts and prizes,
+   and when one ends: the winners, their gift picks, their runs to check, and what's been sent. Only creators get the
+   button; the database checks again. ---- */
+let caRows = [], caEdit = null, caMatchT = 0, caKind = "monthly";
+const caDate = d => { const x = new Date(d); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0"); };
+const caAt = (s, add) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d + (add || 0)).toISOString(); };   // local midnight
+const CA_LV = () => ENDLESS.filter(l => !l.ultimate);
+const caLvName = lv => lvName(lv) + " - " + chSong(lv);
+// the default dates: the next calendar month (Monthly), the next slot of the three (Super: 10-24 Jan, 9-23 May, 12-26 Sep)
+function caDefaults(kind){
+  const now = new Date();
+  if (kind === "monthly"){ const a = new Date(now.getFullYear(), now.getMonth() + 1, 1), z = new Date(now.getFullYear(), now.getMonth() + 2, 0); return { shows:caDate(now), starts:caDate(a), last:caDate(z) }; }
+  const slots = []; for (const y of [now.getFullYear(), now.getFullYear() + 1]) for (const [m, d] of [[0, 10], [4, 9], [8, 12]]) slots.push(new Date(y, m, d));
+  const s = slots.find(x => x > now), sh = new Date(s.getFullYear(), s.getMonth() - 1, s.getDate());
+  return { shows:caDate(sh < now ? now : sh), starts:caDate(s), last:caDate(new Date(s.getFullYear(), s.getMonth(), s.getDate() + 14)) };
+}
+async function openChAdmin(){
+  if (!creator) return;
+  openSheet("chAdmin"); $("caErr").textContent = ""; $("caForm").classList.add("hid");
+  const g = chGoal();
+  $("caGoal").innerHTML = chalDemo ? "<b>Preview on:</b> the hub shows a made-up running Monthly and Super (only on this phone, nothing saved)."
+    : chal ? (g.on ? "The goal is reached: challenges can be played." : "Waiting for the goal: " + fmt(g.dl) + " / 100 downloads, " + fmt(g.ac) + " / 30 accounts. Players see the cards locked until then.")
+    : "The database doesn't have the challenges yet (push-setup/fn-challenges.sql). Players see the locked cards.";
+  $("caDemo").textContent = chalDemo ? "Back to the real cards" : "Preview: running";
+  $("caList").innerHTML = "<p class='small'>Loading&hellip;</p>";
+  if (!sb || !chal){ $("caList").innerHTML = ""; return; }
+  const { data, error } = await sb.rpc("javeda_challenge_admin").then(r => r, x => ({ error:x }));
+  if (error){ $("caList").innerHTML = ""; $("caErr").textContent = netErr(error) ? "No internet." : error.message; return; }
+  caRows = data || []; caList();
+}
+function caList(){
+  const st = { hidden:"not shown yet", soon:"shown, starts soon", open:"running", ending:"ended, closing", over:"over", cancelled:"cancelled" };
+  $("caList").innerHTML = caRows.length ? caRows.map(c => {
+    const lv = levelById(c.level), picks = {}; (c.entries || []).forEach(e => { if (e.gift) picks[e.gift] = (picks[e.gift] || 0) + 1; });
+    const played = (c.entries || []).filter(e => e.runs > 0 && !e.creator);
+    return '<div class="ca-c k-' + c.kind + '"><div class="ca-h"><b>' + (c.kind === "super" ? "Super" : "Monthly") + '</b> ' + esc(c.title || (lv ? caLvName(lv) : c.level)) +
+      ' <span class="tg">' + st[c.state] + '</span></div>' +
+      '<p class="small">' + esc(lv ? caLvName(lv) : c.level) + ' &middot; shows ' + esc(chDay(c.shows_at)) + ' &middot; ' + esc(chDay(c.starts_at)) + ' - ' + esc(chDay(new Date(c.ends_at) - 1)) +
+      ' &middot; who: ' + esc([c.min_three ? c.min_three + "x 3 stars" : "", c.min_songs ? c.min_songs + " songs" : "", c.min_days ? "played in " + c.min_days + " days" : "", c.only_picked ? "only the names" : "", c.names.length ? c.names.length + " names" : ""].filter(Boolean).join(", ") || "everyone with it open") + '</p>' +
+      '<p class="small">' + played.length + ' played &middot; ' + (c.entries || []).length + ' joined' + ((c.gifts || []).length ? ' &middot; gifts: ' + c.gifts.map(x => esc(x.title) + ' ' + (picks[x.key] || 0)).join(", ") : '') + '</p>' +
+      ((c.winners || []).length ? '<ol class="ca-w">' + c.winners.map(w => '<li>#' + w.place + ' <b>' + esc(w.username || "(deleted account)") + '</b> ' + fmt(w.score) +
+        (w.gift ? ' &middot; picked ' + esc(((c.gifts || []).find(x => x.key === w.gift) || {}).title || w.gift) : '') + (w.prize ? ' &middot; game gave: ' + w.prize : '') +
+        (w.recent ? ' &middot; <span class="warn">won a Monthly in the last 3 months: the gift card goes to the next one</span>' : '') +
+        (w.username ? ' <button class="btn small" type="button" data-caruns="' + c.id + '" data-who="' + esc(w.username) + '">Runs</button>' : '') +
+        ' <button class="btn small' + (w.sent ? ' gold' : '') + '" type="button" data-casent="' + c.id + '" data-place="' + w.place + '" data-on="' + (w.sent ? 1 : 0) + '">' + (w.sent ? "Sent &#10003;" : "Mark sent") + '</button>' +
+        '<div class="ca-runs" id="caRuns' + c.id + '_' + w.place + '"></div></li>').join("") + '</ol>' : '') +
+      (played.length && c.state !== "over" ? '<p class="small">Top: ' + played.slice(0, 5).map(e => esc(e.username) + ' ' + fmt(e.best)).join(", ") + '</p>' : '') +
+      '<div class="ca-a">' + (/^(hidden|soon|open)$/.test(c.state) ? '<button class="btn small" type="button" data-caedit="' + c.id + '">Edit</button>' : '') +
+      (/^(hidden|soon|open|ending)$/.test(c.state) ? '<button class="btn small" type="button" data-cacancel="' + c.id + '">Cancel it</button>' : '') + '</div></div>';
+  }).join("") : '<p class="small">No challenges yet.</p>';
+}
+function caOpenForm(kind, c){
+  caEdit = c ? c.id : null;
+  const d = c ? { shows:caDate(c.shows_at), starts:caDate(c.starts_at), last:caDate(new Date(c.ends_at) - 1) } : caDefaults(kind);
+  const lvs = CA_LV().filter(l => kind !== "super" || l.remix);     // a Super is on a remix
+  caKind = kind; $("caFormT").textContent = (c ? "Change the " : "New ") + (kind === "super" ? "Super" : "Monthly");
+  $("caLevel").innerHTML = lvs.map(l => '<option value="' + l.id + '">' + esc(caLvName(l)) + '</option>').join("");
+  $("caLevel").value = c ? c.level : kind === "super" ? "lvl5r" : "lvl1x";
+  $("caTitle").value = c ? c.title || "" : "";
+  $("caShows").value = d.shows; $("caStarts").value = d.starts; $("caLast").value = d.last;
+  $("caThree").value = c ? c.min_three || "" : kind === "super" ? 3 : "";
+  $("caSongs").value = c ? c.min_songs || "" : ""; $("caDays").value = c && c.min_days ? c.min_days : "";
+  $("caNames").value = c ? (c.names || []).join("\n") : ""; $("caOnly").checked = !!(c && c.only_picked);
+  const gifts = c ? c.gifts || [] : kind === "super" ? CH_TEASE : [];
+  $("caGifts").classList.toggle("hid", kind !== "super");
+  for (let i = 0; i < 3; i++){ const x = gifts[i] || {}; $("caG" + i + "t").value = x.title || ""; $("caG" + i + "n").value = x.note || ""; $("caG" + i + "i").value = x.icon || ["gaming", "scent", "music"][i]; }
+  const dp = CH_PRIZE[kind]();
+  for (let i = 1; i <= 3; i++){ $("caP" + i).value = c && c.prizes && c.prizes[i] || ""; $("caP" + i).placeholder = dp[i - 1] + " (shown in each player's language)"; }
+  const running = !!(c && c.state === "open");
+  ["caLevel", "caShows", "caStarts", "caThree", "caSongs", "caDays", "caOnly"].forEach(id => $(id).disabled = running);
+  $("caRunNote").classList.toggle("hid", !running);
+  $("caErr").textContent = ""; $("caForm").classList.remove("hid"); $("caForm").scrollIntoView({ block:"nearest" });
+  caMatch();
+}
+const caNames = () => $("caNames").value.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
+function caPayload(){
+  const kind = caKind, g = [];
+  if (kind === "super") for (let i = 0; i < 3; i++){ const t = $("caG" + i + "t").value.trim(); if (t) g.push({ title:t, note:$("caG" + i + "n").value.trim(), icon:$("caG" + i + "i").value }); }
+  return { id:caEdit, kind, level:$("caLevel").value, title:$("caTitle").value.trim(),
+    shows_at:caAt($("caShows").value), starts_at:caAt($("caStarts").value), ends_at:caAt($("caLast").value, 1),
+    min_three:+$("caThree").value || 0, min_songs:+$("caSongs").value || 0, min_days:+$("caDays").value || 0,
+    only_picked:$("caOnly").checked, names:caNames(), gifts:g, prizes:{ 1:$("caP1").value.trim(), 2:$("caP2").value.trim(), 3:$("caP3").value.trim() } };
+}
+function caMatch(){
+  clearTimeout(caMatchT);
+  caMatchT = setTimeout(async () => {
+    if (!sb || !chal) { $("caMatch").textContent = ""; return; }
+    const p = caPayload();
+    const { data, error } = await sb.rpc("javeda_challenge_match", { p:{ level:p.level, min_three:p.min_three, min_songs:p.min_songs, min_days:p.min_days, only_picked:p.only_picked, names:p.names } }).then(r => r, x => ({ error:x }));
+    if (error){ $("caMatch").textContent = error.message; return; }
+    $("caMatch").innerHTML = '<b>' + data.count + (data.count === 1 ? ' player matches' : ' players match') + ' right now</b> (' + data.open + ' with it open)' +
+      (data.names.length ? ': ' + data.names.map(n => esc(n.username) + (n.open ? '' : ' (not open)')).join(", ") : '') +
+      ((data.unknown || []).length ? '<br><span class="warn">Not found: ' + data.unknown.map(esc).join(", ") + '</span>' : '');
+  }, 350);
+}
+$("caForm").addEventListener("input", caMatch);
+$("caForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const p = caPayload(); $("caErr").textContent = "";
+  if (!$("caShows").value || !$("caStarts").value || !$("caLast").value){ $("caErr").textContent = "Fill in the three dates."; return; }
+  $("caSave").disabled = true;
+  const { data, error } = await sb.rpc("javeda_challenge_save", { p }).then(r => r, x => ({ error:x }));
+  $("caSave").disabled = false;
+  if (error){ $("caErr").textContent = netErr(error) ? "No internet." : error.message; return; }
+  toast("Saved." + ((data.unknown || []).length ? " Not found: " + data.unknown.map(esc).join(", ") : ""), 5000);
+  $("caForm").classList.add("hid"); openChAdmin(); loadChallenges();
+});
+$("chAdmin").addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.cnew) caOpenForm(b.dataset.cnew, null);
+  else if (b.dataset.cform) $("caForm").classList.add("hid");
+  else if (b.dataset.caedit){ const c = caRows.find(x => x.id === +b.dataset.caedit); if (c) caOpenForm(c.kind, c); }
+  else if (b.id === "caDemo"){ chalDemo = chalDemo ? null : chDemo(); renderNow(); closeSheet("chAdmin"); toast(chalDemo ? "Preview on: a made-up running Monthly and Super, only on this phone." : "Back to the real cards."); }
+  else if (b.dataset.cacancel){ if (!confirm("Cancel this challenge? Nobody wins it. This can't be undone.")) return;
+    const { error } = await sb.rpc("javeda_challenge_cancel", { p_id:+b.dataset.cacancel }).then(r => r, x => ({ error:x }));
+    if (error){ $("caErr").textContent = error.message; return; } openChAdmin(); loadChallenges(); }
+  else if (b.dataset.casent){ const on = b.dataset.on !== "1";
+    const { error } = await sb.rpc("javeda_challenge_sent", { p_id:+b.dataset.casent, p_place:+b.dataset.place, p_sent:on }).then(r => r, x => ({ error:x }));
+    if (error){ $("caErr").textContent = error.message; return; } openChAdmin(); }
+  else if (b.dataset.caruns){
+    const box = $("caRuns" + b.dataset.caruns + "_" + b.closest("li").querySelector("[data-place]").dataset.place);
+    const { data, error } = await sb.rpc("javeda_challenge_runs_of", { p_id:+b.dataset.caruns, p_username:b.dataset.who }).then(r => r, x => ({ error:x }));
+    box.innerHTML = error ? esc(error.message) : (data || []).length ? data.map(r => fmt(r.score) + ' in ' + Math.round(r.secs / 60) + ' min, ' + esc(new Date(r.at).toLocaleString("en-GB", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" }))).join("<br>") : "No runs.";
+  }
+});
+// the preview (creators): a running Monthly and Super, made up from this hub's own songs and pictures
+function chDemo(){
+  const d = 864e5, now = Date.now(), me = signedIn() ? player : { username:"You", avatar:"saucer" };
+  const top = [["NovaRider", "ch-monthly", 1457], ["Kiki", "purpleufo", 1223], [me.username, me.avatar, 990], ["Moonwalk", "comet", 744], ["Zed", "rocket", 410]];
+  return { on:true, downloads:112, accounts:34, need_downloads:100, need_accounts:30, list:[
+    { id:-1, kind:"monthly", level:"lvl1x", title:null, starts_at:new Date(now - 9 * d).toISOString(), ends_at:new Date(now + 21 * d).toISOString(), state:"open",
+      bar:{ three:0, songs:0, days:null, picked:false }, gifts:[], prizes:{}, players:5,
+      top:top.map(t => ({ username:t[0], avatar:t[1], best:t[2], album:false })), winners:[],
+      me:{ in:true, invited:false, three:4, songs:2, open:true, played_days:0, gift:null, best:990, runs:6, rank:3, creator:false } },
+    { id:-2, kind:"super", level:"lvl5r", title:null, starts_at:new Date(now + 12 * d).toISOString(), ends_at:new Date(now + 26 * d).toISOString(), state:"soon",
+      bar:{ three:3, songs:0, days:null, picked:false }, gifts:CH_TEASE, prizes:{}, players:0, top:[], winners:[],
+      me:{ in:true, invited:false, three:4, songs:2, open:true, played_days:0, gift:null, best:0, runs:0, rank:null, creator:false } }],
+    hall:[{ kind:"super", level:"lvl5r", title:null, starts_at:new Date(now - 300 * d).toISOString(), place:1, username:"NovaRider", avatar:"ch-super", score:182300 },
+          { kind:"monthly", level:"lvl2x", title:null, starts_at:new Date(now - 40 * d).toISOString(), place:1, username:"Kiki", avatar:"ch-monthly", score:135400 },
+          { kind:"monthly", level:"lvl1x", title:null, starts_at:new Date(now - 70 * d).toISOString(), place:1, username:"NovaRider", avatar:"ch-monthly", score:1457 }] };
+}
 const weeklyLocked = () => !!weekly && weekly.on === false;
 async function loadWeekly(){
   if (!sb) return;
@@ -1889,7 +2520,7 @@ async function loadWeekly(){
   renderNow(); if (boardTab === "weekly"){ renderTabs(); renderBoard(); }
 }
 async function loadDaily(){
-  loadWeekly(); loadEvent();
+  loadWeekly(); loadEvent(); loadChallenges();
   if (!sb) return;
   const { data } = await sb.rpc("javeda_daily");
   if (!data || !levelById(data.level)) return;
@@ -2324,12 +2955,12 @@ addEventListener("keydown", e => { if (e.key === "Escape") document.querySelecto
 // this only shows it, from its numbers (javeda_my_stats). The album's also works for a guest
 const picKind = a => (a.unlock || "").split(":")[0];
 const picN = a => +(a.unlock || "").split(":")[1] || 0;
-const picGroup = a => !a.unlock ? (a.cost ? "points" : "free") : picKind(a) === "event" ? "events" : /^(days|streak|wins|podium)$/.test(picKind(a)) ? "daily" : "levels";
+const picGroup = a => !a.unlock ? (a.cost ? "points" : "free") : /^(event|prize)$/.test(picKind(a)) ? "events" : /^(days|streak|wins|podium)$/.test(picKind(a)) ? "daily" : "levels";
 const evOf = a => (a.unlock || "").split(":")[1];
 function ownsPic(a){
   if (!a.unlock) return a.cost === 0 || owned.has(a.id);
   const k = picKind(a);
-  if (k === "event") return owned.has(a.id);
+  if (k === "event" || k === "prize") return owned.has(a.id);
   if (k === "album") return signedIn() ? !!player.album_completed_at : albumDone();
   if (!signedIn() || !stats) return false;
   return k === "song" ? (stats.songs || []).includes(picN(a)) : (stats[k] || 0) >= picN(a);
@@ -2337,6 +2968,7 @@ function ownsPic(a){
 // the pill on a locked one
 function picChip(a){
   const k = picKind(a), n = picN(a), one = n === 1;
+  if (k === "prize") return "&#127942; " + (/^super/.test(evOf(a)) ? "Super" : "Monthly");
   if (k === "event") return evOf(a) === "advent" ? "&#127876; 24" : EV[evOf(a)] ? EV[evOf(a)].e + " " + EV[evOf(a)].tab : "";
   return k === "album" ? "28/28" : k === "song" ? "Level " + n : k === "parts" ? n + " parts" : k === "remix" ? n + (one ? " Remix" : " Remixes") :
     k === "endless" ? n + " Endless" : k === "days" ? n + (one ? " day" : " days") : k === "streak" ? n + " in a row" : k === "wins" ? n + (one ? " win" : " wins") : "Top 3 x" + n;
@@ -2345,6 +2977,8 @@ function picChip(a){
 function picNeed(a){
   const k = picKind(a), n = picN(a), one = n === 1, x = stats && !Array.isArray(stats[k]) ? stats[k] || 0 : 0;
   if (k === "album") return ["Clear every part of all 28 songs."];
+  if (k === "prize"){ const s = evOf(a), sup = /^super/.test(s);
+    return [(/3$/.test(s) ? "Finish in the top 3 of a " : "Win a ") + (sup ? "Super" : "Monthly") + " challenge.", "Only for winners."]; }
   if (k === "event") return evOf(a) === "advent" ? ["Open the 24th door of the advent calendar."] : ["Play on 5 different days during the " + (EV[evOf(a)] ? EV[evOf(a)].tab : "") + " event.", "Only during the event."];
   if (k === "song"){
     const ps = LEVELS.filter(l => l.num === n && !l.endless), got = ps.filter(l => cleared(l.id)).length;
@@ -2402,6 +3036,10 @@ const BADGES = [
   { id:"duel",     e:"\u2694\uFE0F", name:"Duelist",        how:"Win 10 online 1v1 games.",                           ok:c => c.wins >= 10, n:c => c.wins, of:10 },
   { id:"pack",     e:"\u{1F91D}",    name:"Pack Leader",     how:"Get 3 friends to join with your invite link.",       ok:c => c.friends >= 3, n:c => c.friends, of:3 },
   { id:"grind",    e:"\u{1F501}",    name:"Never Give Up",   how:"Play 100 runs.",                                     ok:c => c.runs >= 100, n:c => c.runs, of:100 },
+  { id:"chm",      e:"\u{1F3AF}",    name:"Monthly Challenger", how:"Play a Monthly challenge.",                    ok:c => c.monthly_played >= 1 },
+  { id:"chm1",     e:"\u{1F947}",    name:"Monthly Champion", how:"Win a Monthly challenge.",                        ok:c => c.monthly_wins >= 1 },
+  { id:"chs",      e:"\u{1F6F8}",    name:"Super Challenger", how:"Play a Super challenge.",                         ok:c => c.super_played >= 1 },
+  { id:"chs1",     e:"\u{1F451}",    name:"Super Champion",  how:"Win a Super challenge.",                           ok:c => c.super_wins >= 1 },
   // the season badges: only during their event (shown then, or once earned)
   ...Object.entries({ winter:"Winter", valentine:"Valentine", spring:"Spring", summer:"Summer", halloween:"Halloween", autumn:"Autumn" }).map(([k, w]) =>
     ({ id:"ev-" + k, ev:k, e:null, name:null, how:"Clear 5 levels during " + (k === "autumn" ? "an " : "a ") + w + " event.", ok:c => (c.events || []).includes(k) }))
@@ -3010,6 +3648,7 @@ $("now").addEventListener("click", e => {
   else if (b.dataset.reports) openReports();
   else if (b.dataset.stats) openStats();
   else if (b.dataset.codes) openCodes();
+  else if (b.dataset.chadmin) openChAdmin();
   else if (b.dataset.swarm) openSwarm();
   else if (b.dataset.freeview){ freeView = !freeView; renderAll(); toast(freeView ? "Free view: the hub as a player without the Pass sees it" + (passOn ? "" : " once it's switched on") + ". Only here, nothing changes." : "Back to the creator view."); }
   else if (b.dataset.share) shareCard(completeCard || (completeCard = { kind:"complete" }));
@@ -3184,9 +3823,10 @@ async function saveEndless(lv, r, quiet){
   progress[lv.id] = { cleared:true, best:d.progress.best_score, metres:d.progress.best_metres, runs:d.progress.runs };
   renderMe(); renderBoard();
   refreshStats(true);
+  const chn = chRunNote(d.challenge);     // a run that counted for a challenge: its place there (or: pick your gift first)
   if (quiet) return;
-  toast(d.new_best ? "<b>New best! " + fmt(d.score) + unit + "</b>" + (d.earned ? " · +" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") : "")
-                   : "Your best is still <b>" + fmt(d.progress.best_score) + unit + "</b> · beat it for points", 4500);
+  toast((d.new_best ? "<b>New best! " + fmt(d.score) + unit + "</b>" + (d.earned ? " · +" + fmt(d.earned) + (d.earned === 1 ? " point" : " points") : "")
+                    : "Your best is still <b>" + fmt(d.progress.best_score) + unit + "</b> · beat it for points") + chn, 4500);
   if (d.new_best && d.score) offerShare({ kind:"level", lv, score:d.score, unit, head:"New best" });
 }
 // today's challenge: the day's board. Cleared on a song you hadn't got to yet, that song stays open for you; and once

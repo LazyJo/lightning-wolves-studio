@@ -1360,7 +1360,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <li class="chstore">Already have every part open? Then second place gets 5,000 points and third place gets 2,500 points instead.</li>
       <li>Prize points can be spent like any points, but they don't change your place on the Points board.</li>
       <li>Apple and Google are not sponsors of these challenges and are not involved in them in any way.</li>
-      <li>The challenges start once JAVEDA has 100 downloads and 30 accounts.</li>
+      <li id="chrGoal">The Monthly starts once JAVEDA has 100 downloads and 30 accounts, the Super once it has 50 accounts.</li>
     </ul>
   </div>
 </div>
@@ -2124,8 +2124,8 @@ function prizeCards(){
       '<a class="btn gold small" href="' + LINKS.merch + '" target="_blank" rel="noopener">Open the shop</a></span></div>') + '</article>'; }).join("");
 }
 /* ---- the challenges (javeda_challenges_now): the Monthly (one song's endless for a calendar month) and the Super (a
-   remix, two weeks, three a year, invite only). Both wait for 100 downloads and 30 accounts: until then a locked card
-   says how far it is. A challenge opens nothing: it's played in that endless or remix, so that has to be open (cleared,
+   remix, two weeks, three a year, invite only). The Monthly waits for 100 downloads and 30 accounts, the Super for 50
+   accounts too (javeda_settings.super_accounts): until then a locked card says how far it is. No prize says what it costs. A challenge opens nothing: it's played in that endless or remix, so that has to be open (cleared,
    or the Pass); the endless run itself is what counts (javeda_submit_run says how it went). The board, the halls of
    fame, the rules and the gift pick are sheets; Lazy Jo makes them in his panel (creators). ---- */
 let chal = null, chalDemo = null;     // chalDemo: a creator's preview of running ones (made up, nothing saved)
@@ -2139,14 +2139,14 @@ const CH_ICON = {
 };
 const chIcon = k => '<svg class="gi" viewBox="0 0 48 48" aria-hidden="true">' + (CH_ICON[k] || CH_ICON.gift) + '</svg>';
 // what a Super's winner can pick, before Lazy Jo has made one (themes anyone can pick)
-const CH_TEASE = [{ key:"gaming", title:"Gaming", note:"A controller for your console", icon:"gaming" },
-                  { key:"scent", title:"Scent", note:"A perfume of your choice", icon:"scent" },
-                  { key:"music", title:"Music", note:"Wireless earbuds or a speaker", icon:"music" }];
+const CH_TEASE = [{ key:"gaming", title:"Gaming", note:"Games, gear and more", icon:"gaming" },
+                  { key:"essentials", title:"Essentials", note:"Perfume, skincare and more", icon:"scent" },
+                  { key:"music", title:"Music", note:"Headphones, speakers and more", icon:"music" }];
 const CH_OWN = new Set(CH_TEASE.flatMap(g => [g.title, g.note]));
 const chWords = s => CH_OWN.has(s) ? esc(s) : '<span data-i18n-skip>' + esc(s) + '</span>';   // Lazy Jo's own words stay as typed
 // the prizes when Lazy Jo didn't write his own (the store apps never name the Pass)
 const CH_PRIZE = {
-  monthly:() => ["A gift card (games, Spotify or perfume)", STORE ? "Every part open + 30% off in the shop" : "A JAVEDA Pass + 30% off in the shop", "2 keys + 20% off in the shop"],
+  monthly:() => ["A gift card + 30% off in the shop", STORE ? "Every part open + 30% off in the shop" : "A JAVEDA Pass + 30% off in the shop", "2 keys + 20% off in the shop"],
   super:() => ["The gift you picked + a Lazy Jo hoodie", STORE ? "A hoodie or T-shirt + every part open" : "A hoodie or T-shirt + a JAVEDA Pass", "A T-shirt + 2 keys + 30% off in the shop"]
 };
 const chList = () => ((chalDemo || chal) || {}).list || [];
@@ -2155,12 +2155,13 @@ function chOf(kind){
   const l = chList().filter(c => c.kind === kind);
   return l.find(c => c.state === "open" || c.state === "ending") || l.find(c => c.state === "soon") || l.filter(c => c.state === "over").pop() || null;
 }
-// how far JAVEDA is from the goal: from javeda_challenges_now, or (a database without it yet) from the weekly and the event
-function chGoal(){
-  const c = chalDemo || chal;
-  if (c) return { on:!!c.on, dl:c.downloads, nd:c.need_downloads || 100, ac:c.accounts, na:c.need_accounts || 30 };
+// how far JAVEDA is from the goal (a Super's needs more accounts): from javeda_challenges_now, or (a database without
+// it yet) from the weekly and the event
+function chGoal(kind){
+  const c = chalDemo || chal, sup = kind === "super";
+  if (c) return { on:sup ? !!c.super_on : !!c.on, dl:c.downloads, nd:c.need_downloads || 100, ac:c.accounts, na:sup ? c.super_need_accounts || 50 : c.need_accounts || 30 };
   const dl = weekly && weekly.downloads != null ? weekly.downloads : evNow && evNow.downloads != null ? evNow.downloads : null;
-  return { on:false, dl, nd:100, ac:evNow && evNow.accounts != null ? evNow.accounts : null, na:30 };
+  return { on:false, dl, nd:100, ac:evNow && evNow.accounts != null ? evNow.accounts : null, na:sup ? 50 : 30 };
 }
 const chDay = t => new Date(t).toLocaleDateString(window.JAVEDA_LOCALE || "en-GB", { day:"numeric", month:"short" });
 const chMonth = t => new Date(t).toLocaleDateString(window.JAVEDA_LOCALE || "en-GB", { month:"long", year:"numeric" });
@@ -2249,7 +2250,7 @@ const SP_UFO = '<svg viewBox="0 0 120 96" aria-hidden="true"><defs><linearGradie
   '<path d="M40 38a20 20 0 0 1 40 0a20 5 0 0 1-40 0z" fill="url(#spDome)"/><g fill="#ffd60a"><circle cx="60" cy="53" r="2.4"/><circle cx="44" cy="52" r="2.4"/><circle cx="76" cy="52" r="2.4"/><circle cx="29" cy="49" r="2.2"/><circle cx="91" cy="49" r="2.2"/></g>' +
   '<path d="M47 22l-2-11 8 6 7-11 7 11 8-6-2 11z" fill="url(#spGold)" stroke="#8a5a00" stroke-width="1.2" stroke-linejoin="round"/></g></svg>';
 function superCard(){
-  const g = chGoal(), c = chOf("super"), lv = c && levelById(c.level), me = c && c.me;
+  const g = chGoal("super"), c = chOf("super"), lv = c && levelById(c.level), me = c && c.me;
   const gifts = c ? c.gifts || [] : CH_TEASE, picked = me && me.gift;
   const canPick = !!(c && me && me.in && !picked && signedIn() && (c.state === "soon" || c.state === "open"));
   const tiles = gifts.length ? '<div class="sp-gifts">' + gifts.map(x => {
@@ -2360,9 +2361,15 @@ $("now").addEventListener("click", e => {
   const b = e.target.closest("[data-chboard], [data-chhall], [data-chrules], [data-chpick]"); if (!b) return;
   if (b.dataset.chboard) openChBoard(+b.dataset.chboard);
   else if (b.dataset.chhall) openChHall();
-  else if (b.dataset.chrules) openSheet("chRules");
+  else if (b.dataset.chrules) openChRules();
   else if (b.dataset.chpick) openChPick(+b.dataset.chpick, b.dataset.gift);
 });
+// the rules, with the goals as the database has them
+function openChRules(){
+  const g = chGoal(), s = chGoal("super");
+  $("chrGoal").textContent = "The Monthly starts once JAVEDA has " + fmt(g.nd) + " downloads and " + fmt(g.na) + " accounts, the Super once it has " + fmt(s.na) + " accounts.";
+  openSheet("chRules");
+}
 $("cbList").addEventListener("click", e => { const w = e.target.closest("li[data-who]"); if (w) openWho(w.dataset.who); });
 // the rules: the store apps never name the Pass
 document.querySelectorAll(STORE ? "#chRules .chweb" : "#chRules .chstore").forEach(e => e.remove());
@@ -2386,9 +2393,10 @@ function caDefaults(kind){
 async function openChAdmin(){
   if (!creator) return;
   openSheet("chAdmin"); $("caErr").textContent = ""; $("caForm").classList.add("hid");
-  const g = chGoal();
+  const g = chGoal(), s = chGoal("super");
   $("caGoal").innerHTML = chalDemo ? "<b>Preview on:</b> the hub shows a made-up running Monthly and Super (only on this phone, nothing saved)."
-    : chal ? (g.on ? "The goal is reached: challenges can be played." : "Waiting for the goal: " + fmt(g.dl) + " / 100 downloads, " + fmt(g.ac) + " / 30 accounts. Players see the cards locked until then.")
+    : chal ? (g.on ? "The goal is reached: Monthlies can be played. " + (s.on ? "Supers too." : "A Super waits for " + fmt(s.na) + " accounts: " + fmt(s.ac) + " / " + fmt(s.na) + ".")
+      : "Waiting for the goal: " + fmt(g.dl) + " / " + fmt(g.nd) + " downloads, " + fmt(g.ac) + " / " + fmt(g.na) + " accounts (a Super: " + fmt(s.na) + " accounts). Players see the cards locked until then.")
     : "The database doesn't have the challenges yet (push-setup/fn-challenges.sql). Players see the locked cards.";
   $("caDemo").textContent = chalDemo ? "Back to the real cards" : "Preview: running";
   $("caList").innerHTML = "<p class='small'>Loading&hellip;</p>";
@@ -2496,7 +2504,7 @@ $("chAdmin").addEventListener("click", async e => {
 function chDemo(){
   const d = 864e5, now = Date.now(), me = signedIn() ? player : { username:"You", avatar:"saucer" };
   const top = [["NovaRider", "ch-monthly", 1457], ["Kiki", "purpleufo", 1223], [me.username, me.avatar, 990], ["Moonwalk", "comet", 744], ["Zed", "rocket", 410]];
-  return { on:true, downloads:112, accounts:34, need_downloads:100, need_accounts:30, list:[
+  return { on:true, super_on:true, downloads:112, accounts:54, need_downloads:100, need_accounts:30, super_need_accounts:50, list:[
     { id:-1, kind:"monthly", level:"lvl1x", title:null, starts_at:new Date(now - 9 * d).toISOString(), ends_at:new Date(now + 21 * d).toISOString(), state:"open",
       bar:{ three:0, songs:0, days:null, picked:false }, gifts:[], prizes:{}, players:5,
       top:top.map(t => ({ username:t[0], avatar:t[1], best:t[2], album:false })), winners:[],

@@ -3182,6 +3182,8 @@ GRANT EXECUTE ON FUNCTION public.javeda_room_check(TEXT) TO authenticated;
 --
 -- * Nothing can be played until JAVEDA has 100 downloads and 30 accounts (creators aside), the season events' goal
 --   (javeda_merch_on). The first time it's reached, challenges_since is set and they stay on from then.
+-- * A Super also waits for 50 accounts (javeda_settings.super_accounts: change the number there). The first time
+--   it's reached, super_since is set and Supers stay on from then.
 -- * A challenge opens nothing: you play it in that endless or remix, so you need it open (cleared, or the Pass).
 --   Every challenge can be reached by playing: no purchase needed.
 -- * A challenge's runs are endless runs (javeda_start_run / javeda_submit_run): the same clock and the same score
@@ -3251,6 +3253,33 @@ BEGIN
 END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_challenges_on() FROM PUBLIC, anon, authenticated;
+
+ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS super_since TIMESTAMPTZ;
+ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS super_accounts INT NOT NULL DEFAULT 50;
+-- a Super needs more: the goal above and super_accounts accounts (creators aside); once reached it stays true
+CREATE OR REPLACE FUNCTION public.javeda_super_on()
+RETURNS BOOLEAN
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE st javeda_settings;
+BEGIN
+  SELECT * INTO st FROM javeda_settings WHERE id;
+  IF st.super_since IS NOT NULL THEN RETURN true; END IF;
+  IF javeda_challenges_on() AND (SELECT count(*) FROM javeda_players p WHERE NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id))
+       >= COALESCE(st.super_accounts, 50) THEN
+    UPDATE javeda_settings SET super_since = now() WHERE id AND super_since IS NULL;
+    RETURN true;
+  END IF;
+  RETURN false;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_super_on() FROM PUBLIC, anon, authenticated;
+-- the goal for one kind of challenge
+CREATE OR REPLACE FUNCTION public.javeda_challenge_live(p_kind TEXT)
+RETURNS BOOLEAN
+LANGUAGE sql SECURITY DEFINER SET search_path = public
+AS $$ SELECT CASE WHEN p_kind = 'super' THEN javeda_super_on() ELSE javeda_challenges_on() END; $$;
+REVOKE ALL ON FUNCTION public.javeda_challenge_live(TEXT) FROM PUBLIC, anon, authenticated;
 
 -- ── 4. The tables (nobody reads or writes them directly: only through the functions below) ──
 CREATE TABLE IF NOT EXISTS javeda_challenges (
@@ -3348,6 +3377,7 @@ BEGIN
   IF NOT javeda_challenges_on() THEN RETURN NULL; END IF;
   FOR c IN SELECT * FROM javeda_challenges WHERE level = p_level AND NOT cancelled AND closed_at IS NULL
              AND p_started >= starts_at AND p_started < ends_at AND now() < ends_at + INTERVAL '10 minutes' ORDER BY id LOOP
+    CONTINUE WHEN c.kind = 'super' AND NOT javeda_super_on();   -- a Super waits for its own goal
     CONTINUE WHEN NOT javeda_challenge_in(c.id, p_user);
     SELECT * INTO e FROM javeda_challenge_entries WHERE challenge = c.id AND user_id = p_user FOR UPDATE;
     IF c.kind = 'super' AND jsonb_array_length(c.gifts) > 0 AND e.gift IS NULL THEN
@@ -3377,7 +3407,7 @@ REVOKE ALL ON FUNCTION public.javeda_challenge_run(UUID, TEXT, INT, TIMESTAMPTZ)
 
 -- ── 7. When one ends ───────────────────────────────────────────────────────
 -- the top 3 (creators aside; the best score, the earlier one on a tie), their pictures and in-game prizes. Twice is
--- the same as once. A challenge that ended while the goal wasn't reached yet closes with no winners.
+-- the same as once. A challenge that ended while its goal wasn't reached yet closes with no winners.
 CREATE OR REPLACE FUNCTION public.javeda_challenge_finish(p_id BIGINT)
 RETURNS VOID
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
@@ -3386,7 +3416,7 @@ DECLARE c javeda_challenges; r RECORD; pr TEXT; has_pass BOOLEAN;
 BEGIN
   SELECT * INTO c FROM javeda_challenges WHERE id = p_id FOR UPDATE;
   IF c.id IS NULL OR c.closed_at IS NOT NULL OR c.cancelled OR now() < c.ends_at + INTERVAL '10 minutes' THEN RETURN; END IF;
-  IF javeda_challenges_on() THEN
+  IF javeda_challenge_live(c.kind) THEN
     FOR r IN SELECT e.user_id, e.best_score, e.gift, row_number() OVER (ORDER BY e.best_score DESC, e.best_at, e.joined_at)::INT AS place
              FROM javeda_challenge_entries e JOIN javeda_players p ON p.user_id = e.user_id
              WHERE e.challenge = p_id AND e.best_score > 0 AND NOT EXISTS (SELECT 1 FROM javeda_creators k WHERE k.user_id = e.user_id)
@@ -3482,6 +3512,7 @@ BEGIN
   RETURN json_build_object('on', live,
     'downloads', (SELECT count(*) FROM javeda_app_devices), 'need_downloads', 100,
     'accounts', (SELECT count(*) FROM javeda_players p WHERE NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id)), 'need_accounts', 30,
+    'super_on', javeda_super_on(), 'super_need_accounts', (SELECT COALESCE(super_accounts, 50) FROM javeda_settings WHERE id),
     'list', (SELECT COALESCE(json_agg(javeda_challenge_json(c.id, uid, 10) ORDER BY c.starts_at), '[]') FROM javeda_challenges c
              WHERE NOT c.cancelled AND c.shows_at <= now() AND c.ends_at > now() - INTERVAL '14 days'));
 END;

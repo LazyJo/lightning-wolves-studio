@@ -110,7 +110,13 @@ Restart project); at most once an hour, and one "it's back" when it is. It has t
   timeout 30 s. Under Notifications, tick "on failure" too, for an email as well (the address answers 503 when down).
 - Needs no key. The bot needs nothing new (it already has the DISCORD_BOT_TOKEN); Discord allows DMs from server members by default.
 
-## The weekly tournament
+## The weekly tournament (retired 2026-11-14)
+**Retired:** Jo replaced it with the **song of the week** (double points on one song all week, no board, no prize;
+`push-setup/fn-songweek.sql`). `javeda_weekly_on()` is now always false, so `javeda_weekly` says `on: false` and the bot
+posts nothing and closes nothing for it (the code below stays, asleep). It never opened, so nobody won a week.
+The bot doesn't post the song of the week (yet): ask Jo before adding a Monday post.
+
+What it did:
 In the feed (every 5 minutes): from Monday 10:00 (Brussels) it posts the week's song with a 🔔 JAVEDA News ping; once
 Sunday 20:00 has passed it closes the week (`javeda_weekly_close`, which gives the winner a JAVEDA Pass) and posts the
 champion and the top 3, mentioning those who linked their Discord. A week nobody played closes without a post.

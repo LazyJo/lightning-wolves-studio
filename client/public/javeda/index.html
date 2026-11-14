@@ -570,7 +570,7 @@ html:has(body.playing), body.playing{overflow:hidden; overscroll-behavior:none}
 .daily .best{font:700 14px/1.2 var(--cond); letter-spacing:.08em; color:var(--gold)}
 .daily .tag{font:700 12px/1.1 var(--cond); letter-spacing:.12em; text-transform:uppercase; padding:5px 8px; border-radius:4px; background:#ffffff12; color:var(--dim)}
 .daily .btns{display:flex; gap:6px}
-/* the weekly tournament: the daily's card, in gold */
+/* the song of the week (was the weekly tournament): the daily's card, in gold */
 .daily.weekly{border-color:#ffd60a66; background:radial-gradient(90% 120% at 100% 0%,#ffd60a2e,transparent 60%),radial-gradient(70% 100% at 0% 100%,#f0a40026,transparent 60%),var(--panel)}
 .daily.weekly .dl{color:#ffe08a}
 .daily.weekly .last{font-size:12.5px; color:var(--mute)}
@@ -1836,7 +1836,8 @@ let records = null;         // the same for every online game on its own: { live
 let boardTab = "points";
 let daily = null;           // today's challenge: { day, level } from javeda_daily
 let dailyBest = 0;          // your best in it today
-let weekly = null, weeklyBest = 0;   // this week's tournament (javeda_weekly) and your best in it
+let weekly = null, weeklyBest = 0;   // this week's tournament (javeda_weekly; retired, still read for the downloads count) and your best in it
+let songWeek = null;                // the song of the week (javeda_song_week): double points on it all week
 // notifications on this phone: what was asked for ({ daily, beaten, chat }; null = never). "beaten" and "chat" count once
 // logged in. A choice saved before the chat ones existed has no "chat": it goes with "beaten" (pushChat).
 const PUSH_OK = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window && window.isSecureContext;
@@ -1993,9 +1994,9 @@ function renderNow(){
           : wait ? '<div class="next"><span class="nt"><small>Next &middot; ' + lvName(wait) + ' &middot; ' + needText(wait) + '</small><span>' + esc(wait.title) + '</span></span>' +
               '<button class="btn primary" data-play="' + wait.requires + '">Go &#9654;</button></div>' : '') + passrow + invrow + crt + '</article>';
   }
-  // the weekly tournament and the event both waiting for JAVEDA's goals: one card for the two, after the daily
-  const both = weeklyLocked() && !!evNow && evNow.on === false;
-  hsPut($("now"), html + prizeCards() + (both ? "" : eventCard()) + adventCard() + dailyCard() + (both ? lockedCard() : weeklyCard()) + monthlyCard() + superCard());
+  // a season event still waiting for JAVEDA's goals goes after the daily and the song of the week
+  const evLock = !!evNow && evNow.on === false;
+  hsPut($("now"), html + prizeCards() + (evLock ? "" : eventCard()) + adventCard() + dailyCard() + songWeekCard() + (evLock ? eventCard() : "") + monthlyCard() + superCard());
 }
 // today's challenge: one song's Part 1 for everyone, a board of its own that starts empty every day
 function dailyCard(){
@@ -2011,33 +2012,18 @@ function dailyCard(){
       '<span class="btns">' + (PUSH_OK && !(pushWish && pushWish.daily) ? '<button class="btn small" data-bell="1" title="Tell me when the next challenge is up" aria-label="Tell me when the next challenge is up">&#128276;</button>' : '') +
       '<button class="btn small" data-board="daily">Board</button><button class="btn hot small" data-daily="1">Play &#9654;</button></span></div></article>';
 }
-// the weekly tournament and the season events, both still waiting for the downloads and accounts: what they are, how far
-function lockedCard(){
-  const nd = weekly.need || evNow.need_downloads || 100, dl = weekly.downloads != null ? weekly.downloads : evNow.downloads || 0, na = evNow.need_accounts || 30;
-  return '<article class="daily weekly"><span class="dl">Coming soon</span>' +
-    '<span class="dt">&#128274; Opens at ' + fmt(nd) + ' downloads</span>' +
-    '<p class="dd">The <b>weekly tournament</b> (the best score wins a JAVEDA Pass) opens at ' + fmt(nd) + ' downloads, the <b>season events</b> (prizes and double points weekends) once there are also ' + fmt(na) + ' accounts. Get the app and bring your friends.</p>' +
-    '<div class="row"><span class="evcount"><span class="tag">' + fmt(dl) + ' / ' + fmt(nd) + ' downloads</span><span class="tag">' + fmt(evNow.accounts || 0) + ' / ' + fmt(na) + ' accounts</span></span><span class="btns">' +
-    (STANDALONE ? '' : '<button class="btn small" data-getapp="1">Get the app</button>') + '<button class="btn gold small" data-friends="1">Invite</button></span></div></article>';
-}
-// the weekly tournament: one song for the week, the best score by Sunday 20:00 wins a JAVEDA Pass
-function weeklyCard(){
-  const lv = weekly && levelById(weekly.level); if (!lv) return "";
-  // locked until JAVEDA has 100 downloads (javeda_weekly: on = false): what it is, and how far
-  if (weekly.on === false) return '<article class="daily weekly"><span class="dl">Weekly tournament</span>' +
-    '<span class="dt">&#128274; Opens at ' + fmt(weekly.need || 100) + ' downloads</span>' +
-    '<p class="dd">One song all week, the best score wins a <b>JAVEDA Pass</b>. It starts once JAVEDA has ' + fmt(weekly.need || 100) + ' downloads: get the app and bring your friends.</p>' +
-    '<div class="row"><span class="tag">' + fmt(weekly.downloads || 0) + ' / ' + fmt(weekly.need || 100) + ' downloads</span><span class="btns">' +
-    (STANDALONE ? '' : '<button class="btn small" data-getapp="1">Get the app</button>') + (hasPass() ? '' : '<button class="btn gold small" data-friends="1">Invite</button>') + '</span></div></article>';
-  const loc = window.JAVEDA_LOCALE || "en-GB", end = new Date(weekly.ends_at);
-  const ends = end.toLocaleDateString(loc, { weekday:"short" }) + " " + end.toLocaleTimeString(loc, { hour:"2-digit", minute:"2-digit" });
-  const last = weekly.last && weekly.last.username ? '<span class="last" data-i18n-skip>&#127942; ' + esc(weekly.last.username) + ' &middot; ' + fmt(weekly.last.best_score) + '</span>' : '';
-  return '<article class="daily weekly"><span class="dl">Weekly tournament &middot; until <span data-i18n-skip>' + esc(ends) + '</span></span>' +
-    '<span class="dt">Level ' + lv.num + ' &middot; ' + esc(lv.title) + '</span>' +
-    '<p class="dd">' + (weekly.open ? 'One song all week, as many tries as you like. When it ends, the best score wins a <b>JAVEDA Pass</b>.' : 'This week\'s tournament is over: the winner is on the board. A new song starts on Monday.') + '</p>' +
-    (last ? '<div>' + '<span class="last">Last week</span> ' + last + '</div>' : '') +
-    '<div class="row">' + (weeklyBest ? '<span class="best">Your best this week ' + fmt(weeklyBest) + '</span>' : '<span class="tag">' + (session ? (weekly.open ? 'Not played yet this week' : 'Over') : 'Log in to compete') + '</span>') +
-      '<span class="btns"><button class="btn small" data-board="weekly">Board</button>' + (weekly.open ? '<button class="btn gold small" data-weekly="1">Play &#9654;</button>' : '') + '</span></div></article>';
+// the song of the week (javeda_song_week, Jo 2026-11-14; it replaced the weekly tournament): one song from Monday to
+// Sunday, double points on every part of it, its endless and its remix. No board, no prize. Not there yet: the way
+// there (and, on the website, the Pass)
+function songWeekCard(){
+  const p1 = songWeek && levelById(songWeek.level); if (!p1) return "";
+  const parts = LEVELS.filter(l => l.num === p1.num), go = parts.find(l => isOpen(l) && !cleared(l.id)) || parts.find(l => isOpen(l));
+  const until = new Date(new Date(songWeek.ends_at) - 1).toLocaleDateString(window.JAVEDA_LOCALE || "en-GB", { weekday:"short", day:"numeric", month:"short" });
+  return '<article class="daily weekly"><span class="dl">Song of the week &middot; until <span data-i18n-skip>' + esc(until) + '</span></span>' +
+    '<span class="dt">Level ' + p1.num + ' &middot; ' + esc(p1.title) + '</span>' +
+    '<p class="dd">' + (parts.length > 1 ? 'Double points all week on every part of this song, its endless and its remix.' : 'Double points all week on this song and its endless.') + '</p>' +
+    (go ? '' : '<p class="dd chlock"><span>&#128274; ' + needText(p1) + '</span>' + (passReady(p1) ? ' <span>Or skip the wait with the Pass.</span>' + passBolt(p1) : '') + '</p>') +
+    '<div class="row"><span class="tag">&#9889; x2</span><span class="btns">' + (go ? '<button class="btn gold small" data-play="' + go.id + '">Play &#9654;</button>' : '') + '</span></div></article>';
 }
 /* ---- season events (javeda_event_now): the event card, the advent calendar in December, the event's board, a prize
    for its top 3. season.js dresses the page; ?season=winter previews it all before the dates (with made-up numbers). ---- */
@@ -2547,6 +2533,12 @@ function chDemo(){
           { kind:"monthly", level:"lvl2x", title:null, starts_at:new Date(now - 40 * d).toISOString(), place:1, username:"Kiki", avatar:"ch-monthly", score:135400 },
           { kind:"monthly", level:"lvl1x", title:null, starts_at:new Date(now - 70 * d).toISOString(), place:1, username:"NovaRider", avatar:"ch-monthly", score:1457 }] };
 }
+async function loadSongWeek(){
+  if (!sb) return;
+  const { data } = await sb.rpc("javeda_song_week").then(r => r, () => ({}));
+  songWeek = data && levelById(data.level) ? data : null;      // a database without it yet: no card
+  renderNow();
+}
 const weeklyLocked = () => !!weekly && weekly.on === false;
 async function loadWeekly(){
   if (!sb) return;
@@ -2559,7 +2551,7 @@ async function loadWeekly(){
   renderNow(); if (boardTab === "weekly"){ renderTabs(); renderBoard(); }
 }
 async function loadDaily(){
-  loadWeekly(); loadEvent(); loadChallenges();
+  loadWeekly(); loadSongWeek(); loadEvent(); loadChallenges();
   if (!sb) return;
   const { data } = await sb.rpc("javeda_daily");
   if (!data || !levelById(data.level)) return;
@@ -3070,8 +3062,8 @@ const BADGES = [
   { id:"album",    e:"\u{1F4BF}",    name:"28/28",           how:"Clear every part of all 28 songs.",                  ok:c => !!c.album, n:c => c.songs, of:28 },
   { id:"iron",     e:"\u{1F43A}",    name:"Iron Wolf",       how:"Clear 10 different levels without losing a heart.",  ok:c => c.flawless >= 10, n:c => c.flawless, of:10 },
   { id:"daily",    e:"\u{1F4C5}",    name:"Daily Regular",   how:"Play 7 daily challenges.",                           ok:c => c.daily >= 7, n:c => c.daily, of:7 },
-  { id:"podium",   e:"\u{1F949}",    name:"Weekly Podium",   how:"Finish in the top 3 of a weekly tournament.",        ok:c => c.podium >= 1 },
-  { id:"champ",    e:"\u{1F3C6}",    name:"Weekly Champion", how:"Win a weekly tournament.",                           ok:c => c.champion >= 1 },
+  { id:"podium",   e:"\u{1F949}",    name:"Weekly Podium",   how:"Finish in the top 3 of a weekly tournament.",        ok:c => c.podium >= 1, gone:true },
+  { id:"champ",    e:"\u{1F3C6}",    name:"Weekly Champion", how:"Win a weekly tournament.",                           ok:c => c.champion >= 1, gone:true },
   { id:"duel",     e:"\u2694\uFE0F", name:"Duelist",        how:"Win 10 online 1v1 games.",                           ok:c => c.wins >= 10, n:c => c.wins, of:10 },
   { id:"pack",     e:"\u{1F91D}",    name:"Pack Leader",     how:"Get 3 friends to join with your invite link.",       ok:c => c.friends >= 3, n:c => c.friends, of:3 },
   { id:"grind",    e:"\u{1F501}",    name:"Never Give Up",   how:"Play 100 runs.",                                     ok:c => c.runs >= 100, n:c => c.runs, of:100 },
@@ -3089,7 +3081,7 @@ const badgeCtx = c => ({ ...c, stars3:Object.entries(c.best || {}).filter(([id, 
 const badgesGot = c => { const x = badgeCtx(c); return BADGES.filter(b => b.ok(x)); };
 function badgeItems(c, all){
   const x = c ? badgeCtx(c) : null;
-  return BADGES.filter(b => (!b.ev || (x && b.ok(x)) || (all && evNow && evNow.kind === b.ev)) && (all || (x && b.ok(x)))).map(b => {
+  return BADGES.filter(b => (!(b.ev || b.gone) || (x && b.ok(x)) || (all && evNow && evNow.kind === b.ev)) && (all || (x && b.ok(x)))).map(b => {
     const got = !!x && b.ok(x), n = x && b.n && !got ? Math.min(b.of, b.n(x) || 0) : 0;
     return '<li class="' + (got ? 'got' : '') + '"><span class="be" aria-hidden="true">' + b.e + '</span><span class="bt"><b>' + b.name + '</b><small>' + b.how + '</small>' +
       (n ? '<em>' + n + ' / ' + b.of + '</em>' : '') + '</span></li>';
@@ -3112,7 +3104,7 @@ async function loadBadges(say){
 function renderBadges(){
   const mine = signedIn() ? myBadges : null;
   $("pfBdNote").classList.toggle("hid", signedIn());
-  $("pfBdN").textContent = mine ? badgesGot(mine).length + " / " + BADGES.filter(b => !b.ev || b.ok(badgeCtx(mine)) || (evNow && evNow.kind === b.ev)).length : "";
+  $("pfBdN").textContent = mine ? badgesGot(mine).length + " / " + BADGES.filter(b => !(b.ev || b.gone) || b.ok(badgeCtx(mine)) || (evNow && evNow.kind === b.ev)).length : "";
   $("pfBdList").innerHTML = badgeItems(mine, true);
 }
 /* ---- what you just earned, big, on the home screen: a new badge or picture pops up once you're back from the level (or
@@ -3180,7 +3172,7 @@ async function openWho(name){
   $("whoT").textContent = data.username; $("whoImg").src = pic(data.avatar);
   $("whoPts").textContent = fmt(data.points) + " points";
   const got = badgesGot(data).length;
-  $("whoN").textContent = got + " / " + BADGES.filter(b => !b.ev || b.ok(badgeCtx(data))).length;
+  $("whoN").textContent = got + " / " + BADGES.filter(b => !(b.ev || b.gone) || b.ok(badgeCtx(data))).length;
   $("whoList").innerHTML = got ? badgeItems(data, false) : "<li>No badges yet.</li>";
 }
 function openProfile(){
@@ -3603,16 +3595,16 @@ function stopPlay(){
   revealSoon(() => { if (creditsDue){ creditsDue = false; openCredits(); } else maybeNudge(); });
 }
 /* ---- the app: after a clear in the browser, a card to put JAVEDA on the phone - the first time, and once more a week
-   later if it was "Not now". Never in the app itself. While the weekly tournament waits for downloads, it says so. ---- */
+   later if it was "Not now". Never in the app itself. While the challenges wait for downloads, it says so. ---- */
 const NUDGE_KEY = "javeda.nudge.app";
 let nudgeDue = false;
 function maybeNudge(){
   if (!nudgeDue || STANDALONE || creator) return; nudgeDue = false;
   let st = { n:0, at:0 }; try { st = JSON.parse(localStorage.getItem(NUDGE_KEY) || "null") || st; } catch(e){}
   if (st.n >= 2 || (st.n === 1 && Date.now() - st.at < 7 * 864e5)) return;
-  const c = $("ngCount"), lock = weeklyLocked();
+  const c = $("ngCount"), g = chGoal(), lock = !g.on && g.dl != null;
   c.classList.toggle("hid", !lock);
-  if (lock) c.innerHTML = "Every install counts: at <b>" + fmt(weekly.need || 100) + "</b> the weekly tournament opens for everyone. Now: <b>" + fmt(weekly.downloads || 0) + "</b>.";
+  if (lock) c.innerHTML = "Every install counts: the challenges and season events open at <b>" + fmt(g.nd) + "</b> downloads and <b>" + fmt(g.na) + "</b> accounts. Now: <b>" + fmt(g.dl) + "</b> downloads.";
   // something else open (the share card, a toast's sheet): next clear, then
   setTimeout(() => { if (document.body.classList.contains("playing") || document.querySelector(".sheet:not(.hid)") || revealOn){ nudgeDue = true; return; }
     try { localStorage.setItem(NUDGE_KEY, JSON.stringify({ n:st.n + 1, at:Date.now() })); } catch(e){}

@@ -3785,3 +3785,126 @@ END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_challenge_sent(BIGINT, INT, BOOLEAN) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.javeda_challenge_sent(BIGINT, INT, BOOLEAN) TO authenticated;
+
+-- ============================================================================
+-- JAVEDA song of the week (Jo, 2026-11-14). It replaces the weekly tournament.
+-- * One song a week, Monday 00:00 to Monday 00:00 (Brussels), the same pick the tournament had (javeda_weekly_level:
+--   the songs in a fixed shuffled order). Double points all week on every part of it, its endless and its remix.
+--   No board, no prize. For everyone, from now on (no downloads goal: it's in-game points only).
+-- * On a double points weekend that song stays double (it doesn't become 4x).
+-- * The weekly tournament is retired: javeda_weekly_on() is always false, so it can't be played, closed or announced
+--   (Lightning Bot skips it when javeda_weekly says on = false). It never opened, so nobody won a week; its tables stay.
+-- Run it once in the Supabase SQL Editor; twice changes nothing. Nothing that is there today changes: no score, no
+-- point, no Pass, no picture.
+-- ============================================================================
+
+-- ── 1. The weekly tournament: retired ──────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.javeda_weekly_on()
+RETURNS BOOLEAN
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT false; $$;
+REVOKE ALL ON FUNCTION public.javeda_weekly_on() FROM PUBLIC, anon, authenticated;
+
+-- ── 2. The song of the week ────────────────────────────────────────────────
+-- its number (a song is all the levels with that number), at a given moment
+CREATE OR REPLACE FUNCTION public.javeda_song_week_num(p_at TIMESTAMPTZ)
+RETURNS INT
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT num FROM javeda_levels WHERE id = javeda_weekly_level(javeda_week_of(p_at)); $$;
+REVOKE ALL ON FUNCTION public.javeda_song_week_num(TIMESTAMPTZ) FROM PUBLIC, anon, authenticated;
+
+-- for the hub: this week's song (its Part 1) and when the week ends
+CREATE OR REPLACE FUNCTION public.javeda_song_week()
+RETURNS JSON
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$ SELECT json_build_object('week', w, 'level', javeda_weekly_level(w), 'ends_at', (w + 7)::TIMESTAMP AT TIME ZONE 'Europe/Brussels')
+      FROM (SELECT javeda_week_of(now()) AS w) x; $$;
+REVOKE ALL ON FUNCTION public.javeda_song_week() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.javeda_song_week() TO anon, authenticated;
+
+-- ── 3. A run: double points on the song of the week ────────────────────────
+-- (the same as fn-challenges.sql's, plus the lines marked "song of the week")
+CREATE OR REPLACE FUNCTION public.javeda_submit_run(p_level TEXT, p_score INT, p_metres INT, p_cleared BOOLEAN)
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  uid UUID := auth.uid();
+  lv javeda_levels;
+  me javeda_players;
+  prog javeda_progress;
+  score INT;
+  first_clear BOOLEAN;
+  earned INT;
+  started TIMESTAMPTZ;
+  new_best BOOLEAN;
+  album BOOLEAN := false;
+  x INT := javeda_points_x();
+  ev JSON;
+  ch JSON := NULL;
+  sw BOOLEAN := false;
+BEGIN
+  IF uid IS NULL THEN RAISE EXCEPTION 'not signed in' USING ERRCODE = '28000'; END IF;
+  SELECT * INTO lv FROM javeda_levels WHERE id = p_level;
+  IF lv IS NULL THEN RAISE EXCEPTION 'no such level' USING ERRCODE = 'P0002'; END IF;
+  sw := lv.num IS NOT NULL AND lv.num = javeda_song_week_num(now());   -- the song of the week: double points (not 4x on a double weekend)
+  IF sw AND x < 2 THEN x := 2; END IF;
+  SELECT * INTO me FROM javeda_players WHERE user_id = uid FOR UPDATE;
+  IF me IS NULL THEN RAISE EXCEPTION 'make your player first' USING ERRCODE = 'P0002'; END IF;
+  IF lv.requires IS NOT NULL AND NOT EXISTS (
+       SELECT 1 FROM javeda_progress WHERE user_id = uid AND level = lv.requires AND cleared
+                                       AND best_score >= lv.requires_score)
+     AND NOT EXISTS (SELECT 1 FROM javeda_unlocks WHERE user_id = uid AND level = p_level)
+     AND NOT EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = uid)
+     AND NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = uid) THEN
+    RAISE EXCEPTION 'level locked' USING ERRCODE = '42501';
+  END IF;
+  IF me.last_run_at IS NOT NULL AND me.last_run_at > now() - INTERVAL '10 seconds' THEN
+    RAISE EXCEPTION 'slow down' USING ERRCODE = '53400';
+  END IF;
+
+  score := GREATEST(0, LEAST(COALESCE(p_score, 0), lv.max_score));
+  SELECT * INTO prog FROM javeda_progress WHERE user_id = uid AND level = p_level;
+  new_best := prog IS NULL OR score > prog.best_score;
+  IF lv.endless THEN
+    DELETE FROM javeda_runs WHERE user_id = uid AND level = p_level RETURNING started_at INTO started;
+    IF started IS NULL THEN RAISE EXCEPTION 'no run started' USING ERRCODE = '22023'; END IF;
+    score := LEAST(score, FLOOR(lv.max_rate * EXTRACT(EPOCH FROM now() - started))::INT);
+    new_best := prog IS NULL OR score > prog.best_score;
+    first_clear := false;
+    earned := LEAST(40, GREATEST(0, score - COALESCE(prog.best_score, 0)) / lv.score_per_point);
+    p_cleared := true;
+  ELSE
+    first_clear := p_cleared AND (prog IS NULL OR NOT prog.cleared);
+    earned := LEAST(40, score / lv.score_per_point)
+            + CASE WHEN p_cleared THEN lv.clear_points ELSE 0 END
+            + CASE WHEN first_clear THEN lv.first_clear_points ELSE 0 END;
+  END IF;
+
+  earned := earned * x;            -- a double points weekend (javeda_points_x) or the song of the week
+  INSERT INTO javeda_progress AS g (user_id, level, cleared, best_score, best_metres, runs, clears, first_cleared_at)
+  VALUES (uid, p_level, p_cleared, score, GREATEST(0, LEAST(COALESCE(p_metres, 0), 100000)), 1,
+          CASE WHEN p_cleared THEN 1 ELSE 0 END, CASE WHEN p_cleared THEN now() END)
+  ON CONFLICT (user_id, level) DO UPDATE SET
+    cleared          = g.cleared OR EXCLUDED.cleared,
+    best_score       = GREATEST(g.best_score, EXCLUDED.best_score),
+    best_metres      = GREATEST(g.best_metres, EXCLUDED.best_metres),
+    runs             = g.runs + 1,
+    clears           = g.clears + EXCLUDED.clears,
+    first_cleared_at = COALESCE(g.first_cleared_at, EXCLUDED.first_cleared_at),
+    updated_at       = now()
+  RETURNING * INTO prog;
+  IF first_clear THEN album := javeda_album_check(uid); END IF;
+
+  UPDATE javeda_players SET points = points + earned, last_run_at = now(), updated_at = now()
+  WHERE user_id = uid RETURNING * INTO me;
+  ev := javeda_event_run(uid, earned, p_cleared);    -- a season event: its board, its days, its picture
+  IF lv.endless THEN ch := javeda_challenge_run(uid, p_level, score, started); END IF;   -- a Monthly or a Super
+
+  RETURN json_build_object('player', row_to_json(me), 'progress', row_to_json(prog),
+                           'earned', earned, 'first_clear', first_clear, 'new_best', new_best, 'score', score,
+                           'album_complete', album, 'double', x > 1, 'song_week', sw, 'event', ev, 'challenge', ch);
+END;
+$$;
+
+NOTIFY pgrst, 'reload schema';

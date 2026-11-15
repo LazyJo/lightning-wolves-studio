@@ -32,6 +32,15 @@ canvas{display:block; touch-action:none}
 .bar{width:120px; height:6px; border-radius:3px; background:#0e3a7a22; margin:4px 0 0 auto; overflow:hidden}
 .bar i{display:block; height:100%; width:0%; background:linear-gradient(90deg,#0e3a7a,#ffd21a)}
 .bl{font-size:11px; letter-spacing:.18em; color:#0e1a3a; text-align:right; text-shadow:0 0 6px #fff}
+#tg{position:fixed; left:50%; top:calc(14px + env(safe-area-inset-top)); transform:translateX(-50%); display:flex; gap:6px; z-index:3; pointer-events:none; transition:opacity .4s}
+#tg>div{min-width:64px; text-align:center; background:#0e3a7ae6; border:2px solid #ffd21a; border-radius:6px; padding:3px 10px 4px; box-shadow:0 3px 0 #062a4a}
+#tg b{display:block; font-family:Bungee,sans-serif; font-weight:400; font-size:22px; line-height:1.1; color:#fff}
+#tg small{display:block; font-size:11px; letter-spacing:.16em; color:#bfe6ff}
+#tg .low{border-color:#ff5a3a; background:#7a1a0ae6}
+#tg.pop>div:last-child{animation:tgpop .5s}
+@keyframes tgpop{0%,100%{transform:none}40%{transform:scale(1.18)}}
+#hud.off ~ #tg{opacity:0}
+@media (max-width:640px){ #tg{top:calc(64px + env(safe-area-inset-top))} #tg>div{min-width:54px; padding:2px 8px 3px} #tg b{font-size:18px} #tg small{font-size:10px} }
 #info{font-family:Bungee,sans-serif; font-size:14px; color:#0e3a7a; margin-top:8px; text-align:right; text-shadow:0 0 8px #fff}
 body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
 body.gold #m{color:#c0300a}
@@ -89,6 +98,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
   <div><div id="m">0</div><div id="ml">SCORE</div><div id="hearts"></div></div>
   <div><div class="bl" id="bl">THE SONG</div><div class="bar" id="songbar"><i></i></div><div id="info"></div></div>
 </div>
+<div id="tg" class="hid"><div id="tgMv"><b id="tgM">0</b><small>MOVES</small></div><div><b id="tgT">0 / 1</b><small>ROWS</small></div></div>
 <div id="phase" class="off"></div>
 <div id="msg"></div>
 <div id="flash"></div>
@@ -99,7 +109,7 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
   <p id="intro"></p>
   <p id="how"></p>
   <div id="parts" class="hid" role="group" aria-label="Mode">
-    <button type="button" data-mode="">Island Blocks</button><button type="button" data-mode="endless" class="gold">Island Blocks &#8734;</button>
+    <button type="button" data-mode="1">Part 1 &middot; Island Blocks</button><button type="button" data-mode="2">Part 2 &middot; Target Rows</button><button type="button" data-mode="1x" class="gold">Island Blocks &#8734;</button><button type="button" data-mode="2x" class="gold">Target Rows &#8734;</button><button type="button" data-mode="r" class="gold">Remix &#8734;</button>
   </div>
   <button id="go" type="button">Start</button>
   <div id="outs" class="hid">
@@ -121,12 +131,22 @@ body.gold #veil h1{text-shadow:0 0 24px #ffb000}
    the turquoise sea, islands with red cliffs and palms, the gold cloud trail - and Jo's saucer.
    Jo picked ISLAND BLOCKS: a tall gold frame standing in the sea. The saucer carries each piece
    down in its beam - island chunks (green and red), gold, sky blue, cloud white, orange, purple.
-   The song sets how fast they drop: a row a beat in the calm, every half beat in the verses, every
-   third (and gold pieces) in the hooks. Drag to move, tap to turn, swipe down (or Space) to drop.
+   They drop the way the classic falling-block games start: about a second a row, a little quicker as the song
+   goes on; the song only nudges it (slower in the calm, quicker in the hooks, where some pieces are gold). A piece
+   that lands gets half a second to slide or turn before it locks. Drag to move, tap to turn, swipe down (or Space)
+   to drop.
    A full row bursts gold; dropped right on the beat it's double. Stacked to the top costs a heart
    (3) and the top of the stack washes away. At the end of the song: the cover.
    Once it's cleared, ENDLESS opens (?endless=1): the pieces never stop, quicker every 8 bars, a
-   heart back every 24. */
+   heart back every 24.
+   PART 2 - TARGET ROWS (?part=2): the same frame and pieces, but every round is a target. Rows of old reef wait at
+   the bottom, each with gaps that are open from above; CLEAR N ROWS with the MOVES you have (every piece is a move).
+   The drop stays calm - the moves are the pressure. Hit it: a bonus for the moves left, and the next reef, one row
+   more every other target. Out of moves (or stacked to the top): a heart, and a new reef for the same target.
+   Hit 6 targets before the song ends to clear it (then keep going for the score).
+   Its endless (?part=2&endless=1) keeps the targets coming, with fewer moves as it goes.
+   REMIX (?remix=1), once both are cleared: Island Blocks and Target Rows in turn, 20 bars each, round and round,
+   on one score and one set of hearts; a new lap is quicker and gives a heart back. */
 
 // the song's grid, measured from lvl17.mp3: 78.5 BPM, the first beat at 0.756 s (see SONG.md)
 const GRID = { bpm:78.5, t0:.756 };
@@ -143,12 +163,18 @@ function section(t){
   return "calm";                                // the outro
 }
 const STINT = BAR * 8;                        // endless: one window
+const TURN = BAR * 20;                        // remix: one game's turn
+const GOAL = 6;                               // Part 2: the targets to hit before the song ends
 const HEARTS = 3;
 
 const Q = new URLSearchParams(location.search);
-const ENDLESS = Q.get("endless") === "1";
-const CFG = ENDLESS ? { id:"lvl17x", title:"Island Blocks", by:"LEVEL 17 · ENDLESS", endless:true, board:"Level 17 ∞" }
-  : { id:"lvl17", title:"Island Blocks", by:"LEVEL 17" };
+const REMIX = Q.get("remix") === "1";
+const ENDLESS = !REMIX && Q.get("endless") === "1";
+const PART = !REMIX && Q.get("part") === "2" ? 2 : 1;
+const CFG = REMIX ? { id:"lvl17r", title:"Remix", by:"LEVEL 17 \u00b7 REMIX", endless:true, board:"Level 17 Remix" }
+  : PART === 2
+  ? (ENDLESS ? { id:"lvl17bx", title:"Target Rows", by:"LEVEL 17 \u00b7 PART 2 \u00b7 ENDLESS", endless:true, board:"Level 17 Part 2 \u221e" } : { id:"lvl17b", title:"Target Rows", by:"LEVEL 17 \u00b7 PART 2" })
+  : (ENDLESS ? { id:"lvl17x", title:"Island Blocks", by:"LEVEL 17 · ENDLESS", endless:true, board:"Level 17 ∞" } : { id:"lvl17", title:"Island Blocks", by:"LEVEL 17" });
 
 const LINKS = {
   spotify: "https://open.spotify.com/track/4wfvxrVpoGzUpOIOfQKCdN",
@@ -354,14 +380,18 @@ function hud(){
   if (h !== lastH){ if ((h.match(/♥/g) || []).length < (lastH.match(/♥/g) || []).length){ const e = $("hearts"); e.classList.remove("hit"); void e.offsetWidth; e.classList.add("hit"); }
     lastH = h; $("hearts").textContent = h; }
   const t = Math.max(0, S.t);
-  if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
+  if (REMIX){ $("bl").textContent = "REMIX \u00b7 LAP " + (S.lap + 1) + " \u00b7 " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.turnAt)/TURN, 0, 1)*100).toFixed(1) + "%"; }
+  else if (CFG.endless){ $("bl").textContent = "ENDLESS · " + clock(t); $("songbar").firstChild.style.width = (clamp((t - S.stint*STINT)/STINT, 0, 1)*100).toFixed(1) + "%"; }
   else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
   $("info").textContent = G.info();
+  const tg = BL.tg && BL.st.need; $("tg").classList.toggle("hid", !tg);
+  if (tg){ const st = BL.st; $("tgM").textContent = Math.max(0, st.moves); $("tgMv").classList.toggle("low", st.moves <= 3); $("tgT").textContent = Math.min(st.got, st.need) + " / " + st.need; }
   const p = $("phase");
   if (S.end >= 0 || S.done){ p.className = "off"; return; }
   if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
-  else { const sec = section(t); p.className = sec === "hook" ? "ready" : ""; p.innerHTML = (sec === "hook" ? "GOLD PIECES &middot; QUICKER" : G.tag) + "<small>" + G.hint + "</small>"; }
+  else { const sec = section(t); p.className = sec === "hook" && !BL.tg ? "ready" : ""; p.innerHTML = (sec === "hook" && !BL.tg ? "GOLD PIECES &middot; QUICKER" : G.tag) + "<small>" + G.hint + "</small>"; }
 }
+function tgPop(){ const e = $("tg"); e.classList.remove("pop"); void e.offsetWidth; e.classList.add("pop"); }
 function hurt(why, tip){
   S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
   if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }
@@ -371,12 +401,14 @@ function hurt(why, tip){
 
 /* =============== ISLAND BLOCKS: the falling pieces, in the sea =============== */
 // A tall gold frame standing in the sea, the blue sky behind it. Jo's saucer carries each piece down
-// in its beam; the next one floats beside the frame. The song sets the drop: a row a beat in the calm,
-// every half beat in the verses, every third in the hooks - and in the hooks some pieces are gold
-// (a row with gold in it is worth more). A 7-bag: every seven pieces, each shape once.
+// in its beam; the next one floats beside the frame. The drop starts slow and gets quicker over the song (see
+// every); in the hooks some pieces are gold (a row with gold in it is worth more). A 7-bag: every seven pieces,
+// each shape once.
 const BL = {
-  name:"blocks", tag:"ISLAND BLOCKS", hint:"drag = move · tap = turn · swipe down = drop",
-  W:10, H:18,
+  name:"blocks", hint:"drag = move · tap = turn · swipe down = drop",
+  W:10, H:18, LOCK:.5, RESETS:15,
+  tg:false,                                   // true: Target Rows (Part 2, and its turns in the remix)
+  get tag(){ return this.tg ? "TARGET ROWS" : "ISLAND BLOCKS"; },
   SHAPES:[ [[0,0],[1,0],[2,0],[3,0]], [[0,0],[1,0],[0,1],[1,1]], [[0,0],[1,0],[2,0],[1,1]], [[0,0],[1,0],[2,0],[2,1]], [[0,0],[1,0],[2,0],[0,1]], [[0,0],[1,0],[1,1],[2,1]], [[1,0],[2,0],[0,1],[1,1]] ],
   COLS:[0x3aa84a, 0xffc22a, 0x38c8f0, 0xe8501a, 0xffffff, 0xc0583a, 0x9a6ad8],
   setup(){
@@ -399,6 +431,7 @@ const BL = {
     // a faint line where the stack gets dangerous
     this.danger = new THREE.Mesh(new THREE.PlaneGeometry(W, .08), new THREE.MeshBasicMaterial({ color:0xff4a2a, transparent:true, opacity:0 })); this.danger.position.set(0, this.Y(H - 4.5), -.5); root.add(this.danger);
     this.mats = this.COLS.map(c => { const m = mat(c, .3); m.map = m.emissiveMap = FACE; return m; });
+    { const m = mat(0x4a5a70, .1); m.map = m.emissiveMap = FACE; this.mats.push(m); }   // 7: the reef in Target Rows
     this.goldM = new THREE.MeshStandardMaterial({ color:0xffffff, map:GOLDF, roughness:.3, metalness:.1, emissive:0xffffff, emissiveMap:GOLDF, emissiveIntensity:.14, flatShading:true });
     this.ghostM = new THREE.MeshBasicMaterial({ map:GHOSTT, color:0xffffff, transparent:true, opacity:.85, depthWrite:false });
     const geo = new THREE.BoxGeometry(.94, .94, .94);
@@ -418,26 +451,71 @@ const BL = {
     Object.assign(this, { t0, t1, L0, L1 });
     if (cont) return;
     this.start = t0;
-    this.st = { grid:new Array(this.W*this.H).fill(-1), gold:new Array(this.W*this.H).fill(false), lines:0, golds:0, drops:0, beatDrops:0, pc:null, nx:null, next:t0 + BEAT*2, bag:[], k:0, washes:0, tetra:0 };
-    this.st.nx = this.make(t0); this.spawn(t0 + BEAT*2);
+    // in a remix the game comes back: what counts up over the run stays (rows, targets, the bag)
+    const o = REMIX && this.st || {};
+    this.st = { grid:new Array(this.W*this.H).fill(-1), gold:new Array(this.W*this.H).fill(false), lines:o.lines || 0, golds:o.golds || 0, drops:o.drops || 0, beatDrops:o.beatDrops || 0,
+      pc:null, nx:null, next:0, bag:o.bag || [], k:o.k || 0, washes:o.washes || 0, tetra:o.tetra || 0, lockAt:null, resets:0, low:0,
+      hit:o.hit || 0, tries:o.tries || 0, need:0, got:0, moves:0, waitT:null };
+    if (this.tg) this.stage(t0, true);
+    // the first piece waits out the GET READY bar
+    this.st.nx = this.make(t0); this.spawn(t0 + BAR);
   },
-  info(){ const st = this.st; return st.lines + " ROWS" + (st.golds ? " · " + st.golds + " GOLD" : ""); },
+  info(){ const st = this.st; return (PART === 2 && !CFG.endless ? Math.min(st.hit, GOAL) + " / " + GOAL + " TARGETS \u00b7 " : this.tg || st.hit ? st.hit + (st.hit === 1 ? " TARGET" : " TARGETS") + " \u00b7 " : "") + st.lines + " ROWS" + (st.golds && !this.tg ? " · " + st.golds + " GOLD" : ""); },
+  // TARGET ROWS: a new target. The rows to clear grow by one every other target hit (1, 1, 2, 2, 3, 3, ... 6), the reef
+  // is one row higher than that (7 at most), and the moves are three a row plus six - fewer as endless and the remix go on. The reef is
+  // a skyline: every column is reef up to its own height, so every gap is open from above and no row starts full (the
+  // bottom row has a gap 1-3 wide, every row up one or two more). The same numbers every time: the levels' own dice.
+  stage(t, quiet){
+    const st = this.st, W = this.W, h = st.hit, L = clamp(this.L(t), 0, 3);
+    st.need = Math.min(6, 1 + Math.floor(h/2)); st.got = 0; st.moves = st.need*3 + 6 - Math.floor(L*2); st.waitT = null;
+    const K = Math.min(7, st.need + 1), hg = new Array(W).fill(K), s = h*7.13 + st.tries*3.71;
+    const w0 = 1 + Math.floor(rnd(s + 1.3)*3), a = Math.floor(rnd(s + 2.9)*(W - w0 + 1));
+    for (let c = a; c < a + w0; c++) hg[c] = 0;
+    for (let r = 1; r < K; r++){ const add = 1 + Math.floor(rnd(s + r*4.3)*2);
+      for (let j = 0; j < add; j++){ const up = []; for (let c = 0; c < W; c++) if (hg[c] > r) up.push(c); if (up.length <= 4) break; hg[up[Math.floor(rnd(s + r*7.7 + j*3.3)*up.length)]] = r; } }
+    st.grid.fill(-1); st.gold.fill(false);
+    for (let r = 0; r < K; r++) for (let c = 0; c < W; c++) if (r < hg[c]) st.grid[r*W + c] = 7;
+    if (!quiet) say("CLEAR " + st.need + (st.need === 1 ? " ROW" : " ROWS"), st.moves + " moves", 1.6);
+    tgPop();
+  },
+  // a target is over: hit (a bonus, then the next one) or missed (a heart, then a new reef); either way a beat's rest
+  tgCheck(beat){ const st = this.st; if (!this.tg || !st.need || st.waitT != null) return false;
+    if (st.got >= st.need){ st.hit++; const bonus = (500*st.need + 100*st.moves)*(beat ? 2 : 1); S.score += bonus; sfx.big();
+      $("flash").style.background = "#ffd21a"; S.flashT = .35;
+      if (PART === 2 && !CFG.endless && st.hit === GOAL) say("ALL " + GOAL + " TARGETS", "cleared at the end of the song - keep going for the score", 2, "g");
+      else say("TARGET HIT", "+" + fmt(bonus) + " \u00b7 " + st.moves + (st.moves === 1 ? " move left" : " moves left"), 1.4, "g");
+      st.waitT = S.t + BEAT*1.5; return true; }
+    if (st.moves <= 0){ st.tries++; st.waitT = S.t + BEAT*1.5; hurt("OUT OF MOVES", "Fill the gaps in the reef first - the ghost shows where a piece lands, and every piece is a move."); return true; }
+    return false; },
   // the next shape from the bag (each of the seven once, in a shuffled order)
   make(t){ const st = this.st; if (!st.bag.length){ const b = [0, 1, 2, 3, 4, 5, 6]; for (let i = 6; i > 0; i--){ const j = Math.floor(rnd(st.k*9.7 + i*3.1)*(i + 1)); [b[i], b[j]] = [b[j], b[i]]; } st.bag = b; }
     st.k++; return { k:st.bag.shift(), gold:false }; },
   height(){ const st = this.st; for (let r = this.H - 1; r >= 0; r--) for (let c = 0; c < this.W; c++) if (st.grid[r*this.W + c] >= 0) return r + 1; return 0; },
   cellsOf(p, rot, x, y){ return this.SHAPES[p.k].map(([a, b]) => { let cx = a, cy = b; for (let i = 0; i < (rot % 4 + 4) % 4; i++){ const t = cx; cx = cy; cy = -t; } return [x + cx, y - cy]; }); },
   fits(p, rot, x, y){ const g = this.st.grid; return this.cellsOf(p, rot, x, y).every(([c, r]) => c >= 0 && c < this.W && r >= 0 && (r >= this.H || g[r*this.W + c] < 0)); },
-  spawn(t){ const st = this.st, n = st.nx; st.nx = this.make(t);
+  spawn(t){ const st = this.st;
+    // Target Rows, stacked to the top: a heart and a new reef for the same target
+    if (this.tg && !this.fits({ k:st.nx.k }, 0, 4, this.H - 1)){ st.pc = null; st.tries++; st.waitT = t + BEAT*1.5; if (S.inv <= 0 && hurt("STACKED TO THE TOP", "Fill the gaps in the reef first - the ghost shows where a piece lands, and every piece is a move.")) return; S.inv = 1; return; }
+    const n = st.nx; st.nx = this.make(t);
     // in the hooks some pieces are gold
-    n.gold = section(t) === "hook" && rnd(st.k*3.1) < .45;
+    n.gold = !this.tg && section(t) === "hook" && rnd(st.k*3.1) < .45;
     st.pc = { k:n.k, gold:n.gold, rot:0, x:4, y:this.H };
+    // a new piece takes one whole step before it moves down, and starts with a fresh half second to lock
+    st.next = t + this.every(t); st.lockAt = null; st.resets = 0; st.low = this.H;
     if (!this.fits(st.pc, 0, 4, this.H - 1)){ for (let i = this.W*(this.H - 7); i < st.grid.length; i++){ st.grid[i] = -1; st.gold[i] = false; } st.washes++;
       if (S.inv <= 0 && hurt("STACKED TO THE TOP", "Fill whole rows so they burst - turn the pieces (tap) to fit the gaps.")) return; S.inv = 1; } },
-  // how long a row takes: the song decides, and it gets quicker as it goes
-  every(t){ const sec = section(t), L = this.L(t), base = sec === "hook" ? BEAT/3 : sec === "loud" ? BEAT/2 : BEAT; return base/(1 + .6*clamp(L, 0, 2)); },
-  move(d){ const p = this.st.pc; if (p && this.fits(p, p.rot, p.x + d, p.y)){ p.x += d; sfx.move(); } },
-  turn(){ const p = this.st.pc; if (!p) return; for (const kick of [0, -1, 1, -2, 2]) if (this.fits(p, p.rot + 1, p.x + kick, p.y)){ p.rot++; p.x += kick; sfx.turn(); return; } },
+  // how long a row takes. The classic falling-block games start at about a second a row (their first level) and get
+  // quicker level by level; here the song plays the levels: 1.2 s a row in the opening calm, about 0.6 by the middle,
+  // 0.3 in the last hook (it used to be a quarter of a second from the first hook on). The song only nudges it:
+  // slower in the calm, quicker in the hooks. Endless keeps going from there, a little quicker every 8 bars.
+  every(t){ const sec = section(t), f = sec === "hook" ? .85 : sec === "loud" ? 1 : 1.2;
+    // Target Rows stays calm: about a second a row, a little quicker as it goes (the moves are the pressure)
+    if (this.tg) return Math.max(.3, .95*Math.pow(.7, clamp(this.L(t), 0, 3)))*(f > 1 ? 1.1 : f);
+    return Math.max(.08, Math.pow(.35, clamp(this.L(t), 0, 2))*f); },
+  // a piece on the ground: moving or turning it gives it its half second again (15 times at most)
+  relock(){ const st = this.st; if (st.lockAt != null && st.resets < this.RESETS){ st.resets++; st.lockAt = S.t + this.LOCK; } },
+  move(d){ const p = this.st.pc; if (p && this.fits(p, p.rot, p.x + d, p.y)){ p.x += d; sfx.move(); this.relock(); } },
+  turn(){ const p = this.st.pc; if (!p) return; for (const kick of [0, -1, 1, -2, 2]) if (this.fits(p, p.rot + 1, p.x + kick, p.y)){ p.rot++; p.x += kick; sfx.turn(); this.relock(); return; } },
   soft(){ const p = this.st.pc; if (p && this.fits(p, p.rot, p.x, p.y - 1)){ p.y--; S.score += 2; } },
   drop(){ const p = this.st.pc; if (!p) return; const beat = onBeat(S.t); let n = 0; while (this.fits(p, p.rot, p.x, p.y - 1)){ p.y--; n++; } S.score += n*3; this.st.drops++; if (beat){ this.st.beatDrops++; S.onBeat++; } this.lock(beat); },
   lock(beat){ const st = this.st, p = st.pc, W = this.W;
@@ -446,16 +524,25 @@ const BL = {
     for (let r = 0; r < this.H; r++){ let full = true; for (let c = 0; c < W; c++) if (st.grid[r*W + c] < 0) full = false;
       if (full){ for (let c = 0; c < W; c++){ if (st.gold[r*W + c]) golds++; this.pop(this.X(c), this.Y(r + n), st.gold[r*W + c]); } rows.push(r + n);
         st.grid.splice(r*W, W); st.gold.splice(r*W, W); st.grid.push(...new Array(W).fill(-1)); st.gold.push(...new Array(W).fill(false)); r--; n++; } }
+    if (this.tg && st.need){ st.moves--; st.got += n; }
     if (n){ st.lines += n; st.golds += golds; if (n === 4) st.tetra++; S.combo++; S.best = Math.max(S.best, S.combo);
       const pts = ([0, 100, 300, 500, 800][n] + golds*50)*(beat ? 2 : 1)*Math.min(4, 1 + Math.floor((S.combo - 1)/4)); S.score += pts; sfx.row(n);
       say(n === 4 ? "FOUR ROWS!" : n > 1 ? n + " ROWS" : "A ROW", "+" + fmt(pts) + (beat ? " · on the beat" : "") + (golds ? " · gold" : ""), .8, n > 1 || beat || golds ? "g" : ""); }
     else S.combo = 0;
-    st.pc = null; this.spawn(S.t); },
+    st.pc = null; if (this.tgCheck(beat) || S.done) return; this.spawn(S.t); },
+  // the remix may change game: Island Blocks any time a piece has just come in, Target Rows between targets
+  rest(){ const st = this.st; return this.tg ? !st.need || st.waitT != null : !st.pc || st.pc.y >= this.H - 1; },
   update(dt, t){
     const st = this.st;
     if (keys.left && !this.kl) this.move(-1); if (keys.right && !this.kr) this.move(1); if (keys.up && !this.ku) this.turn(); if (keys.down && !this.kd) this.soft();
     this.kl = keys.left; this.kr = keys.right; this.ku = keys.up; this.kd = keys.down;
-    while (st.next <= t){ const p = st.pc; if (p){ if (this.fits(p, p.rot, p.x, p.y - 1)) p.y--; else this.lock(false); } if (S.done) return; st.next += this.every(st.next); }
+    // Target Rows: after a beat's rest, the next target (or a new reef for this one) and its first piece
+    if (st.waitT != null && t >= st.waitT){ this.stage(t); this.spawn(t); if (S.done) return; }
+    // gravity: a row every step; a piece that can't go lower locks once its half second is up
+    while (st.next <= t){ const p = st.pc; if (p && this.fits(p, p.rot, p.x, p.y - 1)){ p.y--; if (p.y < st.low){ st.low = p.y; st.resets = 0; } } st.next += this.every(st.next); }
+    const p = st.pc;
+    if (p && !this.fits(p, p.rot, p.x, p.y - 1)){ if (st.lockAt == null) st.lockAt = t + this.LOCK; else if (t >= st.lockAt){ this.lock(false); if (S.done) return; } }
+    else st.lockAt = null;
     for (const p of this.pops) if (p.life > 0){ p.life -= dt*1.6; p.vy -= 12*dt; p.s.position.x += p.vx*dt; p.s.position.y += p.vy*dt; p.s.material.opacity = Math.max(0, p.life); }
   },
   pop(x, y, gold){ if (x === this.X(0)){ const b = this.bars.find(b => b.life <= 0); if (b){ b.life = 1; b.m.position.set(0, y, .62); } }
@@ -482,10 +569,21 @@ const BL = {
 /* ---------------- the run ---------------- */
 let ME = null;
 function reset(){
-  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0 };
+  S = { t:-1, started:false, done:false, fail:false, score:0, end:-1, msgT:0, flashT:0, hearts:HEARTS, inv:0, combo:0, best:0, onBeat:0, stint:-1, loops:0, turn:0, turnAt:0, lap:0 };
   lastH = ""; $("msg").className = ""; $("flash").style.opacity = 0;
   G = BL; camInit = false; BL.root.visible = true; END.root.visible = false; END.on = false; ME.visible = true;
-  if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+  BL.st = null; BL.tg = PART === 2;
+  if (REMIX) G.begin(0, TURN, .3, .4); else if (CFG.endless) G.begin(0, STINT, .3, .4); else G.begin(0, END_AT, 0, 1);
+}
+// the remix: when a game's turn is up (and it's at a rest, or 8 bars on) the other one comes in on a clean frame.
+// Back to Island Blocks is a new lap: a little quicker, +2,000 and a heart back
+function nextGame(t){
+  S.turn++; S.turnAt = t; const first = S.turn % 2 === 0;
+  let back = false;
+  if (first){ S.lap++; S.score += 2000; if (S.hearts < HEARTS){ S.hearts++; back = true; sfx.heart(); } }
+  BL.tg = !first; const L0 = .3 + S.lap*.3; BL.begin(t, t + TURN, L0, L0 + .1);
+  $("flash").style.background = "#ffc83a"; S.flashT = .4; sfx.whoosh();
+  say(first ? "LAP " + (S.lap + 1) : BL.tag, first ? BL.tag + " \u00b7 +2,000" + (back ? " \u00b7 a heart back" : "") : BL.hint, 2, "g");
 }
 // endless goes in 8-bar windows, a little quicker every window. Every 24 bars: +2,000 and a heart back
 function startStint(n, t){
@@ -508,9 +606,12 @@ function update(dt){
   if (S.done) return;
   const t = Math.max(0, S.t);
   if (S.inv > 0) S.inv -= dt;
-  if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
+  if (REMIX){ if (t >= S.turnAt + TURN && (BL.rest() || t >= S.turnAt + TURN + BAR*8)) nextGame(t); }
+  else if (CFG.endless){ const n = Math.floor(t / STINT); if (n !== S.stint) startStint(n, t); }
   G.update(dt, t);
-  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0) win();
+  if (!CFG.endless && t >= END_AT && !S.done && S.end < 0){
+    if (PART === 2 && BL.st.hit < GOAL) lose("THE SONG IS OVER", BL.st.hit + " of " + GOAL + " targets: fill the gaps in the reef first - the ghost shows where a piece lands, and every piece is a move.");
+    else win(); }
 }
 
 /* ================= THE ENDING =================
@@ -531,18 +632,18 @@ function buildEnd(){
 function win(){
   if (S.end >= 0 || S.done) return;
   S.end = 0; S.score += S.hearts*500; sfx.big(); sfx.whoosh();
-  $("hud").classList.add("off"); $("phase").className = "off";
+  $("hud").classList.add("off"); $("phase").className = "off"; $("tg").classList.add("hid");
 }
 function lose(why, tip){
   if (S.done) return;
   S.fail = true; S.done = true; S.why = why; S.tip = tip;
-  say(why, "", 2, "x"); $("phase").className = "off";
+  say(why, "", 2, "x"); $("phase").className = "off"; $("tg").classList.add("hid");
   setTimeout(finish, 1500);
 }
 function over(why){
   if (S.done) return;
   S.done = true; S.why = why;
-  say("RUN OVER", why, 2, "g"); $("phase").className = "off";
+  say(REMIX ? "REMIX OVER" : "RUN OVER", why, 2, "g"); $("phase").className = "off"; $("tg").classList.add("hid");
   setTimeout(finish, 1500);
 }
 
@@ -590,12 +691,13 @@ function finish(){
   for (const id of ["outs", "home"]) $(id).classList.remove("hid");
   $("snd").classList.add("hid"); $("hud").classList.add("off"); $("parts").classList.add("hid"); $("phase").className = "off";
   const st = BL.st;
-  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:st.lines });
-  const stat = st.lines + " rows" + (st.tetra ? " · " + st.tetra + " four-row" + (st.tetra > 1 ? "s" : "") : "") + (st.beatDrops ? " · " + st.beatDrops + " drops on the beat" : "");
+  $("tg").classList.add("hid");
+  if (HUB) toHub({ type:"javeda:result", level:CFG.id, cleared:CFG.endless ? true : !S.fail, score:score(), metres:PART === 2 ? st.hit : st.lines });
+  const stat = (PART === 2 || REMIX ? st.hit + (st.hit === 1 ? " target hit" : " targets hit") + " &middot; " : "") + st.lines + " rows" + (st.tetra && PART === 1 ? " · " + st.tetra + " four-row" + (st.tetra > 1 ? "s" : "") : "") + (st.beatDrops && PART === 1 ? " · " + st.beatDrops + " drops on the beat" : "");
   if (CFG.endless){
-    v.querySelector(".by").textContent = "ENDLESS · " + S.why;
+    v.querySelector(".by").textContent = (REMIX ? "REMIX \u00b7 " : "ENDLESS · ") + S.why;
     v.querySelector("h1").textContent = fmt(score());
-    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the sea &middot; " + stat;
+    ps[0].innerHTML = "<b>" + clock(Math.max(0, S.t)) + "</b> in the sea &middot; " + (REMIX ? "lap <b>" + (S.lap + 1) + "</b> &middot; " : "") + stat;
     ps[1].innerHTML = "Your best counts on the <b>" + CFG.board + "</b> scoreboard. <b>Go again.</b>";
     return;
   }
@@ -609,7 +711,8 @@ function finish(){
   v.querySelector(".by").textContent = CFG.by + " COMPLETE";
   v.querySelector("h1").textContent = "TRUE FIGHTER";
   ps[0].innerHTML = "Score <b>" + fmt(score()) + "</b> &middot; " + stat;
-  ps[1].innerHTML = "A true fighter." + "<br>Level 17 cleared: <b>Island Blocks &#8734;</b> is open in the gold Endless list.";
+  ps[1].innerHTML = PART === 2 ? "Every target hit." + "<br>Level 17 cleared: <b>Island Blocks &#8734;</b>, <b>Target Rows &#8734;</b> and the <b>Remix &#8734;</b> are open in the gold Endless list."
+                               : "A true fighter." + "<br><b>Part 2 &middot; Target Rows</b> is open.";
 }
 let HP_CL = [];
 function boot(){
@@ -649,19 +752,27 @@ $("go").addEventListener("click", () => {
   if (ac){ beatT0 = ac.currentTime + .05; nextStep = beatT0; stepI = 0; }
   S.started = true; S.t = 0;
   if (HUB) toHub({ type:"javeda:start", level:CFG.id });
-  say(CFG.endless ? "ENDLESS" : "ISLAND BLOCKS", CFG.endless ? "the pieces never stop" : G.hint, 3, CFG.endless ? "g" : "");
+  if (REMIX) say("REMIX", "both games, till the hearts run out", 3, "g");
+  else if (PART === 2) say(ENDLESS ? "ENDLESS" : "TARGET ROWS", ENDLESS ? "the targets never stop" : "clear the rows before the moves run out", 3, ENDLESS ? "g" : "");
+  else say(CFG.endless ? "ENDLESS" : "ISLAND BLOCKS", CFG.endless ? "the pieces never stop" : G.hint, 3, CFG.endless ? "g" : "");
 });
 $("by").textContent = "LAZY JO · " + CFG.by;
-$("title").textContent = "TRUE FIGHTER" + (ENDLESS ? " ∞" : "");
-$("intro").innerHTML = "The blue sky and the islands from the cover. A gold frame stands in the sea; Jo's saucer carries the pieces down in its beam - island chunks, gold, sky, cloud. Fill a row and it bursts gold." +
+$("title").textContent = REMIX ? "REMIX" : (PART === 2 ? "TARGET ROWS" : "TRUE FIGHTER") + (ENDLESS ? " ∞" : "");
+$("intro").innerHTML = REMIX ? "The blue sky and the islands from the cover. <b>The remix:</b> Island Blocks and Target Rows, 20 bars each, and round again, quicker every lap. A finished lap gives a heart back."
+  : PART === 2 ? "The blue sky and the islands from the cover. Old reef rows wait at the bottom of the gold frame, full of gaps. Every round is a target: clear that many rows before your moves run out. Hit " + GOAL + " targets before the song ends." +
+    (ENDLESS ? " <b>Endless:</b> the targets never stop - fewer moves as it goes, a heart back every 24 bars." : "")
+  : "The blue sky and the islands from the cover. A gold frame stands in the sea; Jo's saucer carries the pieces down in its beam - island chunks, gold, sky, cloud. Fill a row and it bursts gold." +
   (ENDLESS ? " <b>Endless:</b> the pieces never stop - quicker every 8 bars, a heart back every 24." : "");
-$("how").innerHTML = "<b>Drag</b> to move, <b>tap</b> to turn, <b>swipe down</b> to drop (or the arrow keys and Space). They drop quicker in the loud parts, quickest in the hooks - where some are <b>gold</b>. Dropped right <b>on the beat</b> a row counts double. Stacked to the top costs a heart (3).";
+$("how").innerHTML = REMIX ? "<b>Drag</b> to move, <b>tap</b> to turn, <b>swipe down</b> to drop. <b>Island Blocks:</b> fill whole rows, gold ones in the hooks. <b>Target Rows:</b> clear the rows it asks for before the moves run out. Out of moves or stacked to the top costs a heart (3)."
+  : PART === 2 ? "<b>Drag</b> to move, <b>tap</b> to turn, <b>swipe down</b> to drop (or the arrow keys and Space). Every piece is a <b>move</b>. Hit the target and the moves you have left are a bonus; dropped <b>on the beat</b> it counts double. Out of moves or stacked to the top costs a heart (3)."
+  : "<b>Drag</b> to move, <b>tap</b> to turn, <b>swipe down</b> to drop (or the arrow keys and Space). They drop quicker in the loud parts, quickest in the hooks - where some are <b>gold</b>. Dropped right <b>on the beat</b> a row counts double. Stacked to the top costs a heart (3).";
 if (!HUB){
   $("parts").classList.remove("hid");
   document.querySelectorAll("#parts button").forEach(b => {
-    const m = b.dataset.mode;
-    b.setAttribute("aria-pressed", String((m === "endless") === ENDLESS));
-    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); if (m === "endless") q.set("endless", "1"); location.search = q.toString(); });
+    const m = b.dataset.mode, now = REMIX ? "r" : PART + (ENDLESS ? "x" : "");
+    b.setAttribute("aria-pressed", String(m === now));
+    b.addEventListener("click", () => { const q = new URLSearchParams(location.search); q.delete("endless"); q.delete("part"); q.delete("remix");
+      if (m === "r") q.set("remix", "1"); else { if (m[0] === "2") q.set("part", "2"); if (m.endsWith("x")) q.set("endless", "1"); } location.search = q.toString(); });
   });
 }
 boot();

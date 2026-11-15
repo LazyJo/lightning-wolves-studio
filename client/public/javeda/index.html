@@ -817,6 +817,17 @@ button.sp-gift:hover{transform:translateY(-3px); border-color:#ffd60a99; box-sha
     conic-gradient(from var(--spa),#ffd60a,#9a4dff 22%,#ff74d4 38%,#ffd60a 52%,#5a1fc0 74%,#ffd60a);
   background-origin:padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,border-box; background-clip:padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,border-box}
 #chBoard .chsup .cbh .sp-ufo{display:block}
+/* the Monthly's board: the Monthly card's blue (its border, glow, kicker and title) */
+#chBoard .card.chmon{border:2px solid #67e8f999; box-shadow:0 0 44px #67e8f933, 0 20px 60px #000a;
+  background:radial-gradient(110% 38% at 100% 0%,#67e8f940,transparent 62%),radial-gradient(80% 30% at 0% 100%,#2f8fe038,transparent 62%),var(--panel)}
+#chBoard .chmon .chk{color:#9fe8ff; text-shadow:0 0 12px #67e8f966}
+#chBoard .chmon .chwin > span{border-color:#67e8f933; background:#67e8f90d} #chBoard .chmon .chwin .p1{border-color:#ffd60a77; background:#ffd60a14}
+#chBoard .chmon h3{font-size:clamp(24px,6.4vw,32px); background:linear-gradient(180deg,#fff,#9fe8ff 55%,#3fc8e8); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 10px #67e8f955)}
+#chBoard .chmon .x{border-color:#67e8f955}
+#chBoard .chmon .board{border-color:#67e8f933; background:#0000002e}
+#chBoard .chmon .board li:nth-child(1){background:linear-gradient(90deg,#ffd60a17,transparent 70%)}
+#chBoard .chmon .board li.you{background:#2f8fe033; box-shadow:inset 3px 0 0 #67e8f9}
+#chBoard .chmon .small b{color:#9fe8ff}
 #chBoard .chsup .cbht{gap:8px}
 #chBoard .chsup .chk{letter-spacing:.34em}
 #chBoard .chsup h3{font-size:clamp(24px,6.4vw,32px); overflow-wrap:anywhere; color:var(--gold); background:linear-gradient(100deg,#fff4b8 0%,#ffd60a 20%,#fff 30%,#ffd60a 40%,#ff9de6 68%,#ffd60a 100%); background-size:220% 100%;
@@ -1872,8 +1883,9 @@ let AVATARS = [
   { id:"ev-spring", name:"Blossom Saucer", cost:0, sort:202, unlock:"event:spring" }, { id:"ev-summer", name:"Sunset Saucer", cost:0, sort:203, unlock:"event:summer" },
   { id:"ev-halloween", name:"Pumpkin Saucer", cost:0, sort:204, unlock:"event:halloween" }, { id:"ev-gift", name:"Gift Saucer", cost:0, sort:205, unlock:"event:advent" },
   { id:"ev-autumn", name:"Maple Saucer", cost:0, sort:206, unlock:"event:autumn" },
-  { id:"ch-monthly", name:"Monthly Champion", cost:0, sort:210, unlock:"prize:monthly" }, { id:"ch-monthly3", name:"Monthly Top 3", cost:0, sort:211, unlock:"prize:monthly3" },
-  { id:"ch-super", name:"Super Champion", cost:0, sort:212, unlock:"prize:super" }, { id:"ch-super3", name:"Super Top 3", cost:0, sort:213, unlock:"prize:super3" },
+  // a challenge's top 3: each place its own picture (fn-podium.sql): #1 the Champion, #2 Silver, #3 Bronze
+  { id:"ch-monthly", name:"Monthly Champion", cost:0, sort:210, unlock:"prize:monthly" }, { id:"ch-monthly2", name:"Monthly Silver", cost:0, sort:211, unlock:"prize:monthly2" }, { id:"ch-monthly3", name:"Monthly Bronze", cost:0, sort:212, unlock:"prize:monthly3" },
+  { id:"ch-super", name:"Super Champion", cost:0, sort:213, unlock:"prize:super" }, { id:"ch-super2", name:"Super Silver", cost:0, sort:214, unlock:"prize:super2" }, { id:"ch-super3", name:"Super Bronze", cost:0, sort:215, unlock:"prize:super3" },
   { id:"bike", name:"Zirka's Bike", cost:0 },
   { id:"wolf", name:"Wolf", cost:0 },
   { id:"planet", name:"Planet Javeda", cost:0 },
@@ -2485,6 +2497,7 @@ async function openChBoard(id){
     $("cbK").textContent = c.kind === "super" ? "Super challenge" : "Monthly challenge";
     $("cbK").className = "chk" + (c.kind === "super" ? " sup" : "");
     $("chBoard").querySelector(".card").classList.toggle("chsup", c.kind === "super");
+    $("chBoard").querySelector(".card").classList.toggle("chmon", c.kind === "monthly");
     if (c.kind === "super" && !$("cbU").firstChild) $("cbU").innerHTML = SP_UFO.replace(/(id="|url\(#)sp/g, "$1cb");
     $("cbT").textContent = c.title || (lv ? chSong(lv) : c.level);
     $("cbSub").innerHTML = chWhere(c, lv);
@@ -3177,7 +3190,7 @@ function picNeed(a){
   const k = picKind(a), n = picN(a), one = n === 1, x = stats && !Array.isArray(stats[k]) ? stats[k] || 0 : 0;
   if (k === "album") return ["Clear every part of all 28 songs."];
   if (k === "prize"){ const s = evOf(a), sup = /^super/.test(s);
-    return [(/3$/.test(s) ? "Finish in the top 3 of a " : "Win a ") + (sup ? "Super" : "Monthly") + " challenge.", "Only for winners."]; }
+    return [(/2$/.test(s) ? "Come second in a " : /3$/.test(s) ? "Come third in a " : "Win a ") + (sup ? "Super" : "Monthly") + " challenge.", "Only for winners."]; }
   if (k === "event") return evOf(a) === "advent" ? ["Open the 24th door of the advent calendar."] : ["Play on 5 different days during the " + (EV[evOf(a)] ? EV[evOf(a)].tab : "") + " event.", "Only during the event."];
   if (k === "song"){
     const ps = LEVELS.filter(l => l.num === n && !l.endless), got = ps.filter(l => cleared(l.id)).length;

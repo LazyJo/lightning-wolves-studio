@@ -622,8 +622,8 @@ html[data-season="summer"]{ --blue:#f08a24 } html[data-season="halloween"]{ --bl
   background:radial-gradient(120% 60% at 50% 0%, #2b1d63 0%, var(--deep) 62%); border-color:#5a45b8; box-shadow:0 20px 60px #000a, 0 0 0 1px #ffffff08 inset}
 .acn .eb{font:700 11px/1 var(--cond); letter-spacing:.32em; text-transform:uppercase; color:#cbb8ff}
 .acn .cup{font-size:56px; line-height:1; filter:drop-shadow(0 8px 22px #ffd60a70); margin-top:2px}
-.acn h3{font-size:30px; color:var(--gold); text-shadow:0 2px 0 #b3410e}
-.acn > p{font-size:15px; color:var(--dim)}
+.acn h3{font-size:30px; color:var(--gold); text-shadow:0 2px 0 #b3410e; text-wrap:balance}
+.acn > p{font-size:15px; color:var(--dim); text-wrap:balance}
 .acn .goal{background:#0b1736cc; border:1px solid var(--line); border-radius:12px; padding:12px 14px; display:grid; gap:7px; text-align:left}
 .acn .gr{display:flex; justify-content:space-between; align-items:baseline; font:700 11.5px/1 var(--cond); letter-spacing:.18em; text-transform:uppercase; color:var(--dim)}
 .acn .gr b{color:var(--ink); letter-spacing:.04em; font-size:15px}
@@ -5061,7 +5061,12 @@ function acnBoot(){
   const go = () => { const g = chGoal(); return g.on || (!acnPlayed() && acnGet().opens >= 2) ? acnShow() : false; };
   setTimeout(() => { if (go() === null) setTimeout(go, 10000); }, 5000);
 }
-function acnLink(){ if (acnShow(true) === null) setTimeout(() => acnShow(true), 2500); }
+// from the notification: wait (up to 5 s) for the bars' numbers, which come a moment after the page
+function acnLink(){
+  let tries = 0;
+  const go = () => { const g = chGoal(); if ((g.ac == null || g.dl == null) && tries++ < 16) return void setTimeout(go, 300); if (acnShow(true) === null) setTimeout(() => acnShow(true), 2500); };
+  go();
+}
 $("anGo").onclick = () => { closeSheet("acNudge"); openLogin(true); };
 $("anNo").onclick = () => closeSheet("acNudge");
 $("anPlay").onclick = () => { closeSheet("acNudge"); play("lvl1"); };

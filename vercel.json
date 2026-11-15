@@ -34,7 +34,7 @@
       ]
     },
     {
-      "source": "/javeda/:path*",
+      "source": "/javeda(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },

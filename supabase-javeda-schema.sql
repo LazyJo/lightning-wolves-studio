@@ -2762,7 +2762,7 @@ GRANT EXECUTE ON FUNCTION public.javeda_badges(TEXT) TO anon, authenticated;
 -- During one: the page dresses up, runs count for the event's board, its second weekend pays double points, playing on
 -- 5 different days gives the event's picture, clearing 5 levels its badge. When it ends (javeda_event_close_due, from
 -- the bot's 5-minute feed) the top 3 are kept and each gets a key (open a song of their choice); #1 also gets a discount
--- code - or merch, once JAVEDA has 100 downloads and 30 accounts, at most one merch a month. Lazy Jo adds #1's code
+-- code (never merch since 2026-11-14: merch is only for the Super; see the end of this file). Lazy Jo adds #1's code
 -- (javeda_event_codes); the winner sees it on the JAVEDA page.
 INSERT INTO javeda_avatars (id, name, cost, sort, unlock) VALUES
   ('ev-winter', 'Snow Saucer', 0, 200, 'event:winter'),
@@ -2858,7 +2858,8 @@ ALTER TABLE javeda_event_closed  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE javeda_advent        ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON javeda_event_scores, javeda_event_winners, javeda_event_closed, javeda_advent FROM anon, authenticated;
 
--- merch for #1 once JAVEDA has 100 downloads and 30 accounts (creators aside)
+-- the goal: 100 downloads and 30 accounts (creators aside). Named for when it meant merch for an event's #1; now it
+-- opens the season events and challenges (events give no merch since 2026-11-14)
 CREATE OR REPLACE FUNCTION public.javeda_merch_on()
 RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -2959,8 +2960,8 @@ AS $$ SELECT p.username, p.avatar, s.points, p.album_completed_at IS NOT NULL
       WHERE s.event = p_event AND s.points > 0 ORDER BY s.points DESC, s.updated_at LIMIT 50; $$;
 GRANT EXECUTE ON FUNCTION public.javeda_event_board(TEXT) TO anon, authenticated;
 
--- the events that ended and aren't closed yet: their top 3 are kept, a key each; #1's prize is a discount code, or merch
--- once javeda_merch_on and no merch went out this month. For the bot's feed, which tells Discord; returns what it closed.
+-- the events that ended and aren't closed yet: their top 3 are kept, a key each; #1's prize is a discount code (merch
+-- until 2026-11-14; replaced at the end of this file). For the bot's feed, which tells Discord; returns what it closed.
 CREATE OR REPLACE FUNCTION public.javeda_event_close_due()
 RETURNS JSON
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
@@ -3325,7 +3326,7 @@ INSERT INTO javeda_avatars (id, name, cost, sort, unlock) VALUES
   ('ch-monthly', 'Monthly Champion', 0, 210, 'prize:monthly'),
   ('ch-monthly3', 'Monthly Top 3', 0, 211, 'prize:monthly3'),
   ('ch-super', 'Super Champion', 0, 212, 'prize:super'),
-  ('ch-super3', 'Super Top 3', 0, 213, 'prize:super3')
+  ('ch-super3', 'Super Top 3', 0, 213, 'prize:super3')   -- since 2026-11-15: #2 Silver, #3 Bronze (fn-podium, at the end of this file)
 ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, cost = EXCLUDED.cost, sort = EXCLUDED.sort, unlock = EXCLUDED.unlock;
 
 -- ── 3. The goal ────────────────────────────────────────────────────────────
@@ -3990,4 +3991,131 @@ BEGIN
 END;
 $$;
 
+NOTIFY pgrst, 'reload schema';
+
+-- ============================================================================
+-- JAVEDA season events: #1 gets a discount code, never merch (Jo, 2026-11-14: "Merch only for the super, events get
+-- discounts"). The top 3 still get a key each. Lazy Jo still adds #1's code (javeda_event_codes).
+-- javeda_event_now says merch = false (so the hub's card and Lightning Bot's posts say "discount code"), and
+-- javeda_event_close_due gives #1 'discount'. javeda_merch_on() stays: it's the 100 downloads + 30 accounts goal.
+-- Run it once in the Supabase SQL Editor; twice changes nothing. No score, point, prize or picture that exists changes.
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION public.javeda_event_now()
+RETURNS JSON
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE e RECORD; uid UUID := auth.uid(); sc javeda_event_scores; d DATE := (now() AT TIME ZONE 'Europe/Brussels')::date; adv JSON := NULL;
+BEGIN
+  SELECT * INTO e FROM javeda_event_at(now());
+  IF e.key IS NULL THEN RETURN NULL; END IF;
+  IF NOT javeda_events_on() THEN
+    RETURN json_build_object('event', e.key, 'kind', e.kind, 'starts', e.starts, 'ends', e.ends, 'on', false, 'double', false, 'merch', false,
+      'downloads', (SELECT count(*) FROM javeda_app_devices), 'need_downloads', 100,
+      'accounts', (SELECT count(*) FROM javeda_players p WHERE NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id)), 'need_accounts', 30);
+  END IF;
+  IF uid IS NOT NULL THEN SELECT * INTO sc FROM javeda_event_scores WHERE event = e.key AND user_id = uid; END IF;
+  IF extract(month FROM d) = 12 AND extract(day FROM d) <= 24 THEN
+    adv := json_build_object('day', extract(day FROM d)::INT, 'year', extract(year FROM d)::INT,
+      'opened', (SELECT COALESCE(json_agg(json_build_object('day', a.day, 'gift', javeda_advent_gift(a.day)) ORDER BY a.day), '[]')
+                 FROM javeda_advent a WHERE a.user_id = uid AND a.year = extract(year FROM d)::INT));
+  END IF;
+  RETURN json_build_object('event', e.key, 'kind', e.kind, 'starts', e.starts, 'ends', e.ends, 'double_from', e.double_from, 'double_to', e.double_to,
+    'on', true, 'double', now() >= e.double_from AND now() < e.double_to, 'merch', false, 'advent', adv,   -- merch only in the Super
+    'me', CASE WHEN sc.user_id IS NULL THEN NULL ELSE json_build_object('points', sc.points, 'days', sc.days, 'clears', sc.clears,
+      'rank', (SELECT count(*) + 1 FROM javeda_event_scores o WHERE o.event = e.key AND o.points > sc.points)) END);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.javeda_event_close_due()
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE e RECORD; out JSON[] := '{}'; i INT; n INT;
+BEGIN
+  FOR i IN 1..40 LOOP
+    SELECT * INTO e FROM javeda_event_at(now() - make_interval(days => i));
+    CONTINUE WHEN e.key IS NULL OR e.ends > now() OR EXISTS (SELECT 1 FROM javeda_event_closed WHERE event = e.key);
+    -- an event that ended while the events were still waiting for the goals: closed, no winners
+    IF NOT javeda_events_on() THEN INSERT INTO javeda_event_closed (event, players) VALUES (e.key, 0); CONTINUE; END IF;
+    SELECT count(*) INTO n FROM javeda_event_scores WHERE event = e.key AND points > 0;
+    INSERT INTO javeda_event_winners (event, place, user_id, username, points, prize)
+    SELECT e.key, r.place, r.user_id, r.username, r.points, CASE WHEN r.place > 1 THEN 'key' ELSE 'discount' END   -- #1: a discount code (merch only in the Super)
+    FROM (SELECT s.user_id, p.username, s.points, row_number() OVER (ORDER BY s.points DESC, s.updated_at)::INT AS place
+          FROM javeda_event_scores s JOIN javeda_players p ON p.user_id = s.user_id WHERE s.event = e.key AND s.points > 0) r
+    WHERE r.place <= 3 ON CONFLICT DO NOTHING;
+    -- a key each for the top 3 (open a song of their choice)
+    UPDATE javeda_players SET level_keys = level_keys + 1 WHERE user_id IN (SELECT user_id FROM javeda_event_winners WHERE event = e.key AND user_id IS NOT NULL);
+    INSERT INTO javeda_event_closed (event, players) VALUES (e.key, n);
+    out := out || json_build_object('event', e.key, 'kind', e.kind, 'players', n,
+      'top', (SELECT COALESCE(json_agg(json_build_object('place', w.place, 'username', w.username, 'user_id', w.user_id, 'points', w.points, 'prize', w.prize) ORDER BY w.place), '[]')
+              FROM javeda_event_winners w WHERE w.event = e.key));
+  END LOOP;
+  RETURN to_json(out);
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_event_close_due() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_event_close_due() TO service_role;
+
+NOTIFY pgrst, 'reload schema';
+
+-- ============================================================================
+-- JAVEDA challenges: #1, #2 and #3 each get their own picture (Jo, 2026-11-15: "2nd and 3rd got the same icon. 3rd got to be
+-- different one too"). #1 = the Champion (as before), #2 = Silver (new: ch-monthly2 / ch-super2), #3 = Bronze (ch-monthly3 /
+-- ch-super3, which until now went to all three of them). Only the pictures change: the Pass, keys, points, invites, the halls of
+-- fame and the badges stay as they are. Nobody owns a challenge picture yet (0 winners, 0 challenges on 2026-11-15), so nothing
+-- is taken from anyone. Run it once in the Supabase SQL Editor; twice changes nothing. Undo: fn-podium-undo.sql.
+-- ============================================================================
+-- the six winners' pictures, in podium order (the hub lists them the same way)
+INSERT INTO javeda_avatars (id, name, cost, sort, unlock) VALUES
+  ('ch-monthly', 'Monthly Champion', 0, 210, 'prize:monthly'),
+  ('ch-monthly2', 'Monthly Silver', 0, 211, 'prize:monthly2'),
+  ('ch-monthly3', 'Monthly Bronze', 0, 212, 'prize:monthly3'),
+  ('ch-super', 'Super Champion', 0, 213, 'prize:super'),
+  ('ch-super2', 'Super Silver', 0, 214, 'prize:super2'),
+  ('ch-super3', 'Super Bronze', 0, 215, 'prize:super3')
+ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, cost = EXCLUDED.cost, sort = EXCLUDED.sort, unlock = EXCLUDED.unlock;
+
+-- the end of a challenge: each of the top 3 gets the picture of their place (javeda_owned needs the rows above first)
+CREATE OR REPLACE FUNCTION public.javeda_challenge_finish(p_id BIGINT)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE c javeda_challenges; r RECORD; pr TEXT; has_pass BOOLEAN; pts INT;
+BEGIN
+  SELECT * INTO c FROM javeda_challenges WHERE id = p_id FOR UPDATE;
+  IF c.id IS NULL OR c.closed_at IS NOT NULL OR c.cancelled OR now() < c.ends_at + INTERVAL '10 minutes' THEN RETURN; END IF;
+  IF javeda_challenge_live(c.kind) THEN
+    FOR r IN SELECT e.user_id, e.best_score, e.gift, row_number() OVER (ORDER BY e.best_score DESC, e.best_at, e.joined_at)::INT AS place
+             FROM javeda_challenge_entries e JOIN javeda_players p ON p.user_id = e.user_id
+             WHERE e.challenge = p_id AND e.best_score > 0 AND NOT EXISTS (SELECT 1 FROM javeda_creators k WHERE k.user_id = e.user_id)
+             ORDER BY 4 LIMIT 3 LOOP
+      has_pass := EXISTS (SELECT 1 FROM javeda_passes WHERE user_id = r.user_id);
+      pr := NULL; pts := 0;
+      IF c.kind = 'monthly' AND r.place <= 2 THEN
+        pr := 'invite';                             -- a Monthly's #1 and #2: in the next Super (javeda_challenge_ticket)
+      ELSIF c.kind = 'super' AND r.place <= 2 AND NOT has_pass THEN
+        PERFORM javeda_grant_pass(r.user_id, 'gift', c.kind || ' challenge ' || c.id); pr := 'pass';
+      ELSIF r.place = 3 AND NOT has_pass THEN
+        UPDATE javeda_players SET level_keys = level_keys + 2, updated_at = now() WHERE user_id = r.user_id; pr := 'keys';
+      ELSIF r.place >= 2 THEN
+        pts := CASE WHEN r.place = 2 THEN 5000 ELSE 2500 END; pr := 'points';
+      END IF;
+      IF pts > 0 THEN
+        -- spendable, not on the Points board: the trigger counts any rise in points_earned, so take it back off
+        UPDATE javeda_players SET points = points + pts, updated_at = now() WHERE user_id = r.user_id;
+        UPDATE javeda_players SET points_earned = points_earned - pts WHERE user_id = r.user_id;
+      END IF;
+      -- the place's own picture: #1 the Champion, #2 Silver, #3 Bronze
+      INSERT INTO javeda_owned (user_id, avatar) VALUES (r.user_id, 'ch-' || c.kind || CASE WHEN r.place = 1 THEN '' ELSE r.place::TEXT END) ON CONFLICT DO NOTHING;
+      INSERT INTO javeda_challenge_winners (challenge, place, user_id, score, gift, prize)
+      VALUES (p_id, r.place, r.user_id, r.best_score, r.gift, pr) ON CONFLICT DO NOTHING;
+    END LOOP;
+  END IF;
+  UPDATE javeda_challenges SET closed_at = now() WHERE id = p_id;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_challenge_finish(BIGINT) FROM PUBLIC, anon, authenticated;
+
+-- the API sees the change straight away
 NOTIFY pgrst, 'reload schema';

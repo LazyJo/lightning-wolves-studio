@@ -136,7 +136,7 @@ Five a year, same dates (Brussels): ❄️ winter 1 Dec – 6 Jan (advent calend
 dress up by themselves (`season.js`; preview any time with `?season=winter`, back with `?season=off`).
 In the feed: from 10:00 on the first day the bot announces the event (🔔 JAVEDA News), then the double points weekend (the
 event's second weekend), and when it ends the top 3 of the event board (`javeda_event_close_due`).
-**Prizes:** the top 3 each get a 🔑 key (open a song of their choice), given automatically. #1 also gets a discount code -
-or merch once JAVEDA has 100 downloads and 30 accounts (at most one merch a month). Lazy Jo makes #1's code in the EVEN shop
+**Prizes:** the top 3 each get a 🔑 key (open a song of their choice), given automatically. #1 also gets a discount code
+(never merch: merch is only for the Super challenge, Jo 2026-11-14). Lazy Jo makes #1's code in the EVEN shop
 and puts it in, in the Supabase SQL editor: `SELECT javeda_event_codes('winter-2026', ARRAY['THE-CODE']);`
 The winner sees it on the JAVEDA page.

@@ -1531,7 +1531,27 @@ BEGIN
                EXISTS (SELECT 1 FROM javeda_app_devices d WHERE d.user_id = p.user_id) AS app,
                EXISTS (SELECT 1 FROM javeda_news n WHERE n.user_id = p.user_id) AS news,
                EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id) AS creator
-        FROM javeda_players p LEFT JOIN auth.users u ON u.id = p.user_id) x)
+        FROM javeda_players p LEFT JOIN auth.users u ON u.id = p.user_id) x),
+    -- getting guests to make an account: the installs with none, the card, the notification
+    'guests', (SELECT json_build_object(
+        'app',         count(*) FILTER (WHERE d.user_id IS NULL),
+        'ios',         count(*) FILTER (WHERE d.user_id IS NULL AND d.platform = 'ios'),
+        'android',     count(*) FILTER (WHERE d.user_id IS NULL AND d.platform = 'android'),
+        'desktop',     count(*) FILTER (WHERE d.user_id IS NULL AND d.platform = 'desktop'),
+        'week',        count(*) FILTER (WHERE d.user_id IS NULL AND d.first_at > now() - interval '7 days'),
+        'card_seen',   count(*) FILTER (WHERE d.card_shown > 0),
+        'card_create', count(*) FILTER (WHERE d.card_create > 0),
+        'card_joined', count(*) FILTER (WHERE d.card_shown > 0 AND d.user_id IS NOT NULL),
+        'push_guests', (SELECT count(*) FROM javeda_push s WHERE s.user_id IS NULL),
+        'push_sent',   (SELECT count(*) FROM javeda_push s WHERE s.acct_sent IS NOT NULL),
+        'push_joined', (SELECT count(*) FROM javeda_push s WHERE s.acct_sent IS NOT NULL AND s.user_id IS NOT NULL),
+        'push_wait',   (SELECT count(*) FROM javeda_push s WHERE s.user_id IS NULL AND s.daily AND s.acct_sent IS NULL),
+        'push_last',   (SELECT max(s.acct_sent) FROM javeda_push s),
+        'push_on',     (SELECT st.acct_push_at FROM javeda_settings st WHERE st.id),
+        'since',       (SELECT st.acct_card_since FROM javeda_settings st WHERE st.id),
+        'joined_since', (SELECT count(*) FROM javeda_players p WHERE p.created_at >= (SELECT st.acct_card_since FROM javeda_settings st WHERE st.id)
+                           AND NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id)))
+      FROM javeda_app_devices d)
   );
 END;
 $$;
@@ -2041,9 +2061,9 @@ GRANT EXECUTE ON FUNCTION public.javeda_push_off(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_take() TO service_role;
 GRANT EXECUTE ON FUNCTION public.javeda_push_daily_due() TO service_role;
 
--- once: "Join the JAVEDA challenges" to the phones with notifications on (the daily one) and no account, from
--- javeda_settings.acct_push_at (NULL = never; within 2 days of it; not once the challenges are open), each phone once
--- (acct_sent), awake and not in its 8 o'clock hour, and only phones there before that time. The edge function sends it.
+-- once a phone: "Join the JAVEDA challenges" to the phones with notifications on (the daily one) and no account, from
+-- javeda_settings.acct_push_at (NULL = never): the first batch (phones there before it, within 2 days of it), then each new
+-- phone 2 days after it said yes, in the 19:00 hour on its clock; awake, never its 8 o'clock hour. The edge function sends it.
 ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS acct_push_at TIMESTAMPTZ;
 ALTER TABLE javeda_push ADD COLUMN IF NOT EXISTS acct_sent TIMESTAMPTZ;
 
@@ -2056,22 +2076,48 @@ DECLARE
   subs JSON;
 BEGIN
   SELECT acct_push_at INTO at FROM javeda_settings WHERE id;
-  IF at IS NULL OR now() < at OR now() > at + interval '2 days' OR javeda_challenges_on() THEN RETURN NULL; END IF;
+  IF at IS NULL OR now() < at THEN RETURN NULL; END IF;
   WITH due AS (
     UPDATE javeda_push s SET acct_sent = now()
-    WHERE s.user_id IS NULL AND s.daily AND s.acct_sent IS NULL AND s.created_at <= at
+    WHERE s.user_id IS NULL AND s.daily AND s.acct_sent IS NULL
       AND javeda_push_awake(s.tz)
       AND extract(hour FROM now() AT TIME ZONE coalesce(s.tz, 'Europe/Brussels')) <> 8
+      AND ((s.created_at <= at AND now() <= at + interval '2 days')
+        OR (s.created_at <= now() - interval '2 days'
+            AND extract(hour FROM now() AT TIME ZONE coalesce(s.tz, 'Europe/Brussels')) = 19))
     RETURNING s.endpoint, s.p256dh, s.auth, s.lang
   )
   SELECT json_agg(json_build_object('endpoint', endpoint, 'p256dh', p256dh, 'auth', auth, 'lang', lang)) INTO subs FROM due;
   IF subs IS NULL THEN RETURN NULL; END IF;
-  RETURN json_build_object('subs', subs, 'need', 30,
+  RETURN json_build_object('subs', subs, 'need', 30, 'open', javeda_challenges_on(),
     'accounts', (SELECT count(*) FROM javeda_players p WHERE NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id)));
 END;
 $$;
 REVOKE ALL ON FUNCTION public.javeda_push_acct_due() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_acct_due() TO service_role;
+-- the account card (fn-acctpush2.sql): which installs saw it / tapped Create, and since when it's live; the notification
+-- also goes to each new phone with no account, 2 days after it said yes, at 19:00 on its clock ('open' once the challenges are)
+ALTER TABLE javeda_app_devices ADD COLUMN IF NOT EXISTS card_shown INT NOT NULL DEFAULT 0;      -- times the card came up
+ALTER TABLE javeda_app_devices ADD COLUMN IF NOT EXISTS card_create INT NOT NULL DEFAULT 0;     -- times "Create a free account" was tapped
+ALTER TABLE javeda_app_devices ADD COLUMN IF NOT EXISTS card_at TIMESTAMPTZ;                    -- the first time it came up
+ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS acct_card_since TIMESTAMPTZ;               -- when the card went live
+UPDATE javeda_settings SET acct_card_since = '2026-11-15 18:25:00+01' WHERE id AND acct_card_since IS NULL;
+-- the app: the card came up ('shown') or "Create a free account" was tapped ('create') on this install
+CREATE OR REPLACE FUNCTION public.javeda_card_seen(p_device UUID, p_what TEXT)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+BEGIN
+  IF p_device IS NULL OR p_what IS NULL OR p_what NOT IN ('shown', 'create') THEN RETURN; END IF;
+  UPDATE javeda_app_devices SET
+    card_shown = card_shown + CASE WHEN p_what = 'shown' THEN 1 ELSE 0 END,
+    card_create = card_create + CASE WHEN p_what = 'create' THEN 1 ELSE 0 END,
+    card_at = COALESCE(card_at, now())
+  WHERE device_id = p_device AND card_shown < 1000 AND card_create < 1000;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_card_seen(UUID, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.javeda_card_seen(UUID, TEXT) TO anon, authenticated;
 
 -- ============================================================================
 -- Lightning Bot (the Discord bot, lightning-bot.js): what it keeps - which channel is the JAVEDA feed, the last day it

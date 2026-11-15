@@ -914,6 +914,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 .btn.danger:hover{background:#f2555a}
 .delwhat{margin:0; padding-left:20px; display:grid; gap:4px; color:var(--dim); font-size:14.5px}
 /* the creators' players and app downloads */
+.plh{margin:6px 0 10px; font:700 12px/1 var(--cond); letter-spacing:.2em; text-transform:uppercase; color:var(--mute)}
 .ptiles{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px}
 #plT{padding-right:40px}
 .ptiles div{background:var(--panel); border-radius:10px; padding:12px 14px; display:grid; gap:5px; align-content:start}
@@ -1325,6 +1326,11 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <button class="x" type="button" data-close aria-label="Close">&times;</button>
     <h3 id="plT">Players &amp; downloads</h3>
     <div class="ptiles" id="plTiles"></div>
+    <div class="hid" id="plGuestsBox">
+      <h4 class="plh">Guests &rarr; accounts</h4>
+      <div class="ptiles" id="plGuests"></div>
+      <p class="small" id="plGuestNote"></p>
+    </div>
     <p class="small">A download is a phone or computer with JAVEDA on its home screen, counted from 2 November 2026: when it's installed, or (iPhone) the first time it's opened from the home screen. A Google Play or App Store app counts the first time it's opened.</p>
     <div class="plbar"><input class="in" id="plFind" type="search" placeholder="Find a name or email" autocomplete="off"><button class="btn small" id="plCopy" type="button">Copy news emails</button></div>
     <div class="err" id="plErr"></div>
@@ -4384,6 +4390,20 @@ async function openPlayers(){
     tile(d.total, "App downloads", "+" + fmt(d.week) + " this week<br>" + fmt(d.ios) + " iPhone &middot; " + fmt(d.android) + " Android &middot; " + fmt(d.desktop) + " computer") +
     (d.play != null ? tile(d.play + d.appstore, "From the stores", "+" + fmt(d.stores_week) + " this week<br>" + fmt(d.play) + " Google Play &middot; " + fmt(d.appstore) + " App Store<br>" + fmt(d.web) + " from the home screen") : "") +
     tile(d.active, "Opened the app this week");
+  // getting guests to make an account: the pop-up in the app and the one notification
+  const g = data.guests;
+  $("plGuestsBox").classList.toggle("hid", !g);
+  if (g){
+    const when = x => new Date(x).toLocaleString("en-GB", { day:"numeric", month:"short", hour:"2-digit", minute:"2-digit" });
+    $("plGuests").innerHTML =
+      tile(g.app, "App, no account", "+" + fmt(g.week) + " this week<br>" + fmt(g.ios) + " iPhone &middot; " + fmt(g.android) + " Android" + (g.desktop ? " &middot; " + fmt(g.desktop) + " computer" : "")) +
+      tile(g.card_seen, "Saw the pop-up", fmt(g.card_create) + " tapped Create<br>" + fmt(g.card_joined) + " have an account now") +
+      tile(g.push_sent, "Got the notification", (g.push_last ? "last " + when(g.push_last) + "<br>" : "") + fmt(g.push_joined) + " made an account after<br>" + fmt(g.push_wait) + " still to get it") +
+      tile(g.joined_since, "New accounts since the pop-up", g.since ? "since " + when(g.since) : "");
+    $("plGuestNote").innerHTML = "The pop-up shows in the app to players with no account: after a clear, or on their 2nd open if they haven't played yet; twice at most, a week apart, and once more the day the challenges open. " +
+      "The notification goes once to a phone with notifications on and no account, 2 days after it said yes, at 19:00 on its clock" + (g.push_on ? "" : " <b>(switched off)</b>") + ". " +
+      "\"Saw the pop-up\" counts installs from 15 November 2026.";
+  }
   listPlayers();
 }
 function listPlayers(){
@@ -5046,8 +5066,10 @@ function acnShow(link){
   }
   $("anNo").classList.toggle("hid", !played); $("anPlay").classList.toggle("hid", played);
   if (g.on) s.open = true; else { s.n = Math.min(2, (s.n || 0) + 1); s.at = Date.now(); }
-  acnPut(s); openSheet("acNudge"); return true;
+  acnPut(s); openSheet("acNudge"); acnCount("shown"); return true;
 }
+// for the creator's Players & downloads: which installs saw it, which tapped Create (an install not counted yet: nothing)
+function acnCount(what){ let id = null; try { id = localStorage.getItem(DEV_KEY); } catch(e){} if (sb && id) sb.rpc("javeda_card_seen", { p_device:id, p_what:what }).then(() => {}, () => {}); }
 // after a clear, back home
 function maybeAcn(){ if (!acnDue) return; acnDue = false; setTimeout(() => { if (acnShow() === null) acnDue = true; }, 1200); }
 // the app opens (before appSeen makes this install's id, so an older install is known by its id)
@@ -5067,7 +5089,7 @@ function acnLink(){
   const go = () => { const g = chGoal(); if ((g.ac == null || g.dl == null) && tries++ < 16) return void setTimeout(go, 300); if (acnShow(true) === null) setTimeout(() => acnShow(true), 2500); };
   go();
 }
-$("anGo").onclick = () => { closeSheet("acNudge"); openLogin(true); };
+$("anGo").onclick = () => { acnCount("create"); closeSheet("acNudge"); openLogin(true); };
 $("anNo").onclick = () => closeSheet("acNudge");
 $("anPlay").onclick = () => { closeSheet("acNudge"); play("lvl1"); };
 

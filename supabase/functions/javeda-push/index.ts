@@ -3,7 +3,8 @@
 //   (javeda_push_take: the queue the score triggers fill, one message a player) and, once a day at 8:00 on each phone's clock,
 //   "today's challenge is up" (javeda_push_daily_due), and the chat ones: "X reacted 🔥 to your message" / "X mentioned
 //   you in the chat" (javeda_push_chat_take, at most one an hour a player).
-//   Once, from javeda_settings.acct_push_at: "Join the JAVEDA challenges" to the phones with no account (javeda_push_acct_due).
+//   Once a phone, from javeda_settings.acct_push_at: "Join the JAVEDA challenges" to the phones with no account - the first
+//   batch, then each new one 2 days after it said yes, at 19:00 on its clock (javeda_push_acct_due); "...are open" once they are.
 // - {"hello": "<push address>"}: from the page, right after a phone turns notifications on - a first message to that
 //   phone only, so the player sees it works. Only an address that is signed up gets one, at most every 10 minutes.
 // A phone whose push service says it's gone (404/410) is forgotten.
@@ -108,6 +109,21 @@ const W = {
     zh: (a: string, n: string) => "创建免费账号，参加每月挑战和超级挑战。" + n + " 个账号已有 " + a + " 个：你的也算一个。",
     tw: (a: string, n: string) => "建立免費帳號，參加每月挑戰和超級挑戰。" + n + " 個帳號已有 " + a + " 個：你的也算一個。",
   },
+  // ...once the challenges are open
+  acctOpen: { en: "🏆 The JAVEDA challenges are open", nl: "🏆 De JAVEDA-uitdagingen zijn begonnen", fr: "🏆 Les défis JAVEDA sont ouverts",
+    es: "🏆 Los retos de JAVEDA ya están abiertos", it: "🏆 Le sfide JAVEDA sono aperte", tr: "🏆 JAVEDA meydan okumaları açıldı",
+    ja: "🏆 JAVEDAチャレンジが始まったよ", zh: "🏆 JAVEDA 挑战开始了", tw: "🏆 JAVEDA 挑戰開始了" },
+  acctOpenBody: {
+    en: "Create a free account to play the Monthly and the Super, with prizes for the top three.",
+    nl: "Maak een gratis account om de maanduitdaging en de Superuitdaging te spelen, met prijzen voor de top drie.",
+    fr: "Crée un compte gratuit pour jouer au défi du mois et au Super défi, avec des prix pour les trois premiers.",
+    es: "Crea una cuenta gratis para jugar el reto mensual y el Super reto, con premios para los tres primeros.",
+    it: "Crea un account gratuito per giocare la sfida mensile e la Super sfida, con premi per i primi tre.",
+    tr: "Aylık ve Süper meydan okumayı oynamak için ücretsiz bir hesap oluştur; ilk üçe ödüller var.",
+    ja: "無料アカウントを作って、マンスリーとスーパーに参加しよう。上位3人には賞品も。",
+    zh: "创建免费账号，参加每月挑战和超级挑战，前三名有奖品。",
+    tw: "建立免費帳號，參加每月挑戰和超級挑戰，前三名有獎品。",
+  },
 };
 const L = (s: Sub): Lang => (["en", "nl", "fr", "es", "it", "tr", "ja", "zh", "tw"].includes(s.lang) ? s.lang : "en");
 const LOCALE = { en: "en-GB", nl: "nl-BE", fr: "fr-BE", es: "es-ES", it: "it-IT", tr: "tr-TR", ja: "ja-JP", zh: "zh-CN", tw: "zh-TW" };
@@ -189,7 +205,8 @@ Deno.serve(async req => {
   if (e4) out.acct = { skipped: e4.message.slice(0, 120) };
   else if (acct) out.acct = await sendAll((acct.subs ?? []) as Sub[], s => {
     const l = L(s), f = (x: number) => new Intl.NumberFormat(LOCALE[l]).format(x ?? 0);
-    return { title: W.acct[l], body: W.acctBody[l](f(acct.accounts), f(acct.need)), url: "/javeda/#join", tag: "javeda-acct" };
+    return acct.open ? { title: W.acctOpen[l], body: W.acctOpenBody[l], url: "/javeda/#join", tag: "javeda-acct" }
+      : { title: W.acct[l], body: W.acctBody[l](f(acct.accounts), f(acct.need)), url: "/javeda/#join", tag: "javeda-acct" };
   }, 12 * 3600);
 
   return json(out);

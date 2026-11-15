@@ -41,6 +41,7 @@ canvas{display:block; touch-action:none}
 @keyframes tgpop{0%,100%{transform:none}40%{transform:scale(1.18)}}
 #hud.off ~ #tg{opacity:0}
 @media (max-width:640px){ #tg{top:calc(64px + env(safe-area-inset-top))} #tg>div{min-width:54px; padding:2px 8px 3px} #tg b{font-size:18px} #tg small{font-size:10px} }
+@media (max-width:340px){ #tg{gap:4px} #tg>div{min-width:48px; padding:2px 6px 3px} #tg small{font-size:9px; letter-spacing:.06em} }
 #info{font-family:Bungee,sans-serif; font-size:14px; color:#0e3a7a; margin-top:8px; text-align:right; text-shadow:0 0 8px #fff}
 body.gold .bar i{background:linear-gradient(90deg,#b8860b,#ffe08a)}
 body.gold #m{color:#c0300a}
@@ -385,13 +386,28 @@ function hud(){
   else $("songbar").firstChild.style.width = (clamp(t / END_AT, 0, 1)*100).toFixed(1) + "%";
   $("info").textContent = G.info();
   const tg = BL.tg && BL.st.need; $("tg").classList.toggle("hid", !tg);
-  if (tg){ const st = BL.st; $("tgM").textContent = Math.max(0, st.moves); $("tgMv").classList.toggle("low", st.moves <= 3); $("tgT").textContent = Math.min(st.got, st.need) + " / " + st.need; }
+  if (tg){ const st = BL.st; $("tgM").textContent = Math.max(0, st.moves); $("tgMv").classList.toggle("low", st.moves <= 3); $("tgT").textContent = Math.min(st.got, st.need) + " / " + st.need; tgPlace(); }
   const p = $("phase");
   if (S.end >= 0 || S.done){ p.className = "off"; return; }
   if (t < G.start + BAR){ p.className = "ready"; p.innerHTML = "GET READY<small>" + G.hint + "</small>"; }
   else { const sec = section(t); p.className = sec === "hook" && !BL.tg ? "ready" : ""; p.innerHTML = (sec === "hook" && !BL.tg ? "GOLD PIECES &middot; QUICKER" : G.tag) + "<small>" + G.hint + "</small>"; }
 }
 function tgPop(){ const e = $("tg"); e.classList.remove("pop"); void e.offsetWidth; e.classList.add("pop"); }
+// On a phone the moves/rows panel sits under the info line and left of the NEXT box - where that box lands on the
+// screen depends on the phone's shape, so it's measured (its left edge, through the camera), not guessed.
+const TGV = new THREE.Vector3();
+function tgPlace(){
+  const e = $("tg");
+  if (innerWidth > 640 || !BL.nextG){ if (e.style.left){ e.style.left = e.style.top = e.style.transform = ""; } return; }
+  const inf = $("info").getBoundingClientRect(), w = e.offsetWidth, rg = document.createRange();
+  rg.selectNodeContents($("hearts")); const hr = rg.getBoundingClientRect();   // the hearts themselves, not their column
+  TGV.set(-2.3, 0, 0).applyMatrix4(BL.nextG.matrixWorld).project(cam);
+  const nx = (TGV.x + 1)/2*innerWidth;
+  let left = (innerWidth - w)/2;
+  if (left + w > nx - 8) left = nx - 8 - w;
+  left = Math.max(hr.right + 8, left);
+  e.style.left = Math.round(left) + "px"; e.style.top = Math.round(inf.bottom + 3) + "px"; e.style.transform = "none";
+}
 function hurt(why, tip){
   S.hearts--; S.inv = 1.4; S.combo = 0; sfx.bad(); $("flash").style.background = "#ff3a5a"; S.flashT = .4;
   if (S.hearts <= 0){ (CFG.endless ? over : lose)(why, tip); return true; }

@@ -1664,7 +1664,20 @@ S: {
 "Part # · Island Blocks":"Bölüm # · Island Blocks",
 "Part # · Target Rows":"Bölüm # · Target Rows",
 "The blue sky and the islands from the cover. Old reef rows wait at the bottom of the gold frame, full of gaps. Every round is a target: clear that many rows before your moves run out. Hit # targets before the song ends.":"Kapaktaki mavi gökyüzü ve adalar. Altın çerçevenin dibinde boşluklarla dolu eski resif sıraları bekliyor. Her tur bir hedef: hamlelerin bitmeden o kadar sırayı temizle. Şarkı bitmeden # hedefi tamamla.",
-"Old reef rows wait in the frame, full of gaps. Every round is a target: clear its rows before the moves run out.":"Çerçevede boşluklarla dolu eski resif sıraları bekliyor. Her tur bir hedef: hamlelerin bitmeden sıralarını temizle."
+"Old reef rows wait in the frame, full of gaps. Every round is a target: clear its rows before the moves run out.":"Çerçevede boşluklarla dolu eski resif sıraları bekliyor. Her tur bir hedef: hamlelerin bitmeden sıralarını temizle.",
+"JAVEDA challenges":"JAVEDA meydan okumaları",
+"Join the challenges":"Meydan okumalara katıl",
+"The challenges are open":"Meydan okumalar açıldı",
+"The Monthly and the Super: one song, a board of their own and prizes for the top three. You need a free account to play them.":"Aylık ve Süper meydan okuma: tek şarkı, kendine ait bir skor tablosu ve ilk üçe ödüller. Oynamak için ücretsiz bir hesap gerekiyor.",
+"The Monthly and the Super: one song, a board of their own and prizes for the top three. Create a free account to join.":"Aylık ve Süper meydan okuma: tek şarkı, kendine ait bir skor tablosu ve ilk üçe ödüller. Katılmak için ücretsiz bir hesap oluştur.",
+"Accounts":"Hesaplar",
+"Downloads":"İndirmeler",
+"The challenges open when both bars are full. Your account counts.":"Meydan okumalar iki çubuk da dolunca açılır. Senin hesabın da sayılır.",
+"Your progress comes with you":"İlerlemen seninle gelir",
+"Your name on the Scoreboard":"Adın skor tablosunda",
+"Your scores safe on every phone":"Skorların her telefonda güvende",
+"Free: just an email and a password.":"Ücretsiz: sadece bir e-posta ve bir şifre.",
+"Play Level # first":"Önce #. seviyeyi oyna"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>İlk online oyun</small>HOOPS <i>1v1</i>",

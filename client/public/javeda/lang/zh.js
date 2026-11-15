@@ -1664,7 +1664,20 @@ S: {
 "Part # · Island Blocks":"第#部分 · 小岛方块",
 "Part # · Target Rows":"第#部分 · 目标行",
 "The blue sky and the islands from the cover. Old reef rows wait at the bottom of the gold frame, full of gaps. Every round is a target: clear that many rows before your moves run out. Hit # targets before the song ends.":"封面里的蓝天和岛屿。金色框架底部有一排排满是空隙的旧礁石。每一轮都是一个目标：在步数用完前消除指定数量的行。在歌曲结束前达成#个目标。",
-"Old reef rows wait in the frame, full of gaps. Every round is a target: clear its rows before the moves run out.":"框架里有一排排满是空隙的旧礁石。每一轮都是一个目标：在步数用完前消除它要求的行。"
+"Old reef rows wait in the frame, full of gaps. Every round is a target: clear its rows before the moves run out.":"框架里有一排排满是空隙的旧礁石。每一轮都是一个目标：在步数用完前消除它要求的行。",
+"JAVEDA challenges":"JAVEDA 挑战",
+"Join the challenges":"加入挑战",
+"The challenges are open":"挑战开始了",
+"The Monthly and the Super: one song, a board of their own and prizes for the top three. You need a free account to play them.":"每月挑战和超级挑战：一首歌、专属排行榜，前三名还有奖品。需要一个免费账号才能参加。",
+"The Monthly and the Super: one song, a board of their own and prizes for the top three. Create a free account to join.":"每月挑战和超级挑战：一首歌、专属排行榜，前三名还有奖品。创建免费账号即可参加。",
+"Accounts":"账号",
+"Downloads":"下载",
+"The challenges open when both bars are full. Your account counts.":"两条进度条都满了，挑战就会开始。你的账号也算一个。",
+"Your progress comes with you":"进度会跟着你",
+"Your name on the Scoreboard":"你的名字上排行榜",
+"Your scores safe on every phone":"分数在任何手机上都安全保存",
+"Free: just an email and a password.":"免费：只需邮箱和密码。",
+"Play Level # first":"先玩第#关"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>第一款在线对战</small>HOOPS <i>1v1</i>",

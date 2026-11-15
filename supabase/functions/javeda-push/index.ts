@@ -3,6 +3,7 @@
 //   (javeda_push_take: the queue the score triggers fill, one message a player) and, once a day at 8:00 on each phone's clock,
 //   "today's challenge is up" (javeda_push_daily_due), and the chat ones: "X reacted 🔥 to your message" / "X mentioned
 //   you in the chat" (javeda_push_chat_take, at most one an hour a player).
+//   Once, from javeda_settings.acct_push_at: "Join the JAVEDA challenges" to the phones with no account (javeda_push_acct_due).
 // - {"hello": "<push address>"}: from the page, right after a phone turns notifications on - a first message to that
 //   phone only, so the player sees it works. Only an address that is signed up gets one, at most every 10 minutes.
 // A phone whose push service says it's gone (404/410) is forgotten.
@@ -93,6 +94,20 @@ const W = {
     zh: "通知就是这样的。你随时可以在玩家页面关闭。",
     tw: "通知就是這樣的。你隨時可以在玩家頁面關閉。",
   },
+  // once, to the phones with no account (javeda_push_acct_due): create one and join the challenges
+  acct: { en: "🏆 Join the JAVEDA challenges", nl: "🏆 Doe mee aan de JAVEDA-uitdagingen", fr: "🏆 Rejoins les défis JAVEDA", es: "🏆 Únete a los retos de JAVEDA",
+    it: "🏆 Partecipa alle sfide JAVEDA", tr: "🏆 JAVEDA meydan okumalarına katıl", ja: "🏆 JAVEDAチャレンジに参加しよう", zh: "🏆 加入 JAVEDA 挑战", tw: "🏆 加入 JAVEDA 挑戰" },
+  acctBody: {
+    en: (a: string, n: string) => "Create a free account to play the Monthly and the Super. " + a + " of the " + n + " accounts are there: yours counts.",
+    nl: (a: string, n: string) => "Maak een gratis account om de maanduitdaging en de Superuitdaging te spelen. " + a + " van de " + n + " accounts zijn er al: die van jou telt mee.",
+    fr: (a: string, n: string) => "Crée un compte gratuit pour jouer au défi du mois et au Super défi. " + a + " comptes sur " + n + " sont déjà là : le tien compte aussi.",
+    es: (a: string, n: string) => "Crea una cuenta gratis para jugar el reto mensual y el Super reto. Ya hay " + a + " de " + n + " cuentas: la tuya también suma.",
+    it: (a: string, n: string) => "Crea un account gratuito per giocare la sfida mensile e la Super sfida. Ci sono già " + a + " account su " + n + ": anche il tuo conta.",
+    tr: (a: string, n: string) => "Aylık ve Süper meydan okumayı oynamak için ücretsiz bir hesap oluştur. " + n + " hesabın " + a + " tanesi hazır: seninki de sayılır.",
+    ja: (a: string, n: string) => "無料アカウントを作って、マンスリーとスーパーに参加しよう。" + n + "アカウント中" + a + "まで来たよ。あなたの分もカウントされる。",
+    zh: (a: string, n: string) => "创建免费账号，参加每月挑战和超级挑战。" + n + " 个账号已有 " + a + " 个：你的也算一个。",
+    tw: (a: string, n: string) => "建立免費帳號，參加每月挑戰和超級挑戰。" + n + " 個帳號已有 " + a + " 個：你的也算一個。",
+  },
 };
 const L = (s: Sub): Lang => (["en", "nl", "fr", "es", "it", "tr", "ja", "zh", "tw"].includes(s.lang) ? s.lang : "en");
 const LOCALE = { en: "en-GB", nl: "nl-BE", fr: "fr-BE", es: "es-ES", it: "it-IT", tr: "tr-TR", ja: "ja-JP", zh: "zh-CN", tw: "zh-TW" };
@@ -168,6 +183,14 @@ Deno.serve(async req => {
       ? { title: W.mention[l](s.m_by || W.someone[l]), body: quote(s.m_body), url: "/javeda/#chat", tag: "javeda-chat" }
       : { title: W.react[l](s.r_by || W.someone[l], Math.max(0, s.people - 1), s.emojis || ""), body: quote(s.r_body), url: "/javeda/#chat", tag: "javeda-chat" };
   }, 6 * 3600);
+
+  // once: "Join the JAVEDA challenges" to the phones with no account (a database without it yet: skipped, not an error)
+  const { data: acct, error: e4 } = await db.rpc("javeda_push_acct_due");
+  if (e4) out.acct = { skipped: e4.message.slice(0, 120) };
+  else if (acct) out.acct = await sendAll((acct.subs ?? []) as Sub[], s => {
+    const l = L(s), f = (x: number) => new Intl.NumberFormat(LOCALE[l]).format(x ?? 0);
+    return { title: W.acct[l], body: W.acctBody[l](f(acct.accounts), f(acct.need)), url: "/javeda/#join", tag: "javeda-acct" };
+  }, 12 * 3600);
 
   return json(out);
 });

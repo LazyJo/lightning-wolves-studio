@@ -2041,6 +2041,38 @@ GRANT EXECUTE ON FUNCTION public.javeda_push_off(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.javeda_push_take() TO service_role;
 GRANT EXECUTE ON FUNCTION public.javeda_push_daily_due() TO service_role;
 
+-- once: "Join the JAVEDA challenges" to the phones with notifications on (the daily one) and no account, from
+-- javeda_settings.acct_push_at (NULL = never; within 2 days of it; not once the challenges are open), each phone once
+-- (acct_sent), awake and not in its 8 o'clock hour, and only phones there before that time. The edge function sends it.
+ALTER TABLE javeda_settings ADD COLUMN IF NOT EXISTS acct_push_at TIMESTAMPTZ;
+ALTER TABLE javeda_push ADD COLUMN IF NOT EXISTS acct_sent TIMESTAMPTZ;
+
+CREATE OR REPLACE FUNCTION public.javeda_push_acct_due()
+RETURNS JSON
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  at TIMESTAMPTZ;
+  subs JSON;
+BEGIN
+  SELECT acct_push_at INTO at FROM javeda_settings WHERE id;
+  IF at IS NULL OR now() < at OR now() > at + interval '2 days' OR javeda_challenges_on() THEN RETURN NULL; END IF;
+  WITH due AS (
+    UPDATE javeda_push s SET acct_sent = now()
+    WHERE s.user_id IS NULL AND s.daily AND s.acct_sent IS NULL AND s.created_at <= at
+      AND javeda_push_awake(s.tz)
+      AND extract(hour FROM now() AT TIME ZONE coalesce(s.tz, 'Europe/Brussels')) <> 8
+    RETURNING s.endpoint, s.p256dh, s.auth, s.lang
+  )
+  SELECT json_agg(json_build_object('endpoint', endpoint, 'p256dh', p256dh, 'auth', auth, 'lang', lang)) INTO subs FROM due;
+  IF subs IS NULL THEN RETURN NULL; END IF;
+  RETURN json_build_object('subs', subs, 'need', 30,
+    'accounts', (SELECT count(*) FROM javeda_players p WHERE NOT EXISTS (SELECT 1 FROM javeda_creators c WHERE c.user_id = p.user_id)));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_push_acct_due() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.javeda_push_acct_due() TO service_role;
+
 -- ============================================================================
 -- Lightning Bot (the Discord bot, lightning-bot.js): what it keeps - which channel is the JAVEDA feed, the last day it
 -- posted the daily challenge, who was #1 on each board. Only the server (service role) reads or writes it.

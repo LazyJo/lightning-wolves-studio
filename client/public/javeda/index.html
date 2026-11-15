@@ -617,6 +617,26 @@ html[data-season="summer"]{ --blue:#f08a24 } html[data-season="halloween"]{ --bl
 .chbar li{display:flex; gap:6px; align-items:center; font:700 12px/1.2 var(--cond); letter-spacing:.04em; padding:5px 8px; border-radius:6px; background:#ffffff0d; border:1px solid var(--line); color:var(--dim)}
 .chbar li.ok{color:var(--good); border-color:#3ddc9755}
 .chbar em{font-style:normal; color:var(--gold)}
+/* "Join the challenges": the card a guest gets in the app */
+.acn{text-align:center; gap:12px; padding:26px 20px 16px; width:min(420px,100%);
+  background:radial-gradient(120% 60% at 50% 0%, #2b1d63 0%, var(--deep) 62%); border-color:#5a45b8; box-shadow:0 20px 60px #000a, 0 0 0 1px #ffffff08 inset}
+.acn .eb{font:700 11px/1 var(--cond); letter-spacing:.32em; text-transform:uppercase; color:#cbb8ff}
+.acn .cup{font-size:56px; line-height:1; filter:drop-shadow(0 8px 22px #ffd60a70); margin-top:2px}
+.acn h3{font-size:30px; color:var(--gold); text-shadow:0 2px 0 #b3410e}
+.acn > p{font-size:15px; color:var(--dim)}
+.acn .goal{background:#0b1736cc; border:1px solid var(--line); border-radius:12px; padding:12px 14px; display:grid; gap:7px; text-align:left}
+.acn .gr{display:flex; justify-content:space-between; align-items:baseline; font:700 11.5px/1 var(--cond); letter-spacing:.18em; text-transform:uppercase; color:var(--dim)}
+.acn .gr b{color:var(--ink); letter-spacing:.04em; font-size:15px}
+.acn .bar{height:9px; border-radius:6px; background:#ffffff14; overflow:hidden; margin-bottom:4px}
+.acn .bar i{display:block; height:100%; width:0; border-radius:6px; background:linear-gradient(90deg,#ffe08a,#ff9f1a)}
+.acn .bar.dl i{background:linear-gradient(90deg,var(--cyan),var(--blue))}
+.acn .gn{font-size:13px !important; color:var(--mute) !important; margin:0}
+.acn .ticks{list-style:none; margin:0; padding:0; display:grid; gap:6px; text-align:left}
+.acn .ticks li{font:600 14px/1.3 var(--ui); color:var(--ink); display:flex; gap:9px; align-items:center}
+.acn .ticks li::before{content:"\2713"; flex:none; width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font:700 12px/1 var(--ui); color:#062a1a; background:var(--good)}
+.acn .btn.gold{width:100%; padding:16px; font-size:17px; margin-top:4px; box-shadow:0 8px 24px #e0a41a55}
+.acn .no{background:none; border:0; color:var(--mute); font:700 13px/1 var(--cond); letter-spacing:.16em; text-transform:uppercase; padding:6px; justify-self:center; cursor:pointer}
+.acn .fine{font-size:12.5px !important; color:var(--mute) !important; margin-top:-4px}
 .chlock{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
 .chfirst{display:grid; gap:8px}
 .chfirst .cf{font:700 12.5px/1.35 var(--cond); letter-spacing:.06em; color:#fff}
@@ -1138,6 +1158,33 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <button class="btn primary" id="ngGo" type="button">Get the app</button>
       <button class="btn small" id="ngNo" type="button">Not now</button>
     </div>
+  </div>
+</div>
+
+<!-- a guest in the app: create a free account and join the challenges (acnShow) -->
+<div class="sheet hid" id="acNudge" role="dialog" aria-modal="true" aria-labelledby="anT">
+  <div class="card acn">
+    <button class="x" type="button" data-close aria-label="Close">&times;</button>
+    <div class="eb">JAVEDA challenges</div>
+    <div class="cup" aria-hidden="true">&#127942;</div>
+    <h3 id="anT">Join the challenges</h3>
+    <p id="anText">The Monthly and the Super: one song, a board of their own and prizes for the top three. You need a free account to play them.</p>
+    <div class="goal" id="anGoal">
+      <div class="gr"><span>Accounts</span><b id="anAc" data-i18n-skip></b></div>
+      <div class="bar"><i id="anAcBar"></i></div>
+      <div class="gr"><span>Downloads</span><b id="anDl" data-i18n-skip></b></div>
+      <div class="bar dl"><i id="anDlBar"></i></div>
+      <p class="gn">The challenges open when both bars are full. Your account counts.</p>
+    </div>
+    <ul class="ticks">
+      <li>Your progress comes with you</li>
+      <li>Your name on the Scoreboard</li>
+      <li>Your scores safe on every phone</li>
+    </ul>
+    <button class="btn gold" id="anGo" type="button">Create a free account</button>
+    <p class="fine">Free: just an email and a password.</p>
+    <button class="no" id="anNo" type="button">Not now</button>
+    <button class="no hid" id="anPlay" type="button">Play Level 1 first</button>
   </div>
 </div>
 
@@ -3595,7 +3642,7 @@ function stopPlay(){
   $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null; mode = {};
   document.body.style.overflow = ""; document.body.classList.remove("playing");
   renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless();
-  revealSoon(() => { if (creditsDue){ creditsDue = false; openCredits(); } else maybeNudge(); });
+  revealSoon(() => { if (creditsDue){ creditsDue = false; openCredits(); } else { maybeNudge(); maybeAcn(); } });
 }
 /* ---- the app: after a clear in the browser, a card to put JAVEDA on the phone - the first time, and once more a week
    later if it was "Not now". Never in the app itself. While the challenges wait for downloads, it says so. ---- */
@@ -4866,7 +4913,7 @@ addEventListener("message", e => {
   else if (m.type === "javeda:begun" && current){ if (Date.now() - startedAt > 3000) startRun(current); }
   else if (m.type === "javeda:result" && current && m.level === current.id){
     runEnded(m);
-    if (m.cleared && !current.endless) nudgeDue = true;      // a clear: the app card when they're back (maybeNudge)
+    if (m.cleared && !current.endless){ nudgeDue = true; acnDue = true; }      // a clear: the app card (browser) or the account card (app) when they're back
     if (mode.daily) saveDaily(m);
     else if (mode.weekly) saveWeekly(m);
     else { saveRun(m, !!mode.marathon); if (mode.marathon) marathonStep(m); }
@@ -4968,11 +5015,63 @@ for (const id of ["pfPushD", "pfPushB", "pfPushC"]) $(id).onchange = () => {
   $("pfPushD").disabled = $("pfPushB").disabled = $("pfPushC").disabled = true;
   pushSave(want).then(ok => { renderPushSet(); renderNow(); if (ok) toast(pushAny(want) ? "Notifications are on." : "Notifications are off."); });
 };
-// a notification's link: /javeda/#daily (the daily card), #board=<level, or daily> (that scoreboard) or #chat
+/* ---- an account: in the app (never a browser tab), a card for a guest to create a free account and join the challenges.
+   Played already: after a clear, back on the home screen. Nothing cleared yet: the 2nd time the app opens (opens half an
+   hour apart; an install from before this card counts as opened once), 5 seconds in, with "Play Level 1 first" instead
+   of "Not now". Closed: once more a week later, then never - and one last time on the day the challenges open. The
+   notification's link (/javeda/#join) opens it any time. Never with an account, never for creators, never offline. ---- */
+const ACN_KEY = "javeda.nudge.acct";
+let acnDue = false;
+function acnGet(){ let s = null; try { s = JSON.parse(localStorage.getItem(ACN_KEY) || "null"); } catch(e){} return s && typeof s === "object" ? s : { n:0, at:0, opens:0, last:0, open:false }; }
+function acnPut(s){ try { localStorage.setItem(ACN_KEY, JSON.stringify(s)); } catch(e){} }
+const acnFor = () => STANDALONE && !!sb && !session && !creator && navigator.onLine !== false;
+const acnPlayed = () => LEVELS.some(l => cleared(l.id));
+const acnBusy = () => document.body.classList.contains("playing") || !!document.querySelector(".sheet:not(.hid)") || revealOn;
+// a first time, a second a week later, and once on the day the challenges open
+const acnMay = (s, g) => g.on ? !s.open : !(s.n > 0) || (s.n === 1 && Date.now() - (s.at || 0) >= 7 * 864e5);
+// true: it's up; null: something else is open, try later; false: not for this player, or not now
+function acnShow(link){
+  if (!acnFor()) return false;
+  const s = acnGet(), g = chGoal();
+  if (!link && !acnMay(s, g)) return false;
+  if (acnBusy()) return null;
+  const known = g.ac != null && g.dl != null, played = acnPlayed();
+  $("anT").textContent = g.on ? "The challenges are open" : "Join the challenges";
+  $("anText").textContent = g.on ? "The Monthly and the Super: one song, a board of their own and prizes for the top three. Create a free account to join."
+    : "The Monthly and the Super: one song, a board of their own and prizes for the top three. You need a free account to play them.";
+  $("anGoal").classList.toggle("hid", g.on || !known);
+  if (known){
+    $("anAc").textContent = fmt(g.ac) + " / " + fmt(g.na); $("anAcBar").style.width = Math.min(100, g.ac / g.na * 100) + "%";
+    $("anDl").textContent = fmt(g.dl) + " / " + fmt(g.nd); $("anDlBar").style.width = Math.min(100, g.dl / g.nd * 100) + "%";
+  }
+  $("anNo").classList.toggle("hid", !played); $("anPlay").classList.toggle("hid", played);
+  if (g.on) s.open = true; else { s.n = Math.min(2, (s.n || 0) + 1); s.at = Date.now(); }
+  acnPut(s); openSheet("acNudge"); return true;
+}
+// after a clear, back home
+function maybeAcn(){ if (!acnDue) return; acnDue = false; setTimeout(() => { if (acnShow() === null) acnDue = true; }, 1200); }
+// the app opens (before appSeen makes this install's id, so an older install is known by its id)
+function acnBoot(){
+  if (!STANDALONE) return;
+  let s = acnGet(), old = false;
+  try { old = !localStorage.getItem(ACN_KEY) && !!localStorage.getItem(DEV_KEY); } catch(e){}
+  if (old) s.opens = 1;
+  if (Date.now() - (s.last || 0) > 30 * 60e3){ s.opens = (s.opens || 0) + 1; s.last = Date.now(); }
+  acnPut(s);
+  const go = () => { const g = chGoal(); return g.on || (!acnPlayed() && acnGet().opens >= 2) ? acnShow() : false; };
+  setTimeout(() => { if (go() === null) setTimeout(go, 10000); }, 5000);
+}
+function acnLink(){ if (acnShow(true) === null) setTimeout(() => acnShow(true), 2500); }
+$("anGo").onclick = () => { closeSheet("acNudge"); openLogin(true); };
+$("anNo").onclick = () => closeSheet("acNudge");
+$("anPlay").onclick = () => { closeSheet("acNudge"); play("lvl1"); };
+
+// a notification's link: /javeda/#daily (the daily card), #board=<level, or daily> (that scoreboard), #chat or #join (the account card)
 function goTo(hash){
   const m = /^#board=([a-z0-9]+)$/.exec(hash || "");
   if (hash === "#chat"){ boardTab = "chat"; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else if (hash === "#daily"){ const d = document.querySelector("#now .daily"); if (!d) return; d.scrollIntoView({ behavior:"smooth", block:"center" }); }
+  else if (hash === "#join") acnLink();
   else if (m && (m[1] === "daily" ? daily : levelById(m[1]))){ boardTab = m[1]; renderTabs(); renderBoard(); hsBoard(); $("hBoard").scrollIntoView({ behavior:"smooth", block:"start" }); }
   else return;
   if (location.hash) history.replaceState(null, "", location.pathname + location.search);
@@ -5010,7 +5109,7 @@ if (location.hash === "#app"){ history.replaceState(null, "", location.pathname 
   session = data.session; await loadAccount(); loadDaily().then(() => goTo(location.hash)); passReturn();
   if (RECOVERY && session) openNewPassword();
   onlineStart(cfg); setTimeout(chatPeek, 4000);
-  if (STANDALONE) appSeen("open");
+  acnBoot(); if (STANDALONE) appSeen("open");
   pushSync(); pushAuto();
   sb.auth.onAuthStateChange((_e, s) => {
     if (_e === "PASSWORD_RECOVERY" && !newPass) setTimeout(openNewPassword, 0);

@@ -1664,7 +1664,20 @@ S: {
 "Part # · Island Blocks":"Parte # · Island Blocks",
 "Part # · Target Rows":"Parte # · Target Rows",
 "The blue sky and the islands from the cover. Old reef rows wait at the bottom of the gold frame, full of gaps. Every round is a target: clear that many rows before your moves run out. Hit # targets before the song ends.":"Il cielo blu e le isole della copertina. Vecchie righe di scogliera aspettano in fondo alla cornice d'oro, piene di buchi. Ogni round è un obiettivo: elimina quelle righe prima di finire le mosse. Raggiungi # obiettivi prima che finisca la canzone.",
-"Old reef rows wait in the frame, full of gaps. Every round is a target: clear its rows before the moves run out.":"Vecchie righe di scogliera aspettano nella cornice, piene di buchi. Ogni round è un obiettivo: elimina le sue righe prima di finire le mosse."
+"Old reef rows wait in the frame, full of gaps. Every round is a target: clear its rows before the moves run out.":"Vecchie righe di scogliera aspettano nella cornice, piene di buchi. Ogni round è un obiettivo: elimina le sue righe prima di finire le mosse.",
+"JAVEDA challenges":"Sfide JAVEDA",
+"Join the challenges":"Partecipa alle sfide",
+"The challenges are open":"Le sfide sono aperte",
+"The Monthly and the Super: one song, a board of their own and prizes for the top three. You need a free account to play them.":"La sfida mensile e la Super sfida: una canzone, una classifica tutta loro e premi per i primi tre. Ti serve un account gratuito per giocarle.",
+"The Monthly and the Super: one song, a board of their own and prizes for the top three. Create a free account to join.":"La sfida mensile e la Super sfida: una canzone, una classifica tutta loro e premi per i primi tre. Crea un account gratuito per partecipare.",
+"Accounts":"Account",
+"Downloads":"Download",
+"The challenges open when both bars are full. Your account counts.":"Le sfide si aprono quando entrambe le barre sono piene. Anche il tuo account conta.",
+"Your progress comes with you":"I tuoi progressi vengono con te",
+"Your name on the Scoreboard":"Il tuo nome in Classifica",
+"Your scores safe on every phone":"I tuoi punteggi al sicuro su ogni telefono",
+"Free: just an email and a password.":"Gratis: solo un'email e una password.",
+"Play Level # first":"Prima gioca il livello #"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>Il primo online</small>HOOPS <i>1v1</i>",

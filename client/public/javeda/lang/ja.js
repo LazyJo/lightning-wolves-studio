@@ -1664,7 +1664,20 @@ S: {
 "Part # · Island Blocks":"パート# · アイランドブロック",
 "Part # · Target Rows":"パート# · ターゲット列",
 "The blue sky and the islands from the cover. Old reef rows wait at the bottom of the gold frame, full of gaps. Every round is a target: clear that many rows before your moves run out. Hit # targets before the song ends.":"ジャケットの青い空と島々。金のフレームの底に、すき間だらけの古いサンゴ礁の列が待ってる。毎ラウンドがターゲット：手数がなくなる前に指定の数だけ列を消そう。曲が終わるまでにターゲットを#個達成しよう。",
-"Old reef rows wait in the frame, full of gaps. Every round is a target: clear its rows before the moves run out.":"フレームの中で、すき間だらけの古いサンゴ礁の列が待ってる。毎ラウンドがターゲット：手数がなくなる前に列を消そう。"
+"Old reef rows wait in the frame, full of gaps. Every round is a target: clear its rows before the moves run out.":"フレームの中で、すき間だらけの古いサンゴ礁の列が待ってる。毎ラウンドがターゲット：手数がなくなる前に列を消そう。",
+"JAVEDA challenges":"JAVEDAチャレンジ",
+"Join the challenges":"チャレンジに参加しよう",
+"The challenges are open":"チャレンジが始まったよ",
+"The Monthly and the Super: one song, a board of their own and prizes for the top three. You need a free account to play them.":"マンスリーとスーパー：1曲だけの専用ランキングで、上位3人には賞品も。参加するには無料アカウントが必要だよ。",
+"The Monthly and the Super: one song, a board of their own and prizes for the top three. Create a free account to join.":"マンスリーとスーパー：1曲だけの専用ランキングで、上位3人には賞品も。無料アカウントを作って参加しよう。",
+"Accounts":"アカウント",
+"Downloads":"ダウンロード",
+"The challenges open when both bars are full. Your account counts.":"2本のバーが満タンになるとチャレンジが始まるよ。あなたのアカウントもカウントされる。",
+"Your progress comes with you":"今までの進み具合はそのまま",
+"Your name on the Scoreboard":"ランキングに名前がのる",
+"Your scores safe on every phone":"スコアはどのスマホでも安全",
+"Free: just an email and a password.":"無料：メールアドレスとパスワードだけ。",
+"Play Level # first":"まずはレベル#をプレイ"
 },
 HTML: {
 "<small>The first online one</small>HOOPS <i>1v1</i>":"<small>最初のオンライン対戦</small>HOOPS <i>1v1</i>",

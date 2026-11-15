@@ -862,6 +862,20 @@ const S = [
   ["That code is used up.", "Die code is op.", "Ce code est épuisé.", "Ese código está agotado."],
   ["Type your code first.", "Typ eerst je code.", "Tape d'abord ton code.", "Escribe primero tu código."],
   ["That payment was refunded, so there's no Pass on it.", "Die betaling is terugbetaald, dus er staat geen Pass op.", "Ce paiement a été remboursé, il n'y a donc pas de Pass dessus.", "Ese pago se devolvió, así que no tiene Pase."],
+  // the account card (in the app, for guests)
+  ["JAVEDA challenges", "JAVEDA-uitdagingen", "Défis JAVEDA", "Retos de JAVEDA"],
+  ["Join the challenges", "Doe mee aan de uitdagingen", "Rejoins les défis", "Únete a los retos"],
+  ["The challenges are open", "De uitdagingen zijn begonnen", "Les défis sont ouverts", "Los retos ya están abiertos"],
+  ["The Monthly and the Super: one song, a board of their own and prizes for the top three. You need a free account to play them.", "De maanduitdaging en de Superuitdaging: één nummer, een eigen scorebord en prijzen voor de top drie. Je hebt een gratis account nodig om mee te spelen.", "Le défi du mois et le Super défi : une chanson, un classement rien qu'à eux et des prix pour les trois premiers. Il te faut un compte gratuit pour y jouer.", "El reto mensual y el Super reto: una canción, una clasificación propia y premios para los tres primeros. Necesitas una cuenta gratis para jugarlos."],
+  ["The Monthly and the Super: one song, a board of their own and prizes for the top three. Create a free account to join.", "De maanduitdaging en de Superuitdaging: één nummer, een eigen scorebord en prijzen voor de top drie. Maak een gratis account om mee te doen.", "Le défi du mois et le Super défi : une chanson, un classement rien qu'à eux et des prix pour les trois premiers. Crée un compte gratuit pour participer.", "El reto mensual y el Super reto: una canción, una clasificación propia y premios para los tres primeros. Crea una cuenta gratis para participar."],
+  ["Accounts", "Accounts", "Comptes", "Cuentas"],
+  ["Downloads", "Downloads", "Téléchargements", "Descargas"],
+  ["The challenges open when both bars are full. Your account counts.", "De uitdagingen beginnen als beide balken vol zijn. Jouw account telt mee.", "Les défis s'ouvrent quand les deux barres sont pleines. Ton compte fait avancer la barre.", "Los retos se abren cuando las dos barras estén llenas. Tu cuenta también suma."],
+  ["Your progress comes with you", "Je voortgang gaat mee", "Ta progression te suit", "Tu progreso viene contigo"],
+  ["Your name on the Scoreboard", "Je naam op het Scorebord", "Ton nom au Classement", "Tu nombre en la Clasificación"],
+  ["Your scores safe on every phone", "Je scores veilig op elke telefoon", "Tes scores à l'abri sur chaque téléphone", "Tus puntuaciones a salvo en cualquier móvil"],
+  ["Free: just an email and a password.", "Gratis: alleen een e-mailadres en een wachtwoord.", "Gratuit : juste un e-mail et un mot de passe.", "Gratis: solo un correo y una contraseña."],
+  ["Play Level # first", "Eerst Level # spelen", "D'abord jouer au niveau #", "Primero jugar el nivel #"]
 ];
 
 /* ---- text with numbers in it: [the English as a pattern, nl, fr, es]; $1 $2 are the numbers or names in it,

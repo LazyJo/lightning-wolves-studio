@@ -663,3 +663,45 @@ CREATE POLICY credit_requests_insert_own ON public.credit_requests
 DROP POLICY IF EXISTS credit_requests_admin_update ON public.credit_requests;
 CREATE POLICY credit_requests_admin_update ON public.credit_requests
   FOR UPDATE USING (is_admin(auth.uid()));
+
+-- ============================================================================
+-- Security fix (2026-11-15, push-setup/fn-sec-profiles.sql, RUN on the live database 2026-11-15): the profiles behind every JAVEDA (and Studio) account.
+-- Every account has a row in public.profiles (handle_new_user). Two holes there:
+-- 1. "profiles_self_update" lets a member change ANY column of their own row: role (-> admin, who can then read every
+--    player's email through "profiles_admin_select_all"), tier, wolf_credits, banned, the Stripe ids.
+-- 2. The view public_profiles (owner postgres, no security_invoker, so it skips the rules of profiles) is
+--    auto-updatable, and anon/authenticated had INSERT/UPDATE/DELETE on it: anyone could edit or delete any profile.
+-- After this: a member may change only their own name, colour, picture and links; an admin and the server anything.
+-- public_profiles can only be read. No row is touched. Safe to run twice. Undo: fn-sec-profiles-undo.sql.
+-- ============================================================================
+-- 1. public_profiles: reading only (the app only ever reads it)
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.public_profiles FROM anon, authenticated;
+
+-- 2. profiles: the logged-out never write it (its rules already stopped them; now the rights say so too)
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON public.profiles FROM anon;
+
+-- 3. what a member may change on their own row
+CREATE OR REPLACE FUNCTION public.profiles_guard()
+RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  free CONSTANT TEXT[] := ARRAY['display_name', 'wolf_id', 'avatar_url', 'bio_url', 'spotify_url', 'apple_music_url',
+    'youtube_url', 'soundcloud_url', 'beatstars_url', 'instagram_url', 'tiktok_url', 'even_url', 'merch_url'];
+BEGIN
+  -- the server (service role), pg_cron and the SQL editor (no login): anything
+  IF coalesce(auth.role(), '') NOT IN ('anon', 'authenticated') THEN RETURN NEW; END IF;
+  -- an admin: anything (the admin page bans, gives credits, a tier, a role)
+  IF public.is_admin(auth.uid()) THEN RETURN NEW; END IF;
+  -- everyone else: only the free columns
+  IF (to_jsonb(NEW) - free) IS DISTINCT FROM (to_jsonb(OLD) - free) THEN
+    RAISE EXCEPTION 'only an admin can change that' USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+REVOKE ALL ON FUNCTION public.profiles_guard() FROM PUBLIC, anon, authenticated;
+DROP TRIGGER IF EXISTS profiles_guard ON public.profiles;
+CREATE TRIGGER profiles_guard BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.profiles_guard();
+
+NOTIFY pgrst, 'reload schema';

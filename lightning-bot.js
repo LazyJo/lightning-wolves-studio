@@ -12,7 +12,7 @@
 //   + the community part (lightning-community.js): XP and levels (/rank, /leaderboard), 🐾 Pup → 🐺 Wolf, time
 //     badges, a welcome for new members, and moderation (/warn /warnings /timeout /kick /ban /purge)
 // Buttons under the role picker give and take roles (made when they don't exist yet).
-// The feed: today's challenge at noon (Brussels), and a new #1 on a board.
+// The feed: today's challenge at noon (Brussels), the song of the week on Monday from 10:00, and a new #1 on a board.
 //
 // Vercel environment: DISCORD_PUBLIC_KEY, DISCORD_BOT_TOKEN, DISCORD_APP_ID, LIGHTNING_BOT_KEY (one you make up,
 // for /api/discord/register and the feed), optional DISCORD_GUILD_ID (default: the Lightning Wolves server).
@@ -24,6 +24,17 @@ const GUILD = () => process.env.DISCORD_GUILD_ID || '490308164739399681';
 const SITE = 'https://lightningwolves.studio';
 const JAVEDA = SITE + '/javeda/';
 const LINKS = { spotify: 'https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7', merch: 'https://www.even.biz/l/lightningwolves', even: 'https://www.even.biz/l/lazyjomusic' };
+// each song's Spotify track and cover (i.scdn.co/image/ab67616d0000b273 + the cover), for the song of the week: the
+// same as FAN_SONGS in client/public/javeda/index.html
+const SONGS = {
+  lvl1: ['2ZBwbS5ItzQkZseIeRwsfv', '436cbbd71602aa526ef206ef'], lvl2: ['31PRsSjiV670FTfVGGGQW7', '6a686f745db99404bfdc5ae3'], lvl3: ['4iRoG0m5A58yN2jdbykrgl', 'd4a9a4f0dfd9eb178672051a'], lvl4: ['3jcDJJ5KvAWWRumGHMkdYH', 'e8c65c4f1478f6f658ffd058'],
+  lvl5: ['0rQVhkZBgDaFK5DKBwu5hs', '0fbd8093d9297c1304e1a78d'], lvl6: ['1HZ2nnG9dhNaPQBL6DCFzH', 'af22604ab3de311ed6f3afe3'], lvl7: ['4tub8La8wOUC0NLlNR2vjZ', 'd2dceac7f472348c491da3a4'], lvl8: ['55fCtR1laxHOpWKY6XVDou', '812976272e10e98423b9af93'],
+  lvl9: ['5Dspumx2zeZcKudSr0YNlg', '589138caf2e58882d1c6f4f3'], lvl10: ['0eECAM3KXFZEu9S1eJcB7W', 'a22019178f7fd74188af61d1'], lvl11: ['7Fs7NSbXrdJxb4yNBso5QH', '0950a4b2806760f1f0c9ef66'], lvl12: ['5Yx0KUNYpZwgMu2yxyLsqc', '5b5d47877bb8a9ba53634d95'],
+  lvl13: ['7yaqdPiQc5eI6Rw3pp6XI8', 'db7fe67944deadc6febe25f5'], lvl14: ['3JudoYCf83pUA9y0adXfoo', '4627aea216e6d4b0e4e1ba56'], lvl15: ['3Z8nes2rHTZCmQwX0vO33c', 'af52f8eed087b8f7dbb10d48'], lvl16: ['4KbGGo171rdTZaRP9lK5z0', '613971f035d43c0a85707a91'],
+  lvl17: ['4wfvxrVpoGzUpOIOfQKCdN', 'd50da29606d0ac393dcb9384'], lvl18: ['5pyClDTu7iYNb7gZPf47GN', 'dc41465e4344bdf4c81add59'], lvl19: ['5iuRcBy5F511eaYkmLbyax', '4c1715b055dbb161873cc6a4'], lvl20: ['4fUNN8imB7xmuhAQuef0U5', 'be7e12889f0d63d6b9651438'],
+  lvl21: ['1xc1Vhv5xOl3gSjgesjrUE', '42c07d732fd4cdbce853b39a'], lvl22: ['7K4wK4KC55o4jQGko6qYNO', 'd949e2c0074d91cd18e3b36d'], lvl23: ['2GBXBTqneBGkURddmBo0LC', '5b666a1771b149946267e72a'], lvl24: ['4Yh6oebvSv6qh5KHiva4JJ', 'cf90e2f04d4c37cc9db9fe73'],
+  lvl25: ['1AdfOk03XehfThZCwliLV2', 'c9d37a11d6c10b6827388f00'], lvl26: ['0nsKZBZzAcopDKISoPqO2v', '65aa0fd42f4f1da39054f7fd'], lvl27: ['64z0RGigEH5yITKiMM1bXX', '50535ea7f848e41fd1d37b94'], lvl28: ['3ovKRWIBkciu2dtVGPOcPM', '3f7aa969f26e2895dbde7766']
+};
 const GOLD = 0xffd60a, BLUE = 0x2f8fe0, PINK = 0xe040fb, GREEN = 0x69f0ae;
 const EPHEMERAL = 64;
 
@@ -194,7 +205,7 @@ async function command(i, sb) {
     if (sub === 'welcome') { await discord('/channels/' + ch + '/messages', 'POST', welcomeCard()); return done('Posted the welcome card.'); }
     if (sub === 'rules') { await discord('/channels/' + ch + '/messages', 'POST', rulesCard()); return done('Posted the rules.'); }
     if (sub === 'roles') { for (const m of pickerMessages()) await discord('/channels/' + ch + '/messages', 'POST', m); return done('Posted the role picker. The roles are made when someone first taps them.'); }
-    if (sub === 'feed') { if (!sb) return offline(); await setState(sb, 'feed_channel', ch); return done('This channel is the JAVEDA feed now: today\'s challenge at noon, and every new #1.'); }
+    if (sub === 'feed') { if (!sb) return offline(); await setState(sb, 'feed_channel', ch); return done('This channel is the JAVEDA feed now: today\'s challenge at noon, the song of the week on Monday, and every new #1.'); }
     if (C.SETUP[sub]) { if (!sb) return offline(); return done(await C.setup(sub, ch, sb)); }
   }
   const r = await C.command(i, sb); if (r) return r;
@@ -259,6 +270,26 @@ async function feed(sb) {
       await setState(sb, 'weekly_posted', wk.week);
     }
   }
+  // the song of the week (javeda_song_week; Jo 2026-11-15 "Lightning bot can do that"): from Monday 10:00 (Brussels) the
+  // week's song, once, with its own Spotify button. A late start (the feed down on Monday, or the bot new mid-week)
+  // still posts it until Wednesday, never later in the week.
+  try {
+    const { data: sw } = (await sb.rpc('javeda_song_week').catch(() => ({}))) || {};
+    const wkDay = sw && sw.level ? String(sw.week || '').slice(0, 10) : '';
+    const day = process.env.LIGHTNING_BOT_TEST_DAY || new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels' }).format(new Date());
+    const into = /^\d{4}-\d{2}-\d{2}$/.test(wkDay) ? Math.round((Date.parse(day) - Date.parse(wkDay)) / 864e5) : -1;   // 0 = its Monday
+    if (into >= 0 && into <= 2 && (into > 0 || hour >= 10) && (await getState(sb, 'songweek_posted')) !== wkDay) {
+      const news = (await guildRoles().catch(() => [])).find(r => ROLE.news.re.test(r.name));
+      const { data: lv } = await sb.from('javeda_levels').select('num').eq('id', sw.level).maybeSingle();
+      const sp = lv && SONGS['lvl' + lv.num], end = Math.floor(Date.parse(sw.ends_at) / 1000);
+      await post({ content: news ? '<@&' + news.id + '>' : undefined, allowed_mentions: { roles: news ? [news.id] : [] },
+        embeds: [{ color: GOLD, title: '🎵 This week\'s JAVEDA song', url: JAVEDA, description: '**' + await levelName(sb, sw.level) + '**\n' +
+          '**Double points** all week on everything you play from this song. Until Sunday at midnight (Brussels)' + (end > 0 ? ', <t:' + end + ':R>.' : '.'),
+          ...(sp ? { thumbnail: { url: 'https://i.scdn.co/image/ab67616d0000b273' + sp[1] } } : {}) }],
+        components: [row(link('Play it', JAVEDA, '🎮'), ...(sp ? [link('Listen on Spotify', 'https://open.spotify.com/track/' + sp[0], '🎧')] : []))] }, 'songweek');
+      await setState(sb, 'songweek_posted', wkDay);
+    }
+  } catch (e) {}
   // season events (javeda_event_now / javeda_event_close_due): the start, the double points weekend, and when one ends its top 3
   const EVN = { winter: ['❄️', 'Winter event'], valentine: ['💘', 'Valentine event'], spring: ['🌸', 'Spring event'], summer: ['☀️', 'Summer event'], halloween: ['🎃', 'Halloween event'], autumn: ['🍂', 'Autumn event'] };
   const EVX = { winter: 'Snow, an advent calendar with a gift every day until the 24th, and the Snow Saucer picture for playing on 5 days.',

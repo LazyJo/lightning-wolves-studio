@@ -32,6 +32,9 @@ What it does:
   - **Music in voice** (what Green-bot did) needs a bot that's online 24/7: not part of this.
 - **Feed:**
   - Today's challenge at noon (Brussels), pinging 🔔 JAVEDA News.
+  - The song of the week on Monday from 10:00 (Brussels), pinging 🔔 JAVEDA News: the song, double points until Sunday
+    midnight, its cover, and buttons for JAVEDA and that song on Spotify (`SONGS` in `lightning-bot.js`, the same as
+    `FAN_SONGS` in the JAVEDA page). If the feed missed Monday it still posts until Wednesday, never later in the week.
   - "🏆 New #1" when someone takes the top of a board.
 
 ## Setting it up (once, about 10 minutes)
@@ -114,7 +117,7 @@ Restart project); at most once an hour, and one "it's back" when it is. It has t
 **Retired:** Jo replaced it with the **song of the week** (double points on one song all week, no board, no prize;
 `push-setup/fn-songweek.sql`). `javeda_weekly_on()` is now always false, so `javeda_weekly` says `on: false` and the bot
 posts nothing and closes nothing for it (the code below stays, asleep). It never opened, so nobody won a week.
-The bot doesn't post the song of the week (yet): ask Jo before adding a Monday post.
+The bot posts the song of the week every Monday instead (Jo said yes, 2026-11-15; see Feed above).
 
 What it did:
 In the feed (every 5 minutes): from Monday 10:00 (Brussels) it posts the week's song with a 🔔 JAVEDA News ping; once

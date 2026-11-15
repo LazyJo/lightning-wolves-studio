@@ -792,6 +792,58 @@ button.sp-gift:hover{transform:translateY(-3px); border-color:#ffd60a99; box-sha
 /* the sheets */
 .chk{font:700 12px/1 var(--cond); letter-spacing:.28em; text-transform:uppercase; color:#9fe8ff}
 .chk.sup{color:#ffe27a}
+/* the board sheet's head; a Super's board (openChBoard adds .chsup) wears the Super card's purple sky, moving border, gold title and crowned UFO */
+.cbh{display:flex; align-items:center; gap:12px; padding-right:40px; min-width:0}
+.cbh .sp-ufo{display:none; width:78px; height:62px}
+.cbht{display:grid; gap:14px; min-width:0}
+#chBoard .card.chsup{border:2px solid transparent; background-color:#140a3c; box-shadow:0 0 44px #9a4dff55, 0 20px 60px #000a;
+  background-image:radial-gradient(1.6px 1.6px at 8% 10%,#fff,transparent 70%),
+    radial-gradient(1.2px 1.2px at 19% 58%,#f0dcff,transparent 70%),
+    radial-gradient(1.8px 1.8px at 31% 24%,#fff6c8,transparent 70%),
+    radial-gradient(1.2px 1.2px at 42% 84%,#fff,transparent 70%),
+    radial-gradient(1.4px 1.4px at 55% 8%,#fff,transparent 70%),
+    radial-gradient(1.2px 1.2px at 63% 44%,#f0dcff,transparent 70%),
+    radial-gradient(2px 2px at 74% 18%,#fff6c8,transparent 70%),
+    radial-gradient(1.3px 1.3px at 85% 66%,#fff,transparent 70%),
+    radial-gradient(1.6px 1.6px at 94% 32%,#fff,transparent 70%),
+    radial-gradient(1.1px 1.1px at 47% 62%,#fff,transparent 70%),
+    radial-gradient(1.2px 1.2px at 12% 92%,#f0dcff,transparent 70%),
+    radial-gradient(1.5px 1.5px at 89% 94%,#fff6c8,transparent 70%),
+    radial-gradient(1.2px 1.2px at 24% 38%,#fff,transparent 70%),
+    radial-gradient(1.4px 1.4px at 68% 78%,#f0dcff,transparent 70%),
+    radial-gradient(42% 30% at 88% 0%,#ff74d433,transparent 70%),
+    radial-gradient(40% 28% at 8% 0%,#67e8f922,transparent 70%),
+    linear-gradient(160deg,#1d0b4a 0%,#2a0d5e 38%,#140a3c 70%,#07102a 100%),
+    conic-gradient(from var(--spa),#ffd60a,#9a4dff 22%,#ff74d4 38%,#ffd60a 52%,#5a1fc0 74%,#ffd60a);
+  background-origin:padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,border-box; background-clip:padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,padding-box,border-box}
+#chBoard .chsup .cbh .sp-ufo{display:block}
+#chBoard .chsup .cbht{gap:8px}
+#chBoard .chsup .chk{letter-spacing:.34em}
+#chBoard .chsup h3{font-size:clamp(24px,6.4vw,32px); overflow-wrap:anywhere; color:var(--gold); background:linear-gradient(100deg,#fff4b8 0%,#ffd60a 20%,#fff 30%,#ffd60a 40%,#ff9de6 68%,#ffd60a 100%); background-size:220% 100%;
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; filter:drop-shadow(0 0 14px #ffd60a55)}
+#chBoard .chsup .chsub{color:#e6d9ff}
+#chBoard .chsup .x{background:#ffffff14; border-color:#ffffff33; color:#fff}
+#chBoard .chsup .chp{gap:8px}
+#chBoard .chsup .chp li{align-items:baseline; padding:10px 12px; border-radius:12px; background:#00000033; border:1px solid #ffffff1a; color:#efe6ff; font-size:13.5px}
+#chBoard .chsup .chp li:nth-child(1){border-color:#ffd60a88; background:linear-gradient(180deg,#ffd60a26,#00000033)}
+#chBoard .chsup .chp li b{font:400 16px/1 var(--display)}
+#chBoard .chsup .chwin > span{background:#00000033; border-color:#ffffff1a} #chBoard .chsup .chwin .p1{border-color:#ffd60a88; background:linear-gradient(180deg,#ffd60a26,#00000033)}
+#chBoard .chsup .dd{color:#e6d9ff}
+#chBoard .chsup .board{background:#0000003d; border-color:#ffffff1f}
+#chBoard .chsup .board li{border-top-color:#ffffff12}
+#chBoard .chsup .board li:nth-child(1){background:linear-gradient(90deg,#ffd60a1f,transparent 70%)}
+#chBoard .chsup .board li.you{background:#9a4dff3d; box-shadow:inset 3px 0 0 var(--gold)}
+#chBoard .chsup .board li:nth-child(n+4) .rk{color:#b9a6e8}
+#chBoard .chsup .board .empty{color:#cdbef0}
+#chBoard .chsup .small{color:#cdbef0} #chBoard .chsup .small b{color:var(--gold)}
+@media (max-width:560px){   /* on a phone the song's name gets the full width under the UFO and the kicker (ROLLERCOASTER must fit) */
+  #chBoard .chsup .cbh{display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; column-gap:10px; row-gap:6px; padding-right:0}
+  #chBoard .chsup .cbht{display:contents}
+  #chBoard .chsup .cbh .sp-ufo{width:58px; height:46px}
+  #chBoard .chsup .chk{padding-right:40px}
+  #chBoard .chsup h3{grid-column:1 / -1; font-size:clamp(22px,7.4vw,30px)}
+}
+@media (prefers-reduced-motion:no-preference){ #chBoard .card.chsup{animation:spspin 8s linear infinite} #chBoard .chsup h3{animation:spshine 6s ease-in-out infinite alternate} }
 .chhs{margin:4px 0 0; font:700 12px/1 var(--cond); letter-spacing:.24em; text-transform:uppercase}
 .chhs.sup{color:#ffe27a} .chhs.mon{color:#9fe8ff}
 .chh{list-style:none; margin:0; padding:0; display:grid; gap:6px}
@@ -1424,8 +1476,8 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
 <div class="sheet hid" id="chBoard" role="dialog" aria-modal="true" aria-labelledby="cbT">
   <div class="card">
     <button class="x" type="button" data-close aria-label="Close">&times;</button>
-    <span class="chk" id="cbK">Monthly challenge</span>
-    <h3 id="cbT" data-i18n-skip></h3>
+    <div class="cbh"><span class="sp-ufo" id="cbU"></span><div class="cbht"><span class="chk" id="cbK">Monthly challenge</span>
+    <h3 id="cbT" data-i18n-skip></h3></div></div>
     <p class="chsub" id="cbSub"></p>
     <div id="cbPrizes"></div>
     <div class="board" id="cbList"></div>
@@ -2432,6 +2484,8 @@ async function openChBoard(id){
     const lv = levelById(c.level);
     $("cbK").textContent = c.kind === "super" ? "Super challenge" : "Monthly challenge";
     $("cbK").className = "chk" + (c.kind === "super" ? " sup" : "");
+    $("chBoard").querySelector(".card").classList.toggle("chsup", c.kind === "super");
+    if (c.kind === "super" && !$("cbU").firstChild) $("cbU").innerHTML = SP_UFO.replace(/(id="|url\(#)sp/g, "$1cb");
     $("cbT").textContent = c.title || (lv ? chSong(lv) : c.level);
     $("cbSub").innerHTML = chWhere(c, lv);
     $("cbPrizes").innerHTML = c.state === "over" ? chWinners(c) : chPrizeList(c, c.kind);

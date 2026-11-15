@@ -637,6 +637,59 @@ html[data-season="summer"]{ --blue:#f08a24 } html[data-season="halloween"]{ --bl
 .acn .btn.gold{width:100%; padding:16px; font-size:17px; margin-top:4px; box-shadow:0 8px 24px #e0a41a55}
 .acn .no{background:none; border:0; color:var(--mute); font:700 13px/1 var(--cond); letter-spacing:.16em; text-transform:uppercase; padding:6px; justify-self:center; cursor:pointer}
 .acn .fine{font-size:12.5px !important; color:var(--mute) !important; margin-top:-4px}
+/* the fan cards (fanShow): a song on Spotify or its video, Discord, Instagram, merch, True Fans, the album done */
+.fan{text-align:center; gap:12px; padding:24px 20px 16px; width:min(420px,100%); background:radial-gradient(120% 55% at 50% 0%, var(--ft, #2b1d63) 0%, var(--deep) 60%); border-color:var(--fe, #5a45b8); box-shadow:0 20px 60px #000a}
+.fan.fdc{--ft:#2a2f7a; --fe:#5865f2} .fan.fig{--ft:#5a1d4f; --fe:#d62976} .fan.fmg{--ft:#4a3208; --fe:#ffd60a99} .fan.fev{--ft:#5a1036; --fe:#ff3d8b} .fan.ffin{--ft:#5b1d8a; --fe:#ffd60a99}
+.fan .eb{font:700 11px/1.2 var(--cond); letter-spacing:.3em; text-transform:uppercase; color:#cbb8ff; padding:0 34px}
+.fan.fev .eb{color:#ffb3d1} .fan.ffin .eb{color:#ffe9a3}
+.fan h3{font-size:28px; color:var(--gold); text-shadow:0 2px 0 #b3410e; text-wrap:balance}
+.fan h3, .fan .eb{word-break:keep-all; overflow-wrap:anywhere}
+.fan > p{font-size:15px; color:var(--dim); text-wrap:balance}
+.fan .st3{display:flex; justify-content:center; gap:10px; font-size:40px; line-height:1; color:var(--gold); text-shadow:0 0 18px #ffd60a99, 0 3px 0 #b3410e}
+.fan .st3 span{display:block; animation:fanpop .5s cubic-bezier(.3,1.6,.5,1) both}
+.fan .st3 span:nth-child(2){animation-delay:.12s} .fan .st3 span:nth-child(3){animation-delay:.24s}
+@keyframes fanpop{from{transform:scale(0) rotate(-40deg); opacity:0}}
+.fan .art{position:relative; display:block; justify-self:center; border-radius:12px; overflow:hidden; box-shadow:0 14px 40px #000c, 0 0 0 1px #ffffff14}
+.fan .art.sq{width:min(230px,62vw); aspect-ratio:1}
+.fan .art.wd{width:100%; aspect-ratio:16/9}
+.fan .art img{width:100%; height:100%; object-fit:cover; display:block}
+.fan .ytp{position:absolute; inset:0; display:grid; place-items:center}
+.fan .ytp i{width:64px; height:44px; border-radius:12px; background:#ff0033e6; display:grid; place-items:center; box-shadow:0 6px 18px #0008}
+.fan .ytp i::after{content:""; border-left:16px solid #fff; border-top:10px solid transparent; border-bottom:10px solid transparent; margin-left:4px}
+.fan .fgo{width:100%; padding:16px; font-size:16px; border:0}
+.fan .fgo.fsp{background:#1ed760; color:#06190d; box-shadow:0 8px 24px #1ed76044}
+.fan .fgo.fyt{background:#ff0033; color:#fff; box-shadow:0 8px 24px #ff003344}
+.fan .fgo.fdc{background:#5865f2; color:#fff; box-shadow:0 8px 24px #5865f255}
+.fan .fgo.fig{background:linear-gradient(90deg,#f9a03f,#e1306c 45%,#833ab4); color:#fff; box-shadow:0 8px 24px #e1306c44}
+.fan .fgo.fmg{background:var(--gold); color:#2a1600; box-shadow:0 8px 24px #ffd60a44}
+.fan .fgo.fev{background:#ff3d8b; color:#fff; box-shadow:0 8px 24px #ff3d8b55}
+.fan .fsub, .fan .fol{width:100%; padding:13px; font-size:14px; background:transparent; border:1px solid #ffffff33; color:var(--ink)}
+.fan .fol{border-color:#ffd60a66; color:var(--gold)}
+.fan .fine{font-size:12.5px !important; color:var(--mute) !important; margin-top:-4px}
+.fan .no{background:none; border:0; color:var(--mute); font:700 13px/1 var(--cond); letter-spacing:.16em; text-transform:uppercase; padding:6px; justify-self:center; cursor:pointer}
+.fan .dci{justify-self:center; width:96px; height:96px; filter:drop-shadow(0 10px 28px #5865f288)}
+.fan .fticks{display:grid; gap:8px; text-align:left; justify-self:center; font:600 15px/1.3 var(--ui); color:var(--ink)}
+.fan .fticks div{display:flex; gap:10px; align-items:center}
+.fan .fticks i{font-style:normal; width:30px; height:30px; flex:none; border-radius:9px; display:grid; place-items:center; background:#ffffff10; font-size:16px}
+.fan .igr{justify-self:center; width:136px; height:136px; border-radius:50%; padding:5px; background:conic-gradient(from 210deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75); box-shadow:0 12px 40px #d6297655}
+.fan .igr img{width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; border:4px solid var(--deep)}
+.fan .ign{margin-top:-4px; font:700 18px/1.2 var(--ui); color:var(--ink)}
+.fan .ign small{display:block; font-size:14px; color:var(--mute); font-weight:600}
+.fan .tee{position:relative; justify-self:center; width:150px; height:150px; border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle, #ffd60a30 0%, #ffd60a08 60%, transparent 70%)}
+.fan .tee svg{width:118px; height:118px; filter:drop-shadow(0 8px 20px #ffb40088)}
+.fan .b10{position:absolute; right:-6px; top:4px; width:50px; height:50px; border-radius:50%; background:#ff3d8b; color:#fff; font:400 24px/52px var(--display); box-shadow:0 6px 18px #ff3d8b66; transform:rotate(-10deg)}
+.fan .half{display:grid; gap:6px}
+.fan .half .bar{height:10px; border-radius:99px; background:#ffffff14; overflow:hidden}
+.fan .half .bar i{display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffd60a,#ff3d8b)}
+.fan .half small{display:flex; justify-content:space-between; gap:8px; font:700 11px/1 var(--cond); letter-spacing:.14em; color:var(--mute); text-transform:uppercase}
+.fan .evart{position:relative; display:block; border-radius:14px; overflow:hidden; aspect-ratio:16/9; box-shadow:0 14px 40px #000c, 0 0 0 1px #ff3d8b55}
+.fan .evart img{width:100%; height:100%; object-fit:cover; display:block}
+.fan .evart span{position:absolute; left:10px; bottom:10px; background:#ff3d8b; color:#fff; font:700 12px/1 var(--cond); letter-spacing:.18em; padding:7px 10px; border-radius:8px; text-transform:uppercase}
+.fan .cover{justify-self:center; width:min(200px,54vw); aspect-ratio:1; border-radius:14px; overflow:hidden; box-shadow:0 0 0 2px #ffd60a, 0 0 40px #ffd60a66, 0 14px 40px #000c}
+.fan .cover img{width:100%; height:100%; object-fit:cover; display:block}
+.fan .chip{justify-self:center; background:#ffd60a; color:#2a1600; font:700 12px/1 var(--cond); letter-spacing:.2em; padding:7px 12px; border-radius:99px; text-transform:uppercase}
+.fan .spark{position:absolute; color:#ffd60a; opacity:.8; font-size:16px; text-shadow:0 0 10px #ffd60a; pointer-events:none}
+@media (prefers-reduced-motion:reduce){ .fan .st3 span{animation:none} }
 .chlock{display:flex; flex-wrap:wrap; gap:6px; align-items:center}
 .chfirst{display:grid; gap:8px}
 .chfirst .cf{font:700 12.5px/1.35 var(--cond); letter-spacing:.06em; color:#fff}
@@ -1187,6 +1240,11 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
     <button class="no" id="anNo" type="button">Not now</button>
     <button class="no hid" id="anPlay" type="button">Play Level 1 first</button>
   </div>
+</div>
+
+<!-- a fan card (fanShow): its content comes from fanCard -->
+<div class="sheet hid" id="fanCard" role="dialog" aria-modal="true" aria-labelledby="fcT">
+  <div class="card fan" id="fcBody"></div>
 </div>
 
 <div class="sheet hid" id="join" role="dialog" aria-modal="true" aria-labelledby="jnT">
@@ -3249,7 +3307,7 @@ async function renderDiscord(){
   const box = $("pfDiscord"), on = signedIn() && !session.offline && !!sb; box.classList.toggle("hid", !on); if (!on) return;
   $("pfDcRow").classList.add("hid"); $("pfDcHow").classList.add("hid");
   const { data } = await sb.rpc("javeda_discord_status").then(r => r, () => ({}));
-  const linked = !!(data && data.linked);
+  const linked = !!(data && data.linked); if (linked) fanDone("discord");
   $("pfDcState").innerHTML = linked ? '&#10003; Linked to Discord: <b data-i18n-skip>' + esc(data.name || "") + '</b>. Your roles update every 5 minutes.'
     : "Link your player to Lazy Jo's Discord for its roles: 🏆 Top 10, 💿 28/28, 🎟️ JAVEDA Pass and 🏆 Weekly Champion.";
   $("pfDcGet").classList.toggle("hid", linked); $("pfDcUn").classList.toggle("hid", !linked);
@@ -3648,7 +3706,7 @@ function stopPlay(){
   $("play").classList.add("hid"); $("frame").src = "about:blank"; current = null; mode = {};
   document.body.style.overflow = ""; document.body.classList.remove("playing");
   renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless();
-  revealSoon(() => { if (creditsDue){ creditsDue = false; openCredits(); } else { maybeNudge(); maybeAcn(); } });
+  revealSoon(() => { if (creditsDue){ creditsDue = false; openCredits(); } else { maybeNudge(); maybeAcn(); maybeFan(); } });
 }
 /* ---- the app: after a clear in the browser, a card to put JAVEDA on the phone - the first time, and once more a week
    later if it was "Not now". Never in the app itself. While the challenges wait for downloads, it says so. ---- */
@@ -4053,6 +4111,7 @@ function closeCredits(){
   if ($("credits").classList.contains("hid")) return;
   $("credits").classList.add("hid"); document.body.style.overflow = current ? "hidden" : "";
   if (crSong){ crSong.pause(); crSong = null; }
+  if (!current) maybeFan(1500);
 }
 $("credits").onclick = closeCredits;
 $("crRoll").addEventListener("animationend", closeCredits);
@@ -4933,7 +4992,7 @@ addEventListener("message", e => {
   else if (m.type === "javeda:begun" && current){ if (Date.now() - startedAt > 3000) startRun(current); }
   else if (m.type === "javeda:result" && current && m.level === current.id){
     runEnded(m);
-    if (m.cleared && !current.endless){ nudgeDue = true; acnDue = true; }      // a clear: the app card (browser) or the account card (app) when they're back
+    if (m.cleared && !current.endless){ nudgeDue = true; acnDue = true; if (!mode.daily && !mode.weekly) fanRun(current, m); }      // a clear: the app card (browser) or the account card (app) when they're back, then a fan card
     if (mode.daily) saveDaily(m);
     else if (mode.weekly) saveWeekly(m);
     else { saveRun(m, !!mode.marathon); if (mode.marathon) marathonStep(m); }
@@ -5093,6 +5152,150 @@ $("anGo").onclick = () => { acnCount("create"); closeSheet("acNudge"); openLogin
 $("anNo").onclick = () => closeSheet("acNudge");
 $("anPlay").onclick = () => { closeSheet("acNudge"); play("lvl1"); };
 
+/* ---- fan cards: 3 stars on a song (its Spotify track, or its music video), Discord after Level 3, Instagram for an
+   account that comes back (made before today; never a guest), merch after Level 10, True Fans (EVEN) after Level 14,
+   and a thank-you when the album is done. One a day at most and only on the home screen: after a level (what that run
+   just earned first) or a few seconds after the page opens (catching up, in the journey's order). Never while playing,
+   never over another card, never on a day the app or account card was up, never offline. "Not now" or closing it: once
+   more 14 days later, then never; a tap on its link: never again. A song asks once. Kept on this phone. No points or
+   prizes for any of it (the platforms' rules). In the store apps no True Fans (EVEN sells the art outside the store). ---- */
+const FAN_KEY = "javeda.fans.v1", FAN_IG = "https://www.instagram.com/lazyjo_/";
+// each song's Spotify track and its cover (i.scdn.co/image/ab67616d0000b273 + the cover)
+const FAN_SONGS = {
+  lvl1:["2ZBwbS5ItzQkZseIeRwsfv", "436cbbd71602aa526ef206ef"], lvl2:["31PRsSjiV670FTfVGGGQW7", "6a686f745db99404bfdc5ae3"], lvl3:["4iRoG0m5A58yN2jdbykrgl", "d4a9a4f0dfd9eb178672051a"], lvl4:["3jcDJJ5KvAWWRumGHMkdYH", "e8c65c4f1478f6f658ffd058"],
+  lvl5:["0rQVhkZBgDaFK5DKBwu5hs", "0fbd8093d9297c1304e1a78d"], lvl6:["1HZ2nnG9dhNaPQBL6DCFzH", "af22604ab3de311ed6f3afe3"], lvl7:["4tub8La8wOUC0NLlNR2vjZ", "d2dceac7f472348c491da3a4"], lvl8:["55fCtR1laxHOpWKY6XVDou", "812976272e10e98423b9af93"],
+  lvl9:["5Dspumx2zeZcKudSr0YNlg", "589138caf2e58882d1c6f4f3"], lvl10:["0eECAM3KXFZEu9S1eJcB7W", "a22019178f7fd74188af61d1"], lvl11:["7Fs7NSbXrdJxb4yNBso5QH", "0950a4b2806760f1f0c9ef66"], lvl12:["5Yx0KUNYpZwgMu2yxyLsqc", "5b5d47877bb8a9ba53634d95"],
+  lvl13:["7yaqdPiQc5eI6Rw3pp6XI8", "db7fe67944deadc6febe25f5"], lvl14:["3JudoYCf83pUA9y0adXfoo", "4627aea216e6d4b0e4e1ba56"], lvl15:["3Z8nes2rHTZCmQwX0vO33c", "af52f8eed087b8f7dbb10d48"], lvl16:["4KbGGo171rdTZaRP9lK5z0", "613971f035d43c0a85707a91"],
+  lvl17:["4wfvxrVpoGzUpOIOfQKCdN", "d50da29606d0ac393dcb9384"], lvl18:["5pyClDTu7iYNb7gZPf47GN", "dc41465e4344bdf4c81add59"], lvl19:["5iuRcBy5F511eaYkmLbyax", "4c1715b055dbb161873cc6a4"], lvl20:["4fUNN8imB7xmuhAQuef0U5", "be7e12889f0d63d6b9651438"],
+  lvl21:["1xc1Vhv5xOl3gSjgesjrUE", "42c07d732fd4cdbce853b39a"], lvl22:["7K4wK4KC55o4jQGko6qYNO", "d949e2c0074d91cd18e3b36d"], lvl23:["2GBXBTqneBGkURddmBo0LC", "5b666a1771b149946267e72a"], lvl24:["4Yh6oebvSv6qh5KHiva4JJ", "cf90e2f04d4c37cc9db9fe73"],
+  lvl25:["1AdfOk03XehfThZCwliLV2", "c9d37a11d6c10b6827388f00"], lvl26:["0nsKZBZzAcopDKISoPqO2v", "65aa0fd42f4f1da39054f7fd"], lvl27:["64z0RGigEH5yITKiMM1bXX", "50535ea7f848e41fd1d37b94"], lvl28:["3ovKRWIBkciu2dtVGPOcPM", "3f7aa969f26e2895dbde7766"]
+};
+// the five with a music video: its YouTube id, the thumbnail there, and the zoom that hides the black bars in it
+const FAN_VIDEOS = { lvl5:["jSx8Krl7kMw", "hqdefault", 1.38], lvl14:["EFxrVS2EFXQ", "maxresdefault", 1.15], lvl16:["RDpj1UPAL8E", "maxresdefault", 1.35],
+  lvl19:["4XSHt9UaoD4", "hqdefault", 1.27], lvl23:["_OcgGxtTYEk", "maxresdefault", 1] };
+const FAN_MILE = { lvl3:"discord", lvl10:"merch", lvl14:"fans", lvl28:"album" };
+let fanNow = [], fanCur = null;     // fanNow: what this visit's runs just earned; fanCur: the card that's up
+function fanGet(){ let s = null; try { s = JSON.parse(localStorage.getItem(FAN_KEY) || "null"); } catch(e){} s = s && typeof s === "object" ? s : {};
+  if (!s.c || typeof s.c !== "object") s.c = {}; if (!s.songs || typeof s.songs !== "object") s.songs = {}; return s; }
+function fanPut(s){ try { localStorage.setItem(FAN_KEY, JSON.stringify(s)); } catch(e){} }
+const fanDay = t => { const d = new Date(t); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); };
+// a card may ask: never yet, or once at least 14 days ago (and its link never tapped)
+const fanMay = c => !c || (!c.done && (!(c.n > 0) || (c.n === 1 && Date.now() - (c.at || 0) >= 14 * 864e5)));
+function fanWants(k){
+  if (k === "discord") return cleared("lvl3");
+  if (k === "ig"){ const t = signedIn() && session.user ? Date.parse(session.user.created_at) : NaN; return t > 0 && t < Date.now() && fanDay(t) !== fanDay(Date.now()); }
+  if (k === "merch") return cleared("lvl10");
+  if (k === "fans") return !STORE && cleared("lvl14");
+  if (k === "album") return albumDone();
+  return false;
+}
+// a cleared run, before it's saved (progress is still the old one): 3 stars on a song for the first time, a milestone
+function fanRun(lv, m){
+  const was = progress[lv.id] || {}, best = Math.max(was.best || 0, m.score | 0), song = "lvl" + lv.num;
+  if (FAN_SONGS[song] && starsOf(lv.id) < 3 && starsOf(lv.id, { cleared:true, best }) === 3){
+    const s = fanGet(); if (!s.songs[song]){ s.pend = song; fanPut(s); fanNow.push("song:" + song); }
+  }
+  if (!was.cleared && FAN_MILE[lv.id]) fanNow.push(FAN_MILE[lv.id]);
+}
+// which card: what was just earned (the biggest first), else catching up, else a song that's waiting
+function fanPick(){
+  const s = fanGet(), ok = k => k.startsWith("song:") ? !s.songs[k.slice(5)] : fanWants(k) && fanMay(s.c[k]);
+  const now = ["album", "fans", "merch", "discord"].filter(k => fanNow.includes(k)).concat(fanNow.filter(k => k.startsWith("song:")).reverse());
+  for (const k of now) if (ok(k)) return k;
+  for (const k of ["discord", "ig", "merch", "fans", "album"]) if (ok(k)) return k;
+  return s.pend && FAN_SONGS[s.pend] && !s.songs[s.pend] ? "song:" + s.pend : null;
+}
+// nothing else today: no fan card yet, and not the app card (browser) or the account card (app)
+function fanFree(){
+  const t = fanDay(Date.now()); if (fanGet().day === t) return false;
+  const a = acnGet(); if (a.at && fanDay(a.at) === t) return false;
+  let ng = null; try { ng = JSON.parse(localStorage.getItem(NUDGE_KEY) || "null"); } catch(e){}
+  return !(ng && ng.at && fanDay(ng.at) === t);
+}
+const fanBusy = () => acnBusy() || !$("credits").classList.contains("hid");
+const fanT = s => window.JAVEDA_T ? window.JAVEDA_T(s) : s;
+// a sentence with the song's name in it ({song}), in the language picked (its element is data-i18n-skip)
+const fanSay = (s, name) => esc(fanT(s)).replace("{song}", "<b>" + esc(name) + "</b>");
+// (Cleared on its own: "Level 3 &middot; ..." reads all the rest as the song's name)
+const fanEb = (id, done) => { const l = levelById(id); return '<div class="eb">Level ' + l.num + ' &middot; ' + esc(l.title) + (done ? '<span> &middot; Cleared</span>' : '') + '</div>'; };
+const fanA = (cls, href, go, html) => '<a class="btn ' + cls + '" href="' + href + '" target="_blank" rel="noopener" data-go="' + go + '">' + html + '</a>';
+const FAN_X = '<button class="x" type="button" data-close aria-label="Close">&times;</button>', FAN_NO = '<button class="no" type="button" data-close>Not now</button>';
+const FAN_ST = '<div class="st3" aria-hidden="true"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div>';
+const FAN_DC = '<svg class="dci" viewBox="0 0 96 96" aria-hidden="true"><rect width="96" height="96" rx="26" fill="#5865f2"/><path d="M20 26h40a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6H40l-12 9v-9h-8a6 6 0 0 1-6-6V32a6 6 0 0 1 6-6z" fill="#fff"/>' +
+  '<circle cx="30" cy="41" r="3.6" fill="#5865f2"/><circle cx="40" cy="41" r="3.6" fill="#5865f2"/><circle cx="50" cy="41" r="3.6" fill="#5865f2"/><path d="M70 40h2a6 6 0 0 1 6 6v16a6 6 0 0 1-6 6h-3v8l-10-8H50a6 6 0 0 1-6-6v-2h16a10 10 0 0 0 10-10z" fill="#c7ccff"/></svg>';
+const FAN_TEE = '<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="fanTg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe45c"/><stop offset="1" stop-color="#ff9f1a"/></linearGradient></defs>' +
+  '<path d="M23 8 L10 14 L3 27 L13 31 L16 27 V57 H48 V27 L51 31 L61 27 L54 14 L41 8 C39.5 12.5 36 15 32 15 C28 15 24.5 12.5 23 8 Z" fill="url(#fanTg)" stroke="#b3410e" stroke-width="1.5" stroke-linejoin="round"/>' +
+  '<path d="M27 9.5 C28.5 12 30 13 32 13 C34 13 35.5 12 37 9.5" fill="none" stroke="#b3410e" stroke-width="1.4" opacity=".6"/></svg>';
+const FAN_SPARKS = [[18, 70, 16], [22, 120, 22, 1], [30, 250, 12], [34, 300, 14, 1], [14, 180, 20]].map(([x, y, f, r]) => '<span class="spark" aria-hidden="true" style="' + (r ? "right" : "left") + ':' + x + 'px; top:' + y + 'px; font-size:' + f + 'px">&#10022;</span>').join("");
+// a card's look and words: { cls, html }
+function fanCard(k){
+  if (k.startsWith("song:")){
+    const id = k.slice(5), lv = levelById(id), v = FAN_VIDEOS[id], sp = FAN_SONGS[id]; if (!lv || !sp) return null;
+    if (v){
+      const url = "https://www.youtube.com/watch?v=" + v[0];
+      return { cls:"fyt", html:FAN_X + fanEb(id) + FAN_ST + '<h3 id="fcT">3 stars! Now watch the video</h3>' +
+        '<a class="art wd" href="' + url + '" target="_blank" rel="noopener" data-go="" aria-label="YouTube"><img src="https://i.ytimg.com/vi/' + v[0] + '/' + v[1] + '.jpg" alt="" style="transform:scale(' + v[2] + ')"><span class="ytp"><i></i></span></a>' +
+        '<p data-i18n-skip>' + fanSay("{song} has a music video. Leave a comment and tell Lazy Jo your score.", lv.title) + '</p>' +
+        fanA("fgo fyt", url, "", "&#9654;&nbsp; Watch &amp; comment") + fanA("fsub", LINKS.youtube, "", "Subscribe to Lazy Jo") + FAN_NO };
+    }
+    const url = "https://open.spotify.com/track/" + sp[0];
+    return { cls:"fsp", html:FAN_X + fanEb(id) + FAN_ST + '<h3 id="fcT">3 stars! Take the song with you</h3>' +
+      '<a class="art sq" href="' + url + '" target="_blank" rel="noopener" data-go="" aria-label="Spotify"><img src="https://i.scdn.co/image/ab67616d0000b273' + sp[1] + '" alt=""></a>' +
+      '<p data-i18n-skip>' + fanSay("You know this one by heart now. Save {song} on Spotify.", lv.title) + '</p>' +
+      fanA("fgo fsp", url, "", "&#9654;&nbsp; Play it on Spotify") + '<p class="fine">In Spotify, tap &#65291; to add it to your playlist.</p>' + FAN_NO };
+  }
+  if (k === "discord") return { cls:"fdc", html:FAN_X + fanEb("lvl3", true) + FAN_DC + '<h3 id="fcT">Join the JAVEDA crew</h3>' +
+    '<div class="fticks"><div><i>&#127942;</i>Challenge news before anyone</div><div><i>&#128172;</i>Talk with other players</div><div><i>&#127908;</i>Lazy Jo is in there too</div></div>' +
+    fanA("fgo fdc", LINKS.discord, "", "Join on Discord") + '<p class="fine">Free. Opens the Discord app or website.</p>' + FAN_NO };
+  if (k === "ig") return { cls:"fig", html:FAN_X + '<div class="eb">Welcome back</div>' +
+    '<a class="igr" href="' + FAN_IG + '" target="_blank" rel="noopener" data-go="" aria-label="Instagram"><img src="fans/artist.jpg" alt=""></a>' +
+    '<div class="ign" data-i18n-skip>Lazy Jo<small>@lazyjo_</small></div><h3 id="fcT">Show Lazy&nbsp;Jo some love</h3>' +
+    '<p>Follow, like and share on Instagram. Every follow helps an independent artist grow.</p>' + fanA("fgo fig", FAN_IG, "", "&#128248;&nbsp; Follow on Instagram") + FAN_NO };
+  if (k === "merch") return { cls:"fmg", html:FAN_X + fanEb("lvl10", true) + '<div class="tee">' + FAN_TEE + '<span class="b10" aria-hidden="true">10</span></div>' +
+    '<h3 id="fcT">10 levels down! Wear the music</h3><p>Lazy Jo merch from Lightning Wolves. Rep the music you just played through.</p>' +
+    fanA("fgo fmg", LINKS.merch, "", "&#128085;&nbsp; Shop the merch") + FAN_NO };
+  if (k === "fans"){
+    const n = MARATHON.filter(l => cleared(l.id)).length, half = n <= 14, all = MARATHON.length;
+    return { cls:"fev", html:FAN_X + fanEb("lvl14", true) +
+      '<div class="half"><div class="bar"><i style="width:' + Math.round(Math.min(n, all) / all * 100) + '%"></i></div><small><span>' + n + ' of ' + all + ' songs</span>' + (half ? '<span>Halfway</span>' : '') + '</small></div>' +
+      '<h3 id="fcT">' + (half ? 'Halfway! Become a True Fan' : 'Become a True Fan') + '</h3>' +
+      '<a class="evart" href="' + LINKS.even + '" target="_blank" rel="noopener" data-go="" aria-label="EVEN"><img src="fans/truefans.jpg" alt=""><span data-i18n-skip>True Fans</span></a>' +
+      '<p>Buy the art on EVEN and support Lazy Jo directly. Your support goes straight to the artist.</p>' + fanA("fgo fev", LINKS.even, "", "&#128156;&nbsp; Become a True Fan") + FAN_NO };
+  }
+  if (k === "album"){
+    const all = MARATHON.length;
+    return { cls:"ffin", html:FAN_SPARKS + FAN_X + fanEb("lvl28", true) + '<div class="chip">' + all + ' / ' + all + ' songs</div><h3 id="fcT">You finished JAVEDA!</h3>' +
+      '<div class="cover"><img src="fans/album.jpg" alt=""></div><p>You played the whole album. Thank you, from Lazy Jo.</p>' +
+      (STORE ? fanA("fgo fmg", LINKS.merch, "merch", "&#128085;&nbsp; Shop the merch")
+        : fanA("fgo fev", LINKS.even, "fans", "&#128156;&nbsp; Become a True Fan") + fanA("fol", LINKS.merch, "merch", "&#128085;&nbsp; Shop the merch")) + FAN_NO };
+  }
+  return null;
+}
+// true: it's up; null: something else is open (try later); false: nothing for now
+function fanShow(){
+  if (navigator.onLine === false || (session && session.offline) || !fanFree()) return false;
+  const k = fanPick(); if (!k) return false;
+  if (fanBusy()) return null;
+  const card = fanCard(k); if (!card) return false;
+  const s = fanGet(), body = $("fcBody");
+  body.className = "card fan " + card.cls; body.innerHTML = card.html; body.scrollTop = 0;
+  s.day = fanDay(Date.now());
+  if (k.startsWith("song:")){ s.songs[k.slice(5)] = 1; if (s.pend === k.slice(5)) delete s.pend; }
+  else { const c = s.c[k] || { n:0 }; c.n = (c.n || 0) + 1; c.at = Date.now(); s.c[k] = c; }
+  fanPut(s); fanCur = k; fanNow = fanNow.filter(x => x !== k);
+  openSheet("fanCard"); return true;
+}
+// a tap on a card's link: that card (and the one the link is for) never asks again
+function fanDone(k){ if (!k) return; const s = fanGet(); if (k.startsWith("song:")) s.songs[k.slice(5)] = 1; else { const c = s.c[k] || { n:0 }; c.done = true; s.c[k] = c; } fanPut(s); }
+$("fcBody").addEventListener("click", e => { const a = e.target.closest("[data-go]"); if (!a) return; fanDone(fanCur); if (a.dataset.go) fanDone(a.dataset.go); setTimeout(() => closeSheet("fanCard"), 300); });
+// back home after a level (or the credits): after the app or account card had its turn; something open: a few more tries
+function maybeFan(wait){
+  let n = 0; const go = () => { if (fanShow() === null && n++ < 3 && !document.body.classList.contains("playing")) setTimeout(go, 3000); };
+  setTimeout(go, wait || 2600);
+}
+// the page opens: catching up, after the account card's moment
+function fanBoot(){ maybeFan(9000); }
+
 // a notification's link: /javeda/#daily (the daily card), #board=<level, or daily> (that scoreboard), #chat or #join (the account card)
 function goTo(hash){
   const m = /^#board=([a-z0-9]+)$/.exec(hash || "");
@@ -5136,7 +5339,7 @@ if (location.hash === "#app"){ history.replaceState(null, "", location.pathname 
   session = data.session; await loadAccount(); loadDaily().then(() => goTo(location.hash)); passReturn();
   if (RECOVERY && session) openNewPassword();
   onlineStart(cfg); setTimeout(chatPeek, 4000);
-  acnBoot(); if (STANDALONE) appSeen("open");
+  acnBoot(); fanBoot(); if (STANDALONE) appSeen("open");
   pushSync(); pushAuto();
   sb.auth.onAuthStateChange((_e, s) => {
     if (_e === "PASSWORD_RECOVERY" && !newPass) setTimeout(openNewPassword, 0);

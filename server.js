@@ -910,47 +910,9 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// Signup endpoint (creates profile with promo code tracking)
-app.post('/api/auth/signup', async (req, res) => {
-  try {
-    const { email, password, promoCode } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'email and password required' });
-
-    const { data, error } = await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-    });
-
-    if (error) return res.status(400).json({ error: error.message });
-
-    const userId = data.user.id;
-
-    // Find referrer from promo code
-    let referredBy = null;
-    if (promoCode) {
-      const { data: referrer } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('promo_code', promoCode.toUpperCase())
-        .single();
-      if (referrer) referredBy = referrer.id;
-    }
-
-    // Create profile
-    await supabase.from('profiles').insert({
-      id: userId,
-      email,
-      role: 'public',
-      referred_by: referredBy,
-      generations_count: 0,
-    });
-
-    res.json({ success: true, userId });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// (2026-11-15: the old /api/auth/signup is gone. It made accounts for any email with the service key, already marked
+// as confirmed and without Supabase's sign-up limits - unlimited fake accounts. Nothing used it: the Studio and JAVEDA
+// sign up through Supabase Auth in the browser.)
 
 // Member dashboard data
 app.get('/api/dashboard', async (req, res) => {

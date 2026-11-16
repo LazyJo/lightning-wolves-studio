@@ -301,7 +301,8 @@ const BACK = canvasTex(1024, 640, (x, w, h) => paintNight(x, w, h, h*.42));
 // the backdrop fills the screen whatever its shape, unstretched, with the horizon HZ of the way down from the top
 const HZ = .19;
 function fitBack(){ const a = innerWidth/innerHeight, img = 1024/640, r = Math.min(.68, img/a), top = .42 - HZ*r;
-  BACK.repeat.set(r*a/img, r); BACK.offset.set((1 - r*a/img)/2 + (a < 1 ? -.04 : 0), 1 - top - r); }
+  BACK.repeat.set(r*a/img, r); BACK.offset.set((1 - r*a/img)/2 + (a < 1 ? -.04 : 0), 1 - top - r);
+  lookFit(); }
 // the sand: pale in the light, darker in the hollows, footprints and little stones
 const SAND = canvasTex(512, 512, (x, w, h) => { x.fillStyle = "#8a7a64"; x.fillRect(0, 0, w, h);
   for (let i = 0; i < 2600; i++){ const a = rnd(i*1.1); x.fillStyle = a > .5 ? "rgba(255,240,210," + (.04 + a*.06) + ")" : "rgba(30,20,10," + (.05 + a*.08) + ")"; x.fillRect(rnd(i*2.3)*w, rnd(i*3.7)*h, 2 + rnd(i)*3, 2 + rnd(i*5)*3); }
@@ -340,9 +341,12 @@ function beach(){ if (BEACH) return BEACH; const g = BEACH = new THREE.Group(); 
   for (let i = 0; i < 6; i++){ const r = new THREE.Mesh(new THREE.DodecahedronGeometry(.6 + rnd(i)*.8, 0), soft(0x2a2a30, .05)); r.position.set(9 + rnd(i*3)*8, .1, -7 - rnd(i*5)*4); r.scale.y = .6; g.add(r); }
   // the pickup, on the right, its nose to the left like on the cover
   const truck = pickup(); truck.position.set(7.4, 0, -2.2); truck.rotation.y = .38; truck.scale.setScalar(1.05); g.add(truck);
-  g.userData = { waves, truck }; return g; }
+  g.userData = { waves, truck };
+  lookBeach(g);
+  return g; }
 function animBeach(g, t, dt, beat){ for (const f of g.userData.waves){ const k = (f.userData.k + t*.07) % 1; f.position.z = -10.5 + k*5.6; f.material.opacity = Math.sin(k*Math.PI)*.8; }
-  for (const s of g.userData.truck.userData.lamps) s.material.opacity = .55 + (beat ? .25 : 0); }
+  for (const s of g.userData.truck.userData.lamps) s.material.opacity = .55 + (beat ? .25 : 0);
+  lookBeachFrame(g, t, dt, beat); }
 // a heart (the flow's ends): a soft puffy 3D heart in one colour
 const HEART_SHAPE = (() => { const s = new THREE.Shape(); s.moveTo(0, -.5); s.bezierCurveTo(-.9, .05, -.45, .65, 0, .25); s.bezierCurveTo(.45, .65, .9, .05, 0, -.5); return s; })();
 const HEART_GEO = new THREE.ExtrudeGeometry(HEART_SHAPE, { depth:.18, bevelEnabled:true, bevelThickness:.08, bevelSize:.06, bevelSegments:3, curveSegments:12 }); HEART_GEO.center();
@@ -446,6 +450,218 @@ const STONE = new THREE.MeshStandardMaterial({ color:0xd8ccb4, roughness:.85, em
 function stones(root, n){ const out = []; for (let r = 0; r < n; r++) for (let c = 0; c < n; c++){ const m = new THREE.Mesh(new THREE.BoxGeometry(cellW(n)*.92, .1, cellW(n)*.92), STONE); m.position.copy(cellPos(n, c, r, .05)); root.add(m); out.push(m); } return out; }
 const iconTex = (w, h, draw) => canvasTex(w, h, (x, ww, hh) => { x.lineCap = "round"; x.lineJoin = "round"; draw(x, ww, hh); });
 
+/* ================= THE LOOK (visual only) =================
+   The night made sharper and alive, the sand given light and shade, and the four boards made to read at a glance.
+   All of it is paint: small canvases made once, a few flat marks laid on the sand, a handful of pooled rings. The
+   games read nothing of it, and it never asks Math.random or a game's counter for a number: its own hash below,
+   by index. Everything here follows what the games already show - it adds no hint of its own. */
+const hash = n => { const x = Math.sin(n*91.7 + 3.3)*15731.743; return x - Math.floor(x); };
+const LK = { t:0, calm:false, sky:null, img:null, hx:0, M:new THREE.Matrix4(), I:new THREE.Matrix4(), C:new THREE.Color(), rings:[], ringK:0 };
+try { LK.calm = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch(e){}
+const rrect = (x, l, t, w, h, r) => { x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath(); };
+
+/* ---- the night, sharp: the painted sky is a small picture blown up, so the heart, the little heart, the moon and
+   the brightest stars are drawn again over their own places, the heart's light beats, thin clouds drift behind it
+   and its light glitters on the sea. All of it rides with the camera, like the painted sky does. ---- */
+const SKY = { hx:.42, hy:.42*.84, hs:.042 };
+const HEART_HI = canvasTex(256, 256, (x, w, h) => { const s = w/3.1, cx = w/2, cy = h/2, hg = x.createRadialGradient(cx, cy - s*.2, s*.1, cx, cy, s*1.3);
+  hg.addColorStop(0, "#c86a6a"); hg.addColorStop(.18, "#ffe8e0"); hg.addColorStop(.6, "#ffd0c4"); hg.addColorStop(1, "#ff8a7a");
+  x.shadowColor = "rgba(255,150,130,.9)"; x.shadowBlur = 9; x.fillStyle = hg; HEART_PATH(x, cx, cy, s*1.03); x.fill(); });
+const HEART_LO = canvasTex(128, 128, (x, w, h) => { const s = w/3.1; x.fillStyle = "#6a1a20"; HEART_PATH(x, w/2, h/2, s*1.03); x.fill(); x.strokeStyle = "rgba(255,120,110,.7)"; x.lineWidth = s*.2; x.stroke(); });
+const HEART_GLOW = radial([[0, "rgba(255,170,150,.9)"], [.3, "rgba(255,110,100,.4)"], [1, "rgba(255,60,60,0)"]], 128);
+// the crescent, with the night painted back where the old one left a dark disc
+const MOON_HI = canvasTex(128, 128, (x, w, h) => { const u = w/.06, cx = w/2 - .0035*u, cy = h/2 + .002*u;
+  const bx = BACK.image.getContext("2d"), sky = dy => { const a = bx.getImageData(1024*.62 - 640*.022, 640*(.76*.42 + dy), 1, 1).data, b = bx.getImageData(1024*.62 + 640*.03, 640*(.76*.42 + dy), 1, 1).data; return "rgb(" + Math.min(a[0], b[0]) + "," + Math.min(a[1], b[1]) + "," + Math.min(a[2], b[2]) + ")"; };
+  const g = x.createLinearGradient(0, cy - .02*u, 0, cy + .012*u); g.addColorStop(0, sky(-.02)); g.addColorStop(1, sky(.012));
+  x.fillStyle = g; x.shadowColor = sky(-.004); x.shadowBlur = 5; x.beginPath(); x.arc(cx + .008*u, cy - .005*u, .0158*u, 0, Math.PI*2); x.fill(); x.shadowBlur = 0;
+  const cv = document.createElement("canvas"); cv.width = w; cv.height = h; const y = cv.getContext("2d");
+  y.fillStyle = "#fffbe8"; y.beginPath(); y.arc(cx, cy, .016*u, 0, Math.PI*2); y.fill(); y.globalCompositeOperation = "destination-out"; y.beginPath(); y.arc(cx + .008*u, cy - .005*u, .015*u, 0, Math.PI*2); y.fill();
+  x.drawImage(cv, 0, 0); });
+const WISP = canvasTex(256, 64, (x, w, h) => { for (let i = 0; i < 11; i++){ const px = 40 + hash(i*3.1)*176, py = 30 + (hash(i*5.3) - .5)*12, rx = 26 + hash(i*7.7)*30, ry = 7 + hash(i*2.3)*7;
+    x.save(); x.translate(px, py); x.scale(1, ry/rx); const g = x.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, "rgba(64,58,88,.8)"); g.addColorStop(.6, "rgba(56,52,80,.5)"); g.addColorStop(1, "rgba(56,52,80,0)"); x.fillStyle = g; x.fillRect(-rx, -rx, rx*2, rx*2); x.restore(); }
+  x.globalCompositeOperation = "source-atop"; const lit = x.createLinearGradient(0, h*.38, 0, h*.8); lit.addColorStop(0, "rgba(236,150,150,0)"); lit.addColorStop(1, "rgba(236,150,150,.6)"); x.fillStyle = lit; x.fillRect(0, 0, w, h); });
+const DASH = canvasTex(32, 32, (x, w, h) => { x.translate(16, 16); x.scale(1, .2); const g = x.createRadialGradient(0, 0, 0, 0, 0, 15); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(.5, "rgba(255,255,255,.55)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(-16, -80, 32, 160); });
+// one flat mark of the sky, in the picture's own measure: across 0..1, down 0..1; s is its side in picture heights
+function skyQuad(tex, tu, ty, sw, sh, col, op, add, order){ const m = new THREE.Mesh(LK.quad, new THREE.MeshBasicMaterial({ map:tex, color:col, transparent:true, opacity:op, depthWrite:false, side:THREE.DoubleSide, blending:add ? THREE.AdditiveBlending : THREE.NormalBlending }));
+  m.position.set(tu, ty, 0); m.scale.set(sw/1.6, -sh, 1); m.frustumCulled = false; m.renderOrder = order; LK.img.add(m); return m; }
+function skyDots(n, tex, size, order){ const geo = new THREE.BufferGeometry(), pos = new Float32Array(n*3), col = new Float32Array(n*3);
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  const p = new THREE.Points(geo, new THREE.PointsMaterial({ map:tex, size, sizeAttenuation:false, vertexColors:true, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+  p.frustumCulled = false; p.renderOrder = order; LK.img.add(p); return { p, pos, col, n }; }
+function lookSky(){ if (LK.sky) return;
+  scene.add(cam);
+  LK.quad = new THREE.PlaneGeometry(1, 1); LK.flat = new THREE.PlaneGeometry(1, 1); LK.flat.rotateX(-Math.PI/2);
+  LK.sky = new THREE.Group(); cam.add(LK.sky); LK.img = new THREE.Group(); LK.sky.add(LK.img);
+  const hs = SKY.hs;
+  // thin clouds, lit from below, drifting behind the heart at their own speeds
+  LK.wisps = [];
+  for (let i = 0; i < 3; i++){ const m = skyQuad(WISP, hash(i*4.7), [.305, .338, .392][i], [.3, .24, .36][i], [.034, .026, .03][i], 0xffffff, [.7, .6, .75][i], false, -30); m.userData.v = [.0042, -.003, .0022][i]; LK.wisps.push(m); }
+  // a line of the heart's light along the horizon, under it
+  skyQuad(DOT, SKY.hx, .42, .62, .012, 0xffb4a4, .55, true, -29);
+  LK.glow = skyQuad(HEART_GLOW, SKY.hx, SKY.hy, hs*5.8, hs*5.8, 0xffffff, .2, true, -28);
+  skyQuad(HEART_HI, SKY.hx, SKY.hy, hs*3.1, hs*3.1, 0xffffff, 1, false, -27);
+  skyQuad(HEART_LO, .33, SKY.hy + hs*.3, hs*.38*3.1, hs*.38*3.1, 0xffffff, 1, false, -27);
+  skyQuad(MOON_HI, .62 + .0035/1.6, .76*.42 - .002, .06, .06, 0xffffff, 1, false, -27);
+  skyQuad(DOT, .62, .76*.42, .11, .11, 0xfff4d8, .16, true, -26);
+  // the brightest of the painted stars, each on its own place, twinkling
+  let n = 0; for (let i = 0; i < 420; i++) if (rnd(i*1.7) > .93) n++;
+  const st = LK.stars = skyDots(n, DOT, 7, -26); n = 0;
+  for (let i = 0; i < 420; i++) if (rnd(i*1.7) > .93){ st.pos[n*3] = rnd(i*3.3) + .8/1024; st.pos[n*3 + 1] = rnd(i*5.1)*.42*.95 + .8/640; n++; }
+  // the heart's light on the sea: glints that come and go in its path
+  const gl = LK.glints = skyDots(56, DASH, 15, -26);
+  for (let i = 0; i < gl.n; i++){ const k = hash(i*1.3 + .5), ty = .426 + k*k*.36, spread = (10 + (ty - .42)*640*.7)/1024; gl.pos[i*3] = SKY.hx + (hash(i*2.1) - .5)*2*spread*hash(i*3.7); gl.pos[i*3 + 1] = ty; }
+  lookSkyTwinkle();
+  lookFit(); }
+function lookSkyTwinkle(){ const st = LK.stars, gl = LK.glints, t = LK.t;
+  for (let i = 0; i < st.n; i++){ const b = .55 + .45*Math.sin(t*(1.1 + hash(i*2.9)*2.4) + i*1.9); st.col[i*3] = b; st.col[i*3 + 1] = b*.96; st.col[i*3 + 2] = b*.9; }
+  for (let i = 0; i < gl.n; i++){ const s = Math.max(0, Math.sin(t*(.9 + hash(i*5.3)*1.9) + i*2.4)), b = s*s*(1 - hash(i*1.3 + .5)*.45)*.85; gl.col[i*3] = b; gl.col[i*3 + 1] = b*.84; gl.col[i*3 + 2] = b*.8; }
+  st.p.geometry.attributes.color.needsUpdate = true; gl.p.geometry.attributes.color.needsUpdate = true; }
+// the sky's marks go where the painted sky is on this screen (fitBack put it there)
+function lookFit(){ if (!LK.sky) return; const D = 300, hh = D*Math.tan(cam.fov*Math.PI/360), hw = hh*cam.aspect, rx = BACK.repeat.x, ry = BACK.repeat.y, ox = BACK.offset.x, oy = BACK.offset.y;
+  LK.img.position.set((-ox/rx*2 - 1)*hw, (2*(1 - oy)/ry - 1)*hh, -D); LK.img.scale.set(2*hw/rx, -2*hh/ry, 1);
+  LK.hx = (SKY.hx - ox)/rx*2 - 1; }
+
+/* ---- the beach: the sea runs into the painted one, the heart's light comes in over the water to the wet sand, the
+   sand falls away into the night round the game, the pickup's headlights lie across it, two walked here ---- */
+const FADE = canvasTex(4, 64, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#000"); g.addColorStop(1, "#fff"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+const SHINE = canvasTex(128, 256, (x, w, h) => { for (let i = 0; i < 170; i++){ const v = hash(i*1.7), y = v*h, spread = (.2 + v*.36)*w/2, len = 5 + hash(i*5.9)*13;
+    x.fillStyle = "rgba(255,216,206," + ((.25 + hash(i*6.1)*.5)*(1 - v*.6)).toFixed(3) + ")"; x.fillRect(w/2 + (hash(i*2.9) - .5)*2*spread*(.35 + .65*hash(i*4.3)) - len/2, y, len, 2); }
+  x.globalCompositeOperation = "destination-in"; const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(0,0,0,.9)"); g.addColorStop(.55, "rgba(0,0,0,.8)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+// the night on the sand: clear round the game, deeper the further from it (drawn in the sand's own measure)
+const NIGHT = canvasTex(256, 128, (x, w, h) => { x.setTransform(w/70, 0, 0, h/28, w/2, 6.5*h/28); const g = x.createRadialGradient(0, .6, 3.8, 0, .6, 15);
+  g.addColorStop(0, "rgba(10,12,32,0)"); g.addColorStop(.35, "rgba(10,12,32,.22)"); g.addColorStop(1, "rgba(10,12,32,.62)"); x.fillStyle = g; x.fillRect(-35, -6.5, 70, 28); });
+const BEAMS = canvasTex(256, 128, (x, w, h) => { x.globalCompositeOperation = "lighter";
+  for (let k = 0; k < 14; k++){ const a = Math.tan(.02 + k*.016)*w, e = 4 + k*1.4, g = x.createLinearGradient(w, 0, 0, 0); g.addColorStop(0, "rgba(255,232,180,0)"); g.addColorStop(.1, "rgba(255,232,180,.085)"); g.addColorStop(.4, "rgba(255,232,180,.045)"); g.addColorStop(1, "rgba(255,232,180,0)");
+    x.fillStyle = g; x.beginPath(); x.moveTo(w, h/2 - e); x.lineTo(w, h/2 + e); x.lineTo(0, h/2 + e + a); x.lineTo(0, h/2 - e - a); x.closePath(); x.fill(); } });
+const STEPS = canvasTex(1024, 128, (x, w, h) => { x.fillStyle = "rgba(34,24,30,.36)";
+  const foot = (px, py, s, side) => { x.save(); x.translate(px, py); x.rotate(side*.12); x.beginPath(); x.ellipse(3.2*s, 0, 6*s, 3.9*s, 0, 0, Math.PI*2); x.ellipse(-4.4*s, side*.5*s, 4.4*s, 2.8*s, 0, 0, Math.PI*2); x.fill(); x.restore(); };
+  for (let i = 0; i < 26; i++){ const side = i % 2 ? 1 : -1; foot(14 + i*40, 42 + Math.sin(i*.45)*5 + side*7, 1.2, side); foot(34 + i*38, 88 + Math.sin(i*.4 + 1)*5 + side*6, 1, side); } });
+// what the games lie on: a patch of dark damp sand, soft at its edge
+const MAT = canvasTex(128, 128, (x, w, h) => { x.fillStyle = x.shadowColor = "rgba(24,18,32,1)"; x.shadowBlur = 9; rrect(x, 15, 15, w - 30, h - 30, 10); x.fill(); });
+const SHADOW = radial([[0, "rgba(16,10,26,.62)"], [.5, "rgba(16,10,26,.4)"], [1, "rgba(16,10,26,0)"]], 64);
+const TINT_SQ = canvasTex(64, 64, (x, w, h) => { x.fillStyle = x.shadowColor = "#fff"; x.shadowBlur = 5; rrect(x, 7, 7, w - 14, h - 14, 8); x.fill(); });
+const TINT_RD = radial([[0, "rgba(255,255,255,1)"], [.62, "rgba(255,255,255,.85)"], [1, "rgba(255,255,255,0)"]], 64);
+const RING = radial([[0, "rgba(255,255,255,0)"], [.5, "rgba(255,255,255,.1)"], [.74, "rgba(255,255,255,1)"], [.86, "rgba(255,255,255,.3)"], [1, "rgba(255,255,255,0)"]], 128);
+// a stone: pale as it was, but no longer burnt out to white - a little rounder at its edge, a grain to it
+const TILE = canvasTex(64, 64, (x, w, h) => { x.fillStyle = "#a59883"; x.fillRect(0, 0, w, h); x.fillStyle = x.shadowColor = "#c9bda6"; x.shadowBlur = 4; rrect(x, 4, 4, w - 8, h - 8, 7); x.fill(); x.shadowBlur = 0;
+  for (let i = 0; i < 60; i++){ x.fillStyle = hash(i*1.9) > .5 ? "rgba(255,250,236,.1)" : "rgba(70,56,40,.08)"; x.fillRect(5 + hash(i*3.3)*52, 5 + hash(i*5.7)*52, 2, 2); }
+  const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,.14)"); g.addColorStop(.4, "rgba(255,255,255,0)"); x.fillStyle = g; rrect(x, 4, 4, w - 8, h - 8, 7); x.fill(); });
+function flatMark(tex, col, op, add, order){ const m = new THREE.Mesh(LK.flat, new THREE.MeshBasicMaterial({ map:tex, color:col, transparent:true, opacity:op, depthWrite:false, blending:add ? THREE.AdditiveBlending : THREE.NormalBlending })); m.renderOrder = order; return m; }
+function lookBeach(g){ if (LK.sky) return; lookSky();
+  let shallow = null; for (const m of g.children) if (m.isMesh && m.geometry.type === "PlaneGeometry" && m.geometry.parameters.height === 4) shallow = m;
+  // the near water goes on out, thinning, into the painted sea
+  if (shallow){ const fm = shallow.material.clone(); fm.alphaMap = FADE; fm.transparent = true; fm.depthWrite = false; const f = new THREE.Mesh(new THREE.PlaneGeometry(70, 3.6), fm); f.rotation.x = -Math.PI/2; f.position.set(0, -.04, -12.3); f.renderOrder = -9; g.add(f); }
+  // the night on the sand (a sheet of its own, the size of the sand: the sand itself is left as it was)
+  const night = flatMark(NIGHT, 0xffffff, 1, false, -9); night.scale.set(70, 1, 28); night.position.set(0, -.012, 7.5); g.add(night);
+  // the sand is damp where the last wave reached, and it left a thin line of foam
+  const damp = new THREE.Mesh(new THREE.PlaneGeometry(70, 1.5), new THREE.MeshBasicMaterial({ color:0x20202a, alphaMap:FADE, transparent:true, opacity:.8, depthWrite:false })); damp.rotation.set(-Math.PI/2, 0, Math.PI); damp.position.set(0, -.008, -3.6); damp.renderOrder = -8; g.add(damp);
+  const lace = flatMark(FOAM, 0xffffff, .3, false, -8); lace.scale.set(70, 1, .28); lace.position.set(0, -.006, -4.28); g.add(lace);
+  // two walked here, side by side
+  const steps = flatMark(STEPS, 0xffffff, 1, false, -7); steps.scale.set(16, 1, 2); steps.position.set(.4, -.006, 4.85); steps.rotation.y = .1; g.add(steps);
+  // the pickup's headlights, lying across the sand
+  const beams = flatMark(BEAMS, 0xffffff, .4, true, -6); beams.scale.set(11, 1, 5.5); beams.position.set(-2.85 - 5.5, -.004, 0); g.userData.truck.add(beams); LK.beams = beams;
+  // the heart's light, come in over the water to the wet sand: two sheets of glints that take turns
+  LK.shine = [];
+  for (let i = 0; i < 2; i++){ const s = flatMark(SHINE, 0xffffff, .5, true, -5); s.material.side = THREE.DoubleSide; s.scale.set(i ? -3.8 : 3.8, 1, 6.6); s.position.set(0, .006, -7.3); g.add(s); LK.shine.push(s); }
+  // pebbles and bits of shell, away from where the games lie
+  const peb = new THREE.InstancedMesh(new THREE.SphereGeometry(.1, 7, 5), new THREE.MeshStandardMaterial({ roughness:.9 }), 46), e = LK.I.elements;
+  for (let i = 0; i < 46; i++){ let px = (hash(i*1.9) - .5)*20; const pz = -3.3 + hash(i*3.1)*9, s = .35 + hash(i*4.3)*.75, k = hash(i*6.7);
+    if (Math.abs(px) < 3.9 && pz < 4.2) px = (px < 0 ? -1 : 1)*(3.9 + hash(i*7.7)*4.5);
+    e[0] = s*1.2; e[5] = s*.5; e[10] = s; e[12] = px; e[13] = .01; e[14] = pz; peb.setMatrixAt(i, LK.I); peb.setColorAt(i, LK.C.setHex(k < .5 ? 0x6e6872 : k < .8 ? 0xb8aa98 : 0xcabcae)); }
+  g.add(peb);
+  // where the saucer lands at the end: its light lies on the sand
+  LK.pool = flatMark(DOT, 0xffe6c0, 0, true, -5); LK.pool.scale.set(4.2, 1, 4.2); LK.pool.visible = false; g.add(LK.pool);
+  // the rings: a few, used again and again
+  for (let i = 0; i < 6; i++){ const r = flatMark(RING, 0xffffff, 0, false, -1); r.visible = false; scene.add(r); LK.rings.push(r); } }
+function ring(x, y, z, hex, size){ const r = LK.rings[LK.ringK++ % LK.rings.length]; if (!r) return; r.position.set(x, y, z); r.material.color.setHex(hex); r.material.opacity = .95; r.userData.s = size; r.scale.set(size*.35, 1, size*.35); r.visible = true; }
+function lookBeachFrame(g, t, dt, beat){ if (!LK.sky) return;
+  if (!LK.calm) LK.t += dt;
+  // the sky
+  LK.glow.material.opacity = .2 + (beat && !LK.calm ? .18 : 0);
+  if (!LK.calm){ for (const m of LK.wisps){ m.position.x += m.userData.v*dt; if (m.position.x > 1.2) m.position.x -= 1.4; else if (m.position.x < -.2) m.position.x += 1.4; }
+    lookSkyTwinkle(); }
+  // the heart's light on the water lies under the heart, wherever the camera is
+  const M = LK.M.multiplyMatrices(cam.projectionMatrix, cam.matrixWorldInverse).elements, z = -7.3, den = M[0] - LK.hx*M[3];
+  const sx = Math.abs(den) > 1e-6 ? clamp((LK.hx*(M[11]*z + M[15]) - (M[8]*z + M[12]))/den, -30, 30) : 0, w = .5 + .5*Math.sin(LK.t*1.3);
+  LK.shine[0].position.x = LK.shine[1].position.x = sx; LK.shine[0].material.opacity = .25 + .4*w + (beat ? .1 : 0); LK.shine[1].material.opacity = .25 + .4*(1 - w) + (beat ? .1 : 0);
+  LK.beams.material.opacity = .36 + (beat ? .08 : 0);
+  // the rings open and fade
+  for (const r of LK.rings) if (r.visible){ const s = Math.min(r.userData.s, r.scale.x + dt*r.userData.s*1.9); r.scale.set(s, 1, s); r.material.opacity -= dt*2.4; if (r.material.opacity <= 0){ r.material.opacity = 0; r.visible = false; } }
+  // the ending: the saucer's glow isn't cut off by the sand any more, and its light lies on it
+  if (END.glow){ if (END.glow.material.depthTest){ END.glow.material.depthTest = false; END.glow.renderOrder = 2; }
+    LK.pool.visible = !!END.on; if (END.on){ LK.pool.position.set(END.glow.position.x, .004, 2.6); LK.pool.material.opacity = Math.min(.24, END.glow.material.opacity*.6); } } }
+
+/* ---- what the four games share: the patch they lie on, shade under what stands up, a wash of colour on a stone ---- */
+function lookGame(g, w, l, z){ const mat = flatMark(MAT, 0xffffff, .5, false, -4); mat.scale.set(w, 1, l); mat.position.set(0, .004, z); g.root.add(mat);
+  if (!LK.tile){ LK.tile = new THREE.MeshStandardMaterial({ map:TILE, roughness:.85, emissive:0x4a4030, emissiveIntensity:.22 }); LK.pad = new THREE.MeshStandardMaterial({ color:0xc4b8a2, roughness:.85, emissive:0x4a4030, emissiveIntensity:.22 }); }
+  return { mat }; }
+function marks(root, max, tex, op, order){ const m = new THREE.InstancedMesh(LK.flat, new THREE.MeshBasicMaterial({ map:tex, transparent:true, opacity:op, depthWrite:false }), max);
+  m.setColorAt(0, LK.C.setHex(0xffffff));
+  m.userData.max = max; m.frustumCulled = false; m.count = 0; m.visible = false; m.renderOrder = order; root.add(m); return m; }
+function markAt(m, n, x, y, z, s, hex){ if (n >= m.userData.max) return n; const e = LK.I.elements; e[0] = s; e[5] = 1; e[10] = s; e[12] = x; e[13] = y; e[14] = z; m.setMatrixAt(n, LK.I); m.setColorAt(n, LK.C.setHex(hex)); return n + 1; }
+function marksDone(m, n){ m.count = n; m.visible = n > 0; m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; }
+
+/* ---- Heart Flow: the lines are lines of light in their own colours (they had burnt out, so blue, green and
+   turquoise looked alike), a stone a line lies on takes its colour, a linked pair glows and beats ---- */
+function lookFlow(g){ const L = g.look = lookGame(g, 6.6, 6.6, BOARD.Z); L.was = [];
+  L.soft = marks(g.root, 72, TINT_SQ, .3, -3); L.full = marks(g.root, 56, TINT_SQ, .55, -3); L.shade = marks(g.root, 16, SHADOW, 1, -2);
+  L.line = FLOW_COLS.map(c => new THREE.MeshBasicMaterial({ color:c })); }
+function lookFlowFrame(g, t, dt, beat){ const L = g.look; if (!L) return; const n = g.n, w = cellW(n), o = (n - 1)/2;
+  if (L.tiles !== g.tiles){ L.tiles = g.tiles; L.was.length = 0; for (const m of g.tiles) m.material = LK.tile; for (const m of g.ends) m.material.color.multiplyScalar(.8); }
+  for (const m of g.pipes.children) if (m.material.isMeshStandardMaterial) m.material = L.line[Math.max(0, FLOW_COLS.indexOf(m.material.color.getHex()))];
+  let a = 0, b = 0, s = 0;
+  for (let i = 0; i < g.pairs.length; i++){ const P = g.paths[i], on = g.linked(i), hex = FLOW_COLS[i % 8];
+    for (let k = 0; k < P.length; k++){ const x = (P[k][0] - o)*w, z = (P[k][1] - o)*w + BOARD.Z; if (on) a = markAt(L.full, a, x, .104, z, w*.92, hex); else b = markAt(L.soft, b, x, .104, z, w*.92, hex); }
+    for (let k = 0; k < 2; k++){ const p = g.pairs[i][k], x = (p[0] - o)*w, z = (p[1] - o)*w + BOARD.Z, m = g.ends[i*2 + k]; b = markAt(L.soft, b, x, .104, z, w*.92, hex); s = markAt(L.shade, s, x + w*.03, .106, z + w*.07, w*.86, 0xffffff);
+      if (m) m.material.emissiveIntensity = on ? .36 + (beat ? .12 : 0) : .2;
+      if (on && !L.was[i]) ring(x, .3, z, hex, w*2.3); }
+    L.was[i] = on; }
+  L.full.material.opacity = .5 + (beat ? .12 : 0);
+  marksDone(L.full, a); marksDone(L.soft, b); marksDone(L.shade, s); }
+
+/* ---- Crab Sweeper: mounds that look like mounds (they were burnt out to white), dug ones like hollows with a rim,
+   the numbers on the dark of the hollow ---- */
+const MOUND_TEX = canvasTex(64, 64, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#ffffff"); g.addColorStop(.5, "#f0e6d4"); g.addColorStop(.86, "#c2b094"); g.addColorStop(1, "#8e7e68"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 110; i++){ x.fillStyle = hash(i*1.3) > .5 ? "rgba(255,252,240,.16)" : "rgba(90,70,48,.14)"; x.fillRect(hash(i*2.9)*w, hash(i*4.1)*h, 2, 2); } });
+const PIT_TEX = canvasTex(8, 64, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#4e4034"); g.addColorStop(.62, "#5a4a3c"); g.addColorStop(.8, "#76624c"); g.addColorStop(.93, "#b8a07a"); g.addColorStop(1, "#7a6850"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+function lookCrabs(g){ const L = g.look = lookGame(g, 6.6, 6.6, BOARD.Z); L.dug = 0; L.found = 0;
+  MOUND.map = MOUND_TEX; MOUND.color.setHex(0xe4d4b2); MOUND.emissiveIntensity = .2; MOUND.needsUpdate = true;
+  DUG.map = PIT_TEX; DUG.color.setHex(0xffffff); DUG.emissiveIntensity = .3; DUG.needsUpdate = true; }
+function lookCrabsFrame(g, t, dt, beat){ const L = g.look; if (!L) return; const w = cellW(g.n);
+  if (S.last && S.found > L.found) ring(S.last.x, .2, S.last.z, 0xff5a3a, w*2.6); else if (S.last && S.dug > L.dug) ring(S.last.x, .12, S.last.z, 0xfff2d6, w*1.9);
+  L.dug = S.dug; L.found = S.found; }
+
+/* ---- Starlight: a lit star is gold and its stone glows with it; a dark one is as dark as it was ---- */
+function lookStars(g){ const L = g.look = lookGame(g, 6.6, 6.6, BOARD.Z); L.boards = 0;
+  L.lit = marks(g.root, 25, TINT_RD, .8, -3); L.shade = marks(g.root, 25, SHADOW, .9, -2); }
+function lookStarsFrame(g, t, dt, beat){ const L = g.look; if (!L) return; const w = cellW(g.n);
+  if (L.cells !== g.cells){ L.cells = g.cells; for (const x of g.cells){ x.pad.material = LK.pad; x.m.material.emissive.setHex(0xff7a00); } }
+  let a = 0, s = 0;
+  for (const x of g.cells){ const p = x.pad.position; s = markAt(L.shade, s, p.x + w*.02, .086, p.z + w*.05, w*.8, 0xffffff);
+    if (x.on){ x.m.material.color.setHex(0xff7a16); a = markAt(L.lit, a, p.x, .085, p.z, w*.98, 0xffb840); } }
+  L.lit.material.opacity = .72 + (beat ? .16 : 0);
+  marksDone(L.lit, a); marksDone(L.shade, s);
+  if (S.boards > L.boards) ring(0, .35, BOARD.Z, 0xffd070, BOARD.SIZE*1.5);
+  L.boards = S.boards; }
+
+/* ---- Shell Sudoku: every picture gets a dark edge (the pale moon was lost on the pale stone), the tray stands on
+   the same patch as the board, the picture you hold has light under it ---- */
+function lookIcons(){ if (LK.icons) return; LK.icons = true;
+  for (const tex of SYM_TEX){ const cv = tex.image, w = cv.width, h = cv.height, x = cv.getContext("2d"), dk = document.createElement("canvas"); dk.width = w; dk.height = h; const y = dk.getContext("2d");
+    y.drawImage(cv, 0, 0); y.globalCompositeOperation = "source-in"; y.fillStyle = "#241428"; y.fillRect(0, 0, w, h);
+    x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = "destination-over"; x.globalAlpha = .8; for (let i = 0; i < 12; i++) x.drawImage(dk, Math.cos(i/12*Math.PI*2)*3, Math.sin(i/12*Math.PI*2)*3);
+    x.globalAlpha = 1; x.globalCompositeOperation = "source-over"; tex.needsUpdate = true; } }
+function lookSudoku(g){ const L = g.look = lookGame(g, 7.5, 8.4, BOARD.Z + .52); L.placed = 0; lookIcons();
+  L.shade = marks(g.root, 6, SHADOW, .9, -2); L.held = flatMark(TINT_RD, 0xffd070, .55, true, -3); g.root.add(L.held); }
+function lookSudokuFrame(g, t, dt, beat){ const L = g.look; if (!L) return; const w = cellW(g.n);
+  if (L.cells !== g.cells){ L.cells = g.cells; for (const x of g.cells) x.m.material = LK.tile; for (const b of g.tray) b.children[0].material = LK.pad; }
+  let s = 0; L.held.visible = false;
+  for (const b of g.tray){ const p = b.position; s = markAt(L.shade, s, p.x + .04, .009, p.z + .08, 1.3, 0xffffff);
+    if (b.userData.k === S.pick){ L.held.visible = true; L.held.position.set(p.x, .012, p.z); L.held.scale.set(beat ? 2.2 : 2, 1, beat ? 2.2 : 2); } }
+  marksDone(L.shade, s);
+  if (S.last && S.placed > L.placed) ring(S.last.x, .16, S.last.z, 0xffb090, w*2);
+  L.placed = S.placed; }
+
 /* =============== 1. HEART FLOW: link the hearts in the sand =============== */
 // Pairs of hearts in the same colour on a grid of stones. Drag from a heart to draw a line of light to its
 // partner - lines can't cross, and drawing over another one cuts it. Link every pair for the next beach
@@ -455,7 +671,8 @@ const same = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
 const adj = (a, b) => Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) === 1;
 const FLOW = {
   setup(){ boot(48); this.w = beach(); this.root = new THREE.Group(); scene.add(this.root); this.tiles = []; this.ends = []; this.pipes = new THREE.Group(); this.root.add(this.pipes);
-    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); }
+    lookFlow(this); },
   reset(){ Object.assign(S, { board:S.lap, boards:kept(S.boards), links:kept(S.links), k:kept(S.k, 1), nextAt:0, last:null, deadline:0 }); lastT = 0; this.drag = null; this.make(startT()); say("HEART FLOW", "drag from a heart to its partner", 2.4); },
   info(){ return this.pairs.filter((_, i) => this.linked(i)).length + "/" + this.pairs.length + " LINKED · BEACH " + (S.board + 1); }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
   // a way through every stone (the backbite walk mixes it up), cut into pieces: each piece is a pair and its line
@@ -509,6 +726,7 @@ const FLOW = {
   render(t){ const dt = dtOf(t), beat = onBeat(t); if (this.dirty) this.rebuild();
     this.ends.forEach((m, j) => { const i = Math.floor(j/2), on = this.linked(i); m.position.y = m.userData.base + (on ? .08 + (beat ? .05 : 0) : 0); m.rotation.z = on ? Math.sin(t*3 + j)*.15 : 0; });
     animBeach(this.w, t, dt, beat);
+    lookFlowFrame(this, t, dt, beat);
     hover(S.last || new THREE.Vector3(0, 0, BOARD.Z), t, dt);
     sandCam();
   }
@@ -535,7 +753,8 @@ function flagMesh(){ const g = new THREE.Group(); const st = new THREE.Mesh(new 
 const CRABS = {
   act:"FLAG",
   setup(){ boot(48); this.w = beach(); this.root = new THREE.Group(); scene.add(this.root); this.cells = [];
-    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); }
+    lookCrabs(this); },
   reset(){ Object.assign(S, { board:S.lap, boards:kept(S.boards), dug:kept(S.dug), found:kept(S.found), k:kept(S.k, 1), nextAt:0, last:null, deadline:0, flagMode:false }); lastT = 0; this.hold = null; this.make(startT()); say("CRAB SWEEPER", "tap to dig - the numbers count the crabs around", 2.4); },
   info(){ const left = this.cells.filter(x => !x.crab && !x.open).length; return left + " TO DIG · " + this.crabs + " CRABS"; }, warn(){ return false; },
   make(t){ for (const x of this.cells){ this.root.remove(x.m); if (x.num) this.root.remove(x.num); if (x.flag) this.root.remove(x.flag); if (x.crabM) this.root.remove(x.crabM); }
@@ -572,6 +791,7 @@ const CRABS = {
       if (x.flag) x.flag.rotation.y = Math.sin(t*2 + x.c)*.3; }
     $("act").textContent = S.flagMode ? "FLAG ON" : "FLAG"; $("act").classList.toggle("on", !!S.flagMode);
     animBeach(this.w, t, dt, beat);
+    lookCrabsFrame(this, t, dt, beat);
     hover(S.last || new THREE.Vector3(0, 0, BOARD.Z), t, dt);
     sandCam();
   }
@@ -585,7 +805,8 @@ const STAR_SHAPE = (() => { const s = new THREE.Shape(); for (let i = 0; i < 10;
 const STAR_GEO = new THREE.ExtrudeGeometry(STAR_SHAPE, { depth:.1, bevelEnabled:true, bevelThickness:.04, bevelSize:.03, bevelSegments:2 }); STAR_GEO.center();
 const STARS = {
   setup(){ boot(48); this.w = beach(); this.root = new THREE.Group(); scene.add(this.root); this.cells = [];
-    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); }
+    lookStars(this); },
   reset(){ Object.assign(S, { board:S.lap, boards:kept(S.boards), moves:kept(S.moves), k:kept(S.k, 1), nextAt:0, last:null, deadline:0 }); lastT = 0; this.make(startT()); say("STARLIGHT", "tap a star: it and its neighbours change", 2.4); },
   info(){ return this.cells.filter(x => x.on).length + "/" + this.cells.length + " LIT · MADE IN " + this.made + " TAPS"; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
   make(t){ for (const x of this.cells){ this.root.remove(x.pad); this.root.remove(x.m); this.root.remove(x.g); } const n = this.n = S.board < 1 ? 3 : S.board < 3 ? 4 : 5; this.cells = [];
@@ -609,6 +830,7 @@ const STARS = {
     for (const x of this.cells){ const e = x.on ? .55 + (beat ? .2 : 0) : 0; x.m.material.emissiveIntensity += (e - x.m.material.emissiveIntensity)*Math.min(1, dt*10); x.m.material.color.setHex(x.on ? 0xffe8a0 : 0x3a4060);
       x.g.material.opacity = x.on ? .22 + (beat ? .12 : 0) : 0; if (x.pop > 0){ x.pop -= dt; x.m.position.y = .16 + x.pop; } else x.m.position.y = .16; x.m.rotation.z = Math.sin(t + x.c + x.r)*.1; }
     animBeach(this.w, t, dt, beat);
+    lookStarsFrame(this, t, dt, beat);
     hover(S.last || new THREE.Vector3(0, 0, BOARD.Z), t, dt);
     sandCam();
   }
@@ -632,7 +854,8 @@ const SYM = [
 const SYM_TEX = SYM.map(f => iconTex(128, 128, f));
 const SDK = {
   setup(){ boot(48); this.w = beach(); this.root = new THREE.Group(); scene.add(this.root); this.cells = []; this.tray = []; this.lines = [];
-    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); } },
+    if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.42); scene.add(ME); }
+    lookSudoku(this); },
   reset(){ Object.assign(S, { board:S.lap, boards:kept(S.boards), placed:kept(S.placed), wrong:kept(S.wrong), k:kept(S.k, 1), nextAt:0, last:null, deadline:0, pick:0 }); lastT = 0; this.make(startT()); say("SHELL SUDOKU", "each picture once in every row, column and box", 2.4); },
   info(){ return this.cells.filter(x => x.v < 0).length + " TO FILL · " + this.n + "x" + this.n; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
   // a solved grid from the pattern, mixed up (pictures, rows in a band, bands, columns in a stack, stacks)
@@ -677,6 +900,7 @@ const SDK = {
     this.tray.forEach(b => { const on = b.userData.k === S.pick; b.position.y = .05 + (on ? .2 + (beat ? .05 : 0) : 0); b.scale.setScalar(on ? 1.15 : 1); });
     for (const x of this.cells){ if (x.bad > 0){ x.bad -= dt; x.m.position.x = cellPos(this.n, x.c, x.r).x + Math.sin(t*60)*.03; } if (x.pop > 0 && x.s){ x.pop -= dt; x.s.scale.setScalar(1 + x.pop); } }
     animBeach(this.w, t, dt, beat);
+    lookSudokuFrame(this, t, dt, beat);
     hover(S.last || new THREE.Vector3(0, 0, BOARD.Z), t, dt);
     sandCam();
   }

@@ -150,6 +150,9 @@ button:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
 @media (max-height:520px){ .panel{gap:8px} .col{row-gap:7px} .logo span{font-size:36px} .who button{width:138px; padding:6px} .big{padding:10px 34px; font-size:19px} }
 @media (max-height:430px){ #menu .hint, #menu .perk{display:none} .stage{height:clamp(120px,40vh,200px)} }
 @media (prefers-reduced-motion:reduce){ #msg,#toast,#speed,#coins{transition:none} }
+/* THE LOOK (visual only): on the menu and in the garage the stage is a clear window on your craft - the panel's dusk is laid round the stage, not over it; a little shade under the stage's label */
+#menu, #ward{background:none}
+#menu .stage, #ward .stage{z-index:-1; background:linear-gradient(180deg,#0b041600 58%,#0b0416b8 100%); box-shadow:inset 0 0 40px #7b2ff733, 0 0 30px #7b2ff733, 0 0 0 200vmax #0b0416ad}
 </style>
 
 <div id="cab"></div>
@@ -1146,6 +1149,7 @@ function render(dt){
   const k = camInit ? Math.min(1, dt*(S && S.mode === "run" ? 10 : 3)) : 1; camInit = true;
   cam.position.lerp(CAMP, k); LOOK.lerp(CAML, k); cam.lookAt(LOOK);
   skyM.position.copy(cam.position);
+  lookFrame(t, dt, at, live);
   ren.render(scene, cam);
   stage(t, dt, at);
 }
@@ -1163,7 +1167,9 @@ function stage(t, dt, at){
   // from the side and a little ahead: the craft, and its trail streaming out behind
   const d = (stageCam.aspect < .9 ? 7.6 : 6.4) + (jo ? 0 : 2.6); stageCam.position.set(d*.9, 1.9, F - d*.42); stageCam.lookAt(0, jo ? .95 : 1.15, F + .5);
   const y = innerHeight - r.bottom; ren.setScissorTest(true); ren.setScissor(r.left, y, r.width, r.height); ren.setViewport(r.left, y, r.width, r.height);
+  lookStage(F, true);
   ren.render(scene, stageCam); ren.setScissorTest(false); ren.setViewport(0, 0, innerWidth, innerHeight);
+  lookStage(F, false);
   CRAFT.visible = keep.vis; CRAFT.position.copy(keep.p); CRAFT.rotation.copy(keep.r); CRAFT.scale.setScalar(keep.s); TRAIL.group.visible = keep.tv;
 }
 function hud(){
@@ -1189,6 +1195,148 @@ function frame(){
     render(dt);
   } catch(e){ if (!crashed){ crashed = e; console.error(e); } }
   requestAnimationFrame(frame);
+}
+
+/* ================= THE LOOK (visual only) =================
+   District 9 set back a step so the run reads in front of it; the roof you fly over given a wet top, a kerb of
+   light and a front with floors of windows that falls away into the dark; light on the roof under your craft, in
+   its own colour (a bought skin throws its own light), under the critters and under a zapper that comes down to
+   the roof or up to the girder; a glow round the Big Wolf Coin; rain that lands; a lit pad under the craft on the
+   stage of the menu and the garage.
+   All of it is paint: canvases made once, a few flat sheets that ride along with the street, pooled marks. The
+   game reads nothing of it, and it never asks Math.random (the run's dice) for a number: its own hash, by index.
+   It only follows what the game already shows - no mark of its own for where to fly or when. Take this block and
+   the four look...() lines out and the file is as it was. */
+const hash = n => { const x = Math.sin(n*91.7 + 3.3)*15731.743; return x - Math.floor(x); };
+const LK = { t:0, calm:false, M:new THREE.Matrix4(), C:new THREE.Color(), keep:{}, spK:0 };
+try { LK.calm = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch(e){}
+function lookTex(w, h, draw){ const cv = document.createElement("canvas"); cv.width = w; cv.height = h; draw(cv.getContext("2d"), w, h); return new THREE.CanvasTexture(cv); }
+// the night air between the roof and the towers: evenly over the height you fly in, deeper above the girder
+const LK_VEIL = () => lookTex(4, 256, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "rgba(8,3,20,.74)"); g.addColorStop(.38, "rgba(10,4,24,.62)"); g.addColorStop(.44, "rgba(12,5,30,.5)"); g.addColorStop(1, "rgba(12,5,30,.5)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+// the front of the building you fly over, 30 m of it by 20 m down: a parapet, floors of windows (few lit, and
+// dimmer than the city's), piers, a ledge under every floor; it sinks into the dark
+const LK_FACE = () => lookTex(1024, 512, (x, w, h) => { const X = w/30, Y = h/20, cols = ["#ffd27a", "#8ae9ff", "#ff7ad8", "#c9b3ff"];
+  const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#38207a"); g.addColorStop(.14, "#2a1860"); g.addColorStop(.42, "#170c36"); g.addColorStop(.7, "#0c0520"); g.addColorStop(1, "#080314"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.fillStyle = "#4a2c96"; x.fillRect(0, 0, w, .4*Y); x.fillStyle = "rgba(8,3,20,.6)"; x.fillRect(0, .4*Y, w, .12*Y);
+  for (let f = 0; f < 6; f++){ const y0 = (1.05 + f*3.1)*Y, fade = Math.max(.06, Math.pow(Math.max(0, 1 - f*.2), 1.5));
+    x.fillStyle = "rgba(170,130,255," + (.2*fade).toFixed(3) + ")"; x.fillRect(0, y0 + 1.95*Y, w, 2); x.fillStyle = "rgba(6,2,16,.5)"; x.fillRect(0, y0 + 1.95*Y + 2, w, 3);
+    for (let c = 0; c < 20; c++){ const x0 = (c*1.5 + .28)*X, v = hash(f*31.7 + c*7.3);
+      if (c % 5 === 4){ x.fillStyle = "rgba(6,2,16,.42)"; x.fillRect((c*1.5 + .45)*X, y0 - .5*Y, .6*X, 3.1*Y); x.fillStyle = "rgba(170,130,255," + (.14*fade).toFixed(3) + ")"; x.fillRect((c*1.5 + .45)*X, y0 - .5*Y, 1.5, 3.1*Y); continue; }
+      x.fillStyle = "#0c0620"; x.fillRect(x0, y0, .94*X, 1.5*Y);
+      if (v < .19){ x.globalAlpha = (.3 + hash(c*3.1 + f)*.2)*fade; x.fillStyle = cols[Math.floor(hash(f*5.3 + c*1.9)*4)]; x.fillRect(x0 + 2, y0 + 2, .94*X - 4, 1.5*Y - 4); x.globalAlpha = 1;
+        x.fillStyle = "rgba(12,6,32,.45)"; x.fillRect(x0 + 2, y0 + 2, .94*X - 4, (.25 + hash(c*9.7 + f*2.3)*.5)*Y); }
+      else { x.fillStyle = "rgba(150,120,230," + (.07*fade).toFixed(3) + ")"; x.fillRect(x0 + 2, y0 + 2, .94*X - 4, .5*Y); }
+      x.fillStyle = "rgba(6,2,16,.55)"; x.fillRect(x0 + .47*X - 1, y0, 2, 1.5*Y);
+      x.fillStyle = "rgba(190,160,255," + (.2*fade).toFixed(3) + ")"; x.fillRect(x0 - 2, y0 + 1.5*Y, .94*X + 4, 2); } } });
+// the roof's top, 30 m of it (along) by its 7 m (across; the bottom of the picture is the kerb on your side):
+// slabs with their seams, neon lying in the wet, a pale kerb with dashes that go by
+const LK_ROOF = () => lookTex(1024, 64, (x, w, h) => { const X = w/30, neon = ["255,90,170", "70,210,255", "190,140,255"];
+  for (let p = 0; p < 6; p++){ x.fillStyle = "rgba(10,4,26," + (.06 + hash(p*3.7)*.16).toFixed(3) + ")"; x.fillRect(p*5*X, 0, 5*X, h);
+    x.fillStyle = "rgba(8,3,20,.55)"; x.fillRect(p*5*X, 0, 3, h); x.fillStyle = "rgba(205,175,255,.2)"; x.fillRect(p*5*X + 3, 0, 2, h); }
+  for (let i = 0; i < 13; i++){ const rx = 34 + hash(i*2.3)*64, ry = 4 + hash(i*5.1)*5, px = rx + hash(i*1.7)*(w - 2*rx), py = 10 + hash(i*4.3)*(h - 28);
+    x.save(); x.translate(px, py); x.scale(1, ry/rx); const g = x.createRadialGradient(0, 0, 0, 0, 0, rx), c = neon[i % 3];
+    g.addColorStop(0, "rgba(" + c + ",.3)"); g.addColorStop(.6, "rgba(" + c + ",.14)"); g.addColorStop(1, "rgba(" + c + ",0)"); x.fillStyle = g; x.fillRect(-rx, -rx, 2*rx, 2*rx); x.restore(); }
+  const far = x.createLinearGradient(0, 0, 0, 12); far.addColorStop(0, "rgba(8,3,20,.4)"); far.addColorStop(1, "rgba(8,3,20,0)"); x.fillStyle = far; x.fillRect(0, 0, w, 12);
+  x.fillStyle = "rgba(200,165,255,.2)"; x.fillRect(0, h - 9, w, 9);
+  for (let d = 0; d < 15; d++){ x.fillStyle = "rgba(244,228,255,.6)"; x.fillRect((d*2 + .2)*X, h - 6, .9*X, 3); } });
+// light along the kerb: a thin bright line at the rail, spilling a little way down the wall
+const LK_KERB = () => lookTex(4, 64, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.2, "rgba(255,255,255,.5)"); g.addColorStop(.27, "rgba(255,255,255,1)"); g.addColorStop(.36, "rgba(255,255,255,.42)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+const LK_SOFT = () => radial([[0, "rgba(255,255,255,.95)"], [.45, "rgba(255,255,255,.4)"], [1, "rgba(255,255,255,0)"]], 64);
+// the pad on the stage: a ring of light with marks round it
+const LK_PAD = () => lookTex(256, 256, (x, w, h) => { x.translate(w/2, h/2); const g = x.createRadialGradient(0, 0, 0, 0, 0, 120);
+  g.addColorStop(0, "rgba(255,255,255,.2)"); g.addColorStop(.7, "rgba(255,255,255,.07)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(-128, -128, 256, 256);
+  x.strokeStyle = "rgba(255,255,255,.9)"; x.lineWidth = 3; x.beginPath(); x.arc(0, 0, 100, 0, Math.PI*2); x.stroke(); x.strokeStyle = "rgba(255,255,255,.4)"; x.lineWidth = 1.5; x.beginPath(); x.arc(0, 0, 84, 0, Math.PI*2); x.stroke();
+  x.fillStyle = "rgba(255,255,255,.85)"; for (let i = 0; i < 24; i++){ x.save(); x.rotate(i/24*Math.PI*2); x.fillRect(-1.5, -116, 3, i % 6 ? 7 : 13); x.restore(); } });
+const lookCraftCol = () => { const u = CRAFT && CRAFT.userData; return !u || !u.skin ? 0xffffff : u.char === "jo" ? u.skin.glow : u.skin.flame; };
+// three.js names every new object with Math.random, and the run's dice are Math.random too: while this block
+// builds, the names come from the hash, so the dice never notice it was here
+function lookBuild(){ const dice = Math.random; let k = 0;
+  Math.random = () => hash(++k*.731);
+  try { lookMake(); } finally { Math.random = dice; }
+}
+function lookMake(){
+  const VEIL = LK_VEIL(), FACE = LK_FACE(), ROOF = LK_ROOF(), KERB = LK_KERB(), SOFT = LK_SOFT(), PAD = LK_PAD();
+  const flat = new THREE.PlaneGeometry(1, 1); flat.rotateX(-Math.PI/2);
+  const glow = (map, color, opacity) => new THREE.MeshBasicMaterial({ map, color, transparent:true, opacity, depthWrite:false, blending:THREE.AdditiveBlending, side:THREE.DoubleSide });
+  const aniso = Math.min(4, ren.capabilities.getMaxAnisotropy());
+  // the city a step back: one sheet of night air behind the roof (the neon signs behind it dim with the windows)
+  LK.veil = new THREE.Mesh(new THREE.PlaneGeometry(700, 80), new THREE.MeshBasicMaterial({ map:VEIL, transparent:true, depthWrite:false, fog:false }));
+  LK.veil.rotation.y = Math.PI/2; LK.veil.renderOrder = -6; scene.add(LK.veil);
+  for (const slot of CITY.slots) slot.sign.renderOrder = -7;
+  // the roof: its front, its top, its kerb. Three long sheets that step along with the street's own segments
+  FACE.wrapS = THREE.RepeatWrapping; FACE.repeat.set(8, 1); FACE.anisotropy = aniso;
+  LK.face = new THREE.Mesh(new THREE.PlaneGeometry(240, 20), new THREE.MeshBasicMaterial({ map:FACE }));
+  LK.face.rotation.y = Math.PI/2; LK.face.position.set(3.53, -10, 0); scene.add(LK.face);
+  ROOF.wrapS = THREE.RepeatWrapping; ROOF.repeat.set(8, 1); ROOF.anisotropy = aniso;
+  const tg = new THREE.PlaneGeometry(240, 7); tg.rotateX(-Math.PI/2); tg.rotateY(Math.PI/2);
+  LK.top = new THREE.Mesh(tg, new THREE.MeshBasicMaterial({ map:ROOF, transparent:true, depthWrite:false }));
+  LK.top.position.y = .012; LK.top.renderOrder = -5; scene.add(LK.top);
+  LK.kerb = new THREE.Mesh(new THREE.PlaneGeometry(240, .9), glow(KERB, 0xc77dff, .6));
+  LK.kerb.rotation.y = Math.PI/2; LK.kerb.position.set(3.57, -.2, 0); LK.kerb.renderOrder = -4; scene.add(LK.kerb);
+  // light on the roof under your craft, and on the girder when you are up against it
+  LK.pool = new THREE.Mesh(flat, glow(SOFT, 0xffffff, 0)); LK.pool.position.y = .03; LK.pool.renderOrder = -3; LK.pool.visible = false; scene.add(LK.pool);
+  LK.pool2 = new THREE.Mesh(flat, glow(SOFT, 0xffffff, 0)); LK.pool2.position.y = CEIL - .03; LK.pool2.renderOrder = -3; LK.pool2.visible = false; scene.add(LK.pool2);
+  // and a soft light in the night air behind it, so a dark skin still stands clear of the city
+  LK.back = new THREE.Sprite(new THREE.SpriteMaterial({ map:SOFT, color:0xffffff, transparent:true, opacity:.2, depthWrite:false, blending:THREE.AdditiveBlending })); LK.back.renderOrder = -3; LK.back.visible = false; scene.add(LK.back);
+  // under the critters; under a zapper that reaches the roof or the girder (its own colour); round the Big Wolf Coin
+  LK.crit = new THREE.InstancedMesh(flat, glow(SOFT, 0xff3d8b, .42), critters.length); LK.crit.count = 0; LK.crit.frustumCulled = false; LK.crit.renderOrder = -3; scene.add(LK.crit);
+  LK.zap = new THREE.InstancedMesh(flat, glow(SOFT, 0xffffff, .6), zaps.length*2); LK.zap.frustumCulled = false; LK.zap.renderOrder = -3;
+  for (let i = 0; i < zaps.length*2; i++) LK.zap.setColorAt(i, LK.C.setHex(0));
+  LK.zap.count = 0; scene.add(LK.zap);
+  const hg = new THREE.BufferGeometry(); LK.bigPos = new Float32Array(24*3); hg.setAttribute("position", new THREE.BufferAttribute(LK.bigPos, 3)); hg.setDrawRange(0, 0);
+  LK.big = new THREE.Points(hg, new THREE.PointsMaterial({ map:DOT, color:0xffb81a, size:4.4, transparent:true, opacity:.42, depthWrite:false, blending:THREE.AdditiveBlending }));
+  LK.big.frustumCulled = false; scene.add(LK.big);
+  // rain landing on the roof: specks that flash and go
+  const n = LK.calm ? 0 : 44, sg = new THREE.BufferGeometry(); LK.spN = n; LK.spPos = new Float32Array(n*3); LK.spCol = new Float32Array(n*3); LK.spLife = new Float32Array(n); LK.spMax = new Float32Array(n);
+  sg.setAttribute("position", new THREE.BufferAttribute(LK.spPos, 3)); sg.setAttribute("color", new THREE.BufferAttribute(LK.spCol, 3));
+  LK.splash = new THREE.Points(sg, new THREE.PointsMaterial({ map:DOT, size:.42, vertexColors:true, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+  LK.splash.frustumCulled = false; LK.splash.visible = n > 0; scene.add(LK.splash);
+  // the stage's pad (only the stage's camera sees it)
+  LK.pad = new THREE.Mesh(flat, glow(PAD, 0xffffff, .55)); LK.pad.scale.set(4.3, 1, 4.3); LK.pad.renderOrder = -3; LK.pad.visible = false; scene.add(LK.pad);
+}
+// every frame, just before the picture is drawn: nothing here is read back by the game
+function lookFrame(t, dt, at, live){
+  LK.t = t;
+  const z0 = -((Math.floor(at/30) - 2)*30 + 120);
+  LK.face.position.z = LK.top.position.z = LK.kerb.position.z = z0;
+  LK.veil.position.set(-5.6, 5.5, cam.position.z);
+  const P = LK.pool, P2 = LK.pool2; P.visible = P2.visible = LK.back.visible = false;
+  if (live && CRAFT){
+    const v = S.veh, y = S.y, gap = topOf() - y, lo = Math.max(0, 1 - y/7), hi = Math.max(0, 1 - gap/4.5);
+    const col = v === "mech" ? 0xffd60a : v === "gravity" ? 0x3dff8a : v === "warp" ? 0x8ae9ff : lookCraftCol(), wide = v === "mech" ? 1.25 : 1;
+    if (lo > .02){ P.visible = true; P.position.z = -S.dist; P.material.color.setHex(col); P.material.opacity = .62*lo*lo; P.scale.set((5.8 - 1.8*lo)*wide, 1, (7.5 - 3*lo)*wide); }
+    if (hi > .02){ P2.visible = true; P2.position.z = -S.dist; P2.material.color.setHex(col); P2.material.opacity = .36*hi*hi; P2.scale.set(5.8 - 1.8*hi, 1, 7.5 - 3*hi); }
+    LK.back.visible = true; LK.back.position.set(-1.6, y + (v === "mech" ? 2.2 : H()/2), -S.dist); LK.back.material.color.setHex(col); LK.back.scale.setScalar(v === "mech" ? 7 : 5.2);
+  }
+  if (!S) return;
+  const M = LK.M; let n = 0;
+  for (const c of critters){ if (!c.on) continue; M.makeScale(1.7, 1, 2.1); M.setPosition(.5, .03, -c.d); LK.crit.setMatrixAt(n++, M); }
+  LK.crit.count = n; LK.crit.instanceMatrix.needsUpdate = true;
+  n = 0;
+  for (let i = 0; i < zaps.length; i++){ const z = zaps[i]; if (!z.on) continue;
+    const hl = z.len/2, c = Math.cos(z.ang), s = Math.sin(z.ang), as = Math.abs(s), len = 1.7 + z.len*Math.abs(c), side = s > 0 ? -1 : 1;
+    const kLo = Math.max(0, 1 - (z.y - hl*as)/2.4), kHi = Math.max(0, 1 - (CEIL - z.y - hl*as)/2.4);
+    if (kLo > .02){ M.makeScale(2.6, 1, len); M.setPosition(0, .035, -(z.d + side*hl*c*as)); LK.zap.setMatrixAt(n, M); LK.zap.setColorAt(n++, LK.C.setHex(ZAP_COLS[i % 3]).multiplyScalar(kLo*kLo)); }
+    if (kHi > .02){ M.makeScale(2.6, 1, len); M.setPosition(0, CEIL - .035, -(z.d - side*hl*c*as)); LK.zap.setMatrixAt(n, M); LK.zap.setColorAt(n++, LK.C.setHex(ZAP_COLS[i % 3]).multiplyScalar(kHi*kHi*.6)); } }
+  LK.zap.count = n; LK.zap.instanceMatrix.needsUpdate = true; LK.zap.instanceColor.needsUpdate = true;
+  n = 0;
+  for (const c of coins){ if (!c.big || c.d > S.dist + 70 || n >= 24) continue; LK.bigPos[n*3] = -.6; LK.bigPos[n*3 + 1] = c.y; LK.bigPos[n*3 + 2] = -c.d; n++; }
+  LK.big.geometry.setDrawRange(0, n); LK.big.geometry.attributes.position.needsUpdate = true;
+  if (LK.spN){ const span = Math.tan(cam.fov*Math.PI/360)*CAMX*cam.aspect + 2, sp = LK.spPos, sc = LK.spCol;
+    for (let i = 0; i < LK.spN; i++){ LK.spLife[i] -= dt;
+      if (LK.spLife[i] <= 0){ const k = LK.spK = (LK.spK + 1) % 100000; sp[i*3] = (hash(k*1.3)*2 - 1)*3.3; sp[i*3 + 1] = .06; sp[i*3 + 2] = cam.position.z + (hash(k*2.7)*2 - 1)*span; LK.spLife[i] = LK.spMax[i] = .14 + hash(k*4.1)*.2; }
+      const f = LK.spLife[i]/LK.spMax[i]*.75; sc[i*3] = f*.82; sc[i*3 + 1] = f*.74; sc[i*3 + 2] = f; }
+    LK.splash.geometry.attributes.position.needsUpdate = true; LK.splash.geometry.attributes.color.needsUpdate = true; }
+}
+// the stage (menu, garage): the craft's own light on the roof under it and a pad round it, for that picture only
+function lookStage(F, on){
+  const P = LK.pool, K = LK.keep;
+  if (on){ K.b = LK.back.visible; LK.back.visible = false; K.v = P.visible; K.z = P.position.z; K.o = P.material.opacity; K.c = P.material.color.getHex(); K.sx = P.scale.x; K.sz = P.scale.z;
+    const col = lookCraftCol(); P.visible = true; P.position.z = F; P.material.opacity = .4; P.material.color.setHex(col); P.scale.set(4.6, 1, 4.6);
+    LK.pad.visible = true; LK.pad.position.set(0, .04, F); LK.pad.material.color.setHex(col); LK.pad.rotation.y = LK.calm ? 0 : LK.t*.25; }
+  else { P.visible = K.v; P.position.z = K.z; P.material.opacity = K.o; P.material.color.setHex(K.c); P.scale.set(K.sx, 1, K.sz); LK.pad.visible = false; LK.back.visible = K.b; }
 }
 
 /* ---------------- screens ---------------- */
@@ -1310,6 +1458,7 @@ function boot(){
   const fill = new THREE.DirectionalLight(0xff9ad0, .45); fill.position.set(20, 10, -30); scene.add(fill);
   const key = new THREE.DirectionalLight(0xffffff, .8); key.position.set(30, 18, -8); scene.add(key);
   buildSky(); buildCity(); buildRain(); buildSparks(); buildStreet(); buildThings(); buildVehicles(); buildTrail();
+  lookBuild();
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); refreshMenu(); });
 }

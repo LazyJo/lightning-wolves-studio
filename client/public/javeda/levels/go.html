@@ -1697,6 +1697,7 @@ const GOLF = {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(.02, .02, 1.3, 6).rotateX(Math.PI/2).translate(0, 0, .65), new THREE.MeshStandardMaterial({ color:0xdddddd })); this.cup.add(pole);
     this.flag = new THREE.Mesh(new THREE.PlaneGeometry(.5, .32), new THREE.MeshBasicMaterial({ map:null, color:new THREE.Color(2, .5, .4), toneMapped:false, side:THREE.DoubleSide })); this.flag.rotation.x = Math.PI/2; this.flag.position.set(.26, 0, 1.15); this.cup.add(this.flag);
     const ring = sprite(0xffc060, 1.1, .5); ring.position.z = .05; this.cup.add(ring); this.B.add(this.cup);
+    lookGolf.setup(this);
     this.dots = pullDots(this.B, 12); this.windFx = [...Array(14)].map(() => { const s = sprite(0xd8e8ff, .5, 0); s.scale.set(.9, .06, 1); this.B.add(s); return s; }); },
   // ---- the course ----
   hole(n){ const H = HOLES[n % 9]; if (n < 9) return H; const m = JSON.parse(JSON.stringify(H)), fx = p => [-p[0], p[1]];     // round again: the other way round, and windy
@@ -1716,6 +1717,7 @@ const GOLF = {
       const arm = new THREE.Mesh(new THREE.BoxGeometry(H.mill.len*2, .12, .14), new THREE.MeshStandardMaterial({ color:0xd8c8b0, emissive:0x402010, roughness:.5 })); arm.position.z = .45; g.add(arm); this.B.add(g); this.parts.push(g); this.mill = { g, arm, ang:0 }; }
     const tee = sprite(0x80ffb0, .5, .5); tee.position.set(H.tee[0], H.tee[1], .02); this.B.add(tee); this.parts.push(tee);
     this.cup.position.set(H.cup[0], H.cup[1], 0); this.flag.material.color.copy(H.gold ? new THREE.Color(2.4, 1.8, .5) : new THREE.Color(2, .5, .4));
+    lookGolf.hole(this);
     if (!ONLINE || n === 0) say("HOLE " + (n + 1) + " · " + H.name, "par " + H.par + " · " + H.tip, 2.2, H.gold ? "g" : ""); },
   reset(){ this.g = { strokes:0, total:0, holes:0, aces:0, birdies:0, bx:0, by:0, vx:0, vy:0, moving:false };
     S.holes = 0; S.strokes = 0; S.aces = 0; S.under = 0; this.pull = null; this.done = []; this.load(0); },
@@ -1807,6 +1809,7 @@ const GOLF = {
     const a = this.aim(); this.dots.forEach(s => s.material.opacity = 0);
     if (a) this.dots.forEach((s, i) => { const u = (i + 1)/this.dots.length, L = .4 + a.p*3.6; s.position.set(g.bx + a.x*L*u, g.by + a.y*L*u, .12); s.material.opacity = .9 - u*.6; s.scale.setScalar(.12 + .1*(1 - u)); });
     const w = this.wind(t); this.windFx.forEach((s, i) => { if (!w){ s.material.opacity = 0; return; } const u = ((t*.6*Math.sign(w) + i*.37) % 1 + 1) % 1; s.position.set(-GW/2 + u*GW, -GH/2 + (i + .5)/this.windFx.length*GH, .2); s.material.opacity = .35*Math.sin(u*Math.PI); });
+    lookGolf.frame(this, t, dt);
     this.ghosts.forEach((m, i) => { const gh = GOLF_N && GV.ghosts[i], p = GOLF_N && NET.players[i]; m.visible = !!(gh && p && i !== NET.seat && !NET.gone[p.id] && gh.n === this.n && !gh.holed); if (m.visible) m.position.set(gh.x, gh.y, G_R); }); }
 };
 
@@ -1845,6 +1848,7 @@ const HOCKEY = {
     this.puckMs = [0, 1, 2].map(() => { const m = new THREE.Mesh(new THREE.CylinderGeometry(PKR, PKR, .07, 24).rotateX(Math.PI/2), new THREE.MeshBasicMaterial({ color:new THREE.Color(2.4, 2.2, 1.8), toneMapped:false })); const s = sprite(0xffe0a0, 1.1, .7); m.add(s); m.userData.glow = s; m.visible = false; this.B.add(m); return m; });
     this.bumps = BUMPERS.map(([x, y]) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(.32, .32, .4, 24).rotateX(Math.PI/2).translate(0, 0, .2), new THREE.MeshStandardMaterial({ color:0x2a1a3a, emissive:0xff4a9a, emissiveIntensity:.6, roughness:.3, metalness:.4 })); m.position.set(x, y, 0); m.visible = false; this.B.add(m); return m; });
     this.windFx = [...Array(12)].map(() => { const s = sprite(0xd8e8ff, .5, 0); s.scale.set(.8, .06, 1); this.B.add(s); return s; });
+    lookHockey.setup(this);
     this.walls = [-1, 1].map(s => { const w = new THREE.Mesh(new THREE.PlaneGeometry(.12, HH), new THREE.MeshBasicMaterial({ color:new THREE.Color(.5, 1.6, 2.4), transparent:true, opacity:0, toneMapped:false })); w.position.set(s*(HW/2 + .02), 0, .1); this.B.add(w); return w; }); },
   reset(){ S.rounds = [0, 0]; S.goals = 0; S.against = 0; S.rd = -1; this.h = { mx:0, my:-3, tx:0, ty:-3, mvx:0, mvy:0, ax:0, ay:3, avx:0, avy:0, sc:[0, 0], pucks:[], wait:0, back:0, sd:false, clockAt:0, pause:0 };
     this.newRound(0); },
@@ -1918,7 +1922,162 @@ const HOCKEY = {
     this.puckMs.forEach((m, i) => { const p = h.pucks[i]; m.visible = !!p; if (!p) return; m.position.set(p.x, p.y, .04); const gold = p.gold; m.material.color.setRGB(gold ? 3 : 2.4, gold ? 2.1 : 2.2, gold ? .6 : 1.8); m.userData.glow.material.color.setHex(gold ? 0xffb020 : 0xffe0a0); m.userData.glow.scale.setScalar(gold ? 1.5 : 1.1); });
     this.bumps.forEach(b => b.material.emissiveIntensity = onBeat(t) ? 1.2 : .5);
     this.walls.forEach(w => w.material.opacity = R.portal ? .5 + Math.sin(t*6)*.2 : 0);
+    lookHockey.frame(this, t, dt);
     const w = R.wind ? (Math.floor(t/BAR) % 2 ? 1 : -1) : 0; this.windFx.forEach((s, i) => { if (!w){ s.material.opacity = 0; return; } const u = ((t*.7*w + i*.41) % 1 + 1) % 1; s.position.set(-HW/2 + u*HW, -HH/2 + (i + .5)/this.windFx.length*HH, .2); s.material.opacity = .35*Math.sin(u*Math.PI); }); }
+};
+
+/* ================= THE LOOK (visual only) =================
+   Light laid on what the two games already show, and a roof and some air round them: a terrace under the table with
+   a row of lamps down each long side, light rising from the streets far below and thin sunset cloud drifting between
+   the towers; on the green a pool of light under the ball and a streak behind it when it's quick, the cup's lip lit,
+   light spilling from the ledges, the gap's rim in red, the others' balls each on a pool of their own colour; on the
+   hockey table a glow in each goal mouth, light under both strikers and the bumpers, a streak behind a fast puck.
+   The games read nothing of this and it changes nothing they count: it only reads where things are. It never asks
+   rnd()'s counters or Math.random for a number (its own hash below, by index), it shows no beat that wasn't shown
+   and nothing about where a ball will go. Everything is built once and reused (a hole's own bits when the hole is). */
+const lkHash = n => { const x = Math.sin(n*91.7 + 3.3)*15731.743; return x - Math.floor(x); };
+const LK = { q:1, hk:0, air:null };
+const lkPlane = new THREE.PlaneGeometry(1, 1), lkGround = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI/2);
+// colours here are written as they should look on the screen (the renderer works in linear light)
+const lkCol = hex => new THREE.Color(hex).convertSRGBToLinear();
+const lkGlow = (map, color, op, normal) => new THREE.MeshBasicMaterial({ map, color:lkCol(color), transparent:true, opacity:op, depthWrite:false, blending:normal ? THREE.NormalBlending : THREE.AdditiveBlending });
+// flat on the board (the board's x across, y away from you, z up off it). Drawn after the table's cloth (renderOrder): the cloth is a
+// see-through material, and three.js draws it over any light that lies further from the camera than its middle - the far half of the table
+const lkFlat = (w, h, mat, x, y, z) => { const m = new THREE.Mesh(lkPlane, mat); m.scale.set(w, h, 1); m.position.set(x || 0, y || 0, z || 0); m.renderOrder = 1; return m; };
+// soft patches of light (the streets'), the same at every edge so it can go round and round
+const LK_CLOUD = canvasTex(256, 256, (x, w) => { for (let i = 0; i < 44; i++){ const cx = lkHash(i*1.31)*w, cy = lkHash(i*2.77)*w, r = 16 + lkHash(i*4.1)*44, a = (.08 + lkHash(i*5.9)*.16).toFixed(3);
+    for (const ox of [-w, 0, w]) for (const oy of [-w, 0, w]){ const px = cx + ox, py = cy + oy; if (px < -r || px > w + r || py < -r || py > w + r) continue;
+      const g = x.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, "rgba(255,255,255," + a + ")"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(px - r, py - r, r*2, r*2); } } }, [1, 1]);
+// a few long wisps of cloud, with clear air between
+const LK_WISP = canvasTex(256, 256, (x, w) => { for (let i = 0; i < 11; i++){ const cx = lkHash(i*3.17 + 1)*w, cy = lkHash(i*1.93 + 2)*w, r = 20 + lkHash(i*4.7)*30, a = (.16 + lkHash(i*6.1)*.2).toFixed(3);
+    for (const ox of [-w, 0, w]) for (const oy of [-w, 0, w]){ x.save(); x.translate(cx + ox, cy + oy); x.scale(2.6, 1); const g = x.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, "rgba(255,255,255," + a + ")"); g.addColorStop(.5, "rgba(255,255,255," + (a*.4).toFixed(3) + ")"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(-r, -r, r*2, r*2); x.restore(); } } }, [1, 1]);
+// a disc of light, soft only at its rim
+const LK_DISC = radial([[0, "rgba(255,255,255,1)"], [.62, "rgba(255,255,255,1)"], [1, "rgba(255,255,255,0)"]], 64);
+// a streak: nothing at the tail, bright at the head
+const LK_STREAK = canvasTex(64, 16, (x, w, h) => { const g = x.createLinearGradient(0, 0, w, 0); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(255,255,255,.85)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.globalCompositeOperation = "destination-in"; const v = x.createLinearGradient(0, 0, 0, h); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(.5, "rgba(0,0,0,1)"); v.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = v; x.fillRect(0, 0, w, h); });
+// light inside the table's gold edge, fading inward
+const LK_FRAME = canvasTex(128, 200, (x, w, h) => { x.strokeStyle = x.shadowColor = "#fff"; x.shadowBlur = 18; x.lineWidth = 5; x.strokeRect(0, 0, w, h); });
+// light round the foot of the air-con (2 by .5, and .45 of light all round)
+const LK_UNIT = canvasTex(128, 64, (x, w, h) => { x.fillStyle = x.shadowColor = "#fff"; x.shadowBlur = 15; x.fillRect(22, 22, w - 44, h - 44); });
+// its top: slats and two fans
+const LK_GRILLE = canvasTex(256, 48, (x, w, h) => { x.fillStyle = "rgba(10,8,14,.55)"; x.fillRect(0, 0, w, h); x.strokeStyle = "rgba(255,225,190,.35)"; x.lineWidth = 2;
+  for (let i = 0; i < 9; i++){ x.beginPath(); x.moveTo(98 + i*7.5, 8); x.lineTo(98 + i*7.5, h - 8); x.stroke(); }
+  for (const cx of [48, 208]){ x.fillStyle = "rgba(5,4,8,.8)"; x.beginPath(); x.arc(cx, h/2, 19, 0, Math.PI*2); x.fill(); x.stroke(); for (let i = 0; i < 4; i++){ const a = i*Math.PI/2 + .4; x.beginPath(); x.moveTo(cx, h/2); x.lineTo(cx + Math.cos(a)*17, h/2 + Math.sin(a)*17); x.stroke(); } } });
+// light under the windmill's sails
+const LK_BAR = canvasTex(128, 32, (x, w, h) => { x.strokeStyle = x.shadowColor = "#fff"; x.shadowBlur = 9; x.lineCap = "round"; x.lineWidth = 5; x.beginPath(); x.moveTo(13, h/2); x.lineTo(w - 13, h/2); x.stroke(); });
+// what turns inside a portal's ring
+const LK_SWIRL = canvasTex(64, 64, (x, w) => { x.translate(w/2, w/2); x.strokeStyle = "#fff"; x.lineCap = "round";
+  for (let k = 0; k < 3; k++){ x.beginPath(); for (let i = 0; i <= 24; i++){ const u = i/24, a = k*Math.PI*2/3 + u*3.6, r = 3 + u*23; x.lineTo(Math.cos(a)*r, Math.sin(a)*r); } x.lineWidth = 3.5; x.globalAlpha = .7; x.stroke(); }
+  x.globalAlpha = 1; const g = x.createRadialGradient(0, 0, 0, 0, 0, 30); g.addColorStop(0, "rgba(255,255,255,.55)"); g.addColorStop(.5, "rgba(255,255,255,.12)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(-32, -32, 64, 64); });
+// the glow in a goal's mouth: bright on the goal line, fading up the table
+const LK_GOAL = canvasTex(128, 64, (x, w, h) => { x.translate(w/2, h); x.scale(1, .95); const g = x.createRadialGradient(0, 0, 0, 0, 0, w/2); g.addColorStop(0, "rgba(255,255,255,.9)"); g.addColorStop(.35, "rgba(255,255,255,.32)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(-w/2, -h*1.1, w, h*1.1); });
+// the terrace: dark slabs, a fine joint between them
+const LK_DECK = canvasTex(128, 128, (x, w) => { x.fillStyle = "#211b27"; x.fillRect(0, 0, w, w);
+  for (let i = 0; i < 300; i++){ x.fillStyle = "rgba(255,235,220," + (lkHash(i)*.05).toFixed(3) + ")"; x.fillRect(lkHash(i*1.7)*w, lkHash(i*2.3)*w, 2, 2); }
+  x.strokeStyle = "rgba(0,0,0,.6)"; x.lineWidth = 4; x.strokeRect(0, 0, w, w); x.strokeStyle = "rgba(255,200,160,.09)"; x.lineWidth = 1.5; x.strokeRect(3, 3, w - 6, w - 6); }, [1, 1]);
+const LK_DECK_M = new THREE.MeshStandardMaterial({ map:LK_DECK, roughness:.82, metalness:.12, envMapIntensity:.14 });
+
+/* ---- the roof the table stands on, and the air between it and the streets ---- */
+function lkBoxes(list){ const P = [], N = [], U = [];
+  for (const [w, h, d, x, y, z] of list){ const g = new THREE.BoxGeometry(w, h, d).translate(x, y, z).toNonIndexed(), p = g.attributes.position, n = g.attributes.normal;
+    for (let i = 0; i < p.count; i++){ const up = Math.abs(n.getY(i)) > .5; P.push(p.getX(i), p.getY(i), p.getZ(i)); N.push(n.getX(i), n.getY(i), n.getZ(i)); U.push((up ? p.getX(i) : p.getX(i) + p.getZ(i))/1.3, (up ? p.getZ(i) : p.getY(i))/1.3); }
+    g.dispose(); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(N, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(U, 2)); return g; }
+function lookStage(st){ const W = st.bw + 4.6, D = st.bh + 4.6, ix = st.bw/2 + .38, iz = st.bh/2 + .38, top = 80.18, hh = 2.1, cy = top - hh/2, L = { lamps:null };
+  // the terrace: a ring of dark slabs round the table, wider than the tower under it (so the top floor's windows don't glare up from under the
+  // bottom line), a low wall round its rim. It stops at the table's gold edge: under the cloth the roof is as it was
+  const fz = D/2 - iz, fx = W/2 - ix, deck = new THREE.Mesh(lkBoxes([[W, hh, fz, 0, cy, -iz - fz/2], [W, hh, fz, 0, cy, iz + fz/2], [fx, hh, iz*2, -ix - fx/2, cy, 0], [fx, hh, iz*2, ix + fx/2, cy, 0],
+    [W, .3, .18, 0, top + .15, -D/2 + .09], [W, .3, .18, 0, top + .15, D/2 - .09], [.18, .3, D - .36, -W/2 + .09, top + .15, 0], [.18, .3, D - .36, W/2 - .09, top + .15, 0]]), LK_DECK_M);
+  st.roof.add(deck);
+  // a row of lamps set in the terrace down each long side (none at the near end: the bottom line is there, and none at the far end behind the flag)
+  const n = Math.floor((D - 2.4)/1.35) + 1, lamps = L.lamps = new THREE.InstancedMesh(lkGround, lkGlow(DOT, 0xff9a40, .85), n*2), M = new THREE.Matrix4(); lamps.material.color.multiplyScalar(1.7); lamps.material.toneMapped = false;
+  for (let i = 0; i < n*2; i++) lamps.setMatrixAt(i, M.makeScale(.46, 1, .46).setPosition((i % 2 ? 1 : -1)*(W/2 - .62), top + .05, -D/2 + 1.2 + Math.floor(i/2)*(D - 2.4)/(n - 1)));
+  lamps.instanceMatrix.needsUpdate = true; lamps.frustumCulled = false; st.roof.add(lamps);
+  // the gold edge's light on the cloth just inside it
+  L.rail = lkFlat(st.bw + .7, st.bh + .7, lkGlow(LK_FRAME, 0xffb050, .3), 0, 0, -.335); st.B.add(L.rail);
+  // once, on the city: the streets' light coming up between the towers, a thin cloud lit by the sunset drifting under the roof
+  if (!LK.air){ const A = LK.air = {}, layer = (tex, y, size, rep, color, op, normal) => { tex.repeat.set(rep[0], rep[1]);
+      const m = new THREE.Mesh(lkGround, lkGlow(tex, color, op, normal)); m.material.fog = false; m.userData.op = op; m.scale.set(size, 1, size); m.position.set(0, y, -170); m.frustumCulled = false; st.city.add(m); return m; };
+    A.street = layer(LK_CLOUD, 2.5, 1700, [7, 7], 0xff7a2a, .34);
+    A.cloud = layer(LK_WISP, 121, 1500, [1.3, 2.1], 0xc86078, .22, true); }
+  return L; }
+function lookAir(L, t, dt){ const A = LK.air;
+  // gone before the ending shows the cover (that is as it was); the clouds off on a phone that can't keep up
+  const end = S.end >= 0 ? clamp(1 - S.end/.5, 0, 1) : 1, lite = ren.getPixelRatio() < 1 || (bloom && !bloom.enabled);
+  // while the game has a message up, the cloud steps back so the words stay the brightest thing there
+  LK.q += ((S.msgT > 0 ? .5 : 1) - LK.q)*Math.min(1, dt*6); LK.hk += ((hookAt(t) ? 1 : 0) - LK.hk)*Math.min(1, dt*2);
+  A.street.visible = end > 0; A.cloud.visible = end > 0 && !lite;
+  A.street.material.opacity = A.street.userData.op*(1 + .25*LK.hk)*end;
+  A.cloud.material.opacity = A.cloud.userData.op*LK.q*end;
+  A.cloud.material.map.offset.x = t*.003; A.cloud.material.map.offset.y = t*.0006;
+  // the hook (the bottom line says so already): the terrace lamps a little brighter
+  L.lamps.material.opacity = .7 + .3*LK.hk; }
+
+/* ---- Rooftop Golf ---- */
+const lookGolf = { parts:[], spin:[],
+  setup(g){ const L = this; L.st = lookStage(g.st);
+    // the light the hole's own things throw on the green: drawn afresh for each hole
+    L.ground = lkFlat(GW, GH, lkGlow(canvasTex(192, 320, () => {}), 0xffffff, .85), 0, 0, .025); g.B.add(L.ground);
+    // the ball: a pool of light on the green under it, a streak behind it when it's quick
+    g.ball.add(lkFlat(1.05, 1.05, lkGlow(DOT, 0xfff0c8, .42), 0, 0, -G_R + .03));
+    L.streak = lkFlat(1, .26, lkGlow(LK_STREAK, 0xfff0d0, 0), 0, 0, .06); L.streak.visible = false; g.B.add(L.streak);
+    // the cup: its lip lit (it goes where the cup goes)
+    L.lip = new THREE.Mesh(new THREE.RingGeometry(.27, .315, 32), lkGlow(null, 0xffd27a, .9)); L.lip.material.color.multiplyScalar(1.6); L.lip.material.toneMapped = false; L.lip.position.z = .02; L.lip.renderOrder = 1; g.cup.add(L.lip);
+    // online: each of the others' balls on a disc of its own colour (the colour of their dot on the board)
+    L.discs = g.ghosts.map((m, i) => { const d = lkFlat(.8, .8, lkGlow(LK_DISC, SEAT_COLS[i], .75), 0, 0, -G_R + .028); m.add(d); return d; });
+    L.unitM = lkGlow(LK_UNIT, 0xffb060, .55); L.grilleM = new THREE.MeshBasicMaterial({ map:LK_GRILLE, transparent:true, depthWrite:false }); L.barM = lkGlow(LK_BAR, 0xffc890, .6); L.swirlM = PORTAL_COLS.map(c => lkGlow(LK_SWIRL, c, .8)); },
+  // a new hole: read off what the game has just laid out
+  hole(g){ const L = this, H = g.H, tex = L.ground.material.map, cv = tex.image, x = cv.getContext("2d"), k = 32, X = v => (v + GW/2)*k, Y = v => (GH/2 - v)*k;
+    for (const p of L.parts) if (p.parent) p.parent.remove(p);
+    L.parts.length = 0; L.spin.length = 0;
+    x.globalCompositeOperation = "source-over"; x.shadowBlur = 0; x.clearRect(0, 0, cv.width, cv.height); x.globalCompositeOperation = "lighter";
+    // the ledges' gold edges, spilling on the green round them
+    x.fillStyle = "rgba(255,180,80,.5)"; x.shadowColor = "rgb(255,180,80)"; x.shadowBlur = 13;
+    for (const r of H.walls || []) x.fillRect(X(r[0]), Y(r[3]), (r[2] - r[0])*k, (r[3] - r[1])*k);
+    // the gold pads
+    x.strokeStyle = "rgba(255,200,90,.6)"; x.shadowColor = "rgb(255,190,70)"; x.shadowBlur = 12; x.lineWidth = 3;
+    for (const b of H.boosts || []) x.strokeRect(X(b[0] - .45), Y(b[1] + .45), .9*k, .9*k);
+    // the bumpers: a ring of their pink at the foot
+    x.strokeStyle = "rgba(255,74,154,.75)"; x.shadowColor = "rgb(255,74,154)"; x.shadowBlur = 11; x.lineWidth = 3;
+    for (const p of H.posts || []){ x.beginPath(); x.arc(X(p[0]), Y(p[1]), .34*k, 0, Math.PI*2); x.stroke(); }
+    // the gap: its rim in red, just inside the edge
+    x.strokeStyle = "rgba(255,84,48,.95)"; x.shadowColor = "rgb(255,60,36)"; x.shadowBlur = 6; x.lineWidth = 2;
+    for (const v of H.voids || []) x.strokeRect(X(v[0]) + 1.5, Y(v[3]) + 1.5, (v[2] - v[0])*k - 3, (v[3] - v[1])*k - 3);
+    tex.needsUpdate = true;
+    // the air-con: light round its foot and a grille on top, both riding on it
+    for (const m of g.movers){ const a = lkFlat(m.w + .9, 1.4, L.unitM, 0, 0, .03), b = lkFlat(m.w - .16, .36, L.grilleM, 0, 0, .506); b.renderOrder = 0; m.g.add(a); m.g.add(b); L.parts.push(a, b); }
+    // the windmill: light under the sails, turning with them
+    if (g.mill){ const a = lkFlat(H.mill.len*2 + .5, .75, L.barM, 0, 0, .03); g.mill.g.add(a); L.parts.push(a); }
+    // the portals: something turning in each ring
+    for (const pr of H.portals || []) pr.forEach((p, i) => { const a = lkFlat(.66, .66, L.swirlM[i], p[0], p[1], .045); a.userData.d = i ? -1 : 1; g.B.add(a); L.parts.push(a); L.spin.push(a); }); },
+  frame(g, t, dt){ const L = this, s = g.g, sp = s.moving ? Math.hypot(s.vx, s.vy) : 0; lookAir(L.st, t, dt);
+    L.streak.visible = sp > 1.5 && g.ball.visible;
+    if (L.streak.visible){ const len = Math.min(1.7, sp*.16); L.streak.scale.x = len; L.streak.rotation.z = Math.atan2(s.vy, s.vx); L.streak.position.set(s.bx - s.vx/sp*len/2, s.by - s.vy/sp*len/2, .06); L.streak.material.opacity = Math.min(.75, (sp - 1.5)*.14); }
+    // a ghost's disc stays out of the way while that ball is on top of yours (the tee, at the start of a hole)
+    for (let i = 0; i < L.discs.length; i++){ const p = g.ghosts[i].position; L.discs[i].visible = Math.hypot(p.x - s.bx, p.y - s.by) > .55; }
+    L.lip.material.opacity = .8 + .2*Math.sin(t*3.2);
+    for (const m of L.spin) m.rotation.z = t*1.7*m.userData.d; }
+};
+
+/* ---- Sky Hockey ---- */
+const lookHockey = {
+  setup(g){ const L = this; L.st = lookStage(g.st);
+    // a glow in each goal's mouth, in the colour its bar already has: yours gold, the far one pink
+    for (const [s, c] of [[-1, 0xffb040], [1, 0xff3a90]]){ const m = lkFlat(HG*2 + 1.5, 1.7, lkGlow(LK_GOAL, c, .4), 0, s*(HH/2 - .85), .012); if (s > 0) m.rotation.z = Math.PI; g.B.add(m); }
+    // light on the table under both strikers, and under the bumpers (they show only in a round that has them)
+    g.me.add(lkFlat(2.1, 2.1, lkGlow(DOT, 0xffb040, .42), 0, 0, .012));
+    g.ai.add(lkFlat(1.9, 1.9, lkGlow(DOT, ONLINE ? 0xff5ac8 : 0xd01c44, .5), 0, 0, .012));
+    L.bumpM = lkGlow(DOT, 0xff4a9a, .4); for (const b of g.bumps) b.add(lkFlat(1.8, 1.8, L.bumpM, 0, 0, .014));
+    // a streak behind a fast puck
+    L.white = lkCol(0xffe8c0); L.gold = lkCol(0xffb020);
+    L.streaks = [0, 1, 2].map(() => { const m = lkFlat(1, .42, lkGlow(LK_STREAK, 0xffe8c0, 0), 0, 0, .03); m.visible = false; g.B.add(m); return m; }); },
+  frame(g, t, dt){ const L = this, P = g.h.pucks; lookAir(L.st, t, dt);
+    // the bumpers' pools go with the bumpers' own light (the game flashes that on the beat already)
+    L.bumpM.opacity = .16 + .42*g.bumps[0].material.emissiveIntensity;
+    for (let i = 0; i < 3; i++){ const p = P[i], m = L.streaks[i], sp = p ? Math.hypot(p.vx, p.vy) : 0; m.visible = sp > 3;
+      if (!m.visible) continue;
+      const len = Math.min(1.8, sp*.13); m.scale.x = len; m.rotation.z = Math.atan2(p.vy, p.vx); m.position.set(p.x - p.vx/sp*len/2, p.y - p.vy/sp*len/2, .03); m.material.opacity = Math.min(.7, (sp - 3)*.1); m.material.color.copy(p.gold ? L.gold : L.white); } }
 };
 
 /* ---------------- online golf: 2, 3 or 4 players ----------------

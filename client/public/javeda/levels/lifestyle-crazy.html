@@ -329,6 +329,7 @@ function club(){ if (CLUB) return CLUB; const g = CLUB = new THREE.Group(); scen
     const pool = sprite(LASER_COLS[i % LASER_COLS.length], 2.6, .12); pool.position.set(bx, .05, bz); g.add(pool); l.userData.pool = pool; });
   g.userData = { car:c, lasers }; return g; }
 function animClub(g, t, dt, beat){ const c = g.userData.car.userData;
+  lookClubFrame(g, t, dt, beat);
   c.rings.forEach((r, i) => r.material.color.setHSL((t*.25 + i*.5) % 1, 1, .6)); c.visor.material.color.setHSL(.85 + Math.sin(t)*.08, 1, .65);
   g.userData.lasers.forEach((l, i) => { const on = .6 + .4*Math.sin(t*2 + i*1.3) + (beat ? .3 : 0); l.userData.core.material.opacity = .55*on; l.userData.glow.material.opacity = .12*on; l.userData.pool.material.opacity = .1*on; }); }
 /* ---- Jo's saucer as it is on this cover: the dark hull, the red dome with the "L", the pink rim lights, the purple beam ---- */
@@ -431,6 +432,7 @@ const PB = {
   R:.15, CX:-.22, PZ:2.85,
   setup(){ boot(48); this.w = club(); this.root = new THREE.Group(); scene.add(this.root);
     this.T = new THREE.Group(); this.T.rotation.x = .09; this.T.position.set(0, .62, -.4); this.root.add(this.T); this.fx = fx(this.T);
+    lookPB.setup(this);
     if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.36); scene.add(ME); } },
   // the table for its number n: the walls, the toys, the art, all in its colour
   build(n){ if (this.board) this.T.remove(this.board); const B = this.board = new THREE.Group(); this.T.add(B);
@@ -500,6 +502,7 @@ const PB = {
     this.plunger = new THREE.Mesh(new THREE.CylinderGeometry(.08, .08, .6, 10), chrome); this.plunger.rotation.x = Math.PI/2; this.plunger.position.set(2.38, .16, 4.0); B.add(this.plunger);
     for (const p of this.ballMs || []) this.T.remove(p.m), this.T.remove(p.glow);
     this.ballMs = [0, 1].map(() => { const m = new THREE.Mesh(new THREE.SphereGeometry(this.R, 20, 14), new THREE.MeshStandardMaterial({ color:0xf4f4ff, roughness:.12, metalness:.55, emissive:0x6a6aa0, emissiveIntensity:.45 })); const glow = sprite(0xd8d0ff, .8, .5); this.T.add(m); this.T.add(glow); return { m, glow }; });
+    lookPB.table(this, n);
   },
   // (the remix comes back here every lap: on the table it left and what it had scored on it, or on the lap's, if that's further on)
   reset(){ const was = REMIX ? S : {}, n = Math.max(was.table || 0, was.lap || 0), kept = n === was.table ? was.pbDone || 0 : 0;
@@ -583,6 +586,7 @@ const PB = {
     this.lockRing.material.color.setHSL((t*.4) % 1, 1, this.lockLit ? .6 : .12); this.kickLamps.forEach((k, i) => { k.material.opacity = this.kick && this.kick[i] ? .5 + (beat ? .3 : 0) : 0; }); this.lockRing.scale.setScalar(this.lockLit && beat ? 1.15 : 1); this.saveLamp.material.opacity = S.t < S.saveT ? (Math.sin(t*10) > 0 ? .8 : .2) : 0;
     this.plunger.position.z = 4.0 + (this.balls.some(b => b.ready) ? .12 + Math.sin(t*4)*.04 : 0);
     this.fx.tick(dt); animClub(this.w, t, dt, beat);
+    lookPB.frame(this, t, dt, beat);
     // Jo's saucer hangs over the lock; its beam reaches down when it holds a ball
     const lp = this.T.localToWorld(new THREE.Vector3(this.lock.x, 0, this.lock.z)); ME.position.set(lp.x, lp.y + 1.5 + Math.sin(t*2)*.06, lp.z); ME.rotation.set(0, t*1.2, 0); animSaucer(ME, t, beat);
     const bm = ME.userData.beam; bm.visible = true; bm.scale.set(.5, 1.1, .5); bm.position.y = -1.9; bm.material.opacity = this.locked ? .55 + (beat ? .2 : 0) : .2;
@@ -618,6 +622,7 @@ const ARROW_GO = ARROW_TEX("#ffffff"), ARROW_PUSH = ARROW_TEX("#ffa02a");
 const PUSH = {
   setup(){ boot(48); this.w = club(); this.root = new THREE.Group(); scene.add(this.root); this.meshes = []; this.fx = fx(this.root);
     this.arrows = [0, 1, 2, 3].map(() => { const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map:ARROW_GO, transparent:true, depthWrite:false })); m.rotation.x = -Math.PI/2; this.root.add(m); return m; });
+    lookPush.setup(this);
     if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.36); scene.add(ME); } },
   // (the remix comes back here every lap: on the floor it left, or further on if the laps have run ahead of it)
   reset(){ const was = REMIX ? S : {}; Object.assign(S, { lv:Math.max(was.lv || 0, (was.lap || 0)*2), floors:was.floors || 0, moves:was.moves || 0, pushes:was.pushes || 0, k:was.k || 1, nextAt:0, last:null, deadline:0, lvMoves:0 }); lastT = 0;
@@ -649,6 +654,7 @@ const PUSH = {
       const x = sprite(0xff2a3a, c*1.1, 0); x.position.y = c*1.3; g.add(x);
       g.userData = { woof, tw, strip, beam, x, edge }; this.root.add(g); this.meshes.push(g); return g; });
     this.boxM.forEach((g, i) => g.position.copy(this.at(this.boxes[i])));
+    lookPush.floor(this);
     S.lvMoves = 0; S.nextAt = 0; S.allow = BAR*(5 + this.par*.55)*(1.1 - .2*clamp(LV(), 0, 1.4)); S.deadline = t + S.allow;
     if (!again) say("FLOOR " + (S.lv + 1), this.boxes.length + (this.boxes.length > 1 ? " speakers" : " speaker") + " · best " + this.par + " moves" + (S.lv === 0 ? " · push it onto the pad" : ""), 1.8, "g"); },
   at(k){ return new THREE.Vector3((k % this.W - (this.W - 1)/2)*this.cell, 0, (Math.floor(k/this.W) - (this.H - 1)/2)*this.cell - .4); },
@@ -692,6 +698,7 @@ const PUSH = {
       const p = this.at(this.p + d); a.position.set(p.x, can === 2 ? c*1.05 : .1, p.z); a.rotation.set(-Math.PI/2, 0, rot[i]); a.material.opacity = .55 + (beat ? .35 : 0); });
     this.fx.tick(dt); animClub(this.w, t, dt, beat);
     const p = this.at(this.p); ME.position.lerp(new THREE.Vector3(p.x, c*.75 + Math.sin(t*2)*.04, p.z), Math.min(1, dt*16)); ME.rotation.set(0, t*1.2, 0); animSaucer(ME, t, beat);
+    lookPush.frame(this, t, dt, beat);
     const bm = ME.userData.beam; bm.visible = true; bm.scale.set(.5, .35, .5); bm.position.y = -.75;
     // the camera fits the floor: as big as it can be between the score at the top and the buttons at the bottom/sides
     const tall = cam.aspect < .8, el = tall ? .98 : .74, sx = this.W*c + .5, sz = this.H*c + .5, th = Math.tan(cam.fov*Math.PI/360);
@@ -701,6 +708,143 @@ const PUSH = {
 };
 // the arrows (or W A S D) move straight away, however quick the tap
 addEventListener("keydown", e => { if (G !== PUSH || !live() || e.repeat) return; const d = { ArrowLeft:-1, a:-1, ArrowRight:1, d:1, ArrowUp:-PUSH.W, w:-PUSH.W, ArrowDown:PUSH.W, s:PUSH.W }[e.key]; if (d){ e.preventDefault(); PUSH.move(d); } if (e.key === "z" || e.key === "Backspace") PUSH.undo(); if (e.key === "r") PUSH.restart(); });
+
+/* ================= THE LOOK (visual only) =================
+   Light laid on what the two games already show, and on the club round them: the lasers' colours lying on the
+   glossy floor, the car's headlights on it, a glow round the foot of the table and of the dance floor. The games
+   read nothing of this, and it never asks rnd() or Math.random for a number (its own hash below, by index).
+   Everything is built once and reused; nothing is made while it plays. */
+const lkHash = n => { const x = Math.sin(n*91.7 + 3.3)*15731.743; return x - Math.floor(x); };
+const LK = { M:new THREE.Matrix4(), C:new THREE.Color(), club:null };
+const lkFlatGeo = new THREE.PlaneGeometry(1, 1); lkFlatGeo.rotateX(-Math.PI/2);
+const lkUpGeo = new THREE.PlaneGeometry(1, 1);
+const lkAdd = (map, color, op) => new THREE.MeshBasicMaterial({ map, color, transparent:true, opacity:op, depthWrite:false, blending:THREE.AdditiveBlending });
+const lkFlat = (w, d, mat) => { const m = new THREE.Mesh(lkFlatGeo, mat); m.scale.set(w, 1, d); return m; };
+const lkCanvasTex = () => new THREE.CanvasTexture(document.createElement("canvas"));
+// light round the foot of a thing w by d: a band that fades outward over m, nothing inside it
+function lkFrame(tex, w, d, m){ const cv = tex.image, s = 160/(w + 2*m); cv.width = 160; cv.height = Math.round((d + 2*m)*s); const x = cv.getContext("2d"), mp = m*s;
+  x.fillStyle = x.shadowColor = "#fff"; x.shadowBlur = mp*.85; x.fillRect(mp, mp, cv.width - 2*mp, cv.height - 2*mp);
+  x.globalCompositeOperation = "destination-out"; x.fillStyle = x.shadowColor = "#000"; x.shadowBlur = mp*.2; x.fillRect(mp*1.12, mp*1.12, cv.width - 2.24*mp, cv.height - 2.24*mp);
+  tex.needsUpdate = true; }
+
+/* ---- the club: the lasers' colours on the floor, the headlights, a few stars that glint (seen in the ending) ---- */
+function lookClub(g){ if (LK.club) return; const L = LK.club = {}, car = g.userData.car;
+  // six washes of the lasers' colours, lying on the floor round where the game is (kept away from the bottom line)
+  const wash = canvasTex(256, 256, (x, w, h) => { x.globalCompositeOperation = "lighter";
+    [[-7.5, -2, 6, 2], [7.5, -1, 6, 3], [-6, -11.5, 6.5, 0], [6, -11.5, 6.5, 4], [-13, -7, 7, 1], [13, -6, 7, 5]].forEach(([wx, wz, r, ci]) => {
+      const c = new THREE.Color(LASER_COLS[ci]), rgb = Math.round(c.r*255) + "," + Math.round(c.g*255) + "," + Math.round(c.b*255), px = (wx + 22)/44*w, pz = (wz + 26)/40*h, pr = r/44*w;
+      x.save(); x.translate(px, pz); x.scale(1, 1.25); const gr = x.createRadialGradient(0, 0, 0, 0, 0, pr); gr.addColorStop(0, "rgba(" + rgb + ",.5)"); gr.addColorStop(.45, "rgba(" + rgb + ",.2)"); gr.addColorStop(1, "rgba(" + rgb + ",0)");
+      x.fillStyle = gr; x.fillRect(-pr, -pr, pr*2, pr*2); x.restore(); }); });
+  L.wash = lkFlat(44, 40, lkAdd(wash, 0xffffff, .5)); L.wash.material.fog = false; L.wash.position.set(0, .012, -6); g.add(L.wash);
+  // the headlights on the floor in front of the car, the hood's pink under its nose (they go where the car goes)
+  const head = canvasTex(128, 96, (x, w, h) => { x.globalCompositeOperation = "lighter";
+    for (const s of [-1, 1]){ x.save(); x.translate(w/2 + s*w/5.4, 4); x.scale(1, 3.4); const gr = x.createRadialGradient(0, 0, 0, 0, 0, 24); gr.addColorStop(0, "rgba(210,230,255,.6)"); gr.addColorStop(.4, "rgba(190,210,255,.22)"); gr.addColorStop(1, "rgba(190,210,255,0)");
+      x.fillStyle = gr; x.fillRect(-24, 0, 48, 24); x.restore(); }
+    x.save(); x.translate(w/2, 0); x.scale(1.5, .5); const gp = x.createRadialGradient(0, 0, 0, 0, 0, 40); gp.addColorStop(0, "rgba(255,80,200,.5)"); gp.addColorStop(1, "rgba(255,80,200,0)"); x.fillStyle = gp; x.fillRect(-40, 0, 80, 40); x.restore(); });
+  L.head = lkFlat(5.4, 3.4, lkAdd(head, 0xffffff, .8)); L.head.position.set(0, .03, 2.85 + 1.7); car.add(L.head);
+  // far behind it all, stars that glint: the ending looks that way
+  const glint = canvasTex(32, 32, (x, w, h) => { x.translate(16, 16); x.fillStyle = x.shadowColor = "#fff"; x.shadowBlur = 3; x.beginPath(); for (let i = 0; i < 8; i++){ const r = i % 2 ? 2.2 : 13, a = i/8*Math.PI*2; x.lineTo(Math.cos(a)*r, Math.sin(a)*r); } x.closePath(); x.fill(); });
+  const n = 64, pos = new Float32Array(n*3), col = L.sCol = new Float32Array(n*3), geo = L.sGeo = new THREE.BufferGeometry(); L.sRate = new Float32Array(n);
+  for (let i = 0; i < n; i++){ pos[i*3] = (lkHash(i*1.3) - .5)*150; pos[i*3 + 1] = 7 + lkHash(i*2.7)*74; pos[i*3 + 2] = -140 - lkHash(i*4.1)*40; L.sRate[i] = .5 + lkHash(i*6.3)*1.3; }
+  geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  L.stars = new THREE.Points(geo, new THREE.PointsMaterial({ map:glint, size:11, sizeAttenuation:false, vertexColors:true, transparent:true, depthWrite:false, fog:false, blending:THREE.AdditiveBlending }));
+  L.stars.frustumCulled = false; g.add(L.stars); }
+function lookClubFrame(g, t, dt, beat){ const L = LK.club; if (!L) return;
+  L.wash.material.opacity = .42 + (beat ? .12 : 0) + (hookAt(t) ? .12 : 0);
+  L.head.material.opacity = .72 + (beat ? .12 : 0);
+  const C = L.sCol; for (let i = 0; i < L.sRate.length; i++){ const f = .25 + .75*Math.abs(Math.sin(t*L.sRate[i] + i*2.1)); C[i*3] = f; C[i*3 + 1] = f*(.8 + (i % 3)*.1); C[i*3 + 2] = f; }
+  L.sGeo.attributes.color.needsUpdate = true;
+  // the ending only (it hangs on the ending's own group): the lasers' colours run down the glossy floor toward you
+  if (!L.run && END.root){ const tex = canvasTex(128, 230, (x, w, h) => { x.globalCompositeOperation = "lighter"; x.shadowBlur = 12;
+      [-.84, .84, -.52, .52, -.2, .2].forEach((f, i) => { const c = new THREE.Color(LASER_COLS[i]), rgb = Math.round(c.r*255) + "," + Math.round(c.g*255) + "," + Math.round(c.b*255), gr = x.createLinearGradient(0, 0, 0, h), pk = .22 + lkHash(i*3.1)*.2;
+        gr.addColorStop(0, "rgba(" + rgb + ",0)"); gr.addColorStop(pk, "rgba(" + rgb + ",.42)"); gr.addColorStop(Math.min(.8, pk + .38), "rgba(" + rgb + ",0)"); x.fillStyle = gr; x.shadowColor = "rgba(" + rgb + ",.8)";
+        const xt = w/2 + f*2.46*20, xb = w/2 + f*.1*20; x.beginPath(); x.moveTo(xt - 4, 0); x.lineTo(xt + 4, 0); x.lineTo(xb + .8, h); x.lineTo(xb - .8, h); x.closePath(); x.fill(); }); });
+    L.run = lkFlat(6.4, 11.5, lkAdd(tex, 0xffffff, 0)); L.run.position.set(0, .014, 1.25); END.root.add(L.run); }
+  if (L.run && END.root.visible) L.run.material.opacity = clamp((S.end - 1.2)/2, 0, 1)*(.5 + (beat ? .15 : 0)); }
+
+/* ---- Neon Pinball: the ball is the thing to follow - a pool of light under it and a streak behind it when it's
+   quick; light under the flippers, the bumpers and the rails; the lit lock glows; a glow round the cabinet's foot ---- */
+const LK_STREAK = canvasTex(64, 16, (x, w, h) => { const g = x.createLinearGradient(0, 0, w, 0); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(255,255,255,.8)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.globalCompositeOperation = "destination-in"; const v = x.createLinearGradient(0, 0, 0, h); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(.5, "rgba(0,0,0,1)"); v.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = v; x.fillRect(0, 0, w, h); });
+const LK_BAR = canvasTex(128, 48, (x, w, h) => { x.strokeStyle = x.shadowColor = "#fff"; x.shadowBlur = 12; x.lineCap = "round"; x.lineWidth = 9; x.beginPath(); x.moveTo(24, h/2); x.lineTo(w - 24, h/2); x.stroke(); });
+const lookPB = { mats:[], bump:[], flip:[], q:1,
+  setup(g){ lookClub(g.w); const L = this;
+    L.under = lkFlat(5.7 + 2.8, 9.6 + 2.8, lkAdd(lkCanvasTex(), 0xffffff, .5)); lkFrame(L.under.material.map, 5.7, 9.6, 1.4); L.under.position.set(0, .03, -.5); g.root.add(L.under);
+    L.railTex = lkCanvasTex(); L.rails = lkFlat(6.4, 10.4, lkAdd(L.railTex, 0xffffff, .8)); L.rails.position.set(0, .006, -.1); g.T.add(L.rails);
+    L.pools = [0, 1].map(() => { const m = lkFlat(1, 1, lkAdd(DOT, 0xd0d6ff, .6)); m.visible = false; g.T.add(m); return m; });
+    L.streaks = [0, 1].map(() => { const m = lkFlat(1, .3, lkAdd(LK_STREAK, 0xe8e6ff, .7)); m.visible = false; g.T.add(m); return m; });
+    L.lock = lkFlat(1.7, 1.7, lkAdd(DOT, 0xff40c0, 0)); g.T.add(L.lock); },
+  // a new table: its colours, its rails
+  table(g, n){ const L = this, hue = (.88 + n*.17) % 1, hue2 = (hue + .45) % 1; for (const m of L.mats) m.dispose(); L.mats.length = 0;
+    const mat = (map, h, op) => { const m = lkAdd(map, LK.C.setHSL(h, 1, .55).getHex(), op); L.mats.push(m); return m; };
+    L.under.material.color.setHSL(hue, 1, .55);
+    // the rails' own neon lying on the playfield under them, and the same round the cabinet's trim
+    const cv = L.railTex.image; cv.width = 256; cv.height = 416; const x = cv.getContext("2d"), X = v => (v + 3.2)*40, Z = v => (v + 5.3)*40, col = h => "hsl(" + Math.round(h*360) + ",100%,60%)";
+    x.lineCap = "round"; x.globalCompositeOperation = "lighter"; x.shadowBlur = 12; x.lineWidth = 3; x.globalAlpha = .85;
+    for (const s of g.segs){ if (s.kind === "gate") continue; x.strokeStyle = x.shadowColor = col(s.kind === "sling" ? hue2 : hue); x.beginPath(); x.moveTo(X(s.ax), Z(s.az)); x.lineTo(X(s.bx), Z(s.bz)); x.stroke(); }
+    x.strokeStyle = x.shadowColor = col(hue); x.shadowBlur = 14; x.lineWidth = 4; x.globalAlpha = .9; x.strokeRect(X(-2.88), Z(-4.92), 5.76*40, 9.64*40);
+    L.railTex.needsUpdate = true;
+    // a pool of its own colour under each bumper (it goes with the one that moves), light under each flipper
+    L.bump = g.bumpers.map((k, i) => { const m = lkFlat(1.9, 1.9, mat(DOT, i === 2 ? hue2 : hue, .4)); m.position.y = .02; k.g.add(m); return m; });
+    L.flip = g.flips.map(f => { const m = lkFlat(g.FL + .75, .85, mat(LK_BAR, hue, .5)); m.position.set(-f.s*g.FL/2, .012, 0); f.g.add(m); return m; });
+    L.lock.position.set(g.lock.x, .009, g.lock.z);
+    // the ball: a little brighter, so it stands off the art
+    for (const bm of g.ballMs) bm.m.material.emissiveIntensity = .8; },
+  frame(g, t, dt, beat){ const L = this;
+    for (let i = 0; i < 2; i++){ const b = g.balls[i], pool = L.pools[i], st = L.streaks[i]; pool.visible = !!b; st.visible = false; if (!b) continue;
+      pool.position.set(b.p.x, .0105, b.p.y);
+      const sp = b.ready || (g.locked && g.locked.b === b) ? 0 : Math.hypot(b.v.x, b.v.y);
+      if (sp > 3){ const len = Math.min(1.3, sp*.07); st.visible = true; st.scale.set(len, 1, .3); st.rotation.y = Math.atan2(-b.v.y, b.v.x); st.position.set(b.p.x - b.v.x/sp*len/2, .011, b.p.y - b.v.y/sp*len/2); st.material.opacity = Math.min(.85, (sp - 3)*.11); } }
+    for (let i = 0; i < L.bump.length; i++){ const k = g.bumpers[i]; L.bump[i].material.opacity = .38 + (k.lit > 0 ? .55 : 0) + (beat ? .08 : 0); }
+    for (let i = 0; i < L.flip.length; i++) L.flip[i].material.opacity = .45 + .5*clamp((.5 - g.flips[i].a)/.98, 0, 1);
+    L.lock.material.color.copy(g.lockRing.material.color); L.lock.material.opacity = g.lockLit ? .55 + (beat ? .3 : 0) : 0;
+    // while the game has a message up, the neon's bloom steps back so the words stay the brightest thing there
+    L.q += ((S.msgT > 0 ? .45 : 1) - L.q)*Math.min(1, dt*8);
+    L.rails.material.opacity = (.75 + (beat ? .2 : 0))*L.q; L.under.material.opacity = .42 + (beat ? .14 : 0); }
+};
+
+/* ---- Speaker Push: the pads really glow, light under every speaker in the colour its edges already have (gold on
+   a pad, red in a corner), the walls' tops traced in their neon, a face on the speakers, light under the saucer,
+   a glow round the dance floor - and the floor's squares flash when the party's on ---- */
+const LK_TOP = canvasTex(64, 64, (x, w, h) => { x.fillStyle = "rgba(255,255,255,.07)"; x.fillRect(0, 0, w, h); x.strokeStyle = x.shadowColor = "#fff"; x.shadowBlur = 5; x.lineWidth = 3.5; x.strokeRect(4, 4, w - 8, h - 8); });
+const LK_SQ = canvasTex(64, 64, (x, w, h) => { x.fillStyle = x.shadowColor = "#fff"; x.shadowBlur = 13; x.globalAlpha = .8; x.fillRect(19, 19, 26, 26); });
+const LK_FACE = canvasTex(96, 120, (x, w, h) => { x.strokeStyle = "rgba(176,160,240,.55)"; x.lineWidth = 2; x.strokeRect(5, 5, w - 10, h - 10);
+  x.strokeStyle = "rgba(200,190,255,.9)"; x.lineWidth = 3; x.beginPath(); x.arc(w/2, h*(1 - .32/.92), 35.5, 0, Math.PI*2); x.stroke(); x.lineWidth = 2.5; x.beginPath(); x.arc(w/2, h*(1 - .72/.92), 17.5, 0, Math.PI*2); x.stroke();
+  x.fillStyle = "rgba(200,190,255,.8)"; for (const [sx, sy] of [[11, 11], [w - 11, 11], [11, h - 11], [w - 11, h - 11]]){ x.beginPath(); x.arc(sx, sy, 2.2, 0, Math.PI*2); x.fill(); } });
+const lookPush = { tiles:[], maxW:72, maxP:12, wasParty:false, q:1,
+  setup(g){ lookClub(g.w); const L = this, inst = (mat, n) => { const m = new THREE.InstancedMesh(lkFlatGeo, mat, n); m.frustumCulled = false; m.count = 0; m.renderOrder = -1; g.root.add(m); return m; };
+    L.stage = lkFlat(1, 1, lkAdd(lkCanvasTex(), 0xb040ff, .5)); L.stage.position.set(0, .024, -.4); g.root.add(L.stage);
+    L.walls = inst(lkAdd(LK_TOP, 0xc060ff, .85), L.maxW); L.walls.renderOrder = 0;
+    L.pads = inst(lkAdd(LK_SQ, 0xffc040, .55), L.maxP);
+    L.spk = inst(lkAdd(DOT, 0xffffff, .85), L.maxP); for (let i = 0; i < L.maxP; i++) L.spk.setColorAt(i, LK.C.setHex(0x2af0e0));
+    L.lids = inst(new THREE.MeshBasicMaterial({ color:0xff2a3a, transparent:true, opacity:.8, depthWrite:false }), L.maxP); L.lids.renderOrder = 0;
+    L.me = lkFlat(1, 1, lkAdd(DOT, 0xff6ad8, .5)); L.me.renderOrder = -1; g.root.add(L.me);
+    L.face = new THREE.MeshBasicMaterial({ map:LK_FACE, transparent:true, depthWrite:false }); },
+  // a new floor: where its walls, pads and squares are (read off what the game has just built)
+  floor(g){ const L = this, c = g.cell; let nw = 0, np = 0; L.tiles.length = 0;
+    for (const m of g.meshes){ const p = m.isMesh && m.geometry.parameters; if (!p) continue;
+      if (m.userData.base === .18) L.tiles.push(m);
+      else if (m.geometry.type === "BoxGeometry" && p.height === .32){ if (nw < L.maxW) L.walls.setMatrixAt(nw++, LK.M.makeScale(c*.98, 1, c*.98).setPosition(m.position.x, .328, m.position.z)); }
+      else if (m.material.map === PAD_TEX){ if (np < L.maxP) L.pads.setMatrixAt(np++, LK.M.makeScale(c*1.75, 1, c*1.75).setPosition(m.position.x, .064, m.position.z)); } }
+    L.walls.count = nw; L.walls.instanceMatrix.needsUpdate = true; L.pads.count = np; L.pads.instanceMatrix.needsUpdate = true;
+    const sw = g.W*c + .3, sd = g.H*c + .3; lkFrame(L.stage.material.map, sw, sd, 1.1); L.stage.scale.set(sw + 2.2, 1, sd + 2.2);
+    for (const b of g.boxM){ const f = new THREE.Mesh(lkUpGeo, L.face); f.scale.set(c*.74, c*.92, 1); f.position.set(0, c*.46, c*.357); b.add(f); }
+    L.me.scale.set(c*1.7, 1, c*1.7); },
+  frame(g, t, dt, beat){ const L = this, c = g.cell, n = Math.min(g.boxes.length, g.boxM.length, L.maxP); L.spk.count = n; let ns = 0;
+    for (let i = 0; i < n; i++){ const k = g.boxes[i], m = g.boxM[i], on = g.goals.has(k), stuck = !on && g.stuck(k);
+      const sz = c*(on ? 2 : stuck ? 2.3 : 1.7); L.spk.setMatrixAt(i, LK.M.makeScale(sz, 1, sz).setPosition(m.position.x, .066, m.position.z));
+      if (on) LK.C.setHex(0xffc040).multiplyScalar(.7 + (beat ? .3 : 0)); else if (stuck) LK.C.setHex(0xff2a3a).multiplyScalar(.75 + Math.sin(t*8)*.25); else LK.C.setHex(0x2af0e0).multiplyScalar(.32);
+      L.spk.setColorAt(i, LK.C);
+      // a speaker the game calls stuck (red edges, the red glow over it): its lid goes red too
+      if (stuck) L.lids.setMatrixAt(ns++, LK.M.makeScale(c*.74, 1, c*.7).setPosition(m.position.x, c*.957, m.position.z)); }
+    L.spk.instanceMatrix.needsUpdate = true; L.spk.instanceColor.needsUpdate = true; L.lids.count = ns; L.lids.instanceMatrix.needsUpdate = true; L.lids.material.opacity = .78 + Math.sin(t*8)*.18;
+    // while the game has a message up, the walls' neon steps back so the words stay the brightest thing there
+    L.q += ((S.msgT > 0 ? .4 : 1) - L.q)*Math.min(1, dt*8);
+    L.walls.material.opacity = .85*L.q; L.pads.material.opacity = .5 + (beat ? .3 : 0); L.stage.material.opacity = (.45 + (beat ? .15 : 0))*L.q;
+    L.me.position.set(ME.position.x, .068, ME.position.z);
+    if (g.party > 0){ L.wasParty = true; for (let i = 0; i < L.tiles.length; i++) L.tiles[i].material.emissiveIntensity = .32 + g.party*(.26 + .26*Math.sin(t*9 + i*1.9)); }
+    else if (L.wasParty){ L.wasParty = false; for (let i = 0; i < L.tiles.length; i++) L.tiles[i].material.emissiveIntensity = .32; } }
+};
 
 /* ---------------- the games on the song's clock ----------------
    The two games are the ones from prototypes.html, unchanged at heart; this gives each what the level

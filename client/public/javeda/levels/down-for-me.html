@@ -518,7 +518,8 @@ const SWAP = {
     Object.assign(S, { pic:0, pics:0, fixed:0, k:1, nextAt:0, sel:null, last:null, deadline:0 }); lastT = 0; this.make(0); say("SUNSET SWAP", "tap two squares to swap them", 2.4); },
   info(){ return this.cells.filter(x => x.at === x.home).length + "/" + this.cells.length + " · PICTURE " + (S.pic + 1); }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
   slot(i){ const n = this.n, s = this.SIZE/n; return new THREE.Vector3((i % n - (n - 1)/2)*s - .3, .06, (Math.floor(i/n) - (n - 1)/2)*s - .1); },
-  make(t){ for (const x of this.cells) this.root.remove(x.m); this.cells = [];
+  // a new picture: the old squares' own cut of the picture, their shape and their face are given back - they used to pile up, most in the endless
+  make(t){ for (const x of this.cells){ this.root.remove(x.m); x.m.geometry.dispose(); const f = x.m.material[2]; if (f.map) f.map.dispose(); f.dispose(); } this.cells = [];
     const n = this.n = S.pic < 2 ? 3 : S.pic < 5 ? 4 : 5, s = this.SIZE/n, tex = PIC_TEX[S.pic % PIC_TEX.length]; this.prev.material.map = tex; coverClones = [];
     const order = shuffle([...Array(n*n).keys()], S.k++*17 + 3);
     // no more than one square starts in its place
@@ -542,7 +543,7 @@ const SWAP = {
     for (const x of this.cells){ lerpTo(x.m, dt, 10); const ok = x.at === x.home; x.m.material[2].emissiveIntensity = S.sel === x ? .3 + (beat ? .1 : 0) : ok && S.nextAt ? .25 : 0; if (S.sel === x) x.m.position.y = .3; }
     for (const g of this.glint) if (g.material.opacity > 0){ g.material.opacity = Math.max(0, g.material.opacity - dt*2); g.scale.multiplyScalar(1 + dt*1.5); }
     // the picture it should be, propped up beside the board (in front of it on a phone)
-    if (cam.aspect < .8){ this.prev.position.set(0, .75, 3.55); this.prev.rotation.set(-.75, 0, 0); this.prev.scale.setScalar(.85); } else { this.prev.position.set(3.35, .9, -.7); this.prev.rotation.set(-.55, -.5, 0, "YXZ"); this.prev.scale.setScalar(1); }
+    if (cam.aspect < .8){ this.prev.position.set(0, .75, 3.9); this.prev.rotation.set(-.75, 0, 0); this.prev.scale.setScalar(.85); } else { this.prev.position.set(3.35, .9, -.7); this.prev.rotation.set(-.55, -.5, 0, "YXZ"); this.prev.scale.setScalar(1); }
     hover(S.sel ? S.sel.m.position : S.last || new THREE.Vector3(-.3, 0, -.1), t, dt);
     tableCam();
   }
@@ -793,7 +794,7 @@ function lookStep(t, dt){
   while (LK.fixed < S.fixed){ const g = SWAP.glint[LK.fixed++ % SWAP.glint.length]; if (playing) sparks(g.position.x, g.position.z, 5, s*.35, .9); }
   sparksStep(dt);
   // the shade of the picture beside the board (in front of it on a phone)
-  if (cam.aspect < .8){ LK.pshade.position.set(0, .012, 4.02); LK.pshade.scale.set(2, 1, .9); }
+  if (cam.aspect < .8){ LK.pshade.position.set(0, .012, 4.3); LK.pshade.scale.set(2, 1, .9); }
   else { LK.pshade.position.set(3.2, .012, -.42); LK.pshade.scale.set(2.2, 1, 1.5); }
 }
 

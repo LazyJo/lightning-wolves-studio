@@ -191,6 +191,9 @@ if (HUB) document.getElementById("home").addEventListener("click", e => { e.prev
 if (CFG.endless) document.body.classList.add("gold");
 
 const rnd = n => { const x = Math.sin(n*127.1)*43758.5453; return x - Math.floor(x); };
+// (look) for decoration only, never the game's rnd(); and whoever asks for less motion gets a still sky
+const hash = n => { const x = Math.sin(n*91.7 + 3.3)*15731.743; return x - Math.floor(x); };
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" })[c]);
@@ -274,7 +277,41 @@ function paintSunset(x, w, h, hz){
   const sg = x.createRadialGradient(w/2, hz, 0, w/2, hz, h*.5); sg.addColorStop(0, "rgba(255,255,235,1)"); sg.addColorStop(.06, "rgba(255,250,215,.95)"); sg.addColorStop(.22, "rgba(255,200,130,.45)"); sg.addColorStop(1, "rgba(255,160,90,0)");
   x.fillStyle = sg; x.fillRect(0, 0, w, h); x.globalCompositeOperation = "source-over";
 }
-const BACK = canvasTex(1024, 640, (x, w, h) => paintSunset(x, w, h, h*.42));
+// (look) the backdrop is its own painting now (paintSunset stays what it was: it is also the first picture of the
+// puzzle). Only the lowest quarter of the sky ever shows, so the blue-to-gold of the cover happens down there; the sun
+// itself is not painted in: it hangs in the sky (lookBuild) and goes down with the song. Far capes on the horizon.
+function paintBackdrop(x, w, h, hz){
+  let g = x.createLinearGradient(0, 0, 0, hz);
+  g.addColorStop(0, "#1e5ab8"); g.addColorStop(.45, "#3a8ad8"); g.addColorStop(.72, "#6cb4ea"); g.addColorStop(.85, "#aad4ee"); g.addColorStop(.925, "#ffdcb4"); g.addColorStop(.975, "#ffbc78"); g.addColorStop(1, "#ffd28c");
+  x.fillStyle = g; x.fillRect(0, 0, w, hz);
+  // the light along the horizon
+  x.save(); x.beginPath(); x.rect(0, 0, w, hz); x.clip(); x.translate(w/2, hz); x.scale(2.4, 1);
+  g = x.createRadialGradient(0, 0, 0, 0, 0, hz*.3); g.addColorStop(0, "rgba(255,230,176,.75)"); g.addColorStop(.35, "rgba(255,212,150,.4)"); g.addColorStop(1, "rgba(255,196,130,0)");
+  x.fillStyle = g; x.fillRect(-w, -hz, w*2, hz); x.restore();
+  // the sea, deeper toward us
+  g = x.createLinearGradient(0, hz, 0, h); g.addColorStop(0, "#7accdc"); g.addColorStop(.06, "#4aacd4"); g.addColorStop(.3, "#2488c4"); g.addColorStop(1, "#0a4c90");
+  x.fillStyle = g; x.fillRect(0, hz, w, h - hz);
+  // the glare of the low sun on the far water, wide and pale (the messages of the game are read on it, as before)
+  x.save(); x.beginPath(); x.rect(0, hz, w, h - hz); x.clip(); x.translate(w/2, hz); x.scale(1.5, 1);
+  g = x.createRadialGradient(0, 0, 0, 0, 0, 140); g.addColorStop(0, "rgba(255,250,232,.95)"); g.addColorStop(.3, "rgba(240,250,246,.85)"); g.addColorStop(.6, "rgba(214,240,246,.5)"); g.addColorStop(1, "rgba(200,236,246,0)");
+  x.fillStyle = g; x.fillRect(-w, 0, w*2, h); x.restore();
+  // long quiet lines of swell
+  for (let i = 0; i < 90; i++){ const k = hash(i*1.9), yy = hz + 3 + k*k*(h - hz), len = 30 + hash(i*2.3)*90*(.4 + k);
+    x.fillStyle = "rgba(210,240,255," + (.05 + hash(i*3.1)*.09) + ")"; x.fillRect(hash(i*4.7)*w - len/2, yy, len, 1 + k*1.6); }
+  // far capes, hazy, left and right of the sun's path
+  for (const [cx, half, tall, a] of [[.345, .085, 13, .5], [.418, .05, 8, .62], [.602, .042, 7, .62], [.668, .09, 12, .5]]){ x.fillStyle = "rgba(96,112,176," + a + ")"; x.beginPath(); x.moveTo(w*(cx - half), hz + 1);
+    for (let j = 0; j <= 12; j++){ const q = j/12; x.lineTo(w*(cx - half + q*half*2), hz + 1 - Math.sin(q*Math.PI)*tall*(.72 + .28*Math.sin(q*9 + cx*40))); }
+    x.closePath(); x.fill(); }
+  // the golden path of the sun on the water
+  for (let i = 0; i < 760; i++){ const k = hash(i*1.3), yy = hz + 2 + k*k*(h - hz), spread = 12 + (yy - hz)*.85, xx = w/2 + (hash(i*2.1) - .5)*2*spread*hash(i*3.7);
+    x.fillStyle = "rgba(255," + (222 + Math.floor(hash(i)*33)) + ",176," + (.4 + hash(i*4.4)*.6)*(1 - k*.6) + ")"; x.fillRect(xx - 3, yy, 4 + hash(i*5.5)*13, 1.7); }
+  x.globalCompositeOperation = "lighter";
+  g = x.createRadialGradient(w/2, hz, 0, w/2, hz, h*.14); g.addColorStop(0, "rgba(255,240,200,.6)"); g.addColorStop(.4, "rgba(255,208,140,.24)"); g.addColorStop(1, "rgba(255,170,100,0)");
+  x.fillStyle = g; x.fillRect(0, hz, w, h - hz);
+  x.fillStyle = "rgba(255,244,214,.5)"; x.fillRect(0, hz - 1, w, 2);
+  x.globalCompositeOperation = "source-over";
+}
+const BACK = canvasTex(1024, 640, (x, w, h) => paintBackdrop(x, w, h, h*.42));
 // the backdrop fills the screen whatever its shape, unstretched, with the horizon HZ of the way down from the top
 const HZ = .17;
 function fitBack(){ const a = innerWidth/innerHeight, img = 1024/640, r = Math.min(.68, img/a), top = .42 - HZ*r;
@@ -586,6 +623,180 @@ function over(why){
   setTimeout(finish, 1500);
 }
 
+/* ================= THE LOOK (visual only) =================
+   A living sky, light and shade round the game. Nothing here is read by the game, and nothing takes a tap or is
+   in the way of one (a tap looks for the squares only). Decoration is placed with hash(), never the game's rnd().
+   - the sky hangs far behind everything and travels with the camera: the sun (it goes down with the song), its
+     halo breathing with the beat, two bands of cloud drifting at different speeds, glints on the sun's path,
+     a few birds;
+   - the terrace: the water round the floor moves, a soft shade under the table and the chairs, steam on the
+     coffee, blossoms on the wall, the palms sway;
+   - the board: a mat under the squares (the gaps between them read), a shade under every square, a line of light
+     round the square that is picked up (it was only lifted and lit before), sparks when a square locks and
+     when the picture is done; the picture beside the board stands on a little foot. */
+const LK = { T:0, fixed:0, fin:false, finT:9 };
+const SKY_D = 300;
+function rr(x, l, t, w, h, r){ x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath(); }
+function blob(x, cx, cy, rx, ry, col, a){ x.save(); x.translate(cx, cy); x.scale(rx, ry); const g = x.createRadialGradient(0, 0, 0, 0, 0, 1);
+  g.addColorStop(0, "rgba(" + col + "," + a + ")"); g.addColorStop(.55, "rgba(" + col + "," + a*.6 + ")"); g.addColorStop(1, "rgba(" + col + ",0)"); x.fillStyle = g; x.fillRect(-1, -1, 2, 2); x.restore(); }
+const SUN_TEX = radial([[0, "rgba(255,255,246,1)"], [.2, "rgba(255,253,228,1)"], [.24, "rgba(255,226,150,.5)"], [.42, "rgba(255,190,110,.18)"], [1, "rgba(255,160,90,0)"]], 256);
+const DUSK_TEX = canvasTex(8, 64, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,150,120,0)"); g.addColorStop(.45, "rgba(255,140,110,.2)"); g.addColorStop(1, "rgba(255,112,72,.7)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+// a band of cloud that joins up with itself left and right: warm underneath (the sun is low), pale on top
+function cloudStrip(seed, n, tall, belly, body){ return canvasTex(512, 128, (x, w, h) => {
+  for (let i = 0; i < n; i++){ const cx = hash(seed + i*3.1)*w, cy = h*(.34 + hash(seed + i*5.3)*.32), rx = w*(.05 + hash(seed + i*7.7)*.07), ry = Math.min(h*.2, rx*tall);
+    for (const ox of [-w, 0, w]) for (let j = 0; j < 5; j++){ const px = cx + ox + (hash(seed + i*11 + j*1.9) - .5)*rx*1.5, py = cy + (hash(seed + i*13 + j*2.7) - .5)*ry*.5, k = .55 + hash(seed + i*17 + j*3.3)*.5;
+      blob(x, px, py + ry*.3, rx*k, ry*k, belly, .5); blob(x, px, py - ry*.1, rx*k*.9, ry*k*.8, body, .75); } } }, [1, 1]); }
+const CLOUD_A = cloudStrip(10, 6, .13, "255,150,110", "255,214,170");
+const CLOUD_B = cloudStrip(50, 4, .3, "255,186,150", "255,246,236");
+const BIRDS = canvasTex(128, 64, (x, w, h) => { x.strokeStyle = "rgba(40,44,84,.8)"; x.lineWidth = 2.2; x.lineCap = "round";
+  for (const [bx, by, s] of [[30, 38, 1], [64, 22, .8], [98, 42, .7]]){ x.beginPath(); x.moveTo(bx - 11*s, by - 3*s); x.quadraticCurveTo(bx - 5*s, by - 8*s, bx, by); x.quadraticCurveTo(bx + 5*s, by - 8*s, bx + 11*s, by - 3*s); x.stroke(); } });
+// light on the water round the floor (laid over it twice, turning against each other)
+const RIPPLE = canvasTex(512, 512, (x, w, h) => { x.strokeStyle = "#fff"; x.lineCap = "round"; x.shadowColor = "#fff"; x.shadowBlur = 4;
+  for (let i = 0; i < 46; i++){ const a = hash(i*1.7)*Math.PI*2, r = w*(.225 + hash(i*2.9)*.255); x.globalAlpha = .18 + hash(i*4.1)*.4; x.lineWidth = 1.5 + hash(i*5.3)*2.5; x.beginPath(); x.arc(w/2, h/2, r, a, a + .12 + hash(i*6.7)*.3); x.stroke(); } });
+// the shade on the floor: under the table and its foot, under the two chairs (24 x 24 of floor)
+// (it stops short of the front of the floor: the line at the bottom of the screen is read there)
+const FLOOR_SHADE = canvasTex(256, 256, (x, w, h) => { const u = w/24, sh = (cx, cz, rx, rz, a) => blob(x, (cx + 12)*u, (cz + 12)*u, rx*u, rz*u, "22,44,92", a);
+  sh(0, -.3, 5, 4.2, .22); sh(0, .3, 2.4, 2.4, .38); sh(-6.7, -.7, 2.8, 2.8, .42); sh(6.7, -.7, 2.8, 2.8, .42); });
+// the mat the squares lie on: woven, deep teal like the vase, a stitched edge, its shade on the wood (5.9 x 5.9 of table)
+const MAT_TEX = canvasTex(512, 512, (x, w, h) => { const u = w/5.9, m = .48*u, d = w - m*2;
+  x.fillStyle = "#123e50"; x.shadowColor = "rgba(34,10,0,.6)"; x.shadowBlur = 22; x.shadowOffsetY = 7; rr(x, m, m, d, d, 16); x.fill(); x.shadowColor = "transparent";
+  x.save(); x.clip(); const g = x.createLinearGradient(0, m, 0, m + d); g.addColorStop(0, "#1a5266"); g.addColorStop(1, "#0e3444"); x.fillStyle = g; x.fillRect(m, m, d, d);
+  for (let i = 0; i < d; i += 5){ x.fillStyle = (i/5) % 2 ? "rgba(255,255,255,.035)" : "rgba(0,0,0,.06)"; x.fillRect(m, m + i, d, 2.5); x.fillRect(m + i, m, 2.5, d); }
+  x.restore();
+  x.strokeStyle = "rgba(255,226,170,.8)"; x.lineWidth = 2.5; x.setLineDash([9, 6]); rr(x, m + 9, m + 9, d - 18, d - 18, 10); x.stroke(); x.setLineDash([]); });
+// the shade under a square (white = how much light it takes away), the line of light round the picked-up one, a spark
+const SHADE_TEX = canvasTex(64, 64, (x, w, h) => { x.fillStyle = "#000"; x.fillRect(0, 0, w, h); x.fillStyle = x.shadowColor = "#fff"; x.shadowBlur = 9; rr(x, 13, 13, w - 26, h - 26, 4); x.fill(); });
+const FRAME_TEX = canvasTex(128, 128, (x, w, h) => { x.lineJoin = "round"; x.shadowColor = "#8a3af0"; x.shadowBlur = 9; x.strokeStyle = "#a45cff"; x.lineWidth = 7; rr(x, 11, 11, w - 22, h - 22, 5); x.stroke(); x.stroke();
+  x.shadowBlur = 0; x.strokeStyle = "#fffbe8"; x.lineWidth = 3.6; rr(x, 11, 11, w - 22, h - 22, 5); x.stroke();
+  // nothing over the picture on the square itself
+  x.clearRect(17, 17, w - 34, h - 34); });
+const DONE_TEX = canvasTex(128, 128, (x, w, h) => { x.lineJoin = "round"; x.shadowColor = "#ffb030"; x.shadowBlur = 7; x.strokeStyle = "#ffd470"; x.lineWidth = 3; rr(x, 11, 11, w - 22, h - 22, 3); x.stroke(); x.stroke();
+  x.shadowBlur = 0; x.strokeStyle = "#fffbe0"; x.lineWidth = 1.6; rr(x, 11, 11, w - 22, h - 22, 3); x.stroke(); });
+const GLINT_TEX = canvasTex(64, 64, (x, w, h) => { x.translate(32, 32); const g = x.createRadialGradient(0, 0, 0, 0, 0, 30); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(.3, "rgba(255,240,190,.55)"); g.addColorStop(1, "rgba(255,220,150,0)");
+  x.fillStyle = g; x.beginPath(); for (let i = 0; i < 8; i++){ const r = i % 2 ? 6 : 30, a = i/8*Math.PI*2; x.lineTo(Math.cos(a)*r, Math.sin(a)*r); } x.closePath(); x.fill(); x.beginPath(); x.arc(0, 0, 7, 0, 7); x.fill(); });
+// a low hedge behind the wall: what the flowers grow from (leaves in three greens, a ragged top)
+const HEDGE_TEX = canvasTex(256, 64, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#2c7436"); g.addColorStop(1, "#123a1c"); x.fillStyle = g; x.fillRect(0, 13, w, h - 13);
+  for (let j = 0; j < 40; j++){ x.beginPath(); x.ellipse((j + .5)*w/40, 13 + hash(j*7.3)*3, 8, 6 + hash(j*3.1)*3, 0, 0, 7); x.fill(); }
+  for (let i = 0; i < 230; i++){ const q = hash(i*1.3), lx = hash(i*2.7)*w, ly = 15 + q*(h - 15), a = hash(i*3.9)*Math.PI; x.fillStyle = ["#1f5a2a", "#2f7a3a", "#3d8c44", "#4a9a4c"][Math.floor(hash(i*5.1)*4 - q*1.2 + 1.2) % 4];
+    for (const ox of [-w, 0, w]){ x.beginPath(); x.ellipse(lx + ox, ly, 9, 4.5, a, 0, 7); x.fill(); } } }, [4, 1]);
+const BLOB_TEX = radial([[0, "rgba(40,14,2,.5)"], [.5, "rgba(40,14,2,.3)"], [1, "rgba(40,14,2,0)"]], 64);
+// the flowers along the wall, in focus: five petals, a yellow heart, three leaves - one little picture a colour
+const BLOOM = FLOWER_COLS.slice(0, 4).map((c, n) => canvasTex(64, 64, (x, w, h) => { x.translate(32, 33);
+  x.fillStyle = "#2f7a3a"; for (const a of [.5, 2.6, 4.4]){ x.save(); x.rotate(a + n); x.beginPath(); x.ellipse(20, 0, 10, 5, 0, 0, 7); x.fill(); x.restore(); }
+  x.shadowColor = "rgba(90,10,40,.4)"; x.shadowBlur = 3; x.fillStyle = "#" + c.toString(16).padStart(6, "0");
+  for (let i = 0; i < 5; i++){ const a = i/5*Math.PI*2 + n*.4; x.beginPath(); x.arc(Math.cos(a)*10, Math.sin(a)*10, 9.5, 0, 7); x.fill(); }
+  x.shadowBlur = 0; x.fillStyle = "rgba(255,255,255,.26)";
+  for (let i = 0; i < 5; i++){ const a = i/5*Math.PI*2 + n*.4; x.beginPath(); x.arc(Math.cos(a)*11, Math.sin(a)*11 - 2, 5, 0, 7); x.fill(); }
+  x.fillStyle = "#ffe08a"; x.beginPath(); x.arc(0, 0, 5, 0, 7); x.fill(); }));
+// sparks: one pooled cloud of points, nothing is made while it plays
+const SPK = { n:28, k:0, live:0, dur:.8 };
+function sparks(cx, cz, n, r0, out){ if (CALM || !SPK.pts) return; const P = SPK.pos, V = SPK.vel;
+  if (SPK.live <= 0) P.fill(-99);
+  for (let j = 0; j < n; j++){ const i = SPK.k++ % SPK.n, a = hash(SPK.k*1.7)*Math.PI*2, d = r0*(.5 + hash(SPK.k*2.9)*.5);
+    P[i*3] = cx + Math.cos(a)*d; P[i*3 + 1] = .2; P[i*3 + 2] = cz + Math.sin(a)*d; V[i*3] = Math.cos(a)*out; V[i*3 + 1] = 1.1 + hash(SPK.k*4.3)*1.2; V[i*3 + 2] = Math.sin(a)*out; }
+  SPK.live = SPK.dur; SPK.pts.visible = true; }
+function sparksStep(dt){ if (SPK.live <= 0) return; SPK.live -= dt; const P = SPK.pos, V = SPK.vel;
+  for (let i = 0; i < SPK.n*3; i++) if (P[i] > -90) P[i] += V[i]*dt;
+  SPK.pts.material.opacity = clamp(SPK.live/SPK.dur*1.6, 0, 1); SPK.geo.attributes.position.needsUpdate = true; if (SPK.live <= 0) SPK.pts.visible = false; }
+const M_P = new THREE.Vector3(), M_S = new THREE.Vector3(), M_Q = new THREE.Quaternion(), M_M = new THREE.Matrix4(), M_C = new THREE.Color();
+function lookBuild(){
+  const hh = LK.hh = SKY_D*Math.tan(cam.fov*Math.PI/360), k = 2*hh/(640*.68), yOf = f => hh*(1 - 2*f);
+  const lay = (map, o) => new THREE.MeshBasicMaterial(Object.assign({ map, transparent:true, depthWrite:false }, o));
+  const unit = new THREE.PlaneGeometry(1, 1), flatG = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI/2);
+  // ---- the sky: far behind everything, drawn first, moved with the camera in lookStep
+  const sky = LK.sky = new THREE.Group(); sky.renderOrder = -10; scene.add(sky);
+  LK.dusk = new THREE.Mesh(unit, lay(DUSK_TEX, { opacity:0 })); LK.dusk.position.set(0, yOf(HZ/2), -SKY_D); sky.add(LK.dusk);
+  LK.halo = sprite(0xffa85a, 120, .2); LK.halo.renderOrder = 1; sky.add(LK.halo);
+  LK.sun = new THREE.Sprite(new THREE.SpriteMaterial({ map:SUN_TEX, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending })); LK.sun.scale.setScalar(64); LK.sun.renderOrder = 2; sky.add(LK.sun);
+  LK.cl = [[CLOUD_A, .13, .075, .0035, .9], [CLOUD_B, .055, .12, .008, .7]].map(([tex, f, tall, speed, op], i) => { const m = new THREE.Mesh(unit, lay(tex, { opacity:op }));
+    m.position.set(0, yOf(f), -SKY_D); m.userData = { h:tall*2*hh, speed }; m.renderOrder = 3 + i; sky.add(m); return m; });
+  LK.glit = [];
+  for (let s = 0; s < 2; s++){ const n = 64, pos = new Float32Array(n*3);
+    for (let i = 0; i < n; i++){ const q = hash(s*100 + i*1.7), dy = 3 + q*q*290, dx = (hash(s*100 + i*2.9)*2 - 1)*(7 + dy*.55)*hash(s*100 + i*4.3); pos.set([dx*k, yOf(HZ) - dy*k, -SKY_D], i*3); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ map:DOT, color:0xfff2c8, size:3.4, transparent:true, opacity:.8, blending:THREE.AdditiveBlending, depthWrite:false }));
+    pts.frustumCulled = false; pts.renderOrder = 5 + s; sky.add(pts); LK.glit.push(pts); }
+  LK.birds = new THREE.Sprite(new THREE.SpriteMaterial({ map:BIRDS, transparent:true, depthWrite:false })); LK.birds.renderOrder = 7; sky.add(LK.birds);
+  // ---- the terrace
+  const w = SWAP.w, ground = new THREE.Group(); ground.renderOrder = -5; w.add(ground);
+  LK.water = [1, .93].map((sc, i) => { const m = new THREE.Mesh(new THREE.RingGeometry(5.3, 12.5, 64), lay(RIPPLE, { blending:THREE.AdditiveBlending, opacity:i ? .3 : .42 }));
+    m.rotation.x = -Math.PI/2; m.scale.setScalar(sc); m.position.y = FLOOR_Y + .012 + i*.004; ground.add(m); return m; });
+  const fs = new THREE.Mesh(new THREE.PlaneGeometry(24, 24), lay(FLOOR_SHADE)); fs.rotation.x = -Math.PI/2; fs.position.y = FLOOR_Y + .024; fs.renderOrder = 1; ground.add(fs);
+  // a hedge behind the wall and the flowers along it in focus - but not while the game is played on a phone: there
+  // the game's messages are read right on top of them, so there they stay the soft dots they were (see lookStep)
+  LK.hedge = new THREE.Mesh(new THREE.CylinderGeometry(14.45, 14.45, 2.65, 48, 1, true, Math.PI*.58, Math.PI*.84), new THREE.MeshBasicMaterial({ map:HEDGE_TEX, alphaTest:.5, side:THREE.BackSide }));
+  HEDGE_TEX.wrapT = THREE.ClampToEdgeWrapping;
+  LK.hedge.position.y = FLOOR_Y + .275; LK.hedge.visible = false; w.add(LK.hedge);
+  LK.flowers = [];
+  for (const c of w.children){ const n = c.isSprite && c.material.map === DOT ? FLOWER_COLS.indexOf(c.material.color.getHex()) : -1;
+    if (n >= 0 && n < 4){ c.userData = { n, col:c.material.color.getHex(), op:c.material.opacity, size:c.scale.x }; LK.flowers.push(c); } }
+  LK.crisp = false;
+  LK.palms = w.children.filter(c => c.isGroup && c.position.y === FLOOR_Y - 4);
+  LK.steam = [];
+  for (const sx of [-1, 1]) for (let j = 0; j < 2; j++){ const s = sprite(0xffffff, .4, 0); s.material.blending = THREE.NormalBlending; s.userData = { x:sx*2.95, ph:j*.5 + (sx > 0 ? .27 : 0) }; w.add(s); LK.steam.push(s); }
+  // ---- the board: its own group, drawn before the glints and the saucer's beam
+  const board = LK.board = new THREE.Group(); board.renderOrder = -3; SWAP.root.add(board);
+  const mat = new THREE.Mesh(new THREE.PlaneGeometry(5.9, 5.9), lay(MAT_TEX)); mat.rotation.x = -Math.PI/2; mat.position.set(-.3, .008, -.1); board.add(mat);
+  LK.pshade = new THREE.Mesh(flatG, lay(BLOB_TEX)); LK.pshade.position.y = .012; board.add(LK.pshade);
+  LK.shade = new THREE.InstancedMesh(flatG, new THREE.MeshBasicMaterial({ map:SHADE_TEX, transparent:true, depthWrite:false, blending:THREE.CustomBlending, blendEquation:THREE.AddEquation, blendSrc:THREE.ZeroFactor, blendDst:THREE.OneMinusSrcColorFactor }), 25);
+  for (let i = 0; i < 25; i++){ LK.shade.setMatrixAt(i, M_M); LK.shade.setColorAt(i, M_C.setRGB(0, 0, 0)); }
+  LK.shade.frustumCulled = false; LK.shade.count = 0; LK.shade.renderOrder = 1; board.add(LK.shade);
+  LK.frame = new THREE.Mesh(flatG, lay(FRAME_TEX, { polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-2 })); LK.frame.renderOrder = 2; LK.frame.visible = false; board.add(LK.frame);
+  LK.done = new THREE.Mesh(flatG, lay(DONE_TEX, { blending:THREE.AdditiveBlending })); LK.done.position.set(-.3, .125, -.1); LK.done.scale.set(SWAP.SIZE*1.207, 1, SWAP.SIZE*1.207); LK.done.renderOrder = 2; LK.done.visible = false; board.add(LK.done);
+  // the picture beside the board stands on a ledge and a foot (the foot goes into the table)
+  const wood = soft(0x5a2a10, .12);
+  SWAP.prev.add(at3(new THREE.Mesh(new THREE.BoxGeometry(1.76, .09, .16), wood), 0, -.875, .05));
+  SWAP.prev.add(at3(new THREE.Mesh(new THREE.BoxGeometry(.9, .5, .1), wood), 0, -1.1, -.07));
+  SPK.pos = new Float32Array(SPK.n*3).fill(-99); SPK.vel = new Float32Array(SPK.n*3); SPK.geo = new THREE.BufferGeometry(); SPK.geo.setAttribute("position", new THREE.BufferAttribute(SPK.pos, 3));
+  SPK.pts = new THREE.Points(SPK.geo, new THREE.PointsMaterial({ map:GLINT_TEX, color:0xfff4d0, size:.42, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending }));
+  SPK.pts.frustumCulled = false; SPK.pts.visible = false; SPK.pts.renderOrder = 5; SWAP.root.add(SPK.pts);
+}
+// every frame, after the game has put its things where it wants them
+function lookStep(t, dt){
+  if (!LK.sky) return;
+  if (!CALM) LK.T += dt;
+  const T = LK.T, hh = LK.hh, hw = hh*cam.aspect, playing = S.started && S.end < 0 && !S.done;
+  const ph = (((t - GRID.t0) % BEAT) + BEAT) % BEAT / BEAT, pulse = CALM || !S.started ? 0 : Math.pow(.5 + .5*Math.cos(ph*Math.PI*2), 2), hook = playing && hookAt(t) ? 1 : 0;
+  // the sky: with the camera; the sun goes down with the song (endless: it stays low)
+  const u = CFG.endless ? .8 : clamp(t/END_AT, 0, 1), sy = hh*(1 - 2*(.094 + u*.05));
+  LK.sky.position.copy(cam.position); LK.sky.quaternion.copy(cam.quaternion);
+  LK.sun.position.set(0, sy, -SKY_D); LK.halo.position.set(0, sy, -SKY_D);
+  LK.halo.material.opacity = .2 + pulse*.1 + hook*.07; LK.halo.scale.setScalar(120 + pulse*8);
+  LK.dusk.scale.set(hw*2 + 4, HZ*2*hh, 1); LK.dusk.material.opacity = u*.8;
+  for (const m of LK.cl){ const c = m.userData, tx = m.material.map; m.scale.set(hw*2 + 4, c.h, 1); tx.repeat.x = hw*2/(c.h*4); tx.offset.x = T*c.speed; }
+  LK.glit[0].material.opacity = (.3 + .6*Math.abs(Math.sin(T*1.9)))*(1 + hook*.2); LK.glit[1].material.opacity = (.3 + .6*Math.abs(Math.sin(T*1.3 + 1.1)))*(1 + hook*.2);
+  const bx = ((T*.011 + .3) % 1)*2 - 1;
+  LK.birds.position.set(bx*(hw + 12), hh*(1 - 2*(.118 + Math.sin(T*.4)*.008)), -SKY_D); LK.birds.scale.set(9, 4.5*(.8 + .2*Math.sin(T*7)), 1);
+  // the terrace
+  const crisp = cam.aspect >= .8 || S.end >= 1;
+  if (crisp !== LK.crisp){ LK.crisp = crisp; LK.hedge.visible = crisp;
+    for (const c of LK.flowers){ const d = c.userData; c.material.map = crisp ? BLOOM[d.n] : DOT; c.material.color.set(crisp ? 0xffffff : d.col); c.material.opacity = crisp ? 1 : d.op; c.scale.setScalar(crisp ? d.size*.8 : d.size); } }
+  LK.water[0].rotation.z = T*.035; LK.water[1].rotation.z = -T*.026 + 1;
+  for (let i = 0; i < LK.palms.length; i++) LK.palms[i].rotation.z = Math.sin(T*.7 + i*1.9)*.012;
+  for (const s of LK.steam){ const c = s.userData, a = (T*.3 + c.ph) % 1; s.position.set(c.x + Math.sin(a*5 + c.ph*9)*.08, .5 + a*1.1, -3); s.scale.setScalar(.28 + a*.5); s.material.opacity = .42*Math.sin(a*Math.PI); }
+  // the board
+  const cells = SWAP.cells, s = SWAP.SIZE/(SWAP.n || 3), sh = LK.shade;
+  sh.count = cells.length;
+  for (let i = 0; i < cells.length; i++){ const p = cells[i].m.position, lift = Math.max(0, p.y - .06), d = clamp(1 - lift/2.4, 0, 1)*.5, z = s*(1.06 + lift*.22);
+    M_P.set(p.x, .022, p.z + lift*.35); M_S.set(z, 1, z); M_M.compose(M_P, M_Q, M_S); sh.setMatrixAt(i, M_M); sh.setColorAt(i, M_C.setRGB(d, d*.92, d*.7)); }
+  sh.instanceMatrix.needsUpdate = true; sh.instanceColor.needsUpdate = true;
+  // a line of light round the square that is picked up; round the whole picture when it is done
+  const f = LK.frame, fin = playing && !!S.nextAt;
+  if (fin && !LK.fin){ LK.finT = 0; for (let i = 0; i < 4; i++) sparks(-.3 + (i % 2 ? 1 : -1)*1.5, -.1 + (i < 2 ? 1 : -1)*1.5, 7, 1.2, 1.1); }
+  LK.fin = fin; LK.finT += dt;
+  if (playing && S.sel){ const p = S.sel.m.position; f.visible = true; f.position.set(p.x, p.y + .058, p.z); f.scale.set(s*1.16, 1, s*1.16); f.material.opacity = .85 + pulse*.15; }
+  else f.visible = false;
+  LK.done.visible = fin;
+  if (fin) LK.done.material.opacity = CALM ? .8 : clamp(LK.finT*4, 0, 1)*(.7 + .3*Math.cos(LK.finT*5));
+  // a square has just locked (the game's own glint is there): a few sparks from it
+  if (S.fixed < LK.fixed || S.fixed - LK.fixed > 2) LK.fixed = S.fixed;
+  while (LK.fixed < S.fixed){ const g = SWAP.glint[LK.fixed++ % SWAP.glint.length]; if (playing) sparks(g.position.x, g.position.z, 5, s*.35, .9); }
+  sparksStep(dt);
+  // the shade of the picture beside the board (in front of it on a phone)
+  if (cam.aspect < .8){ LK.pshade.position.set(0, .012, 4.02); LK.pshade.scale.set(2, 1, .9); }
+  else { LK.pshade.position.set(3.2, .012, -.42); LK.pshade.scale.set(2.2, 1, 1.5); }
+}
+
 /* ---------------- drawing ---------------- */
 // while playing, each game puts the camera where it wants it; the ending glides it to the cover
 function render(dt){
@@ -611,6 +822,7 @@ function render(dt){
     G.render(t);
     ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
   }
+  lookStep(t, dt);
   ren.render(scene, cam);
 }
 function frame(){
@@ -687,6 +899,7 @@ if (!HUB){
   });
 }
 PARTS[PART].setup(); buildEnd();
+lookBuild();
 reset();
 requestAnimationFrame(frame);
 </script>

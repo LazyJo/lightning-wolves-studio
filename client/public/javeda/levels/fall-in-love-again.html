@@ -283,7 +283,8 @@ function skyWorld(){ const g = new THREE.Group(); scene.add(g);
   const far = []; for (let i = 0; i < 26; i++){ const c = cloud(9, 26 + rnd(i*3)*24, i*31); c.position.set((rnd(i) - .5)*260, -30 + rnd(i*5)*90 - (i % 3)*20, -90 - rnd(i*7)*140); g.add(c); far.push(c); }
   const sea = []; for (let i = 0; i < 18; i++){ const c = cloud(10, 14 + rnd(i*9)*8, 500 + i*17); c.position.set((rnd(i*2) - .5)*60, -9 - rnd(i*4)*4, -30 + rnd(i*6)*36); g.add(c); sea.push(c); }
   g.userData = { far, sea }; return g; }
-function driftClouds(g, dt){ for (const c of g.userData.far) c.position.x += dt*.8; for (const c of g.userData.sea){ c.position.x += dt*.5; if (c.position.x > 32) c.position.x -= 64; }
+function driftClouds(g, dt){ for (const c of g.userData.far){ c.position.x += dt*.8; const lim = 60 - c.position.z*1.1; if (c.position.x > lim) c.position.x -= lim*2; }      // round again, from well off the side: a long endless used to end under an empty sky
+   for (const c of g.userData.sea){ c.position.x += dt*.5; if (c.position.x > 32) c.position.x -= 64; }
   lookSkyFrame(dt); }
 // the open book, standing on its back cover on the clouds: the left page bent up, the right page flat-ish
 const PAGE = canvasTex(256, 360, (x, w, h) => { x.fillStyle = "#f6f2ee"; x.fillRect(0, 0, w, h); x.fillStyle = "rgba(180,170,190,.25)"; for (let i = 0; i < 6; i++) x.fillRect(0, i*60, w, 1); });
@@ -650,7 +651,8 @@ const POP = {
     ME.position.set(0, -4.05 + Math.sin(t*2)*.04, -.2); ME.rotation.set(.35, t*1.2, -S.ang*.4); animSaucer(ME, t, beat); ME.userData.beam.visible = false;
     driftClouds(this.w.sky, dt); heartBeat(this.w.heart, t, beat);
     lookPopFrame(this);
-    if (portrait){ cam.position.set(0, .4, 19.5); cam.lookAt(0, .3, 0); } else { cam.position.set(0, .8, 10.5); cam.lookAt(0, .6, 0); }
+    // a wide screen: a step back and a little lower, so the saucer and the heart it holds stand clear above the bottom line (they were cut off under it)
+    if (portrait){ cam.position.set(0, .4, 19.5); cam.lookAt(0, .3, 0); } else { cam.position.set(0, -.25, 12.1); cam.lookAt(0, -.45, 0); }
   }
 };
 
@@ -738,7 +740,9 @@ const MERGE = {
   // the remix, a turn that's up: the page never ends here, so the next merge is the break, 2 bars at most
   turnOver(t, up){ return S.mergeAt >= up || t >= up + BAR*2; },
   at(x, y){ return new THREE.Vector3((x - 1.5)*this.CELL, (1.5 - y)*this.CELL + .2, 0); },
-  fresh(){ for (const t of this.tiles) this.root.remove(t.g); this.tiles = []; this.spawn(); this.spawn(); },
+  // a heart that goes gives back its own colour and its number's plane (the heart's shape and the numbers' pictures are shared and stay)
+  gone(t){ this.root.remove(t.g); t.h.material.dispose(); t.n.geometry.dispose(); t.n.material.dispose(); },
+  fresh(){ for (const t of this.tiles) this.gone(t); this.tiles = []; this.spawn(); this.spawn(); },
   tile(v, x, y){ const g = new THREE.Group(); const h = heartMesh(0, 1.15); h.material.color.setHex(MERGE_COLS[v] || 0xff6a3a); h.material.emissive.setHex(MERGE_COLS[v] || 0xff6a3a); g.add(h);
     const n = new THREE.Mesh(new THREE.PlaneGeometry(.9, .9), new THREE.MeshBasicMaterial({ map:numTex(v), transparent:true })); n.position.z = .2; g.add(n);
     g.position.copy(this.at(x, y)); g.scale.setScalar(.2); this.root.add(g); const t = { v, x, y, g, h, n }; this.tiles.push(t); return t; },
@@ -755,7 +759,7 @@ const MERGE = {
       if (o){ done.add(o); gained += o.v*2; plan.push([t, nx, ny, o]); } else { grid[ny*4 + nx] = t; plan.push([t, nx, ny, null]); } }
     if (dry) return moved ? gained : -1;
     for (const [t, nx, ny, o] of plan){ t.x = nx; t.y = ny; if (o){ kill.push(t); o.v *= 2; o.pop = .25; } }
-    for (const t of kill){ this.root.remove(t.g); this.tiles.splice(this.tiles.indexOf(t), 1); }
+    for (const t of kill){ this.gone(t); this.tiles.splice(this.tiles.indexOf(t), 1); }
     for (const t of this.tiles) if (t.pop){ t.h.material.color.setHex(MERGE_COLS[t.v] || 0xff6a3a); t.h.material.emissive.setHex(MERGE_COLS[t.v] || 0xff6a3a); t.n.material.map = numTex(t.v); t.n.material.needsUpdate = true; }
     return moved ? gained : -1; },
   move(dx, dy){ if (S.done) return; const g = this.slide(dx, dy); if (g < 0) return;

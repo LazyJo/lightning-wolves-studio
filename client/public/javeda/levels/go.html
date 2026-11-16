@@ -1626,6 +1626,9 @@ function stage(bw, bh, flat){ boot(36, .0006, SUN_YAW); const root = new THREE.G
   let roof = null; if (flat){ B.rotation.x = -Math.PI/2; roof = tower(bw + 2.4, 160, bh + 2.4, 4, STAGE_Y - 160.6, .25); roof.position.set(0, STAGE_Y - 80.6, STAGE_Z); root.add(roof); }
   // a pane of dark glass behind the board, a gold edge round it
   const panel = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color:0x0a0614, transparent:true, opacity:.66, depthWrite:false })); panel.position.z = -.35; B.add(panel);
+  // the cloth is see-through to three.js, so it was drawn over every light further away than its middle: the aim dots, the wind and
+  // the glows on the far half of a table went missing. Drawn first, they all lie on it
+  panel.renderOrder = -1;
   const edge = new THREE.Group(), EM = new THREE.MeshBasicMaterial({ color:new THREE.Color(1.5, .95, .35), toneMapped:false }); for (let i = 0; i < 4; i++) edge.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), EM)); B.add(edge);
   const st = { root, B, city, panel, edge, roof, bw, bh, flat:!!flat, size(w, h){ st.bw = w; st.bh = h; panel.scale.set(w + .7, h + .7, 1); const t = .06, W = w + .7, H = h + .7;
       [[W, t, 0, H/2], [W, t, 0, -H/2], [t, H, -W/2, 0], [t, H, W/2, 0]].forEach(([a, b, x, y], i) => { const m = edge.children[i]; m.scale.set(a, b, t); m.position.set(x, y, -.3); }); } };
@@ -2322,10 +2325,13 @@ const NET = {
 };
 const OV = ONLINE === "hockey" ? HV : GV;      // the online rules for this part
 // everyone up top: holes won (golf) or rounds won (hockey), a dot in each player's colour in golf
-let lastVs = "";
+let lastVs = "", lastPh = "";
 function vsHud(){
   const h = OV.rows().map(([nm, v, up, col]) => '<div class="row' + (up ? ' up' : '') + '"><span class="nm">' + (col != null ? '<i class="dot" style="background:#' + col.toString(16).padStart(6, "0") + '"></i>' : "") + nm + '</span><span class="lt"><b>' + v + '</b></span></div>').join("");
   if (h !== lastVs){ lastVs = h; $("vs").innerHTML = h; }
+  // a phone: the board sits just above the bottom line, however many rows that line takes (hockey's wraps to two, and so do some languages)
+  const ph = innerWidth + "|" + $("phase").textContent;
+  if (ph !== lastPh){ lastPh = ph; $("vs").style.bottom = innerWidth <= 520 ? ($("phase").offsetHeight - 16) + "px" : ""; }
 }
 
 
@@ -2571,6 +2577,8 @@ function startGame(){
   else if (ONLINE) say("HOCKEY 1v1", "first to 3 rounds - you're at the near end", 2.6, "g");
   else if (REMIX) sayThen("REMIX", "both games, till the hearts run out", 2.6);
   else if (CFG.endless) say("ENDLESS", PART === 1 ? "the holes never stop" : "the rounds never stop", 2.5, "g");
+  // alone: the first hole (or round) says its name and its tip like every later one - reset() had just cleared it off the start screen
+  else if (say.last) say.apply(null, say.last);
 }
 $("go").addEventListener("click", () => {
   if (ONLINE){ if (NET.state === "ready") NET.seek(); else if (NET.state === "done" || NET.state === "left") location.reload(); return; }

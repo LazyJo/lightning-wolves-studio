@@ -632,7 +632,8 @@ const PUSH = {
   info(){ return "FLOOR " + (S.lv + 1) + " · MOVES " + S.lvMoves + " · BEST " + this.par; }, warn(){ return !S.nextAt && S.deadline - S.t < BAR; },
   // the floors go round again mirrored once they're all done
   floor(i){ const F = FLOORS[i % FLOORS.length], flip = Math.floor(i/FLOORS.length) % 2; const W = Math.max(...F.rows.map(r => r.length)); return { rows:F.rows.map(r => { r = r.padEnd(W, " "); return flip ? [...r].reverse().join("") : r; }), moves:F.moves }; },
-  make(t, again){ for (const m of this.meshes) this.root.remove(m); this.meshes = [];
+  // a new floor: the old one's blocks, squares and speakers give back their shapes and materials (they piled up, most in the endless)
+  make(t, again){ for (const m of this.meshes){ this.root.remove(m); m.traverse(o => { if (o.geometry && !o.isSprite) o.geometry.dispose(); if (o.material) [].concat(o.material).forEach(x => x.dispose()); }); } this.meshes = [];
     if (REMIX && S.lv >= FLOORS.length && S.lv % FLOORS.length < FLOORS.length/2) S.lv += FLOORS.length/2;   // the remix only gets harder: round again, it skips the easy half
     const F = this.floor(S.lv), L = F.rows, H = L.length, W = L[0].length; this.par = F.moves; this.W = W; this.H = H; this.walls = new Set(); this.goals = new Set(); this.boxes = []; this.hist = [];
     L.forEach((row, y) => [...row].forEach((ch, x) => { const k = y*W + x; if (ch === "#") this.walls.add(k); if (".*+".includes(ch)) this.goals.add(k); if ("$*".includes(ch)) this.boxes.push(k); if ("@+".includes(ch)) this.p = k; }));

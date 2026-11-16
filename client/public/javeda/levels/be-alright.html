@@ -350,6 +350,7 @@ function sky(){ if (SKY) return SKY; const g = SKY = new THREE.Group(); scene.ad
   g.add(puffs(list, PUFF_ML));
   const c = cloudCar(); c.position.set(0, -.15, -8.6); c.rotation.x = .12; g.add(c);
   const birds = []; for (let i = 0; i < 16; i++){ const b = birdMesh(); const side = i % 2 ? 1 : -1; b.position.set(side*(5 + rnd(i*2.1)*10), 3 + rnd(i*3.3)*5, -10 - rnd(i*4.1)*10); b.scale.setScalar(1.1 + rnd(i*5.1)*.8); b.userData.ph = rnd(i*6.3)*6; b.userData.v = (.4 + rnd(i*7.7)*.5)*side; g.add(b); birds.push(b); }
+  lookSky(g, c);
   g.userData = { car:c, birds }; return g; }
 function animSky(g, t, dt, beat){
   for (const b of g.userData.birds){ const u = b.userData; b.position.x += u.v*dt; if (b.position.x > 22) b.position.x = -22; if (b.position.x < -22) b.position.x = 22; b.rotation.y = u.v > 0 ? -Math.PI/2 : Math.PI/2;
@@ -390,6 +391,187 @@ function boot(fov){
   clockR = new THREE.Clock();
   addEventListener("resize", () => { ren.setSize(innerWidth, innerHeight); cam.aspect = innerWidth/innerHeight; cam.updateProjectionMatrix(); fitBack(); });
 }
+/* ================= THE LOOK (visual only) =================
+   Depth and light round the two games. Nothing here is read by the game, nothing takes a tap or a drag (all of it
+   hangs in groups of its own, never on a bird you can touch), and decoration is placed with hash(), never rnd().
+   - the sky: the cloud sea far below is bluer the deeper it lies, so the island you play on stands out white; a
+     blue haze under the island, wisps of cloud drifting between, two flocks of birds crossing below; at the
+     horizon (the ending) a bank of far cumulus in the bright haze of the cover, travelling with the camera;
+   - the car made of cloud: its edges rounded with bigger puffs, a warm glow on its headlights;
+   - the cloud you play on: shade under the rolled edge, light in the middle, a rim of light that breathes with
+     the beat, a pool of light where the saucer's beam lands;
+   - Untangle: a shade under every bird (it stays on the cloud when a bird is picked up), the strings throw their
+     colour on the cloud, a ring of gold when the flock is untangled;
+   - Bird Code: a shade under every wire and every bird on it, a band of gold light under the wire you are
+     filling, a ring of gold when the code is cracked. */
+const hash = n => { const x = Math.sin(n*91.7 + 3.3)*15731.743; return x - Math.floor(x); };
+const CALM = !!(window.matchMedia && matchMedia("(prefers-reduced-motion:reduce)").matches);
+// (low: a phone that can't keep up has been stepped down to the smallest picture - it gets no wisps, no flocks, no
+// light under the strings and the car without its extra puffs)
+const LK = { T:0, low:false, sky:null };
+const FLAT = new THREE.PlaneGeometry(1, 1); FLAT.rotateX(-Math.PI/2);
+const DISC = new THREE.CircleGeometry(1, 48); DISC.rotateX(-Math.PI/2);
+const LK_P = new THREE.Vector3(), LK_S = new THREE.Vector3(), LK_Q = new THREE.Quaternion(), LK_M = new THREE.Matrix4(), LK_UP = new THREE.Vector3(0, 1, 0), LK_W = new THREE.Color(0xffffff), LK_D = new THREE.Vector3();
+// one of many flat things lying on the cloud: where, how big, turned how far
+function lkPut(m, i, x, y, z, sx, sz, ry){ LK_P.set(x, y, z); LK_S.set(sx, 1, sz); LK_Q.setFromAxisAngle(LK_UP, ry || 0); LK_M.compose(LK_P, LK_Q, LK_S); m.setMatrixAt(i, LK_M); }
+// many flat things in one draw (none of them shown until they are placed)
+function lkMany(tex, n, opts, order, tint){ const m = new THREE.InstancedMesh(FLAT, new THREE.MeshBasicMaterial(Object.assign({ map:tex, transparent:true, depthWrite:false }, opts)), n);
+  if (tint) for (let i = 0; i < n; i++) m.setColorAt(i, LK_W);
+  m.frustumCulled = false; m.renderOrder = order; m.count = 0; return m; }
+function lkOne(geo, tex, opts, order){ const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial(Object.assign({ map:tex, transparent:true, depthWrite:false }, opts))); m.renderOrder = order; return m; }
+function lkBlob(x, cx, cy, rx, ry, col, a){ x.save(); x.translate(cx, cy); x.scale(rx, ry); const g = x.createRadialGradient(0, 0, 0, 0, 0, 1);
+  g.addColorStop(0, "rgba(" + col + "," + a + ")"); g.addColorStop(.55, "rgba(" + col + "," + a*.6 + ")"); g.addColorStop(1, "rgba(" + col + ",0)"); x.fillStyle = g; x.fillRect(-1, -1, 2, 2); x.restore(); }
+const SHADE_TEX = radial([[0, "rgba(14,44,104,.62)"], [.42, "rgba(14,44,104,.44)"], [1, "rgba(14,44,104,0)"]], 64);
+const POOL_TEX = radial([[0, "rgba(255,255,255,.95)"], [.35, "rgba(255,255,255,.5)"], [1, "rgba(255,255,255,0)"]], 64);
+const RIM_TEX = radial([[0, "rgba(255,255,255,0)"], [.68, "rgba(255,255,255,0)"], [.83, "rgba(255,255,255,.9)"], [.94, "rgba(255,255,255,.3)"], [1, "rgba(255,255,255,0)"]], 256);
+const RING_TEX = radial([[0, "rgba(255,255,255,0)"], [.7, "rgba(255,255,255,0)"], [.88, "rgba(255,255,255,1)"], [1, "rgba(255,255,255,0)"]], 128);
+const SEA_TEX = radial([[0, "rgba(22,66,150,.6)"], [.5, "rgba(22,66,150,.4)"], [1, "rgba(22,66,150,0)"]], 64);
+// a band with soft sides and soft ends: the light a string throws, the shade of a wire
+const STRIP_TEX = canvasTex(64, 32, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.5, "rgba(255,255,255,1)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  x.globalCompositeOperation = "destination-in"; const e = x.createLinearGradient(0, 0, w, 0); e.addColorStop(0, "rgba(0,0,0,0)"); e.addColorStop(.1, "rgba(0,0,0,1)"); e.addColorStop(.9, "rgba(0,0,0,1)"); e.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = e; x.fillRect(0, 0, w, h); });
+// the top of the cloud you play on: light in the middle, shade where the rolled edge stands over it
+// (only soft patches: nothing on it that could be read as a string)
+const TABLE_TEX = canvasTex(256, 256, (x, w, h) => { const c = w/2, g = x.createRadialGradient(c, c, 0, c, c, c);
+  g.addColorStop(0, "rgba(255,255,255,.3)"); g.addColorStop(.4, "rgba(255,255,255,.12)"); g.addColorStop(.6, "rgba(40,100,190,0)"); g.addColorStop(.82, "rgba(30,86,176,.24)"); g.addColorStop(1, "rgba(18,60,146,.5)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  for (let i = 0; i < 9; i++){ const a = hash(i*2.3)*Math.PI*2, r = hash(i*3.9)*c*.55; lkBlob(x, c + Math.cos(a)*r, c + Math.sin(a)*r, c*(.16 + hash(i*5.1)*.14), c*(.1 + hash(i*6.7)*.1), "255,255,255", .1); } });
+const WISP_TEX = canvasTex(256, 128, (x, w, h) => { for (let i = 0; i < 16; i++) lkBlob(x, w*(.2 + hash(i*1.7)*.6), h*(.36 + hash(i*2.9)*.28), w*(.1 + hash(i*4.1)*.1), h*(.14 + hash(i*5.3)*.12), "255,255,255", .5); });
+// a bird from above, flying to the right
+const BIRDV_TEX = canvasTex(64, 64, (x, w, h) => { x.fillStyle = "rgba(14,34,74,.82)"; x.beginPath(); x.moveTo(50, 32); x.quadraticCurveTo(38, 26, 30, 4); x.quadraticCurveTo(30, 24, 14, 32); x.quadraticCurveTo(30, 40, 30, 60); x.quadraticCurveTo(38, 38, 50, 32); x.fill(); });
+// far cumulus along the horizon, the bright haze over it (it joins up with itself left and right)
+const HORIZON_TEX = canvasTex(1024, 256, (x, w, h) => { let g = x.createLinearGradient(0, 0, 0, h);
+  g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(.34, "rgba(255,255,255,.05)"); g.addColorStop(.5, "rgba(255,255,255,.3)"); g.addColorStop(.58, "rgba(255,255,255,.62)"); g.addColorStop(.64, "rgba(236,245,255,.9)"); g.addColorStop(.76, "rgba(190,216,246,1)"); g.addColorStop(1, "rgba(142,189,236,1)"); x.fillStyle = g; x.fillRect(0, 0, w, h);
+  // two rows of cloud heads: the far one small and blue with distance, the near one tall and white, each head lit from above
+  for (const [n, y0, r0, r1, body, shade, sd] of [[34, .6, 9, 15, "#dbe8fa", "#a9c4ec", 0], [24, .665, 15, 30, "#ffffff", "#b4cdf0", 50]]){ x.shadowColor = body; x.shadowBlur = 5;
+    for (let pass = 0; pass < 2; pass++) for (let i = 0; i < n; i++){ const cx = hash(sd + i*1.9)*w, r = r0 + hash(sd + i*3.1)*(r1 - r0), lobes = 4 + Math.floor(hash(sd + i*4.7)*3);
+      for (const ox of [-w, 0, w]) for (let j = 0; j < lobes; j++){ const q = (j + .5)/lobes - .5, k = (1 - Math.abs(q)*1.3)*(.7 + hash(sd + i*17 + j*3.3)*.5), px = cx + ox + q*r*3.4, py = h*y0 - r*k*.9;
+        x.fillStyle = pass ? body : shade; x.beginPath(); x.arc(px, py + (pass ? 0 : r*k*.3), r*k*(pass ? 1 : 1.06), 0, Math.PI*2); x.fill(); } } }
+  x.shadowBlur = 0;
+  // (their feet stand in the haze)
+  g = x.createLinearGradient(0, h*.6, 0, h); g.addColorStop(0, "rgba(160,200,240,0)"); g.addColorStop(.12, "rgba(156,198,240,.45)"); g.addColorStop(.24, "rgba(150,194,238,.85)"); g.addColorStop(.4, "rgba(142,189,236,1)"); g.addColorStop(1, "rgba(142,189,236,1)"); x.fillStyle = g; x.fillRect(0, h*.6, w, h*.4); }, [2, 1]);
+HORIZON_TEX.wrapT = THREE.ClampToEdgeWrapping;
+// the shade on the clouds nearest the eye, for the ending (clear above, blue below)
+const VEIL_TEX = canvasTex(8, 128, (x, w, h) => { const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "rgba(52,104,186,0)"); g.addColorStop(.56, "rgba(52,104,186,0)"); g.addColorStop(.8, "rgba(52,104,186,.2)"); g.addColorStop(1, "rgba(40,88,172,.42)"); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+// the sky, built once (both games share it)
+function lookSky(g, car){
+  // deeper is bluer: the cloud sea, the puffs under the island; the island itself stays white
+  const big = g.children.find(o => o.isInstancedMesh), floor = g.children.find(o => o.isMesh && !o.isInstancedMesh), C = new THREE.Color(), lo = new THREE.Color(0x8fb4ea), mid = new THREE.Color(0xc6daf6), hi = new THREE.Color(0xffffff);
+  floor.material.color.setHex(0x9dbcea);
+  for (let i = 0; i < big.count; i++){ big.getMatrixAt(i, LK_M); const e = LK_M.elements, y = e[13], sy = Math.hypot(e[4], e[5], e[6]);
+    if (i < 260) C.copy(lo).lerp(hi, clamp(.08 + (sy/.7 - 3)/5*.5 + hash(i*3.3)*.4, 0, 1));
+    else if (i < 376) C.copy(hi).lerp(mid, clamp((-y - .5)/1.5, 0, 1)*.7);
+    else C.copy(hi).lerp(mid, hash(i*5.7)*.55);
+    big.setColorAt(i, C); }
+  big.instanceColor.needsUpdate = true;
+  const L = LK.sky = { W:[], F:[] };
+  // the blue of the deep under the island
+  L.sea = lkOne(FLAT, SEA_TEX, {}, -15); L.sea.scale.set(64, 1, 54); L.sea.position.set(0, -9.5, -7); g.add(L.sea);
+  // wisps drifting between the island and the sea. They and the flocks keep to the middle band of the picture; the
+  // flocks (dark) stay clear of every line of text, a wisp can still drift under the bottom line on a wide screen:
+  // the same soft white the clouds there always were
+  for (let i = 0; i < 7; i++) L.W.push({ x:(hash(i*1.3) - .5)*76, y:-4.5 - hash(i*2.7)*3, z:-.5 - i, v:(.3 + hash(i*5.1)*.45)*(i % 3 ? 1 : -1), sx:10 + hash(i*6.3)*8, sz:4.5 + hash(i*7.7)*3.5 });
+  L.wisps = lkMany(WISP_TEX, 7, { opacity:.85 }, -12); L.wisps.count = 7; g.add(L.wisps);
+  // two flocks crossing below, one each way
+  for (let k = 0; k < 2; k++) for (let j = 0; j < 5; j++){ const d = k ? -1 : 1; L.F.push({ x:(k ? 14 : -20) - Math.abs(j - 2)*1.1*d, y:-4.6 - k*1.4, z:(k ? -7.6 : -5.6) + (j - 2)*.8, d, ph:hash(k*7 + j*1.9)*6 }); }
+  L.flock = lkMany(BIRDV_TEX, 10, {}, -11); L.flock.count = 10; g.add(L.flock);
+  // the horizon of the cover: far cumulus in the bright haze (no fog on it; lookFrame keeps it with the camera)
+  L.far = lkOne(new THREE.PlaneGeometry(640, 84), HORIZON_TEX, { fog:false }, -20); L.far.frustumCulled = false; g.add(L.far);
+  // the light of the cover behind the car, low on the horizon; and the shade on the clouds nearest the eye (both for
+  // the ending only, both clear of the title)
+  L.sun = sprite(0xfff2d6, 1, 0); L.sun.material.fog = false; L.sun.scale.set(80, 30, 1); L.sun.renderOrder = -19; L.sun.visible = false; g.add(L.sun);
+  L.veil = lkOne(new THREE.PlaneGeometry(1, 1), VEIL_TEX, { depthTest:false, fog:false, opacity:0 }, 20); L.veil.frustumCulled = false; L.veil.visible = false; g.add(L.veil);
+  // the car made of cloud: its edges rounded with bigger puffs
+  const P = [], add = (x, y, z, sx, sy, sz) => P.push([x, y, z, sx, sy, sz]);
+  // (the roof, between the top of the windscreen and the top of the back window)
+  for (let i = 0; i < 9; i++){ const x = (i/8 - .5)*2.4, r = .22 + hash(i*2.1)*.07; add(x, 1.63, .2, r, .17, r); add(x, 1.63, -1.56, r, .17, r); }
+  for (let i = 1; i < 6; i++){ const z = .2 - i/6*1.76, r = .22 + hash(i*3.7)*.07; for (const s of [-1, 1]) add(s*1.2, 1.63, z, r, .17, r); }
+  add(0, 1.63, -.68, 1.1, .13, .82);
+  // (the shoulders of the body, the tail, the nose)
+  for (let i = 0; i < 13; i++){ const z = (i/12 - .5)*5.2, r = .26 + hash(i*4.3)*.09; for (const s of [-1, 1]) add(s*1.5, .93, z, r, .22, r*1.2); }
+  for (let i = 1; i < 7; i++){ const x = (i/7 - .5)*3.0, r = .26 + hash(i*5.9)*.08; add(x, .93, -2.64, r, .22, r); add(x, 1.08, 2.46, r*.85, .16, r*.85); }
+  add(0, 1.09, 1.55, 1.25, .11, .86);
+  for (const s of [-1, 1]){ add(s*1.24, .9, 1.8, .46, .3, .9); add(s*1.3, .92, -1.75, .4, .28, .85); }
+  // (a material of their own: the cloud sea's now carries a colour for every puff, these don't)
+  L.soft = puffs(P, PUFF_ML.clone()); car.add(L.soft);
+  // its headlights, warm on the white
+  L.lamps = [-1, 1].map(s => { const l = sprite(0xfff0c8, 1.5, .2, true); l.position.set(s*.95, .82, 2.86); car.add(l); return l; });
+}
+// what lies on the cloud you play on (kind 1: Untangle, 2: Bird Code)
+function lookTable(P, rx, rz, z, kind){ const L = P.look = { g:new THREE.Group(), glow:0, ringT:9, was:false, lit:1 }; P.root.add(L.g);
+  L.top = lkOne(DISC, TABLE_TEX, {}, -9); L.top.scale.set(rx*.995, 1, rz*.995); L.top.position.set(0, .006, z); L.g.add(L.top);
+  L.rim = lkOne(DISC, RIM_TEX, { opacity:.16 }, -8); L.rim.scale.copy(L.top.scale); L.rim.position.set(0, .009, z); L.g.add(L.rim);
+  L.shade = lkMany(SHADE_TEX, kind === 1 ? 16 : 64, {}, -7); L.g.add(L.shade);
+  if (kind === 1){ L.halo = lkMany(STRIP_TEX, 32, { opacity:.42 }, -6, true); L.g.add(L.halo); }
+  else { L.wshade = lkMany(STRIP_TEX, 8, { color:0x1a4a9c, opacity:.4 }, -7); L.g.add(L.wshade);
+    L.row = lkOne(FLAT, STRIP_TEX, { color:0xffd45a, opacity:.3 }, -6); L.g.add(L.row); }
+  L.pool = lkOne(FLAT, POOL_TEX, { opacity:.45 }, -5); L.pool.scale.set(1.05, 1, 1.05); L.g.add(L.pool);
+  L.ring = lkOne(FLAT, RING_TEX, { color:0xffcf5a, opacity:0 }, -4); L.ring.visible = false; L.g.add(L.ring);
+  L.cx = 0; L.cz = z; }
+// every frame, for either game: the rim breathes with the beat, the pool of light under the beam, the ring of gold
+function lookTableFrame(L, dt, beat){
+  L.glow = beat && !CALM ? 1 : Math.max(0, L.glow - dt*5); L.rim.material.opacity = .16 + L.glow*.26;
+  const on = ME.visible && ME.userData.beam.visible; L.pool.visible = on;
+  if (on){ L.pool.position.set(ME.position.x, .026, ME.position.z); L.pool.material.opacity = .42 + L.glow*.2; }
+  if (L.ringT < .9){ L.ringT += dt; const u = Math.min(1, L.ringT/.9), s = .8 + u*6.4; L.ring.visible = u < 1; L.ring.scale.set(s, 1, s); L.ring.position.set(L.cx, .03, L.cz); L.ring.material.opacity = Math.pow(1 - u, 1.5)*.85; }
+}
+function lookUnt(U, t, dt, beat, done){ const L = U.look; if (!L) return;
+  lookTableFrame(L, dt, beat);
+  // a shade under every bird; it stays on the cloud when the bird is lifted (the sun is in front, to the right)
+  const N = U.nodes, n = Math.min(N.length, 16); L.shade.count = n;
+  for (let i = 0; i < n; i++){ const p = N[i].m.position, up = Math.max(0, p.y - .12), s = (.76 + up*.5)*Math.max(0, 1 - up/1.3); lkPut(L.shade, i, p.x - up*.28, .013, p.z - up*.5, s, s, 0); }
+  L.shade.instanceMatrix.needsUpdate = true;
+  // the light every string throws on the cloud, in the string's own colour
+  // (it goes out as the flock flies off)
+  L.lit = done ? Math.max(0, L.lit - dt*5) : 1;
+  const E = U.edgesM, k = LK.low || L.lit <= 0 ? 0 : Math.min(E.length, 32); L.halo.count = k;
+  for (let i = 0; i < k; i++){ const e = E[i]; lkPut(L.halo, i, e.position.x, .02, e.position.z, e.visible ? e.scale.x + .14 : 0, .42*L.lit, e.rotation.y); L.halo.setColorAt(i, e.material.color); }
+  if (k){ L.halo.instanceMatrix.needsUpdate = true; L.halo.instanceColor.needsUpdate = true; }
+  // untangled: a ring of gold runs out over the cloud
+  if (done && !L.was && !CALM) L.ringT = 0;
+  L.was = done;
+}
+function lookCode(C, t, dt, beat){ const L = C.look; if (!L) return;
+  lookTableFrame(L, dt, beat);
+  const len = C.n*C.SP + .3;
+  // a new code: the shade under its wires
+  if (L.wires !== C.wires){ L.wires = C.wires; L.wshade.count = Math.min(8, C.wires.length); for (let i = 0; i < L.wshade.count; i++) lkPut(L.wshade, i, 0, .012, C.wires[i].position.z + .05, len + .3, .3, 0); L.wshade.instanceMatrix.needsUpdate = true; L.was = false; }
+  // a shade under every bird on a wire, and under the ones that were hiding
+  let n = 0;
+  for (const b of C.placed) if (b.parent && n < 64){ const p = b.position, up = Math.max(0, p.y - .12), s = (.56 + up*.4)*Math.max(0, 1 - up/2.4); lkPut(L.shade, n++, p.x - up*.28, .014, p.z - up*.5, s, s*.9, 0); }
+  for (const b of C.hidden) if (b.visible && n < 64){ const p = b.position, up = Math.max(0, p.y - .1), s = .56*Math.max(0, 1 - up/2.4); lkPut(L.shade, n++, p.x, .014, p.z, s, s*.9, 0); }
+  L.shade.count = n; L.shade.instanceMatrix.needsUpdate = true;
+  // gold light on the cloud under the wire you are filling (the wire itself is gold already)
+  const cur = !S.nextAt && C.rows.length < C.TRIES; L.row.visible = cur;
+  if (cur){ L.row.position.set(0, .016, C.rowZ(C.rows.length)); L.row.scale.set(len + .7, 1, .66); L.row.material.opacity = .3 + L.glow*.16; }
+  // cracked: a ring of gold runs out from where they were hiding
+  if (C.cracked && !L.was && !CALM){ L.ringT = 0; L.cz = C.rowZ(C.TRIES); }
+  L.was = C.cracked;
+}
+// every frame, whatever is on: the far sky stays with the camera, the wisps drift, the flocks cross
+function lookFrame(dt, beat){ const L = LK.sky; if (!L) return;
+  if (!CALM) LK.T += dt;
+  LK.low = ren.getPixelRatio() < .8;
+  // (the horizon is level with the eye; the heads of the far clouds reach just over it. They show only once the eye
+  // is nearly level, in the ending: over the game the horizon is far above the picture, and while the camera comes
+  // down they stay out from behind the title)
+  cam.getWorldDirection(LK_D);
+  const hz = -LK_D.y/Math.hypot(LK_D.x, LK_D.z)/Math.tan(cam.fov*Math.PI/360), far = clamp((.2 - hz)/.05, 0, 1);
+  L.far.visible = far > 0; L.far.material.opacity = far;
+  L.far.position.set(cam.position.x, cam.position.y + 8.4, cam.position.z - 260);
+  L.wisps.visible = L.flock.visible = L.soft.visible = !LK.low;
+  if (!LK.low){
+    for (let i = 0; i < 7; i++){ const w = L.W[i], x = (((w.x + LK.T*w.v + 40) % 80) + 80) % 80 - 40; lkPut(L.wisps, i, x, w.y, w.z, w.sx, w.sz, 0); }
+    L.wisps.instanceMatrix.needsUpdate = true;
+    for (let i = 0; i < 10; i++){ const f = L.F[i], x = (((f.x + LK.T*1.5*f.d + 36) % 72) + 72) % 72 - 36; lkPut(L.flock, i, x, f.y, f.z, 1.3, 1.3*(.72 + .28*Math.sin(LK.T*7 + f.ph)), f.d > 0 ? 0 : Math.PI); }
+    L.flock.instanceMatrix.needsUpdate = true; }
+  // the ending comes down in front of the car: its headlights warm up, the blue of the deep lets go
+  const e = S && S.end >= 1 ? clamp((S.end - 1)/2, 0, 1) : 0;
+  for (const l of L.lamps) l.material.opacity = .2 + e*(.3 + (beat && !CALM ? .14 : 0));
+  L.sea.material.opacity = 1 - e*.6;
+  L.sun.visible = far > 0; L.sun.material.opacity = far*(.42 + (beat && !CALM ? .06 : 0)); L.sun.position.set(cam.position.x, cam.position.y - 1.5, cam.position.z - 150);
+  L.veil.visible = e > 0;
+  if (e > 0){ const hh = 2*Math.tan(cam.fov*Math.PI/360); L.veil.position.copy(cam.position).addScaledVector(LK_D, 1); L.veil.quaternion.copy(cam.quaternion); L.veil.scale.set(hh*cam.aspect, hh, 1); L.veil.material.opacity = e; }
+}
+
 /* ---------------- state, HUD ---------------- */
 let S = null, G = null;
 const keys = {};
@@ -478,6 +660,7 @@ const startT = () => REMIX ? Math.max(0, S.t) : 0;
 const UNT = {
   X:3.0, Z0:-3.15, Z1:1.25,
   setup(){ boot(48); this.w = sky(); this.root = new THREE.Group(); scene.add(this.root); this.root.add(cloudTable(3.75, 2.75, -.95)); this.fx = fx(this.root);
+    lookTable(this, 3.75, 2.75, -.95, 1);
     this.nodes = []; this.edgesM = []; this.xs = [...Array(40)].map(() => { const s = label(CROSS_TEX, .3, .3); s.visible = false; this.root.add(s); return s; });
     if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.3); scene.add(ME); } },
   reset(){ Object.assign(S, { flocks:kept(S.flocks), knots:0, best:0, k:kept(S.k, 1), nextAt:0, last:null, deadline:0, lvl:kept(S.lap), drags:0 }); lastT = 0; this.drag = null; this.idle = 0; this.make(startT()); },
@@ -545,6 +728,7 @@ const UNT = {
     this.xs.forEach((s, i) => { const p = !done && this.xat && this.xat[i]; s.visible = !!p; if (p){ s.position.set(p.x, .2, p.z); s.scale.setScalar(.3*(beat ? 1.15 : 1)); } });
     this.fx.tick(dt); animSky(this.w, t, dt, beat);
     hover(this.drag ? this.drag.m.position : this.hintNode ? this.hintNode.m.position : S.last || new THREE.Vector3(0, 0, -1), t, dt, 2.2);
+    lookUnt(this, t, dt, beat, done);
     // the whole cloud on a phone: birds can go to x ±3.0 (and their size)
     if (cam.aspect < .8) fitCam([0, -.3, -.75], [0, 10.9, 7.65], 13.3, 3.35, 1.5); else setCam([[0, 6.3, 5.9], [0, -.7, -1.35]], [[0, 10.6, 6.9], [0, -.3, -.75]]);
   }
@@ -580,6 +764,7 @@ const hideTex = n => labelTex("h" + n, 320, 80, (x, w, h) => { x.font = "bold 46
 const CODE = {
   SP:.62, ROWZ:1.25, RZ:.6, TRIES:8,
   setup(){ boot(48); this.w = sky(); this.root = new THREE.Group(); scene.add(this.root); this.root.add(cloudTable(3.6, 3.2, -1.0)); this.objs = []; this.fx = fx(this.root);
+    lookTable(this, 3.6, 3.2, -1.0, 2);
     // the birds to choose from, along the front
     this.pal = CODE_COLS.map((c, i) => { const b = makeBird(c); b.scale.setScalar(1.25); this.root.add(b); b.userData.ci = i; const x = label(CROSS_TEX, .32, .32); x.position.y = .62; b.add(x); b.userData.x = x; return b; });
     if (!ME){ ME = buildSaucer(); ME.scale.setScalar(.3); scene.add(ME); } },
@@ -658,6 +843,7 @@ const CODE = {
     if (this.solved && S.nextAt && S.nextAt - S.t < BEAT*2) this.hidden.forEach((b, i) => { b.position.y += dt*(2 + i*.3); b.position.z -= dt*2; });
     this.fx.tick(dt); animSky(this.w, t, dt, beat);
     hover(S.last || new THREE.Vector3(0, 0, this.rowZ(0)), t, dt, 2.5);
+    lookCode(this, t, dt, beat);
     setCam([[0, 5.8, 7.4], [0, -.5, -1.2]], [[0, 9.4, 6.9], [0, -.2, -.45]]);
   }
 };
@@ -776,6 +962,7 @@ function render(dt){
     G.render(t);
     ME.visible = !(S.inv > 0 && Math.floor(S.inv*12) % 2);
   }
+  lookFrame(dt, beat);
   ren.render(scene, cam);
 }
 /* A phone that can't keep up: after the first seconds, if frames average over 28 ms (under ~35 a second), draw

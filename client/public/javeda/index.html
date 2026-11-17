@@ -1452,6 +1452,11 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <div class="ptiles" id="plGuests"></div>
       <p class="small" id="plGuestNote"></p>
     </div>
+    <div class="hid" id="plLinksBox">
+      <h4 class="plh">Where visitors come from</h4>
+      <div class="ptiles" id="plLinks" data-i18n-skip></div>
+      <p class="small" id="plLinkNote" data-i18n-skip></p>
+    </div>
     <p class="small">A download is a phone or computer with JAVEDA on its home screen, counted from 2 November 2026: when it's installed, or (iPhone) the first time it's opened from the home screen. A Google Play or App Store app counts the first time it's opened.</p>
     <div class="plbar"><input class="in" id="plFind" type="search" placeholder="Find a name or email" autocomplete="off"><button class="btn small" id="plCopy" type="button">Copy news emails</button></div>
     <div class="err" id="plErr"></div>
@@ -2036,6 +2041,52 @@ const STORE = (() => {
   try { if (s === "play" || s === "appstore") sessionStorage.setItem("javeda.store", s); else s = sessionStorage.getItem("javeda.store"); } catch(e){}
   return s === "play" || s === "appstore" ? s : null;
 })();
+// Where visitors come from. A link with ?src=<a short name> at its end (the Instagram bio: ?src=ig, a story: ?src=ig-story,
+// TikTok: ?src=tiktok ...) is counted: how often it was opened, by how many phones, how many of those were new to JAVEDA,
+// and how many of the new ones went on to play and to make an account. The database gets a +1 per link (javeda_link_seen),
+// never who it was; this browser keeps the note (LINK_KEY) that makes a phone count once. play and appstore are the store
+// apps' own (STORE above). &cont=1: carried over from Instagram's or TikTok's own browser, counted there already.
+const LINK_KEY = "javeda.link.v1";
+const LINK = (() => {
+  let tag = "", cont = false, st = null;
+  try { const q = new URLSearchParams(location.search); tag = (q.get("src") || "").toLowerCase(); cont = q.get("cont") === "1"; } catch(e){}
+  if (!/^[a-z0-9][a-z0-9_-]{0,23}$/.test(tag) || tag === "play" || tag === "appstore") tag = "";
+  try { st = JSON.parse(localStorage.getItem(LINK_KEY) || "null"); } catch(e){}
+  if (!st || typeof st !== "object" || !st.first || !st.seen) st = null;
+  if (tag) try {
+    const now = Date.now();
+    if (!st){
+      // the first link this browser comes by: is it somebody new? (no progress, no app, no log-in kept here)
+      let known = false;
+      for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i) || ""; if (k === "javeda.guest.v1" || /^javeda\.device\./.test(k) || /^sb-.*-auth-token$/.test(k)) known = true; }
+      st = { first:tag, at:now, fresh:!known, seen:{}, todo:[] };
+    }
+    if (!Array.isArray(st.todo)) st.todo = [];
+    if (cont){ if (!st.seen[tag]) st.seen[tag] = now; }
+    else if (!st.seen[tag]){ st.seen[tag] = now; st.todo.push([tag, st.fresh && st.first === tag ? "new" : "person"]); }
+    else if (now - st.seen[tag] > 30*60e3){ st.seen[tag] = now; st.todo.push([tag, "click"]); }
+    localStorage.setItem(LINK_KEY, JSON.stringify(st));
+  } catch(e){ st = null; }      // nowhere to keep the note: not counted, rather than counted again on every open
+  return st;
+})();
+// what the note still has to tell the database (kept until it has got there: a phone with no signal says it next time)
+function linkFlush(){
+  if (!LINK || !sb || !Array.isArray(LINK.todo) || !LINK.todo.length || linkFlush.busy) return;
+  const [src, what] = LINK.todo[0]; linkFlush.busy = true;
+  sb.rpc("javeda_link_seen", { p_src:src, p_what:what }).then(r => {
+    linkFlush.busy = false; if (r && r.error && netErr(r.error)) return;      // no signal: later. Anything else: let it go
+    LINK.todo.shift(); try { localStorage.setItem(LINK_KEY, JSON.stringify(LINK)); } catch(e){} linkFlush();
+  }, () => { linkFlush.busy = false; });
+}
+// a new visitor who came by a link starts a level / has made an account since: once each, for the link they first came by
+function linkDid(what){
+  if (!LINK || !LINK.fresh || LINK[what]) return;
+  if (what === "account"){ const t = signedIn() && session.user ? Date.parse(session.user.created_at) : NaN; if (!(t >= LINK.at - 60e3)) return; }
+  LINK[what] = 1; LINK.todo.push([LINK.first, what]); try { localStorage.setItem(LINK_KEY, JSON.stringify(LINK)); } catch(e){}
+  linkFlush();
+}
+// a button that opens JAVEDA in the phone's real browser takes the link's name along (not counted a second time there)
+const linkCarry = () => LINK && LINK.first ? "?src=" + LINK.first + "&cont=1" : "";
 // and no link to EVEN there (buying there gives a Pass code): the Follow row without True Fans
 if (STORE){ const f = document.querySelector(".vfollow"); if (f){ f.classList.add("store"); f.querySelectorAll('a[data-link="even"]').forEach(a => a.remove()); } }
 
@@ -3152,7 +3203,7 @@ function boardMoreBtn(){
 }
 $("boardMore").onclick = () => { boardAll = !boardAll; boardMoreBtn(); };
 $("boardJoin").addEventListener("click", e => { if (e.target.closest("[data-signup]")) openLogin(true); else if (e.target.closest("[data-login]")) openLogin(); });
-function renderAll(){ try { renderCarry(); } catch(e){} renderMe(); renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); try { placeVideos(); } catch(e){} }
+function renderAll(){ try { renderCarry(); } catch(e){} try { linkDid("account"); } catch(e){} renderMe(); renderNow(); renderLevels(); renderVersus(); renderUltimate(); renderEndless(); renderTabs(); renderBoard(); try { placeVideos(); } catch(e){} }
 
 /* ---- profile sheet ---- */
 let pickAv = "saucer";
@@ -3445,6 +3496,7 @@ $("pfSave").onclick = async () => {
   const { data, error } = await sb.rpc("javeda_join", { p_username:name, p_avatar:pickAv });
   if (error){ $("pfErr").textContent = error.message; return; }
   const first = !player; player = data;
+  linkDid("account");
   if (first){ await applyNewsWish(true); await importGuest(); pushSync(); }
   closeSheet("profile"); renderAll(); toast("Saved");
 };
@@ -3942,6 +3994,7 @@ renderSnd();
 let runStart = null, dailyStart = null, weeklyStart = null, startedAt = 0;
 const sendNow = q => q.then(r => r);
 function startRun(lv){
+  linkDid("played");
   runStart = signedIn() && lv.endless && isOpen(lv) ? sendNow(sb.rpc("javeda_start_run", { p_level:lv.id })) : null;
   dailyStart = signedIn() && mode.daily ? sendNow(sb.rpc("javeda_start_daily")) : null;
   weeklyStart = signedIn() && mode.weekly ? sendNow(sb.rpc("javeda_start_weekly")) : null;
@@ -4531,6 +4584,15 @@ async function openPlayers(){
       "\"Saw the pop-up\" counts installs from 15 November 2026.";
   }
   listPlayers();
+  // the links (?src=...): its own question, so a database that hasn't got it yet just says so
+  const lk = await sb.rpc("javeda_link_stats").then(r => r, e => ({ error:e }));
+  $("plLinksBox").classList.remove("hid");
+  const how = "Put <b>?src=</b> and a short name of your own at the end of the link you share: <b>lightningwolves.studio/javeda/?src=ig</b> for your Instagram bio, <b>?src=ig-story</b> for a story, <b>?src=tiktok</b>, <b>?src=discord</b>... (small letters, digits and - only). A link without it isn't counted.";
+  if (lk.error || !lk.data){ $("plLinks").innerHTML = ""; $("plLinkNote").innerHTML = (lk.error && netErr(lk.error) ? "No internet." : "Not counting yet: the database part (fn-links.sql) hasn't been run.") + " " + how; return; }
+  const LNAME = { ig:"Instagram", "ig-bio":"Instagram bio", "ig-story":"Instagram story", "ig-reel":"Instagram reel", tiktok:"TikTok", yt:"YouTube", youtube:"YouTube", discord:"Discord", fb:"Facebook", x:"X", wa:"WhatsApp", whatsapp:"WhatsApp", snap:"Snapchat", qr:"QR code", email:"Email", spotify:"Spotify" };
+  const day = x => new Date(x + "T12:00:00").toLocaleDateString("en-GB", { day:"numeric", month:"short", year:"numeric" });
+  $("plLinks").innerHTML = (lk.data.links || []).map(l => tile(l.people, esc(LNAME[l.src] || l.src), "+" + fmt(l.week) + " this week<br>" + fmt(l.clicks) + (l.clicks === 1 ? " click" : " clicks") + "<br>" + fmt(l.fresh) + " new to JAVEDA<br>" + fmt(l.played) + " of them played<br>" + fmt(l.accounts) + " made an account" + (LNAME[l.src] ? "<br>?src=" + esc(l.src) : ""))).join("");
+  $("plLinkNote").innerHTML = ((lk.data.links || []).length ? "The big number is phones that came by that link (a phone counts once per link). Counted since " + day(lk.data.since) + ". Instagram and TikTok open a link in their own browser: somebody who later opens JAVEDA in Safari or Chrome by themselves is a visitor without a link there. " : "No visits by a link yet. ") + how;
 }
 function listPlayers(){
   const q = $("plFind").value.trim().toLowerCase();
@@ -4845,10 +4907,10 @@ function openAppSheet(){
   if (installEvt) how = '<button class="btn primary" type="button" id="appGo" data-i18n-skip>' + t.install + '</button>';
   // inside another app (Instagram, TikTok...): it can't install - a button opens JAVEDA in Safari (iOS 17 and on), the
   // menu steps under it for when it doesn't
-  else if (IOS && IN_APP) how = '<a class="btn primary" data-i18n-skip href="x-safari-' + location.origin + '/javeda/">' + t.safariBtn + '</a><p class="small" data-i18n-skip>' + t.byHand + '</p>' + para(t.iosInApp);
+  else if (IOS && IN_APP) how = '<a class="btn primary" data-i18n-skip href="x-safari-' + location.origin + '/javeda/' + linkCarry() + '">' + t.safariBtn + '</a><p class="small" data-i18n-skip>' + t.byHand + '</p>' + para(t.iosInApp);
   else if (IOS) how = list(t.ios);
   else if (ANDROID && SAMSUNG) how = para(t.samsung) + '<a class="btn primary" data-i18n-skip href="intent://' + location.host + '/javeda/#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent("https://play.google.com/store/apps/details?id=com.android.chrome") + ';end">' + t.chromeBtn + '</a>';
-  else if (ANDROID && IN_APP) how = '<a class="btn primary" data-i18n-skip href="intent://' + location.host + '/javeda/#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(location.origin + "/javeda/") + ';end">' + t.chromeBtn + '</a><p class="small" data-i18n-skip>' + t.byHand + '</p>' + para(t.andInApp);
+  else if (ANDROID && IN_APP) how = '<a class="btn primary" data-i18n-skip href="intent://' + location.host + '/javeda/' + linkCarry() + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(location.origin + "/javeda/" + linkCarry()) + ';end">' + t.chromeBtn + '</a><p class="small" data-i18n-skip>' + t.byHand + '</p>' + para(t.andInApp);
   else if (ANDROID) how = list(t.and);
   else if (MAC_SAFARI) how = list(t.mac);
   else if (CHROMIUM) how = list(t.chr) + '<p class="small" data-i18n-skip>' + t.chrNote + '</p>';
@@ -5407,6 +5469,7 @@ if (location.hash === "#app"){ history.replaceState(null, "", location.pathname 
   if (RECOVERY && session) openNewPassword();
   onlineStart(cfg); setTimeout(chatPeek, 4000);
   acnBoot(); fanBoot(); if (STANDALONE) appSeen("open");
+  linkFlush(); linkDid("account");
   pushSync(); pushAuto();
   sb.auth.onAuthStateChange((_e, s) => {
     if (_e === "PASSWORD_RECOVERY" && !newPass) setTimeout(openNewPassword, 0);

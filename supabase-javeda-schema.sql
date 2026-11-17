@@ -4119,3 +4119,85 @@ REVOKE ALL ON FUNCTION public.javeda_challenge_finish(BIGINT) FROM PUBLIC, anon,
 
 -- the API sees the change straight away
 NOTIFY pgrst, 'reload schema';
+
+-- ============================================================================
+-- Where visitors come from (fn-links.sql): a link with ?src=<tag> at its end (lightningwolves.studio/javeda/?src=ig for
+-- the Instagram bio, ?src=ig-story, ?src=tiktok ... - any short name) is counted. Totals per link per day and nothing
+-- else: no phone, no account, no address. The browser keeps a note of its own, so one phone counts once per link.
+--   clicks   every time the link was opened (again after half an hour counts again)
+--   people   phones that came by the link (once per phone)
+--   fresh    of those, phones with no trace of JAVEDA yet: new visitors
+--   played   new visitors who went on to start a level
+--   accounts new visitors who went on to make an account
+-- These are numbers a page sends in good faith (like the downloads): good for seeing which link works, not for prizes.
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS javeda_link_days (
+  src      TEXT NOT NULL CHECK (src ~ '^[a-z0-9][a-z0-9_-]{0,23}$'),
+  day      DATE NOT NULL,
+  clicks   INT NOT NULL DEFAULT 0,
+  people   INT NOT NULL DEFAULT 0,
+  fresh    INT NOT NULL DEFAULT 0,
+  played   INT NOT NULL DEFAULT 0,
+  accounts INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (src, day)
+);
+ALTER TABLE javeda_link_days ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON javeda_link_days FROM anon, authenticated;
+
+-- the page says so: 'click' (the link opened again), 'person' (a phone's first time by this link), 'new' (and it has
+-- never had JAVEDA), 'played', 'account'. play and appstore are the store apps' own, not links.
+CREATE OR REPLACE FUNCTION public.javeda_link_seen(p_src TEXT, p_what TEXT)
+RETURNS VOID
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  today DATE := (now() AT TIME ZONE 'Europe/Brussels')::date;
+BEGIN
+  IF p_src IS NULL OR p_src !~ '^[a-z0-9][a-z0-9_-]{0,23}$' OR p_src IN ('play', 'appstore') THEN RETURN; END IF;
+  IF p_what IS NULL OR p_what NOT IN ('click', 'person', 'new', 'played', 'account') THEN RETURN; END IF;
+  -- made-up names are cut off: 40 different links is far more than there will be
+  IF NOT EXISTS (SELECT 1 FROM javeda_link_days WHERE src = p_src)
+     AND (SELECT count(DISTINCT src) FROM javeda_link_days) >= 40 THEN RETURN; END IF;
+  INSERT INTO javeda_link_days AS d (src, day, clicks, people, fresh, played, accounts)
+  VALUES (p_src, today,
+          CASE WHEN p_what IN ('click', 'person', 'new') THEN 1 ELSE 0 END,
+          CASE WHEN p_what IN ('person', 'new') THEN 1 ELSE 0 END,
+          CASE WHEN p_what = 'new' THEN 1 ELSE 0 END,
+          CASE WHEN p_what = 'played' THEN 1 ELSE 0 END,
+          CASE WHEN p_what = 'account' THEN 1 ELSE 0 END)
+  ON CONFLICT (src, day) DO UPDATE SET
+    clicks   = d.clicks + EXCLUDED.clicks,
+    people   = d.people + EXCLUDED.people,
+    fresh    = d.fresh + EXCLUDED.fresh,
+    played   = d.played + EXCLUDED.played,
+    accounts = d.accounts + EXCLUDED.accounts
+  WHERE d.clicks < 50000 AND d.played < 50000 AND d.accounts < 50000;      -- a flood stops counting for the day
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_link_seen(TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.javeda_link_seen(TEXT, TEXT) TO anon, authenticated;
+
+-- the creator's screen (Players & downloads): every link with its totals, the busiest first; 'week' = the last 7 days
+CREATE OR REPLACE FUNCTION public.javeda_link_stats()
+RETURNS JSON
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  wk DATE := (now() AT TIME ZONE 'Europe/Brussels')::date - 6;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM javeda_creators WHERE user_id = auth.uid()) THEN
+    RAISE EXCEPTION 'creators only' USING ERRCODE = '42501';
+  END IF;
+  RETURN json_build_object(
+    'since', (SELECT min(day) FROM javeda_link_days),
+    'links', COALESCE((SELECT json_agg(x ORDER BY x.people DESC, x.clicks DESC, x.src) FROM (
+        SELECT src, sum(clicks)::int AS clicks, sum(people)::int AS people, sum(fresh)::int AS fresh,
+               sum(played)::int AS played, sum(accounts)::int AS accounts,
+               COALESCE(sum(people) FILTER (WHERE day >= wk), 0)::int AS week,
+               COALESCE(sum(clicks) FILTER (WHERE day >= wk), 0)::int AS week_clicks,
+               min(day) AS first_day, max(day) AS last_day
+        FROM javeda_link_days GROUP BY src) x), '[]'::json));
+END;
+$$;
+REVOKE ALL ON FUNCTION public.javeda_link_stats() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.javeda_link_stats() TO authenticated;

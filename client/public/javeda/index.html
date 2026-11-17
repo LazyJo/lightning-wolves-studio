@@ -2074,7 +2074,9 @@ function linkFlush(){
   if (!LINK || !sb || !Array.isArray(LINK.todo) || !LINK.todo.length || linkFlush.busy) return;
   const [src, what] = LINK.todo[0]; linkFlush.busy = true;
   sb.rpc("javeda_link_seen", { p_src:src, p_what:what }).then(r => {
-    linkFlush.busy = false; if (r && r.error && netErr(r.error)) return;      // no signal: later. Anything else: let it go
+    linkFlush.busy = false;
+    // no signal, or a database that hasn't got the counter yet: later (a short list). Anything else: let it go
+    if (r && r.error && (netErr(r.error) || r.error.code === "PGRST202" || /could not find the function/i.test(r.error.message || "")) && LINK.todo.length <= 12) return;
     LINK.todo.shift(); try { localStorage.setItem(LINK_KEY, JSON.stringify(LINK)); } catch(e){} linkFlush();
   }, () => { linkFlush.busy = false; });
 }

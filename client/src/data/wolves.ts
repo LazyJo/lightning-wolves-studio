@@ -22,6 +22,8 @@ export interface WolfProfile {
   booking?: string;
   merch?: string;
   fanSupport?: string;
+  /** Immersive 3D single-store experience (e.g. /lazyjo/). */
+  universe?: string;
   email?: string;
   photo?: string;
   performanceVideo?: string;
@@ -72,6 +74,7 @@ export const wolves: Wolf[] = [
       booking: "https://www.gigstarter.be/artists/lazy-jo",
       merch: "https://www.even.biz/l/lightningwolves",
       fanSupport: "https://www.even.biz/l/lazyjomusic",
+      universe: "/lazyjo/",
       email: "Lazyjo.official@gmail.com",
       photo: "/LazyJo - StayUp pictures from videoshoot (CS)_-86.JPG.jpeg",
       performanceVideo: "/Lazy Jo Performance Video.mp4",

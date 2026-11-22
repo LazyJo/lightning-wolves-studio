@@ -290,6 +290,118 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
 });
 
+// ─── LAZY JO UNIVERSE — direct single sales (/lazyjo/) ─────────────────────────
+// Prices come from the same catalogue the client renders, so the browser can
+// only pick *which* single and how much extra to give — never a lower price.
+// Guest checkout (fans don't need a Lightning Wolves account). Delivery: after
+// Stripe redirects back, /api/lazyjo/download re-verifies the Checkout Session
+// with Stripe and returns a short-lived signed URL to the master in a PRIVATE
+// Supabase Storage bucket.
+const LAZYJO_CATALOG = require('./client/src/lazyjo/singles.json');
+const LAZYJO_MAX_CENTS = 50000;            // cap "pay what you want" at €500
+const LAZYJO_DOWNLOAD_DAYS = 30;           // re-download window per purchase
+const LAZYJO_BUCKET = process.env.LAZYJO_MASTERS_BUCKET || 'lazyjo-masters';
+const lazyjoSingle = (id) => LAZYJO_CATALOG.singles.find((s) => s.id === id);
+
+app.post('/api/lazyjo/checkout', async (req, res) => {
+  if (!stripe) return res.status(503).json({ error: 'Checkout is not configured yet' });
+  try {
+    const { singleId, amountCents } = req.body || {};
+    const single = typeof singleId === 'string' ? lazyjoSingle(singleId) : null;
+    if (!single) return res.status(404).json({ error: 'Unknown single' });
+
+    const min = single.priceCents;
+    const requested = Number.isInteger(amountCents) ? amountCents : min;
+    const amount = Math.max(min, Math.min(requested, LAZYJO_MAX_CENTS));
+
+    const origin = (
+      process.env.PUBLIC_APP_URL ||
+      req.headers.origin ||
+      'http://localhost:5173'
+    ).replace(/\/$/, '');
+
+    const productImage =
+      single.cover && origin.startsWith('https://') ? [origin + encodeURI(single.cover)] : undefined;
+
+    const metadata = {
+      kind: 'lazyjo-single',
+      singleId: single.id,
+      amountCents: String(amount),
+    };
+
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [
+        single.stripePriceId && amount === min
+          ? { price: single.stripePriceId, quantity: 1 }
+          : {
+              quantity: 1,
+              price_data: {
+                currency: LAZYJO_CATALOG.currency,
+                unit_amount: amount,
+                product_data: {
+                  name: `${single.title} — ${LAZYJO_CATALOG.artist}`,
+                  description: 'Digital single · high-quality download · supports the artist directly',
+                  ...(productImage ? { images: productImage } : {}),
+                },
+              },
+            },
+      ],
+      metadata,
+      payment_intent_data: { metadata },
+      success_url: `${origin}/lazyjo/?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/lazyjo/?purchase=cancelled&single=${encodeURIComponent(single.id)}`,
+      allow_promotion_codes: true,
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('LazyJo checkout error:', err);
+    res.status(500).json({ error: 'Could not start checkout' });
+  }
+});
+
+app.get('/api/lazyjo/download', async (req, res) => {
+  if (!stripe) return res.status(503).json({ error: 'Checkout is not configured yet' });
+  const sessionId = String(req.query.session_id || '');
+  if (!/^cs_(test|live)_[A-Za-z0-9]+$/.test(sessionId)) {
+    return res.status(400).json({ error: 'Invalid purchase reference' });
+  }
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.metadata?.kind !== 'lazyjo-single') {
+      return res.status(404).json({ error: 'Purchase not found' });
+    }
+    if (session.payment_status !== 'paid') {
+      return res.status(402).json({ error: 'Payment has not completed yet' });
+    }
+    const ageDays = (Date.now() / 1000 - session.created) / 86400;
+    if (ageDays > LAZYJO_DOWNLOAD_DAYS) {
+      return res.status(410).json({ error: 'This download link has expired — reply to your receipt email for a new one' });
+    }
+    const single = lazyjoSingle(session.metadata.singleId);
+    if (!single) return res.status(404).json({ error: 'Single no longer available' });
+
+    const base = { title: single.title, email: session.customer_details?.email || null };
+    if (!supabase || !single.masterPath) {
+      return res.json({ ...base, status: 'pending' });
+    }
+    const ext = (single.masterPath.split('.').pop() || 'wav').toLowerCase();
+    const { data, error } = await supabase.storage
+      .from(LAZYJO_BUCKET)
+      .createSignedUrl(single.masterPath, 600, {
+        download: `${LAZYJO_CATALOG.artist} - ${single.title}.${ext}`,
+      });
+    if (error || !data?.signedUrl) {
+      console.error('LazyJo signed URL error:', error);
+      return res.json({ ...base, status: 'pending' });
+    }
+    res.json({ ...base, status: 'ready', url: data.signedUrl });
+  } catch (err) {
+    console.error('LazyJo download error:', err);
+    res.status(500).json({ error: 'Could not verify purchase' });
+  }
+});
+
 // Opens a Stripe billing portal session so paying users can manage
 // their own subscription (cancel, change card, view invoices) — no
 // support ticket needed. Requires an existing stripe_customer_id

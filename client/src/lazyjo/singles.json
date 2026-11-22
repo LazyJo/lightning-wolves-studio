@@ -1,0 +1,111 @@
+{
+  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. cover / previewUrl are public paths (drop files in client/public/lazyjo/covers + /previews). masterPath is the object key of the full-quality file in the PRIVATE Supabase Storage bucket (LAZYJO_MASTERS_BUCKET, default 'lazyjo-masters') — it is only handed out as a short-lived signed URL after Stripe confirms payment. Entries with placeholder:true are development stand-ins: swap in real titles/artwork/audio before launch.",
+  "artist": "Lazy Jo",
+  "currency": "eur",
+  "singles": [
+    {
+      "id": "stay-up",
+      "title": "Stay Up",
+      "year": 2023,
+      "priceCents": 129,
+      "cover": "/LazyJo - StayUp pictures from videoshoot (CS)_-86.JPG.jpeg",
+      "previewUrl": null,
+      "masterPath": "stay-up.wav",
+      "palette": ["#0b1220", "#cfd8e3", "#00BFFF"],
+      "motif": "portrait",
+      "vinyl": true,
+      "placeholder": false
+    },
+    {
+      "id": "purple-skyline",
+      "title": "Purple Skyline",
+      "year": 2024,
+      "priceCents": 129,
+      "cover": null,
+      "previewUrl": null,
+      "masterPath": "purple-skyline.wav",
+      "palette": ["#12002e", "#7B2CFF", "#E040FB"],
+      "motif": "city",
+      "vinyl": true,
+      "placeholder": true
+    },
+    {
+      "id": "im-lost",
+      "title": "I'm Lost",
+      "year": 2018,
+      "priceCents": 129,
+      "cover": null,
+      "previewUrl": null,
+      "masterPath": "im-lost.wav",
+      "palette": ["#020814", "#00BFFF", "#00F5FF"],
+      "motif": "orb",
+      "vinyl": false,
+      "placeholder": false
+    },
+    {
+      "id": "crown",
+      "title": "Crown",
+      "year": 2024,
+      "priceCents": 149,
+      "cover": null,
+      "previewUrl": null,
+      "masterPath": "crown.wav",
+      "palette": ["#0a0a0c", "#f5c518", "#7a5b00"],
+      "motif": "crown",
+      "vinyl": true,
+      "placeholder": true
+    },
+    {
+      "id": "moonwalker",
+      "title": "Moonwalker",
+      "year": 2025,
+      "priceCents": 129,
+      "cover": null,
+      "previewUrl": null,
+      "masterPath": "moonwalker.wav",
+      "palette": ["#05070d", "#e6edf5", "#7d8ca3"],
+      "motif": "moon",
+      "vinyl": true,
+      "placeholder": true
+    },
+    {
+      "id": "night-drive",
+      "title": "Night Drive",
+      "year": 2025,
+      "priceCents": 129,
+      "cover": null,
+      "previewUrl": null,
+      "masterPath": "night-drive.wav",
+      "palette": ["#060608", "#ff3355", "#9aa4b5"],
+      "motif": "road",
+      "vinyl": false,
+      "placeholder": true
+    },
+    {
+      "id": "red-lights",
+      "title": "Red Lights",
+      "year": 2025,
+      "priceCents": 129,
+      "cover": null,
+      "previewUrl": null,
+      "masterPath": "red-lights.wav",
+      "palette": ["#1a0208", "#ff2d55", "#7B2CFF"],
+      "motif": "silhouette",
+      "vinyl": true,
+      "placeholder": true
+    },
+    {
+      "id": "lightning",
+      "title": "Lightning",
+      "year": 2026,
+      "priceCents": 149,
+      "cover": null,
+      "previewUrl": null,
+      "masterPath": "lightning.wav",
+      "palette": ["#030712", "#00F5FF", "#7B2CFF"],
+      "motif": "bolt",
+      "vinyl": true,
+      "placeholder": true
+    }
+  ]
+}

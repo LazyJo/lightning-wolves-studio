@@ -1,4 +1,5 @@
 import type { Single } from "./catalog";
+import { ytLoop } from "./ytLoop";
 import { PREVIEW_SECONDS } from "./catalog";
 
 /**
@@ -49,6 +50,12 @@ export class SoundEngine {
   private synthOut: GainNode | null = null;
   private previewStart = 0;
   private previewId: string | null = null;
+  // music-video loop of the open song (owned by the player); its sound is the preview
+  private videoEl: HTMLVideoElement | null = null;
+  private videoSources = new WeakMap<HTMLMediaElement, MediaElementAudioSourceNode>();
+  private previewVideo: HTMLVideoElement | null = null;
+  private videoCleanup: (() => void) | null = null;
+  private previewYt = false;
   onPreviewEnd: (() => void) | null = null;
 
   /** Must be called from a user gesture. */
@@ -306,8 +313,19 @@ export class SoundEngine {
     return this.previewId !== null;
   }
 
+  /** The open song's music-video element (muted loop), or null. */
+  setVideo(el: HTMLVideoElement | null) {
+    if (this.previewVideo && this.previewVideo !== el) this.stopPreview();
+    this.videoEl = el;
+  }
+
   previewProgress(): number {
     if (!this.previewId || !this.ctx) return 0;
+    if (this.previewYt) return ytLoop.progress();
+    if (this.previewVideo) {
+      const v = this.previewVideo;
+      return Math.min(v.currentTime / Math.min(v.duration || PREVIEW_SECONDS, PREVIEW_SECONDS), 1);
+    }
     if (this.previewEl) {
       const d = Math.min(this.previewEl.duration || PREVIEW_SECONDS, PREVIEW_SECONDS);
       return Math.min(this.previewEl.currentTime / d, 1);
@@ -321,6 +339,56 @@ export class SoundEngine {
     this.previewId = single.id;
     // duck the ambience under the music
     if (this.ambientOn) this.ambient.gain.setTargetAtTime(0.25, ctx.currentTime, 0.4);
+
+    // Music video on YouTube, playing on the cover: un-mute it (picture + sound in sync).
+    if (ytLoop.activeFor(single.id)) {
+      const id = single.id;
+      this.previewYt = true;
+      ytLoop.onClipEnd = () => this.endPreview();
+      const ok = await ytLoop.startSound();
+      if (ok || this.previewId !== id) return;
+      // it stayed muted (some phones): play the normal preview instead
+      this.previewYt = false;
+      ytLoop.onClipEnd = null;
+    }
+
+    // A song with a music video: the preview is the clip itself (picture + sound in sync).
+    const v = this.videoEl;
+    if (v && v.dataset.single === single.id) {
+      if (!this.videoSources.has(v)) {
+        try {
+          const src = ctx.createMediaElementSource(v); // needs CORS (the media bucket sends it)
+          src.connect(this.previewBus);
+          this.videoSources.set(v, src);
+        } catch {
+          /* plays directly instead; the visuals just stay calm */
+        }
+      }
+      this.previewVideo = v;
+      v.loop = false;
+      v.currentTime = 0;
+      v.muted = false;
+      const onTime = () => {
+        if (v.currentTime >= PREVIEW_SECONDS) this.endPreview();
+      };
+      const onEnd = () => this.endPreview();
+      v.addEventListener("timeupdate", onTime);
+      v.addEventListener("ended", onEnd);
+      this.videoCleanup = () => {
+        v.removeEventListener("timeupdate", onTime);
+        v.removeEventListener("ended", onEnd);
+        // back to the silent loop on the cover
+        v.muted = true;
+        v.loop = true;
+        v.play().catch(() => {});
+      };
+      try {
+        await v.play();
+      } catch {
+        this.endPreview();
+      }
+      return;
+    }
 
     if (single.previewUrl) {
       const url = encodeURI(single.previewUrl);
@@ -372,6 +440,17 @@ export class SoundEngine {
   }
 
   stopPreview() {
+    if (this.previewYt) {
+      this.previewYt = false;
+      ytLoop.onClipEnd = null;
+      ytLoop.stopSound();
+    }
+    if (this.videoCleanup) {
+      const done = this.videoCleanup;
+      this.videoCleanup = null;
+      this.previewVideo = null;
+      done();
+    }
     if (this.previewEl) {
       this.previewEl.pause();
       this.previewEl.src = "";

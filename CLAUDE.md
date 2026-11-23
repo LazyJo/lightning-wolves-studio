@@ -220,6 +220,14 @@ its track number, move it into album order and switch its preview to the level s
 border, corners, play button, prices and Buy button match the cover, and the 3D frame glows in the same colours.
 In `lazyjo.css` accents are `color-mix(var(--lj-cyan) …)`, never a hard-coded cyan. Don't use motif `portrait` for a
 real cover (it adds the old B&W "LAZY JO" photo treatment).
+**Music videos:** the 5 JAVEDA songs with a video (Feel Like That, LA Vibe, Peace Inside, Stay Up, Fall In Love Again —
+same YouTube ids as JAVEDA's `FAN_VIDEOS`) have `youtube: {id, start, zoom}` in `singles.json`. When their player opens,
+`ui/VideoScreen.tsx` lays a youtube-nocookie embed exactly over the presented 3D cover (engine `onFocusScreen` rect),
+cropped square, muted, looping 30 s from `start` (`ytLoop.ts`, postMessage protocol, no API script). Pressing play
+un-mutes it (preview = the video's own sound, in sync); if it stays muted (some phones) the normal mp3 preview plays.
+`start` is 30 s for all five until Jo picks moments. Optional self-hosted alternative: `scripts/upload-video-loops.js`
+(square 30 s mp4 clips → `media/lazyjo/videos/` + `index.json`, shown as a 3D VideoTexture by `videos.ts`), used only
+for songs without `youtube`.
 Design rule from Jo: straight forward flight only — no circular gallery, tunnel, road or well.
 Gateways: the big ringed purple planet = JAVEDA (warp, then a plain link to
 `/javeda/?src=lazyjo-universe` — never import JAVEDA code); the spiral galaxy opens the

@@ -10,6 +10,7 @@ import PurchaseResult from "./ui/PurchaseResult";
 import GalaxyPanel from "./ui/GalaxyPanel";
 import JoinPanel from "./ui/JoinPanel";
 import { isFan, markFan } from "./fanGate";
+import VideoScreen from "./ui/VideoScreen";
 import { Orbit } from "lucide-react";
 
 type Phase = "intro" | "flying";
@@ -52,6 +53,7 @@ export default function LazyJoUniverse() {
   const [galaxyHover, setGalaxyHover] = useState(false);
   const [galaxyOpen, setGalaxyOpen] = useState(false);
   const javedaBtnRef = useRef<HTMLButtonElement>(null);
+  const videoScreenRef = useRef<HTMLDivElement>(null);
   const galaxyDotRef = useRef<HTMLButtonElement>(null);
   const [listOpen, setListOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
@@ -130,6 +132,19 @@ export default function LazyJoUniverse() {
           sound.open();
           // let the camera zoom in before the card appears
           setTimeout(() => setGalaxyOpen(true), 650);
+        },
+        onFocusScreen: (r) => {
+          // the music-video screen sits exactly on the presented cover
+          const el = videoScreenRef.current;
+          if (!el) return;
+          if (!r) {
+            el.dataset.on = "0";
+            return;
+          }
+          el.dataset.on = "1";
+          el.style.transform = `translate(${r.x.toFixed(1)}px, ${r.y.toFixed(1)}px)`;
+          el.style.width = `${r.w.toFixed(1)}px`;
+          el.style.height = `${r.h.toFixed(1)}px`;
         },
         onGalaxyScreen: ({ x, y, visible }) => {
           const d = galaxyDotRef.current;
@@ -339,7 +354,16 @@ export default function LazyJoUniverse() {
         }}
       />
 
-      {selected && <PlayerPanel key={selected.id} single={selected} cover={coverFor(selected)} onClose={closePlayer} />}
+      {selected?.youtube && <VideoScreen key={`v-${selected.id}`} ref={videoScreenRef} single={selected} />}
+      {selected && (
+        <PlayerPanel
+          key={selected.id}
+          single={selected}
+          cover={coverFor(selected)}
+          onClose={closePlayer}
+          onVideo={(el) => engineRef.current?.setCoverVideo(el ? selected.id : null, el)}
+        />
+      )}
 
       {galaxyOpen && <GalaxyPanel onClose={closeGalaxy} />}
 

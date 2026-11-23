@@ -4,17 +4,21 @@ import { ARTIST, MAX_CENTS, PREVIEW_SECONDS, currencySymbol, formatPrice, fullTi
 import JoinForm from "./JoinForm";
 import { isFan } from "../fanGate";
 import { sound } from "../audio";
+import { videoFor } from "../videos";
+import { ytLoop } from "../ytLoop";
 import { CheckoutUnavailableError, startSingleCheckout } from "../shop";
 
 interface Props {
   single: Single;
   cover: string;
   onClose(): void;
+  /** the song's music-video element once it can play (null when the player closes) */
+  onVideo?(el: HTMLVideoElement | null): void;
 }
 
 type BuyState = { kind: "idle" } | { kind: "loading" } | { kind: "unavailable"; msg: string } | { kind: "error"; msg: string };
 
-export default function PlayerPanel({ single, cover, onClose }: Props) {
+export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) {
   const [playing, setPlaying] = useState(false);
   const [buy, setBuy] = useState<BuyState>({ kind: "idle" });
   const [copied, setCopied] = useState(false);
@@ -53,6 +57,51 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
     };
   }, []);
 
+  // Music-video loop: plays silently on the 3D cover; pressing play un-mutes it.
+  const [hasVideo, setHasVideo] = useState(false);
+  const onVideoRef = useRef(onVideo);
+  onVideoRef.current = onVideo;
+  const [ytLive, setYtLive] = useState(false);
+  useEffect(() => ytLoop.subscribe(() => setYtLive(ytLoop.activeFor(single.id))), [single.id]);
+  useEffect(() => {
+    if (single.youtube) return; // its YouTube video plays on the cover instead
+    let cancelled = false;
+    let el: HTMLVideoElement | null = null;
+    videoFor(single.id).then((url) => {
+      if (!url || cancelled) return;
+      const v = document.createElement("video");
+      el = v;
+      v.crossOrigin = "anonymous";
+      v.muted = true;
+      v.loop = true;
+      v.playsInline = true;
+      v.preload = "auto";
+      v.dataset.single = single.id;
+      v.addEventListener(
+        "loadeddata",
+        () => {
+          if (cancelled) return;
+          sound.setVideo(v);
+          onVideoRef.current?.(v);
+          setHasVideo(true);
+        },
+        { once: true },
+      );
+      v.src = url;
+      v.play().catch(() => {});
+    });
+    return () => {
+      cancelled = true;
+      sound.setVideo(null);
+      onVideoRef.current?.(null);
+      if (el) {
+        el.pause();
+        el.removeAttribute("src");
+        el.load();
+      }
+    };
+  }, [single.id]);
+
   // Visualiser + progress, drawn straight to the DOM (no re-renders).
   useEffect(() => {
     const c = canvasRef.current;
@@ -71,8 +120,12 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, w, h);
-      const active = sound.previewPlaying && sound.analyser;
+      let active = sound.previewPlaying && sound.analyser;
       if (active) sound.analyser.getByteFrequencyData(bins);
+      // a YouTube preview can't be analysed: keep the bars dancing instead of flat
+      const silent = active && bins.every((b) => b === 0);
+      if (silent) active = false;
+      const pulse = sound.previewPlaying ? 0.22 : 0.08;
       const bars = 40;
       const bw = w / bars;
       const g = ctx.createLinearGradient(0, 0, w, 0);
@@ -82,7 +135,7 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
       for (let i = 0; i < bars; i++) {
         const v = active
           ? bins[Math.floor(2 + (i / bars) * 70)] / 255
-          : 0.08 + 0.06 * Math.sin(now / 600 + i * 0.5);
+          : pulse + (silent ? 0.18 : 0.06) * Math.sin(now / (silent ? 180 : 600) + i * 0.5) * (silent ? Math.sin(now / 410 + i) : 1);
         const bh = Math.max(2, v * h * 0.95);
         ctx.globalAlpha = 0.35 + v * 0.65;
         ctx.fillRect(i * bw + bw * 0.2, (h - bh) / 2, bw * 0.6, bh);
@@ -185,7 +238,7 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
             </div>
             <div className="lj-preview-meta">
               <span ref={timeRef}>0:00</span>
-              <span>{PREVIEW_SECONDS}s preview</span>
+              <span>{hasVideo || ytLive ? `${PREVIEW_SECONDS}s music video` : `${PREVIEW_SECONDS}s preview`}</span>
             </div>
           </div>
         </div>

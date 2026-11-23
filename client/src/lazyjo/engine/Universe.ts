@@ -66,6 +66,8 @@ export interface UniverseCallbacks {
   onGalaxyHover?(over: boolean): void;
   /** where the galaxy is on screen (px), for the glowing dot */
   onGalaxyScreen?(p: { x: number; y: number; visible: boolean }): void;
+  /** Screen rect (px) of the presented cover's artwork, ~30 fps; null when nothing is presented. */
+  onFocusScreen?(r: { x: number; y: number; w: number; h: number } | null): void;
   onGalaxy?(): void;
 }
 
@@ -383,7 +385,33 @@ export class Universe {
 
   /** Send the presented cover back to its place in the gallery. */
   unfocus() {
+    this.setCoverVideo(null, null);
     this.focused = null;
+  }
+
+  private videoTex: THREE.VideoTexture | null = null;
+
+  /** Play a music-video loop on the presented cover (null puts the artwork back). */
+  setCoverVideo(id: string | null, el: HTMLVideoElement | null) {
+    if (this.videoTex) {
+      for (const slot of this.slots) {
+        if (slot.front.map !== this.videoTex) continue;
+        const tex = this.coverTextures.get(slot.single.id)!;
+        slot.front.map = tex;
+        slot.front.emissiveMap = tex;
+        slot.front.needsUpdate = true;
+      }
+      this.videoTex.dispose();
+      this.videoTex = null;
+    }
+    const slot = this.focused;
+    if (!el || !id || !slot || slot.single.id !== id) return;
+    const tex = new THREE.VideoTexture(el);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    this.videoTex = tex;
+    slot.front.map = tex;
+    slot.front.emissiveMap = tex;
+    slot.front.needsUpdate = true;
   }
 
   dispose() {
@@ -1076,7 +1104,7 @@ export class Universe {
       this.coverTextures.set(s.id, tex);
       tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
       for (const slot of this.slots) {
-        if (slot.single.id !== s.id) continue;
+        if (slot.single.id !== s.id || (this.videoTex && slot.front.map === this.videoTex)) continue;
         slot.front.map = tex;
         slot.front.emissiveMap = tex;
         slot.front.needsUpdate = true;
@@ -1437,10 +1465,34 @@ export class Universe {
   }
 
   private tmpJ = new THREE.Vector3();
+  private focusRectOn = false;
+  /** Project the presented cover's 4 corners to screen px (for the music-video screen). */
+  private feedFocusScreen() {
+    if (!this.cb.onFocusScreen) return;
+    const s = this.focused;
+    if (!s || s.focus < 0.94) {
+      if (this.focusRectOn) { this.focusRectOn = false; this.cb.onFocusScreen(null); }
+      return;
+    }
+    s.cover.updateWorldMatrix(true, false);
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [cx, cy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+      const p = this.tmpJ.set((cx * COVER_SIZE) / 2, (cy * COVER_SIZE) / 2, SLEEVE_DEPTH / 2).applyMatrix4(s.cover.matrixWorld).project(this.camera);
+      const px = (p.x * 0.5 + 0.5) * w;
+      const py = (-p.y * 0.5 + 0.5) * h;
+      x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+    }
+    this.focusRectOn = true;
+    this.cb.onFocusScreen({ x: x0, y: y0, w: x1 - x0, h: y1 - y0 });
+  }
+
   /** Project the JAVEDA planet to screen px for the HTML button (~30 fps). */
   private feedJavedaScreen(t: number) {
     if (!this.cb.onJavedaScreen || t - this.lastJavedaScreen < 0.033) return;
     this.lastJavedaScreen = t;
+    this.feedFocusScreen();
     this.javeda.group.updateWorldMatrix(true, false);
     const p = this.javeda.group.getWorldPosition(this.tmpJ);
     const dist = p.distanceTo(this.camera.position);

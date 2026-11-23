@@ -1,5 +1,5 @@
 {
-  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/): the 28 songs of the album JAVEDA in album order, then newer singles (no `track`) (the same order as the JAVEDA levels; the flight passes them left/right in this order). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. previewUrl = the public JAVEDA level song in the Supabase 'media' bucket (the player stops after 30 s). masterPath = the object key of the WAV in the PRIVATE bucket LAZYJO_MASTERS_BUCKET (default 'lazyjo-masters'), only handed out as a short-lived signed URL after Stripe confirms payment. Upload the WAVs with: node scripts/upload-masters.js <folder> (Jo's PC). cover = the official single artwork (client/public/lazyjo/covers/NN-id.webp, 800px, taken from Apple Music on 2026-11-23); year = its release year. cover null -> generated artwork in the palette colours. priceCents = the minimum (server-enforced), suggestedCents = the preselected amount in the player. forSale: false = the WAV isn't uploaded yet: the song shows 'WAV coming soon' and the server refuses its checkout. Remove the line once its WAV is in the bucket. palette = [dark, accent, accent 2] picked from the cover: the player (border, buttons, Buy) and the 3D frame use it.",
+  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/): the 28 songs of the album JAVEDA in album order, then newer singles (no `track`) (the same order as the JAVEDA levels; the flight passes them left/right in this order). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. previewUrl = the public JAVEDA level song in the Supabase 'media' bucket (the player stops after 30 s). masterPath = the object key of the WAV in the PRIVATE bucket LAZYJO_MASTERS_BUCKET (default 'lazyjo-masters'), only handed out as a short-lived signed URL after Stripe confirms payment. Upload the WAVs with: node scripts/upload-masters.js <folder> (Jo's PC). cover = the official single artwork (client/public/lazyjo/covers/NN-id.webp, 800px, taken from Apple Music on 2026-11-23); year = its release year. cover null -> generated artwork in the palette colours. priceCents = the minimum (server-enforced), suggestedCents = the preselected amount in the player. forSale: false = the WAV isn't uploaded yet: the song shows 'WAV coming soon' and the server refuses its checkout. Remove the line once its WAV is in the bucket. palette = [dark, accent, accent 2] picked from the cover: the player (border, buttons, Buy) and the 3D frame use it. youtube = the song's music video (same ids as JAVEDA's FAN_VIDEOS): its cover plays a 30 s loop from `start` (seconds), and the preview is the video's sound; `zoom` hides black bars.",
   "artist": "Lazy Jo",
   "currency": "eur",
   "singles": [
@@ -99,7 +99,12 @@
       "motif": "moon",
       "vinyl": true,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "youtube": {
+        "id": "jSx8Krl7kMw",
+        "start": 30,
+        "zoom": 1.04
+      }
     },
     {
       "id": "no-rest-no-work",
@@ -275,7 +280,12 @@
       "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500,
-      "forSale": false
+      "forSale": false,
+      "youtube": {
+        "id": "EFxrVS2EFXQ",
+        "start": 30,
+        "zoom": 1.15
+      }
     },
     {
       "id": "ghost",
@@ -314,7 +324,12 @@
       "motif": "moon",
       "vinyl": false,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "youtube": {
+        "id": "RDpj1UPAL8E",
+        "start": 30,
+        "zoom": 1.35
+      }
     },
     {
       "id": "true-fighter",
@@ -372,7 +387,12 @@
       "motif": "bolt",
       "vinyl": false,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "youtube": {
+        "id": "4XSHt9UaoD4",
+        "start": 30,
+        "zoom": 1.0
+      }
     },
     {
       "id": "stay-up-2",
@@ -448,7 +468,12 @@
       "motif": "orb",
       "vinyl": true,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "youtube": {
+        "id": "_OcgGxtTYEk",
+        "start": 30,
+        "zoom": 1.0
+      }
     },
     {
       "id": "down-for-me",

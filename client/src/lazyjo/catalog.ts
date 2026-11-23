@@ -31,6 +31,8 @@ export interface Single {
   placeholder: boolean;
   /** false until the WAV is uploaded: no checkout, "WAV coming soon" instead */
   forSale: boolean;
+  /** music video on YouTube: a 30 s loop plays on the cover, the preview is its sound */
+  youtube: { id: string; start: number; zoom: number } | null;
 }
 
 export const ARTIST = raw.artist;
@@ -50,6 +52,10 @@ export const SINGLES: Single[] = raw.singles.map((s) => ({
   vinyl: s.vinyl,
   placeholder: s.placeholder,
   forSale: !("forSale" in s && s.forSale === false),
+  youtube:
+    "youtube" in s && s.youtube && typeof s.youtube.id === "string"
+      ? { id: s.youtube.id, start: Number(s.youtube.start) || 0, zoom: Number(s.youtube.zoom) || 1 }
+      : null,
 }));
 
 export const singleById = new Map(SINGLES.map((s) => [s.id, s]));

@@ -36,11 +36,12 @@ export function createUfo(glowTex: THREE.Texture): Ufo {
   const hullGeo = track(new THREE.LatheGeometry(profile, 128));
   const hullMat = track(
     new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#a9bdd6"),
-      metalness: 0.8,
-      roughness: 0.32,
+      color: new THREE.Color("#c9d6e6"),
+      metalness: 0.92,
+      roughness: 0.24,
       emissive: new THREE.Color("#0f3a6e"),
-      emissiveIntensity: 1.0,
+      emissiveIntensity: 0.35,
+      envMapIntensity: 1.6,
     }),
   );
   const hull = new THREE.Mesh(hullGeo, hullMat);
@@ -52,11 +53,12 @@ export function createUfo(glowTex: THREE.Texture): Ufo {
     new THREE.MeshStandardMaterial({
       color: new THREE.Color("#0b3550"),
       emissive: BLUE,
-      emissiveIntensity: 1.4,
-      metalness: 0.2,
-      roughness: 0.05,
+      emissiveIntensity: 0.9,
+      metalness: 0.1,
+      roughness: 0.04,
+      envMapIntensity: 2.2,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.9,
     }),
   );
   const dome = new THREE.Mesh(domeGeo, domeMat);
@@ -118,6 +120,18 @@ export function createUfo(glowTex: THREE.Texture): Ufo {
   }
   group.add(beacons);
 
+  // Lit cabin windows around the base of the dome
+  const winGeo = track(new THREE.BoxGeometry(1.1, 0.45, 0.2));
+  const winMat = track(new THREE.MeshBasicMaterial({ color: new THREE.Color("#bff6ff").multiplyScalar(2.2), toneMapped: false }));
+  const windows = new THREE.InstancedMesh(winGeo, winMat, 28);
+  for (let i = 0; i < 28; i++) {
+    const a = (i / 28) * Math.PI * 2;
+    m4.makeRotationY(-a + Math.PI / 2);
+    m4.setPosition(Math.cos(a) * 8.15, 4.55, Math.sin(a) * 8.15);
+    windows.setMatrixAt(i, m4);
+  }
+  group.add(windows);
+
   // Panel seams on the top hull
   for (const [r, y] of [
     [21, 1.3],
@@ -155,7 +169,7 @@ export function createUfo(glowTex: THREE.Texture): Ufo {
     track(
       new THREE.SpriteMaterial({
         map: glowTex,
-        color: new THREE.Color("#1a8cff").multiplyScalar(0.32),
+        color: new THREE.Color("#1a8cff").multiplyScalar(0.18),
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
@@ -216,6 +230,7 @@ export function createUfo(glowTex: THREE.Texture): Ufo {
     dispose() {
       disposables.forEach((d) => d.dispose());
       beacons.dispose();
+      windows.dispose();
     },
   };
 }

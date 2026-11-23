@@ -387,3 +387,37 @@ export function drawGlowSprite(size = 128): HTMLCanvasElement {
   ctx.fillRect(0, 0, size, size);
   return c;
 }
+
+/** Bright-star sprite: soft core + thin diffraction spikes (like a real lens). */
+export function drawStarSpike(size = 128): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d")!;
+  const r = size / 2;
+  const g = ctx.createRadialGradient(r, r, 0, r, r, r * 0.5);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.12, "rgba(255,255,255,0.8)");
+  g.addColorStop(0.35, "rgba(255,255,255,0.12)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  ctx.globalCompositeOperation = "lighter";
+  for (const [w, len, a] of [
+    [size * 0.012, r, 0.9],
+    [size * 0.006, r * 0.55, 0.5],
+  ] as const) {
+    for (const rot of a === 0.9 ? [0, Math.PI / 2] : [Math.PI / 4, -Math.PI / 4]) {
+      ctx.save();
+      ctx.translate(r, r);
+      ctx.rotate(rot);
+      const lg = ctx.createLinearGradient(-len, 0, len, 0);
+      lg.addColorStop(0, "rgba(255,255,255,0)");
+      lg.addColorStop(0.5, `rgba(255,255,255,${a})`);
+      lg.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = lg;
+      ctx.fillRect(-len, -w / 2, len * 2, w);
+      ctx.restore();
+    }
+  }
+  return c;
+}

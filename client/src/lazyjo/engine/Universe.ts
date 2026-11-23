@@ -8,6 +8,8 @@ import type { Single } from "../catalog";
 import {
   CinematicShader,
   atmoFrag,
+  farStarsFrag,
+  farStarsVert,
   holoFrag,
   holoVert,
   lanesFrag,
@@ -26,6 +28,7 @@ import {
   drawGlowSprite,
   drawPlaceholderCover,
   drawPlayIcon,
+  drawStarSpike,
   drawVinylTexture,
 } from "./textures";
 import { createUfo, type Ufo } from "./ufo";
@@ -51,11 +54,13 @@ export interface UniverseCallbacks {
 interface Slot {
   single: Single;
   group: THREE.Group;
-  cover: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  cover: THREE.Mesh; // the sleeve (box) — raycast target
+  front: THREE.MeshPhysicalMaterial; // artwork face
+  shell: THREE.MeshStandardMaterial; // edges + back
   frameMat: THREE.ShaderMaterial;
   playMat: THREE.MeshBasicMaterial;
-  pedestalMat: THREE.MeshBasicMaterial;
   vinyl: THREE.Group | null;
+  vinylMats: THREE.Material[];
   side: -1 | 1;
   row: number;
   jitterY: number;
@@ -76,6 +81,9 @@ const COLORS = {
 const ROW_SPACING = 9;
 const MIN_SLOTS = 24;
 const COVER_SIZE = 3.4;
+const SLEEVE_DEPTH = 0.06;
+/** One sun for the whole system: planets, asteroids, sleeves and the UFO agree on it. */
+const SUN = new THREE.Vector3(-0.55, 0.38, 0.74).normalize();
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const smoothstep = (a: number, b: number, x: number) => {
@@ -131,7 +139,9 @@ export class Universe {
   private layout = { x: 5.6, scale: 1, portrait: false };
   private baseFov = 62;
 
-  private sky!: THREE.Mesh<THREE.SphereGeometry, THREE.ShaderMaterial>;
+  private farStars = new THREE.Group();
+  private farStarMats: THREE.ShaderMaterial[] = [];
+  private planetMats: THREE.ShaderMaterial[] = [];
   private stars!: THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
   private dust!: THREE.Points<THREE.BufferGeometry, THREE.ShaderMaterial>;
   private streaks!: THREE.LineSegments<THREE.BufferGeometry, THREE.ShaderMaterial>;
@@ -139,7 +149,7 @@ export class Universe {
   private planets = new THREE.Group();
   private planetSpin: THREE.Mesh[] = [];
   private asteroids!: THREE.InstancedMesh;
-  private asteroidData: { pos: THREE.Vector3; rot: THREE.Euler; spin: THREE.Vector3; scale: number }[] = [];
+  private asteroidData: { pos: THREE.Vector3; rot: THREE.Euler; spin: THREE.Vector3; scale: number; stretch: THREE.Vector3 }[] = [];
   private ufo!: Ufo;
   private glowTex: THREE.Texture;
   private coverTextures = new Map<string, THREE.Texture>();
@@ -164,7 +174,7 @@ export class Universe {
       alpha: false,
     });
     this.renderer.setPixelRatio(this.pixelRatio);
-    this.renderer.setClearColor(COLORS.deep, 1);
+    this.renderer.setClearColor(0x000000, 1);
     this.renderer.toneMapping = THREE.NeutralToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     this.renderer.domElement.className = "lj-canvas";
@@ -177,8 +187,8 @@ export class Universe {
     this.glowTex = this.track(canvasTexture(drawGlowSprite()));
     this.glowTex.colorSpace = THREE.NoColorSpace;
 
-    this.buildEnvironment();
     this.buildSky();
+    this.buildLights();
     this.buildStars();
     this.buildStreaks();
     this.buildLanes();
@@ -191,11 +201,12 @@ export class Universe {
     // Post-processing: bloom → cinematic (motion blur / CA / vignette) → tone map.
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.6, 0.45, 0.9);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.5, 0.5, 0.92);
     this.composer.addPass(this.bloom);
+    // tone map first, then grade/blur in display space
+    this.composer.addPass(new OutputPass());
     this.cinematic = new ShaderPass(CinematicShader);
     this.composer.addPass(this.cinematic);
-    this.composer.addPass(new OutputPass());
 
     this.resize();
     this.resizeObs = new ResizeObserver(() => this.resize());
@@ -291,60 +302,69 @@ export class Universe {
     return x;
   }
 
-  private buildEnvironment() {
-    // A tiny neon "room" baked into a PMREM so the UFO's metal has something
-    // blue/purple to reflect.
-    const envScene = new THREE.Scene();
-    envScene.background = new THREE.Color("#02040a");
-    const panel = (color: THREE.Color, k: number, pos: [number, number, number], size: [number, number]) => {
-      const m = new THREE.Mesh(
-        new THREE.PlaneGeometry(size[0], size[1]),
-        new THREE.MeshBasicMaterial({ color: color.clone().multiplyScalar(k), side: THREE.DoubleSide }),
-      );
-      m.position.set(...pos);
-      m.lookAt(0, 0, 0);
-      envScene.add(m);
-    };
-    panel(COLORS.cyan, 2.5, [0, 8, 0], [10, 10]);
-    panel(COLORS.purple, 2.0, [-8, 2, -4], [6, 10]);
-    panel(COLORS.blue, 2.2, [8, 1, 4], [6, 10]);
-    panel(new THREE.Color("#ffffff"), 0.6, [0, -6, 6], [14, 4]);
-    const pmrem = new THREE.PMREMGenerator(this.renderer);
-    const rt = pmrem.fromScene(envScene, 0.04);
-    this.scene.environment = rt.texture;
-    this.track(rt);
-    pmrem.dispose();
-    envScene.traverse((o) => {
-      const m = o as THREE.Mesh;
-      m.geometry?.dispose();
-      (m.material as THREE.Material | undefined)?.dispose();
-    });
-
-    this.scene.add(new THREE.AmbientLight(new THREE.Color("#3a4a8a"), 0.6));
-    const key = new THREE.DirectionalLight(new THREE.Color("#9fd8ff"), 1.4);
-    key.position.set(-1, 1.5, 1);
-    this.scene.add(key);
+  private buildLights() {
+    this.scene.add(new THREE.AmbientLight(new THREE.Color("#1b2140"), 0.35));
+    const sun = new THREE.DirectionalLight(new THREE.Color("#fff3e6"), 2.4);
+    sun.position.copy(SUN).multiplyScalar(100);
+    this.scene.add(sun);
+    // cool bounce from the UFO / nebula side so shadows aren't dead black
+    const fill = new THREE.DirectionalLight(new THREE.Color("#5aa8ff"), 0.6);
+    fill.position.set(0.4, -0.2, -1).multiplyScalar(100);
+    this.scene.add(fill);
   }
 
   private buildSky() {
-    const mat = new THREE.ShaderMaterial({
+    // The nebula shader is heavy (domain-warped noise), so it runs once at
+    // start-up into an HDR cubemap. That cubemap is the background AND, via
+    // PMREM, the environment every glossy surface reflects.
+    const size = this.lowPower ? 512 : 1024;
+    const cubeRT = this.track(
+      new THREE.WebGLCubeRenderTarget(size, {
+        type: THREE.HalfFloatType,
+        generateMipmaps: true,
+        minFilter: THREE.LinearMipmapLinearFilter,
+      }),
+    );
+    const skyMat = new THREE.ShaderMaterial({
       vertexShader: skyVert,
       fragmentShader: skyFrag,
       uniforms: {
-        uTime: { value: 0 },
-        uTravel: { value: 0 },
-        uBlue: { value: COLORS.blue.clone() },
+        uBlue: { value: new THREE.Color("#1f5fff") },
         uCyan: { value: COLORS.cyan.clone() },
         uPurple: { value: COLORS.purple.clone() },
-        uDeep: { value: COLORS.deep.clone() },
+        uMagenta: { value: new THREE.Color("#c03cff") },
       },
       side: THREE.BackSide,
       depthWrite: false,
     });
-    this.sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 48, 32), mat);
-    this.sky.renderOrder = -10;
-    this.sky.frustumCulled = false;
-    this.scene.add(this.sky);
+    const skyScene = new THREE.Scene();
+    const skyGeo = new THREE.SphereGeometry(40, 64, 32);
+    skyScene.add(new THREE.Mesh(skyGeo, skyMat));
+    const cubeCam = new THREE.CubeCamera(0.1, 100, cubeRT);
+    cubeCam.update(this.renderer, skyScene);
+    this.scene.background = cubeRT.texture;
+
+    // Reflections: the sky plus a few bright "light cards" (UFO glow, sun) so
+    // gloss reads as gloss.
+    const card = (dir: THREE.Vector3, color: THREE.Color, k: number, r: number) => {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), new THREE.MeshBasicMaterial({ color: color.clone().multiplyScalar(k) }));
+      m.position.copy(dir).normalize().multiplyScalar(30);
+      skyScene.add(m);
+    };
+    card(new THREE.Vector3(0, 0.1, -1), COLORS.cyan, 6, 4);
+    card(SUN, new THREE.Color("#fff1dd"), 14, 2.2);
+    card(new THREE.Vector3(-1, 0.2, 0.3), COLORS.purple, 3, 6);
+    card(new THREE.Vector3(1, -0.1, 0.2), COLORS.blue, 2.5, 6);
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    const env = pmrem.fromScene(skyScene, 0.02, 0.1, 100);
+    this.scene.environment = env.texture;
+    this.track(env);
+    pmrem.dispose();
+    skyScene.traverse((o) => {
+      const m = o as THREE.Mesh;
+      m.geometry?.dispose();
+      (m.material as THREE.Material | undefined)?.dispose();
+    });
   }
 
   private makePoints(
@@ -399,26 +419,77 @@ export class Universe {
   }
 
   private buildStars() {
-    const white = new THREE.Color("#ffffff").multiplyScalar(1.4);
-    const ice = new THREE.Color("#bfe9ff").multiplyScalar(1.4);
+    // Near stars: these parallax past you and sell the speed.
+    const white = new THREE.Color("#ffffff");
+    const ice = new THREE.Color("#cfe6ff");
     this.stars = this.makePoints(
-      this.lowPower ? 2600 : 6000,
+      this.lowPower ? 1800 : 4200,
       520,
       [220, 130],
       [9, 6],
-      [white, white, ice, COLORS.cyan.clone().multiplyScalar(1.2), COLORS.purple.clone().multiplyScalar(1.6)],
-      2.2,
+      [white, white, ice, new THREE.Color("#ffe2c4")],
+      1.5,
     );
     this.scene.add(this.stars);
+    // Fine dust drifting through the corridor — barely there.
     this.dust = this.makePoints(
-      this.lowPower ? 450 : 1000,
+      this.lowPower ? 300 : 700,
       150,
       [16, 9],
       [1.6, 1.2],
-      [COLORS.cyan.clone().multiplyScalar(0.55), COLORS.blue.clone().multiplyScalar(0.6), COLORS.purple.clone().multiplyScalar(0.9)],
-      0.42,
+      [new THREE.Color("#9fc4ff").multiplyScalar(0.35), new THREE.Color("#b9a6ff").multiplyScalar(0.3)],
+      0.3,
     );
     this.scene.add(this.dust);
+
+    // Far stars: infinitely distant (travel with the camera), crisp, with
+    // real colour temperatures and a power-law brightness spread.
+    const temp = (k: number) =>
+      k < 0.1 ? new THREE.Color("#9bb5ff") : k < 0.35 ? new THREE.Color("#cad8ff") : k < 0.75 ? new THREE.Color("#fff4ea") : k < 0.93 ? new THREE.Color("#ffd9b0") : new THREE.Color("#ffb78a");
+    const mkLayer = (count: number, minSize: number, maxSize: number, bright: number, tex: THREE.Texture) => {
+      const pos = new Float32Array(count * 3);
+      const col = new Float32Array(count * 3);
+      const size = new Float32Array(count);
+      const seed = new Float32Array(count);
+      const v = new THREE.Vector3();
+      const bandN = new THREE.Vector3(0.22, 1, 0.18).normalize();
+      for (let i = 0; i < count; i++) {
+        // more stars toward the galactic band, like the real sky
+        do {
+          v.set(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1);
+        } while (v.lengthSq() > 1 || v.lengthSq() < 0.01 || Math.random() > 0.35 + 0.65 * Math.exp(-Math.pow(v.clone().normalize().dot(bandN), 2) / 0.08));
+        v.normalize().multiplyScalar(900);
+        pos.set([v.x, v.y, v.z], i * 3);
+        const m = Math.pow(Math.random(), 3.2);
+        const c = temp(Math.random()).multiplyScalar(bright * (0.35 + 1.4 * m));
+        col.set([c.r, c.g, c.b], i * 3);
+        size[i] = minSize + (maxSize - minSize) * m;
+        seed[i] = Math.random();
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      geo.setAttribute("aColor", new THREE.BufferAttribute(col, 3));
+      geo.setAttribute("aSize", new THREE.BufferAttribute(size, 1));
+      geo.setAttribute("aSeed", new THREE.BufferAttribute(seed, 1));
+      const mat = new THREE.ShaderMaterial({
+        vertexShader: farStarsVert,
+        fragmentShader: farStarsFrag,
+        uniforms: { uTime: { value: 0 }, uPixelRatio: { value: this.pixelRatio }, uMap: { value: tex } },
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      });
+      const pts = new THREE.Points(geo, mat);
+      pts.frustumCulled = false;
+      this.farStarMats.push(mat);
+      this.farStars.add(pts);
+    };
+    const spikeTex = this.track(canvasTexture(drawStarSpike()));
+    spikeTex.colorSpace = THREE.NoColorSpace;
+    mkLayer(this.lowPower ? 2500 : 6000, 1.2, 4.5, 1.0, this.glowTex);
+    mkLayer(this.lowPower ? 25 : 55, 14, 34, 1.6, spikeTex);
+    this.farStars.renderOrder = -8;
+    this.scene.add(this.farStars);
   }
 
   private buildStreaks() {
@@ -478,77 +549,83 @@ export class Universe {
     });
     this.lanes = new THREE.Mesh(new THREE.PlaneGeometry(34, 440, 1, 1), mat);
     this.lanes.rotation.x = -Math.PI / 2;
-    this.lanes.position.y = -3.4;
+    this.lanes.position.y = -4.4;
     this.lanes.frustumCulled = false;
     this.scene.add(this.lanes);
   }
 
   private buildPlanets() {
-    const lightDir = new THREE.Vector3(-0.8, 0.4, 0.5).normalize();
-    const mk = (
-      r: number,
-      pos: [number, number, number],
-      a: string,
-      b: string,
-      rim: string,
-      seed: number,
-      city: number,
-    ) => {
-      const geo = new THREE.SphereGeometry(r, this.lowPower ? 40 : 64, this.lowPower ? 28 : 48);
-      const mat = new THREE.ShaderMaterial({
-        vertexShader: planetVert,
-        fragmentShader: planetFrag,
-        uniforms: {
-          uA: { value: new THREE.Color(a) },
-          uB: { value: new THREE.Color(b) },
-          uRim: { value: new THREE.Color(rim) },
-          uLight: { value: lightDir },
-          uSeed: { value: seed },
-          uCity: { value: city },
-        },
-      });
-      const m = new THREE.Mesh(geo, mat);
+    const mk = (r: number, pos: [number, number, number], type: number, atmo: string, seed: number, tilt: number) => {
+      const seg = this.lowPower ? 48 : 96;
+      const uniforms = {
+        uSun: { value: SUN },
+        uAtmo: { value: new THREE.Color(atmo) },
+        uSeed: { value: seed },
+        uType: { value: type },
+        uTime: { value: 0 },
+      };
+      const mat = new THREE.ShaderMaterial({ vertexShader: planetVert, fragmentShader: planetFrag, uniforms });
+      this.planetMats.push(mat);
+      const m = new THREE.Mesh(new THREE.SphereGeometry(r, seg, seg / 2), mat);
       m.position.set(...pos);
-      m.rotation.z = 0.35;
-      const atmo = new THREE.Mesh(
-        new THREE.SphereGeometry(r * 1.06, 48, 32),
-        new THREE.ShaderMaterial({
-          vertexShader: planetVert,
-          fragmentShader: atmoFrag,
-          uniforms: { uRim: { value: new THREE.Color(rim) } },
-          transparent: true,
-          depthWrite: false,
-          blending: THREE.AdditiveBlending,
-          side: THREE.BackSide,
-        }),
-      );
-      atmo.position.copy(m.position);
-      this.planets.add(m, atmo);
+      m.rotation.z = tilt;
+      this.planets.add(m);
       this.planetSpin.push(m);
+      if (type !== 1) {
+        const halo = new THREE.Mesh(
+          new THREE.SphereGeometry(r * 1.035, seg, seg / 2),
+          new THREE.ShaderMaterial({
+            vertexShader: planetVert,
+            fragmentShader: atmoFrag,
+            uniforms: { uAtmo: uniforms.uAtmo, uSun: uniforms.uSun },
+            transparent: true,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending,
+            side: THREE.BackSide,
+          }),
+        );
+        halo.position.copy(m.position);
+        this.planets.add(halo);
+      }
     };
-    mk(34, [92, 46, -170], "#1b2a4a", "#3b5d8f", "#00BFFF", 1.7, 1);
-    mk(7, [-70, 38, -180], "#3a3f4d", "#8a90a0", "#9fb8ff", 4.2, 0);
-    mk(3.2, [30, 40, -190], "#2a1f4d", "#6a4fb0", "#7B2CFF", 8.1, 0);
-    this.planets.renderOrder = -5;
+    mk(34, [92, 44, -175], 0, "#4aa8ff", 1.7, 0.4); // ocean world
+    mk(6.5, [-70, 36, -185], 1, "#000000", 4.2, 0.1); // moon
+    mk(3.4, [28, 42, -195], 2, "#9a6bff", 8.1, 0.25); // small gas giant
     this.scene.add(this.planets);
   }
 
   private buildAsteroids() {
-    const geo = new THREE.IcosahedronGeometry(1, 1);
+    // Lumpy rock: random-direction ridges + craters on a dense sphere.
+    const geo = new THREE.IcosahedronGeometry(1, this.lowPower ? 3 : 4);
     const p = geo.attributes.position as THREE.BufferAttribute;
     const v = new THREE.Vector3();
+    const waves = Array.from({ length: 9 }, (_, i) => ({
+      d: new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize(),
+      f: 1.5 + i * 1.3,
+      a: 0.16 / (1 + i * 0.6),
+      ph: Math.random() * 6,
+    }));
+    const craters = Array.from({ length: 7 }, () => ({
+      c: new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).normalize(),
+      r: 0.2 + Math.random() * 0.3,
+    }));
     for (let i = 0; i < p.count; i++) {
-      v.fromBufferAttribute(p, i);
-      const n = 0.75 + Math.sin(v.x * 3.1) * 0.12 + Math.cos(v.y * 4.3) * 0.1 + Math.sin(v.z * 5.7) * 0.08;
-      v.multiplyScalar(n);
-      p.setXYZ(i, v.x, v.y, v.z);
+      v.fromBufferAttribute(p, i).normalize();
+      let h = 1;
+      for (const w of waves) h += Math.sin(v.dot(w.d) * w.f * 3 + w.ph) * w.a;
+      for (const c of craters) {
+        const d = v.distanceTo(c.c) / c.r;
+        if (d < 1) h -= (1 - d * d) * 0.09 - (d > 0.75 ? (d - 0.75) * 0.12 : 0);
+      }
+      v.multiplyScalar(h);
+      p.setXYZ(i, v.x, v.y * 0.82, v.z);
     }
     geo.computeVertexNormals();
     const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#2a2d38"),
-      roughness: 0.95,
-      metalness: 0.05,
-      flatShading: true,
+      color: new THREE.Color("#6b655f"),
+      roughness: 0.93,
+      metalness: 0.02,
+      envMapIntensity: 0.4,
     });
     const count = this.lowPower ? 22 : 44;
     this.asteroids = new THREE.InstancedMesh(geo, mat, count);
@@ -564,7 +641,8 @@ export class Universe {
         pos: new THREE.Vector3(x, y, -Math.random() * 240),
         rot: new THREE.Euler(Math.random() * 6, Math.random() * 6, Math.random() * 6),
         spin: new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(0.4),
-        scale: 0.4 + Math.pow(Math.random(), 2.5) * 2.6,
+        scale: 0.35 + Math.pow(Math.random(), 2.5) * 2.4,
+        stretch: new THREE.Vector3(0.8 + Math.random() * 0.5, 0.7 + Math.random() * 0.4, 0.8 + Math.random() * 0.5),
       });
     }
     this.scene.add(this.asteroids);
@@ -581,19 +659,22 @@ export class Universe {
 
     const vinylTex = this.track(canvasTexture(drawVinylTexture()));
     const playTex = this.track(canvasTexture(drawPlayIcon()));
-    const coverGeo = this.track(new THREE.PlaneGeometry(COVER_SIZE, COVER_SIZE));
-    const frameGeo = this.track(new THREE.PlaneGeometry(COVER_SIZE * 1.16, COVER_SIZE * 1.16));
-    const vinylGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.47, 64));
-    const labelGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.15, 32));
-    const holeGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.015, 12));
+    // Sleeve = a thin box: artwork on the front, dark card on edges/back.
+    const sleeveGeo = this.track(new THREE.BoxGeometry(COVER_SIZE, COVER_SIZE, SLEEVE_DEPTH));
+    const frameGeo = this.track(new THREE.PlaneGeometry(COVER_SIZE * 1.12, COVER_SIZE * 1.12));
+    // Record: a real disc (cylinder) with grooved faces + a paper label.
+    const discGeo = this.track(new THREE.CylinderGeometry(COVER_SIZE * 0.47, COVER_SIZE * 0.47, 0.022, 96, 1));
+    discGeo.rotateX(Math.PI / 2);
+    const labelGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.15, 48));
+    const holeGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.014, 16));
     const playGeo = this.track(new THREE.PlaneGeometry(0.62, 0.62));
-    const pedestalGeo = this.track(new THREE.PlaneGeometry(COVER_SIZE * 1.15, 0.07));
 
     // One texture per single (shared by every slot that shows it).
     for (const s of this.singles) {
-      const canvas = drawPlaceholderCover(s, this.lowPower ? 512 : 768);
+      const canvas = drawPlaceholderCover(s, this.lowPower ? 512 : 1024);
       this.coverCanvases.set(s.id, canvas);
       const tex = this.track(canvasTexture(canvas));
+      tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
       this.coverTextures.set(s.id, tex);
       if (s.cover) this.loadRealCover(s);
     }
@@ -603,81 +684,109 @@ export class Universe {
       const side: -1 | 1 = i % 2 === 0 ? -1 : 1;
       const row = Math.floor(i / 2);
       const group = new THREE.Group();
+      const tex = this.coverTextures.get(single.id)!;
 
-      const coverMat = new THREE.MeshBasicMaterial({
-        map: this.coverTextures.get(single.id)!,
+      // Glossy printed card: lit by the sun + environment, with a clear-coat
+      // that catches the nebula and UFO glow as you fly past. A little
+      // emissive keeps the art readable on the shadow side.
+      const front = new THREE.MeshPhysicalMaterial({
+        map: tex,
+        emissiveMap: tex,
+        emissive: new THREE.Color(1, 1, 1),
+        emissiveIntensity: 0.42,
+        roughness: 0.48,
+        metalness: 0,
+        clearcoat: 1,
+        clearcoatRoughness: 0.14,
+        envMapIntensity: 0.9,
         transparent: true,
-        color: new THREE.Color(0.9, 0.9, 0.9),
       });
-      const cover = new THREE.Mesh(coverGeo, coverMat);
+      const shell = new THREE.MeshStandardMaterial({
+        color: new THREE.Color("#0c0e13"),
+        roughness: 0.55,
+        metalness: 0.15,
+        transparent: true,
+      });
+      // BoxGeometry groups: +x, -x, +y, -y, +z (front), -z (back)
+      const cover = new THREE.Mesh(sleeveGeo, [shell, shell, shell, shell, front, shell]);
       cover.userData.slotIndex = i;
       group.add(cover);
 
+      const accent = new THREE.Color(single.palette[2]);
       const frameMat = new THREE.ShaderMaterial({
         vertexShader: holoVert,
         fragmentShader: holoFrag,
         uniforms: {
           uTime: { value: 0 },
-          uGlow: { value: 0.6 },
+          uGlow: { value: 0.2 },
           uOpacity: { value: 1 },
-          uInner: { value: 1 / 1.16 },
-          uColorA: { value: COLORS.cyan.clone() },
-          uColorB: { value: i % 3 === 0 ? COLORS.purple.clone() : COLORS.blue.clone() },
+          uInner: { value: 1 / 1.12 },
+          uColorA: { value: COLORS.cyan.clone().lerp(accent, 0.5) },
+          uColorB: { value: accent.clone().lerp(COLORS.blue, 0.3) },
         },
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
       });
       const frame = new THREE.Mesh(frameGeo, frameMat);
-      frame.position.z = -0.03;
+      frame.position.z = -SLEEVE_DEPTH;
       group.add(frame);
 
       let vinyl: THREE.Group | null = null;
+      const vinylMats: THREE.Material[] = [];
       if (single.vinyl) {
         vinyl = new THREE.Group();
-        const disc = new THREE.Mesh(vinylGeo, new THREE.MeshBasicMaterial({ map: vinylTex, transparent: true }));
-        const label = new THREE.Mesh(
-          labelGeo,
-          new THREE.MeshBasicMaterial({
-            color: new THREE.Color(single.palette[2]).multiplyScalar(1.1),
-            transparent: true,
-          }),
-        );
-        label.position.z = 0.002;
-        const hole = new THREE.Mesh(holeGeo, new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true }));
-        hole.position.z = 0.004;
-        vinyl.add(disc, label, hole);
-        vinyl.position.z = -0.09;
+        const grooves = new THREE.MeshPhysicalMaterial({
+          map: vinylTex,
+          color: new THREE.Color("#2a2a2e"),
+          roughness: 0.32,
+          metalness: 0.0,
+          clearcoat: 1,
+          clearcoatRoughness: 0.18,
+          envMapIntensity: 1.3,
+          transparent: true,
+        });
+        const edge = new THREE.MeshStandardMaterial({ color: "#050506", roughness: 0.4, transparent: true });
+        const disc = new THREE.Mesh(discGeo, [edge, grooves, grooves]);
+        const labelMat = new THREE.MeshStandardMaterial({
+          color: accent.clone().multiplyScalar(0.85),
+          roughness: 0.75,
+          emissive: accent.clone(),
+          emissiveIntensity: 0.12,
+          transparent: true,
+        });
+        const holeMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true });
+        for (const z of [0.0115, -0.0115]) {
+          const label = new THREE.Mesh(labelGeo, labelMat);
+          label.position.z = z;
+          if (z < 0) label.rotation.y = Math.PI;
+          const hole = new THREE.Mesh(holeGeo, holeMat);
+          hole.position.z = z * 1.05;
+          if (z < 0) hole.rotation.y = Math.PI;
+          vinyl.add(label, hole);
+        }
+        vinyl.add(disc);
+        vinyl.position.z = -SLEEVE_DEPTH * 0.5 - 0.03;
         group.add(vinyl);
+        vinylMats.push(grooves, edge, labelMat, holeMat);
       }
 
-      const playMat = new THREE.MeshBasicMaterial({ map: playTex, transparent: true, opacity: 0.75 });
+      const playMat = new THREE.MeshBasicMaterial({ map: playTex, transparent: true, opacity: 0, depthWrite: false });
       const play = new THREE.Mesh(playGeo, playMat);
-      play.position.set(0, -COVER_SIZE * 0.34, 0.02);
+      play.position.set(0, -COVER_SIZE * 0.34, SLEEVE_DEPTH / 2 + 0.01);
       group.add(play);
-
-      const pedestalMat = new THREE.MeshBasicMaterial({
-        color: COLORS.cyan.clone(),
-        transparent: true,
-        opacity: 0.5,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false,
-        toneMapped: false,
-      });
-      const pedestal = new THREE.Mesh(pedestalGeo, pedestalMat);
-      pedestal.position.set(0, -COVER_SIZE * 0.66, 0.1);
-      pedestal.rotation.x = -1.1;
-      group.add(pedestal);
 
       this.scene.add(group);
       this.slots.push({
         single,
         group,
         cover,
+        front,
+        shell,
         frameMat,
         playMat,
-        pedestalMat,
         vinyl,
+        vinylMats,
         side,
         row,
         jitterY: (Math.sin(i * 12.9898) * 0.5) * 0.7,
@@ -698,7 +807,7 @@ export class Universe {
       if (this.disposed) return;
       // Centre-crop to square and (unless it's finished art) apply the
       // house treatment: cool B&W grade + grunge + LAZY JO wordmark.
-      const size = this.lowPower ? 512 : 768;
+      const size = this.lowPower ? 512 : 1024;
       const c = document.createElement("canvas");
       c.width = c.height = size;
       const ctx = c.getContext("2d")!;
@@ -724,7 +833,13 @@ export class Universe {
       this.coverImages.delete(s.id);
       const tex = this.track(canvasTexture(c));
       this.coverTextures.set(s.id, tex);
-      for (const slot of this.slots) if (slot.single.id === s.id) slot.cover.material.map = tex;
+      tex.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+      for (const slot of this.slots) {
+        if (slot.single.id !== s.id) continue;
+        slot.front.map = tex;
+        slot.front.emissiveMap = tex;
+        slot.front.needsUpdate = true;
+      }
     };
     img.src = encodeURI(s.cover);
   }
@@ -846,7 +961,7 @@ export class Universe {
   private pick(): Slot | null {
     if (Math.abs(this.pointer.x) > 1 || Math.abs(this.pointer.y) > 1) return null;
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    const meshes = this.slots.filter((s) => s.cover.material.opacity > 0.3).map((s) => s.cover);
+    const meshes = this.slots.filter((s) => s.front.opacity > 0.3).map((s) => s.cover);
     const hit = this.raycaster.intersectObjects(meshes, false)[0];
     return hit ? this.slots[hit.object.userData.slotIndex as number] : null;
   }
@@ -895,6 +1010,7 @@ export class Universe {
     this.bloom.resolution.set(w * 0.5, h * 0.5);
     this.stars.material.uniforms.uPixelRatio.value = this.pixelRatio;
     this.dust.material.uniforms.uPixelRatio.value = this.pixelRatio;
+    for (const m of this.farStarMats) m.uniforms.uPixelRatio.value = this.pixelRatio;
   }
 
   private adaptQuality(dt: number) {
@@ -952,11 +1068,11 @@ export class Universe {
     }
 
     // ── far field travels with the camera ──
-    this.sky.position.copy(this.camera.position);
-    this.sky.material.uniforms.uTime.value = t;
-    this.sky.material.uniforms.uTravel.value = this.camZ;
+    this.farStars.position.copy(this.camera.position);
+    for (const m of this.farStarMats) m.uniforms.uTime.value = t;
     this.planets.position.set(0, 0, this.camZ);
-    for (const p of this.planetSpin) p.rotation.y = t * 0.01;
+    for (const p of this.planetSpin) p.rotation.y = t * 0.008;
+    for (const m of this.planetMats) m.uniforms.uTime.value = t;
     this.ufo.group.position.z = this.camZ - 125;
     this.ufo.update(t, speedK);
 
@@ -967,7 +1083,7 @@ export class Universe {
     this.streaks.material.uniforms.uCamZ.value = this.camZ;
     this.streaks.material.uniforms.uStretch.value = Math.min(absSpeed * 0.28, 14) * Math.sign(this.smoothSpeed || 1);
     this.streaks.material.uniforms.uOpacity.value = smoothstep(5, 30, absSpeed) * 0.6;
-    this.lanes.position.z = this.camZ - 210;
+    this.lanes.position.z = this.camZ - 215;
     this.lanes.material.uniforms.uCamZ.value = this.camZ;
     this.lanes.material.uniforms.uTime.value = t;
     this.lanes.material.uniforms.uSpeed.value = speedK;
@@ -985,7 +1101,7 @@ export class Universe {
       const rel = (((a.pos.z - this.camZ - 10) % D) + D) % D - D;
       p.set(a.pos.x + Math.sin(t * 0.05 + i) * 1.5, a.pos.y, this.camZ + 10 + rel);
       q.setFromEuler(a.rot);
-      sc.setScalar(a.scale * smoothstep(D, D * 0.75, -rel));
+      sc.copy(a.stretch).multiplyScalar(a.scale * smoothstep(D, D * 0.75, -rel));
       m4.compose(p, q, sc);
       this.asteroids.setMatrixAt(i, m4);
     });
@@ -1004,7 +1120,7 @@ export class Universe {
     u.uTime.value = t;
     u.uFlash.value = this.flash;
     u.uAberration.value = 0.0012 + speedK * 0.002;
-    this.bloom.strength = 0.55 + speedK * 0.3;
+    this.bloom.strength = 0.5 + speedK * 0.3;
 
     this.cb.onFrame?.(absSpeed);
     if (t - this.lastTelemetry > 0.12) {
@@ -1101,30 +1217,28 @@ export class Universe {
 
       // fades: far fog-in, and dim the others while one is presented
       const far = smoothstep(L - 10, L - 34, dist);
+      // fade out as a sleeve slides past the camera (no giant black blobs at the edge)
+      const near = isFocus ? 1 : smoothstep(1.5, 6.5, dist);
       const dimK = isFocus ? 0 : this.dim * 0.8;
-      const opacity = far * (1 - dimK);
-      s.cover.material.opacity = opacity;
+      const opacity = far * near * (1 - dimK);
+      s.front.opacity = opacity;
+      s.shell.opacity = opacity;
       s.group.visible = opacity > 0.01;
-      const shade = 0.8 + s.hover * 0.12;
-      s.cover.material.color.setScalar(shade);
+      s.front.emissiveIntensity = 0.42 + s.hover * 0.22 + s.focus * 0.18;
 
-      const glow = 0.4 + s.hover * 0.9 + s.focus * 0.5 + Math.sin(t * 1.3 + s.seed * 9) * 0.08;
+      const glow = 0.18 + s.hover * 0.85 + s.focus * 0.55;
       s.frameMat.uniforms.uGlow.value = glow;
       s.frameMat.uniforms.uOpacity.value = opacity;
       s.frameMat.uniforms.uTime.value = t + s.seed * 5;
-      s.playMat.opacity = (0.55 + s.hover * 0.45) * opacity * (1 - s.focus);
-      s.pedestalMat.opacity = (0.3 + s.hover * 0.5) * opacity * (1 - s.focus);
-      s.playMat.visible = s.pedestalMat.visible = s.focus < 0.05;
+      s.playMat.opacity = s.hover * 0.85 * opacity * (1 - s.focus);
+      s.playMat.visible = s.playMat.opacity > 0.01;
 
       if (s.vinyl) {
         const out = Math.max(s.hover, s.focus);
         const dir = s.focus > 0.5 ? 1 : -s.side;
-        s.vinyl.position.x = dir * COVER_SIZE * (0.26 + out * 0.2);
-        s.vinyl.rotation.z -= dt * (0.25 + out * 2.6);
-        for (const c of s.vinyl.children) {
-          const mm = (c as THREE.Mesh).material as THREE.MeshBasicMaterial;
-          mm.opacity = opacity;
-        }
+        s.vinyl.position.x = dir * COVER_SIZE * (0.24 + out * 0.22);
+        s.vinyl.rotation.z -= dt * (0.2 + out * 2.4);
+        for (const m of s.vinylMats) m.opacity = opacity;
       }
     }
   }

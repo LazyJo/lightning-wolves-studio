@@ -4,6 +4,11 @@
   "ignoreCommand": "bash scripts/vercel-ignore.sh",
   "outputDirectory": "client/dist",
   "framework": null,
+  "git": {
+    "deploymentEnabled": {
+      "ccr-*": false
+    }
+  },
   "functions": {
     "api/index.js": {
       "maxDuration": 300,

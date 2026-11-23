@@ -92,6 +92,10 @@ October 2026 ~32 pushes at ~150-250 MB each filled the 10 GB, so:
   into every function. `vercel.json` → `functions["api/index.js"].excludeFiles` now leaves out
   media folders/files. **Never exclude `uploads/`** (server.js mkdirs it at boot; the function FS
   is read-only → crash) or `client/src/` (`singles.json` is required).
+- **Hobby also caps deployments at 100 per 24 h** (hit on 2026-11-23: a promote was refused with
+  `api-deployments-free-per-day`; a promote rebuilds, so it counts). Skipped/cancelled builds count too, so
+  `vercel.json` → `git.deploymentEnabled` turns Claude session branches (`ccr-*`) off entirely (no deployment record).
+  Batch commits and push to `claude/amazing-mccarthy-pvr6xv` a few times a day, not after every small change.
 - `vercel-ignore.sh` builds previews **only for `claude/amazing-mccarthy-pvr6xv`** (session
   branches used to double every deployment); production always builds.
 

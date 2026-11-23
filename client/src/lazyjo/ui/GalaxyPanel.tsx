@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { ArrowUpRight, Instagram, ShoppingBag, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, BookOpen, Instagram, ShoppingBag, X } from "lucide-react";
 import { ARTIST_PROFILE as A } from "../catalog";
 
 interface Props {
@@ -9,6 +9,10 @@ interface Props {
 /** The Lazy Jo card: opens when the camera zooms into the spiral galaxy. */
 export default function GalaxyPanel({ onClose }: Props) {
   const ref = useRef<HTMLElement>(null);
+  const [story, setStory] = useState(false);
+  const [proof, setProof] = useState<number | null>(null);
+  const active = proof === null ? null : A.coSigns[proof];
+
   useEffect(() => {
     ref.current?.focus({ preventScroll: true });
   }, []);
@@ -37,29 +41,64 @@ export default function GalaxyPanel({ onClose }: Props) {
           </div>
         </div>
 
-        <p className="lj-galaxy-bio">{A.bio}</p>
+        {story ? (
+          <div className="lj-galaxy-story" aria-live="polite">
+            <p className="lj-tel-label">My story</p>
+            {A.story.map((p) => (
+              <p key={p}>{p}</p>
+            ))}
+          </div>
+        ) : (
+          <p className="lj-galaxy-bio">{A.bio}</p>
+        )}
 
         <div className="lj-galaxy-cosigns">
-          <span className="lj-tel-label">Co-signed by</span>
+          <span className="lj-tel-label">Co-signed by · tap a face for the proof</span>
           <ul>
-            {A.coSigns.map((c) => (
-              <li key={c.name} title={`${c.name} — “${c.quote}”`}>
-                <img src={encodeURI(c.photo)} alt={c.name} loading="lazy" />
+            {A.coSigns.map((c, i) => (
+              <li key={c.name}>
+                <button
+                  className={`lj-cosign ${proof === i ? "is-active" : ""}`}
+                  onClick={() => setProof(proof === i ? null : i)}
+                  aria-pressed={proof === i}
+                  aria-label={`${c.name}: show the proof`}
+                >
+                  <img src={encodeURI(c.photo)} alt="" loading="lazy" />
+                </button>
               </li>
             ))}
           </ul>
+          {active && (
+            <div className="lj-proof" key={active.name}>
+              <img className="lj-proof-photo" src={encodeURI(active.photo)} alt={active.name} />
+              <div className="lj-proof-body">
+                <p className="lj-proof-name">{active.name}</p>
+                <p className="lj-proof-quote">&ldquo;{active.quote}&rdquo;</p>
+                <p className="lj-proof-context">{active.context}</p>
+                {active.link ? (
+                  <a className="lj-proof-link" href={active.link} target="_blank" rel="noreferrer">
+                    {active.linkLabel || "See the proof"} <ArrowUpRight size={14} aria-hidden />
+                  </a>
+                ) : (
+                  <p className="lj-proof-note">
+                    {active.context === "In person" ? "Met face to face." : "Sent privately, so there's no public link."}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="lj-galaxy-actions">
-          <a className="lj-btn lj-btn-primary" href={A.storyUrl}>
-            My story <ArrowUpRight size={18} aria-hidden />
-          </a>
+          <button className="lj-btn lj-btn-primary" onClick={() => setStory(!story)} aria-expanded={story}>
+            <BookOpen size={18} aria-hidden /> {story ? "Short bio" : "My story"}
+          </button>
           <a className="lj-btn lj-btn-ghost" href={A.merchUrl} target="_blank" rel="noreferrer">
             <ShoppingBag size={18} aria-hidden /> Merch
           </a>
         </div>
         <a className="lj-galaxy-social" href={A.instagramUrl} target="_blank" rel="noreferrer">
-          <Instagram size={14} aria-hidden /> @lazyjoo_
+          <Instagram size={14} aria-hidden /> {A.instagramHandle}
         </a>
       </section>
     </div>

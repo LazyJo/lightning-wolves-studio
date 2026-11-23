@@ -64,6 +64,8 @@ export interface UniverseCallbacks {
   onJavedaScreen?(p: { x: number; y: number; r: number; visible: boolean }): void;
   /** pointer over the spiral galaxy / galaxy clicked (open the Lazy Jo card) */
   onGalaxyHover?(over: boolean): void;
+  /** where the galaxy is on screen (px), for the glowing dot */
+  onGalaxyScreen?(p: { x: number; y: number; visible: boolean }): void;
   onGalaxy?(): void;
 }
 
@@ -1446,6 +1448,11 @@ export class Universe {
     const r = ((this.javeda.r * this.javeda.group.scale.x) / dist / Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2)) * (h / 2);
     const visible = p.z < 1 && Math.abs(p.x) < 1.15 && Math.abs(p.y) < 1.15 && !this.travel && !this.gazing;
     this.cb.onJavedaScreen({ x: (p.x * 0.5 + 0.5) * w, y: (-p.y * 0.5 + 0.5) * h, r, visible });
+    if (this.cb.onGalaxyScreen) {
+      const g = this.galaxy.hit.getWorldPosition(this.tmpJ).project(this.camera);
+      const gv = g.z < 1 && Math.abs(g.x) < 1.05 && Math.abs(g.y) < 1.05 && !this.travel && !this.gazing;
+      this.cb.onGalaxyScreen({ x: (g.x * 0.5 + 0.5) * w, y: (-g.y * 0.5 + 0.5) * h, visible: gv });
+    }
   }
 
   private stepTravel(dt: number) {

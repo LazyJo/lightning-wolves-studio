@@ -194,8 +194,11 @@ via `GET /api/lazyjo/download` (re-verifies the session, signs a URL from the pr
 Design rule from Jo: straight forward flight only — no circular gallery, tunnel, road or well.
 Gateways: the big ringed purple planet = JAVEDA (warp, then a plain link to
 `/javeda/?src=lazyjo-universe` — never import JAVEDA code); the spiral galaxy opens the
-Lazy Jo card (`ARTIST_PROFILE` in `catalog.ts`: "My story" → `/?wolf=lazy-jo` deep link
-handled in `App.tsx`, "Merch" → even.biz). Title is "Lazy Jo's Universe".
+Lazy Jo card (`ARTIST_PROFILE` in `catalog.ts`; also reachable via the glowing yellow dot):
+"My story" expands the full bio *inside* the card (Jo doesn't want it to leave), co-sign faces
+show their proof (quote + link), "Merch" → even.biz, IG is @lazyjo_. 6ix9ine = "met in real
+life" (proof photo of them together still to come from Jo — `6ix9ine.jpeg` is a solo photo).
+`/?wolf=<slug>` in `App.tsx` still opens any artist profile. Title is "Lazy Jo's Universe".
 
 ## Design skills (`.claude/skills/`, vetted 2026-11-23)
 

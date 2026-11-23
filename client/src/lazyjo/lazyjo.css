@@ -586,15 +586,39 @@ a { color: var(--lj-cyan); }
 .lj-galaxy-name { margin: 8px 0 0; font-family: var(--lj-display); font-weight: 800; font-size: 40px; line-height: 1; letter-spacing: -0.03em; }
 .lj-galaxy-bio { margin: 14px 24px 18px; font-size: 15px; line-height: 1.55; color: rgba(225, 236, 255, 0.82); }
 .lj-galaxy-cosigns { margin: 0 24px 20px; display: flex; flex-direction: column; gap: 10px; }
-.lj-galaxy-cosigns ul { list-style: none; margin: 0; padding: 0; display: flex; }
+.lj-galaxy-cosigns ul { list-style: none; margin: 0; padding: 4px 0; display: flex; align-items: center; }
 .lj-galaxy-cosigns li { margin-left: -8px; }
 .lj-galaxy-cosigns li:first-child { margin-left: 0; }
-.lj-galaxy-cosigns img {
-  width: 40px; height: 40px; border-radius: 50%; object-fit: cover; display: block;
-  border: 2px solid rgba(4, 10, 26, 1); box-shadow: 0 0 0 1px rgba(185, 139, 255, 0.4);
-  transition: transform 0.2s var(--lj-ease);
+.lj-cosign {
+  display: block; padding: 0; border: 0; background: none; border-radius: 50%; cursor: pointer;
+  transition: transform 0.25s var(--lj-ease); position: relative;
 }
-.lj-galaxy-cosigns li:hover img { transform: translateY(-3px) scale(1.06); }
+.lj-cosign img {
+  width: 42px; height: 42px; border-radius: 50%; object-fit: cover; display: block;
+  border: 2px solid rgba(4, 10, 26, 1); box-shadow: 0 0 0 1px rgba(185, 139, 255, 0.4);
+  transition: box-shadow 0.25s;
+}
+.lj-cosign:hover { transform: translateY(-3px); z-index: 2; }
+.lj-cosign.is-active { transform: scale(1.28); z-index: 3; }
+.lj-cosign.is-active img { box-shadow: 0 0 0 2px #ffd36b, 0 0 18px -2px rgba(255, 211, 107, 0.8); }
+.lj-proof {
+  display: flex; gap: 14px; align-items: center;
+  margin-top: 6px; padding: 12px; border-radius: 16px;
+  background: rgba(255, 211, 107, 0.06); border: 1px solid rgba(255, 211, 107, 0.3);
+  animation: lj-rise 0.45s var(--lj-ease) both;
+}
+.lj-proof-photo { width: 86px; height: 86px; border-radius: 14px; object-fit: cover; flex: 0 0 auto; }
+.lj-proof-body { min-width: 0; }
+.lj-proof-body p { margin: 0; }
+.lj-proof-name { font-family: var(--lj-display); font-weight: 700; font-size: 17px; }
+.lj-proof-quote { margin-top: 4px !important; font-size: 15px; line-height: 1.35; color: #fff; }
+.lj-proof-context { margin-top: 4px !important; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(255, 211, 107, 0.85); }
+.lj-proof-link { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 14px; font-weight: 700; color: #ffd36b; text-decoration: none; }
+.lj-proof-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.lj-proof-note { margin-top: 6px !important; font-size: 13px; color: var(--lj-muted); }
+.lj-galaxy-story { margin: 14px 24px 18px; animation: lj-rise 0.45s var(--lj-ease) both; }
+.lj-galaxy-story p { margin: 0 0 10px; font-size: 15px; line-height: 1.6; color: rgba(225, 236, 255, 0.86); }
+.lj-galaxy-story .lj-tel-label { margin-bottom: 8px; display: block; }
 .lj-galaxy-actions { margin: 0 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .lj-galaxy-actions .lj-btn { min-height: 50px; padding: 0 16px; }
 .lj-galaxy-social { display: inline-flex; align-items: center; gap: 6px; margin: 14px 24px 0; font-size: 13px; font-weight: 600; color: var(--lj-muted); text-decoration: none; }
@@ -603,4 +627,44 @@ a { color: var(--lj-cyan); }
 @media (max-width: 720px) {
   .lj-galaxy { left: 0; right: 0; top: auto; bottom: 0; width: 100%; max-height: 78dvh; transform: none; border-radius: 22px 22px 0 0; animation-name: lj-sheet-in; }
   .lj-galaxy-hero { height: 200px; }
+}
+
+/* ─── the galaxy's glowing yellow dot (Lazy Jo's colour) ─── */
+.lj-galaxy-dot {
+  position: absolute; left: 0; top: 0; z-index: 12;
+  width: 44px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer;
+  opacity: 0; pointer-events: none; transition: opacity 0.4s var(--lj-ease);
+  will-change: transform;
+}
+.lj-galaxy-dot[data-visible="1"] { opacity: 1; pointer-events: auto; }
+.lj-galaxy-dot.is-hidden { opacity: 0 !important; pointer-events: none !important; }
+.lj-galaxy-dot-core {
+  position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%;
+  background: #ffe39a; box-shadow: 0 0 10px 3px rgba(255, 211, 107, 0.9), 0 0 26px 8px rgba(245, 197, 24, 0.45);
+}
+.lj-galaxy-dot-core::before, .lj-galaxy-dot-core::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  border: 1.5px solid rgba(255, 211, 107, 0.7); animation: lj-dot-ripple 2.4s ease-out infinite;
+}
+.lj-galaxy-dot-core::after { animation-delay: 1.2s; }
+@keyframes lj-dot-ripple { from { transform: scale(0.6); opacity: 0.9; } to { transform: scale(2.6); opacity: 0; } }
+.lj-galaxy-dot-label {
+  position: absolute; left: 38px; top: 50%; transform: translate(-4px, -50%);
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  font-family: var(--lj-display); font-weight: 700; font-size: 13px; color: #fff;
+  background: rgba(3, 7, 18, 0.55); border: 1px solid rgba(255, 211, 107, 0.4);
+  opacity: 0; transition: opacity 0.2s, transform 0.2s;
+}
+.lj-galaxy-dot:hover .lj-galaxy-dot-label, .lj-galaxy-dot:focus-visible .lj-galaxy-dot-label { opacity: 1; transform: translate(0, -50%); }
+
+@media (max-width: 720px) {
+  /* compact JAVEDA pill on phones */
+  .lj-javeda-btn { gap: 6px; padding: 5px 11px 5px 9px; }
+  .lj-javeda-btn svg { width: 13px; height: 13px; }
+  .lj-javeda-btn-name { font-size: 12px; }
+  .lj-javeda-btn-sub { display: none; }
+  .lj-proof-photo { width: 72px; height: 72px; }
+}
+@media (hover: none) {
+  .lj-galaxy-dot-label { opacity: 1; transform: translate(0, -50%); }
 }

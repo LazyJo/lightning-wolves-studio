@@ -50,6 +50,7 @@ export default function LazyJoUniverse() {
   const [galaxyHover, setGalaxyHover] = useState(false);
   const [galaxyOpen, setGalaxyOpen] = useState(false);
   const javedaBtnRef = useRef<HTMLButtonElement>(null);
+  const galaxyDotRef = useRef<HTMLButtonElement>(null);
   const [listOpen, setListOpen] = useState(false);
   const [purchase, setPurchase] = useState<{ sessionId?: string; cancelled?: boolean } | null>(null);
   const deepLink = useRef<string | null>(null);
@@ -100,6 +101,12 @@ export default function LazyJoUniverse() {
           sound.open();
           // let the camera zoom in before the card appears
           setTimeout(() => setGalaxyOpen(true), 650);
+        },
+        onGalaxyScreen: ({ x, y, visible }) => {
+          const d = galaxyDotRef.current;
+          if (!d) return;
+          d.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -50%)`;
+          d.dataset.visible = visible ? "1" : "0";
         },
         onJavedaScreen: ({ x, y, r, visible }) => {
           // the "JAVEDA" button rides on the planet, just below its centre
@@ -263,6 +270,19 @@ export default function LazyJoUniverse() {
             <span className="lj-javeda-btn-name">JAVEDA</span>
             <span className="lj-javeda-btn-sub">Play the album</span>
           </span>
+        </button>
+      )}
+
+      {phase === "flying" && !noWebgl && (
+        <button
+          ref={galaxyDotRef}
+          className={`lj-galaxy-dot ${selected || traveling || galaxyOpen ? "is-hidden" : ""}`}
+          data-visible="0"
+          onClick={() => engineRef.current?.openGalaxy()}
+          aria-label="Lazy Jo: open the story card"
+        >
+          <span className="lj-galaxy-dot-core" />
+          <span className="lj-galaxy-dot-label">Lazy Jo</span>
         </button>
       )}
 

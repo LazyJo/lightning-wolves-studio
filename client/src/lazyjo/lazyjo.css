@@ -721,3 +721,16 @@ a { color: var(--lj-cyan); }
 .lj-galaxy-join { margin: 20px 24px 0; display: flex; flex-direction: column; gap: 10px; }
 .lj-result-join { width: 100%; margin-top: 10px; padding-top: 18px; border-top: 1px solid rgba(0, 245, 255, 0.15); display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .lj-note .lj-join { margin-top: 12px; }
+
+/* ─── email gate on the entrance screen ─── */
+.lj-gate { max-width: 440px; animation: lj-rise 1s var(--lj-ease) 0.55s both; }
+.lj-gate .lj-intro-sub { margin: 18px 0 18px; animation: none; }
+.lj-gate .lj-join { gap: 10px; }
+.lj-gate .lj-field input { background: rgba(3, 7, 18, 0.72); backdrop-filter: blur(6px); }
+.lj-gate-skip { margin-top: 12px; }
+.lj-gate-ok { margin: -14px 0 22px; font-size: 14px; font-weight: 600; color: var(--lj-cyan); }
+@media (max-width: 720px) {
+  .lj-gate { margin: 0 auto; text-align: left; }
+  .lj-gate .lj-intro-sub { text-align: center; }
+}
+.lj-gate-ok svg { display: inline-block; vertical-align: -3px; margin-right: 4px; }

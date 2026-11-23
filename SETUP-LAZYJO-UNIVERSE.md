@@ -59,6 +59,13 @@ Everything is in your Supabase table `lazyjo_fans`, and only the server can read
 2. **Manage it in Pack Admin → Lazy Jo fans.** You'll see counts, the full list, a CSV export and the
    email writer.
 
+**Email gate (like EVEN):** the entrance screen asks for an email (name optional) plus the consent
+tick before the Enter buttons appear. It's asked once per device: after joining, after clicking the
+confirmation link, or after buying, it's skipped. If the server is down, fans get in anyway, so the
+site never locks everyone out. To make the email optional (a "Just look around" link appears), set
+`EMAIL_GATE = "optional"` in `client/src/lazyjo/fanGate.ts`. Under GDPR, consent tied to entry isn't
+"freely given" in the strictest reading; if that ever becomes a concern, switch to optional.
+
 How it protects you (GDPR): fans tick a consent box (the exact sentence and time are stored),
 confirm their email before they get anything (double opt-in), every email has a one-click
 unsubscribe, and the privacy page is at `/lazyjo/privacy.html`. To erase someone, delete their row.

@@ -9,6 +9,7 @@ import Tracklist from "./ui/Tracklist";
 import PurchaseResult from "./ui/PurchaseResult";
 import GalaxyPanel from "./ui/GalaxyPanel";
 import JoinPanel from "./ui/JoinPanel";
+import { isFan, markFan } from "./fanGate";
 import { Orbit } from "lucide-react";
 
 type Phase = "intro" | "flying";
@@ -54,6 +55,7 @@ export default function LazyJoUniverse() {
   const galaxyDotRef = useRef<HTMLButtonElement>(null);
   const [listOpen, setListOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [joined, setJoined] = useState(isFan);
   const [toast, setToast] = useState<string | null>(null);
   const [purchase, setPurchase] = useState<{ sessionId?: string; cancelled?: boolean } | null>(null);
   const deepLink = useRef<string | null>(null);
@@ -63,15 +65,22 @@ export default function LazyJoUniverse() {
     const p = new URLSearchParams(window.location.search);
     const outcome = p.get("purchase");
     const sid = p.get("session_id");
-    if (outcome === "success" && sid) setPurchase({ sessionId: sid });
+    if (outcome === "success" && sid) {
+      setPurchase({ sessionId: sid });
+      markFan(); // buyers gave their email at checkout
+      setJoined(true);
+    }
     else if (outcome === "cancelled") setPurchase({ cancelled: true });
     const single = p.get("single");
     if (single && singleById.has(single)) deepLink.current = single;
     // fan list links: ?join=1 opens the sign-up; confirm / unsubscribe come back here
     if (p.get("join") === "1") setJoinOpen(true);
     const joined = p.get("joined");
-    if (joined === "1") setToast("You\u2019re in. Welcome to Lazy Jo\u2019s list.");
-    else if (joined === "invalid") setToast("That link didn\u2019t work. Join again and we\u2019ll send a new one.");
+    if (joined === "1") {
+      markFan(); // came back from the confirmation email: never ask again on this device
+      setJoined(true);
+      setToast("You\u2019re in. Welcome to Lazy Jo\u2019s list.");
+    } else if (joined === "invalid") setToast("That link didn\u2019t work. Join again and we\u2019ll send a new one.");
     if (p.get("unsubscribed") === "1") setToast("You\u2019re unsubscribed. No more emails from Lazy Jo.");
     if (p.has("join") || p.has("joined") || p.has("unsubscribed")) {
       const url = new URL(window.location.href);
@@ -308,7 +317,7 @@ export default function LazyJoUniverse() {
         </button>
       )}
 
-      {phase === "intro" && <IntroScreen ready={ready} onEnter={enter} />}
+      {phase === "intro" && <IntroScreen ready={ready} onEnter={enter} joined={joined} onJoined={() => setJoined(true)} />}
 
       {traveling === "arrive" && (
         <div className="lj-travel" role="status">

@@ -599,7 +599,7 @@ app.get('/api/lazyjo/download', async (req, res) => {
 const LAZYJO_CONSENT_TEXT =
   'Yes, send me news from Lazy Jo: new music, drops and shows. I can unsubscribe anytime.';
 const LAZYJO_EMAIL_RE = /^[^\s@<>"']{1,64}@[^\s@<>"']{1,190}\.[a-z]{2,}$/i;
-const LAZYJO_FAN_SOURCES = new Set(['universe', 'purchase', 'profile', 'card']);
+const LAZYJO_FAN_SOURCES = new Set(['universe', 'purchase', 'profile', 'card', 'gate']);
 const lazyjoSignupHits = new Map(); // ip -> [timestamps] (best-effort; resets per instance)
 
 // Links in emails must only ever point at our own site, so a spoofed Origin

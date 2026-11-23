@@ -33,16 +33,27 @@ export async function fetchDownload(sessionId: string): Promise<DownloadResult> 
   return data as DownloadResult;
 }
 
-export type JoinSource = "universe" | "purchase" | "profile" | "card";
+export type JoinSource = "universe" | "purchase" | "profile" | "card" | "gate";
+
+export class JoinError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+  }
+}
 
 /** Join Lazy Jo's own fan list (double opt-in: a confirmation email follows). */
 export async function joinList(input: { name: string; email: string; consent: boolean; source: JoinSource; website?: string }): Promise<"check-email" | "saved"> {
-  const res = await fetch("/api/lazyjo/fans", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
+  let res: Response;
+  try {
+    res = await fetch("/api/lazyjo/fans", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  } catch {
+    throw new JoinError("No connection right now.", 0);
+  }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Couldn't sign you up (${res.status})`);
+  if (!res.ok) throw new JoinError(data.error || `Couldn't sign you up (${res.status})`, res.status);
   return data.status === "saved" ? "saved" : "check-email";
 }

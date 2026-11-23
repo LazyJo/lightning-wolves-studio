@@ -1,16 +1,22 @@
 import { useState } from "react";
 import { Check, Loader2, Mail } from "lucide-react";
 import { JOIN_CONSENT_TEXT } from "../catalog";
-import { joinList, type JoinSource } from "../shop";
+import { JoinError, joinList, type JoinSource } from "../shop";
+import { markFan } from "../fanGate";
 
 interface Props {
   source: JoinSource;
   defaultEmail?: string;
   compact?: boolean;
+  /** text on the button (default "Stay in the loop") */
+  submitLabel?: string;
+  /** called on success ("check-email" | "saved"), or with "unavailable" when the
+   *  server can't be reached — the gate lets people in rather than lock them out */
+  onJoined?(result: "check-email" | "saved" | "unavailable"): void;
 }
 
 /** "Stay in the loop": Lazy Jo's own fan list (replaces the EVEN sign-up). */
-export default function JoinForm({ source, defaultEmail = "", compact = false }: Props) {
+export default function JoinForm({ source, defaultEmail = "", compact = false, submitLabel = "Stay in the loop", onJoined }: Props) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState(defaultEmail);
   const [consent, setConsent] = useState(false);
@@ -44,8 +50,15 @@ export default function JoinForm({ source, defaultEmail = "", compact = false }:
     setState({ kind: "sending" });
     try {
       const r = await joinList({ name, email, consent, source, website });
+      markFan();
       setState({ kind: r });
+      onJoined?.(r);
     } catch (err) {
+      const status = err instanceof JoinError ? err.status : 0;
+      if (onJoined && (status === 0 || status >= 500)) {
+        onJoined("unavailable"); // our problem, not theirs: don't keep them out
+        return;
+      }
       setState({ kind: "error", msg: (err as Error).message });
     }
   };
@@ -82,7 +95,7 @@ export default function JoinForm({ source, defaultEmail = "", compact = false }:
       </label>
       <button className="lj-btn lj-btn-primary lj-join-submit" type="submit" disabled={state.kind === "sending"}>
         {state.kind === "sending" ? <Loader2 size={18} className="lj-spin" aria-hidden /> : <Mail size={18} aria-hidden />}
-        Stay in the loop
+        {submitLabel}
       </button>
       {state.kind === "error" && (
         <p className="lj-note lj-note-err" role="alert">

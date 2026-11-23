@@ -216,7 +216,9 @@ would set the 1-year cache); it still falls back to its poster if it ever fails 
 **Own fan list (replacing EVEN):** `lazyjo_fans` + `lazyjo_broadcasts` tables (`supabase-lazyjo-fans.sql`,
 service-role only; **created in prod on 2026-11-23** — don't ask Jo to run it again), `/api/lazyjo/fans*` + admin routes in `server.js`, `JoinForm` in the Universe (bell button,
 Lazy Jo card, thank-you screen, `?join=1`), admin tab `components/admin/LazyJoFansTab.tsx`.
-Double opt-in, consent text stored (keep `JOIN_CONSENT_TEXT` in `catalog.ts` and
+**Email gate:** `IntroScreen` shows `JoinForm` (source `gate`) before the Enter buttons; once per device
+(`lj-fan` in localStorage via `fanGate.ts`, also set on `?joined=1` and a paid `?purchase=success`);
+fail-open on network/5xx; `EMAIL_GATE = "optional"` adds a skip link. Double opt-in, consent text stored (keep `JOIN_CONSENT_TEXT` in `catalog.ts` and
 `LAZYJO_CONSENT_TEXT` in `server.js` identical), one-click unsubscribe, privacy page
 `client/public/lazyjo/privacy.html`. Emails via Resend (`RESEND_API_KEY`, `LAZYJO_EMAIL_FROM`) —
 **live since 2026-11-23**: domain `lightningwolves.studio` verified in Resend (Ireland/eu-west-1,

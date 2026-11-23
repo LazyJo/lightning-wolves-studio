@@ -44,12 +44,12 @@
   });
 
   /* The Google Play and App Store apps open the JAVEDA page at ?src=play or ?src=appstore, and it's kept for the visit
-     (javeda.store; a level runs in the page's frame, so it sees the same). There, no link to EVEN: buying there gives
-     a Pass code, and the stores want their own payment for anything that opens the game. Merch stays. */
+     (javeda.store; a level runs in the page's frame, so it sees the same). There, no link to EVEN or to Lazy Jo's Universe
+     (True Fans): EVEN gives a Pass code, the Universe sells music, and the stores want their own payment for that. Merch stays. */
   try {
     const src = new URLSearchParams(location.search).get("src");
     if (/^(play|appstore)$/.test(src || "") || /^(play|appstore)$/.test(sessionStorage.getItem("javeda.store") || "")){
-      const off = () => document.querySelectorAll('a[data-link="even"]').forEach(a => a.remove());
+      const off = () => document.querySelectorAll('a[data-link="even"], a[data-link="universe"]').forEach(a => a.remove());
       if (document.readyState === "loading") addEventListener("DOMContentLoaded", off); else off();
     }
   } catch(e){}

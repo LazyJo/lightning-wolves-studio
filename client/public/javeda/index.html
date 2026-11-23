@@ -1096,7 +1096,7 @@ body:not(.playing) .sharechip{top:auto; left:auto; right:16px; bottom:max(84px, 
       <a class="yt" href="https://www.youtube.com/channel/UCBt7oknMx1TmoRjX3hqUgWQ?sub_confirmation=1" target="_blank" rel="noopener" data-i18n-skip>&#9654;&#65039; YouTube</a>
       <a class="ig" href="https://www.instagram.com/lazyjo_/" target="_blank" rel="noopener" data-i18n-skip>&#128248; Instagram</a>
       <a class="merch" data-link="merch" target="_blank" rel="noopener" data-i18n-skip>&#128085; Merch</a>
-      <a class="even" data-link="even" target="_blank" rel="noopener" data-i18n-skip>&#128156; True Fans</a>
+      <a class="even" data-link="universe" target="_blank" rel="noopener" data-i18n-skip>&#128156; True Fans</a>
       <a class="disc" data-link="discord" target="_blank" rel="noopener" data-i18n-skip>&#128172; Discord</a>
     </div>
   </section>
@@ -1629,6 +1629,7 @@ const LINKS = {
   spotify: "https://open.spotify.com/playlist/57mcBqSkldvZZwS7MccYj7",
   merch:   "https://www.even.biz/l/lightningwolves",
   even:    "https://www.even.biz/l/lazyjomusic",
+  universe: "/lazyjo/?src=javeda",     // True Fans -> Lazy Jo's Universe (EVEN stays only for Pass codes)
   discord: "https://discord.gg/SES7XPJvBH",
   youtube: "https://www.youtube.com/@lazyjo_?sub_confirmation=1"
 };
@@ -2090,7 +2091,7 @@ function linkDid(what){
 // a button that opens JAVEDA in the phone's real browser takes the link's name along (not counted a second time there)
 const linkCarry = () => LINK && LINK.first ? "?src=" + LINK.first + "&cont=1" : "";
 // and no link to EVEN there (buying there gives a Pass code): the Follow row without True Fans
-if (STORE){ const f = document.querySelector(".vfollow"); if (f){ f.classList.add("store"); f.querySelectorAll('a[data-link="even"]').forEach(a => a.remove()); } }
+if (STORE){ const f = document.querySelector(".vfollow"); if (f){ f.classList.add("store"); f.querySelectorAll('a[data-link="even"], a[data-link="universe"]').forEach(a => a.remove()); } }
 
 const signedIn = () => !!(session && player);
 const hasPass = () => !freeView && (creator || !!pass);
@@ -5390,15 +5391,15 @@ function fanCard(k){
     return { cls:"fev", html:FAN_X + fanEb("lvl14", true) +
       '<div class="half"><div class="bar"><i style="width:' + Math.round(Math.min(n, all) / all * 100) + '%"></i></div><small><span>' + n + ' of ' + all + ' songs</span>' + (half ? '<span>Halfway</span>' : '') + '</small></div>' +
       '<h3 id="fcT">' + (half ? 'Halfway! Become a True Fan' : 'Become a True Fan') + '</h3>' +
-      '<a class="evart" href="' + LINKS.even + '" target="_blank" rel="noopener" data-go="" aria-label="EVEN"><img src="fans/truefans.jpg" alt=""><span data-i18n-skip>True Fans</span></a>' +
-      '<p>Buy the art on EVEN and support Lazy Jo directly. Your support goes straight to the artist.</p>' + fanA("fgo fev", LINKS.even, "", "&#128156;&nbsp; Become a True Fan") + FAN_NO };
+      '<a class="evart" href="' + LINKS.universe + '" target="_blank" rel="noopener" data-go="" aria-label="Lazy Jo\'s Universe"><img src="fans/truefans.jpg" alt=""><span data-i18n-skip>True Fans</span></a>' +
+      '<p>Get Lazy Jo\'s singles in his Universe and support him directly. Your support goes straight to the artist.</p>' + fanA("fgo fev", LINKS.universe, "", "&#128156;&nbsp; Become a True Fan") + FAN_NO };
   }
   if (k === "album"){
     const all = MARATHON.length;
     return { cls:"ffin", html:FAN_SPARKS + FAN_X + fanEb("lvl28", true) + '<div class="chip">' + all + ' / ' + all + ' songs</div><h3 id="fcT">You finished JAVEDA!</h3>' +
       '<div class="cover"><img src="fans/album.jpg" alt=""></div><p>You played the whole album. Thank you, from Lazy Jo.</p>' +
       (STORE ? fanA("fgo fmg", LINKS.merch, "merch", "&#128085;&nbsp; Shop the merch")
-        : fanA("fgo fev", LINKS.even, "fans", "&#128156;&nbsp; Become a True Fan") + fanA("fol", LINKS.merch, "merch", "&#128085;&nbsp; Shop the merch")) + FAN_NO };
+        : fanA("fgo fev", LINKS.universe, "fans", "&#128156;&nbsp; Become a True Fan") + fanA("fol", LINKS.merch, "merch", "&#128085;&nbsp; Shop the merch")) + FAN_NO };
   }
   return null;
 }

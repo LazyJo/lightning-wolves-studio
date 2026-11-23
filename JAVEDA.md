@@ -321,3 +321,13 @@ on Jo's L: drive). Its `lvl9` scores from the old game stay on the board until b
 Level 2 used to be the old JAVEDA game's Level 2 (`javeda.html?level=lvl2`). Its scores were on
 the same scale (a strong clear is roughly 40k-75k, capped at 90k in the page and 95k in the
 database), so the `javeda_levels` row did not need to change.
+
+## True Fans → Lazy Jo's Universe (2026-11-23)
+
+The **True Fans** buttons (follow row, the Level 14 "Become a True Fan" card, the album card and every
+level page) now open Lazy Jo's Universe (`LINKS.universe` = `/lazyjo/?src=javeda`) instead of EVEN.
+**EVEN stays** only where JAVEDA Pass codes are concerned ("No code? EVEN", the EVEN code kind):
+the Universe doesn't issue Pass codes. In the store apps (`?src=play` / `?src=appstore`) both
+`data-link="even"` and `data-link="universe"` links are removed (report.js + the `.vfollow` STORE
+line) — the stores want their own payment for anything sold outside them.
+

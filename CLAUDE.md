@@ -223,6 +223,8 @@ Double opt-in, consent text stored (keep `JOIN_CONSENT_TEXT` in `catalog.ts` and
 DNS records added by Resend's Vercel auto-configure), both keys set on the Vercel project
 (Production + Preview), sender `Lazy Jo <news@lightningwolves.studio>`; Jo's own sign-up confirmed.
 EVEN import: `node scripts/import-fans.js export.csv` on Jo's PC. Merch still lives on EVEN.
+JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
+Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 
 ## Design skills (`.claude/skills/`, vetted 2026-11-23)
 

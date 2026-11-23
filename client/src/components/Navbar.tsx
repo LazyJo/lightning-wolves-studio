@@ -47,6 +47,12 @@ export default function Navbar({
   const [langOpen, setLangOpen] = useState(false);
   const { lang, setLang, t } = useI18n();
   const accent = wolfColor || "#f5c518";
+  // The site nav has ~8 links (Wolf Map … JAVEDA, Universe, Pricing) — it only
+  // fits on one line from xl up, so below that it folds into the menu button.
+  // The studio nav is shorter and keeps the md breakpoint.
+  const navBp = isInStudio
+    ? { flex: "md:flex", hidden: "md:hidden" }
+    : { flex: "xl:flex", hidden: "xl:hidden" };
   const { count: hubUnread } = useHubNotifications();
   const [hubPulseKey, setHubPulseKey] = useState(0);
   const reducedMotion = useReducedMotion();
@@ -88,16 +94,16 @@ export default function Navbar({
       transition={{ type: "spring", stiffness: 100, damping: 20 }}
       className="fixed top-0 right-0 left-0 z-50 border-b border-wolf-border/20 bg-wolf-bg/70 backdrop-blur-xl"
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+      <div className={`mx-auto flex ${isInStudio ? "max-w-7xl" : "max-w-[1600px]"} items-center justify-between gap-4 px-6 py-3`}>
         {/* Logo */}
-        <button onClick={isInStudio ? () => onStudioNav?.("dashboard") : onHome} className="flex items-center gap-3">
+        <button onClick={isInStudio ? () => onStudioNav?.("dashboard") : onHome} className="flex shrink-0 items-center gap-3">
           <img
             src="/LightningWolvesLogoTransparentBG.png"
             alt="Lightning Wolves"
             className="h-8 w-8"
           />
           <span
-            className="hidden text-sm font-bold tracking-[0.15em] text-white sm:block md:text-base"
+            className={`hidden whitespace-nowrap text-sm font-bold tracking-[0.15em] text-white sm:block md:text-base ${isInStudio ? "" : "xl:hidden min-[1600px]:block"}`}
             style={{ fontFamily: "var(--font-heading)" }}
           >
             LIGHTNING{" "}
@@ -106,7 +112,7 @@ export default function Navbar({
         </button>
 
         {/* Center Nav — switches between site links and studio tool links */}
-        <div className="hidden items-center gap-1 md:flex">
+        <div className={`hidden items-center gap-1 [&>*]:shrink-0 [&>*]:whitespace-nowrap ${navBp.flex}`}>
           {isInStudio && onStudioNav ? (
             /* Studio tool navigation */
             STUDIO_TOOLS.map((tool) => {
@@ -140,16 +146,16 @@ export default function Navbar({
             <>
               <button
                 onClick={onHome}
-                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
+                className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm 2xl:px-4 font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
               >
                 {t("nav.home")}
               </button>
               <button
                 onClick={onWolfMap}
-                className="group relative overflow-hidden rounded-lg px-4 py-2 text-sm font-bold text-white transition-all hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20"
+                className="group relative overflow-hidden rounded-lg px-3 py-2 text-sm 2xl:px-4 font-bold text-white transition-all hover:scale-105 hover:shadow-xl hover:shadow-purple-500/20"
                 style={{ background: "linear-gradient(135deg, #9b6dff 0%, #f5c518 50%, #E040FB 100%)", padding: "1px" }}
               >
-                <span className="relative z-10 flex items-center gap-1.5 rounded-[7px] bg-wolf-bg/90 px-4 py-[7px] backdrop-blur-sm transition-all group-hover:bg-wolf-bg/70">
+                <span className="relative z-10 flex items-center gap-1.5 rounded-[7px] bg-wolf-bg/90 px-3 py-[7px] 2xl:px-4 backdrop-blur-sm transition-all group-hover:bg-wolf-bg/70">
                   <span className="animate-pulse-glow text-base">🐺</span>
                   <span className="bg-gradient-to-r from-[#9b6dff] via-[#f5c518] to-[#E040FB] bg-clip-text text-transparent">
                     Wolf Map
@@ -158,7 +164,7 @@ export default function Navbar({
               </button>
               <button
                 onClick={onWolfHub}
-                className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg border border-[#9b6dff]/40 bg-gradient-to-r from-[#9b6dff]/15 via-[#E040FB]/10 to-[#9b6dff]/15 px-4 py-2 text-sm font-bold text-white transition-all hover:border-[#9b6dff]/70 hover:shadow-lg hover:shadow-[#9b6dff]/20"
+                className="group relative inline-flex items-center gap-1.5 overflow-hidden rounded-lg border border-[#9b6dff]/40 bg-gradient-to-r from-[#9b6dff]/15 via-[#E040FB]/10 to-[#9b6dff]/15 px-3 py-2 text-sm 2xl:px-4 font-bold text-white transition-all hover:border-[#9b6dff]/70 hover:shadow-lg hover:shadow-[#9b6dff]/20"
                 title="Wolf Hub — community chat & media"
               >
                 {/* Lightning pulse overlay — re-fires on each ⚡⚡ INSERT via hubPulseKey. */}
@@ -196,7 +202,7 @@ export default function Navbar({
               {onGoldenBoard && (
                 <button
                   onClick={onGoldenBoard}
-                  className="group inline-flex items-center gap-1.5 rounded-lg border border-wolf-gold/40 bg-gradient-to-r from-wolf-gold/15 via-wolf-amber/10 to-wolf-gold/15 px-4 py-2 text-sm font-bold text-wolf-gold transition-all hover:border-wolf-gold/70 hover:shadow-lg hover:shadow-wolf-gold/20"
+                  className="group inline-flex items-center gap-1.5 rounded-lg border border-wolf-gold/40 bg-gradient-to-r from-wolf-gold/15 via-wolf-amber/10 to-wolf-gold/15 px-3 py-2 text-sm 2xl:px-4 font-bold text-wolf-gold transition-all hover:border-wolf-gold/70 hover:shadow-lg hover:shadow-wolf-gold/20"
                 >
                   <span className="text-sm">🏆</span>
                   Golden Board
@@ -204,27 +210,27 @@ export default function Navbar({
               )}
               <a
                 href="/javeda/"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[#67e8f9]/40 bg-[#67e8f9]/10 px-4 py-2 text-sm font-bold text-[#9fe8ff] transition-all hover:border-[#67e8f9]/70 hover:shadow-lg hover:shadow-[#67e8f9]/20"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#67e8f9]/40 bg-[#67e8f9]/10 px-3 py-2 text-sm 2xl:px-4 font-bold text-[#9fe8ff] transition-all hover:border-[#67e8f9]/70 hover:shadow-lg hover:shadow-[#67e8f9]/20"
               >
                 <span className="text-sm">🛸</span>
                 JAVEDA
               </a>
               <a
                 href="/lazyjo/"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[#7B2CFF]/50 bg-[#7B2CFF]/10 px-4 py-2 text-sm font-bold text-[#c4a8ff] transition-all hover:border-[#7B2CFF]/80 hover:shadow-lg hover:shadow-[#7B2CFF]/25"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#7B2CFF]/50 bg-[#7B2CFF]/10 px-3 py-2 text-sm 2xl:px-4 font-bold text-[#c4a8ff] transition-all hover:border-[#7B2CFF]/80 hover:shadow-lg hover:shadow-[#7B2CFF]/25"
               >
                 <span className="text-sm">🌌</span>
                 Universe
               </a>
               <button
                 onClick={onPricing}
-                className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
+                className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm 2xl:px-4 font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
               >
                 {t("nav.pricing")}
               </button>
               <button
                 onClick={onAuth}
-                className="rounded-lg border border-wolf-gold/30 bg-wolf-gold/5 px-4 py-2 text-sm font-semibold text-wolf-gold transition-all hover:bg-wolf-gold/15"
+                className="rounded-lg border border-wolf-gold/30 bg-wolf-gold/5 px-3 py-2 text-sm 2xl:px-4 font-semibold text-wolf-gold transition-all hover:bg-wolf-gold/15"
               >
                 {t("nav.signIn")}
               </button>
@@ -232,10 +238,10 @@ export default function Navbar({
                 <button
                   onClick={onAdminMembers}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-wolf-gold/30 bg-gradient-to-r from-wolf-gold/15 to-wolf-amber/10 px-3 py-2 text-sm font-semibold text-wolf-gold transition-all hover:border-wolf-gold/60"
-                  title="Pack Members (admin)"
+                  title="Admin · Pack Members"
+                  aria-label="Admin · Pack Members"
                 >
-                  <Shield size={13} />
-                  Admin
+                  <Shield size={14} />
                 </button>
               )}
             </>
@@ -243,7 +249,7 @@ export default function Navbar({
         </div>
 
         {/* Right side */}
-        <div className="hidden items-center gap-2 md:flex">
+        <div className={`hidden items-center gap-2 [&>*]:shrink-0 [&>*]:whitespace-nowrap ${navBp.flex}`}>
           {isInStudio ? (
             /* Studio right side: credits + notifications + wolf hub + home */
             <>
@@ -354,7 +360,7 @@ export default function Navbar({
 
         {/* Mobile menu button */}
         <button
-          className="text-white md:hidden"
+          className={`text-white ${navBp.hidden}`}
           onClick={() => setMobileOpen(!mobileOpen)}
           aria-label="Toggle menu"
         >
@@ -370,7 +376,7 @@ export default function Navbar({
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="overflow-hidden border-t border-wolf-border/20 md:hidden"
+            className={`overflow-hidden border-t border-wolf-border/20 ${navBp.hidden}`}
           >
             <div className="flex flex-col gap-3 px-6 py-5">
               {isInStudio && onStudioNav ? (

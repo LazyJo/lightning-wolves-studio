@@ -5,7 +5,10 @@ Lightning Wolves brand. Modeled after [LYRC](https://lyrc.studio) — when
 Jo says "LYRC-style" or "match LYRC", he means that site's UX patterns.
 
 Production: <https://lightningwolves.studio>.
-Branch: `claude/build-lyrics-studio-app-LwcvI` (continuous since v1).
+Branch: **`claude/amazing-mccarthy-pvr6xv`** — the one branch prod is promoted from
+(studio + JAVEDA + LAZY JO UNIVERSE). `claude/build-lyrics-studio-app-LwcvI` is the
+old v1 branch: it has no JAVEDA, so promoting it drops JAVEDA from prod — don't.
+JAVEDA is also an installed phone app (PWA, scope `/javeda/`): never move it.
 
 ---
 
@@ -59,7 +62,7 @@ lightning-wolves-studio/
 
 1. Edit, build (`cd client && npm run build`) to confirm Vite passes.
 2. `git commit` (per-feature messages — keep them tight, scope-tagged).
-3. `git push` — branch `claude/build-lyrics-studio-app-LwcvI`. Vercel auto-builds a **preview**.
+3. `git push` — branch `claude/amazing-mccarthy-pvr6xv`. Vercel auto-builds a **preview**.
 4. Jo tests the preview URL (he defaults to testing on prod, so he'll often refresh prod expecting your changes — push fast and tell him the preview URL).
 5. When green: `npx vercel promote <preview-url> --yes` to push to lightningwolves.studio.
 

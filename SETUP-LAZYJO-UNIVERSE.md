@@ -46,6 +46,10 @@ node scripts/upload-masters.js "C:\path\to\JAVEDA WAV"             # upload
 Be Alright. Add their WAVs to the folder, re-run the script (it skips what's already there), then
 remove their `forSale` line. Supabase's upload limit was raised above 50 MB for these files (Pro plan).
 
+After the album come two newer singles, **Life Be Moving Quick** and **Stay Up (Afro Soul)** (2026,
+no `track`; previews = Apple Music's 30 s preview URLs, covers from Apple Music). They're
+`"forSale": false` until their WAVs are uploaded (`singles/<id>.wav`; same script, same folder).
+
 It creates the private `lazyjo-masters` bucket if needed and stores each file at its `masterPath`
 (e.g. `javeda/19-stay-up.wav`). Supabase limits upload size per file (Free plan: 50 MB max, set in
 Storage → Settings) and total storage (Free: 1 GB); 28 WAVs are roughly 1–2 GB.

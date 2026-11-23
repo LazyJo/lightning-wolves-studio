@@ -1,5 +1,5 @@
 {
-  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/): the 28 songs of the album JAVEDA, in album order (the same order as the JAVEDA levels; the flight passes them left/right in this order). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. previewUrl = the public JAVEDA level song in the Supabase 'media' bucket (the player stops after 30 s). masterPath = the object key of the WAV in the PRIVATE bucket LAZYJO_MASTERS_BUCKET (default 'lazyjo-masters'), only handed out as a short-lived signed URL after Stripe confirms payment. Upload the WAVs with: node scripts/upload-masters.js <folder> (Jo's PC). cover = the official single artwork (client/public/lazyjo/covers/NN-id.webp, 800px, taken from Apple Music on 2026-11-23); year = its release year. cover null -> generated artwork in the palette colours. priceCents = the minimum (server-enforced), suggestedCents = the preselected amount in the player. forSale: false = the WAV isn't uploaded yet: the song shows 'WAV coming soon' and the server refuses its checkout. Remove the line once its WAV is in the bucket.",
+  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/): the 28 songs of the album JAVEDA in album order, then newer singles (no `track`) (the same order as the JAVEDA levels; the flight passes them left/right in this order). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. previewUrl = the public JAVEDA level song in the Supabase 'media' bucket (the player stops after 30 s). masterPath = the object key of the WAV in the PRIVATE bucket LAZYJO_MASTERS_BUCKET (default 'lazyjo-masters'), only handed out as a short-lived signed URL after Stripe confirms payment. Upload the WAVs with: node scripts/upload-masters.js <folder> (Jo's PC). cover = the official single artwork (client/public/lazyjo/covers/NN-id.webp, 800px, taken from Apple Music on 2026-11-23); year = its release year. cover null -> generated artwork in the palette colours. priceCents = the minimum (server-enforced), suggestedCents = the preselected amount in the player. forSale: false = the WAV isn't uploaded yet: the song shows 'WAV coming soon' and the server refuses its checkout. Remove the line once its WAV is in the bucket.",
   "artist": "Lazy Jo",
   "currency": "eur",
   "singles": [
@@ -545,6 +545,44 @@
       "vinyl": false,
       "placeholder": false,
       "suggestedCents": 500
+    },
+    {
+      "id": "life-be-moving-quick",
+      "title": "Life Be Moving Quick",
+      "year": 2026,
+      "priceCents": 99,
+      "suggestedCents": 500,
+      "cover": "/lazyjo/covers/s01-life-be-moving-quick.webp",
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/26/02/42/2602425d-0527-9559-a3b7-71394c9ebcaf/mzaf_17193803732881396838.plus.aac.p.m4a",
+      "masterPath": "singles/life-be-moving-quick.wav",
+      "palette": [
+        "#000001",
+        "#5b3e29",
+        "#9b7351"
+      ],
+      "motif": "road",
+      "vinyl": true,
+      "placeholder": false,
+      "forSale": false
+    },
+    {
+      "id": "stay-up-afro-soul",
+      "title": "Stay Up (Afro Soul)",
+      "year": 2026,
+      "priceCents": 99,
+      "suggestedCents": 500,
+      "cover": "/lazyjo/covers/s02-stay-up-afro-soul.webp",
+      "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/58/fa/eb/58faeb8d-0b63-c035-966b-c2189891e3d2/mzaf_6891214995382795148.plus.aac.p.m4a",
+      "masterPath": "singles/stay-up-afro-soul.wav",
+      "palette": [
+        "#231006",
+        "#853a0e",
+        "#93521a"
+      ],
+      "motif": "portrait",
+      "vinyl": true,
+      "placeholder": false,
+      "forSale": false
     }
   ],
   "album": "JAVEDA"

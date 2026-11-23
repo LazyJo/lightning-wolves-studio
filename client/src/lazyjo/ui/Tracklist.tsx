@@ -1,6 +1,8 @@
 import { Orbit, X } from "lucide-react";
 import { ALBUM, SINGLES, formatPrice, type Single } from "../catalog";
 
+const ALBUM_COUNT = SINGLES.filter((s) => s.track).length;
+
 interface Props {
   open: boolean;
   inline: boolean; // no-WebGL fallback: the list *is* the experience
@@ -20,7 +22,7 @@ export default function Tracklist({ open, inline, onClose, onPick, coverFor, onJ
     >
       <div className="lj-list-head">
         <div>
-          <p className="lj-eyebrow">{ALBUM ? `${ALBUM} \u00b7 ${SINGLES.length} songs` : "Discography"}</p>
+          <p className="lj-eyebrow">{ALBUM ? `${ALBUM} \u00b7 ${ALBUM_COUNT} songs${SINGLES.length > ALBUM_COUNT ? ` + ${SINGLES.length - ALBUM_COUNT} new` : ""}` : "Discography"}</p>
           <h2 className="lj-list-title">Singles</h2>
         </div>
         {!inline && (

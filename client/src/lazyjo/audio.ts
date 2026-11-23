@@ -323,23 +323,44 @@ export class SoundEngine {
     if (this.ambientOn) this.ambient.gain.setTargetAtTime(0.25, ctx.currentTime, 0.4);
 
     if (single.previewUrl) {
-      const el = new Audio();
-      el.crossOrigin = "anonymous";
-      el.src = encodeURI(single.previewUrl);
-      el.preload = "auto";
-      this.previewEl = el;
-      this.previewSrc = ctx.createMediaElementSource(el);
-      this.previewSrc.connect(this.previewBus);
-      const stopAt = () => {
-        if (el.currentTime >= PREVIEW_SECONDS) this.endPreview();
+      const url = encodeURI(single.previewUrl);
+      const id = single.id;
+      // First try through Web Audio (the visuals react to the music). That needs
+      // CORS; if the host doesn't allow it, play the file directly instead
+      // (sound still works, the visuals just stay calm).
+      const start = async (analysed: boolean): Promise<boolean> => {
+        const el = new Audio();
+        if (analysed) el.crossOrigin = "anonymous";
+        el.src = url;
+        el.preload = "auto";
+        this.previewEl = el;
+        if (analysed) {
+          this.previewSrc = ctx.createMediaElementSource(el);
+          this.previewSrc.connect(this.previewBus);
+        }
+        el.addEventListener("timeupdate", () => {
+          if (el.currentTime >= PREVIEW_SECONDS) this.endPreview();
+        });
+        el.addEventListener("ended", () => this.endPreview());
+        try {
+          await el.play();
+          return true;
+        } catch (err) {
+          if ((err as DOMException)?.name === "NotAllowedError") throw err;
+          return false;
+        }
       };
-      el.addEventListener("timeupdate", stopAt);
-      el.addEventListener("ended", () => this.endPreview());
       try {
-        await el.play();
+        if (await start(true)) return;
+        if (this.previewId !== id) return; // user moved on
+        this.stopPreview();
+        this.previewId = id;
+        if (this.ambientOn) this.ambient.gain.setTargetAtTime(0.25, ctx.currentTime, 0.4);
+        if (await start(false)) return;
       } catch {
-        this.endPreview();
+        /* autoplay blocked */
       }
+      this.endPreview();
       return;
     }
     this.playSynth(single);

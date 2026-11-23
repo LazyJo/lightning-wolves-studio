@@ -64,7 +64,7 @@ export function fullTitle(s: Single): string {
 /** "JAVEDA · Track 02" for album songs, else the year ("2023"). */
 export function releaseLabel(s: Single): string {
   if (s.track && ALBUM) return `${ALBUM} \u00b7 Track ${String(s.track).padStart(2, "0")}`;
-  return s.year ? String(s.year) : "Single";
+  return s.year ? `Single \u00b7 ${s.year}` : "Single";
 }
 
 const fmt = new Intl.NumberFormat(undefined, {

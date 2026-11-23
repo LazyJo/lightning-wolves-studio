@@ -11,7 +11,8 @@
  * File names can be anything that contains the song title, e.g. "01 I'm Lost.wav",
  * "LAZY JO - STAY UP 2 (master).wav" or "somebody ft zirka.wav". Each file is
  * stored under the song's `masterPath` from client/src/lazyjo/singles.json
- * (e.g. javeda/19-stay-up.wav). Re-running replaces the files.
+ * (e.g. javeda/19-stay-up.wav). Re-running skips files that are already uploaded
+ * with the same size (add --force to replace everything).
  */
 require('dotenv').config();
 const fs = require('fs');
@@ -157,11 +158,26 @@ function askHidden(question) {
   }
   saveKey();
 
+  // Already uploaded with the same size → skip (so adding a few songs later is quick).
+  // --force re-uploads everything.
+  const force = process.argv.includes('--force');
+  const have = new Map();
+  for (const folder of new Set(plan.filter((p) => p.file).map((p) => path.posix.dirname(p.s.masterPath)))) {
+    const { data } = await sb.storage.from(BUCKET).list(folder === '.' ? '' : folder, { limit: 1000 });
+    for (const o of data || []) have.set((folder === '.' ? '' : folder + '/') + o.name, o.metadata?.size);
+  }
+
   let ok = 0;
+  let skipped = 0;
   for (const { s, file } of plan) {
     if (!file) continue;
     const full = path.join(dir, file);
     const size = fs.statSync(full).size;
+    if (!force && have.get(s.masterPath) === size) {
+      console.log(`Already uploaded: ${s.title}`);
+      skipped++;
+      continue;
+    }
     process.stdout.write(`Uploading ${s.title}… `);
     const { error } = await sb.storage.from(BUCKET).upload(s.masterPath, fs.readFileSync(full), {
       contentType: 'audio/wav',
@@ -177,5 +193,7 @@ function askHidden(question) {
     ok++;
     console.log('done');
   }
-  console.log(`\n${ok} uploaded, ${plan.length - ok} not uploaded.`);
+  const missing2 = plan.filter((p) => !p.file).map((p) => p.s.title);
+  const failed = plan.length - ok - skipped - missing2.length;
+  console.log(`\n${ok} uploaded, ${skipped} already there${failed ? `, ${failed} FAILED (see above)` : ''}${missing2.length ? `, ${missing2.length} still need a WAV: ${missing2.join(', ')}` : ''}.`);
 })();

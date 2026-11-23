@@ -202,8 +202,9 @@ Lazy Jo card (`ARTIST_PROFILE` in `catalog.ts`; also reachable via the glowing y
 show their proof (quote + link + optional photos/video), "Merch" → even.biz, IG is @lazyjo_.
 Proof media: small images in `client/public/lazyjo/proof/`; videos go to Supabase `media`
 (`media/lazyjo/…`) — stage them in `media-uploads/` (not deployed) and Jo runs
-`node scripts/upload-media.js` on his PC. DDG's crowd video (`lazyjo/ddg-crowd.mp4`) falls
-back to its poster until uploaded.
+`node scripts/upload-media.js` on his PC. DDG's crowd video (`lazyjo/ddg-crowd.mp4`) was
+uploaded via the Supabase dashboard on 2026-11-23 (default cache time — re-running the script
+would set the 1-year cache); it still falls back to its poster if it ever fails to load.
 `/?wolf=<slug>` in `App.tsx` still opens any artist profile. Title is "Lazy Jo's Universe".
 
 ## Design skills (`.claude/skills/`, vetted 2026-11-23)

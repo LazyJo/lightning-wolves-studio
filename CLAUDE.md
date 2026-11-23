@@ -175,6 +175,13 @@ Shiteux (green), Hendrik Vits (red). 5+ locked slots. See `client/src/data/wolve
 
 ## LAZY JO UNIVERSE (`/lazyjo/`)
 
+**JAVEDA and the LAZY JO UNIVERSE are two separate products — never mix them.**
+JAVEDA = the playable album at `/javeda/` (static files in `client/public/javeda/`,
+origin branch `claude/amazing-mccarthy-pvr6xv`, its own JAVEDA Pass checkout).
+LAZY JO UNIVERSE = the 3D single store at `/lazyjo/` (below). They only share the
+repo/deploy so promoting one doesn't drop the other: separate pages, code, nav
+buttons, payments and catalogues.
+
 Standalone 3D single store for Lazy Jo — second Vite entry (`client/lazyjo/index.html`,
 code in `client/src/lazyjo/`, wired in `vite.config.ts` `rollupOptions.input`).
 Catalogue = `client/src/lazyjo/singles.json`, which **server.js also requires** to

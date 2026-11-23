@@ -129,7 +129,7 @@ export default function LazyJoFansTab({ accessToken }: { accessToken: string | n
       {/* compose */}
       <div className="rounded-2xl border border-wolf-border bg-wolf-card p-5">
         <h3 className="mb-1 text-lg text-white">Email your fans</h3>
-        <p className="mb-4 text-sm text-wolf-muted">Goes to {data.counts.confirmed} confirmed fans. Every email includes an unsubscribe link. Send yourself a test first.</p>
+        <p className="mb-4 text-sm text-wolf-muted">Goes to {data.counts.confirmed} confirmed {data.counts.confirmed === 1 ? "fan" : "fans"}. Every email includes an unsubscribe link. Send yourself a test first.</p>
         <input
           value={subject}
           onChange={(e) => setSubject(e.target.value)}

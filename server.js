@@ -604,7 +604,7 @@ const lazyjoSignupHits = new Map(); // ip -> [timestamps] (best-effort; resets p
 
 // Links in emails must only ever point at our own site, so a spoofed Origin
 // header can't turn a confirmation email into a phishing link.
-const LAZYJO_LINK_ORIGINS = /^(https:\/\/(www\.)?lightningwolves\.studio|https:\/\/[a-z0-9-]+-jos-projects\.vercel\.app|http:\/\/localhost:\d+)$/;
+const LAZYJO_LINK_ORIGINS = /^(https:\/\/(www\.)?lightningwolves\.studio|https:\/\/[a-z0-9-]+-lazyjos-projects\.vercel\.app|http:\/\/localhost:\d+)$/;
 function lazyjoBaseUrl(req) {
   if (process.env.PUBLIC_APP_URL) return process.env.PUBLIC_APP_URL.replace(/\/$/, '');
   const origin = String((req && req.headers.origin) || '');

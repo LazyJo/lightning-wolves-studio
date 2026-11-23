@@ -198,7 +198,8 @@ buttons, payments and catalogues.
 Standalone 3D single store for Lazy Jo — second Vite entry (`client/lazyjo/index.html`,
 code in `client/src/lazyjo/`, wired in `vite.config.ts` `rollupOptions.input`).
 Catalogue = `client/src/lazyjo/singles.json` (the 28 JAVEDA songs in album order, €0.99 min / €5 suggested,
-previews = public `media/javeda/lvlN.mp3`, WAVs uploaded by Jo with `node scripts/upload-masters.js <folder>`), which **server.js also requires** to
+previews = public `media/javeda/lvlN.mp3`, WAVs uploaded by Jo with `node scripts/upload-masters.js <folder>`; 21/28 uploaded 2026-11-23 from
+`L:\Lazy Jo\Lightning Wolves\Lazy Jo\MUSIC\3 - WAV`, the other 7 are `"forSale": false` until their WAVs exist), which **server.js also requires** to
 price `POST /api/lazyjo/checkout` (Stripe, guest, `mode: payment`) and to deliver
 via `GET /api/lazyjo/download` (re-verifies the session, signs a URL from the private
 `lazyjo-masters` Supabase bucket). Full setup: `SETUP-LAZYJO-UNIVERSE.md`.

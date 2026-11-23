@@ -495,6 +495,7 @@ app.post('/api/lazyjo/checkout', async (req, res) => {
     const { singleId, amountCents } = req.body || {};
     const single = typeof singleId === 'string' ? lazyjoSingle(singleId) : null;
     if (!single) return res.status(404).json({ error: 'Unknown single' });
+    if (single.forSale === false) return res.status(409).json({ error: 'This song isn’t for sale yet' });
 
     const min = single.priceCents;
     const requested = Number.isInteger(amountCents) ? amountCents : min;

@@ -112,7 +112,7 @@ export default function Hud({
                 <span className="lj-target-label">{hovered ? "Click to open" : "Approaching"}</span>
                 <span className="lj-target-title">{focus.title}</span>
                 <span className="lj-target-meta">
-                  {focus.track ? `Track ${String(focus.track).padStart(2, "0")}` : releaseLabel(focus)} · from {formatPrice(focus.priceCents)}
+                  {focus.track ? `Track ${String(focus.track).padStart(2, "0")}` : releaseLabel(focus)} · {focus.forSale ? `from ${formatPrice(focus.priceCents)}` : "WAV soon"}
                 </span>
               </button>
             )}

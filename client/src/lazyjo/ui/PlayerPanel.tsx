@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Pause, Play, Share2, X, Zap } from "lucide-react";
 import { ARTIST, MAX_CENTS, PREVIEW_SECONDS, currencySymbol, formatPrice, fullTitle, releaseLabel, type Single } from "../catalog";
 import JoinForm from "./JoinForm";
+import { isFan } from "../fanGate";
 import { sound } from "../audio";
 import { CheckoutUnavailableError, startSingleCheckout } from "../shop";
 
@@ -190,6 +191,27 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
           </div>
         </div>
 
+        {!single.forSale ? (
+          <div className="lj-buy">
+            <div className="lj-note lj-note-warn" role="status">
+              {isFan() ? (
+                <>The WAV of {single.title} is coming soon. You&rsquo;re on the list, so you&rsquo;ll hear when you can own it.</>
+              ) : (
+                <>
+                  The WAV of {single.title} is coming soon. Play the preview now, and join the list to hear when you can
+                  own it.
+                  <JoinForm source="universe" compact />
+                </>
+              )}
+            </div>
+            <div className="lj-trust">
+              <span>From {formatPrice(single.priceCents)} · pay what you want</span>
+              <button className="lj-link" onClick={share}>
+                <Share2 size={12} aria-hidden /> {copied ? "Link copied" : "Share"}
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="lj-buy">
           <div className="lj-buy-row">
             <span className="lj-tel-label">Own it · pay what you want</span>
@@ -274,6 +296,7 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
             </button>
           </div>
         </div>
+        )}
       </section>
     </div>
   );

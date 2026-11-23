@@ -41,6 +41,11 @@ node scripts/upload-masters.js "C:\path\to\JAVEDA WAV" --dry-run   # check the m
 node scripts/upload-masters.js "C:\path\to\JAVEDA WAV"             # upload
 ```
 
+**Status (2026-11-23):** 21 WAVs uploaded. Still missing (marked `"forSale": false`, shown as
+"WAV coming soon", checkout refused): I'm Lost, Somebody, No Rest/No Work, Journey, Myself, LA Vibe,
+Be Alright. Add their WAVs to the folder, re-run the script (it skips what's already there), then
+remove their `forSale` line. Supabase's upload limit was raised above 50 MB for these files (Pro plan).
+
 It creates the private `lazyjo-masters` bucket if needed and stores each file at its `masterPath`
 (e.g. `javeda/19-stay-up.wav`). Supabase limits upload size per file (Free plan: 50 MB max, set in
 Storage → Settings) and total storage (Free: 1 GB); 28 WAVs are roughly 1–2 GB.

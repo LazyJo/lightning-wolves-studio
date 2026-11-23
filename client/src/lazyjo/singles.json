@@ -1,5 +1,5 @@
 {
-  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/): the 28 songs of the album JAVEDA, in album order (the same order as the JAVEDA levels; the flight passes them left/right in this order). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. previewUrl = the public JAVEDA level song in the Supabase 'media' bucket (the player stops after 30 s). masterPath = the object key of the WAV in the PRIVATE bucket LAZYJO_MASTERS_BUCKET (default 'lazyjo-masters'), only handed out as a short-lived signed URL after Stripe confirms payment. Upload the WAVs with: node scripts/upload-masters.js <folder> (Jo's PC). cover = null -> generated artwork in the level's colours. priceCents = the minimum (server-enforced), suggestedCents = the preselected amount in the player.",
+  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/): the 28 songs of the album JAVEDA, in album order (the same order as the JAVEDA levels; the flight passes them left/right in this order). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. previewUrl = the public JAVEDA level song in the Supabase 'media' bucket (the player stops after 30 s). masterPath = the object key of the WAV in the PRIVATE bucket LAZYJO_MASTERS_BUCKET (default 'lazyjo-masters'), only handed out as a short-lived signed URL after Stripe confirms payment. Upload the WAVs with: node scripts/upload-masters.js <folder> (Jo's PC). cover = null -> generated artwork in the level's colours. priceCents = the minimum (server-enforced), suggestedCents = the preselected amount in the player. forSale: false = the WAV isn't uploaded yet: the song shows 'WAV coming soon' and the server refuses its checkout. Remove the line once its WAV is in the bucket.",
   "artist": "Lazy Jo",
   "currency": "eur",
   "singles": [
@@ -20,7 +20,8 @@
       "motif": "orb",
       "vinyl": false,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "forSale": false
     },
     {
       "id": "somebody",
@@ -40,7 +41,8 @@
       "motif": "silhouette",
       "vinyl": true,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "forSale": false
     },
     {
       "id": "my-heart",
@@ -116,7 +118,8 @@
       "motif": "road",
       "vinyl": true,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "forSale": false
     },
     {
       "id": "journey",
@@ -135,7 +138,8 @@
       "motif": "road",
       "vinyl": false,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "forSale": false
     },
     {
       "id": "myself",
@@ -154,7 +158,8 @@
       "motif": "silhouette",
       "vinyl": true,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "forSale": false
     },
     {
       "id": "oublie-moi",
@@ -269,7 +274,8 @@
       "motif": "city",
       "vinyl": true,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "forSale": false
     },
     {
       "id": "ghost",
@@ -518,7 +524,8 @@
       "motif": "moon",
       "vinyl": true,
       "placeholder": false,
-      "suggestedCents": 500
+      "suggestedCents": 500,
+      "forSale": false
     },
     {
       "id": "go",

@@ -29,6 +29,8 @@ export interface Single {
   motif: CoverMotif;
   vinyl: boolean;
   placeholder: boolean;
+  /** false until the WAV is uploaded: no checkout, "WAV coming soon" instead */
+  forSale: boolean;
 }
 
 export const ARTIST = raw.artist;
@@ -47,6 +49,7 @@ export const SINGLES: Single[] = raw.singles.map((s) => ({
   motif: s.motif as CoverMotif,
   vinyl: s.vinyl,
   placeholder: s.placeholder,
+  forSale: !("forSale" in s && s.forSale === false),
 }));
 
 export const singleById = new Map(SINGLES.map((s) => [s.id, s]));

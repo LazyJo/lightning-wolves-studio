@@ -49,6 +49,10 @@ export interface UniverseCallbacks {
   onFrame?(speed: number): void;
   onTelemetry?(t: { speed: number; distance: number }): void;
   onFirstMove?(): void;
+  /** pointer is over the UFO (click = beam me a song) */
+  onUfoHover?(over: boolean): void;
+  /** the UFO picked a random single and is flying there */
+  onBeam?(single: Single): void;
 }
 
 interface Slot {
@@ -69,6 +73,7 @@ interface Slot {
   z: number;
   hover: number;
   focus: number; // 0 → in slot, 1 → presented to camera
+  tilt: THREE.Vector2; // eased lean toward the cursor while hovered
 }
 
 const COLORS = {
@@ -139,6 +144,19 @@ export class Universe {
   private layout = { x: 5.6, scale: 1, portrait: false };
   private baseFov = 62;
 
+  // music + interaction
+  private music = 0;
+  private bass = 0;
+  private surge = 0;
+  private lastBeamId: string | null = null;
+  private hoverUv = new THREE.Vector2(0.5, 0.5);
+  private ufoHovered = false;
+  private cursorLight!: THREE.PointLight;
+  private cursorLightK = 0;
+  private gyro = new THREE.Vector2();
+  private gyroBase: { b: number; g: number } | null = null;
+  private shooting: { line: THREE.Line; t: number; dur: number; from: THREE.Vector3; dir: THREE.Vector3; len: number }[] = [];
+  private nextShoot = 4;
   private farStars = new THREE.Group();
   private farStarMats: THREE.ShaderMaterial[] = [];
   private planetMats: THREE.ShaderMaterial[] = [];
@@ -197,6 +215,7 @@ export class Universe {
     this.ufo = createUfo(this.glowTex);
     this.scene.add(this.ufo.group);
     this.buildGallery();
+    this.buildInteraction();
 
     // Post-processing: bloom → cinematic (motion blur / CA / vignette) → tone map.
     this.composer = new EffectComposer(this.renderer);
@@ -265,6 +284,24 @@ export class Universe {
     this.select(best.slot);
   }
 
+  /** Preview audio levels (0..1), fed every frame while a song plays. */
+  setMusic(level: number, bass: number) {
+    this.music = level;
+    this.bass = bass;
+  }
+
+  /** The UFO picks a random single (not the last one) and flies you to it. */
+  beamRandom() {
+    if (this.focused || !this.singles.length) return;
+    const pool = this.singles.filter((s) => s.id !== this.lastBeamId);
+    const pick = pool[Math.floor(Math.random() * pool.length)] || this.singles[0];
+    this.lastBeamId = pick.id;
+    this.surge = 1;
+    this.flash = this.reducedMotion ? 0 : 0.22;
+    this.cb.onBeam?.(pick);
+    void this.open(pick.id);
+  }
+
   /** Open whichever single is closest ahead. */
   openNearest() {
     const s = this.nearestSlot();
@@ -281,6 +318,7 @@ export class Universe {
     cancelAnimationFrame(this.raf);
     this.resizeObs.disconnect();
     this.unbindInput();
+    window.removeEventListener("deviceorientation", this.onOrient);
     this.ufo.dispose();
     this.disposables.forEach((d) => d.dispose());
     this.scene.traverse((o) => {
@@ -795,7 +833,78 @@ export class Universe {
         z: 0,
         hover: 0,
         focus: 0,
+        tilt: new THREE.Vector2(),
       });
+    }
+  }
+
+  private buildInteraction() {
+    // A soft light that follows the cursor through space: glints across the
+    // clear-coated sleeves and the vinyl as you move the mouse.
+    this.cursorLight = new THREE.PointLight(new THREE.Color("#cfeeff"), 0, 16, 2);
+    this.scene.add(this.cursorLight);
+
+    // Shooting stars: a small pool of additive lines, bright head → dark tail.
+    if (!this.reducedMotion) {
+      for (let i = 0; i < 3; i++) {
+        const geo = new THREE.BufferGeometry();
+        geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(6), 3));
+        geo.setAttribute("color", new THREE.BufferAttribute(new Float32Array([1.6, 1.8, 2.0, 0, 0, 0]), 3));
+        const line = new THREE.Line(
+          geo,
+          new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, toneMapped: false }),
+        );
+        line.visible = false;
+        line.frustumCulled = false;
+        this.scene.add(line);
+        this.shooting.push({ line, t: 0, dur: 1, from: new THREE.Vector3(), dir: new THREE.Vector3(), len: 0 });
+      }
+    }
+
+    // Phones: tilt the device to look around (permission is asked on Enter).
+    if (this.lowPower && !this.reducedMotion) window.addEventListener("deviceorientation", this.onOrient);
+  }
+
+  private onOrient = (e: DeviceOrientationEvent) => {
+    if (e.beta == null || e.gamma == null) return;
+    if (!this.gyroBase) this.gyroBase = { b: e.beta, g: e.gamma };
+    this.gyro.set(clamp((e.gamma - this.gyroBase.g) / 25, -1, 1), clamp(-(e.beta - this.gyroBase.b) / 25, -1, 1));
+  };
+
+  private updateShootingStars(dt: number) {
+    if (!this.shooting.length) return;
+    this.nextShoot -= dt;
+    if (this.nextShoot <= 0) {
+      this.nextShoot = 5 + Math.random() * 9;
+      const free = this.shooting.find((s) => !s.line.visible);
+      if (free) {
+        // somewhere in the upper sky ahead, crossing diagonally
+        // from.z is relative to the camera, so the streak stays in the far sky
+        free.from.set((Math.random() * 2 - 1) * 220, 60 + Math.random() * 90, -260 - Math.random() * 120);
+        free.dir.set(Math.random() < 0.5 ? -1 : 1, -0.35 - Math.random() * 0.3, 0.1).normalize();
+        free.len = 30 + Math.random() * 30;
+        free.dur = 0.7 + Math.random() * 0.6;
+        free.t = 0;
+        free.line.visible = true;
+      }
+    }
+    for (const s of this.shooting) {
+      if (!s.line.visible) continue;
+      s.t += dt / s.dur;
+      if (s.t >= 1) {
+        s.line.visible = false;
+        continue;
+      }
+      const travel = s.t * 260;
+      const fade = Math.sin(s.t * Math.PI);
+      const pos = s.line.geometry.attributes.position as THREE.BufferAttribute;
+      const head = s.from.clone().addScaledVector(s.dir, travel);
+      head.z += this.camZ;
+      const tail = head.clone().addScaledVector(s.dir, -s.len * (0.4 + 0.6 * fade));
+      pos.setXYZ(0, head.x, head.y, head.z);
+      pos.setXYZ(1, tail.x, tail.y, tail.z);
+      pos.needsUpdate = true;
+      (s.line.material as THREE.LineBasicMaterial).opacity = fade;
     }
   }
 
@@ -899,6 +1008,7 @@ export class Universe {
       this.updatePointer(e);
       const slot = this.pick();
       if (slot) this.select(slot);
+      else if (this.pickUfo()) this.beamRandom();
     }
     if (e.pointerType !== "mouse") this.pointer.set(9, 9);
   };
@@ -963,7 +1073,14 @@ export class Universe {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     const meshes = this.slots.filter((s) => s.front.opacity > 0.3).map((s) => s.cover);
     const hit = this.raycaster.intersectObjects(meshes, false)[0];
+    if (hit?.uv && hit.face && hit.face.materialIndex === 4) this.hoverUv.copy(hit.uv);
     return hit ? this.slots[hit.object.userData.slotIndex as number] : null;
+  }
+
+  private pickUfo(): boolean {
+    if (Math.abs(this.pointer.x) > 1 || Math.abs(this.pointer.y) > 1) return false;
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    return this.raycaster.intersectObjects(this.ufo.hitTargets, false).length > 0;
   }
 
   private select(slot: Slot) {
@@ -1053,6 +1170,7 @@ export class Universe {
     // ── camera ──
     const look = this.focused ? 0 : 1;
     if (this.pointerInside) this.parallax.lerp(this.pointer, 1 - Math.exp(-dt * 3));
+    else if (this.gyroBase) this.parallax.lerp(this.gyro, 1 - Math.exp(-dt * 4));
     else this.parallax.multiplyScalar(Math.exp(-dt * 2));
     const bob = this.reducedMotion ? 0 : Math.sin(t * 0.8) * 0.06;
     this.camera.position.set(0, 0.2 + bob, this.camZ);
@@ -1074,7 +1192,10 @@ export class Universe {
     for (const p of this.planetSpin) p.rotation.y = t * 0.008;
     for (const m of this.planetMats) m.uniforms.uTime.value = t;
     this.ufo.group.position.z = this.camZ - 125;
-    this.ufo.update(t, speedK);
+    this.surge = damp(this.surge, 0, 1.6, dt);
+    const m = this.reducedMotion ? this.music * 0.4 : this.music;
+    const b = this.reducedMotion ? this.bass * 0.4 : this.bass;
+    this.ufo.update(t, speedK, m, b, this.surge);
 
     for (const pts of [this.stars, this.dust]) {
       pts.material.uniforms.uCamZ.value = this.camZ;
@@ -1086,7 +1207,7 @@ export class Universe {
     this.lanes.position.z = this.camZ - 215;
     this.lanes.material.uniforms.uCamZ.value = this.camZ;
     this.lanes.material.uniforms.uTime.value = t;
-    this.lanes.material.uniforms.uSpeed.value = speedK;
+    this.lanes.material.uniforms.uSpeed.value = speedK + b * 1.2 + this.surge;
 
     // asteroids
     const m4 = new THREE.Matrix4();
@@ -1120,7 +1241,17 @@ export class Universe {
     u.uTime.value = t;
     u.uFlash.value = this.flash;
     u.uAberration.value = 0.0012 + speedK * 0.002;
-    this.bloom.strength = 0.5 + speedK * 0.3;
+    this.bloom.strength = 0.5 + speedK * 0.3 + m * 0.25 + this.surge * 0.4;
+
+    // cursor light: sits ~6 units into the scene along the pointer ray
+    const lightOn = this.pointerInside && this.inputEnabled && !this.lowPower ? 1 : 0;
+    this.cursorLightK = damp(this.cursorLightK, lightOn, 4, dt);
+    if (this.cursorLightK > 0.01) {
+      this.raycaster.setFromCamera(this.pointer, this.camera);
+      this.cursorLight.position.copy(this.raycaster.ray.origin).addScaledVector(this.raycaster.ray.direction, 6.5);
+    }
+    this.cursorLight.intensity = 11 * this.cursorLightK;
+    this.updateShootingStars(dt);
 
     this.cb.onFrame?.(absSpeed);
     if (t - this.lastTelemetry > 0.12) {
@@ -1136,14 +1267,23 @@ export class Universe {
         this.cb.onHover?.(null);
         this.container.style.cursor = "";
       }
+      if (this.ufoHovered) {
+        this.ufoHovered = false;
+        this.cb.onUfoHover?.(false);
+      }
       return;
     }
     const slot = this.pick();
     if (slot !== this.hovered) {
       this.hovered = slot;
       this.cb.onHover?.(slot ? slot.single : null);
-      this.container.style.cursor = slot ? "pointer" : "";
     }
+    const ufo = !slot && this.pickUfo();
+    if (ufo !== this.ufoHovered) {
+      this.ufoHovered = ufo;
+      this.cb.onUfoHover?.(ufo);
+    }
+    this.container.style.cursor = slot || ufo ? "pointer" : "";
   }
 
   private updateNearest() {
@@ -1197,7 +1337,12 @@ export class Universe {
         s.jitterY * scale + bob + 0.3,
         s.z + Math.cos(rotY) * fwd,
       );
-      this.eul.set(0, rotY, Math.sin(t * 0.4 + s.seed * 6) * 0.015);
+      // lean toward the cursor while hovered (like holding a real sleeve)
+      const tx = isHover ? (this.hoverUv.y - 0.5) * -0.32 : 0;
+      const ty = isHover ? (this.hoverUv.x - 0.5) * 0.4 : 0;
+      s.tilt.x = damp(s.tilt.x, tx, 7, dt);
+      s.tilt.y = damp(s.tilt.y, ty, 7, dt);
+      this.eul.set(s.tilt.x, rotY + s.tilt.y, Math.sin(t * 0.4 + s.seed * 6) * 0.015);
       this.qA.setFromEuler(this.eul);
       let sc = scale * (1 + s.hover * 0.06);
 
@@ -1226,7 +1371,7 @@ export class Universe {
       s.group.visible = opacity > 0.01;
       s.front.emissiveIntensity = 0.42 + s.hover * 0.22 + s.focus * 0.18;
 
-      const glow = 0.18 + s.hover * 0.85 + s.focus * 0.55;
+      const glow = 0.18 + s.hover * 0.85 + s.focus * (0.55 + this.bass * 1.4);
       s.frameMat.uniforms.uGlow.value = glow;
       s.frameMat.uniforms.uOpacity.value = opacity;
       s.frameMat.uniforms.uTime.value = t + s.seed * 5;
@@ -1237,7 +1382,7 @@ export class Universe {
         const out = Math.max(s.hover, s.focus);
         const dir = s.focus > 0.5 ? 1 : -s.side;
         s.vinyl.position.x = dir * COVER_SIZE * (0.24 + out * 0.22);
-        s.vinyl.rotation.z -= dt * (0.2 + out * 2.4);
+        s.vinyl.rotation.z -= dt * (0.2 + out * 2.4 + (isFocus ? this.music * 5 : 0));
         for (const m of s.vinylMats) m.opacity = opacity;
       }
     }

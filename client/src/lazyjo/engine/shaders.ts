@@ -312,6 +312,7 @@ export const beamFrag = /* glsl */ `
 uniform float uTime;
 uniform vec3 uColor;
 uniform vec3 uCore;
+uniform float uBoost;
 varying vec2 vUv;
 varying vec3 vNormalV;
 varying vec3 vViewPos;
@@ -323,7 +324,7 @@ void main(){
   float flicker = 0.9 + 0.1 * sin(uTime * 23.0);
   float fall = pow(y, 1.4);
   vec3 col = mix(uColor, uCore, body * fall);
-  float a = body * fall * rings * flicker * 0.3;
+  float a = body * fall * rings * flicker * (0.3 + uBoost);
   gl_FragColor = vec4(col * 1.2, a);
 }
 `;

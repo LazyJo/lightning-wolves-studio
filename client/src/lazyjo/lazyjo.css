@@ -299,7 +299,7 @@ a { color: var(--lj-cyan); }
   margin: 8px 0 4px;
   font-family: var(--lj-display); font-weight: 800;
   font-size: clamp(22px, 3.2vw, 30px); line-height: 1.05; letter-spacing: 0.04em; text-transform: uppercase;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 .lj-player-artist { margin: 0; font-size: 17px; font-weight: 600; color: var(--lj-muted); letter-spacing: 0.08em; }
 

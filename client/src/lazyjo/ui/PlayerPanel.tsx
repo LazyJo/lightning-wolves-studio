@@ -137,7 +137,12 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
             <p className="lj-eyebrow">
               <span className="lj-dot" /> Single · {single.year}
             </p>
-            <h2 id="lj-player-title" className="lj-player-title">
+            <h2
+              id="lj-player-title"
+              className="lj-player-title"
+              // long one-word titles step down instead of breaking mid-word
+              style={single.title.length > 12 ? { fontSize: "clamp(17px, 2vw, 20px)" } : single.title.length > 8 ? { fontSize: "clamp(19px, 2.4vw, 24px)" } : undefined}
+            >
               {single.title}
             </h2>
             <p className="lj-player-artist">{ARTIST}</p>

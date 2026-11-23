@@ -42,6 +42,7 @@ export default function LazyJoUniverse() {
   const [nearest, setNearest] = useState<Single | null>(null);
   const [selected, setSelected] = useState<Single | null>(null);
   const [hasMoved, setHasMoved] = useState(false);
+  const [ufoHover, setUfoHover] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [purchase, setPurchase] = useState<{ sessionId?: string; cancelled?: boolean } | null>(null);
   const deepLink = useRef<string | null>(null);
@@ -79,7 +80,14 @@ export default function LazyJoUniverse() {
           setSelected(s);
         },
         onNearest: setNearest,
-        onFrame: (speed) => sound.setSpeed(speed),
+        onFrame: (speed) => {
+          sound.setSpeed(speed);
+          // the universe dances to whatever preview is playing
+          const { level, bass } = sound.levels();
+          engineRef.current?.setMusic(level, bass);
+        },
+        onUfoHover: setUfoHover,
+        onBeam: () => sound.beam(),
         onTelemetry: ({ speed, distance }) => {
           const t = telemetryRef.current;
           if (t.speed) t.speed.textContent = (speed / 60).toFixed(2);
@@ -98,6 +106,11 @@ export default function LazyJoUniverse() {
   }, []);
 
   const enter = useCallback((withSound: boolean) => {
+    // iOS only lets a page read device tilt after a tap asks for it
+    const DOE = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> } | undefined;
+    if (DOE?.requestPermission && window.matchMedia("(pointer: coarse)").matches) {
+      DOE.requestPermission().catch(() => {});
+    }
     if (withSound) {
       sound.ensure();
       sound.setAmbient(true);
@@ -178,6 +191,8 @@ export default function LazyJoUniverse() {
           showHint={!hasMoved && !selected}
           noWebgl={noWebgl}
           onOpenNearest={() => (nearest ? openSingle(nearest.id) : engineRef.current?.openNearest())}
+          onBeam={() => engineRef.current?.beamRandom()}
+          ufoHover={!selected && ufoHover}
           telemetryRef={telemetryRef}
         />
       )}

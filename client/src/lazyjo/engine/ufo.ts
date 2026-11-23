@@ -7,7 +7,10 @@ import { beamFrag, beamVert } from "./shaders";
  */
 export interface Ufo {
   group: THREE.Group;
-  update(t: number, speed: number): void;
+  /** music/bass 0..1 from the preview player, surge 0..1 after a "beam" click */
+  update(t: number, speed: number, music?: number, bass?: number, surge?: number): void;
+  /** meshes a click/hover can hit */
+  hitTargets: THREE.Object3D[];
   dispose(): void;
 }
 
@@ -153,6 +156,7 @@ export function createUfo(glowTex: THREE.Texture): Ufo {
         uTime: { value: 0 },
         uColor: { value: BLUE.clone() },
         uCore: { value: new THREE.Color("#e6ffff") },
+        uBoost: { value: 0 },
       },
       transparent: true,
       depthWrite: false,
@@ -206,18 +210,26 @@ export function createUfo(glowTex: THREE.Texture): Ufo {
   group.rotation.x = 0.24; // tilt toward the viewer so the top + rings read
 
   const col = new THREE.Color();
-  function update(t: number, speed: number) {
-    group.position.y = 12.5 + Math.sin(t * 0.45) * 0.8;
+  const rimMat = rimRing.material as THREE.MeshBasicMaterial;
+  const haloMat = halo.material as THREE.SpriteMaterial;
+  const haloBase = haloMat.color.clone();
+  function update(t: number, speed: number, music = 0, bass = 0, surge = 0) {
+    group.position.y = 12.5 + Math.sin(t * 0.45) * 0.8 + surge * 1.2;
     group.rotation.z = Math.sin(t * 0.3) * 0.025;
     hull.rotation.y = t * 0.05;
     engine.rotation.y = -t * (0.6 + speed * 0.4);
     midRing.rotation.z = t * 0.2;
     beamMat.uniforms.uTime.value = t;
+    beamMat.uniforms.uBoost.value = music * 0.22 + bass * 0.2 + surge * 0.7;
     const pulse = 0.85 + 0.15 * Math.sin(t * 2.2);
-    coreMat.color.copy(CYAN).multiplyScalar(1.5 * pulse + speed * 0.5);
+    coreMat.color.copy(CYAN).multiplyScalar(1.5 * pulse + speed * 0.5 + bass * 1.6 + surge * 3);
+    rimMat.color.copy(CYAN).multiplyScalar(2.2 + bass * 2.6 + surge * 4);
+    rimRing.scale.setScalar(1 + bass * 0.018);
+    under.intensity = 500 * (1 + bass * 1.3 + surge * 2.5);
+    haloMat.color.copy(haloBase).multiplyScalar(1 + music * 0.8 + surge * 2);
     for (let i = 0; i < BEACONS; i++) {
       const phase = (i / BEACONS + t * 0.35) % 1;
-      const k = Math.pow(1 - phase, 6) * 3 + 0.35;
+      const k = Math.pow(1 - phase, 6) * (3 + bass * 4) + 0.35 + surge * 2;
       col.copy(i % 2 ? CYAN : BLUE).multiplyScalar(k);
       beacons.setColorAt(i, col);
     }
@@ -227,6 +239,7 @@ export function createUfo(glowTex: THREE.Texture): Ufo {
   return {
     group,
     update,
+    hitTargets: [hull, dome],
     dispose() {
       disposables.forEach((d) => d.dispose());
       beacons.dispose();

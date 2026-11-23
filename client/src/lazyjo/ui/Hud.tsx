@@ -1,5 +1,5 @@
 import type { MutableRefObject } from "react";
-import { ChevronsUp, ListMusic, Volume2, VolumeX } from "lucide-react";
+import { ChevronsUp, ListMusic, Sparkles, Volume2, VolumeX } from "lucide-react";
 import type { Single } from "../catalog";
 import { formatPrice } from "../catalog";
 
@@ -8,6 +8,8 @@ interface Props {
   onToggleSound(): void;
   onOpenList(): void;
   onOpenNearest(): void;
+  onBeam(): void;
+  ufoHover: boolean;
   hovered: Single | null;
   nearest: Single | null;
   showHint: boolean;
@@ -20,6 +22,8 @@ export default function Hud({
   onToggleSound,
   onOpenList,
   onOpenNearest,
+  onBeam,
+  ufoHover,
   hovered,
   nearest,
   showHint,
@@ -35,6 +39,11 @@ export default function Hud({
           <span className="lj-wordmark-sub">Universe</span>
         </a>
         <div className="lj-hud-actions">
+          {!noWebgl && (
+            <button className="lj-chip" onClick={onBeam} aria-label="Beam me a random song">
+              <Sparkles size={16} aria-hidden /> <span className="lj-hide-sm">Beam me a song</span>
+            </button>
+          )}
           <button className="lj-chip" onClick={onOpenList} aria-label="Open singles list">
             <ListMusic size={16} aria-hidden /> <span className="lj-hide-sm">Singles</span>
           </button>
@@ -66,8 +75,14 @@ export default function Hud({
             </div>
           </div>
 
-          <div className={`lj-target ${focus ? "is-visible" : ""}`} aria-live="polite">
-            {focus && (
+          <div className={`lj-target ${focus || ufoHover ? "is-visible" : ""}`} aria-live="polite">
+            {ufoHover ? (
+              <button className="lj-target-inner" onClick={onBeam} tabIndex={-1}>
+                <span className="lj-target-label">Click the UFO</span>
+                <span className="lj-target-title">Beam me a song</span>
+                <span className="lj-target-meta">a random single, straight to you</span>
+              </button>
+            ) : focus && (
               <button className="lj-target-inner" onClick={onOpenNearest} tabIndex={hovered ? -1 : 0}>
                 <span className="lj-target-label">{hovered ? "Click to open" : "Approaching"}</span>
                 <span className="lj-target-title">{focus.title}</span>

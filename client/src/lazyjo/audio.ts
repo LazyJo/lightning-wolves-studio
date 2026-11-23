@@ -264,6 +264,42 @@ export class SoundEngine {
     src.stop(t + 2.3);
   }
 
+  /** UFO beam: a rising shimmer with a soft whoosh. */
+  beam() {
+    if (!this.ctx || !this.ambientOn) return;
+    this.tone(330, 1320, 0.9, 0.07, "sine");
+    this.tone(495, 1980, 1.0, 0.035, "triangle");
+    const ctx = this.ctx;
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = this.noise;
+    const f = ctx.createBiquadFilter();
+    f.type = "bandpass";
+    f.frequency.setValueAtTime(600, t);
+    f.frequency.exponentialRampToValueAtTime(4000, t + 0.9);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.12, t + 0.3);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+    src.connect(f).connect(g).connect(this.sfx);
+    src.start(t);
+    src.stop(t + 1.2);
+  }
+
+  private levelBins: Uint8Array<ArrayBuffer> | null = null;
+  /** Live preview loudness for the visuals: overall level + bass (both 0..1). */
+  levels(): { level: number; bass: number } {
+    if (!this.previewId || !this.analyser) return { level: 0, bass: 0 };
+    if (!this.levelBins) this.levelBins = new Uint8Array(this.analyser.frequencyBinCount);
+    const b = this.levelBins;
+    this.analyser.getByteFrequencyData(b);
+    let low = 0;
+    for (let i = 1; i < 6; i++) low += b[i];
+    let all = 0;
+    for (let i = 0; i < 64; i++) all += b[i];
+    return { level: Math.min(all / (64 * 200), 1), bass: Math.pow(Math.min(low / (5 * 235), 1), 2.2) };
+  }
+
   // ───────────────────────── previews ─────────────────────────
 
   get previewPlaying() {

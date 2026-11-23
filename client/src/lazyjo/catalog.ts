@@ -54,6 +54,33 @@ export const SINGLES: Single[] = raw.singles.map((s) => ({
 
 export const singleById = new Map(SINGLES.map((s) => [s.id, s]));
 
+/* ─── per-song colours: the player takes its accents from the cover ─── */
+function luminance(hex: string): number {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const [r, g, b] = c.map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+
+/** CSS variables that recolour the player (border, corners, play, prices, Buy) to the song. */
+export function themeStyle(s: Single): Record<string, string> {
+  const [, a, b] = s.palette;
+  // text on the accent buttons: dark or white, whichever reads better on BOTH accents
+  const la = luminance(a);
+  const lb = luminance(b);
+  const dark = Math.min(contrast(la, 0.005), contrast(lb, 0.005));
+  const light = Math.min(contrast(la, 1), contrast(lb, 1));
+  return {
+    "--lj-cyan": a,
+    "--lj-blue": `color-mix(in srgb, ${a} 55%, ${b})`,
+    "--lj-purple": b,
+    "--lj-accent-end": b,
+    "--lj-accent-deep": `color-mix(in srgb, ${b} 70%, black)`,
+    "--lj-line": `color-mix(in srgb, ${a} 30%, transparent)`,
+    "--lj-on-accent": dark >= light ? "#05070d" : "#ffffff",
+  };
+}
+
 export const ALBUM: string | null = "album" in raw && typeof raw.album === "string" ? raw.album : null;
 
 /** "Somebody (feat. Zirka)" */

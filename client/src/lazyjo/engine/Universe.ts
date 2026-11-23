@@ -880,7 +880,9 @@ export class Universe {
       cover.userData.slotIndex = i;
       group.add(cover);
 
+      // the frame glows in the song's own colours (picked from its cover)
       const accent = new THREE.Color(single.palette[2]);
+      const accentMain = new THREE.Color(single.palette[1]);
       const frameMat = new THREE.ShaderMaterial({
         vertexShader: holoVert,
         fragmentShader: holoFrag,
@@ -889,8 +891,8 @@ export class Universe {
           uGlow: { value: 0.2 },
           uOpacity: { value: 1 },
           uInner: { value: 1 / 1.12 },
-          uColorA: { value: COLORS.cyan.clone().lerp(accent, 0.5) },
-          uColorB: { value: accent.clone().lerp(COLORS.blue, 0.3) },
+          uColorA: { value: accentMain.clone().lerp(COLORS.cyan, 0.15) },
+          uColorB: { value: accent.clone() },
         },
         transparent: true,
         depthWrite: false,

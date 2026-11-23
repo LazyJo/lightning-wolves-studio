@@ -1,5 +1,5 @@
 {
-  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/): the 28 songs of the album JAVEDA in album order, then newer singles (no `track`) (the same order as the JAVEDA levels; the flight passes them left/right in this order). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. previewUrl = the public JAVEDA level song in the Supabase 'media' bucket (the player stops after 30 s). masterPath = the object key of the WAV in the PRIVATE bucket LAZYJO_MASTERS_BUCKET (default 'lazyjo-masters'), only handed out as a short-lived signed URL after Stripe confirms payment. Upload the WAVs with: node scripts/upload-masters.js <folder> (Jo's PC). cover = the official single artwork (client/public/lazyjo/covers/NN-id.webp, 800px, taken from Apple Music on 2026-11-23); year = its release year. cover null -> generated artwork in the palette colours. priceCents = the minimum (server-enforced), suggestedCents = the preselected amount in the player. forSale: false = the WAV isn't uploaded yet: the song shows 'WAV coming soon' and the server refuses its checkout. Remove the line once its WAV is in the bucket.",
+  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/): the 28 songs of the album JAVEDA in album order, then newer singles (no `track`) (the same order as the JAVEDA levels; the flight passes them left/right in this order). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. previewUrl = the public JAVEDA level song in the Supabase 'media' bucket (the player stops after 30 s). masterPath = the object key of the WAV in the PRIVATE bucket LAZYJO_MASTERS_BUCKET (default 'lazyjo-masters'), only handed out as a short-lived signed URL after Stripe confirms payment. Upload the WAVs with: node scripts/upload-masters.js <folder> (Jo's PC). cover = the official single artwork (client/public/lazyjo/covers/NN-id.webp, 800px, taken from Apple Music on 2026-11-23); year = its release year. cover null -> generated artwork in the palette colours. priceCents = the minimum (server-enforced), suggestedCents = the preselected amount in the player. forSale: false = the WAV isn't uploaded yet: the song shows 'WAV coming soon' and the server refuses its checkout. Remove the line once its WAV is in the bucket. palette = [dark, accent, accent 2] picked from the cover: the player (border, buttons, Buy) and the 3D frame use it.",
   "artist": "Lazy Jo",
   "currency": "eur",
   "singles": [
@@ -13,9 +13,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl1.mp3",
       "masterPath": "javeda/01-im-lost.wav",
       "palette": [
-        "#050c1e",
-        "#2f8fe0",
-        "#1c5dca"
+        "#061123",
+        "#387ae6",
+        "#4937e6"
       ],
       "motif": "orb",
       "vinyl": false,
@@ -34,9 +34,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl2.mp3",
       "masterPath": "javeda/02-somebody.wav",
       "palette": [
-        "#120a05",
-        "#ffb020",
-        "#bd6b29"
+        "#230c06",
+        "#dd5e40",
+        "#dda940"
       ],
       "motif": "silhouette",
       "vinyl": true,
@@ -54,9 +54,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl3.mp3",
       "masterPath": "javeda/03-my-heart.wav",
       "palette": [
-        "#05060a",
-        "#e11d2e",
-        "#b92c47"
+        "#230606",
+        "#e63739",
+        "#e68a37"
       ],
       "motif": "orb",
       "vinyl": true,
@@ -73,9 +73,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl4.mp3",
       "masterPath": "javeda/04-rollercoaster.wav",
       "palette": [
-        "#060a18",
-        "#38d9ff",
-        "#2252c3"
+        "#061423",
+        "#408edd",
+        "#4042dd"
       ],
       "motif": "road",
       "vinyl": false,
@@ -92,9 +92,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl5.mp3",
       "masterPath": "javeda/05-feel-like-that.wav",
       "palette": [
-        "#0c0818",
-        "#ffc65c",
-        "#552eb8"
+        "#231306",
+        "#e5a16b",
+        "#ddd141"
       ],
       "motif": "moon",
       "vinyl": true,
@@ -111,9 +111,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl6.mp3",
       "masterPath": "javeda/06-no-rest-no-work.wav",
       "palette": [
-        "#140a12",
-        "#ff8a2a",
-        "#b8342e"
+        "#231306",
+        "#dd8840",
+        "#ddd440"
       ],
       "motif": "road",
       "vinyl": true,
@@ -131,9 +131,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl7.mp3",
       "masterPath": "javeda/07-journey.wav",
       "palette": [
-        "#04050f",
-        "#ff9a3c",
-        "#2e3db8"
+        "#05101f",
+        "#3b8cff",
+        "#4bd384"
       ],
       "motif": "road",
       "vinyl": false,
@@ -151,9 +151,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl8.mp3",
       "masterPath": "javeda/08-myself.wav",
       "palette": [
-        "#120505",
-        "#ff7a2a",
-        "#c12f25"
+        "#230706",
+        "#f63028",
+        "#f69428"
       ],
       "motif": "silhouette",
       "vinyl": true,
@@ -172,9 +172,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl9.mp3",
       "masterPath": "javeda/09-oublie-moi.wav",
       "palette": [
-        "#0b0416",
-        "#ff3d8b",
-        "#602eb8"
+        "#23060e",
+        "#dd406b",
+        "#4c4bd2"
       ],
       "motif": "city",
       "vinyl": true,
@@ -191,9 +191,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl10.mp3",
       "masterPath": "javeda/10-going-crazy.wav",
       "palette": [
-        "#060914",
+        "#231306",
         "#ff8a2a",
-        "#2e53b8"
+        "#ffef1f"
       ],
       "motif": "bolt",
       "vinyl": false,
@@ -210,9 +210,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl11.mp3",
       "masterPath": "javeda/11-la-night.wav",
       "palette": [
-        "#07051a",
-        "#dead7c",
-        "#ff3a5a"
+        "#160623",
+        "#9840dd",
+        "#dd40d8"
       ],
       "motif": "city",
       "vinyl": true,
@@ -229,9 +229,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl12.mp3",
       "masterPath": "javeda/12-need-more-time.wav",
       "palette": [
-        "#04101a",
-        "#22d3ee",
-        "#0ea5e9"
+        "#061b23",
+        "#3fb6df",
+        "#3f69df"
       ],
       "motif": "moon",
       "vinyl": true,
@@ -248,9 +248,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl13.mp3",
       "masterPath": "javeda/13-you-ready.wav",
       "palette": [
-        "#140727",
-        "#ff5ab4",
-        "#2a3ad8"
+        "#062123",
+        "#2be7f3",
+        "#efb862"
       ],
       "motif": "bolt",
       "vinyl": false,
@@ -267,9 +267,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl14.mp3",
       "masterPath": "javeda/14-la-vibe.wav",
       "palette": [
-        "#05030c",
-        "#3ae0ff",
-        "#ff4fd8"
+        "#1b0623",
+        "#b440dd",
+        "#dd40bb"
       ],
       "motif": "city",
       "vinyl": true,
@@ -287,9 +287,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl15.mp3",
       "masterPath": "javeda/15-ghost.wav",
       "palette": [
-        "#0e0b14",
+        "#23060a",
         "#ff5c72",
-        "#ffa040"
+        "#ff7329"
       ],
       "motif": "silhouette",
       "vinyl": true,
@@ -307,9 +307,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl16.mp3",
       "masterPath": "javeda/16-peace-inside.wav",
       "palette": [
-        "#140727",
-        "#fdb927",
-        "#8a4fd0"
+        "#150623",
+        "#9040dd",
+        "#d24b91"
       ],
       "motif": "moon",
       "vinyl": false,
@@ -326,9 +326,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl17.mp3",
       "masterPath": "javeda/17-true-fighter.wav",
       "palette": [
-        "#061828",
-        "#ffd21a",
-        "#0c90da"
+        "#062123",
+        "#1ff2ff",
+        "#fccc55"
       ],
       "motif": "bolt",
       "vinyl": true,
@@ -346,9 +346,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl18.mp3",
       "masterPath": "javeda/18-issues.wav",
       "palette": [
-        "#040818",
-        "#4a8aff",
-        "#5cc0ff"
+        "#060f23",
+        "#3a6ee3",
+        "#593ae3"
       ],
       "motif": "orb",
       "vinyl": true,
@@ -365,11 +365,11 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl19.mp3",
       "masterPath": "javeda/19-stay-up.wav",
       "palette": [
-        "#020a0c",
-        "#3ae8ff",
-        "#9a3aff"
+        "#061523",
+        "#2092fd",
+        "#2029fd"
       ],
-      "motif": "portrait",
+      "motif": "bolt",
       "vinyl": false,
       "placeholder": false,
       "suggestedCents": 500
@@ -384,9 +384,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl20.mp3",
       "masterPath": "javeda/20-stay-up-2.wav",
       "palette": [
-        "#04051a",
-        "#5c87ff",
-        "#3a2aff"
+        "#060723",
+        "#4043dd",
+        "#65b1d8"
       ],
       "motif": "bolt",
       "vinyl": true,
@@ -403,9 +403,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl21.mp3",
       "masterPath": "javeda/21-blind-love.wav",
       "palette": [
-        "#0d0628",
-        "#ed6ec5",
-        "#a45cff"
+        "#0c0623",
+        "#6340dd",
+        "#d24baa"
       ],
       "motif": "orb",
       "vinyl": true,
@@ -422,9 +422,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl22.mp3",
       "masterPath": "javeda/22-space-kid.wav",
       "palette": [
-        "#0e0628",
-        "#ffb83a",
-        "#ff3a3a"
+        "#230608",
+        "#f22c3a",
+        "#f9dd58"
       ],
       "motif": "moon",
       "vinyl": false,
@@ -441,9 +441,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl23.mp3",
       "masterPath": "javeda/23-fall-in-love-again.wav",
       "palette": [
-        "#061c28",
-        "#985cff",
-        "#ff5c97"
+        "#061a23",
+        "#40aedd",
+        "#4063dd"
       ],
       "motif": "orb",
       "vinyl": true,
@@ -460,9 +460,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl24.mp3",
       "masterPath": "javeda/24-down-for-me.wav",
       "palette": [
-        "#271207",
-        "#ffde5c",
-        "#ffae5c"
+        "#231606",
+        "#f8bc6d",
+        "#74dccf"
       ],
       "motif": "silhouette",
       "vinyl": true,
@@ -479,9 +479,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl25.mp3",
       "masterPath": "javeda/25-real-love.wav",
       "palette": [
-        "#1a0708",
-        "#ff865c",
-        "#ff5a8a"
+        "#1f0509",
+        "#ff4d6a",
+        "#ffb36b"
       ],
       "motif": "orb",
       "vinyl": false,
@@ -498,9 +498,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl26.mp3",
       "masterPath": "javeda/26-lifestyle-crazy.wav",
       "palette": [
-        "#02030c",
-        "#ff2a4a",
-        "#ff40c0"
+        "#230614",
+        "#f22c8b",
+        "#d737e6"
       ],
       "motif": "city",
       "vinyl": true,
@@ -517,9 +517,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl27.mp3",
       "masterPath": "javeda/27-be-alright.wav",
       "palette": [
-        "#061328",
-        "#ff3a5a",
-        "#5cb2ff"
+        "#061523",
+        "#2c92f2",
+        "#2b33f2"
       ],
       "motif": "moon",
       "vinyl": true,
@@ -537,9 +537,9 @@
       "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl28.mp3",
       "masterPath": "javeda/28-go.wav",
       "palette": [
-        "#140727",
-        "#ffd95c",
-        "#ff9a4a"
+        "#1f0d02",
+        "#ff9a3c",
+        "#ffcf5c"
       ],
       "motif": "bolt",
       "vinyl": false,
@@ -556,9 +556,9 @@
       "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/26/02/42/2602425d-0527-9559-a3b7-71394c9ebcaf/mzaf_17193803732881396838.plus.aac.p.m4a",
       "masterPath": "singles/life-be-moving-quick.wav",
       "palette": [
-        "#000001",
-        "#5b3e29",
-        "#9b7351"
+        "#231206",
+        "#dd8340",
+        "#ddce40"
       ],
       "motif": "road",
       "vinyl": true,
@@ -576,10 +576,10 @@
       "masterPath": "singles/stay-up-afro-soul.wav",
       "palette": [
         "#231006",
-        "#853a0e",
-        "#93521a"
+        "#e97535",
+        "#e9cb35"
       ],
-      "motif": "portrait",
+      "motif": "bolt",
       "vinyl": true,
       "placeholder": false,
       "forSale": false

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Pause, Play, Share2, X, Zap } from "lucide-react";
-import { ARTIST, MAX_CENTS, PREVIEW_SECONDS, currencySymbol, formatPrice, fullTitle, releaseLabel, type Single } from "../catalog";
+import { ARTIST, MAX_CENTS, PREVIEW_SECONDS, currencySymbol, formatPrice, fullTitle, releaseLabel, themeStyle, type Single } from "../catalog";
 import JoinForm from "./JoinForm";
 import { isFan } from "../fanGate";
 import { sound } from "../audio";
@@ -76,9 +76,8 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
       const bars = 40;
       const bw = w / bars;
       const g = ctx.createLinearGradient(0, 0, w, 0);
-      g.addColorStop(0, "#00F5FF");
-      g.addColorStop(0.55, "#00BFFF");
-      g.addColorStop(1, "#7B2CFF");
+      g.addColorStop(0, single.palette[1]);
+      g.addColorStop(1, single.palette[2]);
       ctx.fillStyle = g;
       for (let i = 0; i < bars; i++) {
         const v = active
@@ -137,7 +136,7 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
   };
 
   return (
-    <div className="lj-player-wrap" role="dialog" aria-modal="true" aria-labelledby="lj-player-title">
+    <div className="lj-player-wrap" role="dialog" aria-modal="true" aria-labelledby="lj-player-title" style={themeStyle(single)}>
       <div className="lj-player-scrim" onClick={onClose} />
       <section ref={panelRef} tabIndex={-1} className="lj-player lj-holo">
         <span className="lj-corner tl" />

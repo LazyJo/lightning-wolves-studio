@@ -215,6 +215,11 @@ happens, mirror it in the Universe: give each new song the next `track` number (
 `previewUrl` = its `media/javeda/lvlN.mp3`, cover from Apple Music (`covers/NN-id.webp`), `"forSale": false` until its
 WAV is uploaded. Newer singles that aren't on JAVEDA yet (no `track`) sit after the album; when one joins JAVEDA, give it
 its track number, move it into album order and switch its preview to the level song.
+**Per-song colours:** each song's `palette` = [dark, accent, accent 2] picked from its cover; `themeStyle()` in
+`catalog.ts` sets the player's CSS variables (`--lj-cyan/--lj-blue/--lj-purple/--lj-line/--lj-on-accent`) so the
+border, corners, play button, prices and Buy button match the cover, and the 3D frame glows in the same colours.
+In `lazyjo.css` accents are `color-mix(var(--lj-cyan) …)`, never a hard-coded cyan. Don't use motif `portrait` for a
+real cover (it adds the old B&W "LAZY JO" photo treatment).
 Design rule from Jo: straight forward flight only — no circular gallery, tunnel, road or well.
 Gateways: the big ringed purple planet = JAVEDA (warp, then a plain link to
 `/javeda/?src=lazyjo-universe` — never import JAVEDA code); the spiral galaxy opens the

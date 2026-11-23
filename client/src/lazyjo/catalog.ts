@@ -1,4 +1,5 @@
 import raw from "./singles.json";
+import { media } from "../lib/media";
 
 export type CoverMotif =
   | "portrait"
@@ -63,6 +64,16 @@ export interface CoSign {
   context: string;
   link?: string;
   linkLabel?: string;
+  /** photos / a video that prove it, shown under the quote */
+  proof?: ProofMedia[];
+}
+
+export interface ProofMedia {
+  type: "image" | "video";
+  src: string;
+  alt: string;
+  /** still frame for videos (also the fallback if the video isn't uploaded yet) */
+  poster?: string;
 }
 
 export const ARTIST_PROFILE = {
@@ -70,6 +81,8 @@ export const ARTIST_PROFILE = {
   photo: "/LazyJo - StayUp pictures from videoshoot (CS)_-86.JPG.jpeg",
   tagline: "Melodic hip-hop · Brussels",
   bio: "Belgian-Ghanaian artist, born in Lomé, based in Brussels. Melodic flows, emotional hooks \u2014 \u201cStay Up\u201d passed 100K views.",
+  /** shown at the top of "My story" */
+  storyImage: { src: "/lazyjo/proof/stayup-100k-plaque.webp", alt: "Lazy Jo with his Spotify 100,000 streams plaque", caption: "100,000 streams on Spotify" },
   /** "My story": the full bio, shown inside the card */
   story: [
     "Born in 1999 in Lomé, Togo. Belgian-Ghanaian, based in Brussels.",
@@ -79,10 +92,20 @@ export const ARTIST_PROFILE = {
   coSigns: [
     { name: "Timbaland", photo: "/Timbaland.jpeg", quote: "This could be the best song", context: "YouTube", link: "https://www.youtube.com/watch?v=u-MHafxpqhw", linkLabel: "Watch on YouTube" },
     { name: "Symba", photo: "/Symba.jpeg", quote: "International as a M*****f*****r", context: "YouTube", link: "https://www.youtube.com/shorts/mKTSI8Wqw5A", linkLabel: "Watch on YouTube" },
-    { name: "DDG", photo: "/DDG.jpeg", quote: "Next Up", context: "Instagram", link: "https://www.instagram.com/p/Cxf_nEFo4v5/", linkLabel: "Watch on Instagram" },
-    { name: "6ix9ine", photo: "/6ix9ine.jpeg", quote: "Met in real life", context: "In person" },
+    {
+      name: "DDG", photo: "/DDG.jpeg", quote: "Next Up", context: "Instagram", link: "https://www.instagram.com/p/Cxf_nEFo4v5/", linkLabel: "Watch on Instagram",
+      // the crowd video lives in Supabase Storage (media bucket), not in the deploy
+      proof: [{ type: "video", src: media("lazyjo/ddg-crowd.mp4"), poster: "/lazyjo/proof/ddg-crowd-poster.jpg", alt: "Lazy Jo performing in Brussels, surrounded by a packed room" }],
+    },
     { name: "Kelvyn Colt", photo: "/Kelvyn Colt.jpeg", quote: "Go get it my g!!", context: "DM on Instagram" },
     { name: "Zaytoven", photo: "/Zaytoven.jpeg", quote: "Liked the post", context: "Instagram", link: "https://www.instagram.com/p/Cxf_nEFo4v5/", linkLabel: "See it on Instagram" },
+    {
+      name: "6ix9ine", photo: "/6ix9ine.jpeg", quote: "Met in real life", context: "In person",
+      proof: [
+        { type: "image", src: "/lazyjo/proof/6ix9ine-1.webp", alt: "Lazy Jo and 6ix9ine together" },
+        { type: "image", src: "/lazyjo/proof/6ix9ine-2.webp", alt: "Selfie of 6ix9ine and Lazy Jo" },
+      ],
+    },
     { name: "Kid Hazel", photo: "/Kid Hazel.jpeg", quote: "Them songs was hard on ya page fam", context: "DM on Instagram" },
   ] as CoSign[],
   merchUrl: "https://www.even.biz/l/lightningwolves",

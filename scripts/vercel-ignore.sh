@@ -19,7 +19,7 @@ if [ "$VERCEL_ENV" = "production" ]; then echo "Build: production"; exit 1; fi
 BASE="${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}"
 # a redeploy of the same commit is asked for on purpose: build it
 if [ "$(git rev-parse "$BASE" 2>/dev/null)" = "$(git rev-parse HEAD)" ]; then echo "Build: same commit, redeploy"; exit 1; fi
-if git diff --quiet "$BASE" HEAD -- . ':(exclude)*.md' ':(exclude)*.sql' ':(exclude).claude/**' ':(exclude).impeccable/**' 2>/dev/null; then
+if git diff --quiet "$BASE" HEAD -- . ':(exclude)*.md' ':(exclude)*.sql' ':(exclude).claude/**' ':(exclude).impeccable/**' ':(exclude)media-uploads/**' 2>/dev/null; then
   echo "Skip: only notes, schema or agent/design-tool files changed since $BASE"
   exit 0
 fi

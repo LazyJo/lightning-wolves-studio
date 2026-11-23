@@ -83,7 +83,10 @@ October 2026 ~32 pushes at ~150-250 MB each filled the 10 GB, so:
 - `vercel.json` no longer copies the repo-root media into `client/public` (every root file
   was a duplicate). The root `public/` and root `*.mp4` are not deployed.
 - `scripts/vercel-ignore.sh` (vercel.json `ignoreCommand`) skips builds that only touch
-  `*.md` / `*.sql`, and skips the old duplicate project `lightning-wolves-studio-jc1w`.
+  `*.md` / `*.sql` / `.claude/` / `.impeccable/` / `media-uploads/`, and skips the old duplicate
+  project `lightning-wolves-studio-jc1w`.
+- `node scripts/upload-media.js` (Jo's PC, uses `.env`) uploads everything in `media-uploads/`
+  to the `media` bucket at the same path.
 
 ## Studio architecture (the part that bites)
 
@@ -196,8 +199,11 @@ Gateways: the big ringed purple planet = JAVEDA (warp, then a plain link to
 `/javeda/?src=lazyjo-universe` — never import JAVEDA code); the spiral galaxy opens the
 Lazy Jo card (`ARTIST_PROFILE` in `catalog.ts`; also reachable via the glowing yellow dot):
 "My story" expands the full bio *inside* the card (Jo doesn't want it to leave), co-sign faces
-show their proof (quote + link), "Merch" → even.biz, IG is @lazyjo_. 6ix9ine = "met in real
-life" (proof photo of them together still to come from Jo — `6ix9ine.jpeg` is a solo photo).
+show their proof (quote + link + optional photos/video), "Merch" → even.biz, IG is @lazyjo_.
+Proof media: small images in `client/public/lazyjo/proof/`; videos go to Supabase `media`
+(`media/lazyjo/…`) — stage them in `media-uploads/` (not deployed) and Jo runs
+`node scripts/upload-media.js` on his PC. DDG's crowd video (`lazyjo/ddg-crowd.mp4`) falls
+back to its poster until uploaded.
 `/?wolf=<slug>` in `App.tsx` still opens any artist profile. Title is "Lazy Jo's Universe".
 
 ## Design skills (`.claude/skills/`, vetted 2026-11-23)

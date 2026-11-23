@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, BookOpen, Instagram, ShoppingBag, X } from "lucide-react";
-import { ARTIST_PROFILE as A } from "../catalog";
+import { ARTIST_PROFILE as A, type ProofMedia } from "../catalog";
+
+/** A proof video; if it isn't uploaded yet (or fails), the still frame stays. */
+function ProofVideo({ m }: { m: ProofMedia }) {
+  const [failed, setFailed] = useState(false);
+  if (failed && m.poster) return <img className="lj-proof-media" src={m.poster} alt={m.alt} />;
+  return (
+    <video className="lj-proof-media lj-proof-video" src={m.src} poster={m.poster} controls playsInline preload="none" onError={() => setFailed(true)} aria-label={m.alt} />
+  );
+}
 
 interface Props {
   onClose(): void;
@@ -11,6 +20,7 @@ export default function GalaxyPanel({ onClose }: Props) {
   const ref = useRef<HTMLElement>(null);
   const [story, setStory] = useState(false);
   const [proof, setProof] = useState<number | null>(null);
+  const [zoom, setZoom] = useState<{ src: string; alt: string } | null>(null);
   const active = proof === null ? null : A.coSigns[proof];
 
   useEffect(() => {
@@ -44,6 +54,12 @@ export default function GalaxyPanel({ onClose }: Props) {
         {story ? (
           <div className="lj-galaxy-story" aria-live="polite">
             <p className="lj-tel-label">My story</p>
+            <figure className="lj-story-figure">
+              <button className="lj-zoomable" onClick={() => setZoom(A.storyImage)} aria-label="Enlarge photo">
+                <img src={A.storyImage.src} alt={A.storyImage.alt} />
+              </button>
+              <figcaption>{A.storyImage.caption}</figcaption>
+            </figure>
             {A.story.map((p) => (
               <p key={p}>{p}</p>
             ))}
@@ -85,6 +101,19 @@ export default function GalaxyPanel({ onClose }: Props) {
                   </p>
                 )}
               </div>
+              {active.proof && (
+                <div className={`lj-proof-gallery ${active.proof.length > 1 ? "is-grid" : ""}`}>
+                  {active.proof.map((m) =>
+                    m.type === "video" ? (
+                      <ProofVideo key={m.src} m={m} />
+                    ) : (
+                      <button key={m.src} className="lj-zoomable" onClick={() => setZoom({ src: m.src, alt: m.alt })} aria-label={`Enlarge: ${m.alt}`}>
+                        <img className="lj-proof-media" src={m.src} alt={m.alt} loading="lazy" />
+                      </button>
+                    ),
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -101,6 +130,11 @@ export default function GalaxyPanel({ onClose }: Props) {
           <Instagram size={14} aria-hidden /> {A.instagramHandle}
         </a>
       </section>
+      {zoom && (
+        <button className="lj-zoom" onClick={() => setZoom(null)} aria-label="Close photo">
+          <img src={zoom.src} alt={zoom.alt} />
+        </button>
+      )}
     </div>
   );
 }

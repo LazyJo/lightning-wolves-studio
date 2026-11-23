@@ -65,7 +65,10 @@ const norm = (s) =>
   console.log(`\nJAVEDA → bucket "${BUCKET}"\n`);
   for (const { s, file } of plan) {
     const mb = file ? (fs.statSync(path.join(dir, file)).size / 1048576).toFixed(1) + ' MB' : '';
-    console.log(`${String(s.track ?? '').padStart(2, '0')}  ${s.title.padEnd(20)} ${file ? `← ${file}  (${mb})` : '✗ no file found'}`);
+    // "Lazy Jo X Zirka - …" in the file name but no feat in singles.json → point it out
+    const fileFeat = file && (file.match(/lazy\s*jo\s+(?:x|&|ft\.?|feat\.?)\s+([^-]+?)\s+-/i) || [])[1];
+    const hint = fileFeat && !s.feat ? `   ⚠ file says feat. ${fileFeat.trim()}, singles.json doesn't` : '';
+    console.log(`${String(s.track ?? '').padStart(2, '0')}  ${s.title.padEnd(20)} ${file ? `← ${file}  (${mb})` : '✗ no file found'}${hint}`);
   }
   const leftovers = files.filter((f) => !used.has(f));
   if (leftovers.length) console.log(`\nNot matched to any song: ${leftovers.join(', ')}`);

@@ -211,7 +211,10 @@ service-role only; **created in prod on 2026-11-23** — don't ask Jo to run it 
 Lazy Jo card, thank-you screen, `?join=1`), admin tab `components/admin/LazyJoFansTab.tsx`.
 Double opt-in, consent text stored (keep `JOIN_CONSENT_TEXT` in `catalog.ts` and
 `LAZYJO_CONSENT_TEXT` in `server.js` identical), one-click unsubscribe, privacy page
-`client/public/lazyjo/privacy.html`. Emails via Resend (`RESEND_API_KEY`, `LAZYJO_EMAIL_FROM`).
+`client/public/lazyjo/privacy.html`. Emails via Resend (`RESEND_API_KEY`, `LAZYJO_EMAIL_FROM`) —
+**live since 2026-11-23**: domain `lightningwolves.studio` verified in Resend (Ireland/eu-west-1,
+DNS records added by Resend's Vercel auto-configure), both keys set on the Vercel project
+(Production + Preview), sender `Lazy Jo <news@lightningwolves.studio>`; Jo's own sign-up confirmed.
 EVEN import: `node scripts/import-fans.js export.csv` on Jo's PC. Merch still lives on EVEN.
 
 ## Design skills (`.claude/skills/`, vetted 2026-11-23)

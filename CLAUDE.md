@@ -173,6 +173,16 @@ SBP_TOKEN=<token> node scripts/run-wolf-hub-migration.js
 Lazy Jo (yellow), Zirka (purple), Rosakay (orange), Drippydesigns (white/blue),
 Shiteux (green), Hendrik Vits (red). 5+ locked slots. See `client/src/data/wolves.ts`.
 
+## LAZY JO UNIVERSE (`/lazyjo/`)
+
+Standalone 3D single store for Lazy Jo — second Vite entry (`client/lazyjo/index.html`,
+code in `client/src/lazyjo/`, wired in `vite.config.ts` `rollupOptions.input`).
+Catalogue = `client/src/lazyjo/singles.json`, which **server.js also requires** to
+price `POST /api/lazyjo/checkout` (Stripe, guest, `mode: payment`) and to deliver
+via `GET /api/lazyjo/download` (re-verifies the session, signs a URL from the private
+`lazyjo-masters` Supabase bucket). Full setup: `SETUP-LAZYJO-UNIVERSE.md`.
+Design rule from Jo: straight forward flight only — no circular gallery, tunnel, road or well.
+
 ## What I (Claude) tend to forget across sessions
 
 - Jo defaults to **testing on prod, not localhost** — push fast, tell him the preview URL.

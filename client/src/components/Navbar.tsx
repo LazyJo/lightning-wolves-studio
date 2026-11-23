@@ -209,6 +209,13 @@ export default function Navbar({
                 <span className="text-sm">🛸</span>
                 JAVEDA
               </a>
+              <a
+                href="/lazyjo/"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#7B2CFF]/50 bg-[#7B2CFF]/10 px-4 py-2 text-sm font-bold text-[#c4a8ff] transition-all hover:border-[#7B2CFF]/80 hover:shadow-lg hover:shadow-[#7B2CFF]/25"
+              >
+                <span className="text-sm">🌌</span>
+                Universe
+              </a>
               <button
                 onClick={onPricing}
                 className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white transition-all hover:border-wolf-gold/30 hover:bg-wolf-gold/5 hover:text-wolf-gold"
@@ -407,6 +414,7 @@ export default function Navbar({
                     <button onClick={() => { onGoldenBoard(); setMobileOpen(false); }} className="text-left text-wolf-gold transition-colors hover:text-wolf-amber">🏆 Golden Board</button>
                   )}
                   <a href="/javeda/" className="text-left font-semibold text-[#9fe8ff] transition-colors hover:text-white">🛸 JAVEDA</a>
+                  <a href="/lazyjo/" className="text-left font-semibold text-[#c4a8ff] transition-colors hover:text-white">🌌 Lazy Jo Universe</a>
                   <button onClick={() => { onPricing(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Pricing</button>
                   <button onClick={() => { onAuth(); setMobileOpen(false); }} className="text-left text-wolf-muted transition-colors hover:text-wolf-gold">Sign In</button>
                   {onAdminMembers && (

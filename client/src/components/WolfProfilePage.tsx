@@ -19,6 +19,7 @@ import {
   BadgeCheck,
   Bookmark,
   BookmarkCheck,
+  Rocket,
 } from "lucide-react";
 import { wolfSlug } from "../data/wolves";
 import type { Wolf } from "../data/wolves";
@@ -197,6 +198,14 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
                   className="inline-flex items-center gap-1.5 rounded-lg border border-wolf-border/30 px-3 py-2 text-xs text-wolf-muted transition-all hover:border-red-500/30 hover:text-red-400"
                 >
                   <Youtube size={14} /> YouTube
+                </a>
+              )}
+              {p.universe && (
+                <a
+                  href={p.universe}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-400/40 bg-cyan-400/5 px-3 py-2 text-xs text-cyan-300 transition-all hover:border-cyan-300 hover:shadow-[0_0_18px_-4px_rgba(0,245,255,0.7)]"
+                >
+                  <Rocket size={14} /> {isFr ? "Entrer dans l'univers" : "Enter the Universe"}
                 </a>
               )}
               {p.booking && (

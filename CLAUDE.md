@@ -206,6 +206,11 @@ previews = public `media/javeda/lvlN.mp3`, WAVs uploaded by Jo with `node script
 price `POST /api/lazyjo/checkout` (Stripe, guest, `mode: payment`) and to deliver
 via `GET /api/lazyjo/download` (re-verifies the session, signs a URL from the private
 `lazyjo-masters` Supabase bucket). Full setup: `SETUP-LAZYJO-UNIVERSE.md`.
+**JAVEDA keeps growing** (Jo, 2026-11-23): every ~10 new songs he upgrades JAVEDA with new levels/games. When that
+happens, mirror it in the Universe: give each new song the next `track` number (29, 30, …) in JAVEDA's level order,
+`previewUrl` = its `media/javeda/lvlN.mp3`, cover from Apple Music (`covers/NN-id.webp`), `"forSale": false` until its
+WAV is uploaded. Newer singles that aren't on JAVEDA yet (no `track`) sit after the album; when one joins JAVEDA, give it
+its track number, move it into album order and switch its preview to the level song.
 Design rule from Jo: straight forward flight only — no circular gallery, tunnel, road or well.
 Gateways: the big ringed purple planet = JAVEDA (warp, then a plain link to
 `/javeda/?src=lazyjo-universe` — never import JAVEDA code); the spiral galaxy opens the

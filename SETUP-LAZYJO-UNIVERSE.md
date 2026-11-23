@@ -54,6 +54,11 @@ It creates the private `lazyjo-masters` bucket if needed and stores each file at
 (e.g. `javeda/19-stay-up.wav`). Supabase limits upload size per file (Free plan: 50 MB max, set in
 Storage → Settings) and total storage (Free: 1 GB); 28 WAVs are roughly 1–2 GB.
 
+**When JAVEDA gets new songs:** add each one with the next `track` number (29, 30, …) in level order,
+`previewUrl` pointing at its JAVEDA level song (`…/media/javeda/lvlN.mp3`), its cover in
+`client/public/lazyjo/covers/`, and `"forSale": false` until its WAV is uploaded with the script. A newer single
+(no `track`) that joins JAVEDA gets its track number and moves into album order.
+
 ## 2. Stripe (payments)
 
 This uses the same `STRIPE_SECRET_KEY` that's already on Vercel for the studio. Nothing new is

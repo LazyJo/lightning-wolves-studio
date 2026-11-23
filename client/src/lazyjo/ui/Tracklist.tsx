@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Orbit, X } from "lucide-react";
 import { SINGLES, formatPrice, type Single } from "../catalog";
 
 interface Props {
@@ -7,9 +7,10 @@ interface Props {
   onClose(): void;
   onPick(id: string): void;
   coverFor(s: Single): string;
+  onJaveda?(): void;
 }
 
-export default function Tracklist({ open, inline, onClose, onPick, coverFor }: Props) {
+export default function Tracklist({ open, inline, onClose, onPick, coverFor, onJaveda }: Props) {
   return (
     <aside
       className={`lj-list ${open ? "is-open" : ""} ${inline ? "is-inline" : ""}`}
@@ -49,6 +50,15 @@ export default function Tracklist({ open, inline, onClose, onPick, coverFor }: P
           );
         })}
       </ul>
+      {onJaveda && (
+        <button className="lj-list-javeda" onClick={onJaveda}>
+          <span>
+            <span className="lj-list-javeda-name">Travel to JAVEDA</span>
+            <span className="lj-list-javeda-meta">Lazy Jo's playable album · the purple planet</span>
+          </span>
+          <Orbit size={22} aria-hidden />
+        </button>
+      )}
     </aside>
   );
 }

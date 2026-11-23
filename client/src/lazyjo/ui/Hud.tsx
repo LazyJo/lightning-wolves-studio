@@ -10,6 +10,8 @@ interface Props {
   onOpenNearest(): void;
   onBeam(): void;
   ufoHover: boolean;
+  javedaHover: boolean;
+  onJaveda(): void;
   hovered: Single | null;
   nearest: Single | null;
   showHint: boolean;
@@ -24,6 +26,8 @@ export default function Hud({
   onOpenNearest,
   onBeam,
   ufoHover,
+  javedaHover,
+  onJaveda,
   hovered,
   nearest,
   showHint,
@@ -75,8 +79,14 @@ export default function Hud({
             </div>
           </div>
 
-          <div className={`lj-target ${focus || ufoHover ? "is-visible" : ""}`} aria-live="polite">
-            {ufoHover ? (
+          <div className={`lj-target ${focus || ufoHover || javedaHover ? "is-visible" : ""}`} aria-live="polite">
+            {javedaHover ? (
+              <button className="lj-target-inner lj-target-javeda" onClick={onJaveda} tabIndex={-1}>
+                <span className="lj-target-label">Click to travel</span>
+                <span className="lj-target-title">JAVEDA</span>
+                <span className="lj-target-meta">Lazy Jo's playable album · 28 songs, 28 levels</span>
+              </button>
+            ) : ufoHover ? (
               <button className="lj-target-inner" onClick={onBeam} tabIndex={-1}>
                 <span className="lj-target-label">Click the UFO</span>
                 <span className="lj-target-title">Beam me a song</span>

@@ -23,8 +23,8 @@ async function fontsReady() {
   if (!document.fonts) return;
   await Promise.race([
     Promise.all([
-      document.fonts.load('900 64px "Orbitron"'),
-      document.fonts.load('600 32px "Rajdhani"'),
+      document.fonts.load('800 64px "Syne"'),
+      document.fonts.load('700 32px "Manrope"'),
     ]),
     new Promise((r) => setTimeout(r, 1800)),
   ]);
@@ -43,6 +43,8 @@ export default function LazyJoUniverse() {
   const [selected, setSelected] = useState<Single | null>(null);
   const [hasMoved, setHasMoved] = useState(false);
   const [ufoHover, setUfoHover] = useState(false);
+  const [javedaHover, setJavedaHover] = useState(false);
+  const [traveling, setTraveling] = useState<false | "warp" | "arrive">(false);
   const [listOpen, setListOpen] = useState(false);
   const [purchase, setPurchase] = useState<{ sessionId?: string; cancelled?: boolean } | null>(null);
   const deepLink = useRef<string | null>(null);
@@ -87,6 +89,16 @@ export default function LazyJoUniverse() {
           engineRef.current?.setMusic(level, bass);
         },
         onUfoHover: setUfoHover,
+        onJavedaHover: setJavedaHover,
+        onTravelArrive: () => setTraveling("arrive"),
+        onTravelStart: () => {
+          setTraveling("warp");
+          sound.stopPreview();
+          sound.enter(); // warp riser
+        },
+        // JAVEDA is its own product: we only hand the visitor over to it
+        // short hold so the "Entering JAVEDA" card is seen, then hand over
+        onTravelDone: () => setTimeout(() => window.location.assign("/javeda/?src=lazyjo-universe"), 350),
         onBeam: () => sound.beam(),
         onTelemetry: ({ speed, distance }) => {
           const t = telemetryRef.current;
@@ -155,6 +167,18 @@ export default function LazyJoUniverse() {
     }
   }, []);
 
+  // Coming back from JAVEDA with the back button restores the page from the
+  // browser cache mid-warp: put the universe back where it was.
+  useEffect(() => {
+    const onShow = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+      engineRef.current?.resetTravel();
+      setTraveling(false);
+    };
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
+
   // Esc closes whatever is on top.
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
@@ -186,18 +210,26 @@ export default function LazyJoUniverse() {
           soundOn={soundOn}
           onToggleSound={toggleSound}
           onOpenList={() => setListOpen(true)}
-          hovered={selected ? null : hovered}
-          nearest={selected ? null : nearest}
+          hovered={selected || traveling ? null : hovered}
+          nearest={selected || traveling ? null : nearest}
           showHint={!hasMoved && !selected}
           noWebgl={noWebgl}
           onOpenNearest={() => (nearest ? openSingle(nearest.id) : engineRef.current?.openNearest())}
           onBeam={() => engineRef.current?.beamRandom()}
           ufoHover={!selected && ufoHover}
+          javedaHover={!selected && javedaHover}
+          onJaveda={() => engineRef.current?.travelToJaveda()}
           telemetryRef={telemetryRef}
         />
       )}
 
       {phase === "intro" && <IntroScreen ready={ready} onEnter={enter} />}
+
+      {traveling === "arrive" && (
+        <div className="lj-travel" role="status">
+          <span className="lj-travel-label">Entering JAVEDA</span>
+        </div>
+      )}
 
       <Tracklist
         open={listOpen || (noWebgl && phase === "flying" && !selected)}
@@ -205,6 +237,12 @@ export default function LazyJoUniverse() {
         onClose={() => setListOpen(false)}
         onPick={openSingle}
         coverFor={coverFor}
+        onJaveda={() => {
+          setListOpen(false);
+          const e = engineRef.current;
+          if (e) setTimeout(() => e.travelToJaveda(), 450);
+          else window.location.assign("/javeda/?src=lazyjo-universe");
+        }}
       />
 
       {selected && <PlayerPanel key={selected.id} single={selected} cover={coverFor(selected)} onClose={closePlayer} />}

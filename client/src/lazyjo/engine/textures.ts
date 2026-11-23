@@ -295,7 +295,7 @@ function drawWordmark(ctx: CanvasRenderingContext2D, s: Single, size: number) {
   ctx.save();
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = `900 ${Math.round(size * 0.11)}px Orbitron, "Bebas Neue", sans-serif`;
+  ctx.font = `800 ${Math.round(size * 0.12)}px Syne, Manrope, sans-serif`;
   ctx.fillStyle = "rgba(235,240,250,0.92)";
   ctx.shadowColor = "rgba(0,0,0,0.6)";
   ctx.shadowBlur = size * 0.02;
@@ -305,7 +305,7 @@ function drawWordmark(ctx: CanvasRenderingContext2D, s: Single, size: number) {
   ctx.restore();
   ctx.save();
   ctx.textAlign = "center";
-  ctx.font = `600 ${Math.round(size * 0.042)}px Rajdhani, sans-serif`;
+  ctx.font = `700 ${Math.round(size * 0.036)}px Manrope, sans-serif`;
   ctx.fillStyle = "rgba(235,240,250,0.75)";
   ctx.fillText(s.title.toUpperCase().split("").join(" "), size / 2, size * 0.93);
   ctx.restore();

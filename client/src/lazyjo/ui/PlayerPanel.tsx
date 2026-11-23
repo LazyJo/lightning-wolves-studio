@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Pause, Play, Share2, X, Zap } from "lucide-react";
-import { ARTIST, PREVIEW_SECONDS, formatPrice, fullTitle, releaseLabel, type Single } from "../catalog";
+import { ARTIST, MAX_CENTS, PREVIEW_SECONDS, currencySymbol, formatPrice, fullTitle, releaseLabel, type Single } from "../catalog";
 import JoinForm from "./JoinForm";
 import { sound } from "../audio";
 import { CheckoutUnavailableError, startSingleCheckout } from "../shop";
@@ -17,14 +17,26 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
   const [playing, setPlaying] = useState(false);
   const [buy, setBuy] = useState<BuyState>({ kind: "idle" });
   const [copied, setCopied] = useState(false);
-  // Pay what you want: the minimum, the suggested amount (preselected), and double that.
+  // Pay what you want: the minimum, the suggested amount (preselected), or your own amount.
+  const min = single.priceCents;
   const suggested = single.suggestedCents;
-  const tiers =
-    suggested > single.priceCents
-      ? [single.priceCents, suggested, suggested * 2]
-      : [single.priceCents, single.priceCents + 200, single.priceCents + 500];
-  const [amount, setAmount] = useState(suggested);
+  const tiers = suggested > min ? [min, suggested] : [min, min + 400];
+  const [preset, setPreset] = useState<number | "custom">(suggested > min ? suggested : min);
+  const [customText, setCustomText] = useState("");
+  const customCents = Math.round(parseFloat(customText.replace(",", ".")) * 100);
+  const customError =
+    preset !== "custom"
+      ? null
+      : !customText.trim() || !Number.isFinite(customCents)
+        ? "Type the amount you want to pay."
+        : customCents < min
+          ? `The minimum is ${formatPrice(min)}.`
+          : customCents > MAX_CENTS
+            ? `The maximum is ${formatPrice(MAX_CENTS)}.`
+            : null;
+  const amount = preset === "custom" ? (customError ? min : customCents) : preset;
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const customRef = useRef<HTMLInputElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const timeRef = useRef<HTMLSpanElement>(null);
   const panelRef = useRef<HTMLElement>(null);
@@ -98,6 +110,7 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
   };
 
   const purchase = async () => {
+    if (customError) return;
     setBuy({ kind: "loading" });
     try {
       await startSingleCheckout(single.id, amount);
@@ -181,23 +194,53 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
           <div className="lj-buy-row">
             <span className="lj-tel-label">Own it · pay what you want</span>
             <div className="lj-tiers" role="radiogroup" aria-label="Choose an amount">
-              {tiers.map((t, i) => (
+              {tiers.map((t) => (
                 <button
                   key={t}
                   role="radio"
-                  aria-checked={amount === t}
-                  className={`lj-tier ${amount === t ? "is-active" : ""}`}
-                  onClick={() => setAmount(t)}
+                  aria-checked={preset === t}
+                  className={`lj-tier ${preset === t ? "is-active" : ""}`}
+                  onClick={() => setPreset(t)}
                 >
                   {formatPrice(t)}
-                  {i === 2 && <Zap size={12} aria-hidden />}
-                  {t === suggested && suggested > single.priceCents && <span className="lj-tier-tag">Suggested</span>}
+                  {t === suggested && suggested > min && <span className="lj-tier-tag">Suggested</span>}
                 </button>
               ))}
+              <button
+                role="radio"
+                aria-checked={preset === "custom"}
+                className={`lj-tier lj-tier-custom ${preset === "custom" ? "is-active" : ""}`}
+                onClick={() => {
+                  setPreset("custom");
+                  requestAnimationFrame(() => customRef.current?.focus());
+                }}
+              >
+                <Zap size={12} aria-hidden /> Your amount
+              </button>
             </div>
+            {preset === "custom" && (
+              <div className="lj-custom">
+                <label className="lj-custom-field">
+                  <span aria-hidden>{currencySymbol}</span>
+                  <input
+                    ref={customRef}
+                    inputMode="decimal"
+                    placeholder={(suggested / 100).toFixed(2)}
+                    value={customText}
+                    onChange={(e) => setCustomText(e.target.value.replace(/[^0-9.,]/g, "").slice(0, 7))}
+                    onKeyDown={(e) => e.key === "Enter" && purchase()}
+                    aria-label={`Your amount, minimum ${formatPrice(min)}`}
+                    aria-invalid={!!customError && !!customText}
+                  />
+                </label>
+                <span className={`lj-custom-hint ${customError && customText ? "is-error" : ""}`} role="status">
+                  {customError && customText ? customError : `Pay what you want, from ${formatPrice(min)}`}
+                </span>
+              </div>
+            )}
           </div>
 
-          <button className="lj-btn lj-btn-primary lj-btn-buy" onClick={purchase} disabled={buy.kind === "loading"}>
+          <button className="lj-btn lj-btn-primary lj-btn-buy" onClick={purchase} disabled={buy.kind === "loading" || !!customError}>
             {buy.kind === "loading" ? (
               <>
                 <Loader2 size={18} className="lj-spin" aria-hidden /> Opening secure checkout…

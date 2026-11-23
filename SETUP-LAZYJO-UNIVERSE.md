@@ -18,7 +18,7 @@ that file, and `server.js` reads the same file to price checkouts.
 | `id` | url-safe slug, e.g. `stay-up` (used in share links: `/lazyjo/?single=stay-up`) |
 | `title`, `year` | shown on the card + player |
 | `priceCents` | minimum price in cents (the server enforces it) |
-| `suggestedCents` | preselected amount in the player ("Suggested"); the third option is double |
+| `suggestedCents` | preselected amount in the player ("Suggested"); the third option is "Your amount" |
 | `track`, `feat` | album position (JAVEDA) and featured artist ("feat. Zirka") |
 | `cover` | public path to square artwork, e.g. `/lazyjo/covers/stay-up.jpg` → put the file in `client/public/lazyjo/covers/` |
 | `previewUrl` | public path to a ≤30 s clip, e.g. `/lazyjo/previews/stay-up.mp3` → `client/public/lazyjo/previews/`. `null` = generated placeholder beat |
@@ -29,7 +29,7 @@ that file, and `server.js` reads the same file to price checkouts.
 
 The catalogue is the album **JAVEDA**: all 28 songs in album order (the same order as the JAVEDA
 levels; you fly past them in that order, left/right). Each song is **€0.99 minimum, €5 suggested**
-(`priceCents` / `suggestedCents`); the player offers €0.99 · €5 (preselected) · €10. Previews play the
+(`priceCents` / `suggestedCents`); the player offers €0.99 · €5 (preselected) · "Your amount" (any amount from the minimum up to €500). Previews play the
 JAVEDA level songs from the public `media` bucket (30 s). Covers are generated in each level's colours
 until real artwork goes in `cover`.
 

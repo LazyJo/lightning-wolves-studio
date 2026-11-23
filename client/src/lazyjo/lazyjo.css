@@ -742,3 +742,19 @@ a { color: var(--lj-cyan); }
   .lj-gate .lj-intro-sub { text-align: center; }
 }
 .lj-gate-ok svg { display: inline-block; vertical-align: -3px; margin-right: 4px; }
+
+/* ─── "Your amount" (pay what you want) ─── */
+.lj-tier-custom { gap: 6px; font-size: 13px; }
+.lj-custom { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.lj-custom-field {
+  display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 14px; width: 140px;
+  border-radius: 12px; border: 1px solid var(--lj-cyan); background: rgba(3,7,18,0.6);
+  font-weight: 700; color: var(--lj-cyan);
+}
+.lj-custom-field input {
+  width: 100%; min-width: 0; background: none; border: 0; outline: none; color: #eaf6ff;
+  font: 700 16px var(--lj-body); /* 16px: no zoom-on-focus on iPhone */
+}
+.lj-custom-field:focus-within { box-shadow: 0 0 0 3px rgba(0,245,255,0.18); }
+.lj-custom-hint { font-size: 13px; color: rgba(220,232,245,0.65); }
+.lj-custom-hint.is-error { color: #ff7a93; }

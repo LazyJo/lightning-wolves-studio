@@ -75,6 +75,11 @@ export function formatPrice(cents: number): string {
 
 export const PREVIEW_SECONDS = 30;
 
+/** server.js caps "pay what you want" at the same amount (LAZYJO_MAX_CENTS) */
+export const MAX_CENTS = 50000;
+
+export const currencySymbol = fmt.formatToParts(0).find((p) => p.type === "currency")?.value ?? "\u20ac";
+
 /** The Lazy Jo card that opens from the spiral galaxy. Facts mirror
  *  client/src/data/wolves.ts (Lazy Jo's Lightning Wolves profile). */
 export interface CoSign {

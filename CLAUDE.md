@@ -206,8 +206,8 @@ Proof media: small images in `client/public/lazyjo/proof/`; videos go to Supabas
 uploaded via the Supabase dashboard on 2026-11-23 (default cache time — re-running the script
 would set the 1-year cache); it still falls back to its poster if it ever fails to load.
 `/?wolf=<slug>` in `App.tsx` still opens any artist profile. Title is "Lazy Jo's Universe".
-**Own fan list (replacing EVEN):** `lazyjo_fans` table (`supabase-lazyjo-fans.sql`, service-role
-only), `/api/lazyjo/fans*` + admin routes in `server.js`, `JoinForm` in the Universe (bell button,
+**Own fan list (replacing EVEN):** `lazyjo_fans` + `lazyjo_broadcasts` tables (`supabase-lazyjo-fans.sql`,
+service-role only; **created in prod on 2026-11-23** — don't ask Jo to run it again), `/api/lazyjo/fans*` + admin routes in `server.js`, `JoinForm` in the Universe (bell button,
 Lazy Jo card, thank-you screen, `?join=1`), admin tab `components/admin/LazyJoFansTab.tsx`.
 Double opt-in, consent text stored (keep `JOIN_CONSENT_TEXT` in `catalog.ts` and
 `LAZYJO_CONSENT_TEXT` in `server.js` identical), one-click unsubscribe, privacy page

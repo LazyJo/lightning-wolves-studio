@@ -192,6 +192,10 @@ price `POST /api/lazyjo/checkout` (Stripe, guest, `mode: payment`) and to delive
 via `GET /api/lazyjo/download` (re-verifies the session, signs a URL from the private
 `lazyjo-masters` Supabase bucket). Full setup: `SETUP-LAZYJO-UNIVERSE.md`.
 Design rule from Jo: straight forward flight only — no circular gallery, tunnel, road or well.
+Gateways: the big ringed purple planet = JAVEDA (warp, then a plain link to
+`/javeda/?src=lazyjo-universe` — never import JAVEDA code); the spiral galaxy opens the
+Lazy Jo card (`ARTIST_PROFILE` in `catalog.ts`: "My story" → `/?wolf=lazy-jo` deep link
+handled in `App.tsx`, "Merch" → even.biz). Title is "Lazy Jo's Universe".
 
 ## Design skills (`.claude/skills/`, vetted 2026-11-23)
 

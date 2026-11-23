@@ -52,3 +52,23 @@ export function formatPrice(cents: number): string {
 /** Fallback when Stripe checkout isn't configured yet: Jo's existing fan-support page. */
 export const FAN_SUPPORT_URL = "https://www.even.biz/l/lazyjomusic";
 export const PREVIEW_SECONDS = 30;
+
+/** The Lazy Jo card that opens from the spiral galaxy. Facts mirror
+ *  client/src/data/wolves.ts (Lazy Jo's Lightning Wolves profile). */
+export const ARTIST_PROFILE = {
+  name: "Lazy Jo",
+  photo: "/LazyJo - StayUp pictures from videoshoot (CS)_-86.JPG.jpeg",
+  tagline: "Melodic hip-hop · Brussels",
+  bio: "Belgian-Ghanaian artist, born in Lomé, based in Brussels. Melodic flows, emotional hooks — “Stay Up” passed 100K views.",
+  coSigns: [
+    { name: "Timbaland", photo: "/Timbaland.jpeg", quote: "This could be the best song" },
+    { name: "Symba", photo: "/Symba.jpeg", quote: "International" },
+    { name: "DDG", photo: "/DDG.jpeg", quote: "Next up" },
+    { name: "Kelvyn Colt", photo: "/Kelvyn Colt.jpeg", quote: "Go get it" },
+    { name: "Zaytoven", photo: "/Zaytoven.jpeg", quote: "Liked the post" },
+    { name: "Kid Hazel", photo: "/Kid Hazel.jpeg", quote: "Them songs was hard" },
+  ],
+  storyUrl: "/?wolf=lazy-jo",
+  merchUrl: "https://www.even.biz/l/lightningwolves",
+  instagramUrl: "https://instagram.com/lazyjoo_",
+};

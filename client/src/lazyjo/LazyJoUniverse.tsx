@@ -7,6 +7,8 @@ import Hud from "./ui/Hud";
 import PlayerPanel from "./ui/PlayerPanel";
 import Tracklist from "./ui/Tracklist";
 import PurchaseResult from "./ui/PurchaseResult";
+import GalaxyPanel from "./ui/GalaxyPanel";
+import { Orbit } from "lucide-react";
 
 type Phase = "intro" | "flying";
 
@@ -45,6 +47,9 @@ export default function LazyJoUniverse() {
   const [ufoHover, setUfoHover] = useState(false);
   const [javedaHover, setJavedaHover] = useState(false);
   const [traveling, setTraveling] = useState<false | "warp" | "arrive">(false);
+  const [galaxyHover, setGalaxyHover] = useState(false);
+  const [galaxyOpen, setGalaxyOpen] = useState(false);
+  const javedaBtnRef = useRef<HTMLButtonElement>(null);
   const [listOpen, setListOpen] = useState(false);
   const [purchase, setPurchase] = useState<{ sessionId?: string; cancelled?: boolean } | null>(null);
   const deepLink = useRef<string | null>(null);
@@ -90,6 +95,19 @@ export default function LazyJoUniverse() {
         },
         onUfoHover: setUfoHover,
         onJavedaHover: setJavedaHover,
+        onGalaxyHover: setGalaxyHover,
+        onGalaxy: () => {
+          sound.open();
+          // let the camera zoom in before the card appears
+          setTimeout(() => setGalaxyOpen(true), 650);
+        },
+        onJavedaScreen: ({ x, y, r, visible }) => {
+          // the "JAVEDA" button rides on the planet, just below its centre
+          const b = javedaBtnRef.current;
+          if (!b) return;
+          b.style.transform = `translate(${Math.round(x)}px, ${Math.round(y + Math.min(r * 0.35, 90))}px) translate(-50%, -50%)`;
+          b.dataset.visible = visible ? "1" : "0";
+        },
         onTravelArrive: () => setTraveling("arrive"),
         onTravelStart: () => {
           setTraveling("warp");
@@ -157,6 +175,12 @@ export default function LazyJoUniverse() {
     engineRef.current?.unfocus();
   }, []);
 
+  const closeGalaxy = () => {
+    sound.close();
+    setGalaxyOpen(false);
+    engineRef.current?.closeGalaxy();
+  };
+
   const openSingle = useCallback((id: string) => {
     setListOpen(false);
     const e = engineRef.current;
@@ -184,11 +208,12 @@ export default function LazyJoUniverse() {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key !== "Escape") return;
       if (selected) closePlayer();
+      else if (galaxyOpen) closeGalaxy();
       else if (listOpen) setListOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, listOpen, closePlayer]);
+  }, [selected, listOpen, closePlayer, galaxyOpen]);
 
   const coverFor = useCallback(
     (s: Single) => engineRef.current?.getCoverImage(s) || (s.cover ? encodeURI(s.cover) : ""),
@@ -210,17 +235,35 @@ export default function LazyJoUniverse() {
           soundOn={soundOn}
           onToggleSound={toggleSound}
           onOpenList={() => setListOpen(true)}
-          hovered={selected || traveling ? null : hovered}
-          nearest={selected || traveling ? null : nearest}
+          hovered={selected || traveling || galaxyOpen ? null : hovered}
+          nearest={selected || traveling || galaxyOpen ? null : nearest}
           showHint={!hasMoved && !selected}
           noWebgl={noWebgl}
           onOpenNearest={() => (nearest ? openSingle(nearest.id) : engineRef.current?.openNearest())}
           onBeam={() => engineRef.current?.beamRandom()}
           ufoHover={!selected && ufoHover}
           javedaHover={!selected && javedaHover}
+          galaxyHover={!selected && !galaxyOpen && galaxyHover}
+          onGalaxy={() => engineRef.current?.openGalaxy()}
           onJaveda={() => engineRef.current?.travelToJaveda()}
           telemetryRef={telemetryRef}
         />
+      )}
+
+      {phase === "flying" && !noWebgl && (
+        <button
+          ref={javedaBtnRef}
+          className={`lj-javeda-btn ${selected || traveling || galaxyOpen ? "is-hidden" : ""}`}
+          data-visible="0"
+          onClick={() => engineRef.current?.travelToJaveda()}
+          aria-label="Travel to JAVEDA, Lazy Jo's playable album"
+        >
+          <Orbit size={15} aria-hidden />
+          <span className="lj-javeda-btn-text">
+            <span className="lj-javeda-btn-name">JAVEDA</span>
+            <span className="lj-javeda-btn-sub">Play the album</span>
+          </span>
+        </button>
       )}
 
       {phase === "intro" && <IntroScreen ready={ready} onEnter={enter} />}
@@ -246,6 +289,8 @@ export default function LazyJoUniverse() {
       />
 
       {selected && <PlayerPanel key={selected.id} single={selected} cover={coverFor(selected)} onClose={closePlayer} />}
+
+      {galaxyOpen && <GalaxyPanel onClose={closeGalaxy} />}
 
       {purchase && <PurchaseResult {...purchase} onClose={() => setPurchase(null)} />}
     </div>

@@ -60,6 +60,11 @@ export interface UniverseCallbacks {
   /** the dive into the planet is about to finish (fade the page out now) */
   onTravelArrive?(): void;
   onTravelDone?(): void;
+  /** where the JAVEDA planet is on screen (px), for the HTML "JAVEDA" button */
+  onJavedaScreen?(p: { x: number; y: number; r: number; visible: boolean }): void;
+  /** pointer over the spiral galaxy / galaxy clicked (open the Lazy Jo card) */
+  onGalaxyHover?(over: boolean): void;
+  onGalaxy?(): void;
 }
 
 interface Slot {
@@ -165,7 +170,13 @@ export class Universe {
   private shooting: { line: THREE.Line; t: number; dur: number; from: THREE.Vector3; dir: THREE.Vector3; len: number }[] = [];
   private nextShoot = 4;
   // the purple planet = gateway to JAVEDA (a separate product: we only link to it)
-  private javeda!: { planet: THREE.Mesh; ringMat: THREE.ShaderMaterial; hit: THREE.Mesh };
+  private javeda!: { planet: THREE.Mesh; ringMat: THREE.ShaderMaterial; hit: THREE.Mesh; group: THREE.Group; r: number };
+  private galaxy!: { hit: THREE.Mesh; glow: THREE.Sprite; dir: THREE.Vector3 };
+  private galaxyHovered = false;
+  private galaxyHover = 0;
+  private gazing = false;
+  private gaze = 0;
+  private lastJavedaScreen = 0;
   private javedaHovered = false;
   private javedaHover = 0;
   private travel: { t: number; fromPos: THREE.Vector3; fromQuat: THREE.Quaternion; target: THREE.Vector3; done: boolean; arrived: boolean } | null = null;
@@ -328,6 +339,26 @@ export class Universe {
     }
     this.container.style.cursor = "";
     this.cb.onTravelStart?.();
+  }
+
+  /** Zoom into the galaxy (the Lazy Jo card opens on top). */
+  openGalaxy() {
+    if (this.travel || this.focused) return;
+    this.gazing = true;
+    this.inputEnabled = false;
+    this.targetZ = this.camZ;
+    if (this.galaxyHovered) {
+      this.galaxyHovered = false;
+      this.cb.onGalaxyHover?.(false);
+    }
+    this.container.style.cursor = "";
+    this.cb.onGalaxy?.();
+  }
+
+  closeGalaxy() {
+    if (!this.gazing) return;
+    this.gazing = false;
+    this.inputEnabled = true;
   }
 
   /** Back from JAVEDA via the browser's back button: put everything back. */
@@ -568,6 +599,18 @@ export class Universe {
     mkLayer(this.lowPower ? 25 : 55, 14, 34, 1.6, spikeTex);
     this.farStars.renderOrder = -8;
     this.scene.add(this.farStars);
+
+    // The spiral galaxy is painted into the sky; this is its clickable twin.
+    const gdir = new THREE.Vector3(0, 0.5, -1).normalize();
+    const ghit = new THREE.Mesh(new THREE.SphereGeometry(75, 12, 8), new THREE.MeshBasicMaterial({ visible: false }));
+    ghit.position.copy(gdir).multiplyScalar(800);
+    const gglow = new THREE.Sprite(
+      new THREE.SpriteMaterial({ map: this.glowTex, color: new THREE.Color("#c9b2ff"), transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending }),
+    );
+    gglow.position.copy(ghit.position);
+    gglow.scale.set(330, 200, 1);
+    this.farStars.add(ghit, gglow);
+    this.galaxy = { hit: ghit, glow: gglow, dir: gdir };
   }
 
   private buildStreaks() {
@@ -634,7 +677,7 @@ export class Universe {
 
   private buildPlanets() {
     let created: THREE.Mesh | null = null;
-    const mk = (r: number, pos: [number, number, number], type: number, atmo: string, seed: number, tilt: number) => {
+    const mk = (r: number, pos: [number, number, number], type: number, atmo: string, seed: number, tilt: number, parent: THREE.Object3D = this.planets) => {
       const seg = this.lowPower ? 48 : 96;
       const uniforms = {
         uSun: { value: SUN },
@@ -648,7 +691,7 @@ export class Universe {
       const m = new THREE.Mesh(new THREE.SphereGeometry(r, seg, seg / 2), mat);
       m.position.set(...pos);
       m.rotation.z = tilt;
-      this.planets.add(m);
+      parent.add(m);
       this.planetSpin.push(m);
       created = m;
       if (type !== 1) {
@@ -665,14 +708,17 @@ export class Universe {
           }),
         );
         halo.position.copy(m.position);
-        this.planets.add(halo);
+        parent.add(halo);
       }
     };
-    mk(34, [92, 44, -175], 0, "#4aa8ff", 1.7, 0.4); // ocean world
     mk(6.5, [-70, 36, -185], 1, "#000000", 4.2, 0.1); // moon
-    // JAVEDA: the ringed purple world. Click it to warp into Lazy Jo's playable album.
-    const jr = 5.4;
-    mk(jr, [22, 33, -170], 2, "#b98bff", 8.1, 0.25);
+    mk(5.2, [24, 30, -170], 0, "#4aa8ff", 1.7, 0.4); // small ocean world
+    // JAVEDA: the big ringed purple world. Click it to warp into Lazy Jo's
+    // playable album. Its position depends on the screen shape (see resize).
+    const jr = 30;
+    const jg = new THREE.Group();
+    this.planets.add(jg);
+    mk(jr, [0, 0, 0], 2, "#b98bff", 8.1, 0.25, jg);
     const planet = created as unknown as THREE.Mesh;
     const ringMat = new THREE.ShaderMaterial({
       vertexShader: /* glsl */ `
@@ -706,14 +752,11 @@ export class Universe {
       side: THREE.DoubleSide,
     });
     const ring = new THREE.Mesh(new THREE.RingGeometry(jr * 1.45, jr * 2.5, 160, 1), ringMat);
-    ring.position.copy(planet.position);
     ring.rotation.set(1.18, 0.25, 0.32);
-    this.planets.add(ring);
-    // generous invisible hit area: the planet is small on screen, it must be easy to tap
-    const hit = new THREE.Mesh(new THREE.SphereGeometry(jr * 3.4, 16, 12), new THREE.MeshBasicMaterial({ visible: false }));
-    hit.position.copy(planet.position);
-    this.planets.add(hit);
-    this.javeda = { planet, ringMat, hit };
+    jg.add(ring);
+    const hit = new THREE.Mesh(new THREE.SphereGeometry(jr * 1.2, 16, 12), new THREE.MeshBasicMaterial({ visible: false }));
+    jg.add(hit);
+    this.javeda = { planet, ringMat, hit, group: jg, r: jr };
     this.scene.add(this.planets);
   }
 
@@ -1094,6 +1137,7 @@ export class Universe {
       const slot = this.pick();
       if (slot) this.select(slot);
       else if (this.pickJaveda()) this.travelToJaveda();
+      else if (this.pickGalaxy()) this.openGalaxy();
       else if (this.pickUfo()) this.beamRandom();
     }
     if (e.pointerType !== "mouse") this.pointer.set(9, 9);
@@ -1169,6 +1213,12 @@ export class Universe {
     return this.raycaster.intersectObject(this.javeda.hit, false).length > 0;
   }
 
+  private pickGalaxy(): boolean {
+    if (Math.abs(this.pointer.x) > 1 || Math.abs(this.pointer.y) > 1) return false;
+    this.raycaster.setFromCamera(this.pointer, this.camera);
+    return this.raycaster.intersectObject(this.galaxy.hit, false).length > 0;
+  }
+
   private pickUfo(): boolean {
     if (Math.abs(this.pointer.x) > 1 || Math.abs(this.pointer.y) > 1) return false;
     this.raycaster.setFromCamera(this.pointer, this.camera);
@@ -1205,6 +1255,16 @@ export class Universe {
     const aspect = w / h;
     const portrait = aspect < 0.95;
     this.layout = portrait ? { x: 3.05, scale: 0.74, portrait } : { x: 5.6, scale: 1, portrait };
+    // JAVEDA must be on screen on phones too: tuck it in closer to the centre.
+    if (this.javeda) {
+      if (portrait) {
+        this.javeda.group.position.set(40, 34, -175);
+        this.javeda.group.scale.setScalar(0.62);
+      } else {
+        this.javeda.group.position.set(92, 44, -175);
+        this.javeda.group.scale.setScalar(1);
+      }
+    }
     // Keep a sensible horizontal FOV on tall phones so both rows stay visible.
     if (portrait) {
       const hfov = THREE.MathUtils.degToRad(64);
@@ -1249,7 +1309,7 @@ export class Universe {
 
   private step(dt: number, t: number) {
     // ── flight ──
-    if (!this.focused && (!this.hovered || !this.inputEnabled)) {
+    if (!this.focused && !this.gazing && (!this.hovered || !this.inputEnabled)) {
       this.targetZ -= this.idleDrift * (this.inputEnabled ? 1 : 2.2) * dt;
     }
     const prev = this.camZ;
@@ -1274,7 +1334,15 @@ export class Universe {
         -this.parallax.x * 0.055 * look,
         (-this.parallax.x * 0.015 + (this.reducedMotion ? 0 : Math.sin(t * 0.37) * 0.006)) * look,
       );
-      const fov = this.baseFov + (this.reducedMotion ? 0 : speedK * 9);
+      // gaze: turn toward the galaxy and zoom in while the Lazy Jo card is open
+      this.gaze = damp(this.gaze, this.gazing ? 1 : 0, this.reducedMotion ? 8 : 2.6, dt);
+      const eg = easeInOut(clamp(this.gaze, 0, 1));
+      if (eg > 0.001) {
+        const at = this.camera.position.clone().add(this.galaxy.dir);
+        const qG = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(this.camera.position, at, new THREE.Vector3(0, 1, 0)));
+        this.camera.quaternion.slerp(qG, eg);
+      }
+      const fov = THREE.MathUtils.lerp(this.baseFov + (this.reducedMotion ? 0 : speedK * 9), this.layout.portrait ? 52 : 36, eg);
       if (Math.abs(this.camera.fov - fov) > 0.01) {
         this.camera.fov = damp(this.camera.fov, fov, 4, dt);
         this.camera.updateProjectionMatrix();
@@ -1289,7 +1357,10 @@ export class Universe {
     this.javedaHover = damp(this.javedaHover, this.javedaHovered ? 1 : 0, 6, dt);
     this.javeda.ringMat.uniforms.uGlow.value = 0.35 + 0.2 * Math.sin(t * 2.0) + this.javedaHover * 1.1;
     this.javeda.ringMat.uniforms.uTime.value = t;
-    this.javeda.planet.scale.setScalar(1 + this.javedaHover * 0.08);
+    this.javeda.planet.scale.setScalar(1 + this.javedaHover * 0.04);
+    this.galaxyHover = damp(this.galaxyHover, this.galaxyHovered ? 1 : 0, 6, dt);
+    (this.galaxy.glow.material as THREE.SpriteMaterial).opacity = 0.05 + 0.04 * Math.sin(t * 1.4) + this.galaxyHover * 0.4;
+    this.feedJavedaScreen(t);
     for (const p of this.planetSpin) p.rotation.y = t * 0.008;
     for (const m of this.planetMats) m.uniforms.uTime.value = t;
     this.ufo.group.position.z = this.camZ - 125;
@@ -1361,6 +1432,22 @@ export class Universe {
     }
   }
 
+  private tmpJ = new THREE.Vector3();
+  /** Project the JAVEDA planet to screen px for the HTML button (~30 fps). */
+  private feedJavedaScreen(t: number) {
+    if (!this.cb.onJavedaScreen || t - this.lastJavedaScreen < 0.033) return;
+    this.lastJavedaScreen = t;
+    this.javeda.group.updateWorldMatrix(true, false);
+    const p = this.javeda.group.getWorldPosition(this.tmpJ);
+    const dist = p.distanceTo(this.camera.position);
+    p.project(this.camera);
+    const w = this.container.clientWidth;
+    const h = this.container.clientHeight;
+    const r = ((this.javeda.r * this.javeda.group.scale.x) / dist / Math.tan(THREE.MathUtils.degToRad(this.camera.fov) / 2)) * (h / 2);
+    const visible = p.z < 1 && Math.abs(p.x) < 1.15 && Math.abs(p.y) < 1.15 && !this.travel && !this.gazing;
+    this.cb.onJavedaScreen({ x: (p.x * 0.5 + 0.5) * w, y: (-p.y * 0.5 + 0.5) * h, r, visible });
+  }
+
   private stepTravel(dt: number) {
     const tr = this.travel!;
     const dur = this.reducedMotion ? 0.7 : 2.7;
@@ -1372,7 +1459,7 @@ export class Universe {
     this.camera.quaternion.slerpQuaternions(tr.fromQuat, qLook, easeInOut(clamp(k / 0.32, 0, 1)));
     // 2. accelerate into it (ease-in = the jump to light speed)
     const dir = tr.target.clone().sub(tr.fromPos).normalize();
-    const stop = tr.target.clone().addScaledVector(dir, -8);
+    const stop = tr.target.clone().addScaledVector(dir, -this.javeda.r * this.javeda.group.scale.x * 1.45);
     const fly = clamp((k - 0.22) / 0.78, 0, 1);
     // punch into warp, then the planet rushes up and fills the view before the fade
     const e = (1 - Math.pow(1 - fly, 3)) * smoothstep(0, 0.12, fly);
@@ -1408,6 +1495,10 @@ export class Universe {
         this.javedaHovered = false;
         this.cb.onJavedaHover?.(false);
       }
+      if (this.galaxyHovered) {
+        this.galaxyHovered = false;
+        this.cb.onGalaxyHover?.(false);
+      }
       return;
     }
     const slot = this.pick();
@@ -1420,12 +1511,17 @@ export class Universe {
       this.javedaHovered = jav;
       this.cb.onJavedaHover?.(jav);
     }
-    const ufo = !slot && !jav && this.pickUfo();
+    const gal = !slot && !jav && this.pickGalaxy();
+    if (gal !== this.galaxyHovered) {
+      this.galaxyHovered = gal;
+      this.cb.onGalaxyHover?.(gal);
+    }
+    const ufo = !slot && !jav && !gal && this.pickUfo();
     if (ufo !== this.ufoHovered) {
       this.ufoHovered = ufo;
       this.cb.onUfoHover?.(ufo);
     }
-    this.container.style.cursor = slot || ufo || jav ? "pointer" : "";
+    this.container.style.cursor = slot || ufo || jav || gal ? "pointer" : "";
   }
 
   private updateNearest() {

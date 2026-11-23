@@ -12,6 +12,8 @@ interface Props {
   ufoHover: boolean;
   javedaHover: boolean;
   onJaveda(): void;
+  galaxyHover: boolean;
+  onGalaxy(): void;
   hovered: Single | null;
   nearest: Single | null;
   showHint: boolean;
@@ -28,6 +30,8 @@ export default function Hud({
   ufoHover,
   javedaHover,
   onJaveda,
+  galaxyHover,
+  onGalaxy,
   hovered,
   nearest,
   showHint,
@@ -39,7 +43,7 @@ export default function Hud({
     <div className="lj-hud">
       <header className="lj-hud-top">
         <a className="lj-wordmark" href="/" aria-label="Lightning Wolves home">
-          <span className="lj-wordmark-name">LAZY JO</span>
+          <span className="lj-wordmark-name">Lazy Jo&rsquo;s</span>
           <span className="lj-wordmark-sub">Universe</span>
         </a>
         <div className="lj-hud-actions">
@@ -79,8 +83,14 @@ export default function Hud({
             </div>
           </div>
 
-          <div className={`lj-target ${focus || ufoHover || javedaHover ? "is-visible" : ""}`} aria-live="polite">
-            {javedaHover ? (
+          <div className={`lj-target ${focus || ufoHover || javedaHover || galaxyHover ? "is-visible" : ""}`} aria-live="polite">
+            {galaxyHover ? (
+              <button className="lj-target-inner lj-target-javeda" onClick={onGalaxy} tabIndex={-1}>
+                <span className="lj-target-label">Click the galaxy</span>
+                <span className="lj-target-title">Lazy Jo</span>
+                <span className="lj-target-meta">the story, the co-signs, the merch</span>
+              </button>
+            ) : javedaHover ? (
               <button className="lj-target-inner lj-target-javeda" onClick={onJaveda} tabIndex={-1}>
                 <span className="lj-target-label">Click to travel</span>
                 <span className="lj-target-title">JAVEDA</span>

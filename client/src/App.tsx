@@ -184,6 +184,22 @@ export default function App() {
     }
   }, []);
 
+  // Deep-link: ?wolf=<artist-slug> opens that artist's profile (used by the
+  // "My story" button in Lazy Jo's Universe, /lazyjo/).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("wolf");
+    if (!slug) return;
+    const wolf = wolfBySlug.get(slug);
+    if (wolf && wolf.status === "active" && wolf.profile) {
+      setPage({ type: "wolf-profile", wolf });
+      setWolfColor(wolf.color);
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.delete("wolf");
+    window.history.replaceState({}, "", url.toString());
+  }, []);
+
   const goHome = useCallback(() => {
     setPage({ type: "home" });
     setWolfColor("#f5c518");

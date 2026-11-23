@@ -30,8 +30,8 @@ that file, and `server.js` reads the same file to price checkouts.
 The catalogue is the album **JAVEDA**: all 28 songs in album order (the same order as the JAVEDA
 levels; you fly past them in that order, left/right). Each song is **€0.99 minimum, €5 suggested**
 (`priceCents` / `suggestedCents`); the player offers €0.99 · €5 (preselected) · "Your amount" (any amount from the minimum up to €500). Previews play the
-JAVEDA level songs from the public `media` bucket (30 s). Covers are generated in each level's colours
-until real artwork goes in `cover`.
+JAVEDA level songs from the public `media` bucket (30 s). Covers are the official single artworks
+(`client/public/lazyjo/covers/NN-id.webp`, 800 px, from Apple Music) and `year` is each single's release year.
 
 **Upload the WAVs** (Jo's PC, uses `.env`): put the 28 WAVs in one folder (any file names that contain
 the song title), then

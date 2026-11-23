@@ -13,6 +13,14 @@ esac
 #    deployed, so "nothing changed since the last deploy" is exactly its case.
 if [ "$VERCEL_ENV" = "production" ]; then echo "Build: production"; exit 1; fi
 
+# 2b. Previews only for the one branch prod is promoted from. Other branches
+#     (Claude session branches, old v1) used to build too and doubled the
+#     storage. Their work reaches this branch before Jo tests it anyway.
+if [ -n "$VERCEL_GIT_COMMIT_REF" ] && [ "$VERCEL_GIT_COMMIT_REF" != "claude/amazing-mccarthy-pvr6xv" ]; then
+  echo "Skip: preview builds only run for claude/amazing-mccarthy-pvr6xv (this is $VERCEL_GIT_COMMIT_REF)"
+  exit 0
+fi
+
 # 3. Commits that only touch notes, the database schema, or agent/design-tool
 #    files (.claude/, .impeccable/) change nothing on the site. Compare with the last deployed commit; if that isn't known or not in
 #    the clone, git fails and we build (the safe side).

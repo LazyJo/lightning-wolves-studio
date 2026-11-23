@@ -87,6 +87,13 @@ October 2026 ~32 pushes at ~150-250 MB each filled the 10 GB, so:
   project `lightning-wolves-studio-jc1w`.
 - `node scripts/upload-media.js` (Jo's PC, uses `.env`) uploads everything in `media-uploads/`
   to the `media` bucket at the same path.
+- **Functions Storage** (each deployment's server bundle) hit 10.6 GB / 10 GB on 2026-11-23:
+  `express.static(public)` in `server.js` made Vercel trace the 69 MB root `public/` (old videos)
+  into every function. `vercel.json` → `functions["api/index.js"].excludeFiles` now leaves out
+  media folders/files. **Never exclude `uploads/`** (server.js mkdirs it at boot; the function FS
+  is read-only → crash) or `client/src/` (`singles.json` is required).
+- `vercel-ignore.sh` builds previews **only for `claude/amazing-mccarthy-pvr6xv`** (session
+  branches used to double every deployment); production always builds.
 
 ## Studio architecture (the part that bites)
 

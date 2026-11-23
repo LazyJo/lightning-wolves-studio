@@ -617,7 +617,7 @@ function lazyjoEmailHtml({ heading, paragraphs, button, footerUrl }) {
     .map((p) => `<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#d6e4ff">${p}</p>`)
     .join('');
   const btn = button
-    ? `<p style="margin:24px 0"><a href="${lazyjoEsc(button.url)}" style="display:inline-block;background:#00d9ff;color:#001018;font-weight:700;text-decoration:none;padding:14px 26px;border-radius:999px">${lazyjoEsc(button.label)}</a></p>`
+    ? `<p style="margin:24px 0"><a href="${lazyjoEsc(button.url)}" style="display:inline-block;background:#0e7490;color:#ffffff;font-weight:700;text-decoration:none;padding:14px 26px;border-radius:999px;border:1px solid #22d3ee">${lazyjoEsc(button.label)}</a></p>`
     : '';
   const foot = footerUrl
     ? `<p style="margin:28px 0 0;font-size:12px;color:#7d8bb0">You get this because you joined Lazy Jo's list. <a href="${lazyjoEsc(footerUrl)}" style="color:#7d8bb0">Unsubscribe</a></p>`
@@ -825,7 +825,7 @@ app.post('/api/lazyjo/admin/broadcast', async (req, res) => {
     const base = lazyjoBaseUrl(req);
     // plain text in, safe HTML out: paragraphs + clickable links
     const paragraphs = message.split(/\n{2,}/).map((p) =>
-      lazyjoEsc(p).replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#00d9ff">$1</a>'));
+      lazyjoEsc(p).replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#22d3ee">$1</a>'));
     let recipients;
     if (test) {
       recipients = [{ email: admin.user.email, token: null }];

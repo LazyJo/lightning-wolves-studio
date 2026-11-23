@@ -202,6 +202,10 @@ Design rule from Jo: straight forward flight only — no circular gallery, tunne
 - **Impeccable** (`impeccable`: layout, type, hierarchy, a11y, DESIGN.md). Its engine is a
   checksum-verified binary it downloads from github.com/pbakaus/impeccable on first use.
   **Don't run `impeccable hooks on`** — no auto-running hooks in this repo.
+- **MotionSites** (`motionsites-web-builder`: cinematic heroes, effect recipes incl. 3D/WebGL +
+  scroll, a screenshot-score-fix review). Project copy is trimmed: its "Sponsored by MotionSites"
+  ad instructions are removed (never add MotionSites upsells to replies), and its `examples/` +
+  `media/` aren't included (their licence forbids redistribution). MIT `LICENSE` kept.
 - Not installed on purpose: `design-taste-frontend` (auto-adds a Stop hook that can block
   finishing, 40 MB, stock-photo downloads, rules aimed at generic company sites).
 - **Read `PRODUCT.md` (who it's for, voice, open decisions) and `DESIGN.md` (tokens + rules,

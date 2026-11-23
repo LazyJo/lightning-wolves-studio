@@ -27,6 +27,7 @@ const norm = (s) =>
     .replace(/\.(wav|wave)$/, '')
     .replace(/\b(feat|ft)\b.*$/, '') // "Somebody ft Zirka" → "somebody"
     .replace(/\((master|final|mix|mastered|clean|explicit)[^)]*\)/g, '')
+    .replace(/\b(v|version)\s*\d+\b/g, '') // "Issues v2" → "issues"
     .replace(/lazy\s*jo/g, '')
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '');

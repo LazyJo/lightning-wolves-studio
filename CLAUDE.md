@@ -204,7 +204,11 @@ Design rule from Jo: straight forward flight only — no circular gallery, tunne
   **Don't run `impeccable hooks on`** — no auto-running hooks in this repo.
 - Not installed on purpose: `design-taste-frontend` (auto-adds a Stop hook that can block
   finishing, 40 MB, stock-photo downloads, rules aimed at generic company sites).
-- Workflow: brand rules (Conventions above / a DESIGN.md) before code; test as its own step —
+- **Read `PRODUCT.md` (who it's for, voice, open decisions) and `DESIGN.md` (tokens + rules,
+  North Star "Lightning in the Dark", gold kept rare) before any UI work.** `DESIGN.md` covers
+  the main site only; JAVEDA and the Universe keep their own styles. `.impeccable/design.json`
+  is its sidecar — regenerate both together (`impeccable document`).
+- Workflow: brand rules before code; test as its own step —
   Playwright screenshots at 1440 and 375, check links/menus/forms/keyboard, *then* fix.
 
 ## What I (Claude) tend to forget across sessions

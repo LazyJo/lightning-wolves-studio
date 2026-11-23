@@ -1,0 +1,388 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-23T01:16:23+00:00",
+  "title": "Design System: Lightning Wolves Studio",
+  "extensions": {
+    "colorMeta": {
+      "night-black": {
+        "role": "neutral",
+        "displayName": "Night Black",
+        "canonical": "#0a0a0c",
+        "tonalRamp": [
+          "#242428",
+          "#3f3f48",
+          "#595968",
+          "#737389",
+          "#9292a3",
+          "#b3b3bd",
+          "#d2d2d8",
+          "#f2f2f3"
+        ]
+      },
+      "graphite-surface": {
+        "role": "neutral",
+        "displayName": "Graphite Surface",
+        "canonical": "#111115",
+        "tonalRamp": [
+          "#242429",
+          "#3e3e49",
+          "#585869",
+          "#71718a",
+          "#9191a5",
+          "#b2b2be",
+          "#d2d2d8",
+          "#f1f1f3"
+        ]
+      },
+      "smoked-card": {
+        "role": "neutral",
+        "displayName": "Smoked Card",
+        "canonical": "#18181f",
+        "tonalRamp": [
+          "#232329",
+          "#3d3d4a",
+          "#56566b",
+          "#6f6f8d",
+          "#8f8fa7",
+          "#b0b0c0",
+          "#d1d1d9",
+          "#f1f1f3"
+        ]
+      },
+      "iron-border": {
+        "role": "neutral",
+        "displayName": "Iron Border",
+        "canonical": "#2a2a35",
+        "tonalRamp": [
+          "#232329",
+          "#3e3e49",
+          "#57576a",
+          "#70708b",
+          "#9090a6",
+          "#b1b1bf",
+          "#d2d2d9",
+          "#f1f1f3"
+        ]
+      },
+      "moon-white": {
+        "role": "neutral",
+        "displayName": "Moon White",
+        "canonical": "#f0f0f4",
+        "tonalRamp": [
+          "#22222a",
+          "#3c3c4b",
+          "#54546d",
+          "#6b6b90",
+          "#8c8ca9",
+          "#afafc1",
+          "#d0d0da",
+          "#f1f1f4"
+        ]
+      },
+      "dusk-lavender": {
+        "role": "neutral",
+        "displayName": "Dusk Lavender",
+        "canonical": "#8888aa",
+        "tonalRamp": [
+          "#22222a",
+          "#3b3b4c",
+          "#53536e",
+          "#6a6a92",
+          "#8b8bab",
+          "#aeaec2",
+          "#d0d0da",
+          "#f1f1f4"
+        ]
+      },
+      "lightning-gold": {
+        "role": "primary",
+        "displayName": "Lightning Gold",
+        "canonical": "#f5c518",
+        "tonalRamp": [
+          "#3d3310",
+          "#715d15",
+          "#ab8b16",
+          "#ebbc10",
+          "#f2cc44",
+          "#efd781",
+          "#f2e5b9",
+          "#faf6eb"
+        ]
+      },
+      "gold-shadow": {
+        "role": "primary",
+        "displayName": "Gold Shadow",
+        "canonical": "#b8940f",
+        "tonalRamp": [
+          "#3b3211",
+          "#6e5c19",
+          "#a6881b",
+          "#e3b818",
+          "#ecc94a",
+          "#ebd585",
+          "#f0e4bb",
+          "#f9f6eb"
+        ]
+      },
+      "ember-amber": {
+        "role": "primary",
+        "displayName": "Ember Amber",
+        "canonical": "#e8870a",
+        "tonalRamp": [
+          "#3d2910",
+          "#714915",
+          "#ab6a16",
+          "#eb8b10",
+          "#f2a644",
+          "#efbf81",
+          "#f2d9b9",
+          "#faf3eb"
+        ]
+      },
+      "scenes-green": {
+        "role": "secondary",
+        "displayName": "Scenes Green",
+        "canonical": "#69f0ae",
+        "tonalRamp": [
+          "#123a27",
+          "#1a6c44",
+          "#1ea362",
+          "#1cdf80",
+          "#4de99d",
+          "#87e9b9",
+          "#bcefd6",
+          "#ecf9f2"
+        ]
+      },
+      "performance-magenta": {
+        "role": "secondary",
+        "displayName": "Performance Magenta",
+        "canonical": "#E040FB",
+        "tonalRamp": [
+          "#370f3e",
+          "#661373",
+          "#9812af",
+          "#cf0bf0",
+          "#dc40f6",
+          "#e17ef2",
+          "#eab7f3",
+          "#f8eafa"
+        ]
+      },
+      "cover-cyan": {
+        "role": "secondary",
+        "displayName": "Cover Cyan",
+        "canonical": "#22d3ee",
+        "tonalRamp": [
+          "#11363b",
+          "#18636e",
+          "#1b94a7",
+          "#17c9e4",
+          "#49d7ec",
+          "#84deeb",
+          "#bae9f0",
+          "#ebf7f9"
+        ]
+      },
+      "hub-violet": {
+        "role": "secondary",
+        "displayName": "Hub Violet",
+        "canonical": "#9b6dff",
+        "tonalRamp": [
+          "#1d0e3f",
+          "#311175",
+          "#420fb2",
+          "#5206f5",
+          "#783cfa",
+          "#a27cf4",
+          "#cab6f4",
+          "#efeafa"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The one hero headline per page; uppercase, tracked, text-balance."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section titles (h1–h3 default to Syncopate uppercase)."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Credits, scores, rankings, counts — never sentences."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Paragraphs and most UI text (UI usually at 0.875rem)."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Chips, meta and helper text."
+      }
+    },
+    "shadows": [
+      {
+        "name": "hover-glow",
+        "value": "0 10px 15px -3px rgba(245,197,24,0.25)",
+        "purpose": "Primary/accent buttons on hover, tinted with the element's own accent."
+      },
+      {
+        "name": "cta-breathing-glow",
+        "value": "0 0 18px rgba(var(--cta-glow),0.75), 0 0 38px rgba(var(--cta-glow),0.32)",
+        "purpose": "One supporting CTA per view (.animate-cta-glow, 2.4s)."
+      },
+      {
+        "name": "panel-lift",
+        "value": "0 25px 50px -12px rgba(0,0,0,0.6)",
+        "purpose": "Modals and floating panels only."
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "all 200ms ease",
+        "purpose": "Hover/focus colour, border and glow changes (Tailwind transition-all)."
+      },
+      {
+        "name": "pulse-glow",
+        "value": "3s ease-in-out infinite",
+        "purpose": "Ambient status glow; stops under prefers-reduced-motion."
+      },
+      {
+        "name": "float",
+        "value": "4s ease-in-out infinite",
+        "purpose": "Gentle idle float for hero art; stops under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      },
+      {
+        "name": "2xl",
+        "value": "1536px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one main action per view.",
+      "html": "<button class=\"ds-btn-primary\">Make a lyric video</button>",
+      "css": ".ds-btn-primary{font-family: Inter, sans-serif;background:#f5c518;color:#0a0a0c;font-weight:600;padding:14px 32px;border:none;border-radius:8px;cursor:pointer;transition:all .2s ease}.ds-btn-primary:hover{background:#e8870a;box-shadow:0 10px 15px -3px rgba(245,197,24,.25);transform:translateY(-1px)}.ds-btn-primary:focus-visible{outline:2px solid #f5c518;outline-offset:3px}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Every other action next to the primary.",
+      "html": "<button class=\"ds-btn-secondary\">Meet the pack</button>",
+      "css": ".ds-btn-secondary{font-family: Inter, sans-serif;background:transparent;color:#f0f0f4;font-weight:600;padding:14px 32px;border:1px solid #2a2a35;border-radius:8px;cursor:pointer;transition:all .2s ease}.ds-btn-secondary:hover{border-color:rgba(245,197,24,.3);background:rgba(245,197,24,.05)}.ds-btn-secondary:focus-visible{outline:2px solid #f0f0f4;outline-offset:3px}"
+    },
+    {
+      "name": "Nav Pill",
+      "kind": "nav",
+      "refersTo": "nav-pill",
+      "description": "Top-bar link; active surface tints in its own accent.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-pill\">Home</a><a class=\"ds-nav-pill ds-active\">Wolf Hub</a><a class=\"ds-nav-pill\">Pricing</a></nav>",
+      "css": ".ds-nav{display:flex;gap:4px}.ds-nav-pill{font-family: Inter, sans-serif;font-size:14px;color:#f0f0f4;padding:8px 16px;border:1px solid rgba(255,255,255,.1);border-radius:8px;background:rgba(255,255,255,.03);white-space:nowrap;cursor:pointer;transition:all .2s ease}.ds-nav-pill:hover{border-color:rgba(245,197,24,.3);color:#f5c518}.ds-nav-pill.ds-active{border-color:rgba(155,109,255,.5);background:rgba(155,109,255,.12);color:#c8a4ff}"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Neutral by default; selected takes the surface accent.",
+      "html": "<span class=\"ds-chip\">Melodic Hip-Hop</span> <span class=\"ds-chip ds-selected\">Scenes</span>",
+      "css": ".ds-chip{font-family: Inter, sans-serif;display:inline-block;font-size:12px;font-weight:500;color:#8888aa;background:#18181f;padding:4px 12px;border-radius:9999px;border:1px solid #2a2a35}.ds-chip.ds-selected{color:#69f0ae;background:rgba(105,240,174,.1);border-color:rgba(105,240,174,.35)}"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Raised container; lifts and glows when clickable.",
+      "html": "<div class=\"ds-card\"><h3 class=\"ds-card-title\">STAY UP</h3><p class=\"ds-card-body\">100K+ views · Lazy Jo</p></div>",
+      "css": ".ds-card{font-family: Inter, sans-serif;background:#18181f;color:#f0f0f4;border:1px solid #2a2a35;border-radius:16px;padding:24px;max-width:280px;transition:all .2s ease;cursor:pointer}.ds-card:hover{transform:translateY(-2px);border-color:rgba(245,197,24,.3);box-shadow:0 10px 15px -3px rgba(245,197,24,.15)}.ds-card-title{font-family:Syncopate,sans-serif;text-transform:uppercase;letter-spacing:.05em;font-size:16px;margin:0 0 8px}.ds-card-body{margin:0;font-size:14px;color:#8888aa}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Graphite field; focus takes the surface accent.",
+      "html": "<input class=\"ds-input\" placeholder=\"Artist name\" />",
+      "css": ".ds-input{font-family: Inter, sans-serif;font-size:14px;background:#111115;color:#f0f0f4;border:1px solid #2a2a35;border-radius:8px;padding:10px 14px;outline:none;transition:all .2s ease}.ds-input::placeholder{color:#8888aa}.ds-input:focus-visible{border-color:#f5c518;box-shadow:0 0 0 3px rgba(245,197,24,.15)}"
+    },
+    {
+      "name": "Inline Validation Card",
+      "kind": "custom",
+      "description": "Accent-bordered note under a disabled CTA saying what's missing.",
+      "html": "<div class=\"ds-validate\">Add a song first to generate your video.</div>",
+      "css": ".ds-validate{font-family: Inter, sans-serif;font-size:12px;color:#f0f0f4;background:rgba(105,240,174,.06);border:1px solid rgba(105,240,174,.35);border-radius:8px;padding:8px 12px;max-width:320px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Lightning in the Dark",
+    "overview": "The site is mostly calm, near-black space. Gold is the lightning: rare, sharp and always meaningful — it marks where the visitor acts, never where the interface wants attention. Everything around it stays quiet so that the artists, their faces and their music are what's loud.\n\nThe voice is premium and minimal, but the surfaces are tactile: buttons and cards are solid objects that lift and glow when touched, so the calm never feels flat or lifeless. Density is moderate — dashboards and the Studio can be busy, marketing pages breathe.",
+    "keyCharacteristics": [
+      "Near-black graphite layers, no light theme.",
+      "One gold, used rarely: the primary action and genuine highlights.",
+      "Per-surface accent colours identify where you are in the Studio.",
+      "Uppercase, widely tracked Syncopate headings over plain Inter body.",
+      "Solid, tactile components with hover lift and soft coloured glow."
+    ],
+    "rules": [
+      {
+        "name": "The Lightning Rule",
+        "body": "Gold appears on at most one primary action per view plus genuine highlights (an award, the live state). Borders, badges, nav pills and decorative frames are neutral by default; if everything is gold, nothing is.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Surface, One Accent Rule",
+        "body": "A Studio surface uses only its own accent next to gold. Scenes is green, never cyan; Cover Art is cyan, never green.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quiet Words Rule",
+        "body": "Syncopate is for short headings only (≤ 8 words). Never set paragraphs, buttons with long labels or form text in it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Glow Not Shadow Rule",
+        "body": "Elevation on dark is expressed with coloured light. If a glow doesn't match the element's own accent, remove it.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep gold to the primary action and real highlights (The Lightning Rule).",
+      "Do give every clickable surface a tactile hover: lift and a glow in its own accent.",
+      "Do use the surface's own accent in the Studio and the artist's colour on their profile.",
+      "Do use `svh` for full-height sections and test at 375px and 1440px.",
+      "Do respect `prefers-reduced-motion`: looping glows and floats stop.",
+      "Do show prices and credits inline on CTAs, never only in a tooltip."
+    ],
+    "donts": [
+      "Don't add gold borders, gold badges or gold nav pills by default.",
+      "Don't use grey drop shadows on the black page; use tonal layers and glow.",
+      "Don't set long text in Syncopate or go dimmer than Dusk Lavender for readable text.",
+      "Don't introduce a light theme or new neutrals outside this palette.",
+      "Don't bring JAVEDA's or the LAZY JO UNIVERSE's styles into the main site, or these into them.",
+      "Don't run more than one breathing/pulsing glow in a view."
+    ]
+  }
+}

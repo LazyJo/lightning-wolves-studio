@@ -13,14 +13,14 @@ esac
 #    deployed, so "nothing changed since the last deploy" is exactly its case.
 if [ "$VERCEL_ENV" = "production" ]; then echo "Build: production"; exit 1; fi
 
-# 3. Commits that only touch notes or the database schema change nothing on the
-#    site. Compare with the last deployed commit; if that isn't known or not in
+# 3. Commits that only touch notes, the database schema, or agent/design-tool
+#    files (.claude/, .impeccable/) change nothing on the site. Compare with the last deployed commit; if that isn't known or not in
 #    the clone, git fails and we build (the safe side).
 BASE="${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}"
 # a redeploy of the same commit is asked for on purpose: build it
 if [ "$(git rev-parse "$BASE" 2>/dev/null)" = "$(git rev-parse HEAD)" ]; then echo "Build: same commit, redeploy"; exit 1; fi
-if git diff --quiet "$BASE" HEAD -- . ':(exclude)*.md' ':(exclude)*.sql' 2>/dev/null; then
-  echo "Skip: only notes or schema changed since $BASE"
+if git diff --quiet "$BASE" HEAD -- . ':(exclude)*.md' ':(exclude)*.sql' ':(exclude).claude/**' ':(exclude).impeccable/**' 2>/dev/null; then
+  echo "Skip: only notes, schema or agent/design-tool files changed since $BASE"
   exit 0
 fi
 

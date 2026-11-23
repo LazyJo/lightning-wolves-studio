@@ -193,20 +193,6 @@ via `GET /api/lazyjo/download` (re-verifies the session, signs a URL from the pr
 `lazyjo-masters` Supabase bucket). Full setup: `SETUP-LAZYJO-UNIVERSE.md`.
 Design rule from Jo: straight forward flight only — no circular gallery, tunnel, road or well.
 
-## Design skills (`.claude/skills/`, vetted 2026-11-23)
-
-- **Emil Kowalski** (motion/interaction craft, plain markdown): `animate`, `choreograph`,
-  `review-animations`, `improve-animations`, `animation-performance`, `gestures`,
-  `mobile-native`, `break-ui`, `emil-design-eng`, `apple-design` (motion, not Apple's look), …
-  `ask-emil` routes between them.
-- **Impeccable** (`impeccable`: layout, type, hierarchy, a11y, DESIGN.md). Its engine is a
-  checksum-verified binary it downloads from github.com/pbakaus/impeccable on first use.
-  **Don't run `impeccable hooks on`** — no auto-running hooks in this repo.
-- Not installed on purpose: `design-taste-frontend` (auto-adds a Stop hook that can block
-  finishing, 40 MB, stock-photo downloads, rules aimed at generic company sites).
-- Workflow: brand rules (Conventions above / a DESIGN.md) before code; test as its own step —
-  Playwright screenshots at 1440 and 375, check links/menus/forms/keyboard, *then* fix.
-
 ## What I (Claude) tend to forget across sessions
 
 - Jo defaults to **testing on prod, not localhost** — push fast, tell him the preview URL.

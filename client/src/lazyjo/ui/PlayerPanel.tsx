@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Pause, Play, Share2, X, Zap } from "lucide-react";
-import { ARTIST, PREVIEW_SECONDS, formatPrice, type Single } from "../catalog";
+import { ARTIST, PREVIEW_SECONDS, formatPrice, fullTitle, releaseLabel, type Single } from "../catalog";
 import JoinForm from "./JoinForm";
 import { sound } from "../audio";
 import { CheckoutUnavailableError, startSingleCheckout } from "../shop";
@@ -17,9 +17,13 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
   const [playing, setPlaying] = useState(false);
   const [buy, setBuy] = useState<BuyState>({ kind: "idle" });
   const [copied, setCopied] = useState(false);
-  // "Pay what you want, from the base price" — base, +€2, +€5.
-  const tiers = [single.priceCents, single.priceCents + 200, single.priceCents + 500];
-  const [amount, setAmount] = useState(tiers[0]);
+  // Pay what you want: the minimum, the suggested amount (preselected), and double that.
+  const suggested = single.suggestedCents;
+  const tiers =
+    suggested > single.priceCents
+      ? [single.priceCents, suggested, suggested * 2]
+      : [single.priceCents, single.priceCents + 200, single.priceCents + 500];
+  const [amount, setAmount] = useState(suggested);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
   const timeRef = useRef<HTMLSpanElement>(null);
@@ -107,7 +111,7 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
   const share = async () => {
     const url = `${window.location.origin}/lazyjo/?single=${single.id}`;
     try {
-      if (navigator.share) await navigator.share({ title: `${single.title} — ${ARTIST}`, url });
+      if (navigator.share) await navigator.share({ title: `${fullTitle(single)} — ${ARTIST}`, url });
       else {
         await navigator.clipboard.writeText(url);
         setCopied(true);
@@ -136,7 +140,7 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
           </div>
           <div className="lj-player-titles">
             <p className="lj-eyebrow">
-              <span className="lj-dot" /> Single · {single.year}
+              <span className="lj-dot" /> {releaseLabel(single)}
             </p>
             <h2
               id="lj-player-title"
@@ -146,7 +150,10 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
             >
               {single.title}
             </h2>
-            <p className="lj-player-artist">{ARTIST}</p>
+            <p className="lj-player-artist">
+              {ARTIST}
+              {single.feat ? ` feat. ${single.feat}` : ""}
+            </p>
           </div>
         </div>
 
@@ -184,6 +191,7 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
                 >
                   {formatPrice(t)}
                   {i === 2 && <Zap size={12} aria-hidden />}
+                  {t === suggested && suggested > single.priceCents && <span className="lj-tier-tag">Suggested</span>}
                 </button>
               ))}
             </div>

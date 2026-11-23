@@ -403,6 +403,14 @@ a { color: var(--lj-cyan); }
   font-weight: 700;
 }
 .lj-tier:hover { border-color: rgba(0,245,255,0.5); }
+.lj-tier { position: relative; }
+.lj-tier-tag {
+  position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  padding: 1px 7px; border-radius: 999px; background: var(--lj-cyan); color: #021018;
+  font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap;
+}
+.lj-buy-row .lj-tiers { padding-top: 6px; }
+.lj-list-price small { font-size: 0.72em; font-weight: 600; opacity: 0.6; margin-right: 2px; }
 .lj-tier.is-active {
   border-color: var(--lj-cyan); color: var(--lj-cyan);
   background: rgba(0,245,255,0.08); box-shadow: 0 0 20px -6px var(--lj-cyan) inset;

@@ -13,9 +13,16 @@ export type CoverMotif =
 
 export interface Single {
   id: string;
+  /** position on the album JAVEDA (the catalogue is in album order) */
+  track: number | null;
   title: string;
-  year: number;
+  /** featured artist, shown as "feat. X" */
+  feat: string | null;
+  year: number | null;
+  /** minimum price (the server enforces it) */
   priceCents: number;
+  /** the amount the player preselects ("Suggested") */
+  suggestedCents: number;
   cover: string | null;
   previewUrl: string | null;
   palette: [string, string, string];
@@ -28,9 +35,12 @@ export const ARTIST = raw.artist;
 export const CURRENCY = raw.currency;
 export const SINGLES: Single[] = raw.singles.map((s) => ({
   id: s.id,
+  track: "track" in s && typeof s.track === "number" ? s.track : null,
   title: s.title,
-  year: s.year,
+  feat: "feat" in s && typeof s.feat === "string" ? s.feat : null,
+  year: s.year ?? null,
   priceCents: s.priceCents,
+  suggestedCents: "suggestedCents" in s && typeof s.suggestedCents === "number" ? Math.max(s.suggestedCents, s.priceCents) : s.priceCents,
   cover: s.cover,
   previewUrl: s.previewUrl,
   palette: s.palette as [string, string, string],
@@ -40,6 +50,19 @@ export const SINGLES: Single[] = raw.singles.map((s) => ({
 }));
 
 export const singleById = new Map(SINGLES.map((s) => [s.id, s]));
+
+export const ALBUM: string | null = "album" in raw && typeof raw.album === "string" ? raw.album : null;
+
+/** "Somebody (feat. Zirka)" */
+export function fullTitle(s: Single): string {
+  return s.feat ? `${s.title} (feat. ${s.feat})` : s.title;
+}
+
+/** "JAVEDA · Track 02" for album songs, else the year ("2023"). */
+export function releaseLabel(s: Single): string {
+  if (s.track && ALBUM) return `${ALBUM} \u00b7 Track ${String(s.track).padStart(2, "0")}`;
+  return s.year ? String(s.year) : "Single";
+}
 
 const fmt = new Intl.NumberFormat(undefined, {
   style: "currency",

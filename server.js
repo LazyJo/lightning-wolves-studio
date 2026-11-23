@@ -487,6 +487,7 @@ const LAZYJO_MAX_CENTS = 50000;            // cap "pay what you want" at €500
 const LAZYJO_DOWNLOAD_DAYS = 30;           // re-download window per purchase
 const LAZYJO_BUCKET = process.env.LAZYJO_MASTERS_BUCKET || 'lazyjo-masters';
 const lazyjoSingle = (id) => LAZYJO_CATALOG.singles.find((s) => s.id === id);
+const lazyjoTitle = (s) => (s.feat ? `${s.title} (feat. ${s.feat})` : s.title);
 
 app.post('/api/lazyjo/checkout', async (req, res) => {
   if (!stripe) return res.status(503).json({ error: 'Checkout is not configured yet' });
@@ -526,8 +527,10 @@ app.post('/api/lazyjo/checkout', async (req, res) => {
                 unit_amount: amount,
                 tax_behavior: 'inclusive', // prices shown are what the fan pays, VAT included
                 product_data: {
-                  name: `${single.title} — ${LAZYJO_CATALOG.artist}`,
-                  description: 'Digital single · high-quality download · supports the artist directly',
+                  name: `${lazyjoTitle(single)} — ${LAZYJO_CATALOG.artist}`,
+                  description: single.track && LAZYJO_CATALOG.album
+                    ? `From ${LAZYJO_CATALOG.album} · track ${single.track} · WAV download · supports the artist directly`
+                    : 'Digital single · high-quality download · supports the artist directly',
                   ...(productImage ? { images: productImage } : {}),
                 },
               },
@@ -569,7 +572,7 @@ app.get('/api/lazyjo/download', async (req, res) => {
     const single = lazyjoSingle(session.metadata.singleId);
     if (!single) return res.status(404).json({ error: 'Single no longer available' });
 
-    const base = { title: single.title, email: session.customer_details?.email || null };
+    const base = { title: lazyjoTitle(single), email: session.customer_details?.email || null };
     if (!supabase || !single.masterPath) {
       return res.json({ ...base, status: 'pending' });
     }
@@ -577,7 +580,9 @@ app.get('/api/lazyjo/download', async (req, res) => {
     const { data, error } = await supabase.storage
       .from(LAZYJO_BUCKET)
       .createSignedUrl(single.masterPath, 600, {
-        download: `${LAZYJO_CATALOG.artist} - ${single.title}.${ext}`,
+        // "Lazy Jo - 06 No Rest-No Work.wav" (no slashes etc. in file names)
+        download: `${LAZYJO_CATALOG.artist} - ${single.track ? String(single.track).padStart(2, '0') + ' ' : ''}${lazyjoTitle(single)}.${ext}`
+          .replace(/[\\/:*?"<>|]+/g, '-'),
       });
     if (error || !data?.signedUrl) {
       console.error('LazyJo signed URL error:', error);

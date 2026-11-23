@@ -1,111 +1,542 @@
 {
-  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. cover / previewUrl are public paths (drop files in client/public/lazyjo/covers + /previews). masterPath is the object key of the full-quality file in the PRIVATE Supabase Storage bucket (LAZYJO_MASTERS_BUCKET, default 'lazyjo-masters') — it is only handed out as a short-lived signed URL after Stripe confirms payment. Entries with placeholder:true are development stand-ins: swap in real titles/artwork/audio before launch.",
+  "_readme": "Single source of truth for the LAZY JO UNIVERSE (/lazyjo/): the 28 songs of the album JAVEDA, in album order (the same order as the JAVEDA levels; the flight passes them left/right in this order). The client renders this list and server.js reads the SAME file to price Stripe checkouts, so prices can't be tampered with from the browser. previewUrl = the public JAVEDA level song in the Supabase 'media' bucket (the player stops after 30 s). masterPath = the object key of the WAV in the PRIVATE bucket LAZYJO_MASTERS_BUCKET (default 'lazyjo-masters'), only handed out as a short-lived signed URL after Stripe confirms payment. Upload the WAVs with: node scripts/upload-masters.js <folder> (Jo's PC). cover = null -> generated artwork in the level's colours. priceCents = the minimum (server-enforced), suggestedCents = the preselected amount in the player.",
   "artist": "Lazy Jo",
   "currency": "eur",
   "singles": [
     {
-      "id": "stay-up",
-      "title": "Stay Up",
-      "year": 2023,
-      "priceCents": 129,
-      "cover": "/LazyJo - StayUp pictures from videoshoot (CS)_-86.JPG.jpeg",
-      "previewUrl": null,
-      "masterPath": "stay-up.wav",
-      "palette": ["#0b1220", "#cfd8e3", "#00BFFF"],
-      "motif": "portrait",
-      "vinyl": true,
-      "placeholder": false
-    },
-    {
-      "id": "purple-skyline",
-      "title": "Purple Skyline",
-      "year": 2024,
-      "priceCents": 129,
-      "cover": null,
-      "previewUrl": null,
-      "masterPath": "purple-skyline.wav",
-      "palette": ["#12002e", "#7B2CFF", "#E040FB"],
-      "motif": "city",
-      "vinyl": true,
-      "placeholder": true
-    },
-    {
       "id": "im-lost",
+      "track": 1,
       "title": "I'm Lost",
       "year": 2018,
-      "priceCents": 129,
+      "priceCents": 99,
       "cover": null,
-      "previewUrl": null,
-      "masterPath": "im-lost.wav",
-      "palette": ["#020814", "#00BFFF", "#00F5FF"],
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl1.mp3",
+      "masterPath": "javeda/01-im-lost.wav",
+      "palette": [
+        "#050c1e",
+        "#2f8fe0",
+        "#1c5dca"
+      ],
       "motif": "orb",
       "vinyl": false,
-      "placeholder": false
+      "placeholder": false,
+      "suggestedCents": 500
     },
     {
-      "id": "crown",
-      "title": "Crown",
-      "year": 2024,
-      "priceCents": 149,
+      "id": "somebody",
+      "track": 2,
+      "title": "Somebody",
+      "feat": "Zirka",
+      "year": null,
+      "priceCents": 99,
       "cover": null,
-      "previewUrl": null,
-      "masterPath": "crown.wav",
-      "palette": ["#0a0a0c", "#f5c518", "#7a5b00"],
-      "motif": "crown",
-      "vinyl": true,
-      "placeholder": true
-    },
-    {
-      "id": "moonwalker",
-      "title": "Moonwalker",
-      "year": 2025,
-      "priceCents": 129,
-      "cover": null,
-      "previewUrl": null,
-      "masterPath": "moonwalker.wav",
-      "palette": ["#05070d", "#e6edf5", "#7d8ca3"],
-      "motif": "moon",
-      "vinyl": true,
-      "placeholder": true
-    },
-    {
-      "id": "night-drive",
-      "title": "Night Drive",
-      "year": 2025,
-      "priceCents": 129,
-      "cover": null,
-      "previewUrl": null,
-      "masterPath": "night-drive.wav",
-      "palette": ["#060608", "#ff3355", "#9aa4b5"],
-      "motif": "road",
-      "vinyl": false,
-      "placeholder": true
-    },
-    {
-      "id": "red-lights",
-      "title": "Red Lights",
-      "year": 2025,
-      "priceCents": 129,
-      "cover": null,
-      "previewUrl": null,
-      "masterPath": "red-lights.wav",
-      "palette": ["#1a0208", "#ff2d55", "#7B2CFF"],
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl2.mp3",
+      "masterPath": "javeda/02-somebody.wav",
+      "palette": [
+        "#120a05",
+        "#ffb020",
+        "#bd6b29"
+      ],
       "motif": "silhouette",
       "vinyl": true,
-      "placeholder": true
+      "placeholder": false,
+      "suggestedCents": 500
     },
     {
-      "id": "lightning",
-      "title": "Lightning",
-      "year": 2026,
-      "priceCents": 149,
+      "id": "my-heart",
+      "track": 3,
+      "title": "My Heart",
+      "year": null,
+      "priceCents": 99,
       "cover": null,
-      "previewUrl": null,
-      "masterPath": "lightning.wav",
-      "palette": ["#030712", "#00F5FF", "#7B2CFF"],
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl3.mp3",
+      "masterPath": "javeda/03-my-heart.wav",
+      "palette": [
+        "#05060a",
+        "#e11d2e",
+        "#b92c47"
+      ],
+      "motif": "orb",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "rollercoaster",
+      "track": 4,
+      "title": "Rollercoaster",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl4.mp3",
+      "masterPath": "javeda/04-rollercoaster.wav",
+      "palette": [
+        "#060a18",
+        "#38d9ff",
+        "#2252c3"
+      ],
+      "motif": "road",
+      "vinyl": false,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "feel-like-that",
+      "track": 5,
+      "title": "Feel Like That",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl5.mp3",
+      "masterPath": "javeda/05-feel-like-that.wav",
+      "palette": [
+        "#0c0818",
+        "#ffc65c",
+        "#552eb8"
+      ],
+      "motif": "moon",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "no-rest-no-work",
+      "track": 6,
+      "title": "No Rest/No Work",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl6.mp3",
+      "masterPath": "javeda/06-no-rest-no-work.wav",
+      "palette": [
+        "#140a12",
+        "#ff8a2a",
+        "#b8342e"
+      ],
+      "motif": "road",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "journey",
+      "track": 7,
+      "title": "Journey",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl7.mp3",
+      "masterPath": "javeda/07-journey.wav",
+      "palette": [
+        "#04050f",
+        "#ff9a3c",
+        "#2e3db8"
+      ],
+      "motif": "road",
+      "vinyl": false,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "myself",
+      "track": 8,
+      "title": "Myself",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl8.mp3",
+      "masterPath": "javeda/08-myself.wav",
+      "palette": [
+        "#120505",
+        "#ff7a2a",
+        "#c12f25"
+      ],
+      "motif": "silhouette",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "oublie-moi",
+      "track": 9,
+      "title": "Oublie-moi",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl9.mp3",
+      "masterPath": "javeda/09-oublie-moi.wav",
+      "palette": [
+        "#0b0416",
+        "#ff3d8b",
+        "#602eb8"
+      ],
+      "motif": "city",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "going-crazy",
+      "track": 10,
+      "title": "Going Crazy",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl10.mp3",
+      "masterPath": "javeda/10-going-crazy.wav",
+      "palette": [
+        "#060914",
+        "#ff8a2a",
+        "#2e53b8"
+      ],
+      "motif": "bolt",
+      "vinyl": false,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "la-night",
+      "track": 11,
+      "title": "LA Night",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl11.mp3",
+      "masterPath": "javeda/11-la-night.wav",
+      "palette": [
+        "#07051a",
+        "#dead7c",
+        "#ff3a5a"
+      ],
+      "motif": "city",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "need-more-time",
+      "track": 12,
+      "title": "Need More Time",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl12.mp3",
+      "masterPath": "javeda/12-need-more-time.wav",
+      "palette": [
+        "#04101a",
+        "#22d3ee",
+        "#0ea5e9"
+      ],
+      "motif": "moon",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "you-ready",
+      "track": 13,
+      "title": "You Ready?",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl13.mp3",
+      "masterPath": "javeda/13-you-ready.wav",
+      "palette": [
+        "#140727",
+        "#ff5ab4",
+        "#2a3ad8"
+      ],
+      "motif": "bolt",
+      "vinyl": false,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "la-vibe",
+      "track": 14,
+      "title": "LA Vibe",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl14.mp3",
+      "masterPath": "javeda/14-la-vibe.wav",
+      "palette": [
+        "#05030c",
+        "#3ae0ff",
+        "#ff4fd8"
+      ],
+      "motif": "city",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "ghost",
+      "track": 15,
+      "title": "Ghost",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl15.mp3",
+      "masterPath": "javeda/15-ghost.wav",
+      "palette": [
+        "#0e0b14",
+        "#ff5c72",
+        "#ffa040"
+      ],
+      "motif": "silhouette",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "peace-inside",
+      "track": 16,
+      "title": "Peace Inside",
+      "feat": "Zirka",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl16.mp3",
+      "masterPath": "javeda/16-peace-inside.wav",
+      "palette": [
+        "#140727",
+        "#fdb927",
+        "#8a4fd0"
+      ],
+      "motif": "moon",
+      "vinyl": false,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "true-fighter",
+      "track": 17,
+      "title": "True Fighter",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl17.mp3",
+      "masterPath": "javeda/17-true-fighter.wav",
+      "palette": [
+        "#061828",
+        "#ffd21a",
+        "#0c90da"
+      ],
       "motif": "bolt",
       "vinyl": true,
-      "placeholder": true
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "issues",
+      "track": 18,
+      "title": "Issues",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl18.mp3",
+      "masterPath": "javeda/18-issues.wav",
+      "palette": [
+        "#040818",
+        "#4a8aff",
+        "#5cc0ff"
+      ],
+      "motif": "orb",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "stay-up",
+      "track": 19,
+      "title": "Stay Up",
+      "year": 2023,
+      "priceCents": 99,
+      "cover": "/LazyJo - StayUp pictures from videoshoot (CS)_-86.JPG.jpeg",
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl19.mp3",
+      "masterPath": "javeda/19-stay-up.wav",
+      "palette": [
+        "#020a0c",
+        "#3ae8ff",
+        "#9a3aff"
+      ],
+      "motif": "portrait",
+      "vinyl": false,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "stay-up-2",
+      "track": 20,
+      "title": "Stay Up 2",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl20.mp3",
+      "masterPath": "javeda/20-stay-up-2.wav",
+      "palette": [
+        "#04051a",
+        "#5c87ff",
+        "#3a2aff"
+      ],
+      "motif": "bolt",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "blind-love",
+      "track": 21,
+      "title": "Blind Love",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl21.mp3",
+      "masterPath": "javeda/21-blind-love.wav",
+      "palette": [
+        "#0d0628",
+        "#ed6ec5",
+        "#a45cff"
+      ],
+      "motif": "orb",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "space-kid",
+      "track": 22,
+      "title": "Space Kid",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl22.mp3",
+      "masterPath": "javeda/22-space-kid.wav",
+      "palette": [
+        "#0e0628",
+        "#ffb83a",
+        "#ff3a3a"
+      ],
+      "motif": "moon",
+      "vinyl": false,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "fall-in-love-again",
+      "track": 23,
+      "title": "Fall In Love Again",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl23.mp3",
+      "masterPath": "javeda/23-fall-in-love-again.wav",
+      "palette": [
+        "#061c28",
+        "#985cff",
+        "#ff5c97"
+      ],
+      "motif": "orb",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "down-for-me",
+      "track": 24,
+      "title": "Down For Me",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl24.mp3",
+      "masterPath": "javeda/24-down-for-me.wav",
+      "palette": [
+        "#271207",
+        "#ffde5c",
+        "#ffae5c"
+      ],
+      "motif": "silhouette",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "real-love",
+      "track": 25,
+      "title": "Real Love",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl25.mp3",
+      "masterPath": "javeda/25-real-love.wav",
+      "palette": [
+        "#1a0708",
+        "#ff865c",
+        "#ff5a8a"
+      ],
+      "motif": "orb",
+      "vinyl": false,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "lifestyle-crazy",
+      "track": 26,
+      "title": "Lifestyle Crazy",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl26.mp3",
+      "masterPath": "javeda/26-lifestyle-crazy.wav",
+      "palette": [
+        "#02030c",
+        "#ff2a4a",
+        "#ff40c0"
+      ],
+      "motif": "city",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "be-alright",
+      "track": 27,
+      "title": "Be Alright",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl27.mp3",
+      "masterPath": "javeda/27-be-alright.wav",
+      "palette": [
+        "#061328",
+        "#ff3a5a",
+        "#5cb2ff"
+      ],
+      "motif": "moon",
+      "vinyl": true,
+      "placeholder": false,
+      "suggestedCents": 500
+    },
+    {
+      "id": "go",
+      "track": 28,
+      "title": "GO!",
+      "year": null,
+      "priceCents": 99,
+      "cover": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/javeda/lvl28.mp3",
+      "masterPath": "javeda/28-go.wav",
+      "palette": [
+        "#140727",
+        "#ffd95c",
+        "#ff9a4a"
+      ],
+      "motif": "bolt",
+      "vinyl": false,
+      "placeholder": false,
+      "suggestedCents": 500
     }
-  ]
+  ],
+  "album": "JAVEDA"
 }

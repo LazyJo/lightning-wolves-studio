@@ -307,7 +307,7 @@ function drawWordmark(ctx: CanvasRenderingContext2D, s: Single, size: number) {
   ctx.textAlign = "center";
   ctx.font = `700 ${Math.round(size * 0.036)}px Manrope, sans-serif`;
   ctx.fillStyle = "rgba(235,240,250,0.75)";
-  ctx.fillText(s.title.toUpperCase().split("").join(" "), size / 2, size * 0.93);
+  ctx.fillText(s.title.toUpperCase().split("").join(" "), size / 2, size * 0.93, size * 0.9);
   ctx.restore();
 }
 

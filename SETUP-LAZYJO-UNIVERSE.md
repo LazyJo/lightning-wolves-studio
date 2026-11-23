@@ -17,7 +17,9 @@ that file, and `server.js` reads the same file to price checkouts.
 |---|---|
 | `id` | url-safe slug, e.g. `stay-up` (used in share links: `/lazyjo/?single=stay-up`) |
 | `title`, `year` | shown on the card + player |
-| `priceCents` | minimum price in cents (fans can pay more: base / +€2 / +€5) |
+| `priceCents` | minimum price in cents (the server enforces it) |
+| `suggestedCents` | preselected amount in the player ("Suggested"); the third option is double |
+| `track`, `feat` | album position (JAVEDA) and featured artist ("feat. Zirka") |
 | `cover` | public path to square artwork, e.g. `/lazyjo/covers/stay-up.jpg` → put the file in `client/public/lazyjo/covers/` |
 | `previewUrl` | public path to a ≤30 s clip, e.g. `/lazyjo/previews/stay-up.mp3` → `client/public/lazyjo/previews/`. `null` = generated placeholder beat |
 | `masterPath` | object key of the full-quality file in the private Supabase bucket (step 3) |
@@ -25,7 +27,23 @@ that file, and `server.js` reads the same file to price checkouts.
 | `palette`, `motif`, `vinyl` | look of the placeholder art / vinyl label (used when there's no `cover`) |
 | `placeholder` | `true` = dev stand-in (shows a "Preview art" badge). Set to `false` once the entry is real |
 
-Only **Stay Up** and **I'm Lost** are real titles right now. The other six are placeholders.
+The catalogue is the album **JAVEDA**: all 28 songs in album order (the same order as the JAVEDA
+levels; you fly past them in that order, left/right). Each song is **€0.99 minimum, €5 suggested**
+(`priceCents` / `suggestedCents`); the player offers €0.99 · €5 (preselected) · €10. Previews play the
+JAVEDA level songs from the public `media` bucket (30 s). Covers are generated in each level's colours
+until real artwork goes in `cover`.
+
+**Upload the WAVs** (Jo's PC, uses `.env`): put the 28 WAVs in one folder (any file names that contain
+the song title), then
+
+```
+node scripts/upload-masters.js "C:\path\to\JAVEDA WAV" --dry-run   # check the matches
+node scripts/upload-masters.js "C:\path\to\JAVEDA WAV"             # upload
+```
+
+It creates the private `lazyjo-masters` bucket if needed and stores each file at its `masterPath`
+(e.g. `javeda/19-stay-up.wav`). Supabase limits upload size per file (Free plan: 50 MB max, set in
+Storage → Settings) and total storage (Free: 1 GB); 28 WAVs are roughly 1–2 GB.
 
 ## 2. Stripe (payments)
 

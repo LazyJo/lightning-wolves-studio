@@ -1,5 +1,5 @@
 import { Orbit, X } from "lucide-react";
-import { SINGLES, formatPrice, type Single } from "../catalog";
+import { ALBUM, SINGLES, formatPrice, type Single } from "../catalog";
 
 interface Props {
   open: boolean;
@@ -20,7 +20,7 @@ export default function Tracklist({ open, inline, onClose, onPick, coverFor, onJ
     >
       <div className="lj-list-head">
         <div>
-          <p className="lj-eyebrow">Discography</p>
+          <p className="lj-eyebrow">{ALBUM ? `${ALBUM} \u00b7 ${SINGLES.length} songs` : "Discography"}</p>
           <h2 className="lj-list-title">Singles</h2>
         </div>
         {!inline && (
@@ -35,16 +35,19 @@ export default function Tracklist({ open, inline, onClose, onPick, coverFor, onJ
           return (
             <li key={s.id}>
               <button className="lj-list-item" onClick={() => onPick(s.id)}>
-                <span className="lj-list-index">{String(i + 1).padStart(2, "0")}</span>
+                <span className="lj-list-index">{String(s.track ?? i + 1).padStart(2, "0")}</span>
                 <span className="lj-list-cover" style={cover ? { backgroundImage: `url("${cover}")` } : undefined} />
                 <span className="lj-list-text">
                   <span className="lj-list-name">{s.title}</span>
                   <span className="lj-list-meta">
-                    {s.year}
-                    {s.placeholder ? " · preview art" : ""}
+                    {[s.feat ? `feat. ${s.feat}` : "", s.track ? "" : s.year ? String(s.year) : "", s.placeholder ? "preview art" : ""]
+                      .filter(Boolean)
+                      .join(" \u00b7 ") || "Lazy Jo"}
                   </span>
                 </span>
-                <span className="lj-list-price">{formatPrice(s.priceCents)}</span>
+                <span className="lj-list-price">
+                  <small>from</small> {formatPrice(s.priceCents)}
+                </span>
               </button>
             </li>
           );

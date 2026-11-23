@@ -74,7 +74,7 @@ export default function LazyJoFansTab({ accessToken }: { accessToken: string | n
     const r = await fetch("/api/lazyjo/admin/fans/send-confirmations", { method: "POST", headers: headers() });
     const d = await r.json().catch(() => ({}));
     setBusy(null);
-    setNotice(r.ok ? `Confirmation email sent to ${d.sent} fans.` : d.error || "Failed");
+    setNotice(r.ok ? `Confirmation email sent to ${d.sent} ${d.sent === 1 ? "fan" : "fans"}.` : d.error || "Failed");
     void load();
   };
 
@@ -122,7 +122,7 @@ export default function LazyJoFansTab({ accessToken }: { accessToken: string | n
           className="inline-flex items-center gap-2 rounded-lg border border-wolf-border px-4 py-2 text-sm font-semibold text-wolf-text hover:border-wolf-gold/30"
         >
           {busy === "confirm" ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
-          Send confirmation email to {waitingUnsent} waiting fans
+          Send confirmation email to {waitingUnsent} waiting {waitingUnsent === 1 ? "fan" : "fans"}
         </button>
       )}
 
@@ -157,7 +157,7 @@ export default function LazyJoFansTab({ accessToken }: { accessToken: string | n
             disabled={busy !== null || !data.emailConfigured || data.counts.confirmed === 0}
             className="inline-flex items-center gap-2 rounded-lg bg-wolf-gold px-4 py-2.5 text-sm font-semibold text-black hover:bg-wolf-amber disabled:opacity-40"
           >
-            {busy === "all" ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send to {data.counts.confirmed} fans
+            {busy === "all" ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Send to {data.counts.confirmed} {data.counts.confirmed === 1 ? "fan" : "fans"}
           </button>
         </div>
         {notice && <p className="mt-3 text-sm text-wolf-text">{notice}</p>}

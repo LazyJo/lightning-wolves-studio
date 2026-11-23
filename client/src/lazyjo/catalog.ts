@@ -50,8 +50,6 @@ export function formatPrice(cents: number): string {
   return fmt.format(cents / 100);
 }
 
-/** Fallback when Stripe checkout isn't configured yet: Jo's existing fan-support page. */
-export const FAN_SUPPORT_URL = "https://www.even.biz/l/lazyjomusic";
 export const PREVIEW_SECONDS = 30;
 
 /** The Lazy Jo card that opens from the spiral galaxy. Facts mirror
@@ -112,3 +110,8 @@ export const ARTIST_PROFILE = {
   instagramHandle: "@lazyjo_",
   instagramUrl: "https://instagram.com/lazyjo_",
 };
+
+/** The exact sentence fans agree to. server.js stores its own copy
+ *  (LAZYJO_CONSENT_TEXT) with every sign-up — keep the two identical. */
+export const JOIN_CONSENT_TEXT =
+  "Yes, send me news from Lazy Jo: new music, drops and shows. I can unsubscribe anytime.";

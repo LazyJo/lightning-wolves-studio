@@ -8,6 +8,7 @@ import PlayerPanel from "./ui/PlayerPanel";
 import Tracklist from "./ui/Tracklist";
 import PurchaseResult from "./ui/PurchaseResult";
 import GalaxyPanel from "./ui/GalaxyPanel";
+import JoinPanel from "./ui/JoinPanel";
 import { Orbit } from "lucide-react";
 
 type Phase = "intro" | "flying";
@@ -52,6 +53,8 @@ export default function LazyJoUniverse() {
   const javedaBtnRef = useRef<HTMLButtonElement>(null);
   const galaxyDotRef = useRef<HTMLButtonElement>(null);
   const [listOpen, setListOpen] = useState(false);
+  const [joinOpen, setJoinOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [purchase, setPurchase] = useState<{ sessionId?: string; cancelled?: boolean } | null>(null);
   const deepLink = useRef<string | null>(null);
 
@@ -64,7 +67,24 @@ export default function LazyJoUniverse() {
     else if (outcome === "cancelled") setPurchase({ cancelled: true });
     const single = p.get("single");
     if (single && singleById.has(single)) deepLink.current = single;
+    // fan list links: ?join=1 opens the sign-up; confirm / unsubscribe come back here
+    if (p.get("join") === "1") setJoinOpen(true);
+    const joined = p.get("joined");
+    if (joined === "1") setToast("You\u2019re in. Welcome to Lazy Jo\u2019s list.");
+    else if (joined === "invalid") setToast("That link didn\u2019t work. Join again and we\u2019ll send a new one.");
+    if (p.get("unsubscribed") === "1") setToast("You\u2019re unsubscribed. No more emails from Lazy Jo.");
+    if (p.has("join") || p.has("joined") || p.has("unsubscribed")) {
+      const url = new URL(window.location.href);
+      ["join", "joined", "unsubscribed"].forEach((k) => url.searchParams.delete(k));
+      window.history.replaceState({}, "", url.toString());
+    }
   }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   // Boot the engine.
   useEffect(() => {
@@ -215,12 +235,13 @@ export default function LazyJoUniverse() {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.key !== "Escape") return;
       if (selected) closePlayer();
+      else if (joinOpen) setJoinOpen(false);
       else if (galaxyOpen) closeGalaxy();
       else if (listOpen) setListOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, listOpen, closePlayer, galaxyOpen]);
+  }, [selected, listOpen, closePlayer, galaxyOpen, joinOpen]);
 
   const coverFor = useCallback(
     (s: Single) => engineRef.current?.getCoverImage(s) || (s.cover ? encodeURI(s.cover) : ""),
@@ -248,6 +269,7 @@ export default function LazyJoUniverse() {
           noWebgl={noWebgl}
           onOpenNearest={() => (nearest ? openSingle(nearest.id) : engineRef.current?.openNearest())}
           onBeam={() => engineRef.current?.beamRandom()}
+          onJoin={() => setJoinOpen(true)}
           ufoHover={!selected && ufoHover}
           javedaHover={!selected && javedaHover}
           galaxyHover={!selected && !galaxyOpen && galaxyHover}
@@ -311,6 +333,17 @@ export default function LazyJoUniverse() {
       {selected && <PlayerPanel key={selected.id} single={selected} cover={coverFor(selected)} onClose={closePlayer} />}
 
       {galaxyOpen && <GalaxyPanel onClose={closeGalaxy} />}
+
+      {joinOpen && <JoinPanel onClose={() => setJoinOpen(false)} />}
+
+      {toast && (
+        <div className="lj-toast" role="status">
+          {toast}
+          <button className="lj-link" onClick={() => setToast(null)} aria-label="Dismiss">
+            ×
+          </button>
+        </div>
+      )}
 
       {purchase && <PurchaseResult {...purchase} onClose={() => setPurchase(null)} />}
     </div>

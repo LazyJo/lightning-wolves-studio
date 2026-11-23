@@ -1,5 +1,5 @@
 import type { MutableRefObject } from "react";
-import { ChevronsUp, ListMusic, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { Bell, ChevronsUp, ListMusic, Sparkles, Volume2, VolumeX } from "lucide-react";
 import type { Single } from "../catalog";
 import { formatPrice } from "../catalog";
 
@@ -9,6 +9,7 @@ interface Props {
   onOpenList(): void;
   onOpenNearest(): void;
   onBeam(): void;
+  onJoin(): void;
   ufoHover: boolean;
   javedaHover: boolean;
   onJaveda(): void;
@@ -27,6 +28,7 @@ export default function Hud({
   onOpenList,
   onOpenNearest,
   onBeam,
+  onJoin,
   ufoHover,
   javedaHover,
   onJaveda,
@@ -47,6 +49,9 @@ export default function Hud({
           <span className="lj-wordmark-sub">Universe</span>
         </a>
         <div className="lj-hud-actions">
+          <button className="lj-chip" onClick={onJoin} aria-label="Join Lazy Jo's list">
+            <Bell size={16} aria-hidden /> <span className="lj-hide-sm">Join</span>
+          </button>
           {!noWebgl && (
             <button className="lj-chip" onClick={onBeam} aria-label="Beam me a random song">
               <Sparkles size={16} aria-hidden /> <span className="lj-hide-sm">Beam me a song</span>

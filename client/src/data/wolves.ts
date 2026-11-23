@@ -74,7 +74,7 @@ export const wolves: Wolf[] = [
       youtube: "https://youtube.com/@lightningwolves",
       booking: "https://www.gigstarter.be/artists/lazy-jo",
       merch: "https://www.even.biz/l/lightningwolves",
-      fanSupport: "https://www.even.biz/l/lazyjomusic",
+      fanSupport: "/lazyjo/?join=1", // our own fan list (replaces EVEN)
       universe: "/lazyjo/",
       email: "Lazyjo.official@gmail.com",
       photo: "/LazyJo - StayUp pictures from videoshoot (CS)_-86.JPG.jpeg",

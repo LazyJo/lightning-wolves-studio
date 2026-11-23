@@ -32,3 +32,17 @@ export async function fetchDownload(sessionId: string): Promise<DownloadResult> 
   if (!res.ok) throw new Error(data.error || `Couldn't verify purchase (${res.status})`);
   return data as DownloadResult;
 }
+
+export type JoinSource = "universe" | "purchase" | "profile" | "card";
+
+/** Join Lazy Jo's own fan list (double opt-in: a confirmation email follows). */
+export async function joinList(input: { name: string; email: string; consent: boolean; source: JoinSource; website?: string }): Promise<"check-email" | "saved"> {
+  const res = await fetch("/api/lazyjo/fans", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Couldn't sign you up (${res.status})`);
+  return data.status === "saved" ? "saved" : "check-email";
+}

@@ -693,3 +693,31 @@ a { color: var(--lj-cyan); }
   .lj-javeda-btn svg { width: 11px; height: 11px; }
   .lj-javeda-btn-name { font-size: 10.5px; letter-spacing: 0.06em; }
 }
+
+/* ─── fan list: Stay in the loop ─── */
+.lj-join { display: flex; flex-direction: column; gap: 12px; width: 100%; text-align: left; }
+.lj-join.is-compact { gap: 10px; }
+.lj-field { display: flex; flex-direction: column; gap: 6px; }
+.lj-field span { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--lj-muted); }
+.lj-field input {
+  height: 48px; padding: 0 16px; border-radius: 14px; font: inherit; font-size: 16px; color: #fff;
+  background: rgba(3, 7, 18, 0.6); border: 1px solid rgba(0, 245, 255, 0.2); outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.lj-field input::placeholder { color: rgba(200, 228, 255, 0.35); }
+.lj-field input:focus-visible { border-color: var(--lj-cyan); box-shadow: 0 0 0 3px rgba(0, 245, 255, 0.15); }
+.lj-hp { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+.lj-consent { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.45; color: rgba(225, 236, 255, 0.78); cursor: pointer; }
+.lj-consent input { margin-top: 2px; width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--lj-cyan); }
+.lj-consent a { color: var(--lj-cyan); }
+.lj-join-submit { width: 100%; }
+.lj-join-done { display: flex; gap: 12px; align-items: center; padding: 14px; border-radius: 14px; background: rgba(0, 245, 255, 0.06); border: 1px solid rgba(0, 245, 255, 0.3); text-align: left; }
+.lj-join-done-icon { width: 34px; height: 34px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: var(--lj-cyan); color: #001018; }
+.lj-join-done-title { margin: 0; font-family: var(--lj-display); font-weight: 700; font-size: 17px; }
+.lj-join-done-sub { margin: 2px 0 0; font-size: 14px; color: var(--lj-muted); }
+.lj-join-wrap { z-index: 55; }
+.lj-join-panel { align-items: stretch; text-align: left; }
+.lj-join-panel .lj-eyebrow, .lj-join-panel .lj-result-title, .lj-join-panel .lj-result-sub { align-self: flex-start; }
+.lj-galaxy-join { margin: 20px 24px 0; display: flex; flex-direction: column; gap: 10px; }
+.lj-result-join { width: 100%; margin-top: 10px; padding-top: 18px; border-top: 1px solid rgba(0, 245, 255, 0.15); display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.lj-note .lj-join { margin-top: 12px; }

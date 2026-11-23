@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, Loader2, X } from "lucide-react";
 import { fetchDownload, type DownloadResult } from "../shop";
+import JoinForm from "./JoinForm";
 
 interface Props {
   sessionId?: string;
@@ -91,6 +92,10 @@ export default function PurchaseResult({ sessionId, cancelled, onClose }: Props)
                   "Your payment is confirmed. Your download is being prepared and will be sent to your email."}
               </p>
             )}
+            <div className="lj-result-join">
+              <p className="lj-tel-label">Hear about the next drop first</p>
+              <JoinForm source="purchase" defaultEmail={state.data.email || ""} compact />
+            </div>
           </>
         )}
         {state.kind === "error" && (

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Lock, Pause, Play, Share2, X, Zap } from "lucide-react";
-import { ARTIST, FAN_SUPPORT_URL, PREVIEW_SECONDS, formatPrice, type Single } from "../catalog";
+import { ARTIST, PREVIEW_SECONDS, formatPrice, type Single } from "../catalog";
+import JoinForm from "./JoinForm";
 import { sound } from "../audio";
 import { CheckoutUnavailableError, startSingleCheckout } from "../shop";
 
@@ -202,11 +203,8 @@ export default function PlayerPanel({ single, cover, onClose }: Props) {
 
           {buy.kind === "unavailable" && (
             <div className="lj-note lj-note-warn" role="status">
-              Direct checkout is warming up. In the meantime you can{" "}
-              <a href={FAN_SUPPORT_URL} target="_blank" rel="noreferrer">
-                support Lazy Jo here
-              </a>
-              .
+              Buying opens very soon. Join the list and you&rsquo;ll hear first.
+              <JoinForm source="universe" compact />
             </div>
           )}
           {buy.kind === "error" && (

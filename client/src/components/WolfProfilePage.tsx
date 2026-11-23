@@ -231,8 +231,8 @@ export default function WolfProfilePage({ wolf, onBack, onStudio, onChallenge }:
               {p.fanSupport && (
                 <a
                   href={p.fanSupport}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  // our own pages open in place; outside links in a new tab
+                  {...(p.fanSupport.startsWith("/") ? {} : { target: "_blank", rel: "noopener noreferrer" })}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-wolf-border/30 px-3 py-2 text-xs text-wolf-muted transition-all hover:border-wolf-gold/30 hover:text-wolf-gold"
                 >
                   <Heart size={14} /> {isFr ? "Soutenir" : "Support"}

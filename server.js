@@ -524,6 +524,7 @@ app.post('/api/lazyjo/checkout', async (req, res) => {
               price_data: {
                 currency: LAZYJO_CATALOG.currency,
                 unit_amount: amount,
+                tax_behavior: 'inclusive', // prices shown are what the fan pays, VAT included
                 product_data: {
                   name: `${single.title} — ${LAZYJO_CATALOG.artist}`,
                   description: 'Digital single · high-quality download · supports the artist directly',
@@ -534,6 +535,8 @@ app.post('/api/lazyjo/checkout', async (req, res) => {
       ],
       metadata,
       payment_intent_data: { metadata },
+      // EU VAT on digital sales: set LAZYJO_STRIPE_TAX=1 once Stripe Tax is set up
+      ...(process.env.LAZYJO_STRIPE_TAX === '1' ? { automatic_tax: { enabled: true } } : {}),
       success_url: `${origin}/lazyjo/?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/lazyjo/?purchase=cancelled&single=${encodeURIComponent(single.id)}`,
       allow_promotion_codes: true,
@@ -584,6 +587,268 @@ app.get('/api/lazyjo/download', async (req, res) => {
   } catch (err) {
     console.error('LazyJo download error:', err);
     res.status(500).json({ error: 'Could not verify purchase' });
+  }
+});
+
+// ─── LAZY JO fan list ("Stay in the loop") — our own EVEN replacement ───────────
+// Sign-ups land in Supabase `lazyjo_fans` (supabase-lazyjo-fans.sql). Double
+// opt-in: a confirmation email goes out, and only confirmed fans receive
+// newsletters. Every email has a one-click unsubscribe. Emails are sent with
+// Resend (RESEND_API_KEY + LAZYJO_EMAIL_FROM on a verified domain); without it,
+// sign-ups are stored and wait for their confirmation email.
+const LAZYJO_CONSENT_TEXT =
+  'Yes, send me news from Lazy Jo: new music, drops and shows. I can unsubscribe anytime.';
+const LAZYJO_EMAIL_RE = /^[^\s@<>"']{1,64}@[^\s@<>"']{1,190}\.[a-z]{2,}$/i;
+const LAZYJO_FAN_SOURCES = new Set(['universe', 'purchase', 'profile', 'card']);
+const lazyjoSignupHits = new Map(); // ip -> [timestamps] (best-effort; resets per instance)
+
+// Links in emails must only ever point at our own site, so a spoofed Origin
+// header can't turn a confirmation email into a phishing link.
+const LAZYJO_LINK_ORIGINS = /^(https:\/\/(www\.)?lightningwolves\.studio|https:\/\/[a-z0-9-]+-jos-projects\.vercel\.app|http:\/\/localhost:\d+)$/;
+function lazyjoBaseUrl(req) {
+  if (process.env.PUBLIC_APP_URL) return process.env.PUBLIC_APP_URL.replace(/\/$/, '');
+  const origin = String((req && req.headers.origin) || '');
+  return LAZYJO_LINK_ORIGINS.test(origin) ? origin : 'https://lightningwolves.studio';
+}
+const lazyjoEsc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function lazyjoEmailHtml({ heading, paragraphs, button, footerUrl }) {
+  const ps = paragraphs
+    .map((p) => `<p style="margin:0 0 14px;font-size:16px;line-height:1.6;color:#d6e4ff">${p}</p>`)
+    .join('');
+  const btn = button
+    ? `<p style="margin:24px 0"><a href="${lazyjoEsc(button.url)}" style="display:inline-block;background:#00d9ff;color:#001018;font-weight:700;text-decoration:none;padding:14px 26px;border-radius:999px">${lazyjoEsc(button.label)}</a></p>`
+    : '';
+  const foot = footerUrl
+    ? `<p style="margin:28px 0 0;font-size:12px;color:#7d8bb0">You get this because you joined Lazy Jo's list. <a href="${lazyjoEsc(footerUrl)}" style="color:#7d8bb0">Unsubscribe</a></p>`
+    : '';
+  return `<!doctype html><html><body style="margin:0;background:#030712;font-family:Helvetica,Arial,sans-serif">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#030712"><tr><td align="center" style="padding:32px 16px">
+<table role="presentation" width="100%" style="max-width:560px;background:#0a1124;border:1px solid #1d2a4d;border-radius:18px"><tr><td style="padding:32px 28px">
+<p style="margin:0 0 6px;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#7b8cff">Lazy Jo's Universe</p>
+<h1 style="margin:0 0 18px;font-size:26px;line-height:1.2;color:#ffffff">${lazyjoEsc(heading)}</h1>
+${ps}${btn}${foot}
+</td></tr></table></td></tr></table></body></html>`;
+}
+
+/** Send one or many emails through Resend. Returns { sent, error }. */
+async function lazyjoSendEmails(messages) {
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.LAZYJO_EMAIL_FROM;
+  if (!key || !from) return { sent: 0, error: 'email-not-configured' };
+  let sent = 0;
+  for (let i = 0; i < messages.length; i += 100) {
+    const chunk = messages.slice(i, i + 100).map((m) => ({
+      from,
+      to: [m.to],
+      subject: m.subject,
+      html: m.html,
+      ...(process.env.LAZYJO_EMAIL_REPLY_TO ? { reply_to: process.env.LAZYJO_EMAIL_REPLY_TO } : {}),
+      ...(m.unsubscribeUrl
+        ? { headers: { 'List-Unsubscribe': `<${m.unsubscribeUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } }
+        : {}),
+    }));
+    const r = await fetch(chunk.length === 1 ? 'https://api.resend.com/emails' : 'https://api.resend.com/emails/batch', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(chunk.length === 1 ? chunk[0] : chunk),
+    });
+    if (!r.ok) {
+      const text = await r.text().catch(() => '');
+      console.error('Resend error', r.status, text.slice(0, 300));
+      return { sent, error: `email-provider-${r.status}` };
+    }
+    sent += chunk.length;
+  }
+  return { sent, error: null };
+}
+
+function lazyjoConfirmMessage(req, fan) {
+  const base = lazyjoBaseUrl(req);
+  const confirmUrl = `${base}/api/lazyjo/fans/confirm?t=${fan.token}`;
+  return {
+    to: fan.email,
+    subject: 'Confirm: stay in the loop with Lazy Jo',
+    html: lazyjoEmailHtml({
+      heading: fan.name ? `One tap, ${fan.name}` : 'One tap and you’re in',
+      paragraphs: [
+        'Confirm your email to get Lazy Jo’s new music, drops and shows first.',
+        'Didn’t sign up? Ignore this email and nothing happens.',
+      ],
+      button: { label: 'Confirm my email', url: confirmUrl },
+    }),
+  };
+}
+
+async function lazyjoRequireAdmin(req, res) {
+  const user = await getUserFromToken(req);
+  if (!user) { res.status(401).json({ error: 'unauthenticated' }); return null; }
+  const profile = await getProfile(user.id);
+  if (!profile || profile.role !== 'admin') { res.status(403).json({ error: 'admin only' }); return null; }
+  return { user, profile };
+}
+
+// Public: join the list.
+app.post('/api/lazyjo/fans', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Sign-ups aren’t set up yet' });
+  try {
+    const { name, email, consent, source, website } = req.body || {};
+    if (website) return res.json({ status: 'ok' }); // honeypot: bots fill hidden fields
+    const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+    const now = Date.now();
+    const hits = (lazyjoSignupHits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
+    if (hits.length >= 8) return res.status(429).json({ error: 'Too many tries. Try again in a few minutes.' });
+    lazyjoSignupHits.set(ip, [...hits, now]);
+
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const cleanName = String(name || '').trim().slice(0, 80) || null;
+    if (!LAZYJO_EMAIL_RE.test(cleanEmail)) return res.status(400).json({ error: 'That email doesn’t look right.' });
+    if (consent !== true) return res.status(400).json({ error: 'Tick the box so we can email you.' });
+    const src = LAZYJO_FAN_SOURCES.has(source) ? source : 'universe';
+
+    const { data: existing, error: findErr } = await supabase
+      .from('lazyjo_fans').select('*').eq('email', cleanEmail).maybeSingle(); // stored lowercase
+    if (findErr) throw findErr;
+
+    let fan = existing;
+    if (!existing) {
+      const { data, error } = await supabase.from('lazyjo_fans')
+        .insert({ email: cleanEmail, name: cleanName, source: src, consent_text: LAZYJO_CONSENT_TEXT })
+        .select('*').single();
+      if (error) throw error;
+      fan = data;
+    } else if (existing.unsubscribed_at || !existing.confirmed_at) {
+      // coming back: fresh consent, and confirm again
+      const { data, error } = await supabase.from('lazyjo_fans')
+        .update({ name: cleanName || existing.name, consent_text: LAZYJO_CONSENT_TEXT, consent_at: new Date().toISOString(), unsubscribed_at: null, confirmed_at: null })
+        .eq('id', existing.id).select('*').single();
+      if (error) throw error;
+      fan = data;
+    } else {
+      // already confirmed: same answer as a new sign-up (doesn't reveal who's on the list)
+      return res.json({ status: 'check-email' });
+    }
+
+    const { error: mailErr } = await lazyjoSendEmails([lazyjoConfirmMessage(req, fan)]);
+    if (!mailErr) {
+      await supabase.from('lazyjo_fans').update({ confirm_sent_at: new Date().toISOString() }).eq('id', fan.id);
+      return res.json({ status: 'check-email' });
+    }
+    // stored; the confirmation goes out once email is configured (admin tab)
+    return res.json({ status: 'saved' });
+  } catch (err) {
+    console.error('lazyjo fan signup error:', err);
+    res.status(500).json({ error: 'Couldn’t sign you up. Try again in a minute.' });
+  }
+});
+
+// Public: the confirmation link in the email.
+app.get('/api/lazyjo/fans/confirm', async (req, res) => {
+  const base = lazyjoBaseUrl(req);
+  const t = String(req.query.t || '');
+  if (!supabase || !/^[0-9a-f-]{36}$/i.test(t)) return res.redirect(302, `${base}/lazyjo/?joined=invalid`);
+  const { data } = await supabase.from('lazyjo_fans')
+    .update({ confirmed_at: new Date().toISOString(), unsubscribed_at: null })
+    .eq('token', t).select('id').maybeSingle();
+  res.redirect(302, `${base}/lazyjo/?joined=${data ? '1' : 'invalid'}`);
+});
+
+// Public: unsubscribe (GET from the email link, POST from mail apps' one-click button).
+async function lazyjoUnsubscribe(req, res) {
+  const base = lazyjoBaseUrl(req);
+  const t = String(req.query.t || '');
+  if (supabase && /^[0-9a-f-]{36}$/i.test(t)) {
+    await supabase.from('lazyjo_fans').update({ unsubscribed_at: new Date().toISOString() }).eq('token', t);
+  }
+  if (req.method === 'POST') return res.status(200).send('ok');
+  res.redirect(302, `${base}/lazyjo/?unsubscribed=1`);
+}
+app.get('/api/lazyjo/fans/unsubscribe', lazyjoUnsubscribe);
+app.post('/api/lazyjo/fans/unsubscribe', lazyjoUnsubscribe);
+
+// Admin: the list + counts.
+app.get('/api/lazyjo/admin/fans', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
+  try {
+    if (!(await lazyjoRequireAdmin(req, res))) return;
+    const { data: fans, error } = await supabase.from('lazyjo_fans')
+      .select('id,email,name,source,consent_at,confirmed_at,confirm_sent_at,unsubscribed_at,created_at')
+      .order('created_at', { ascending: false }).limit(5000);
+    if (error) throw error;
+    const { data: broadcasts } = await supabase.from('lazyjo_broadcasts')
+      .select('id,subject,sent_count,created_at').order('created_at', { ascending: false }).limit(20);
+    const counts = {
+      total: fans.length,
+      confirmed: fans.filter((f) => f.confirmed_at && !f.unsubscribed_at).length,
+      pending: fans.filter((f) => !f.confirmed_at && !f.unsubscribed_at).length,
+      unsubscribed: fans.filter((f) => f.unsubscribed_at).length,
+    };
+    res.json({ fans, counts, broadcasts: broadcasts || [], emailConfigured: !!(process.env.RESEND_API_KEY && process.env.LAZYJO_EMAIL_FROM) });
+  } catch (err) {
+    console.error('lazyjo admin fans error:', err);
+    res.status(500).json({ error: err.message?.includes('lazyjo_fans') ? 'Run supabase-lazyjo-fans.sql in Supabase first' : 'Could not load fans' });
+  }
+});
+
+// Admin: send the confirmation email to everyone still waiting for one.
+app.post('/api/lazyjo/admin/fans/send-confirmations', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
+  try {
+    if (!(await lazyjoRequireAdmin(req, res))) return;
+    const { data: pending, error } = await supabase.from('lazyjo_fans')
+      .select('*').is('confirmed_at', null).is('unsubscribed_at', null).is('confirm_sent_at', null).limit(1000);
+    if (error) throw error;
+    if (!pending.length) return res.json({ sent: 0 });
+    const { sent, error: mailErr } = await lazyjoSendEmails(pending.map((f) => lazyjoConfirmMessage(req, f)));
+    if (sent) {
+      await supabase.from('lazyjo_fans').update({ confirm_sent_at: new Date().toISOString() })
+        .in('id', pending.slice(0, sent).map((f) => f.id));
+    }
+    if (mailErr) return res.status(502).json({ error: mailErr === 'email-not-configured' ? 'Email isn’t set up yet (RESEND_API_KEY + LAZYJO_EMAIL_FROM)' : 'Email provider error', sent });
+    res.json({ sent });
+  } catch (err) {
+    console.error('lazyjo confirmations error:', err);
+    res.status(500).json({ error: 'Could not send confirmations' });
+  }
+});
+
+// Admin: email every confirmed fan (or only yourself with test: true).
+app.post('/api/lazyjo/admin/broadcast', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase not configured' });
+  try {
+    const admin = await lazyjoRequireAdmin(req, res);
+    if (!admin) return;
+    const subject = String(req.body?.subject || '').trim().slice(0, 140);
+    const message = String(req.body?.message || '').trim().slice(0, 8000);
+    const test = req.body?.test === true;
+    if (!subject || !message) return res.status(400).json({ error: 'Add a subject and a message' });
+    const base = lazyjoBaseUrl(req);
+    // plain text in, safe HTML out: paragraphs + clickable links
+    const paragraphs = message.split(/\n{2,}/).map((p) =>
+      lazyjoEsc(p).replace(/\n/g, '<br>').replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:#00d9ff">$1</a>'));
+    let recipients;
+    if (test) {
+      recipients = [{ email: admin.user.email, token: null }];
+    } else {
+      const { data, error } = await supabase.from('lazyjo_fans')
+        .select('email,token').not('confirmed_at', 'is', null).is('unsubscribed_at', null).limit(5000);
+      if (error) throw error;
+      recipients = data;
+    }
+    if (!recipients.length) return res.status(400).json({ error: 'No confirmed fans yet' });
+    const messages = recipients.map((r) => {
+      const unsubscribeUrl = r.token ? `${base}/api/lazyjo/fans/unsubscribe?t=${r.token}` : `${base}/lazyjo/`;
+      return { to: r.email, subject, unsubscribeUrl, html: lazyjoEmailHtml({ heading: subject, paragraphs, button: { label: 'Open Lazy Jo’s Universe', url: `${base}/lazyjo/` }, footerUrl: unsubscribeUrl }) };
+    });
+    const { sent, error: mailErr } = await lazyjoSendEmails(messages);
+    if (!test && sent) {
+      await supabase.from('lazyjo_broadcasts').insert({ subject, body: message, sent_count: sent, sent_by: admin.user.id });
+    }
+    if (mailErr) return res.status(502).json({ error: mailErr === 'email-not-configured' ? 'Email isn’t set up yet (RESEND_API_KEY + LAZYJO_EMAIL_FROM)' : 'Email provider error', sent });
+    res.json({ sent, test });
+  } catch (err) {
+    console.error('lazyjo broadcast error:', err);
+    res.status(500).json({ error: 'Could not send' });
   }
 });
 

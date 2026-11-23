@@ -49,12 +49,68 @@ Stripe**, checks `payment_status === "paid"` and the 30-day window, and only the
 returns a 10-minute signed download URL. If the bucket or file is missing, the fan
 sees "payment confirmed, download will be emailed", so a sale is never lost.
 
+## 4. Your own fan list (replaces EVEN)
+
+Fans join from the **Join** button (bell icon), the Lazy Jo card, the thank-you screen after a
+purchase, and any link to `/lazyjo/?join=1` (your profile's **Support** button now goes there).
+Everything is in your Supabase table `lazyjo_fans`, and only the server can read it.
+
+1. **Create the table.** Supabase → SQL Editor → paste `supabase-lazyjo-fans.sql` → Run.
+2. **Manage it in Pack Admin → Lazy Jo fans.** You'll see counts, the full list, a CSV export and the
+   email writer.
+
+How it protects you (GDPR): fans tick a consent box (the exact sentence and time are stored),
+confirm their email before they get anything (double opt-in), every email has a one-click
+unsubscribe, and the privacy page is at `/lazyjo/privacy.html`. To erase someone, delete their row.
+
+## 5. Email: confirmations and drop announcements (Resend)
+
+1. Make a free account at resend.com and **add your domain** `lightningwolves.studio`. Resend
+   shows a few DNS records; add them where your domain's DNS is managed, then wait for "Verified".
+2. Create an **API key** in Resend.
+3. On **Vercel → Settings → Environment Variables**, add:
+   - `RESEND_API_KEY`: the key
+   - `LAZYJO_EMAIL_FROM`: `Lazy Jo <news@lightningwolves.studio>`
+   - optional `LAZYJO_EMAIL_REPLY_TO`: where fans' replies should go
+4. Redeploy. In Pack Admin → Lazy Jo fans, click **Send confirmation email to N waiting fans** for
+   anyone who signed up before email was connected.
+5. To announce a drop: write the subject and message, click **Send test to me**, check it on your
+   phone, then **Send to N fans**.
+
+The free Resend plan has daily sending limits; check them before a big announcement.
+
+## 6. Make your own sales live
+
+- [ ] Upload the full-quality song files to the private `lazyjo-masters` bucket (step 3).
+- [ ] Replace placeholder titles, covers and previews in `singles.json` (step 1).
+- [ ] **VAT:** selling digital music to fans in the EU directly can make you responsible for VAT.
+      Ask your accountant whether you need to register (Belgium + the EU OSS scheme). Then in Stripe,
+      turn on **Stripe Tax**, add your registration, and set `LAZYJO_STRIPE_TAX=1` on Vercel. Prices
+      stay what fans see; VAT is included in them.
+- [ ] Do **one real purchase** yourself, end to end: pay → thank-you screen → download works →
+      Stripe receipt arrives. Refund yourself afterwards in Stripe.
+
+## 7. Leaving EVEN
+
+1. Keep EVEN running while steps 4–6 go live.
+2. **Export your fans from EVEN** (check what EVEN lets you download) as a CSV.
+3. On your PC, in the project folder: `node scripts/import-fans.js path/to/export.csv`
+   (they already agreed on EVEN to "receive updates from Lazy Jo", so they're imported as confirmed
+   with that consent noted; add `--reconfirm` if you'd rather they confirm again).
+4. Send a first "we moved, here's the new home" email from Pack Admin.
+5. Once a few weeks of sign-ups and sales have worked here, stop sharing the EVEN link.
+   Note: **merch** still runs on EVEN (`even.biz/l/lightningwolves`). Physical merch needs stock,
+   shipping and returns, so that's a separate decision.
+
 ## API
 
 | route | purpose |
 |---|---|
 | `POST /api/lazyjo/checkout` `{ singleId, amountCents? }` | creates a Stripe Checkout Session (amount clamped to `[priceCents, €500]`) → `{ url }` |
 | `GET /api/lazyjo/download?session_id=cs_…` | verifies payment with Stripe → `{ status: "ready", url }` or `{ status: "pending" }` |
+| `POST /api/lazyjo/fans` `{ name?, email, consent: true, source }` | join the list (double opt-in email when Resend is set) |
+| `GET /api/lazyjo/fans/confirm?t=…` · `GET/POST /api/lazyjo/fans/unsubscribe?t=…` | links inside the emails |
+| `GET /api/lazyjo/admin/fans` · `POST /api/lazyjo/admin/broadcast` · `POST /api/lazyjo/admin/fans/send-confirmations` | admin only (profile role `admin`) |
 
 ## Tuning notes
 

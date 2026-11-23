@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight, BookOpen, Instagram, ShoppingBag, X } from "lucide-react";
 import { ARTIST_PROFILE as A, type ProofMedia } from "../catalog";
+import JoinForm from "./JoinForm";
 
 /** A proof video; if it isn't uploaded yet (or fails), the still frame stays. */
 function ProofVideo({ m }: { m: ProofMedia }) {
@@ -125,6 +126,10 @@ export default function GalaxyPanel({ onClose }: Props) {
           <a className="lj-btn lj-btn-ghost" href={A.merchUrl} target="_blank" rel="noreferrer">
             <ShoppingBag size={18} aria-hidden /> Merch
           </a>
+        </div>
+        <div className="lj-galaxy-join">
+          <p className="lj-tel-label">Stay in the loop</p>
+          <JoinForm source="card" compact />
         </div>
         <a className="lj-galaxy-social" href={A.instagramUrl} target="_blank" rel="noreferrer">
           <Instagram size={14} aria-hidden /> {A.instagramHandle}

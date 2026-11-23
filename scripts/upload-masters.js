@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /*
  * Upload the JAVEDA WAVs (the files fans download after buying) to the PRIVATE
- * Supabase bucket the Universe sells from. Run on Jo's PC — it uses
- * SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY from .env (never paste the key anywhere).
+ * Supabase bucket the Universe sells from. Run on Jo's PC. It reads
+ * SUPABASE_SERVICE_ROLE_KEY from .env, or asks for it once (hidden) and saves it
+ * there. Never paste that key in a chat.
  *
  *   node scripts/upload-masters.js "C:\Users\Jo\Music\JAVEDA WAV" --dry-run   (only shows the matches)
  *   node scripts/upload-masters.js "C:\Users\Jo\Music\JAVEDA WAV"             (uploads)
@@ -29,6 +30,43 @@ const norm = (s) =>
     .replace(/lazy\s*jo/g, '')
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, '');
+
+function askHidden(question) {
+  return new Promise((resolve) => {
+    const stdin = process.stdin;
+    process.stdout.write(question);
+    if (!stdin.isTTY) { // piped input: just read a line
+      let buf = '';
+      stdin.on('data', (d) => { buf += d; });
+      stdin.on('end', () => resolve(buf.trim()));
+      return;
+    }
+    let value = '';
+    stdin.setRawMode(true);
+    stdin.resume();
+    stdin.setEncoding('utf8');
+    const onData = (chunk) => {
+      for (const ch of chunk) {
+        if (ch === '\r' || ch === '\n') {
+          stdin.setRawMode(false);
+          stdin.pause();
+          stdin.removeListener('data', onData);
+          process.stdout.write('\n');
+          return resolve(value.trim());
+        }
+        if (ch === '\u0003') process.exit(1); // Ctrl+C
+        if (ch === '\u0016') continue; // a literal Ctrl+V that didn't paste
+        if (ch === '\u007f' || ch === '\b') {
+          if (value) { value = value.slice(0, -1); process.stdout.write('\b \b'); }
+          continue;
+        }
+        value += ch;
+        process.stdout.write('*');
+      }
+    };
+    stdin.on('data', onData);
+  });
+}
 
 (async () => {
   const dir = process.argv[2];
@@ -78,22 +116,45 @@ const norm = (s) =>
     return;
   }
 
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('\nMissing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in .env');
-    process.exit(1);
+  // The project URL isn't secret. The service-role key is: if it's not in .env yet,
+  // ask for it here (typed/pasted characters show as *) and keep it in .env on this PC.
+  const url = process.env.SUPABASE_URL || 'https://wjvvkffroujkhbisxnab.supabase.co';
+  let key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!key) {
+    console.log('\nNeeded once: your Supabase service_role key');
+    console.log('(supabase.com → your project → Project Settings → API Keys → service_role / secret → copy).');
+    key = await askHidden('Paste it here (right-click or Ctrl+V), then press Enter: ');
+    if (!/^(eyJ|sb_secret_)/.test(key)) {
+      console.error('That doesn\'t look like a service_role key (it starts with "eyJ" or "sb_secret_"). Nothing was uploaded.');
+      process.exit(1);
+    }
   }
-  const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const askedKey = !process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const saveKey = () => {
+    if (!askedKey) return;
+    const envPath = path.join(__dirname, '..', '.env');
+    const before = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+    const lines = [!/^SUPABASE_URL=/m.test(before) && `SUPABASE_URL=${url}`, `SUPABASE_SERVICE_ROLE_KEY=${key}`].filter(Boolean);
+    fs.writeFileSync(envPath, (before && !before.endsWith('\n') ? before + '\n' : before) + lines.join('\n') + '\n');
+    console.log('Key accepted and saved in .env on this PC (that file never goes to GitHub), so you won\'t be asked again.');
+  };
+  const sb = createClient(url, key);
 
   // The bucket must be PRIVATE: files only leave it as 10-minute signed links after a paid checkout.
   const { data: bucket } = await sb.storage.getBucket(BUCKET);
   if (!bucket) {
     const { error } = await sb.storage.createBucket(BUCKET, { public: false });
-    if (error) { console.error(`Could not create bucket ${BUCKET}:`, error.message); process.exit(1); }
+    if (error) {
+      console.error(`Could not create bucket ${BUCKET}:`, error.message);
+      if (askedKey) console.error('If the key was wrong, run the command again and paste the service_role key (not the anon/public one).');
+      process.exit(1);
+    }
     console.log(`\nCreated private bucket "${BUCKET}".`);
   } else if (bucket.public) {
     console.error(`\nBucket "${BUCKET}" is PUBLIC — anyone could download the WAVs. Make it private in Supabase → Storage first.`);
     process.exit(1);
   }
+  saveKey();
 
   let ok = 0;
   for (const { s, file } of plan) {

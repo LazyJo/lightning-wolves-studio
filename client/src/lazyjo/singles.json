@@ -616,7 +616,7 @@
       "priceCents": 99,
       "suggestedCents": 500,
       "cover": "/lazyjo/covers/s03-back-again.webp",
-      "previewUrl": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/lazyjo/previews/back-again.mp3",
       "masterPath": "singles/back-again.wav",
       "palette": [
         "#07090d",
@@ -625,8 +625,7 @@
       ],
       "motif": "bolt",
       "vinyl": true,
-      "placeholder": false,
-      "forSale": false
+      "placeholder": false
     },
     {
       "id": "insane",
@@ -635,7 +634,7 @@
       "priceCents": 99,
       "suggestedCents": 500,
       "cover": "/lazyjo/covers/s04-insane.webp",
-      "previewUrl": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/lazyjo/previews/insane.mp3",
       "masterPath": "singles/insane.wav",
       "palette": [
         "#0c0c0e",
@@ -644,8 +643,7 @@
       ],
       "motif": "bolt",
       "vinyl": true,
-      "placeholder": false,
-      "forSale": false
+      "placeholder": false
     },
     {
       "id": "only-ones",
@@ -654,7 +652,7 @@
       "priceCents": 99,
       "suggestedCents": 500,
       "cover": "/lazyjo/covers/s05-only-ones.webp",
-      "previewUrl": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/lazyjo/previews/only-ones.mp3",
       "masterPath": "singles/only-ones.wav",
       "palette": [
         "#160a2a",
@@ -663,8 +661,7 @@
       ],
       "motif": "bolt",
       "vinyl": true,
-      "placeholder": false,
-      "forSale": false
+      "placeholder": false
     },
     {
       "id": "my-fault",
@@ -673,7 +670,7 @@
       "priceCents": 99,
       "suggestedCents": 500,
       "cover": "/lazyjo/covers/s06-my-fault.webp",
-      "previewUrl": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/lazyjo/previews/my-fault.mp3",
       "masterPath": "singles/my-fault.wav",
       "palette": [
         "#120a1e",
@@ -682,8 +679,7 @@
       ],
       "motif": "bolt",
       "vinyl": true,
-      "placeholder": false,
-      "forSale": false
+      "placeholder": false
     },
     {
       "id": "break-my-heart",
@@ -692,7 +688,7 @@
       "priceCents": 99,
       "suggestedCents": 500,
       "cover": "/lazyjo/covers/s07-break-my-heart.webp",
-      "previewUrl": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/lazyjo/previews/break-my-heart.mp3",
       "masterPath": "singles/break-my-heart.wav",
       "palette": [
         "#1a0e0c",
@@ -701,8 +697,7 @@
       ],
       "motif": "bolt",
       "vinyl": true,
-      "placeholder": false,
-      "forSale": false
+      "placeholder": false
     },
     {
       "id": "come-closer",
@@ -711,7 +706,7 @@
       "priceCents": 99,
       "suggestedCents": 500,
       "cover": "/lazyjo/covers/s08-come-closer.webp",
-      "previewUrl": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/lazyjo/previews/come-closer.mp3",
       "masterPath": "singles/come-closer.wav",
       "palette": [
         "#070b1a",
@@ -720,8 +715,7 @@
       ],
       "motif": "bolt",
       "vinyl": true,
-      "placeholder": false,
-      "forSale": false
+      "placeholder": false
     },
     {
       "id": "get-what-i-want",
@@ -730,7 +724,7 @@
       "priceCents": 99,
       "suggestedCents": 500,
       "cover": "/lazyjo/covers/s09-get-what-i-want.webp",
-      "previewUrl": null,
+      "previewUrl": "https://wjvvkffroujkhbisxnab.supabase.co/storage/v1/object/public/media/lazyjo/previews/get-what-i-want.mp3",
       "masterPath": "singles/get-what-i-want.wav",
       "palette": [
         "#0a0a0c",
@@ -739,8 +733,7 @@
       ],
       "motif": "bolt",
       "vinyl": true,
-      "placeholder": false,
-      "forSale": false
+      "placeholder": false
     }
   ],
   "album": "JAVEDA"

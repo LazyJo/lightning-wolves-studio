@@ -15,6 +15,10 @@ import { Orbit } from "lucide-react";
 
 type Phase = "intro" | "flying";
 
+/** The flight runs newest → oldest (2026 first, I'm Lost last): flying forward is travelling back in
+ *  time. The Singles list keeps album order, so picking a song there is a journey through the catalogue. */
+const FLIGHT_ORDER = [...SINGLES].reverse();
+
 function webglAvailable() {
   try {
     const c = document.createElement("canvas");
@@ -109,7 +113,7 @@ export default function LazyJoUniverse() {
     let engine: Universe | null = null;
     fontsReady().then(() => {
       if (cancelled || !stageRef.current) return;
-      engine = new Universe(stageRef.current, SINGLES, {
+      engine = new Universe(stageRef.current, FLIGHT_ORDER, {
         onHover: (s) => {
           setHovered(s);
           if (s) sound.hover();

@@ -228,6 +228,10 @@ un-mutes it (preview = the video's own sound, in sync); if it stays muted (some 
 `start` is 30 s for all five until Jo picks moments. Optional self-hosted alternative: `scripts/upload-video-loops.js`
 (square 30 s mp4 clips → `media/lazyjo/videos/` + `index.json`, shown as a 3D VideoTexture by `videos.ts`), used only
 for songs without `youtube`.
+**Flight order (Jo, 2026-11-24):** the 3D road runs **newest → oldest** (`FLIGHT_ORDER` = reversed `SINGLES` in
+`LazyJoUniverse.tsx`): Stay Up (Afro Soul) first, I'm Lost last — flying forward is travelling back in time. The Singles
+list keeps album order. `warpIn()` always lands just before the newest song; `open(id)` from the list is an eased
+"journey" (≤ 3.2 s, speed lines/blur) that stays on the current pass of the road, never across the loop seam.
 Design rule from Jo: straight forward flight only — no circular gallery, tunnel, road or well.
 Gateways: the big ringed purple planet = JAVEDA (warp, then a plain link to
 `/javeda/?src=lazyjo-universe` — never import JAVEDA code); the spiral galaxy opens the

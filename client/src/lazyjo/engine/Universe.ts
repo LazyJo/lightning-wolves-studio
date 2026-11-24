@@ -141,6 +141,8 @@ export class Universe {
   private idleDrift = 0.9;
   private moved = false;
   private flash = 0;
+  /** an eased flight through the songs to one picked from the list */
+  private journey: { from: number; to: number; t: number; dur: number } | null = null;
 
   // pointer
   private pointer = new THREE.Vector2(9, 9);
@@ -269,7 +271,14 @@ export class Universe {
 
   /** Cinematic burst forward when the visitor enters. */
   warpIn() {
-    this.targetZ -= this.reducedMotion ? 12 : 58;
+    // land at the start of the road, just before the first single (the newest), however
+    // far the camera drifted while the entrance screen was up
+    const minJump = this.reducedMotion ? 12 : 40;
+    const L = this.loopLength || 1;
+    const firstRow = -6 + 9; // camera stop in front of row 0 (slot z = -row * ROW_SPACING - 6, cam = z + 9)
+    let target = firstRow + Math.floor((this.camZ - minJump - firstRow) / L) * L;
+    if (!Number.isFinite(target)) target = this.targetZ - 58;
+    this.targetZ = target;
     this.flash = this.reducedMotion ? 0 : 0.35;
   }
 
@@ -287,27 +296,43 @@ export class Universe {
   async open(singleId: string) {
     const candidates = this.slots.filter((s) => s.single.id === singleId);
     if (!candidates.length) return;
+    // Stay on the current pass of the road (never cut across the loop seam), so picking an
+    // older song really flies through every song in between: newest → oldest is back in time.
+    const L = this.loopLength;
+    const firstRow = -6 + 9;
+    const lap = Math.floor((firstRow + ROW_SPACING / 2 - this.camZ) / L);
     let best: { slot: Slot; camTarget: number } | null = null;
     for (const s of candidates) {
-      for (const k of [-1, 0, 1]) {
-        const z = s.z + k * this.loopLength;
-        const camTarget = z + 9;
-        if (!best || Math.abs(camTarget - this.camZ) < Math.abs(best.camTarget - this.camZ)) {
-          best = { slot: s, camTarget };
-        }
-      }
+      const camTarget = -s.row * ROW_SPACING - 6 - lap * L + 9;
+      if (!best || Math.abs(camTarget - this.camZ) < Math.abs(best.camTarget - this.camZ)) best = { slot: s, camTarget };
     }
     if (!best) return;
-    this.targetZ = best.camTarget;
+    const dist = Math.abs(best.camTarget - this.camZ);
     const t0 = performance.now();
-    await new Promise<void>((resolve) => {
-      const check = () => {
-        if (this.disposed) return resolve();
-        if (Math.abs(this.camZ - this.targetZ) < 0.35 || performance.now() - t0 > 4500) resolve();
-        else requestAnimationFrame(check);
-      };
-      check();
-    });
+    if (dist > 12 && !this.reducedMotion) {
+      // a real journey through the catalogue: accelerate, fly past the covers, brake at the song
+      const dur = Math.min(Math.max(0.9 + dist / 70, 1.0), 3.2);
+      this.journey = { from: this.camZ, to: best.camTarget, t: 0, dur };
+      this.flash = 0.18;
+      await new Promise<void>((resolve) => {
+        const check = () => {
+          if (this.disposed || !this.journey || performance.now() - t0 > (dur + 1.5) * 1000) return resolve();
+          requestAnimationFrame(check);
+        };
+        check();
+      });
+      this.journey = null;
+    } else {
+      this.targetZ = best.camTarget;
+      await new Promise<void>((resolve) => {
+        const check = () => {
+          if (this.disposed) return resolve();
+          if (Math.abs(this.camZ - this.targetZ) < 0.35 || performance.now() - t0 > 4500) resolve();
+          else requestAnimationFrame(check);
+        };
+        check();
+      });
+    }
     this.select(best.slot);
   }
 
@@ -1341,11 +1366,17 @@ export class Universe {
 
   private step(dt: number, t: number) {
     // ── flight ──
-    if (!this.focused && !this.gazing && (!this.hovered || !this.inputEnabled)) {
+    if (!this.focused && !this.gazing && !this.journey && (!this.hovered || !this.inputEnabled)) {
       this.targetZ -= this.idleDrift * (this.inputEnabled ? 1 : 2.2) * dt;
     }
     const prev = this.camZ;
-    if (this.travel) this.camZ = this.camera.position.z; // the warp moves the camera itself
+    if (this.journey) {
+      const j = this.journey;
+      j.t = Math.min(j.t + dt / j.dur, 1);
+      const k = j.t < 0.5 ? 4 * j.t * j.t * j.t : 1 - Math.pow(-2 * j.t + 2, 3) / 2; // ease in-out
+      this.targetZ = this.camZ = j.from + (j.to - j.from) * k;
+      if (j.t >= 1) this.journey = null;
+    } else if (this.travel) this.camZ = this.camera.position.z; // the warp moves the camera itself
     else this.camZ = damp(this.camZ, this.targetZ, this.focused ? 6 : 2.4, dt);
     this.speed = (prev - this.camZ) / Math.max(dt, 1e-4);
     this.smoothSpeed = damp(this.smoothSpeed, this.speed, 6, dt);

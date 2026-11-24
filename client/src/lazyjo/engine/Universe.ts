@@ -103,8 +103,8 @@ const COLORS = {
 
 const ROW_SPACING = 9;
 const MIN_SLOTS = 24;
-/** Glowing release year under each cover (Jo is reviewing an example; flip to true once approved). */
-const YEAR_LABELS = false;
+/** Glowing release year under each cover, in the song's colour (approved by Jo 2026-11-24). */
+const YEAR_LABELS = true;
 const COVER_SIZE = 3.4;
 const SLEEVE_DEPTH = 0.06;
 /** One sun for the whole system: planets, asteroids, sleeves and the UFO agree on it. */

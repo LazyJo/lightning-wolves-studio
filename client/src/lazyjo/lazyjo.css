@@ -697,9 +697,12 @@ a { color: var(--lj-cyan); }
 
 @media (max-width: 720px) {
   /* even smaller JAVEDA tag on phones */
-  .lj-javeda-btn { gap: 5px; padding: 3px 9px 3px 7px; border-width: 1px; }
-  .lj-javeda-btn svg { width: 11px; height: 11px; }
-  .lj-javeda-btn-name { font-size: 10.5px; letter-spacing: 0.06em; }
+  /* phones: a small chip that labels the planet instead of covering it */
+  .lj-javeda-btn { gap: 4px; padding: 2px 7px 2px 5px; border-width: 1px; box-shadow: 0 0 0 1px rgba(255,255,255,0.05) inset, 0 4px 16px -6px color-mix(in srgb, var(--lj-purple) 90%, transparent); }
+  .lj-javeda-btn svg { width: 9px; height: 9px; }
+  .lj-javeda-btn-name { font-size: 8.5px; letter-spacing: 0.1em; }
+  /* the visible chip is small, the tap area stays finger-sized */
+  .lj-javeda-btn::after { content: ""; position: absolute; inset: -12px -10px; }
 }
 
 /* ─── fan list: Stay in the loop ─── */

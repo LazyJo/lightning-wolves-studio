@@ -269,6 +269,9 @@ covers from `client/public/lazyjo/covers/email/*.jpg`); supporter number = order
 distinct songs owned; both come back from `/api/lazyjo/download`. All of it needs `supabase-lazyjo-supporters.sql`
 (**run in prod on 2026-11-24**: `lazyjo_purchases`, `javeda_is_supporter`, `javeda_supporters` and the supporter rule in
 `javeda_challenge_in` verified live — don't ask Jo to run it again unless the JAVEDA schema is re-run).
+**JAVEDA chat + link counter (2026-11-24):** `supabase-javeda-chat-keep100.sql` **ran in prod** (the chat keeps the newest
+100 messages, no 30-day expiry); the `lazyjo-universe` rows in `javeda_link_days` were **deleted** (Jo's own tests). Creator
+devices no longer count as link visitors (`javeda.creatorDevice` in localStorage). Don't re-run either.
 JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
 Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 

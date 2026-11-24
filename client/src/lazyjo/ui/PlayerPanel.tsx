@@ -162,8 +162,11 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
     }
   };
 
+  // EU: no refunds on a digital download only if the buyer ticks this before paying (same as the JAVEDA Pass)
+  const [waiver, setWaiver] = useState(false);
+
   const purchase = async () => {
-    if (customError) return;
+    if (customError || !waiver) return;
     setBuy({ kind: "loading" });
     try {
       await startSingleCheckout(single.id, amount);
@@ -314,7 +317,14 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
             )}
           </div>
 
-          <button className="lj-btn lj-btn-primary lj-btn-buy" onClick={purchase} disabled={buy.kind === "loading" || !!customError}>
+          <label className="lj-consent lj-waiver">
+            <input type="checkbox" checked={waiver} onChange={(e) => setWaiver(e.target.checked)} />
+            <span>
+              Deliver it right away. It&rsquo;s mine forever, and I understand I then lose my 14-day right to cancel (no
+              refunds).
+            </span>
+          </label>
+          <button className="lj-btn lj-btn-primary lj-btn-buy" onClick={purchase} disabled={buy.kind === "loading" || !!customError || !waiver}>
             {buy.kind === "loading" ? (
               <>
                 <Loader2 size={18} className="lj-spin" aria-hidden /> Opening secure checkout…
@@ -338,10 +348,6 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
             </div>
           )}
 
-          <p className="lj-fineprint">
-            Delivered instantly, so no refunds: by paying you agree the download starts right away and you give up your
-            14-day right of withdrawal.
-          </p>
           <div className="lj-trust">
             <span>
               <Lock size={12} aria-hidden /> Secure checkout by Stripe

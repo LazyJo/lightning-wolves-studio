@@ -449,6 +449,8 @@ app.post('/api/javeda/pass/checkout', async (req, res) => {
       // on the bank statement: the account's shortened descriptor, then this. "LAZY JO* JAVEDA PASS" is 20 of the 22 allowed
       payment_intent_data: { metadata: { kind: 'javeda_pass', userId: user.id }, statement_descriptor_suffix: 'JAVEDA PASS' },
       ...(process.env.JAVEDA_STRIPE_TAX === '1' ? { automatic_tax: { enabled: true } } : {}),
+      // the hub's tick box already asked; the Pay button says it once more: yours forever, no refunds
+      custom_text: { submit: { message: 'The JAVEDA Pass is yours forever. It starts right away, so by paying you agree to that and give up your 14-day right to cancel: no refunds.' } },
       success_url: `${origin}/javeda/?pass=done&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${origin}/javeda/?pass=cancelled`,
     });

@@ -163,6 +163,8 @@ The free Resend plan has daily sending limits; check them before a big announcem
 
 A bought song is yours forever, and there are no refunds. In the EU a buyer of a digital download has 14 days to
 withdraw **unless they agree, before paying, that delivery starts right away and that they give up that right**.
-So the player shows that line under the Buy button and the Stripe checkout shows it next to the Pay button
+So the player has a tick box above the Buy button (Buy stays off until it's ticked: "Deliver it right away. It's
+mine forever, and I understand I then lose my 14-day right to cancel (no refunds)", the same as the JAVEDA Pass),
+and the Stripe checkout says it once more next to the Pay button
 (`LAZYJO_NO_REFUND_TEXT` in server.js). Stripe still lets you refund by hand (e.g. your own test purchase); that's the
 only way a purchase is ever undone, and it also removes that buyer's JAVEDA supporter badge.

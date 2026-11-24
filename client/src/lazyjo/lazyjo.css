@@ -784,4 +784,5 @@ a { color: var(--lj-cyan); }
 .lj-supporter a { color: #d8b4fe; font-weight: 700; }
 .lj-supporter b { color: #fff; word-break: break-all; }
 
-.lj-fineprint { margin: 10px 2px 0; font-size: 11.5px; line-height: 1.4; color: rgba(220, 232, 245, 0.55); text-align: center; }
+.lj-waiver { margin: 4px 2px 12px; font-size: 12.5px; }
+.lj-waiver input { accent-color: var(--lj-cyan); }

@@ -18,7 +18,7 @@
         "#4937e6"
       ],
       "motif": "orb",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500,
       "forSale": false
@@ -78,7 +78,7 @@
         "#4042dd"
       ],
       "motif": "road",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500
     },
@@ -141,7 +141,7 @@
         "#4bd384"
       ],
       "motif": "road",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500,
       "forSale": false
@@ -201,7 +201,7 @@
         "#ffef1f"
       ],
       "motif": "bolt",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500
     },
@@ -258,7 +258,7 @@
         "#efb862"
       ],
       "motif": "bolt",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500
     },
@@ -322,7 +322,7 @@
         "#d24b91"
       ],
       "motif": "moon",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500,
       "youtube": {
@@ -385,7 +385,7 @@
         "#2029fd"
       ],
       "motif": "bolt",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500,
       "youtube": {
@@ -447,7 +447,7 @@
         "#f9dd58"
       ],
       "motif": "moon",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500
     },
@@ -509,7 +509,7 @@
         "#ffb36b"
       ],
       "motif": "orb",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500
     },
@@ -567,7 +567,7 @@
         "#ffcf5c"
       ],
       "motif": "bolt",
-      "vinyl": false,
+      "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500
     },

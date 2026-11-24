@@ -83,6 +83,8 @@ interface Slot {
   yearMat: THREE.MeshBasicMaterial | null;
   vinyl: THREE.Group | null;
   vinylMats: THREE.Material[];
+  /** the record's centre label, printed with the song's artwork */
+  labelMat: THREE.MeshStandardMaterial | null;
   side: -1 | 1;
   row: number;
   jitterY: number;
@@ -922,7 +924,7 @@ export class Universe {
     // Record: a real disc (cylinder) with grooved faces + a paper label.
     const discGeo = this.track(new THREE.CylinderGeometry(COVER_SIZE * 0.47, COVER_SIZE * 0.47, 0.022, 96, 1));
     discGeo.rotateX(Math.PI / 2);
-    const labelGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.15, 48));
+    const labelGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.2, 64));
     const holeGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.014, 16));
     const playGeo = this.track(new THREE.PlaneGeometry(0.62, 0.62));
     const yearGeo = this.track(new THREE.PlaneGeometry(1.6, 0.6));
@@ -994,7 +996,9 @@ export class Universe {
 
       let vinyl: THREE.Group | null = null;
       const vinylMats: THREE.Material[] = [];
-      if (single.vinyl) {
+      let labelMat: THREE.MeshStandardMaterial | null = null;
+      {
+        // every single comes on a record; its label is printed with the artwork, so it spins with the music
         vinyl = new THREE.Group();
         const grooves = new THREE.MeshPhysicalMaterial({
           map: vinylTex,
@@ -1008,11 +1012,12 @@ export class Universe {
         });
         const edge = new THREE.MeshStandardMaterial({ color: "#050506", roughness: 0.4, transparent: true });
         const disc = new THREE.Mesh(discGeo, [edge, grooves, grooves]);
-        const labelMat = new THREE.MeshStandardMaterial({
-          color: accent.clone().multiplyScalar(0.85),
-          roughness: 0.75,
-          emissive: accent.clone(),
-          emissiveIntensity: 0.12,
+        labelMat = new THREE.MeshStandardMaterial({
+          map: tex,
+          emissiveMap: tex,
+          emissive: new THREE.Color(1, 1, 1),
+          emissiveIntensity: 0.32,
+          roughness: 0.6,
           transparent: true,
         });
         const holeMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true });
@@ -1062,6 +1067,7 @@ export class Universe {
         yearMat,
         vinyl,
         vinylMats,
+        labelMat,
         side,
         row,
         jitterY: (Math.sin(i * 12.9898) * 0.5) * 0.7,
@@ -1185,6 +1191,11 @@ export class Universe {
         slot.front.map = tex;
         slot.front.emissiveMap = tex;
         slot.front.needsUpdate = true;
+        if (slot.labelMat) {
+          slot.labelMat.map = tex;
+          slot.labelMat.emissiveMap = tex;
+          slot.labelMat.needsUpdate = true;
+        }
       }
     };
     img.src = encodeURI(s.cover);

@@ -218,6 +218,8 @@ Get What I Want. Each goes in after Stay Up (Afro Soul) in that order once Jo se
 `year: 2027`, for sale now (Jo: they can be bought before the release). WAVs in Jo's `3 - WAV` folder (files 31–37).
 Their previews come from the WAV: `upload-masters.js` also cuts the loudest 30 s to the public `media/lazyjo/previews/<id>.mp3`
 (= `previewUrl`; `--start "Title=m:ss"` re-cuts one). A song with `previewUrl: null` shows "Preview drops on release".
+**Live since 2026-11-24** (WAVs + previews uploaded, promoted). Back Again, Insane, Get What I Want are B&W covers: gold frames
+(palette accent `#f5c518`) and their webps are softened (blur 3 px at 3000 px, then 800 px + light unsharp) so the grain doesn't flicker in 3D.
 Newer singles that aren't on JAVEDA yet (no `track`) sit after the album; when one joins JAVEDA, give it
 its track number, move it into album order and switch its preview to the level song.
 **Per-song colours:** each song's `palette` = [dark, accent, accent 2] picked from its cover; `themeStyle()` in

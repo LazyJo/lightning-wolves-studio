@@ -338,11 +338,15 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
             </div>
           )}
 
+          <p className="lj-fineprint">
+            Delivered instantly, so no refunds: by paying you agree the download starts right away and you give up your
+            14-day right of withdrawal.
+          </p>
           <div className="lj-trust">
             <span>
               <Lock size={12} aria-hidden /> Secure checkout by Stripe
             </span>
-            <span>Instant high-quality download</span>
+            <span>WAV · yours forever</span>
             <button className="lj-link" onClick={share}>
               <Share2 size={12} aria-hidden /> {copied ? "Link copied" : "Share"}
             </button>

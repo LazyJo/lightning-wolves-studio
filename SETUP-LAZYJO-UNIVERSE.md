@@ -77,8 +77,9 @@ needed in the Stripe dashboard: products are created inline per checkout.
 
 Flow: Stripe redirects to `/lazyjo/?purchase=success&session_id=…`. The page calls
 `GET /api/lazyjo/download`. The server **re-fetches the Checkout Session from
-Stripe**, checks `payment_status === "paid"` and the 30-day window, and only then
-returns a 10-minute signed download URL. If the bucket or file is missing, the fan
+Stripe**, checks `payment_status === "paid"`, and only then
+returns a 10-minute signed download URL. There is no download window: a bought song is the buyer's forever,
+and the thank-you link keeps working. If the bucket or file is missing, the fan
 sees "payment confirmed, download will be emailed", so a sale is never lost.
 
 ## 4. Your own fan list (replaces EVEN)
@@ -157,3 +158,11 @@ The free Resend plan has daily sending limits; check them before a big announcem
 - All sound is synthesised in `client/src/lazyjo/audio.ts`, so there are no audio assets to host.
 - Quality adapts automatically: lower pixel ratio on slow frames, fewer particles on touch devices, no motion blur or FOV kick when `prefers-reduced-motion` is set.
 - Without WebGL, the page falls back to a plain singles list, and buying still works.
+
+## No refunds (Jo, 2026-11-24)
+
+A bought song is yours forever, and there are no refunds. In the EU a buyer of a digital download has 14 days to
+withdraw **unless they agree, before paying, that delivery starts right away and that they give up that right**.
+So the player shows that line under the Buy button and the Stripe checkout shows it next to the Pay button
+(`LAZYJO_NO_REFUND_TEXT` in server.js). Stripe still lets you refund by hand (e.g. your own test purchase); that's the
+only way a purchase is ever undone, and it also removes that buyer's JAVEDA supporter badge.

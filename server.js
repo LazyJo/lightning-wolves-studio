@@ -491,7 +491,11 @@ app.post('/api/javeda/pass/confirm', async (req, res) => {
 // Supabase Storage bucket.
 const LAZYJO_CATALOG = require('./client/src/lazyjo/singles.json');
 const LAZYJO_MAX_CENTS = 50000;            // cap "pay what you want" at €500
-const LAZYJO_DOWNLOAD_DAYS = 30;           // re-download window per purchase
+// A bought song is the buyer's forever: the thank-you link keeps working (no download window), and there
+// are no refunds. EU law: that only holds if the buyer agrees, before paying, that delivery starts right
+// away and they give up the 14-day right of withdrawal, so the checkout says exactly that.
+const LAZYJO_NO_REFUND_TEXT =
+  'Digital download, yours forever. It is delivered right away, so by paying you agree that delivery starts now and you give up your 14-day right of withdrawal: no refunds.';
 const LAZYJO_BUCKET = process.env.LAZYJO_MASTERS_BUCKET || 'lazyjo-masters';
 const lazyjoSingle = (id) => LAZYJO_CATALOG.singles.find((s) => s.id === id);
 const lazyjoTitle = (s) => (s.feat ? `${s.title} (feat. ${s.feat})` : s.title);
@@ -566,6 +570,7 @@ app.post('/api/lazyjo/checkout', async (req, res) => {
       payment_intent_data: { metadata },
       // EU VAT on digital sales: set LAZYJO_STRIPE_TAX=1 once Stripe Tax is set up
       ...(process.env.LAZYJO_STRIPE_TAX === '1' ? { automatic_tax: { enabled: true } } : {}),
+      custom_text: { submit: { message: LAZYJO_NO_REFUND_TEXT } },
       success_url: `${origin}/lazyjo/?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/lazyjo/?purchase=cancelled&single=${encodeURIComponent(single.id)}`,
       allow_promotion_codes: true,
@@ -590,10 +595,6 @@ app.get('/api/lazyjo/download', async (req, res) => {
     }
     if (session.payment_status !== 'paid') {
       return res.status(402).json({ error: 'Payment has not completed yet' });
-    }
-    const ageDays = (Date.now() / 1000 - session.created) / 86400;
-    if (ageDays > LAZYJO_DOWNLOAD_DAYS) {
-      return res.status(410).json({ error: 'This download link has expired — reply to your receipt email for a new one' });
     }
     const single = lazyjoSingle(session.metadata.singleId);
     if (!single) return res.status(404).json({ error: 'Single no longer available' });

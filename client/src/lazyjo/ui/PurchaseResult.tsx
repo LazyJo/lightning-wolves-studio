@@ -83,7 +83,7 @@ export default function PurchaseResult({ sessionId, cancelled, onClose }: Props)
                   <Download size={18} aria-hidden /> Download your single
                 </a>
                 <p className="lj-result-fine">
-                  Bookmark this page to download again — the link works for 30 days.
+                  It&rsquo;s yours forever. Bookmark this page to download it again anytime.
                 </p>
               </>
             ) : (

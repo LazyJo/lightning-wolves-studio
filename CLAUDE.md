@@ -266,7 +266,9 @@ docked delivery panel (`PurchaseResult`, themed). `ui/SupporterCard.tsx` draws a
 artwork label, "SUPPORTER · N RECORDS", #NNN, owner, date; Share/Save). server.js: `recordLazyjoPurchase` inserts into
 `lazyjo_purchases` once (thank-you page or webhook) and then sends "Your record has landed" (`lib/lazyjo-delivery.js`,
 covers from `client/public/lazyjo/covers/email/*.jpg`); supporter number = order of a buyer's first purchase, records =
-distinct songs owned; both come back from `/api/lazyjo/download`. All of it needs `supabase-lazyjo-supporters.sql`.
+distinct songs owned; both come back from `/api/lazyjo/download`. All of it needs `supabase-lazyjo-supporters.sql`
+(**run in prod on 2026-11-24**: `lazyjo_purchases`, `javeda_is_supporter`, `javeda_supporters` and the supporter rule in
+`javeda_challenge_in` verified live — don't ask Jo to run it again unless the JAVEDA schema is re-run).
 JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
 Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 

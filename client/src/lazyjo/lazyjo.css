@@ -786,3 +786,42 @@ a { color: var(--lj-cyan); }
 
 .lj-waiver { margin: 4px 2px 12px; font-size: 12.5px; }
 .lj-waiver input { accent-color: var(--lj-cyan); }
+
+/* ─── delivery: the bought record is beamed in, then "IT'S YOURS" ─── */
+.lj-yours {
+  /* desktop: beside the presented record (where the panel will open); phones: under it */
+  position: absolute; left: 50%; right: 2%; top: 38%; z-index: 45; text-align: center; pointer-events: none;
+  animation: lj-yours-in 2.8s var(--lj-ease) both;
+}
+.lj-yours-kicker { margin: 0; font: 800 13px var(--lj-body); letter-spacing: 0.5em; text-transform: uppercase; color: var(--lj-cyan); }
+.lj-yours-title {
+  margin: 6px 0 4px; font: 800 clamp(54px, 7vw, 110px)/0.95 var(--lj-display); text-transform: uppercase; letter-spacing: -0.01em;
+  color: #fff; text-shadow: 0 0 30px var(--lj-cyan), 0 0 90px color-mix(in srgb, var(--lj-cyan) 70%, transparent);
+}
+.lj-yours-sub { margin: 0; font: 700 clamp(14px, 1.6vw, 18px) var(--lj-body); letter-spacing: 0.18em; text-transform: uppercase; color: rgba(235, 244, 255, 0.85); }
+@keyframes lj-yours-in {
+  0% { opacity: 0; transform: scale(0.82); filter: blur(14px); }
+  18% { opacity: 1; transform: scale(1.04); filter: none; }
+  28% { transform: scale(1); }
+  82% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-18px); }
+}
+@media (max-width: 720px), (max-aspect-ratio: 19/20) { .lj-yours { left: 0; right: 0; top: 52%; } }
+@media (prefers-reduced-motion: reduce) { .lj-yours { animation-duration: 2.8s; animation-timing-function: linear; } }
+.lj-delivery .lj-result-sub { margin: 16px 0 14px; text-align: left; }
+.lj-delivery .lj-result-fine { margin: 10px 0 0; }
+.lj-card-open { width: 100%; margin-top: 10px; min-height: 50px; }
+
+/* the supporter card */
+.lj-card-wrap { position: absolute; inset: 0; z-index: 60; display: grid; place-items: center; }
+.lj-card-modal {
+  position: relative; display: grid; justify-items: center; gap: 14px; padding: 18px;
+  width: min(380px, calc(100vw - 32px)); max-height: calc(100dvh - 32px);
+  border-radius: 22px; background: rgba(4, 10, 26, 0.86); border: 1px solid var(--lj-line);
+  backdrop-filter: blur(16px); animation: lj-result-in 0.6s var(--lj-ease) both;
+}
+.lj-card-img { width: 100%; max-height: calc(100dvh - 210px); object-fit: contain; border-radius: 14px; box-shadow: 0 20px 60px -20px #000; }
+.lj-card-actions { display: grid; gap: 8px; width: 100%; }
+.lj-card-actions .lj-btn { width: 100%; justify-content: center; }
+.lj-card-note { margin: 0; font-size: 12.5px; color: var(--lj-muted); text-align: center; }
+.lj-card-modal .lj-player-close { top: 12px; right: 12px; }

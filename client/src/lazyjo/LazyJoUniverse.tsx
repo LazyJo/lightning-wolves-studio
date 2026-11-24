@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Universe } from "./engine/Universe";
-import { SINGLES, singleById, type Single } from "./catalog";
+import { SINGLES, fullTitle, singleById, themeStyle, type Single } from "./catalog";
 import { sound } from "./audio";
 import IntroScreen from "./ui/IntroScreen";
 import Hud from "./ui/Hud";
@@ -9,6 +9,7 @@ import Tracklist from "./ui/Tracklist";
 import PurchaseResult from "./ui/PurchaseResult";
 import GalaxyPanel from "./ui/GalaxyPanel";
 import JoinPanel from "./ui/JoinPanel";
+import { fetchDownload, type DownloadResult } from "./shop";
 import { isFan, markFan } from "./fanGate";
 import VideoScreen from "./ui/VideoScreen";
 import { Orbit } from "lucide-react";
@@ -64,6 +65,12 @@ export default function LazyJoUniverse() {
   const [joined, setJoined] = useState(isFan);
   const [toast, setToast] = useState<string | null>(null);
   const [purchase, setPurchase] = useState<{ sessionId?: string; cancelled?: boolean } | null>(null);
+  // after a purchase: the record is beamed in first, then the delivery panel opens
+  const [purchaseData, setPurchaseData] = useState<DownloadResult | null>(null);
+  const [delivering, setDelivering] = useState(false); // the beam-in is running: no regular player
+  const [yours, setYours] = useState<Single | null>(null); // the big "IT'S YOURS" moment
+  const [deliveryPanel, setDeliveryPanel] = useState(false);
+  const deliveryStarted = useRef(false);
   const deepLink = useRef<string | null>(null);
 
   // Read return-from-Stripe and deep-link params once.
@@ -223,6 +230,46 @@ export default function LazyJoUniverse() {
     });
   }, []);
 
+  // Back from Stripe: fetch the purchase while the page boots, then beam the record in.
+  useEffect(() => {
+    if (!purchase?.sessionId) return;
+    fetchDownload(purchase.sessionId).then(setPurchaseData, () => setDeliveryPanel(true)); // error: the panel says so
+  }, [purchase]);
+  useEffect(() => {
+    if (!purchaseData || !ready || deliveryStarted.current) return;
+    deliveryStarted.current = true;
+    const single = purchaseData.singleId ? singleById.get(purchaseData.singleId) : undefined;
+    const e = engineRef.current;
+    if (!single || !e || noWebgl) {
+      setDeliveryPanel(true);
+      return;
+    }
+    setDelivering(true);
+    const fromIntro = phase === "intro";
+    if (fromIntro) enter(false);
+    const t0 = fromIntro ? 2300 : 200;
+    const timers = [
+      window.setTimeout(() => e.deliver(single.id), t0),
+      window.setTimeout(() => setYours(single), t0 + 1500),
+      window.setTimeout(() => {
+        setYours(null);
+        setDeliveryPanel(true);
+      }, t0 + 4300),
+    ];
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [purchaseData, ready]);
+
+  const closeDelivery = useCallback(() => {
+    setDeliveryPanel(false);
+    setDelivering(false);
+    setYours(null);
+    setPurchase(null);
+    setPurchaseData(null);
+    setSelected(null);
+    engineRef.current?.unfocus();
+  }, []);
+
   const closePlayer = useCallback(() => {
     sound.stopPreview();
     sound.close();
@@ -359,7 +406,14 @@ export default function LazyJoUniverse() {
       />
 
       {selected?.youtube && <VideoScreen key={`v-${selected.id}`} ref={videoScreenRef} single={selected} />}
-      {selected && (
+      {yours && (
+        <div className="lj-yours" role="status" aria-live="polite" style={themeStyle(yours)}>
+          <p className="lj-yours-kicker">Delivered</p>
+          <p className="lj-yours-title">It&rsquo;s yours</p>
+          <p className="lj-yours-sub">{fullTitle(yours)} · forever</p>
+        </div>
+      )}
+      {selected && !delivering && (
         <PlayerPanel
           key={selected.id}
           single={selected}
@@ -382,7 +436,10 @@ export default function LazyJoUniverse() {
         </div>
       )}
 
-      {purchase && <PurchaseResult {...purchase} onClose={() => setPurchase(null)} />}
+      {purchase?.cancelled && <PurchaseResult cancelled onClose={() => setPurchase(null)} />}
+      {purchase?.sessionId && deliveryPanel && (
+        <PurchaseResult sessionId={purchase.sessionId} data={purchaseData} coverFor={coverFor} onClose={closeDelivery} />
+      )}
     </div>
   );
 }

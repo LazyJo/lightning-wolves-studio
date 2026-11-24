@@ -492,6 +492,7 @@ app.post('/api/javeda/pass/confirm', async (req, res) => {
 // with Stripe and returns a short-lived signed URL to the master in a PRIVATE
 // Supabase Storage bucket.
 const LAZYJO_CATALOG = require('./client/src/lazyjo/singles.json');
+const { deliveryEmailHtml } = require('./lib/lazyjo-delivery');
 const LAZYJO_MAX_CENTS = 50000;            // cap "pay what you want" at €500
 // A bought song is the buyer's forever: the thank-you link keeps working (no download window), and there
 // are no refunds. EU law: that only holds if the buyer agrees, before paying, that delivery starts right
@@ -505,19 +506,64 @@ const lazyjoTitle = (s) => (s.feat ? `${s.title} (feat. ${s.feat})` : s.title);
 // Remember a paid Universe purchase (supabase-lazyjo-supporters.sql). A JAVEDA account with the same,
 // confirmed email becomes a "supporter": a ⚡ badge on the boards and always in the Super. Called from
 // the thank-you page and the Stripe webhook; whichever comes first, the row is the same (session id).
+// The first time a purchase is recorded (whichever of the two comes first), the buyer also gets the
+// "Your record has landed" email. Returns the buyer's supporter number (#1 = first ever buyer).
 async function recordLazyjoPurchase(session) {
-  if (!supabase || session?.metadata?.kind !== 'lazyjo-single' || session.payment_status !== 'paid') return;
+  const none = { inserted: false, supporterNo: null };
+  if (!supabase || session?.metadata?.kind !== 'lazyjo-single' || session.payment_status !== 'paid') return none;
   const email = (session.customer_details?.email || session.customer_email || '').trim().toLowerCase();
-  if (!email) return;
-  const { error } = await supabase.from('lazyjo_purchases').upsert({
+  if (!email) return none;
+  const { error } = await supabase.from('lazyjo_purchases').insert({
     session_id: session.id,
     email,
     single_id: session.metadata.singleId,
     amount_cents: session.amount_total ?? null,
     currency: session.currency || null,
     payment_intent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
-  }, { onConflict: 'session_id', ignoreDuplicates: true });
-  if (error && error.code !== '42P01') console.error('lazyjo purchase not recorded:', error.message); // 42P01: table not created yet
+  });
+  if (error && error.code !== '23505') { // 23505: already recorded (the other path got there first)
+    if (error.code !== '42P01') console.error('lazyjo purchase not recorded:', error.message); // 42P01: table not created yet
+    return none;
+  }
+  const inserted = !error;
+  const supporterNo = await lazyjoSupporterNo(email);
+  if (inserted) sendLazyjoDelivery(session, email, supporterNo).catch((e) => console.error('lazyjo delivery email:', e.message));
+  return { inserted, supporterNo };
+}
+
+// Supporter number: buyers in the order of their first (not refunded) purchase.
+async function lazyjoSupporterNo(email) {
+  const { data, error } = await supabase.from('lazyjo_purchases')
+    .select('email, created_at').is('refunded_at', null).order('created_at', { ascending: true }).limit(100000);
+  if (error || !data) return null;
+  const seen = new Set();
+  for (const r of data) {
+    const e = String(r.email).toLowerCase();
+    if (seen.has(e)) continue;
+    seen.add(e);
+    if (e === email) return seen.size;
+  }
+  return null;
+}
+
+async function sendLazyjoDelivery(session, email, supporterNo) {
+  const single = lazyjoSingle(session.metadata.singleId);
+  if (!single) return;
+  const origin = (process.env.PUBLIC_APP_URL || 'https://lightningwolves.studio').replace(/\/$/, '');
+  const coverFile = single.cover ? single.cover.split('/').pop().replace(/\.[a-z0-9]+$/i, '.jpg') : null;
+  const name = (session.customer_details?.name || '').trim().split(/\s+/)[0] || null;
+  const html = deliveryEmailHtml({
+    title: lazyjoTitle(single),
+    artist: LAZYJO_CATALOG.artist,
+    coverUrl: coverFile ? `${origin}/lazyjo/covers/email/${encodeURIComponent(coverFile)}` : `${origin}/lazyjo/og.jpg`,
+    downloadUrl: `${origin}/lazyjo/?purchase=success&session_id=${encodeURIComponent(session.id)}`,
+    javedaUrl: `${origin}/javeda/?src=lazyjo-email`,
+    universeUrl: `${origin}/lazyjo/`,
+    supporterNo,
+    accent: Array.isArray(single.palette) ? single.palette[1] : undefined,
+    name,
+  });
+  await lazyjoSendEmails([{ to: email, subject: `Your record has landed: ${lazyjoTitle(single)}`, html }]);
 }
 
 app.post('/api/lazyjo/checkout', async (req, res) => {
@@ -600,9 +646,14 @@ app.get('/api/lazyjo/download', async (req, res) => {
     }
     const single = lazyjoSingle(session.metadata.singleId);
     if (!single) return res.status(404).json({ error: 'Single no longer available' });
-    recordLazyjoPurchase(session).catch((e) => console.error('lazyjo purchase:', e.message));
+    const rec = await recordLazyjoPurchase(session).catch((e) => { console.error('lazyjo purchase:', e.message); return {}; });
 
-    const base = { title: lazyjoTitle(single), email: session.customer_details?.email || null };
+    const base = {
+      singleId: single.id,
+      supporterNo: rec?.supporterNo ?? null,
+      name: (session.customer_details?.name || '').trim().split(/\s+/)[0] || null,
+      purchasedAt: new Date(session.created * 1000).toISOString(),
+      title: lazyjoTitle(single), email: session.customer_details?.email || null };
     if (!supabase || !single.masterPath) {
       return res.json({ ...base, status: 'pending' });
     }

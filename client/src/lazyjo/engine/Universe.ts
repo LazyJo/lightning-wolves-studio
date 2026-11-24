@@ -392,6 +392,13 @@ export class Universe {
     void this.open(pick.id);
   }
 
+  /** After a purchase: the UFO surges and beams the bought record down to the visitor. */
+  deliver(singleId: string) {
+    this.surge = 1.6;
+    this.flash = this.reducedMotion ? 0 : 0.45;
+    void this.open(singleId);
+  }
+
   /** Warp toward the purple planet, then hand over to JAVEDA (onTravelDone). */
   travelToJaveda() {
     if (this.travel || this.focused) return;

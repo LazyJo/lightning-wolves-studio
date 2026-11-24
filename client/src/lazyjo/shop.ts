@@ -21,6 +21,12 @@ export async function startSingleCheckout(singleId: string, amountCents: number)
 export interface DownloadResult {
   status: "ready" | "pending";
   title: string;
+  singleId?: string;
+  /** buyer number in order of first purchase (#1 = first ever) */
+  supporterNo?: number | null;
+  /** the buyer's first name from Stripe */
+  name?: string | null;
+  purchasedAt?: string;
   url?: string;
   email?: string | null;
   message?: string;

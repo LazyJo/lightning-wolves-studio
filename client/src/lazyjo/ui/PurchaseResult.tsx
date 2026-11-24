@@ -1,25 +1,33 @@
 import { useEffect, useState } from "react";
-import { Download, Loader2, X } from "lucide-react";
+import { Download, IdCard, Loader2, X } from "lucide-react";
 import { fetchDownload, type DownloadResult } from "../shop";
+import { singleById, themeStyle, type Single } from "../catalog";
+import { isFan } from "../fanGate";
 import JoinForm from "./JoinForm";
+import SupporterCard from "./SupporterCard";
 
 interface Props {
   sessionId?: string;
   cancelled?: boolean;
+  /** already fetched by the delivery sequence (the record was beamed in first) */
+  data?: DownloadResult | null;
+  /** artwork for the panel and the supporter card */
+  coverFor?(s: Single): string;
   onClose(): void;
 }
 
-export default function PurchaseResult({ sessionId, cancelled, onClose }: Props) {
+export default function PurchaseResult({ sessionId, cancelled, data, coverFor, onClose }: Props) {
   const [state, setState] = useState<
     { kind: "loading" } | { kind: "done"; data: DownloadResult } | { kind: "error"; msg: string }
-  >({ kind: "loading" });
+  >(data ? { kind: "done", data } : { kind: "loading" });
+  const [cardOpen, setCardOpen] = useState(false);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || data) return;
     fetchDownload(sessionId)
-      .then((data) => setState({ kind: "done", data }))
+      .then((d) => setState({ kind: "done", data: d }))
       .catch((e: Error) => setState({ kind: "error", msg: e.message }));
-  }, [sessionId]);
+  }, [sessionId, data]);
 
   const close = () => {
     const url = new URL(window.location.href);
@@ -46,10 +54,23 @@ export default function PurchaseResult({ sessionId, cancelled, onClose }: Props)
     );
   }
 
+  const done = state.kind === "done" ? state.data : null;
+  const single = done?.singleId ? singleById.get(done.singleId) || null : null;
+  const cover = single && coverFor ? coverFor(single) : "";
+  const no = done?.supporterNo ? `#${String(done.supporterNo).padStart(3, "0")}` : null;
+  // with the record presented in 3D, the panel sits where the player does (right / bottom)
+  const docked = !!(single && data);
+
   return (
-    <div className="lj-player-wrap lj-result-wrap" role="dialog" aria-modal="true" aria-labelledby="lj-result-title">
+    <div
+      className={`lj-player-wrap lj-result-wrap ${docked ? "is-docked" : ""}`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="lj-result-title"
+      style={single ? themeStyle(single) : undefined}
+    >
       <div className="lj-player-scrim" onClick={close} />
-      <section className="lj-result lj-holo">
+      <section className={docked ? "lj-player lj-holo lj-delivery" : "lj-result lj-holo"}>
         <span className="lj-corner tl" />
         <span className="lj-corner tr" />
         <span className="lj-corner bl" />
@@ -61,47 +82,67 @@ export default function PurchaseResult({ sessionId, cancelled, onClose }: Props)
           <>
             <Loader2 size={28} className="lj-spin lj-result-icon" aria-hidden />
             <h2 id="lj-result-title" className="lj-result-title">
-              Confirming your purchase…
+              Receiving your record…
             </h2>
           </>
         )}
-        {state.kind === "done" && (
+        {done && (
           <>
-            <p className="lj-eyebrow">
-              <span className="lj-dot" /> Transmission received
-            </p>
-            <h2 id="lj-result-title" className="lj-result-title">
-              Thank you for supporting Lazy Jo
-            </h2>
-            <p className="lj-result-sub">
-              <strong>{state.data.title}</strong> is yours.
-              {state.data.email ? ` A receipt is on its way to ${state.data.email}.` : ""}
-            </p>
-            {state.data.status === "ready" && state.data.url ? (
+            {single && (
+              <div className="lj-player-head lj-delivery-head">
+                <div className="lj-player-cover" style={cover ? { backgroundImage: `url("${cover}")` } : undefined} />
+                <div className="lj-player-titles">
+                  <p className="lj-eyebrow">
+                    <span className="lj-dot" /> Delivered{no ? ` · Supporter ${no}` : ""}
+                  </p>
+                  <h2 id="lj-result-title" className="lj-player-title">
+                    It&rsquo;s yours. Forever.
+                  </h2>
+                  <p className="lj-player-artist">{done.title} · Lazy Jo</p>
+                </div>
+              </div>
+            )}
+            {!single && (
               <>
-                <a className="lj-btn lj-btn-primary" href={state.data.url}>
-                  <Download size={18} aria-hidden /> Download your single
-                </a>
-                <p className="lj-result-fine">
-                  It&rsquo;s yours forever. Bookmark this page to download it again anytime.
+                <p className="lj-eyebrow">
+                  <span className="lj-dot" /> Transmission received
                 </p>
+                <h2 id="lj-result-title" className="lj-result-title">
+                  Thank you for supporting Lazy Jo
+                </h2>
               </>
+            )}
+            <p className="lj-result-sub">
+              {single ? "Thank you for supporting Lazy Jo directly." : <><strong>{done.title}</strong> is yours.</>}
+              {done.email ? ` Your download link is on its way to ${done.email} too.` : ""}
+            </p>
+            {done.status === "ready" && done.url ? (
+              <a className="lj-btn lj-btn-primary lj-btn-buy" href={done.url}>
+                <Download size={18} aria-hidden /> Download your WAV
+              </a>
             ) : (
               <p className="lj-note lj-note-warn">
-                {state.data.message ||
-                  "Your payment is confirmed. Your download is being prepared and will be sent to your email."}
+                {done.message || "Your payment is confirmed. Your download is being prepared and will be sent to your email."}
               </p>
             )}
+            {single && (
+              <button className="lj-btn lj-btn-ghost lj-card-open" onClick={() => setCardOpen(true)}>
+                <IdCard size={18} aria-hidden /> My supporter card{no ? ` ${no}` : ""}
+              </button>
+            )}
+            <p className="lj-result-fine">It&rsquo;s yours forever. Bookmark this page or keep the email to download it again anytime.</p>
             <p className="lj-note lj-supporter">
               <span aria-hidden>&#9889;</span> You&rsquo;re now a <b>Lazy Jo supporter</b>. Play{" "}
               <a href="/javeda/?src=lazyjo-purchase">JAVEDA</a> with an account on{" "}
-              {state.data.email ? <b>{state.data.email}</b> : "the same email"} and you get the supporter badge, and you&rsquo;re
-              always invited to the Super challenges.
+              {done.email ? <b>{done.email}</b> : "the same email"} and you get the supporter badge, and you&rsquo;re always
+              invited to the Super challenges.
             </p>
-            <div className="lj-result-join">
-              <p className="lj-tel-label">Hear about the next drop first</p>
-              <JoinForm source="purchase" defaultEmail={state.data.email || ""} compact />
-            </div>
+            {!isFan() && (
+              <div className="lj-result-join">
+                <p className="lj-tel-label">Hear about the next drop first</p>
+                <JoinForm source="purchase" defaultEmail={done.email || ""} compact />
+              </div>
+            )}
           </>
         )}
         {state.kind === "error" && (
@@ -116,6 +157,16 @@ export default function PurchaseResult({ sessionId, cancelled, onClose }: Props)
           </>
         )}
       </section>
+      {cardOpen && single && done && (
+        <SupporterCard
+          single={single}
+          cover={cover || single.cover || ""}
+          supporterNo={done.supporterNo ?? null}
+          name={done.name ?? null}
+          purchasedAt={done.purchasedAt ?? null}
+          onClose={() => setCardOpen(false)}
+        />
+      )}
     </div>
   );
 }

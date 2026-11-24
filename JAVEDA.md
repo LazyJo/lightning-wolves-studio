@@ -341,3 +341,8 @@ rule). A full refund takes it away (`lazyjo_purchases.refunded_at`, set by the `
 is unchanged. The data link is `lazyjo_purchases` (written by server.js from the Universe thank-you page and the
 webhook); no code is shared between the two products. SQL: `supabase-lazyjo-supporters.sql` — run it once, and again
 after any re-run of `supabase-javeda-schema.sql` (that file's `javeda_challenge_in` has no supporter rule).
+
+**Ties on the boards (Jo, 2026-11-24):** on an equal score the player with more badges (gold 28/28, ⚡ SUPPORTER) is
+higher; with the same number of badges the board's own order stays (who got there first). Done in the hub's
+`boardRows` (`badgeCount`). **Challenge boards keep their published rule** ("on a tie, whoever got there first is
+ahead"), because prizes depend on it.

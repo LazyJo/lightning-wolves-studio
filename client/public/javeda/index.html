@@ -2562,7 +2562,7 @@ async function openChBoard(id){
     $("cbT").textContent = c.title || (lv ? chSong(lv) : c.level);
     $("cbSub").innerHTML = chWhere(c, lv);
     $("cbPrizes").innerHTML = c.state === "over" ? chWinners(c) : chPrizeList(c, c.kind);
-    $("cbList").innerHTML = (c.top || []).length ? boardRows(c.top.map(t => ({ username:t.username, avatar:t.avatar, album_complete:t.album, best:t.best })), r => fmt(r.best))
+    $("cbList").innerHTML = (c.top || []).length ? boardRows(c.top.map(t => ({ username:t.username, avatar:t.avatar, album_complete:t.album, best:t.best })), r => fmt(r.best), true)
       : '<p class="empty">Nobody on the board yet. Be the first.</p>';
     $("cbMe").innerHTML = c.me && c.me.best && !c.me.creator ? '<span>Your place</span> <b>#' + c.me.rank + ' &middot; ' + fmt(c.me.best) + '</b>' : '';
   };
@@ -3012,8 +3012,22 @@ function renderTabs(){
 }
 
 // one board's rows: rank, picture, name (with the gold badge for everyone who finished the album), value
-function boardRows(data, val){
+// Equal scores: the player with more badges (28/28, ⚡ supporter) goes first; on the same number of badges the order
+// stays as the board gave it (who got there first). A challenge board keeps its published rule (keepOrder).
+const badgeCount = r => (r.album_complete ? 1 : 0) + (SUPPORTERS.has(String(r.username || "").toLowerCase()) ? 1 : 0);
+function boardRows(data, val, keepOrder){
   const mine = signedIn() ? player.username.toLowerCase() : null;
+  if (!keepOrder){
+    const out = [];
+    for (let i = 0; i < data.length; ){
+      let j = i + 1;
+      const v = val(data[i]);
+      while (j < data.length && val(data[j]) === v) j++;
+      out.push(...data.slice(i, j).map((r, k) => ({ r, k })).sort((a, b) => badgeCount(b.r) - badgeCount(a.r) || a.k - b.k).map(x => x.r));
+      i = j;
+    }
+    data = out;
+  }
   return '<ol>' + data.map((r, i) =>
     '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '" data-who="' + esc(r.username) + '"><span class="rk">' + (i + 1) + '</span>' +
     '<img src="' + pic(r.avatar) + '" alt=""><span class="un"><span data-i18n-skip>' + esc(r.username) + '</span>' +

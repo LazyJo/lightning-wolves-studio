@@ -248,17 +248,30 @@ export default function LazyJoUniverse() {
     const fromIntro = phase === "intro";
     if (fromIntro) enter(false);
     const t0 = fromIntro ? 2300 : 200;
-    const timers = [
-      window.setTimeout(() => e.deliver(single.id), t0),
-      window.setTimeout(() => setYours(single), t0 + 1500),
-      window.setTimeout(() => {
-        setYours(null);
-        setDeliveryPanel(true);
-      }, t0 + 4300),
-    ];
-    return () => timers.forEach(clearTimeout);
+    const t = window.setTimeout(() => e.deliver(single.id), t0);
+    // safety net: if the record never lands (slow phone), open the panel anyway
+    const net = window.setTimeout(() => setDeliveryPanel(true), t0 + 9000);
+    return () => {
+      clearTimeout(t);
+      clearTimeout(net);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [purchaseData, ready]);
+  // the record has landed in front of the visitor: "IT'S YOURS", then the delivery panel
+  const yoursShown = useRef(false);
+  useEffect(() => {
+    if (!delivering || !selected || yoursShown.current || selected.id !== purchaseData?.singleId) return;
+    yoursShown.current = true;
+    const a = window.setTimeout(() => setYours(selected), 450);
+    const b = window.setTimeout(() => {
+      setYours(null);
+      setDeliveryPanel(true);
+    }, 3300);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
+  }, [delivering, selected, purchaseData]);
 
   const closeDelivery = useCallback(() => {
     setDeliveryPanel(false);

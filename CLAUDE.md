@@ -216,7 +216,7 @@ happens, mirror it in the Universe: give each new song the next `track` number (
 WAV is uploaded. **2027 singles** (Jo, 2026-11-24), release order: Back Again, Insane, Only Ones, My Fault, Break My Heart, Come Closer,
 Get What I Want. Each goes in after Stay Up (Afro Soul) in that order once Jo sends its cover (`covers/sNN-id.webp`, s03…s09),
 `year: 2027`, `previewUrl: null` (player shows "Preview drops on release", no test beat), `forSale: false` until its WAV is
-uploaded (Jo: they can be bought before the release). Insane (s04) + Get What I Want (s09) are in.
+uploaded (Jo: they can be bought before the release). All 7 covers are in (2026-11-24).
 Newer singles that aren't on JAVEDA yet (no `track`) sit after the album; when one joins JAVEDA, give it
 its track number, move it into album order and switch its preview to the level song.
 **Per-song colours:** each song's `palette` = [dark, accent, accent 2] picked from its cover; `themeStyle()` in

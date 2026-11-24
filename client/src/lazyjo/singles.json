@@ -610,6 +610,25 @@
       "forSale": false
     },
     {
+      "id": "back-again",
+      "title": "Back Again",
+      "year": 2027,
+      "priceCents": 99,
+      "suggestedCents": 500,
+      "cover": "/lazyjo/covers/s03-back-again.webp",
+      "previewUrl": null,
+      "masterPath": "singles/back-again.wav",
+      "palette": [
+        "#07090d",
+        "#d6e2f0",
+        "#8fb4ff"
+      ],
+      "motif": "bolt",
+      "vinyl": true,
+      "placeholder": false,
+      "forSale": false
+    },
+    {
       "id": "insane",
       "title": "Insane",
       "year": 2027,
@@ -622,6 +641,82 @@
         "#0c0c0e",
         "#e6e9ee",
         "#f5c518"
+      ],
+      "motif": "bolt",
+      "vinyl": true,
+      "placeholder": false,
+      "forSale": false
+    },
+    {
+      "id": "only-ones",
+      "title": "Only Ones",
+      "year": 2027,
+      "priceCents": 99,
+      "suggestedCents": 500,
+      "cover": "/lazyjo/covers/s05-only-ones.webp",
+      "previewUrl": null,
+      "masterPath": "singles/only-ones.wav",
+      "palette": [
+        "#160a2a",
+        "#d58bff",
+        "#ff6fae"
+      ],
+      "motif": "bolt",
+      "vinyl": true,
+      "placeholder": false,
+      "forSale": false
+    },
+    {
+      "id": "my-fault",
+      "title": "My Fault",
+      "year": 2027,
+      "priceCents": 99,
+      "suggestedCents": 500,
+      "cover": "/lazyjo/covers/s06-my-fault.webp",
+      "previewUrl": null,
+      "masterPath": "singles/my-fault.wav",
+      "palette": [
+        "#120a1e",
+        "#ff9a3c",
+        "#a86bff"
+      ],
+      "motif": "bolt",
+      "vinyl": true,
+      "placeholder": false,
+      "forSale": false
+    },
+    {
+      "id": "break-my-heart",
+      "title": "Break My Heart",
+      "year": 2027,
+      "priceCents": 99,
+      "suggestedCents": 500,
+      "cover": "/lazyjo/covers/s07-break-my-heart.webp",
+      "previewUrl": null,
+      "masterPath": "singles/break-my-heart.wav",
+      "palette": [
+        "#1a0e0c",
+        "#e0283c",
+        "#ff8fa0"
+      ],
+      "motif": "bolt",
+      "vinyl": true,
+      "placeholder": false,
+      "forSale": false
+    },
+    {
+      "id": "come-closer",
+      "title": "Come Closer",
+      "year": 2027,
+      "priceCents": 99,
+      "suggestedCents": 500,
+      "cover": "/lazyjo/covers/s08-come-closer.webp",
+      "previewUrl": null,
+      "masterPath": "singles/come-closer.wav",
+      "palette": [
+        "#070b1a",
+        "#ffa040",
+        "#7aa6ff"
       ],
       "motif": "bolt",
       "vinyl": true,

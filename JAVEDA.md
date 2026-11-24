@@ -342,9 +342,10 @@ is unchanged. The data link is `lazyjo_purchases` (written by server.js from the
 webhook); no code is shared between the two products. SQL: `supabase-lazyjo-supporters.sql` — run it once, and again
 after any re-run of `supabase-javeda-schema.sql` (that file's `javeda_challenge_in` has no supporter rule).
 
-**Ties on the boards (Jo, 2026-11-24):** on an equal score the player with more badges (gold 28/28, ⚡ SUPPORTER) is
-higher; with the same number of badges the board's own order stays (who got there first). Done in the hub's
-`boardRows` (`badgeCount`). **Challenge boards keep their published rule** ("on a tie, whoever got there first is
+**Ties on the boards (Jo, 2026-11-24):** on an equal score the player with more badges is higher: the badges of their
+profile (`badgesGot` from `javeda_badges`, fetched only for tied players, once per visit, then the board redraws) plus
+⚡ SUPPORTER; with the same number the board's own order stays (who got there first). Done in the hub's `boardRows`
+(`badgeCount`, `askBadges`). **Challenge boards keep their published rule** ("on a tie, whoever got there first is
 ahead"), because prizes depend on it.
 
 **Chat keeps the newest 100 (Jo, 2026-11-24):** messages no longer go after 30 days; when the 101st comes in the

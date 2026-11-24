@@ -3016,21 +3016,37 @@ function renderTabs(){
 }
 
 // one board's rows: rank, picture, name (with the gold badge for everyone who finished the album), value
-// Equal scores: the player with more badges (28/28, ⚡ supporter) goes first; on the same number of badges the order
-// stays as the board gave it (who got there first). A challenge board keeps its published rule (keepOrder).
-const badgeCount = r => (r.album_complete ? 1 : 0) + (SUPPORTERS.has(String(r.username || "").toLowerCase()) ? 1 : 0);
+// Equal scores: the player with more badges goes first (the badges of their profile, badgesGot, plus ⚡ supporter);
+// on the same number the order stays as the board gave it (who got there first). A challenge board keeps its
+// published rule (keepOrder). Badge counts come from javeda_badges, fetched only for players who are tied, once
+// per visit; when they arrive the board is drawn again.
+const BADGE_N = new Map(), BADGE_ASKED = new Set();
+const badgeCount = r => {
+  const u = String(r.username || "").toLowerCase();
+  return (BADGE_N.has(u) ? BADGE_N.get(u) : (r.album_complete ? 1 : 0)) + (SUPPORTERS.has(u) ? 1 : 0);
+};
+function askBadges(names){
+  const todo = names.filter(u => !BADGE_ASKED.has(u)).slice(0, 25);
+  if (!todo.length || !sb) return;
+  todo.forEach(u => BADGE_ASKED.add(u));
+  Promise.all(todo.map(u => sb.rpc("javeda_badges", { p_username:u }).then(r => {
+    if (r && r.data) BADGE_N.set(u, badgesGot(r.data).length);
+  }, () => {}))).then(() => { if (todo.some(u => BADGE_N.has(u))) renderBoard(); });
+}
 function boardRows(data, val, keepOrder){
   const mine = signedIn() ? player.username.toLowerCase() : null;
   if (!keepOrder){
-    const out = [];
+    const out = [], ask = [];
     for (let i = 0; i < data.length; ){
       let j = i + 1;
       const v = val(data[i]);
       while (j < data.length && val(data[j]) === v) j++;
+      if (j - i > 1) for (let k = i; k < j; k++) ask.push(String(data[k].username || "").toLowerCase());
       out.push(...data.slice(i, j).map((r, k) => ({ r, k })).sort((a, b) => badgeCount(b.r) - badgeCount(a.r) || a.k - b.k).map(x => x.r));
       i = j;
     }
     data = out;
+    if (ask.length) askBadges(ask);
   }
   return '<ol>' + data.map((r, i) =>
     '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '" data-who="' + esc(r.username) + '"><span class="rk">' + (i + 1) + '</span>' +

@@ -58,6 +58,7 @@ export default function PurchaseResult({ sessionId, cancelled, data, coverFor, o
   const single = done?.singleId ? singleById.get(done.singleId) || null : null;
   const cover = single && coverFor ? coverFor(single) : "";
   const no = done?.supporterNo ? `#${String(done.supporterNo).padStart(3, "0")}` : null;
+  const recs = done?.records ? `${done.records} ${done.records === 1 ? "record" : "records"}` : null;
   // with the record presented in 3D, the panel sits where the player does (right / bottom)
   const docked = !!(single && data);
 
@@ -93,7 +94,7 @@ export default function PurchaseResult({ sessionId, cancelled, data, coverFor, o
                 <div className="lj-player-cover" style={cover ? { backgroundImage: `url("${cover}")` } : undefined} />
                 <div className="lj-player-titles">
                   <p className="lj-eyebrow">
-                    <span className="lj-dot" /> Delivered{no ? ` · Supporter ${no}` : ""}
+                    <span className="lj-dot" /> Delivered{no ? ` · Supporter ${no}` : ""}{recs ? ` · ${recs}` : ""}
                   </p>
                   <h2 id="lj-result-title" className="lj-player-title">
                     It&rsquo;s yours. Forever.
@@ -162,6 +163,7 @@ export default function PurchaseResult({ sessionId, cancelled, data, coverFor, o
           single={single}
           cover={cover || single.cover || ""}
           supporterNo={done.supporterNo ?? null}
+          records={done.records ?? null}
           name={done.name ?? null}
           purchasedAt={done.purchasedAt ?? null}
           onClose={() => setCardOpen(false)}

@@ -260,6 +260,13 @@ EVEN import: `node scripts/import-fans.js export.csv` on Jo's PC. Merch still li
 on JAVEDA boards/chat and are always in every Super (`supabase-lazyjo-supporters.sql`: `lazyjo_purchases` filled by
 `recordLazyjoPurchase` in server.js from the download page + Stripe webhook, `javeda_supporters()`, extra rule in
 `javeda_challenge_in`; refund removes it). Data link only, no shared code. Re-run that SQL after re-running the JAVEDA schema.
+**Delivery (2026-11-24):** back from Stripe (`?purchase=success&session_id=`) the page fetches the purchase, auto-enters
+and `engine.deliver(id)` beams the record in (UFO surge + journey + present); when it lands "IT'S YOURS" shows, then the
+docked delivery panel (`PurchaseResult`, themed). `ui/SupporterCard.tsx` draws a 1080×1920 story card (cover + record with
+artwork label, "SUPPORTER · N RECORDS", #NNN, owner, date; Share/Save). server.js: `recordLazyjoPurchase` inserts into
+`lazyjo_purchases` once (thank-you page or webhook) and then sends "Your record has landed" (`lib/lazyjo-delivery.js`,
+covers from `client/public/lazyjo/covers/email/*.jpg`); supporter number = order of a buyer's first purchase, records =
+distinct songs owned; both come back from `/api/lazyjo/download`. All of it needs `supabase-lazyjo-supporters.sql`.
 JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
 Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 

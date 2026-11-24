@@ -24,6 +24,8 @@ export interface DownloadResult {
   singleId?: string;
   /** buyer number in order of first purchase (#1 = first ever) */
   supporterNo?: number | null;
+  /** how many different songs this buyer owns */
+  records?: number | null;
   /** the buyer's first name from Stripe */
   name?: string | null;
   purchasedAt?: string;

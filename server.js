@@ -509,7 +509,7 @@ const lazyjoTitle = (s) => (s.feat ? `${s.title} (feat. ${s.feat})` : s.title);
 // The first time a purchase is recorded (whichever of the two comes first), the buyer also gets the
 // "Your record has landed" email. Returns the buyer's supporter number (#1 = first ever buyer).
 async function recordLazyjoPurchase(session) {
-  const none = { inserted: false, supporterNo: null };
+  const none = { inserted: false, supporterNo: null, records: null };
   if (!supabase || session?.metadata?.kind !== 'lazyjo-single' || session.payment_status !== 'paid') return none;
   const email = (session.customer_details?.email || session.customer_email || '').trim().toLowerCase();
   if (!email) return none;
@@ -526,27 +526,31 @@ async function recordLazyjoPurchase(session) {
     return none;
   }
   const inserted = !error;
-  const supporterNo = await lazyjoSupporterNo(email);
-  if (inserted) sendLazyjoDelivery(session, email, supporterNo).catch((e) => console.error('lazyjo delivery email:', e.message));
-  return { inserted, supporterNo };
+  const { supporterNo, records } = await lazyjoSupporterNo(email);
+  if (inserted) sendLazyjoDelivery(session, email, supporterNo, records).catch((e) => console.error('lazyjo delivery email:', e.message));
+  return { inserted, supporterNo, records };
 }
 
-// Supporter number: buyers in the order of their first (not refunded) purchase.
+// Supporter number: buyers in the order of their first (not refunded) purchase. Records: how many
+// different songs this buyer owns.
 async function lazyjoSupporterNo(email) {
   const { data, error } = await supabase.from('lazyjo_purchases')
-    .select('email, created_at').is('refunded_at', null).order('created_at', { ascending: true }).limit(100000);
-  if (error || !data) return null;
+    .select('email, single_id, created_at').is('refunded_at', null).order('created_at', { ascending: true }).limit(100000);
+  if (error || !data) return { supporterNo: null, records: null };
   const seen = new Set();
+  let supporterNo = null;
+  const owned = new Set();
   for (const r of data) {
     const e = String(r.email).toLowerCase();
+    if (e === email) owned.add(r.single_id);
     if (seen.has(e)) continue;
     seen.add(e);
-    if (e === email) return seen.size;
+    if (e === email) supporterNo = seen.size;
   }
-  return null;
+  return { supporterNo, records: owned.size || null };
 }
 
-async function sendLazyjoDelivery(session, email, supporterNo) {
+async function sendLazyjoDelivery(session, email, supporterNo, records) {
   const single = lazyjoSingle(session.metadata.singleId);
   if (!single) return;
   const origin = (process.env.PUBLIC_APP_URL || 'https://lightningwolves.studio').replace(/\/$/, '');
@@ -560,6 +564,7 @@ async function sendLazyjoDelivery(session, email, supporterNo) {
     javedaUrl: `${origin}/javeda/?src=lazyjo-email`,
     universeUrl: `${origin}/lazyjo/`,
     supporterNo,
+    records,
     accent: Array.isArray(single.palette) ? single.palette[1] : undefined,
     name,
   });
@@ -651,6 +656,7 @@ app.get('/api/lazyjo/download', async (req, res) => {
     const base = {
       singleId: single.id,
       supporterNo: rec?.supporterNo ?? null,
+      records: rec?.records ?? null,
       name: (session.customer_details?.name || '').trim().split(/\s+/)[0] || null,
       purchasedAt: new Date(session.created * 1000).toISOString(),
       title: lazyjoTitle(single), email: session.customer_details?.email || null };

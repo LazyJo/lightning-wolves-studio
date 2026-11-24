@@ -6,6 +6,7 @@ interface Props {
   single: Single;
   cover: string;
   supporterNo: number | null;
+  records: number | null;
   name: string | null;
   purchasedAt: string | null;
   onClose(): void;
@@ -156,7 +157,9 @@ export async function drawSupporterCard(p: Omit<Props, "onClose">): Promise<HTML
   (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "16px";
   ctx.font = "800 40px Manrope, sans-serif";
   ctx.fillStyle = accent;
-  ctx.fillText("SUPPORTER", W / 2 + 8, 1132);
+  const recs = p.records ? `  \u00B7  ${p.records} ${p.records === 1 ? "RECORD" : "RECORDS"}` : "";
+  fitText(ctx, "SUPPORTER" + recs, W - 120, (px) => `800 ${px}px Manrope, sans-serif`, 40);
+  ctx.fillText("SUPPORTER" + recs, W / 2 + 8, 1132);
   (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "4px";
   const no = p.supporterNo ? `#${String(p.supporterNo).padStart(3, "0")}` : "⚡";
   ctx.save();
@@ -214,7 +217,7 @@ export default function SupporterCard(props: Props) {
       if (made) URL.revokeObjectURL(made);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.single.id, props.supporterNo]);
+  }, [props.single.id, props.supporterNo, props.records]);
 
   const canShare = !!file && typeof navigator.canShare === "function" && navigator.canShare({ files: [file] });
 

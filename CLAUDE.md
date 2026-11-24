@@ -228,7 +228,9 @@ un-mutes it (preview = the video's own sound, in sync); if it stays muted (some 
 `start` is 30 s for all five until Jo picks moments. **Uploaded clips win over YouTube** (Jo downloaded the real
 videos, 2026-11-24): `scripts/upload-video-loops.js` (Jo's PC: square 30 s mp4 clips from the same `start` →
 `media/lazyjo/videos/` + `index.json`) — a song in that index plays its clip as a 3D VideoTexture (`videos.ts`,
-`hasVideoClip`) and the YouTube embed isn't loaded.
+`hasVideoClip`) and the YouTube embed isn't loaded. **Uploaded 2026-11-24** from `L:\Lazy Jo\Lightning Wolves\Lazy Jo\MUSIC\6 - Music Videos`:
+Rollercoaster (from 0:41), Feel Like That, LA Vibe, Peace Inside, Stay Up, Fall In Love Again (from 0:30). More videos:
+drop them in that folder and re-run the script (it skips what's there; `--start "Title=m:ss" --force` re-cuts one).
 **Flight order (Jo, 2026-11-24):** the 3D road runs **newest → oldest** (`FLIGHT_ORDER` = reversed `SINGLES` in
 `LazyJoUniverse.tsx`): Stay Up (Afro Soul) first, I'm Lost last — flying forward is travelling back in time. The Singles
 list keeps album order. `warpIn()` always lands just before the newest song; `open(id)` from the list is an eased

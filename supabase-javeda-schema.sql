@@ -2160,7 +2160,8 @@ REVOKE ALL ON lightning_warns FROM anon, authenticated;
 -- The chat (on the JAVEDA page, a tab of the scoreboard): one room for every player with an account.
 -- Read by anyone through javeda_chat_list (names, pictures, words - never who's behind them); written only through
 -- javeda_chat_send: a player, not muted, 1-200 characters, no links, not too fast, the worst words starred out.
--- Messages go after 30 days. Delete: your own, or any if you're a creator; creators can also mute someone.
+-- The chat keeps the newest 100 messages (Jo, 2026-11-24): when the 101st comes in, the oldest goes.
+-- Delete: your own, or any if you're a creator; creators can also mute someone.
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS javeda_chat (
   id         BIGSERIAL PRIMARY KEY,
@@ -2192,8 +2193,8 @@ AS $$
     SELECT c.id, c.username, c.avatar, c.body, c.created_at, (c.user_id = auth.uid()) AS mine,
            (p.album_completed_at IS NOT NULL) AS album_complete
     FROM javeda_chat c LEFT JOIN javeda_players p ON p.user_id = c.user_id
-    WHERE c.id > coalesce(p_after, 0) AND c.created_at > now() - interval '30 days'
-    ORDER BY c.id DESC LIMIT 60) x;
+    WHERE c.id > coalesce(p_after, 0)
+    ORDER BY c.id DESC LIMIT 100) x;
 $$;
 GRANT EXECUTE ON FUNCTION public.javeda_chat_list(BIGINT) TO anon, authenticated;
 
@@ -2222,7 +2223,8 @@ BEGIN
   -- the worst words starred out (the players are young; Discord's AutoMod does the same on the server)
   msg := regexp_replace(msg, '\m(n[i1]gg\w*|f[a4]gg?[o0]t\w*|c[u\*]nt\w*|fuck\w*|motherf\w*|kanker\w*|hoer\w*|tering\w*|salope\w*|encul\w*|pute|puta\w*|put[o0]|maric[oó]n\w*|cabr[oó]n\w*|fdp|stfu|kys)\M', '***', 'gi');
   INSERT INTO javeda_chat (user_id, username, avatar, body) VALUES (uid, pl.username, pl.avatar, msg) RETURNING * INTO row;
-  DELETE FROM javeda_chat WHERE created_at < now() - interval '30 days';
+  -- keep the newest 100: the oldest goes when there are more
+  DELETE FROM javeda_chat WHERE id < (SELECT min(id) FROM (SELECT id FROM javeda_chat ORDER BY id DESC LIMIT 100) k);
   RETURN json_build_object('id', row.id, 'username', row.username, 'avatar', row.avatar, 'body', row.body, 'created_at', row.created_at, 'mine', true,
     'album_complete', pl.album_completed_at IS NOT NULL);
 END;
@@ -3032,7 +3034,7 @@ CREATE TABLE IF NOT EXISTS javeda_chat_reacts (
 ALTER TABLE javeda_chat_reacts ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON javeda_chat_reacts FROM anon, authenticated;
 
--- the reactions on the chat's messages of the last 30 days: { "<message id>": [{ "e": "🔥", "n": 3, "mine": true }, ...] }
+-- the reactions on the chat's messages: { "<message id>": [{ "e": "🔥", "n": 3, "mine": true }, ...] }
 CREATE OR REPLACE FUNCTION public.javeda_chat_reacts()
 RETURNS JSON
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
@@ -3040,7 +3042,7 @@ AS $$
   SELECT COALESCE(json_object_agg(m.message_id, m.list), '{}') FROM (
     SELECT r.message_id, json_agg(json_build_object('e', r.emoji, 'n', r.n, 'mine', r.mine) ORDER BY r.first) AS list
     FROM (SELECT x.message_id, x.emoji, count(*)::INT AS n, bool_or(x.user_id = auth.uid()) AS mine, min(x.at) AS first
-          FROM javeda_chat_reacts x JOIN javeda_chat c ON c.id = x.message_id AND c.created_at > now() - interval '30 days'
+          FROM javeda_chat_reacts x JOIN javeda_chat c ON c.id = x.message_id
           GROUP BY x.message_id, x.emoji) r
     GROUP BY r.message_id) m;
 $$;
@@ -3057,7 +3059,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM javeda_players WHERE user_id = uid) THEN RAISE EXCEPTION 'player'; END IF;
   IF EXISTS (SELECT 1 FROM javeda_chat_mutes WHERE user_id = uid AND until > now()) THEN RAISE EXCEPTION 'muted'; END IF;
   IF p_emoji IS NULL OR NOT (p_emoji = ANY (ARRAY['🔥', '💯', '😁', '😂', '❤️', '👍', '🐺', '⚡', '😮', '🎉'])) THEN RAISE EXCEPTION 'emoji'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM javeda_chat WHERE id = p_id AND created_at > now() - interval '30 days') THEN RAISE EXCEPTION 'gone'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM javeda_chat WHERE id = p_id) THEN RAISE EXCEPTION 'gone'; END IF;
   DELETE FROM javeda_chat_reacts WHERE message_id = p_id AND user_id = uid AND emoji = p_emoji;
   IF NOT FOUND THEN INSERT INTO javeda_chat_reacts (message_id, user_id, emoji) VALUES (p_id, uid, p_emoji); END IF;
   RETURN (SELECT COALESCE(json_agg(json_build_object('e', r.emoji, 'n', r.n, 'mine', r.mine) ORDER BY r.first), '[]')

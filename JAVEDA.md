@@ -346,3 +346,12 @@ after any re-run of `supabase-javeda-schema.sql` (that file's `javeda_challenge_
 higher; with the same number of badges the board's own order stays (who got there first). Done in the hub's
 `boardRows` (`badgeCount`). **Challenge boards keep their published rule** ("on a tie, whoever got there first is
 ahead"), because prizes depend on it.
+
+**Chat keeps the newest 100 (Jo, 2026-11-24):** messages no longer go after 30 days; when the 101st comes in the
+oldest goes (`javeda_chat_send`), the chat shows the newest 100 and old messages can still get reactions
+(`supabase-javeda-chat-keep100.sql`, same functions as in `supabase-javeda-schema.sql`).
+
+**Creator devices aren't visitors:** a phone/computer where a creator has been logged in sets
+`localStorage["javeda.creatorDevice"]` and never counts in "Where visitors come from" (`LINK`, `linkFlush`). The
+`lazyjo-universe` counter was Jo's own testing; reset it with
+`DELETE FROM javeda_link_days WHERE src = 'lazyjo-universe';` (one-off, already done if CLAUDE.md says so).

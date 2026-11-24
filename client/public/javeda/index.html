@@ -2054,7 +2054,10 @@ const STORE = (() => {
 // never who it was; this browser keeps the note (LINK_KEY) that makes a phone count once. play and appstore are the store
 // apps' own (STORE above). &cont=1: carried over from Instagram's or TikTok's own browser, counted there already.
 const LINK_KEY = "javeda.link.v1";
+// a phone or computer where a creator (Lazy Jo) has been logged in is never counted: testing isn't a visitor
+const CREATOR_DEVICE = "javeda.creatorDevice";
 const LINK = (() => {
+  try { if (localStorage.getItem(CREATOR_DEVICE)) return null; } catch(e){}
   let tag = "", cont = false, st = null;
   try { const q = new URLSearchParams(location.search); tag = (q.get("src") || "").toLowerCase(); cont = q.get("cont") === "1"; } catch(e){}
   if (!/^[a-z0-9][a-z0-9_-]{0,23}$/.test(tag) || tag === "play" || tag === "appstore") tag = "";
@@ -2078,6 +2081,7 @@ const LINK = (() => {
 })();
 // what the note still has to tell the database (kept until it has got there: a phone with no signal says it next time)
 function linkFlush(){
+  if (creator){ try { localStorage.setItem(CREATOR_DEVICE, "1"); } catch(e){} if (LINK) LINK.todo = []; return; }
   if (!LINK || !sb || !Array.isArray(LINK.todo) || !LINK.todo.length || linkFlush.busy) return;
   const [src, what] = LINK.todo[0]; linkFlush.busy = true;
   sb.rpc("javeda_link_seen", { p_src:src, p_what:what }).then(r => {
@@ -3130,7 +3134,7 @@ function renderChat(){
   el.innerHTML = '<div class="chatbar"><span class="live"></span><span id="chatOnline">' + onlineText() + '</span></div>' +
     '<ol class="chatlog" id="chatLog" aria-live="polite"><li class="empty">Loading…</li></ol>' + (can
     ? '<form class="chatform" id="chatForm"><input class="in" id="chatIn" maxlength="200" autocomplete="off" enterkeyhint="send" placeholder="Say something to the pack…" aria-label="Message"><button class="btn primary" type="submit">Send</button></form>' +
-      '<p class="chatnote">Be nice. No links. Messages go after 30 days.<span class="err" id="chatErr"></span></p>'
+      '<p class="chatnote">Be nice. No links. The chat keeps the newest 100 messages.<span class="err" id="chatErr"></span></p>'
     : '<p class="chatnote" style="padding-top:12px;border-top:1px solid #ffffff14">Create a free account to chat. <button class="switch" type="button" data-chatjoin="1">Create a free account</button></p>');
   chatLast = 0; chatIds = ""; chatN = 0; chatPoll(true);
 }
@@ -3705,6 +3709,7 @@ async function loadAccount(){
   { const x = loadSnap(uid); records = x && x.records || null; }      // as this phone last saw them, until loadRecords answers
   player = p.data || null;
   creator = !!c.data;
+  if (creator){ try { localStorage.setItem(CREATOR_DEVICE, "1"); } catch(e){} if (LINK) LINK.todo = []; }
   news = !!nw.data;
   progress = {};
   (g.data || []).forEach(r => { progress[r.level] = { cleared:r.cleared, best:r.best_score, metres:r.best_metres, runs:r.runs }; });

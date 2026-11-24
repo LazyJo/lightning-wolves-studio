@@ -620,8 +620,8 @@
       "masterPath": "singles/back-again.wav",
       "palette": [
         "#07090d",
-        "#d6e2f0",
-        "#8fb4ff"
+        "#f5c518",
+        "#d6e2f0"
       ],
       "motif": "bolt",
       "vinyl": true,
@@ -638,8 +638,8 @@
       "masterPath": "singles/insane.wav",
       "palette": [
         "#0c0c0e",
-        "#e6e9ee",
-        "#f5c518"
+        "#f5c518",
+        "#e6e9ee"
       ],
       "motif": "bolt",
       "vinyl": true,
@@ -728,7 +728,7 @@
       "masterPath": "singles/get-what-i-want.wav",
       "palette": [
         "#0a0a0c",
-        "#eef1f5",
+        "#f5c518",
         "#e02434"
       ],
       "motif": "bolt",

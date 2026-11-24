@@ -3461,6 +3461,8 @@ RETURNS BOOLEAN
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
 AS $$ SELECT EXISTS (SELECT 1 FROM javeda_challenges c WHERE c.id = p_challenge AND c.kind = 'super' AND javeda_challenge_ticket_at(p_user, c.starts_at, c.id)); $$;
 REVOKE ALL ON FUNCTION public.javeda_challenge_ticket(BIGINT, UUID) FROM PUBLIC, anon, authenticated;
+-- NOTE: supabase-lazyjo-supporters.sql redefines javeda_challenge_in to also let Universe supporters into every
+-- Super. If you re-run this file, run supabase-lazyjo-supporters.sql again afterwards.
 -- in a challenge: a creator (to test it; never on its board), a picked name, someone who joined already, a Monthly's
 -- top two (the next Super), or anyone who meets its bar (not when it's for picked names only)
 CREATE OR REPLACE FUNCTION public.javeda_challenge_in(p_challenge BIGINT, p_user UUID)

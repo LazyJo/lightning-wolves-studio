@@ -927,6 +927,7 @@ label.ck{display:flex; gap:8px; align-items:center; font-size:14px; color:var(--
 #tabs .cdot{display:inline-block; width:8px; height:8px; margin-left:6px; border-radius:50%; background:var(--blue); vertical-align:2px; box-shadow:0 0 6px var(--blue)}
 #tabs .cdot.gold{background:var(--gold); box-shadow:0 0 6px var(--gold)}
 .chatnote .err{display:block; margin-top:4px}
+.board .un .gb.sup, .chatlog .ch .gb.sup{color:#fff; background:linear-gradient(180deg,#a855f7,#5b21b6); box-shadow:0 0 10px #a855f788}
 .board .un .gb{display:inline-block; margin-left:7px; font:700 10px/1 var(--cond); letter-spacing:.1em; color:#2a1a02; background:linear-gradient(180deg,#ffe08a,#e0a41a); border-radius:999px; padding:3px 6px; vertical-align:2px}
 .pic .cost.earn{background:#2a1a02; color:var(--gold); border:1px solid #e0a41a; font-size:10.5px}
 /* invite a friend */
@@ -2007,6 +2008,11 @@ function loadGuest(){
 function saveGuest(){ try { localStorage.setItem(GUEST_KEY, JSON.stringify(guest)); } catch(e){} }
 let guest = loadGuest();
 let sb = null, session = null;
+// Lazy Jo's Universe supporters (bought a song at /lazyjo/ with this account's email): a ⚡ badge on the boards and
+// in the chat, and always in the Super (supabase-lazyjo-supporters.sql). Usernames only, lower-case.
+let SUPPORTERS = new Set();
+const supBadge = u => SUPPORTERS.has(String(u || "").toLowerCase())
+  ? '<span class="gb sup" title="Lazy Jo supporter: bought a song in Lazy Jo\u2019s Universe. Always invited to the Super.">&#9889; SUPPORTER</span>' : '';
 let player = null;          // javeda_players row when signed in and joined
 let progress = {};          // level id -> { cleared, best, metres, runs }
 let owned = new Set();      // bought pictures
@@ -3011,7 +3017,7 @@ function boardRows(data, val){
   return '<ol>' + data.map((r, i) =>
     '<li class="' + (r.username.toLowerCase() === mine ? 'you' : '') + '" data-who="' + esc(r.username) + '"><span class="rk">' + (i + 1) + '</span>' +
     '<img src="' + pic(r.avatar) + '" alt=""><span class="un"><span data-i18n-skip>' + esc(r.username) + '</span>' +
-      (r.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + '</span>' +
+      (r.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + supBadge(r.username) + '</span>' +
     '<span class="val">' + val(r) + '</span></li>').join("") + '</ol>';
 }
 let boardAsk = 0;
@@ -3086,7 +3092,7 @@ function chatRow(m){
     (creator && !m.mine ? '<button type="button" data-chatmute="' + m.id + '" title="Mute for a day" aria-label="Mute for a day">&#128263;</button>' : '') +
     (signedIn() && !session.offline ? '<button type="button" data-chatreact="' + m.id + '" title="React" aria-label="React">&#128578;</button>' : '');
   return '<li data-id="' + m.id + '"' + (m.mine ? ' class="you"' : mentionsMe(m) ? ' class="ment"' : '') + '><img src="' + pic(m.avatar) + '" alt=""><div><div class="ch"><b data-i18n-skip>' + esc(m.username) + '</b>' +
-    (m.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + '<time data-i18n-skip>' + chatTime(m.created_at) + '</time>' +
+    (m.album_complete ? '<span class="gb" title="JAVEDA complete: every part of all 28 songs">28/28</span>' : '') + supBadge(m.username) + '<time data-i18n-skip>' + chatTime(m.created_at) + '</time>' +
     (acts ? '<span class="acts">' + acts + '</span>' : '') + '</div><p data-i18n-skip>' + atHtml(m.body) + '</p><div class="reacts" data-rx="' + m.id + '">' + reactChips(m.id) + '</div></div></li>';
 }
 /* ---- emoji reactions: one of each per player per message, tap again to take it back (javeda_chat_react); everyone's
@@ -5465,6 +5471,8 @@ if (location.hash === "#app"){ history.replaceState(null, "", location.pathname 
   window.JAVEDA_REPORT(); flushReports(); flushRunLog();
   // the live catalogue wins over the built-in copy, so prices can change without a deploy
   sb.from("javeda_avatars").select("*").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
+  // who wears the supporter badge (nothing breaks if the database part isn't there yet)
+  sb.rpc("javeda_supporters").then(({ data }) => { if (Array.isArray(data)) SUPPORTERS = new Set(data.map(u => String(u).toLowerCase())); }, () => {});
   // is the Pass on sale?
   const passInfo = sb.from("javeda_settings").select("pass_on").maybeSingle().then(st => { passOn = !STORE && !!(st.data && st.data.pass_on); });
   const [{ data }] = await Promise.all([sb.auth.getSession(), passInfo]);

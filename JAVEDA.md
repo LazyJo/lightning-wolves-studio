@@ -331,3 +331,13 @@ the Universe doesn't issue Pass codes. In the store apps (`?src=play` / `?src=ap
 `data-link="even"` and `data-link="universe"` links are removed (report.js + the `.vfollow` STORE
 line) — the stores want their own payment for anything sold outside them.
 
+
+## Lazy Jo supporters (Universe buyers, 2026-11-24)
+
+Someone who **bought a song in Lazy Jo's Universe** and plays JAVEDA with an account on the **same, confirmed email**
+is a supporter: a purple **⚡ SUPPORTER** chip next to their name on every board and in the chat (`supBadge`, the list
+comes from `javeda_supporters()`: usernames only), and **always in every Super** (`javeda_challenge_in` has one extra
+rule). A full refund takes it away (`lazyjo_purchases.refunded_at`, set by the `charge.refunded` webhook). The Monthly
+is unchanged. The data link is `lazyjo_purchases` (written by server.js from the Universe thank-you page and the
+webhook); no code is shared between the two products. SQL: `supabase-lazyjo-supporters.sql` — run it once, and again
+after any re-run of `supabase-javeda-schema.sql` (that file's `javeda_challenge_in` has no supporter rule).

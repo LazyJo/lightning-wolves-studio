@@ -92,6 +92,12 @@ export default function PurchaseResult({ sessionId, cancelled, onClose }: Props)
                   "Your payment is confirmed. Your download is being prepared and will be sent to your email."}
               </p>
             )}
+            <p className="lj-note lj-supporter">
+              <span aria-hidden>&#9889;</span> You&rsquo;re now a <b>Lazy Jo supporter</b>. Play{" "}
+              <a href="/javeda/?src=lazyjo-purchase">JAVEDA</a> with an account on{" "}
+              {state.data.email ? <b>{state.data.email}</b> : "the same email"} and you get the supporter badge, and you&rsquo;re
+              always invited to the Super challenges.
+            </p>
             <div className="lj-result-join">
               <p className="lj-tel-label">Hear about the next drop first</p>
               <JoinForm source="purchase" defaultEmail={state.data.email || ""} compact />

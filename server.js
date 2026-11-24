@@ -152,6 +152,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       case 'checkout.session.completed': {
         const session = event.data.object;
         if (session.metadata?.kind === 'javeda_pass') { await grantJavedaPass(session); break; }
+        if (session.metadata?.kind === 'lazyjo-single') { await recordLazyjoPurchase(session); break; }
         const userId = session.client_reference_id || session.metadata?.userId;
         const tier = session.metadata?.tier;
         if (userId && tier && TIER_CREDITS[tier] !== undefined) {
@@ -169,13 +170,19 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       }
       // a JAVEDA Pass paid with a method that settles later (SEPA and the like)
       case 'checkout.session.async_payment_succeeded': {
+        if (event.data.object.metadata?.kind === 'lazyjo-single') { await recordLazyjoPurchase(event.data.object); break; }
         await grantJavedaPass(event.data.object);
         break;
       }
       // a partial refund (a goodwill gesture) keeps the Pass
       case 'charge.refunded': {
         const charge = event.data.object;
-        if (charge.refunded && charge.payment_intent) await revokeJavedaPass(charge.payment_intent);
+        if (charge.refunded && charge.payment_intent) {
+          await revokeJavedaPass(charge.payment_intent);
+          // a fully refunded Universe purchase no longer makes its buyer a JAVEDA supporter
+          await supabase.from('lazyjo_purchases').update({ refunded_at: new Date().toISOString() })
+            .eq('payment_intent', charge.payment_intent).is('refunded_at', null);
+        }
         break;
       }
       case 'customer.subscription.updated': {
@@ -489,6 +496,24 @@ const LAZYJO_BUCKET = process.env.LAZYJO_MASTERS_BUCKET || 'lazyjo-masters';
 const lazyjoSingle = (id) => LAZYJO_CATALOG.singles.find((s) => s.id === id);
 const lazyjoTitle = (s) => (s.feat ? `${s.title} (feat. ${s.feat})` : s.title);
 
+// Remember a paid Universe purchase (supabase-lazyjo-supporters.sql). A JAVEDA account with the same,
+// confirmed email becomes a "supporter": a ⚡ badge on the boards and always in the Super. Called from
+// the thank-you page and the Stripe webhook; whichever comes first, the row is the same (session id).
+async function recordLazyjoPurchase(session) {
+  if (!supabase || session?.metadata?.kind !== 'lazyjo-single' || session.payment_status !== 'paid') return;
+  const email = (session.customer_details?.email || session.customer_email || '').trim().toLowerCase();
+  if (!email) return;
+  const { error } = await supabase.from('lazyjo_purchases').upsert({
+    session_id: session.id,
+    email,
+    single_id: session.metadata.singleId,
+    amount_cents: session.amount_total ?? null,
+    currency: session.currency || null,
+    payment_intent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id || null,
+  }, { onConflict: 'session_id', ignoreDuplicates: true });
+  if (error && error.code !== '42P01') console.error('lazyjo purchase not recorded:', error.message); // 42P01: table not created yet
+}
+
 app.post('/api/lazyjo/checkout', async (req, res) => {
   if (!stripe) return res.status(503).json({ error: 'Checkout is not configured yet' });
   try {
@@ -572,6 +597,7 @@ app.get('/api/lazyjo/download', async (req, res) => {
     }
     const single = lazyjoSingle(session.metadata.singleId);
     if (!single) return res.status(404).json({ error: 'Single no longer available' });
+    recordLazyjoPurchase(session).catch((e) => console.error('lazyjo purchase:', e.message));
 
     const base = { title: lazyjoTitle(single), email: session.customer_details?.email || null };
     if (!supabase || !single.masterPath) {

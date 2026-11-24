@@ -256,6 +256,10 @@ fail-open on network/5xx; `EMAIL_GATE = "optional"` adds a skip link. Double opt
 DNS records added by Resend's Vercel auto-configure), both keys set on the Vercel project
 (Production + Preview), sender `Lazy Jo <news@lightningwolves.studio>`; Jo's own sign-up confirmed.
 EVEN import: `node scripts/import-fans.js export.csv` on Jo's PC. Merch still lives on EVEN.
+**Supporters (2026-11-24):** Universe buyers with a JAVEDA account on the same confirmed email get a ⚡ SUPPORTER badge
+on JAVEDA boards/chat and are always in every Super (`supabase-lazyjo-supporters.sql`: `lazyjo_purchases` filled by
+`recordLazyjoPurchase` in server.js from the download page + Stripe webhook, `javeda_supporters()`, extra rule in
+`javeda_challenge_in`; refund removes it). Data link only, no shared code. Re-run that SQL after re-running the JAVEDA schema.
 JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
 Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 

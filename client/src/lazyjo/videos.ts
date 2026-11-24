@@ -7,6 +7,7 @@ import { media } from "../lib/media";
 type VideoIndex = Record<string, { file: string; start?: number }>;
 
 let index: Promise<VideoIndex> | null = null;
+let loaded: VideoIndex | null = null;
 
 function load(): Promise<VideoIndex> {
   if (!index) {
@@ -14,7 +15,8 @@ function load(): Promise<VideoIndex> {
     const bust = Math.floor(Date.now() / 600_000);
     index = fetch(media(`lazyjo/videos/index.json?t=${bust}`))
       .then((r) => (r.ok ? r.json() : {}))
-      .catch(() => ({}));
+      .catch(() => ({}))
+      .then((x: VideoIndex) => (loaded = x));
   }
   return index;
 }
@@ -26,6 +28,11 @@ export async function videoFor(id: string): Promise<string | null> {
 }
 
 /** Start fetching the list early (e.g. while the intro screen shows). */
-export function preloadVideoIndex(): void {
-  void load();
+export function preloadVideoIndex(): Promise<VideoIndex> {
+  return load();
+}
+
+/** Has this song an uploaded clip? (false until the list has arrived) — an uploaded clip wins over YouTube. */
+export function hasVideoClip(id: string): boolean {
+  return !!loaded?.[id]?.file;
 }

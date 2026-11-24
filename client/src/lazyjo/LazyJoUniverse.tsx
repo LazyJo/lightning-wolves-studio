@@ -12,6 +12,7 @@ import JoinPanel from "./ui/JoinPanel";
 import { fetchDownload, type DownloadResult } from "./shop";
 import { isFan, markFan } from "./fanGate";
 import VideoScreen from "./ui/VideoScreen";
+import { hasVideoClip, preloadVideoIndex } from "./videos";
 import { Orbit } from "lucide-react";
 
 type Phase = "intro" | "flying";
@@ -72,6 +73,12 @@ export default function LazyJoUniverse() {
   const [deliveryPanel, setDeliveryPanel] = useState(false);
   const deliveryStarted = useRef(false);
   const deepLink = useRef<string | null>(null);
+
+  // the list of uploaded music-video clips (an uploaded clip wins over the YouTube embed)
+  const [, setClipsReady] = useState(false);
+  useEffect(() => {
+    preloadVideoIndex().then(() => setClipsReady(true));
+  }, []);
 
   // Read return-from-Stripe and deep-link params once.
   useEffect(() => {
@@ -418,7 +425,7 @@ export default function LazyJoUniverse() {
         }}
       />
 
-      {selected?.youtube && <VideoScreen key={`v-${selected.id}`} ref={videoScreenRef} single={selected} />}
+      {selected?.youtube && !hasVideoClip(selected.id) && <VideoScreen key={`v-${selected.id}`} ref={videoScreenRef} single={selected} />}
       {yours && (
         <div className="lj-yours" role="status" aria-live="polite" style={themeStyle(yours)}>
           <p className="lj-yours-kicker">Delivered</p>

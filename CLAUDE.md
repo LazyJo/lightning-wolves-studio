@@ -225,9 +225,10 @@ same YouTube ids as JAVEDA's `FAN_VIDEOS`) have `youtube: {id, start, zoom}` in 
 `ui/VideoScreen.tsx` lays a youtube-nocookie embed exactly over the presented 3D cover (engine `onFocusScreen` rect),
 cropped square, muted, looping 30 s from `start` (`ytLoop.ts`, postMessage protocol, no API script). Pressing play
 un-mutes it (preview = the video's own sound, in sync); if it stays muted (some phones) the normal mp3 preview plays.
-`start` is 30 s for all five until Jo picks moments. Optional self-hosted alternative: `scripts/upload-video-loops.js`
-(square 30 s mp4 clips → `media/lazyjo/videos/` + `index.json`, shown as a 3D VideoTexture by `videos.ts`), used only
-for songs without `youtube`.
+`start` is 30 s for all five until Jo picks moments. **Uploaded clips win over YouTube** (Jo downloaded the real
+videos, 2026-11-24): `scripts/upload-video-loops.js` (Jo's PC: square 30 s mp4 clips from the same `start` →
+`media/lazyjo/videos/` + `index.json`) — a song in that index plays its clip as a 3D VideoTexture (`videos.ts`,
+`hasVideoClip`) and the YouTube embed isn't loaded.
 **Flight order (Jo, 2026-11-24):** the 3D road runs **newest → oldest** (`FLIGHT_ORDER` = reversed `SINGLES` in
 `LazyJoUniverse.tsx`): Stay Up (Afro Soul) first, I'm Lost last — flying forward is travelling back in time. The Singles
 list keeps album order. `warpIn()` always lands just before the newest song; `open(id)` from the list is an eased

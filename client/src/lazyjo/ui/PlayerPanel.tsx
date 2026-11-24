@@ -4,7 +4,7 @@ import { ARTIST, MAX_CENTS, PREVIEW_SECONDS, currencySymbol, formatPrice, fullTi
 import JoinForm from "./JoinForm";
 import { isFan } from "../fanGate";
 import { sound } from "../audio";
-import { videoFor } from "../videos";
+import { hasVideoClip, videoFor } from "../videos";
 import { ytLoop } from "../ytLoop";
 import { CheckoutUnavailableError, startSingleCheckout } from "../shop";
 
@@ -64,7 +64,7 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
   const [ytLive, setYtLive] = useState(false);
   useEffect(() => ytLoop.subscribe(() => setYtLive(ytLoop.activeFor(single.id))), [single.id]);
   useEffect(() => {
-    if (single.youtube) return; // its YouTube video plays on the cover instead
+    if (single.youtube && !hasVideoClip(single.id)) return; // no uploaded clip: its YouTube video plays instead
     let cancelled = false;
     let el: HTMLVideoElement | null = null;
     videoFor(single.id).then((url) => {

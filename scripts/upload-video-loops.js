@@ -121,7 +121,10 @@ function cut(ffmpeg, src, start, out) {
   for (const p of plan) {
     const d = ffmpeg ? duration(ffmpeg, path.join(dir, p.file)) : null;
     p.duration = d;
-    p.start = starts.has(p.s.id) ? starts.get(p.s.id) : d ? Math.round(Math.min(60, Math.max(15, d * 0.25))) : 30;
+    // the moment you picked (--start), else the same moment as the YouTube loop, else a quarter in
+    p.start = starts.has(p.s.id) ? starts.get(p.s.id)
+      : p.s.youtube && Number.isFinite(p.s.youtube.start) ? p.s.youtube.start
+      : d ? Math.round(Math.min(60, Math.max(15, d * 0.25))) : 30;
     if (d && p.start + CLIP > d) p.start = Math.max(0, Math.floor(d - CLIP));
     const mmss = `${Math.floor(p.start / 60)}:${String(Math.round(p.start % 60)).padStart(2, '0')}`;
     console.log(`${p.s.title.padEnd(22)} ← ${p.file}${d ? `  (${Math.floor(d / 60)}:${String(Math.round(d % 60)).padStart(2, '0')} long, clip from ${mmss})` : ''}`);

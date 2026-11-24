@@ -102,6 +102,9 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
     };
   }, [single.id]);
 
+  // an unreleased single without a preview file yet: no play button (it would only play the test beat)
+  const noPreview = !single.previewUrl && !single.placeholder && !single.youtube && !hasVideo;
+
   // Visualiser + progress, drawn straight to the DOM (no re-renders).
   useEffect(() => {
     const c = canvasRef.current;
@@ -150,7 +153,7 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [noPreview]);
 
   const togglePlay = async () => {
     if (playing) {
@@ -226,6 +229,11 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
           </div>
         </div>
 
+        {noPreview ? (
+          <div className="lj-preview lj-preview-soon" role="status">
+            <span className="lj-dot" aria-hidden /> Preview drops on release{single.year ? ` · ${single.year}` : ""}
+          </div>
+        ) : (
         <div className="lj-preview">
           <button
             className="lj-play"
@@ -245,6 +253,7 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
             </div>
           </div>
         </div>
+        )}
 
         {!single.forSale ? (
           <div className="lj-buy">
@@ -253,7 +262,7 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
                 <>The WAV of {single.title} is coming soon. You&rsquo;re on the list, so you&rsquo;ll hear when you can own it.</>
               ) : (
                 <>
-                  The WAV of {single.title} is coming soon. Play the preview now, and join the list to hear when you can
+                  The WAV of {single.title} is coming soon.{noPreview ? "" : " Play the preview now, and"} {noPreview ? "Join" : "join"} the list to hear when you can
                   own it.
                   <JoinForm source="universe" compact />
                 </>

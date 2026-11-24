@@ -79,6 +79,8 @@ interface Slot {
   shell: THREE.MeshStandardMaterial; // edges + back
   frameMat: THREE.ShaderMaterial;
   playMat: THREE.MeshBasicMaterial;
+  /** glowing release year under the cover (null when the single has no year) */
+  yearMat: THREE.MeshBasicMaterial | null;
   vinyl: THREE.Group | null;
   vinylMats: THREE.Material[];
   side: -1 | 1;
@@ -101,6 +103,8 @@ const COLORS = {
 
 const ROW_SPACING = 9;
 const MIN_SLOTS = 24;
+/** Glowing release year under each cover (Jo is reviewing an example; flip to true once approved). */
+const YEAR_LABELS = false;
 const COVER_SIZE = 3.4;
 const SLEEVE_DEPTH = 0.06;
 /** One sun for the whole system: planets, asteroids, sleeves and the UFO agree on it. */
@@ -290,6 +294,38 @@ export class Universe {
     const url = c.toDataURL("image/jpeg", 0.88);
     this.coverImages.set(single.id, url);
     return url;
+  }
+
+  private yearTextures = new Map<string, THREE.CanvasTexture>();
+  /** "2024" in Syne, white core with a glow in the song's accent colour. */
+  private yearTexture(s: Single): THREE.CanvasTexture {
+    const key = `${s.year}|${s.palette[1]}`;
+    const hit = this.yearTextures.get(key);
+    if (hit) return hit;
+    const c = document.createElement("canvas");
+    c.width = 512;
+    c.height = 192;
+    const ctx = c.getContext("2d")!;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "800 104px Syne, Manrope, sans-serif";
+    (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "10px";
+    const text = String(s.year);
+    // wide soft glow, then a tighter one, then the bright core
+    ctx.shadowColor = s.palette[1];
+    ctx.fillStyle = s.palette[1];
+    ctx.shadowBlur = 46;
+    ctx.globalAlpha = 0.9;
+    ctx.fillText(text, 256, 100);
+    ctx.shadowBlur = 18;
+    ctx.fillText(text, 256, 100);
+    ctx.shadowBlur = 6;
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(text, 256, 100);
+    const tex = this.track(canvasTexture(c));
+    this.yearTextures.set(key, tex);
+    return tex;
   }
 
   /** Fly to the nearest instance of a single, then present it. */
@@ -889,6 +925,7 @@ export class Universe {
     const labelGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.15, 48));
     const holeGeo = this.track(new THREE.CircleGeometry(COVER_SIZE * 0.014, 16));
     const playGeo = this.track(new THREE.PlaneGeometry(0.62, 0.62));
+    const yearGeo = this.track(new THREE.PlaneGeometry(1.6, 0.6));
 
     // One texture per single (shared by every slot that shows it).
     for (const s of this.singles) {
@@ -994,6 +1031,20 @@ export class Universe {
         vinylMats.push(grooves, edge, labelMat, holeMat);
       }
 
+      // the release year, glowing in the song's own colour, floating under the cover
+      let yearMat: THREE.MeshBasicMaterial | null = null;
+      if (YEAR_LABELS && single.year) {
+        yearMat = new THREE.MeshBasicMaterial({
+          map: this.yearTexture(single),
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending,
+        });
+        const year = new THREE.Mesh(yearGeo, yearMat);
+        year.position.set(0, -COVER_SIZE / 2 - 0.5, 0.03);
+        group.add(year);
+      }
       const playMat = new THREE.MeshBasicMaterial({ map: playTex, transparent: true, opacity: 0, depthWrite: false });
       const play = new THREE.Mesh(playGeo, playMat);
       play.position.set(0, -COVER_SIZE * 0.34, SLEEVE_DEPTH / 2 + 0.01);
@@ -1008,6 +1059,7 @@ export class Universe {
         shell,
         frameMat,
         playMat,
+        yearMat,
         vinyl,
         vinylMats,
         side,
@@ -1705,6 +1757,11 @@ export class Universe {
       s.frameMat.uniforms.uGlow.value = glow;
       s.frameMat.uniforms.uOpacity.value = opacity;
       s.frameMat.uniforms.uTime.value = t + s.seed * 5;
+      if (s.yearMat) {
+        // shows on the road, brightens on hover, hides when the cover is presented (the player has it)
+        s.yearMat.opacity = opacity * (0.78 + s.hover * 0.22) * (1 - s.focus);
+        s.yearMat.visible = s.yearMat.opacity > 0.01;
+      }
       s.playMat.opacity = s.hover * 0.85 * opacity * (1 - s.focus);
       s.playMat.visible = s.playMat.opacity > 0.01;
 

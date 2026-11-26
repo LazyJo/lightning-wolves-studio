@@ -302,8 +302,13 @@ ribbon + lock on its 3D cover, gift panel instead of Buy, in every buyer's room 
 every delivery email has "Open my room" (room token link); `POST /api/lazyjo/room/link` emails a room link (same answer whether or not the email
 bought). **Admin look-in:** admin page tab "Supporter rooms" (`components/admin/LazyJoRoomsTab.tsx`, `GET /api/lazyjo/admin/rooms`) lists every
 buyer (from their first purchase) with records/level and "Open room" = `/lazyjo/room/?view=<2-hour read-only key>` (claim `v:1`; can play, can't
-arrange, never saved on the device; label "view only"; privacy page says so). Next: gold unlock animation, UFO video loop in the window, private
-photo (Jo, 2026-11-26: private to the buyer AND Jo — show it in the admin look-in; nobody else, never public).
+arrange, never saved on the device; label "view only"; privacy page says so).
+**Step 3 (2026-11-26):** **private photo** in the side-table frame (Jo: private to the buyer AND Jo, shown in the admin look-in, never public):
+the browser shrinks it to a ≤900 px JPEG, `POST /api/lazyjo/room/photo?t=` (raw image/jpeg, owner keys only) → private
+`lazyjo-masters/photos/<roomKey>.jpg`, `DELETE` removes it, the room returns a 1-hour signed `photoUrl`. **Unlock moment** the first time a level
+is reached on a device (`lj-room-seen-<gold|platinum|diamond>`; `&reveal=1` forces it in the demo): rays, the disc spins in, a line from Jo,
+"Hang it on my wall" → the plaque glows. **Window loop**: `media/lazyjo/room/window-loop.mp4` (10 s, 1280×512, seamless; recorded from the
+Universe with a fake clock, staged in `media-uploads/lazyjo/room/`, Jo uploads it with upload-media.js); until it exists the still `window.webp` shows.
 JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
 Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 

@@ -280,7 +280,6 @@
       "vinyl": true,
       "placeholder": false,
       "suggestedCents": 500,
-      "forSale": false,
       "youtube": {
         "id": "EFxrVS2EFXQ",
         "start": 117,
@@ -549,8 +548,7 @@
       "motif": "moon",
       "vinyl": true,
       "placeholder": false,
-      "suggestedCents": 500,
-      "forSale": false
+      "suggestedCents": 500
     },
     {
       "id": "go",
@@ -587,8 +585,7 @@
       ],
       "motif": "road",
       "vinyl": true,
-      "placeholder": false,
-      "forSale": false
+      "placeholder": false
     },
     {
       "id": "stay-up-afro-soul",

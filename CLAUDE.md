@@ -204,7 +204,7 @@ code in `client/src/lazyjo/`, wired in `vite.config.ts` `rollupOptions.input`).
 Catalogue = `client/src/lazyjo/singles.json` (the 28 JAVEDA songs in album order + 2 newer singles, Life Be Moving Quick
 and Stay Up (Afro Soul), WAVs pending; €0.99 min / €5 suggested,
 previews = public `media/javeda/lvlN.mp3`, WAVs uploaded by Jo with `node scripts/upload-masters.js <folder>`; 21/28 uploaded 2026-11-23 from
-`L:\Lazy Jo\Lightning Wolves\Lazy Jo\MUSIC\3 - WAV`, the other 7 are `"forSale": false` until their WAVs exist; covers = official artwork from Apple Music in
+`L:\Lazy Jo\Lightning Wolves\Lazy Jo\MUSIC\3 - WAV`, + LA Vibe, Be Alright, Life Be Moving Quick on 2026-11-26; still `"forSale": false` (no WAV yet): I'm Lost, Somebody, No Rest/No Work, Journey, Myself, Stay Up (Afro Soul); covers = official artwork from Apple Music in
 `client/public/lazyjo/covers/` — the personal cloud environment `lightning-wolves-studio` allows `itunes.apple.com` +
 `is1..5-ssl.mzstatic.com` for that), which **server.js also requires** to
 price `POST /api/lazyjo/checkout` (Stripe, guest, `mode: payment`) and to deliver

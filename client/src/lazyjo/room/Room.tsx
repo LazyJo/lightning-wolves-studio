@@ -519,7 +519,7 @@ export default function Room() {
 
       {viewing && (
         <div className="room-demo room-viewing" role="status">
-          Admin look-in · {name ? `${name}’s` : "this"} room · read-only
+          Admin look-in · {name ? `${name}’s` : "this"} room · view only
         </div>
       )}
       {arrange ? (

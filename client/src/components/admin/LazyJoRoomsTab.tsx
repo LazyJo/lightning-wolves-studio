@@ -64,7 +64,7 @@ export default function LazyJoRoomsTab({ accessToken }: { accessToken: string | 
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-lg text-white">Supporter rooms</h3>
-            <p className="text-sm text-wolf-muted">Open any room to see it the way they do. Read-only: you can listen, nothing changes for them.</p>
+            <p className="text-sm text-wolf-muted">Open any room to see it the way they do. View only: you can listen, nothing changes for them.</p>
           </div>
           <label className="flex items-center gap-2 rounded-lg border border-wolf-border bg-wolf-surface px-3 py-2 text-sm text-wolf-muted">
             <Search size={14} aria-hidden />

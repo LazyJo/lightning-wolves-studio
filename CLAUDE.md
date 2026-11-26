@@ -292,8 +292,15 @@ turntable, gold hologram (play 30 s preview, WAV via `/api/lazyjo/download?sessi
 (discord.gg/SES7XPJvBH). No accounts: `GET /api/lazyjo/room?t=` takes an HMAC token for the buyer's email (`lazyjoRoomToken` in server.js, key
 derived from `LAZYJO_ROOM_SECRET` or the service-role key, 1 year, renewed on every visit); `/api/lazyjo/download` returns `roomToken`, the
 Universe saves it (`room/roomStore.ts`, localStorage `lj-room` + `lj-room-n`), so the thank-you page or the delivery-email link on any device opens
-the room. HUD: "My room" ship button under the wordmark with the records count. `?demo=1` (&n=2) = Sam's demo room. Next steps: email "open my
-room" link, crate/record interactions polish, gold unlock animation, UFO video loop in the window, private photo.
+the room. HUD: "My room" ship button under the wordmark with the records count. `?demo=1&n=N` = Sam's demo room with N bought records.
+**Step 2 (2026-11-26):** plaque levels **Gold 3 / Platinum 7 / Diamond 15** bought records (the gift doesn't count; label = the record that
+unlocked it); **full songs** for owners (`GET /api/lazyjo/room/play?t=&id=`: private `lazyjo-masters/stream/<id>.mp3` 320 kbps made by
+`upload-masters.js` from every WAV, else the full JAVEDA level mp3; `&download=1` for the gift); **Arrange** (tap a record, tap a frame, they
+swap; saved via `POST /api/lazyjo/room/layout` to `lazyjo-masters/rooms/<sha256>.json`, no SQL table; records not on the 8-frame wall live in
+the crate); **I'm Lost = free welcome gift** (`gift: true` in singles.json, Jo has no WAV: the gift is its JAVEDA level mp3): gold "FREE GIFT"
+ribbon + lock on its 3D cover, gift panel instead of Buy, in every buyer's room after their first purchase; the first delivery email mentions it;
+every delivery email has "Open my room" (room token link); `POST /api/lazyjo/room/link` emails a room link (same answer whether or not the email
+bought). Next: gold unlock animation, UFO video loop in the window, private photo.
 JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
 Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 

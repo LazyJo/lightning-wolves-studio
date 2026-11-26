@@ -19,6 +19,9 @@
  * `media`. It starts at the loudest 30 s of the song (usually the hook); pick the moment
  * yourself with --start "Title=m:ss" (re-cuts it). Needs ffmpeg: installed, or once
  * npm.cmd install --no-save ffmpeg-static
+ *
+ * Full songs for My Room: every WAV also gets a 320 kbps MP3 in the private bucket (stream/<id>.mp3). Owners
+ * play their whole song from it in their room. Made once per song (--force re-makes them).
  */
 require('dotenv').config();
 const fs = require('fs');
@@ -297,7 +300,37 @@ function askHidden(question) {
     }
   }
 
+  // full songs for My Room (private bucket, stream/<id>.mp3), from every WAV
+  const fullPlan = plan.filter((p) => p.file);
+  let fullMade = 0;
+  if (fullPlan.length) {
+    const ffmpeg = findFfmpeg();
+    if (!ffmpeg) {
+      console.log('\nFull songs for My Room skipped: ffmpeg not found. Run this once in this folder, then the same command again:\n  npm.cmd install --no-save ffmpeg-static');
+    } else {
+      const { data: have } = await sb.storage.from(BUCKET).list('stream', { limit: 1000 });
+      const haveS = new Set((have || []).map((o) => o.name));
+      const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'lj-full-'));
+      const todo = fullPlan.filter(({ s }) => force || !haveS.has(`${s.id}.mp3`));
+      if (todo.length) console.log(`\nFull songs for My Room (${todo.length}):`);
+      for (const { s, file } of todo) {
+        process.stdout.write(`Full song ${s.title}… `);
+        const out = path.join(tmp, `${s.id}.mp3`);
+        const r = spawnSync(ffmpeg, ['-hide_banner', '-loglevel', 'error', '-y', '-i', path.join(dir, file),
+          '-vn', '-ac', '2', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '320k', out], { encoding: 'utf8' });
+        if (r.status !== 0) { console.log(`failed: ${(r.stderr || '').trim().split('\n').pop()}`); continue; }
+        const { error } = await sb.storage.from(BUCKET).upload(`stream/${s.id}.mp3`, fs.readFileSync(out), {
+          contentType: 'audio/mpeg', upsert: true, cacheControl: '31536000',
+        });
+        if (error) { console.log(`failed: ${error.message}`); continue; }
+        fullMade++;
+        console.log('done');
+      }
+    }
+  }
+
   const missing2 = plan.filter((p) => !p.file).map((p) => p.s.title);
   const failed = plan.length - ok - skipped - missing2.length;
+  if (fullMade) console.log(`\n${fullMade} full song(s) ready for My Room.`);
   console.log(`\n${ok} uploaded, ${skipped} already there${failed ? `, ${failed} FAILED (see above)` : ''}${missing2.length ? `, ${missing2.length} still need a WAV: ${missing2.join(', ')}` : ''}.`);
 })();

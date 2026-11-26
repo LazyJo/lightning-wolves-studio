@@ -48,7 +48,9 @@ export default function Tracklist({ open, inline, onClose, onPick, coverFor, onJ
                   </span>
                 </span>
                 <span className="lj-list-price">
-                  {s.forSale ? (
+                  {s.gift ? (
+                    <small className="lj-gift-tag">&#127873; gift</small>
+                  ) : s.forSale ? (
                     <>
                       <small>from</small> {formatPrice(s.priceCents)}
                     </>

@@ -1188,6 +1188,7 @@ export class Universe {
         // borrow only the wordmark band from the placeholder art
         ctx.drawImage(overlay, 0, 0, size, size * 0.26, 0, 0, size, size * 0.26);
       }
+      if (s.gift) drawGiftRibbon(ctx, size);
       this.coverCanvases.set(s.id, c);
       this.coverImages.delete(s.id);
       const tex = this.track(canvasTexture(c));
@@ -1792,4 +1793,48 @@ export class Universe {
       }
     }
   }
+}
+
+/** The welcome gift's cover: a gold corner ribbon ("FREE GIFT") and a small lock. */
+function drawGiftRibbon(ctx: CanvasRenderingContext2D, size: number) {
+  const u = size / 1024;
+  ctx.save();
+  ctx.translate(size, 0);
+  ctx.rotate(Math.PI / 4);
+  const g = ctx.createLinearGradient(0, 230 * u, 0, 340 * u);
+  g.addColorStop(0, "#fff3b0");
+  g.addColorStop(0.45, "#f5c518");
+  g.addColorStop(1, "#a87a00");
+  ctx.shadowColor = "rgba(0,0,0,0.55)";
+  ctx.shadowBlur = 30 * u;
+  ctx.fillStyle = g;
+  ctx.fillRect(-700 * u, 230 * u, 1400 * u, 110 * u);
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "#1a1400";
+  ctx.font = `800 ${62 * u}px Syne, Manrope, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("FREE GIFT", 0, 287 * u);
+  ctx.restore();
+  // lock, bottom left
+  const x = 70 * u, y = size - 190 * u;
+  ctx.save();
+  ctx.shadowColor = "rgba(245,197,24,0.8)";
+  ctx.shadowBlur = 24 * u;
+  ctx.fillStyle = "rgba(10,8,2,0.78)";
+  ctx.beginPath();
+  ctx.arc(x + 60 * u, y + 60 * u, 74 * u, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "#f5c518";
+  ctx.lineWidth = 12 * u;
+  ctx.beginPath();
+  ctx.arc(x + 60 * u, y + 42 * u, 24 * u, Math.PI, 0);
+  ctx.lineTo(x + 84 * u, y + 62 * u);
+  ctx.moveTo(x + 36 * u, y + 42 * u);
+  ctx.lineTo(x + 36 * u, y + 62 * u);
+  ctx.stroke();
+  ctx.fillStyle = "#f5c518";
+  ctx.fillRect(x + 22 * u, y + 60 * u, 76 * u, 56 * u);
+  ctx.restore();
 }

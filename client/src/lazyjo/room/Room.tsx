@@ -1,9 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ArrowLeft, Download, IdCard, Loader2, Pause, Play, X } from "lucide-react";
+import { ArrowLeft, Check, Download, IdCard, Loader2, Move, Pause, Play, X } from "lucide-react";
 import { SINGLES, singleById, fullTitle, releaseLabel, PREVIEW_SECONDS, type Single } from "../catalog";
 import { fetchDownload } from "../shop";
 import SupporterCard from "../ui/SupporterCard";
-import { DEMO_ROOM, RoomError, fetchRoom, forgetRoom, roomToken, saveRoom, type RoomData, type RoomRecord } from "./roomStore";
+import {
+  demoRoom, RoomError, fetchRoom, forgetRoom, localWall, requestRoomLink, roomPlayUrl, roomToken, saveRoom, saveWall,
+  type RoomData, type RoomRecord,
+} from "./roomStore";
 
 const DISCORD = "https://discord.gg/SES7XPJvBH";
 
@@ -110,6 +113,13 @@ const onEllipse = ([cx, cy, rx, ry]: [number, number, number, number]): CSSPrope
 
 const isPhone = () => window.matchMedia("(max-width: 600px)").matches;
 const pad3 = (n: number) => String(n).padStart(3, "0");
+const mmss = (t: number) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+// the hidden gem: a plaque that levels up with the collection
+const TIERS = [
+  { at: 3, key: "gold", label: "GOLD" },
+  { at: 7, key: "platinum", label: "PLATINUM" },
+  { at: 15, key: "diamond", label: "DIAMOND" },
+] as const;
 
 type Load =
   | { kind: "loading" }
@@ -125,6 +135,12 @@ export default function Room() {
   const [crateOpen, setCrateOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
   const [dl, setDl] = useState<"idle" | "busy" | string>("idle");
+  const [wall, setWall] = useState<(string | null)[] | null>(null);
+  const [arrange, setArrange] = useState(false);
+  const [moveFrom, setMoveFrom] = useState<number | null>(null);
+  const [wallNote, setWallNote] = useState<string | null>(null);
+  const [time, setTime] = useState<[number, number]>([0, 0]);
+  const [full, setFull] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const floorRef = useRef<HTMLDivElement>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -133,8 +149,7 @@ export default function Room() {
   useEffect(() => {
     const q = new URLSearchParams(location.search);
     if (q.get("demo")) {
-      const n = Math.max(0, Math.min(DEMO_ROOM.records.length, Number(q.get("n") || DEMO_ROOM.records.length)));
-      setLoad({ kind: "ready", demo: true, data: { ...DEMO_ROOM, records: DEMO_ROOM.records.slice(0, n) } });
+      setLoad({ kind: "ready", demo: true, data: demoRoom(Number(q.get("n") || 5)) });
       return;
     }
     const t = q.get("t") || roomToken();
@@ -147,7 +162,8 @@ export default function Room() {
     if (!t) return setLoad({ kind: "none" });
     fetchRoom(t)
       .then((data) => {
-        saveRoom(data.token, data.records.length);
+        saveRoom(data.token, data.records.filter((r) => !r.gift).length);
+        setWall(data.wall || localWall());
         setLoad({ kind: "ready", demo: false, data });
       })
       .catch((e: RoomError) => {
@@ -181,9 +197,14 @@ export default function Room() {
   const selected: RoomRecord | null = owned.find((r) => r.singleId === selectedId) || owned[0] || null;
   const single: Single | null = selected ? singleById.get(selected.singleId) || null : null;
   const name = data?.name || null;
-  const count = owned.length;
-  // the record that unlocked the gold plaque: the buyer's third song
-  const goldRecord = count >= 3 ? singleById.get([...owned].reverse()[2].singleId) || null : null;
+  const demo = load.kind === "ready" && load.demo;
+  const token = load.kind === "ready" && !load.demo ? roomToken() : null;
+  const bought = owned.filter((r) => !r.gift);
+  const count = bought.length;
+  const tier = [...TIERS].reverse().find((t) => count >= t.at) || null;
+  const nextTier = TIERS.find((t) => count < t.at) || null;
+  // the record that unlocked the plaque (their 3rd, 7th or 15th song) is printed on its label
+  const tierRecord = tier ? singleById.get([...bought].reverse()[tier.at - 1].singleId) || null : null;
 
   // engrave the name in the floor at the right size
   useLayoutEffect(() => {
@@ -199,13 +220,40 @@ export default function Room() {
     document.fonts?.ready.then(size);
   }, [layout, name, data]);
 
-  // wall: the newest record under the spotlight, then the rest; empty frames to collect
+  // wall: the order the buyer arranged; new records (newest first) fill the empty frames, the newest under the spotlight
   const frames = useMemo(() => {
+    const n = layout.frames.length;
     const order = [layout.spot, ...layout.frames.map((_, i) => i).filter((i) => i !== layout.spot)];
-    const slots: (RoomRecord | null)[] = new Array(layout.frames.length).fill(null);
-    order.forEach((frameIdx, k) => (slots[frameIdx] = owned[k] || null));
+    const byId = new Map(owned.map((r) => [r.singleId, r]));
+    const slots: (RoomRecord | null)[] = new Array(n).fill(null);
+    (wall || []).slice(0, n).forEach((id, i) => {
+      if (id && byId.has(id) && !slots.some((x) => x?.singleId === id)) slots[i] = byId.get(id)!;
+    });
+    for (const r of owned) {
+      if (slots.some((x) => x?.singleId === r.singleId)) continue;
+      const free = order.find((i) => !slots[i]);
+      if (free === undefined) break;
+      slots[free] = r;
+    }
     return slots;
-  }, [layout, owned]);
+  }, [layout, owned, wall]);
+  const onWall = new Set(frames.filter(Boolean).map((r) => r!.singleId));
+  const frameTap = (i: number) => {
+    if (moveFrom === null) {
+      if (frames[i]) setMoveFrom(i);
+      return;
+    }
+    const next = frames.map((r) => r?.singleId || null);
+    [next[moveFrom], next[i]] = [next[i], next[moveFrom]];
+    setWall(next);
+    setMoveFrom(null);
+    if (token) {
+      saveWall(token, next).then(
+        () => setWallNote("Saved"),
+        () => setWallNote("Saved on this device only"),
+      );
+    } else setWallNote(demo ? "Demo room: not saved" : null);
+  };
   const ownedIds = useMemo(() => new Set(owned.map((r) => r.singleId)), [owned]);
   const toCollect = useMemo(
     () => [...SINGLES].reverse().filter((s) => !ownedIds.has(s.id) && s.forSale !== false),
@@ -218,13 +266,29 @@ export default function Room() {
     audioRef.current = null;
     setPlaying(false);
   };
-  const play = () => {
-    if (!single?.previewUrl) return;
+  const play = async () => {
+    if (!single) return;
     stop();
-    const a = new Audio(single.previewUrl);
+    // owners hear the whole song; the 30 s preview is only the fallback
+    let url = single.previewUrl;
+    let whole = false;
+    if (token) {
+      try {
+        url = await roomPlayUrl(token, single.id);
+        whole = true;
+      } catch (e) {
+        setDl((e as Error).message);
+      }
+    } else if (demo && url?.includes("/media/javeda/")) whole = true;
+    if (!url) return;
+    const a = new Audio(url);
     audioRef.current = a;
+    setFull(whole);
+    setTime([0, whole ? 0 : PREVIEW_SECONDS]);
     a.addEventListener("timeupdate", () => {
-      if (a.currentTime >= PREVIEW_SECONDS) stop();
+      if (audioRef.current !== a) return;
+      if (!whole && a.currentTime >= PREVIEW_SECONDS) return stop();
+      setTime((cur) => (Math.floor(cur[0]) === Math.floor(a.currentTime) ? cur : [a.currentTime, whole ? a.duration || 0 : PREVIEW_SECONDS]));
     });
     a.addEventListener("ended", stop);
     a.play().then(() => setPlaying(true), stop);
@@ -237,7 +301,20 @@ export default function Room() {
   };
 
   const download = async () => {
-    if (!selected?.sessionId) return setDl("This is a demo room: buy a record to download it.");
+    if (demo) return setDl("This is a demo room: buy a record to download it.");
+    if (selected?.gift) {
+      if (!token) return;
+      setDl("busy");
+      try {
+        const url = await roomPlayUrl(token, selected.singleId, true);
+        setDl("idle");
+        window.location.assign(url);
+      } catch (e) {
+        setDl((e as Error).message);
+      }
+      return;
+    }
+    if (!selected?.sessionId) return;
     setDl("busy");
     try {
       const r = await fetchDownload(selected.sessionId);
@@ -271,11 +348,25 @@ export default function Room() {
                 return (
                   <button
                     key={i}
-                    className={`room-frame is-own ${single?.id === s.id ? "is-on" : ""}`}
+                    className={`room-frame is-own ${r!.gift ? "is-gift" : ""} ${!arrange && single?.id === s.id ? "is-on" : ""} ${arrange ? "is-arrange" : ""} ${moveFrom === i ? "is-moving" : ""}`}
                     style={{ ...onQuad(L.frames[i], 120, 120), backgroundImage: `url("${s.cover}")`, ["--acc" as string]: accent }}
-                    onClick={() => pick(s.id)}
-                    aria-label={`Put ${fullTitle(s)} on the turntable`}
+                    onClick={() => (arrange ? frameTap(i) : pick(s.id))}
+                    aria-label={arrange ? `Move ${fullTitle(s)}` : `Put ${fullTitle(s)} on the turntable`}
+                    aria-pressed={arrange ? moveFrom === i : undefined}
                   />
+                );
+              }
+              if (arrange) {
+                return (
+                  <button
+                    key={i}
+                    className={`room-frame is-empty is-arrange ${moveFrom !== null ? "is-target" : ""}`}
+                    style={onQuad(L.frames[i], 120, 120)}
+                    onClick={() => frameTap(i)}
+                    aria-label="Empty frame: move the record here"
+                  >
+                    <b aria-hidden>{moveFrom !== null ? "↓" : ""}</b>
+                  </button>
                 );
               }
               const next = toCollect[i % Math.max(1, toCollect.length)];
@@ -293,12 +384,18 @@ export default function Room() {
               );
             })}
 
-            {goldRecord ? (
-              <div className="room-award is-gold" style={onQuad(L.award, 260, 300)} role="img" aria-label={`Gold supporter plaque for ${name || "you"}`}>
+            {tier && tierRecord ? (
+              <div
+                className={`room-award is-won is-${tier.key}`}
+                style={onQuad(L.award, 260, 300)}
+                role="img"
+                aria-label={`${tier.label.toLowerCase()} supporter plaque for ${name || "you"}`}
+              >
                 <h5>LAZY JO &middot; AWARDED TO</h5>
-                <div className="room-disc" style={{ ["--label" as string]: `url("${goldRecord.cover}")` }} />
+                <div className="room-disc" style={{ ["--label" as string]: `url("${tierRecord.cover}")` }} />
                 <h4>{(name || "Supporter").toUpperCase()}</h4>
-                <p>GOLD SUPPORTER &middot; {count} RECORDS</p>
+                <p>{tier.label} SUPPORTER &middot; {count} RECORDS</p>
+                {nextTier && <p className="next">SOMETHING NEW AT {nextTier.at} RECORDS</p>}
               </div>
             ) : (
               <div className="room-award is-hidden-gem" style={onQuad(L.award, 260, 300)} aria-hidden>
@@ -325,7 +422,7 @@ export default function Room() {
                 style={{ left: L.crate[0], top: L.crate[1], fontSize: L === PHONE ? 22 : 12, padding: L === PHONE ? "11px 20px" : undefined }}
                 onClick={() => setCrateOpen(true)}
               >
-                All my records &middot; {count}
+                All my records &middot; {owned.length}
               </button>
             )}
           </>
@@ -336,7 +433,9 @@ export default function Room() {
       {single && selected && (
         <HoloAnchor layout={L} stageRef={stageRef}>
           <div className={`room-holo ${playing ? "is-playing" : ""}`}>
-            <div className="k">{playing ? "▶ NOW PLAYING" : "ON THE DECK"} &middot; YOURS</div>
+            <div className="k">
+              {selected.gift ? "🎁 GIFT FROM LAZY JO" : playing ? `▶ NOW PLAYING${full ? " · FULL SONG" : ""}` : "ON THE DECK · YOURS"}
+            </div>
             <h3>{single.title}</h3>
             <div className="a">
               Lazy Jo{single.feat ? ` feat. ${single.feat}` : ""} &middot; {releaseLabel(single)}
@@ -346,6 +445,13 @@ export default function Room() {
                 <i key={i} style={{ height: `${h}%`, animationDelay: `${(i % 7) * -0.13}s` }} />
               ))}
             </div>
+            {playing && time[1] > 0 && (
+              <div className="t" aria-hidden>
+                <span>{mmss(time[0])}</span>
+                <span className="bar"><i style={{ transform: `scaleX(${Math.min(1, time[0] / time[1])})` }} /></span>
+                <span>{mmss(time[1])}</span>
+              </div>
+            )}
             <div className="b">
               {single.previewUrl && (
                 <button onClick={playing ? stop : play} aria-label={playing ? `Pause ${single.title}` : `Play ${single.title}`}>
@@ -353,7 +459,8 @@ export default function Room() {
                 </button>
               )}
               <button className="p" onClick={download} disabled={dl === "busy"}>
-                {dl === "busy" ? <Loader2 size={13} className="lj-spin" aria-hidden /> : <Download size={13} aria-hidden />} WAV
+                {dl === "busy" ? <Loader2 size={13} className="lj-spin" aria-hidden /> : <Download size={13} aria-hidden />}{" "}
+                {selected.gift ? "MP3" : "WAV"}
               </button>
               <button onClick={() => setCardOpen(true)}>
                 <IdCard size={13} aria-hidden /> Card
@@ -376,13 +483,35 @@ export default function Room() {
           {data?.supporterNo ? <span className="room-chip">⚡ Supporter #{pad3(data.supporterNo)}</span> : null}
           {data ? <span className="room-chip">{count} {count === 1 ? "record" : "records"}</span> : null}
         </div>
+        {owned.length > 1 && (
+          <button
+            className={`room-arrange ${arrange ? "is-on" : ""}`}
+            onClick={() => {
+              setArrange((a) => !a);
+              setMoveFrom(null);
+              setWallNote(null);
+            }}
+            aria-pressed={arrange}
+            aria-label={arrange ? "Done arranging" : "Arrange my wall"}
+          >
+            {arrange ? <Check size={16} aria-hidden /> : <Move size={16} aria-hidden />}
+            <span>{arrange ? "Done" : "Arrange"}</span>
+          </button>
+        )}
         <a className="room-discord" href={DISCORD} target="_blank" rel="noopener noreferrer" aria-label="Join Lazy Jo's Discord">
           <DiscordLogo />
           <span>Join the Discord</span>
         </a>
       </header>
 
-      {load.kind === "ready" && load.demo && <div className="room-demo">Demo room · this is what a supporter sees</div>}
+      {arrange ? (
+        <div className="room-arrange-hint" role="status">
+          {moveFrom === null ? "Tap a record, then tap where it goes" : "Now tap the frame where it goes"}
+          {wallNote && moveFrom === null ? ` · ${wallNote}` : ""}
+        </div>
+      ) : (
+        demo && <div className="room-demo">Demo room · this is what a supporter sees</div>
+      )}
 
       {(load.kind === "none" || load.kind === "error" || (data && count === 0)) && (
         <div className="room-gate" role="dialog" aria-labelledby="room-gate-title">
@@ -392,14 +521,9 @@ export default function Room() {
             <p>
               {load.kind === "error" && !load.expired
                 ? load.msg
-                : "Every song you buy in the Universe gets its own frame here, your name goes on the floor, and at 3 records something hidden unlocks."}
+                : "Every song you buy in the Universe gets its own frame here, your name goes on the floor, you play your songs in full, and Lazy Jo’s first single waits for you as a gift."}
             </p>
-            {load.kind !== "error" || load.expired ? (
-              <p className="room-gate-fine">
-                Bought one before? Open the &ldquo;Your record has landed&rdquo; email on this device and tap the link in it: your
-                room opens right away.
-              </p>
-            ) : null}
+            {load.kind !== "error" || load.expired ? <RoomLinkForm /> : null}
             <div className="room-gate-actions">
               <a className="lj-btn lj-btn-primary" href="/lazyjo/">Find a record</a>
               <a className="lj-btn lj-btn-ghost" href="/lazyjo/room/?demo=1">See a demo room</a>
@@ -437,7 +561,11 @@ export default function Room() {
                       <img src={s.cover || ""} alt="" />
                       <span>
                         <b>{fullTitle(s)}</b>
-                        <small>{releaseLabel(s)}</small>
+                        <small>
+                          {r.gift ? "🎁 Gift from Lazy Jo · " : ""}
+                          {releaseLabel(s)}
+                          {onWall.has(s.id) ? "" : " · in the crate"}
+                        </small>
                       </span>
                     </button>
                   </li>
@@ -460,6 +588,45 @@ export default function Room() {
         />
       )}
     </div>
+  );
+}
+
+/** "Bought before? Send me my room link." */
+function RoomLinkForm() {
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<{ kind: "idle" | "busy" } | { kind: "done" | "err"; msg: string }>({ kind: "idle" });
+  if (state.kind === "done") return <p className="room-gate-fine room-gate-sent" role="status">&#9993; {state.msg}</p>;
+  return (
+    <form
+      className="room-link"
+      onSubmit={(e) => {
+        e.preventDefault();
+        setState({ kind: "busy" });
+        requestRoomLink(email.trim()).then(
+          (msg) => setState({ kind: "done", msg }),
+          (err: Error) => setState({ kind: "err", msg: err.message }),
+        );
+      }}
+    >
+      <label htmlFor="room-email" className="room-gate-fine">
+        Bought a record before? Get your room link by email:
+      </label>
+      <div className="room-link-row">
+        <input
+          id="room-email"
+          type="email"
+          required
+          autoComplete="email"
+          placeholder="Your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+        <button type="submit" disabled={state.kind === "busy"}>
+          {state.kind === "busy" ? <Loader2 size={15} className="lj-spin" aria-hidden /> : "Send"}
+        </button>
+      </div>
+      {state.kind === "err" && <p className="room-link-err" role="alert">{state.msg}</p>}
+    </form>
   );
 }
 

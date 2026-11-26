@@ -855,3 +855,11 @@ a { color: var(--lj-cyan); }
   .lj-room-btn { min-height: 36px; font-size: 12px; padding: 0 10px 0 6px; }
   .lj-room-ship { width: 28px; height: 18px; }
 }
+
+/* ─── the free welcome gift (I'm Lost) ─── */
+.lj-gift-tag { color: #ffe27a; font-weight: 800; letter-spacing: 0.04em; }
+.lj-gift { border: 1px solid rgba(245, 197, 24, 0.45); border-radius: 16px; padding: 16px; background: linear-gradient(180deg, rgba(245, 197, 24, 0.10), rgba(245, 197, 24, 0.02)); }
+.lj-gift-k { margin: 0 0 6px; font: 800 12px var(--lj-body); letter-spacing: 0.22em; text-transform: uppercase; color: #f5c518; }
+.lj-gift-t { margin: 0 0 14px; font: 600 14.5px/1.55 var(--lj-body); color: #f3e7c4; }
+.lj-gift-room { width: 100%; justify-content: center; text-decoration: none; border-color: rgba(245, 197, 24, 0.6); color: #ffe27a; }
+.lj-gift .lj-trust { margin-top: 12px; }

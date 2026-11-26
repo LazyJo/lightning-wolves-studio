@@ -568,6 +568,11 @@ async function sendLazyjoDelivery(session, email, supporterNo, records) {
     records,
     accent: Array.isArray(single.palette) ? single.palette[1] : undefined,
     name,
+    roomUrl: lazyjoRoomToken(email) ? `${origin}/lazyjo/room/?t=${encodeURIComponent(lazyjoRoomToken(email))}` : null,
+    // first record: the welcome gift is waiting in their room
+    gift: records === 1 && LAZYJO_GIFT && LAZYJO_GIFT.id !== single.id
+      ? { title: lazyjoTitle(LAZYJO_GIFT), coverUrl: `${origin}/lazyjo/covers/email/${encodeURIComponent(LAZYJO_GIFT.cover.split('/').pop().replace(/\.[a-z0-9]+$/i, '.jpg'))}` }
+      : null,
   });
   await lazyjoSendEmails([{ to: email, subject: `Your record has landed: ${lazyjoTitle(single)}`, html }]);
 }
@@ -603,37 +608,144 @@ function lazyjoRoomEmail(token) {
   }
 }
 
+// The free welcome gift: every buyer gets this one in their room (singles.json `gift: true`).
+const LAZYJO_GIFT = LAZYJO_CATALOG.singles.find((x) => x.gift) || null;
+const lazyjoRoomKey = (email) => crypto.createHash('sha256').update(`room:${email}`).digest('hex').slice(0, 40);
+
+// The songs this email owns: newest purchase of each song first, then the gift (if they bought anything).
+async function lazyjoOwned(email) {
+  const { data, error } = await supabase.from('lazyjo_purchases')
+    .select('session_id, single_id, created_at').eq('email', email).is('refunded_at', null)
+    .order('created_at', { ascending: false }).limit(500);
+  if (error) throw error;
+  const seen = new Set();
+  const records = [];
+  for (const r of data || []) {
+    if (seen.has(r.single_id) || !lazyjoSingle(r.single_id)) continue;
+    seen.add(r.single_id);
+    records.push({ singleId: r.single_id, sessionId: r.session_id, purchasedAt: r.created_at });
+  }
+  const since = (data || []).length ? data[data.length - 1].created_at : null;
+  if (records.length && LAZYJO_GIFT && !seen.has(LAZYJO_GIFT.id)) {
+    records.push({ singleId: LAZYJO_GIFT.id, sessionId: null, purchasedAt: since, gift: true });
+  }
+  return { records, since, bought: seen.size };
+}
+
+// The room's wall order (Arrange): a small JSON per buyer in the private bucket, no table needed.
+async function lazyjoRoomLayout(email) {
+  const { data } = await supabase.storage.from(LAZYJO_BUCKET).download(`rooms/${lazyjoRoomKey(email)}.json`);
+  if (!data) return null;
+  try {
+    const j = JSON.parse(await data.text());
+    return Array.isArray(j.wall) ? j.wall.map((x) => (typeof x === 'string' ? x : null)).slice(0, 16) : null;
+  } catch {
+    return null;
+  }
+}
+
 app.get('/api/lazyjo/room', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const email = lazyjoRoomEmail(req.query.t);
   if (!email) return res.status(401).json({ error: 'This room link has expired. Open your room again from your email.' });
   if (!supabase) return res.status(503).json({ error: 'Rooms are not available right now' });
   try {
-    const { data, error } = await supabase.from('lazyjo_purchases')
-      .select('session_id, single_id, created_at').eq('email', email).is('refunded_at', null)
-      .order('created_at', { ascending: false }).limit(500);
-    if (error) throw error;
-    // one entry per song (the newest purchase of it), newest first
-    const seen = new Set();
-    const records = [];
-    for (const r of data || []) {
-      if (seen.has(r.single_id) || !lazyjoSingle(r.single_id)) continue;
-      seen.add(r.single_id);
-      records.push({ singleId: r.single_id, sessionId: r.session_id, purchasedAt: r.created_at });
-    }
-    const { supporterNo } = await lazyjoSupporterNo(email);
+    const { records, since } = await lazyjoOwned(email);
+    const [{ supporterNo }, wall] = await Promise.all([lazyjoSupporterNo(email), lazyjoRoomLayout(email).catch(() => null)]);
     // first name from the newest Stripe checkout (we don't store names)
     let name = null;
-    if (stripe && records[0]) {
-      const s = await stripe.checkout.sessions.retrieve(records[0].sessionId).catch(() => null);
+    const newest = records.find((r) => r.sessionId);
+    if (stripe && newest) {
+      const s = await stripe.checkout.sessions.retrieve(newest.sessionId).catch(() => null);
       name = (s?.customer_details?.name || '').trim().split(/\s+/)[0] || null;
     }
-    const since = (data || []).length ? data[data.length - 1].created_at : null;
-    res.json({ name, supporterNo, since, records, token: lazyjoRoomToken(email) });
+    res.json({ name, supporterNo, since, records, wall, token: lazyjoRoomToken(email) });
   } catch (err) {
     console.error('lazyjo room error:', err.message || err);
     res.status(500).json({ error: 'Could not open your room' });
   }
+});
+
+// Save the wall order. Only songs the buyer owns are kept.
+app.post('/api/lazyjo/room/layout', async (req, res) => {
+  const email = lazyjoRoomEmail(req.body?.t);
+  if (!email) return res.status(401).json({ error: 'Room link expired' });
+  if (!supabase) return res.status(503).json({ error: 'Rooms are not available right now' });
+  try {
+    const { records } = await lazyjoOwned(email);
+    const owned = new Set(records.map((r) => r.singleId));
+    const wall = (Array.isArray(req.body?.wall) ? req.body.wall : []).slice(0, 16).map((x) => (typeof x === 'string' && owned.has(x) ? x : null));
+    const { error } = await supabase.storage.from(LAZYJO_BUCKET).upload(
+      `rooms/${lazyjoRoomKey(email)}.json`,
+      Buffer.from(JSON.stringify({ wall, at: new Date().toISOString() })),
+      { contentType: 'application/json', upsert: true },
+    );
+    if (error) throw error;
+    res.json({ ok: true, wall });
+  } catch (err) {
+    console.error('lazyjo room layout error:', err.message || err);
+    res.status(500).json({ error: 'Could not save your wall' });
+  }
+});
+
+// The full song, for owners only: a 320 kbps MP3 made from the WAV by upload-masters.js when there is one
+// (private bucket, stream/<id>.mp3), else the full JAVEDA level song. `download=1` asks for the file (the gift).
+app.get('/api/lazyjo/room/play', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const email = lazyjoRoomEmail(req.query.t);
+  if (!email) return res.status(401).json({ error: 'Room link expired' });
+  if (!supabase) return res.status(503).json({ error: 'Rooms are not available right now' });
+  const single = lazyjoSingle(String(req.query.id || ''));
+  if (!single) return res.status(404).json({ error: 'Unknown song' });
+  try {
+    const { records } = await lazyjoOwned(email);
+    if (!records.some((r) => r.singleId === single.id)) return res.status(403).json({ error: 'This record isn’t in your room yet' });
+    const fileName = `${LAZYJO_CATALOG.artist} - ${single.track ? String(single.track).padStart(2, '0') + ' ' : ''}${lazyjoTitle(single)}.mp3`.replace(/[\\/:*?"<>|]+/g, '-');
+    const download = req.query.download === '1';
+    const { data } = await supabase.storage.from(LAZYJO_BUCKET)
+      .createSignedUrl(`stream/${single.id}.mp3`, 6 * 3600, download ? { download: fileName } : undefined);
+    if (data?.signedUrl) return res.json({ url: data.signedUrl, quality: 'hq' });
+    const full = typeof single.previewUrl === 'string' && single.previewUrl.includes('/media/javeda/') ? single.previewUrl : null;
+    if (full) return res.json({ url: download ? `${full}?download=${encodeURIComponent(fileName)}` : full, quality: 'std' });
+    res.status(404).json({ error: 'The full song is on its way. Play the preview for now.' });
+  } catch (err) {
+    console.error('lazyjo room play error:', err.message || err);
+    res.status(500).json({ error: 'Could not play this song' });
+  }
+});
+
+// "Send me my room link": for buyers on a new device. Always the same answer, so it doesn't reveal who bought.
+const lazyjoRoomLinkHits = new Map();
+app.post('/api/lazyjo/room/link', async (req, res) => {
+  const email = String(req.body?.email || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) return res.status(400).json({ error: 'That email doesn’t look right' });
+  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+  const now = Date.now();
+  const hits = (lazyjoRoomLinkHits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
+  if (hits.length >= 5) return res.status(429).json({ error: 'Too many tries. Try again in a few minutes.' });
+  lazyjoRoomLinkHits.set(ip, [...hits, now]);
+  const answer = { ok: true, message: 'If that email has records, your room link is on its way. Check your inbox.' };
+  if (!supabase) return res.json(answer);
+  try {
+    const { records } = await lazyjoOwned(email);
+    if (!records.length) return res.json(answer);
+    const url = `${lazyjoBaseUrl(req)}/lazyjo/room/?t=${encodeURIComponent(lazyjoRoomToken(email))}`;
+    await lazyjoSendEmails([{
+      to: email,
+      subject: 'Your room in Lazy Jo’s Universe',
+      html: lazyjoEmailHtml({
+        heading: 'Your room is waiting',
+        paragraphs: [
+          `Your ${records.length} ${records.length === 1 ? 'record is' : 'records are'} on the wall. Tap the button to open your room on this device.`,
+          'This link is only for you. Don’t forward it: anyone with it can open your room.',
+        ],
+        button: { label: 'Open my room', url },
+      }),
+    }]);
+  } catch (err) {
+    console.error('lazyjo room link error:', err.message || err);
+  }
+  res.json(answer);
 });
 
 app.post('/api/lazyjo/checkout', async (req, res) => {

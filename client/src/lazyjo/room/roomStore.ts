@@ -42,7 +42,9 @@ export function forgetRoom() {
 export interface RoomRecord {
   singleId: string;
   sessionId: string | null;
-  purchasedAt: string;
+  purchasedAt: string | null;
+  /** the free welcome gift (not bought) */
+  gift?: boolean;
 }
 
 export interface RoomData {
@@ -50,6 +52,8 @@ export interface RoomData {
   supporterNo: number | null;
   since: string | null;
   records: RoomRecord[];
+  /** the wall order the buyer arranged (single ids, null = empty frame) */
+  wall?: (string | null)[] | null;
   token?: string | null;
 }
 
@@ -71,16 +75,59 @@ export async function fetchRoom(token: string): Promise<RoomData> {
   return data as RoomData;
 }
 
-/** "Sam" with five records: for ?demo=1 (screenshots, testing without buying). */
-export const DEMO_ROOM: RoomData = {
-  name: "Sam",
-  supporterNo: 37,
-  since: "2026-11-24T18:00:00.000Z",
-  records: [
-    { singleId: "insane", sessionId: null, purchasedAt: "2026-11-26T20:00:00.000Z" },
-    { singleId: "get-what-i-want", sessionId: null, purchasedAt: "2026-11-25T20:00:00.000Z" },
-    { singleId: "la-vibe", sessionId: null, purchasedAt: "2026-11-25T12:00:00.000Z" },
-    { singleId: "rollercoaster", sessionId: null, purchasedAt: "2026-11-24T21:00:00.000Z" },
-    { singleId: "stay-up", sessionId: null, purchasedAt: "2026-11-24T18:00:00.000Z" },
-  ],
-};
+/** "Sam" (?demo=1, &n= how many bought, default 5): screenshots and testing without buying. */
+const DEMO_IDS = ["insane", "get-what-i-want", "la-vibe", "rollercoaster", "stay-up", "back-again", "only-ones", "my-fault",
+  "break-my-heart", "come-closer", "ghost", "space-kid", "you-ready", "peace-inside", "fall-in-love-again", "go"];
+export function demoRoom(n = 5): RoomData {
+  const day = (i: number) => new Date(Date.UTC(2026, 10, 26) - i * 86400000).toISOString();
+  const bought = DEMO_IDS.slice(0, Math.max(0, Math.min(DEMO_IDS.length, n))).map((id, i) => ({ singleId: id, sessionId: null, purchasedAt: day(i) }));
+  return {
+    name: "Sam",
+    supporterNo: 37,
+    since: bought.length ? bought[bought.length - 1].purchasedAt : null,
+    records: bought.length ? [...bought, { singleId: "im-lost", sessionId: null, purchasedAt: bought[bought.length - 1].purchasedAt, gift: true }] : [],
+  };
+}
+
+/** Full song for an owner (or the gift's file with download=true). */
+export async function roomPlayUrl(token: string, id: string, download = false): Promise<string> {
+  const res = await fetch(`/api/lazyjo/room/play?t=${encodeURIComponent(token)}&id=${encodeURIComponent(id)}${download ? "&download=1" : ""}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.url) throw new RoomError(data.error || `Couldn't play this song (${res.status})`, res.status);
+  return data.url as string;
+}
+
+export async function saveWall(token: string, wall: (string | null)[]): Promise<void> {
+  try {
+    localStorage.setItem("lj-room-wall", JSON.stringify(wall));
+  } catch {
+    /* ignore */
+  }
+  const res = await fetch("/api/lazyjo/room/layout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ t: token, wall }),
+  });
+  if (!res.ok) throw new RoomError("Couldn't save your wall", res.status);
+}
+
+export function localWall(): (string | null)[] | null {
+  try {
+    const w = JSON.parse(localStorage.getItem("lj-room-wall") || "null");
+    return Array.isArray(w) ? w : null;
+  } catch {
+    return null;
+  }
+}
+
+/** "Send me my room link" (always the same answer, whether or not the email bought). */
+export async function requestRoomLink(email: string): Promise<string> {
+  const res = await fetch("/api/lazyjo/room/link", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new RoomError(data.error || `Couldn't send the link (${res.status})`, res.status);
+  return data.message || "Check your inbox.";
+}

@@ -255,7 +255,24 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
         </div>
         )}
 
-        {!single.forSale ? (
+        {single.gift ? (
+          <div className="lj-buy lj-gift">
+            <p className="lj-gift-k">&#127873; Free gift</p>
+            <p className="lj-gift-t">
+              {single.title} is my first single, and it&rsquo;s my gift to you. Buy any record and it unlocks in your room, free
+              and yours forever, full song included.
+            </p>
+            <a className="lj-btn lj-btn-ghost lj-gift-room" href="/lazyjo/room/">
+              <Lock size={15} aria-hidden /> Unlocks in your room with your first record
+            </a>
+            <div className="lj-trust">
+              <span>Not for sale · only for supporters</span>
+              <button className="lj-link" onClick={share}>
+                <Share2 size={12} aria-hidden /> {copied ? "Link copied" : "Share"}
+              </button>
+            </div>
+          </div>
+        ) : !single.forSale ? (
           <div className="lj-buy">
             <div className="lj-note lj-note-warn" role="status">
               {isFan() ? (

@@ -54,6 +54,10 @@ export interface RoomData {
   records: RoomRecord[];
   /** the wall order the buyer arranged (single ids, null = empty frame) */
   wall?: (string | null)[] | null;
+  /** the buyer's private photo (1-hour link; only the buyer and Lazy Jo get it) */
+  photoUrl?: string | null;
+  /** an admin look-in (view only) */
+  view?: boolean;
   token?: string | null;
 }
 
@@ -130,4 +134,44 @@ export async function requestRoomLink(email: string): Promise<string> {
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new RoomError(data.error || `Couldn't send the link (${res.status})`, res.status);
   return data.message || "Check your inbox.";
+}
+
+/** Upload the private photo (a JPEG the browser made). Returns its new link. */
+export async function uploadPhoto(token: string, jpeg: Blob): Promise<string | null> {
+  const res = await fetch(`/api/lazyjo/room/photo?t=${encodeURIComponent(token)}`, {
+    method: "POST",
+    headers: { "Content-Type": "image/jpeg" },
+    body: jpeg,
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new RoomError(data.error || `Couldn't save your photo (${res.status})`, res.status);
+  return data.photoUrl || null;
+}
+
+export async function removePhoto(token: string): Promise<void> {
+  const res = await fetch(`/api/lazyjo/room/photo?t=${encodeURIComponent(token)}`, { method: "DELETE" });
+  if (!res.ok) throw new RoomError("Couldn't remove your photo", res.status);
+}
+
+/** A photo from the phone/computer, made small: max 900 px, JPEG. */
+export async function shrinkPhoto(file: File): Promise<Blob> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((ok, bad) => {
+      const i = new Image();
+      i.onload = () => ok(i);
+      i.onerror = () => bad(new Error("That file isn't a photo we can open. Try a JPG or PNG."));
+      i.src = url;
+    });
+    const k = Math.min(1, 900 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * k);
+    c.height = Math.round(img.naturalHeight * k);
+    c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/jpeg", 0.86));
+    if (!blob) throw new Error("Couldn't read that photo.");
+    return blob;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

@@ -663,8 +663,11 @@ app.get('/api/lazyjo/room', async (req, res) => {
       const s = await stripe.checkout.sessions.retrieve(newest.sessionId).catch(() => null);
       name = (s?.customer_details?.name || '').trim().split(/\s+/)[0] || null;
     }
+    // the private photo: only the buyer and Lazy Jo (admin look-in) ever get this short-lived link
+    const { data: ph } = await supabase.storage.from(LAZYJO_BUCKET).createSignedUrl(`photos/${lazyjoRoomKey(email)}.jpg`, 3600);
+    const photoUrl = records.length && ph?.signedUrl ? ph.signedUrl : null;
     // an admin look (view key) gets no fresh owner key
-    res.json({ name, supporterNo, since, records, wall, view: !!claims.view, token: claims.view ? null : lazyjoRoomToken(email) });
+    res.json({ name, supporterNo, since, records, wall, photoUrl, view: !!claims.view, token: claims.view ? null : lazyjoRoomToken(email) });
   } catch (err) {
     console.error('lazyjo room error:', err.message || err);
     res.status(500).json({ error: 'Could not open your room' });
@@ -692,6 +695,48 @@ app.post('/api/lazyjo/room/layout', async (req, res) => {
   } catch (err) {
     console.error('lazyjo room layout error:', err.message || err);
     res.status(500).json({ error: 'Could not save your wall' });
+  }
+});
+
+// The buyer's private photo (side-table frame). The browser sends a small JPEG it made itself; the file
+// lives in the PRIVATE bucket and is only ever handed out as a 1-hour link to the buyer and to Lazy Jo.
+async function lazyjoPhotoOwner(req, res) {
+  const claims = lazyjoRoomClaims(req.query.t);
+  if (!claims?.email) { res.status(401).json({ error: 'Room link expired' }); return null; }
+  if (claims.view) { res.status(403).json({ error: 'View only' }); return null; }
+  if (!supabase) { res.status(503).json({ error: 'Rooms are not available right now' }); return null; }
+  const { records } = await lazyjoOwned(claims.email);
+  if (!records.length) { res.status(403).json({ error: 'Your room opens with your first record' }); return null; }
+  return claims.email;
+}
+app.post('/api/lazyjo/room/photo', express.raw({ type: 'image/jpeg', limit: '3mb' }), async (req, res) => {
+  try {
+    const email = await lazyjoPhotoOwner(req, res);
+    if (!email) return;
+    const buf = req.body;
+    // a real JPEG (FF D8 FF), nothing else
+    if (!Buffer.isBuffer(buf) || buf.length < 500 || buf[0] !== 0xff || buf[1] !== 0xd8 || buf[2] !== 0xff) {
+      return res.status(400).json({ error: 'That photo didn’t come through. Try another one.' });
+    }
+    const path = `photos/${lazyjoRoomKey(email)}.jpg`;
+    const { error } = await supabase.storage.from(LAZYJO_BUCKET).upload(path, buf, { contentType: 'image/jpeg', upsert: true });
+    if (error) throw error;
+    const { data } = await supabase.storage.from(LAZYJO_BUCKET).createSignedUrl(path, 3600);
+    res.json({ ok: true, photoUrl: data?.signedUrl || null });
+  } catch (err) {
+    console.error('lazyjo room photo error:', err.message || err);
+    res.status(500).json({ error: 'Could not save your photo' });
+  }
+});
+app.delete('/api/lazyjo/room/photo', async (req, res) => {
+  try {
+    const email = await lazyjoPhotoOwner(req, res);
+    if (!email) return;
+    await supabase.storage.from(LAZYJO_BUCKET).remove([`photos/${lazyjoRoomKey(email)}.jpg`]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('lazyjo room photo delete error:', err.message || err);
+    res.status(500).json({ error: 'Could not remove your photo' });
   }
 });
 

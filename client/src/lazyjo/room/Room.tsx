@@ -3,8 +3,9 @@ import { ArrowLeft, Check, Download, IdCard, Loader2, Move, Pause, Play, X } fro
 import { SINGLES, singleById, fullTitle, releaseLabel, PREVIEW_SECONDS, type Single } from "../catalog";
 import { fetchDownload } from "../shop";
 import SupporterCard from "../ui/SupporterCard";
+import { media } from "../../lib/media";
 import {
-  demoRoom, RoomError, fetchRoom, forgetRoom, localWall, requestRoomLink, roomPlayUrl, roomToken, saveRoom, saveWall,
+  demoRoom, RoomError, removePhoto, shrinkPhoto, uploadPhoto, fetchRoom, forgetRoom, localWall, requestRoomLink, roomPlayUrl, roomToken, saveRoom, saveWall,
   type RoomData, type RoomRecord,
 } from "./roomStore";
 
@@ -30,6 +31,8 @@ interface Layout {
   holo: [number, number, number];
   /** crate tag: x, y */
   crate: [number, number];
+  /** the little picture frame on the side table (the private photo) */
+  photo: Quad;
   /** how far left the picture shifts when the screen is narrower than it (0 = left edge, 1 = right edge) */
   focusX: number;
 }
@@ -52,6 +55,7 @@ const PHONE: Layout = {
   floor: [466, 1484, 276, 107],
   holo: [720, 884, 420],
   crate: [560, 1336],
+  photo: [[96, 884], [134, 882], [136, 932], [98, 934]],
   focusX: 0.5,
 };
 const DESK: Layout = {
@@ -71,6 +75,7 @@ const DESK: Layout = {
   floor: [1084, 734, 204, 42],
   holo: [255, 478, 300],
   crate: [760, 596],
+  photo: [[733, 455], [756, 454], [763, 493], [740, 494]],
   focusX: 0.35,
 };
 
@@ -134,6 +139,11 @@ export default function Room() {
   const [playing, setPlaying] = useState(false);
   const [crateOpen, setCrateOpen] = useState(false);
   const [cardOpen, setCardOpen] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [photoOpen, setPhotoOpen] = useState(false);
+  const [reveal, setReveal] = useState<string | null>(null);
+  const [freshPlaque, setFreshPlaque] = useState(false);
+  const [windowVideo, setWindowVideo] = useState(true);
   const [dl, setDl] = useState<"idle" | "busy" | string>("idle");
   const [wall, setWall] = useState<(string | null)[] | null>(null);
   const [arrange, setArrange] = useState(false);
@@ -202,6 +212,7 @@ export default function Room() {
   }, [layout]);
 
   const data = load.kind === "ready" ? load.data : null;
+  useEffect(() => setPhotoUrl(data?.photoUrl || null), [data]);
   const owned = useMemo(
     () => (data?.records || []).filter((r) => singleById.has(r.singleId)),
     [data],
@@ -218,6 +229,33 @@ export default function Room() {
   const nextTier = TIERS.find((t) => count < t.at) || null;
   // the record that unlocked the plaque (their 3rd, 7th or 15th song) is printed on its label
   const tierRecord = tier ? singleById.get([...bought].reverse()[tier.at - 1].singleId) || null : null;
+
+  // the moment a plaque is earned: once per level, on this device (never in the admin look-in)
+  useEffect(() => {
+    if (!tier || load.kind !== "ready" || load.view) return;
+    const key = `lj-room-seen-${tier.key}`;
+    const forced = new URLSearchParams(location.search).get("reveal") === "1";
+    let seen = false;
+    try {
+      seen = !!localStorage.getItem(key);
+    } catch {
+      /* ignore */
+    }
+    if (forced || (!load.demo && !seen)) {
+      const t = window.setTimeout(() => setReveal(tier.key), 900);
+      return () => clearTimeout(t);
+    }
+  }, [tier?.key, load]);
+  const closeReveal = () => {
+    try {
+      if (reveal) localStorage.setItem(`lj-room-seen-${reveal}`, "1");
+    } catch {
+      /* ignore */
+    }
+    setReveal(null);
+    setFreshPlaque(true);
+    window.setTimeout(() => setFreshPlaque(false), 4200);
+  };
 
   // engrave the name in the floor at the right size
   useLayoutEffect(() => {
@@ -349,6 +387,19 @@ export default function Room() {
       <div className="room-stage" ref={stageRef} style={{ width: L.W, height: L.H }}>
         <div className="room-window" style={{ left: wx, top: wy, width: ww, height: wh }}>
           <img src="/lazyjo/room/window.webp" alt="" />
+          {windowVideo && (
+            <video
+              src={media("lazyjo/room/window-loop.mp4")}
+              poster="/lazyjo/room/window.webp"
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              aria-hidden
+              onError={() => setWindowVideo(false)}
+            />
+          )}
         </div>
         <img className="room-pic" src={L.img} alt="" style={{ width: L.W, height: L.H }} />
 
@@ -399,7 +450,7 @@ export default function Room() {
 
             {tier && tierRecord ? (
               <div
-                className={`room-award is-won is-${tier.key}`}
+                className={`room-award is-won is-${tier.key} ${freshPlaque ? "is-fresh" : ""}`}
                 style={onQuad(L.award, 260, 300)}
                 role="img"
                 aria-label={`${tier.label.toLowerCase()} supporter plaque for ${name || "you"}`}
@@ -427,6 +478,17 @@ export default function Room() {
               <div className={`room-label ${playing ? "is-playing" : ""}`} style={onEllipse(L.label)} aria-hidden>
                 <i style={{ backgroundImage: `url("${single.cover}")` }} />
               </div>
+            )}
+
+            {(photoUrl || !viewing) && (
+              <button
+                className={`room-photo ${photoUrl ? "has-photo" : ""}`}
+                style={{ ...onQuad(L.photo, 60, 80), backgroundImage: photoUrl ? `url("${photoUrl}")` : undefined }}
+                onClick={() => setPhotoOpen(true)}
+                aria-label={viewing ? `${name || "Their"} photo` : photoUrl ? "My photo" : "Add a photo of me"}
+              >
+                {!photoUrl && <b aria-hidden>+</b>}
+              </button>
             )}
 
             {count > 0 && (
@@ -594,6 +656,42 @@ export default function Room() {
         </div>
       )}
 
+      {photoOpen && (
+        <PhotoPanel
+          url={photoUrl}
+          viewing={viewing}
+          demo={demo}
+          name={name}
+          token={token}
+          onChange={setPhotoUrl}
+          onClose={() => setPhotoOpen(false)}
+        />
+      )}
+
+      {reveal && tier && tierRecord && (
+        <div className={`room-reveal is-${tier.key}`} role="dialog" aria-modal="true" aria-labelledby="room-reveal-title">
+          <div className="room-reveal-rays" aria-hidden />
+          <div className="room-reveal-body">
+            <p className="room-reveal-k">UNLOCKED &middot; THE HIDDEN GEM</p>
+            <div className="room-reveal-disc" style={{ ["--label" as string]: `url("${tierRecord.cover}")` }} aria-hidden />
+            <h2 id="room-reveal-title">{tier.label} SUPPORTER</h2>
+            <p className="room-reveal-name">{(name || "Supporter").toUpperCase()} &middot; {count} RECORDS</p>
+            <p className="room-reveal-t">
+              {tier.key === "gold"
+                ? "Three records in. This one’s yours, from me. Thank you for real."
+                : tier.key === "platinum"
+                  ? "Seven records. You’re one of the real ones."
+                  : "Fifteen records. Diamond. There’s nothing more I can say: respect."}
+              <span> &mdash; Lazy Jo</span>
+            </p>
+            {nextTier && <p className="room-reveal-next">Something new waits at {nextTier.at} records.</p>}
+            <button className="room-reveal-btn" onClick={closeReveal} autoFocus>
+              Hang it on my wall
+            </button>
+          </div>
+        </div>
+      )}
+
       {cardOpen && single && selected && (
         <SupporterCard
           single={single}
@@ -605,6 +703,87 @@ export default function Room() {
           onClose={() => setCardOpen(false)}
         />
       )}
+    </div>
+  );
+}
+
+/** The side-table frame: a photo of the buyer. Private: only the buyer and Lazy Jo ever see it. */
+function PhotoPanel({
+  url, viewing, demo, name, token, onChange, onClose,
+}: {
+  url: string | null;
+  viewing: boolean;
+  demo: boolean;
+  name: string | null;
+  token: string | null;
+  onChange(url: string | null): void;
+  onClose(): void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setNote(null);
+    setBusy(true);
+    try {
+      const jpeg = await shrinkPhoto(file);
+      if (demo || !token) {
+        onChange(URL.createObjectURL(jpeg));
+        setNote("Demo room: your photo isn’t saved.");
+      } else {
+        onChange(await uploadPhoto(token, jpeg));
+        setNote("Saved. Only you and Lazy Jo can see it.");
+      }
+    } catch (e) {
+      setNote((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const remove = async () => {
+    if (!window.confirm("Remove your photo from your room?")) return;
+    setBusy(true);
+    try {
+      if (token && !demo) await removePhoto(token);
+      onChange(null);
+      setNote("Removed.");
+    } catch (e) {
+      setNote((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="room-crate-wrap" role="dialog" aria-modal="true" aria-labelledby="room-photo-title">
+      <div className="lj-player-scrim" onClick={onClose} />
+      <div className="room-crate-panel room-photo-panel">
+        <button className="lj-player-close lj-chip lj-icon" onClick={onClose} aria-label="Close">
+          <X size={16} aria-hidden />
+        </button>
+        <p className="room-gate-k">{viewing ? "THEIR PHOTO · PRIVATE" : "MY PHOTO · PRIVATE"}</p>
+        <h2 id="room-photo-title">{viewing ? `${name || "Their"} photo` : url ? "On my side table" : "Put yourself in your room"}</h2>
+        <div className="room-photo-big" style={url ? { backgroundImage: `url("${url}")` } : undefined}>
+          {!url && <span>No photo yet</span>}
+        </div>
+        {!viewing && (
+          <>
+            <p className="room-photo-note">&#128274; Only you and Lazy Jo can see this photo. It never shows anywhere public.</p>
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => void pick(e.target.files?.[0])} />
+            <div className="room-gate-actions">
+              <button className="lj-btn lj-btn-primary room-gold-btn" onClick={() => fileRef.current?.click()} disabled={busy}>
+                {busy ? <Loader2 size={16} className="lj-spin" aria-hidden /> : null} {url ? "Change photo" : "Choose a photo"}
+              </button>
+              {url && (
+                <button className="lj-btn lj-btn-ghost" onClick={remove} disabled={busy}>
+                  Remove
+                </button>
+              )}
+            </div>
+          </>
+        )}
+        {note && <p className="room-photo-note" role="status">{note}</p>}
+      </div>
     </div>
   );
 }

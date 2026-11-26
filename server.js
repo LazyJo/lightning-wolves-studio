@@ -586,14 +586,16 @@ function lazyjoRoomSecret() {
   const base = process.env.LAZYJO_ROOM_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
   return base ? crypto.createHash('sha256').update(`lazyjo-room:${base}`).digest() : null;
 }
-function lazyjoRoomToken(email) {
+// view: a read-only key for Lazy Jo's admin page (looks at a buyer's room, can't change it), valid 2 hours
+function lazyjoRoomToken(email, { view = false } = {}) {
   const secret = lazyjoRoomSecret();
   if (!secret || !email) return null;
-  const body = Buffer.from(JSON.stringify({ e: String(email).toLowerCase(), x: Date.now() + LAZYJO_ROOM_DAYS * 864e5 })).toString('base64url');
+  const claims = { e: String(email).toLowerCase(), x: Date.now() + (view ? 2 * 3600e3 : LAZYJO_ROOM_DAYS * 864e5), ...(view ? { v: 1 } : {}) };
+  const body = Buffer.from(JSON.stringify(claims)).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
   return `${body}.${sig}`;
 }
-function lazyjoRoomEmail(token) {
+function lazyjoRoomClaims(token) {
   const secret = lazyjoRoomSecret();
   const [body, sig] = String(token || '').split('.');
   if (!secret || !body || !sig) return null;
@@ -601,12 +603,13 @@ function lazyjoRoomEmail(token) {
   const got = Buffer.from(sig, 'base64url');
   if (got.length !== want.length || !crypto.timingSafeEqual(got, want)) return null;
   try {
-    const { e, x } = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
-    return typeof e === 'string' && Number(x) > Date.now() ? e : null;
+    const { e, x, v } = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    return typeof e === 'string' && Number(x) > Date.now() ? { email: e, view: v === 1 } : null;
   } catch {
     return null;
   }
 }
+const lazyjoRoomEmail = (token) => lazyjoRoomClaims(token)?.email || null;
 
 // The free welcome gift: every buyer gets this one in their room (singles.json `gift: true`).
 const LAZYJO_GIFT = LAZYJO_CATALOG.singles.find((x) => x.gift) || null;
@@ -646,7 +649,8 @@ async function lazyjoRoomLayout(email) {
 
 app.get('/api/lazyjo/room', async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  const email = lazyjoRoomEmail(req.query.t);
+  const claims = lazyjoRoomClaims(req.query.t);
+  const email = claims?.email;
   if (!email) return res.status(401).json({ error: 'This room link has expired. Open your room again from your email.' });
   if (!supabase) return res.status(503).json({ error: 'Rooms are not available right now' });
   try {
@@ -659,7 +663,8 @@ app.get('/api/lazyjo/room', async (req, res) => {
       const s = await stripe.checkout.sessions.retrieve(newest.sessionId).catch(() => null);
       name = (s?.customer_details?.name || '').trim().split(/\s+/)[0] || null;
     }
-    res.json({ name, supporterNo, since, records, wall, token: lazyjoRoomToken(email) });
+    // an admin look (view key) gets no fresh owner key
+    res.json({ name, supporterNo, since, records, wall, view: !!claims.view, token: claims.view ? null : lazyjoRoomToken(email) });
   } catch (err) {
     console.error('lazyjo room error:', err.message || err);
     res.status(500).json({ error: 'Could not open your room' });
@@ -668,8 +673,10 @@ app.get('/api/lazyjo/room', async (req, res) => {
 
 // Save the wall order. Only songs the buyer owns are kept.
 app.post('/api/lazyjo/room/layout', async (req, res) => {
-  const email = lazyjoRoomEmail(req.body?.t);
+  const claims = lazyjoRoomClaims(req.body?.t);
+  const email = claims?.email;
   if (!email) return res.status(401).json({ error: 'Room link expired' });
+  if (claims.view) return res.status(403).json({ error: 'Read-only view' });
   if (!supabase) return res.status(503).json({ error: 'Rooms are not available right now' });
   try {
     const { records } = await lazyjoOwned(email);
@@ -711,6 +718,33 @@ app.get('/api/lazyjo/room/play', async (req, res) => {
   } catch (err) {
     console.error('lazyjo room play error:', err.message || err);
     res.status(500).json({ error: 'Could not play this song' });
+  }
+});
+
+// Lazy Jo's admin page: every buyer's room (read-only look, 2-hour key per room).
+app.get('/api/lazyjo/admin/rooms', async (req, res) => {
+  try {
+    if (!(await lazyjoRequireAdmin(req, res))) return;
+    if (!supabase) return res.status(503).json({ error: 'Supabase is not configured' });
+    const { data, error } = await supabase.from('lazyjo_purchases')
+      .select('email, single_id, created_at').is('refunded_at', null).order('created_at', { ascending: true }).limit(100000);
+    if (error) throw error;
+    const rooms = new Map();
+    for (const r of data || []) {
+      const e = String(r.email).toLowerCase();
+      if (!rooms.has(e)) rooms.set(e, { email: e, supporterNo: rooms.size + 1, songs: new Set(), first: r.created_at, last: r.created_at });
+      const room = rooms.get(e);
+      room.songs.add(r.single_id);
+      room.last = r.created_at;
+    }
+    const list = [...rooms.values()].map((r) => ({
+      email: r.email, supporterNo: r.supporterNo, records: r.songs.size, songs: [...r.songs], first: r.first, last: r.last,
+      viewUrl: `/lazyjo/room/?view=${encodeURIComponent(lazyjoRoomToken(r.email, { view: true }))}`,
+    })).sort((a, b) => b.records - a.records || a.supporterNo - b.supporterNo);
+    res.json({ rooms: list });
+  } catch (err) {
+    console.error('lazyjo admin rooms error:', err.message || err);
+    res.status(500).json({ error: 'Could not load rooms' });
   }
 });
 

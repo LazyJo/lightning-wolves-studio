@@ -17,9 +17,11 @@ import {
   Ban,
   RotateCcw,
   Mail,
+  DoorOpen,
 } from "lucide-react";
 import { initSupabase } from "../lib/supabaseClient";
 import LazyJoFansTab from "./admin/LazyJoFansTab";
+import LazyJoRoomsTab from "./admin/LazyJoRoomsTab";
 import { useProfile } from "../lib/useProfile";
 import { useSession } from "../lib/useSession";
 import {
@@ -93,7 +95,7 @@ function displayNameOf(m: { display_name: string | null; email: string | null })
   return m.display_name || m.email?.split("@")[0] || "Wolf";
 }
 
-type Tab = "members" | "subscriptions" | "hub" | "studio" | "requests" | "fans";
+type Tab = "members" | "subscriptions" | "hub" | "studio" | "requests" | "fans" | "rooms";
 
 interface Props {
   onBack: () => void;
@@ -318,6 +320,9 @@ export default function AdminPage({ onBack }: Props) {
           <TabBtn active={tab === "fans"} onClick={() => setTab("fans")}>
             <Mail size={14} /> Lazy Jo fans
           </TabBtn>
+          <TabBtn active={tab === "rooms"} onClick={() => setTab("rooms")}>
+            <DoorOpen size={14} /> Supporter rooms
+          </TabBtn>
           <TabBtn active={tab === "requests"} onClick={() => setTab("requests")}>
             <Zap size={14} /> Requests
             {pendingRequestCount > 0 && (
@@ -430,6 +435,7 @@ export default function AdminPage({ onBack }: Props) {
               <StudioActivityTab members={members} stats={studioStats} />
             )}
             {tab === "fans" && <LazyJoFansTab accessToken={accessToken} />}
+            {tab === "rooms" && <LazyJoRoomsTab accessToken={accessToken} />}
             {tab === "requests" && (
               <RequestsTab
                 onMembersChanged={(targetId, nextCredits) => {

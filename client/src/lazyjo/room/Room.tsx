@@ -123,7 +123,7 @@ const TIERS = [
 
 type Load =
   | { kind: "loading" }
-  | { kind: "ready"; data: RoomData; demo: boolean }
+  | { kind: "ready"; data: RoomData; demo: boolean; view?: string }
   | { kind: "none" }
   | { kind: "error"; msg: string; expired: boolean };
 
@@ -150,6 +150,18 @@ export default function Room() {
     const q = new URLSearchParams(location.search);
     if (q.get("demo")) {
       setLoad({ kind: "ready", demo: true, data: demoRoom(Number(q.get("n") || 5)) });
+      return;
+    }
+    // Lazy Jo's admin page: a read-only look at a buyer's room (not saved on this device)
+    const view = q.get("view");
+    if (view) {
+      fetchRoom(view).then(
+        (data) => {
+          setWall(data.wall || null);
+          setLoad({ kind: "ready", demo: false, data, view });
+        },
+        (e: RoomError) => setLoad({ kind: "error", msg: e.status === 401 ? "This look-in link expired. Open the room again from the admin page." : e.message, expired: false }),
+      );
       return;
     }
     const t = q.get("t") || roomToken();
@@ -198,7 +210,8 @@ export default function Room() {
   const single: Single | null = selected ? singleById.get(selected.singleId) || null : null;
   const name = data?.name || null;
   const demo = load.kind === "ready" && load.demo;
-  const token = load.kind === "ready" && !load.demo ? roomToken() : null;
+  const viewing = load.kind === "ready" && !!load.view;
+  const token = load.kind === "ready" && !load.demo ? load.view || roomToken() : null;
   const bought = owned.filter((r) => !r.gift);
   const count = bought.length;
   const tier = [...TIERS].reverse().find((t) => count >= t.at) || null;
@@ -483,7 +496,7 @@ export default function Room() {
           {data?.supporterNo ? <span className="room-chip">⚡ Supporter #{pad3(data.supporterNo)}</span> : null}
           {data ? <span className="room-chip">{count} {count === 1 ? "record" : "records"}</span> : null}
         </div>
-        {owned.length > 1 && (
+        {owned.length > 1 && !viewing && (
           <button
             className={`room-arrange ${arrange ? "is-on" : ""}`}
             onClick={() => {
@@ -504,6 +517,11 @@ export default function Room() {
         </a>
       </header>
 
+      {viewing && (
+        <div className="room-demo room-viewing" role="status">
+          Admin look-in · {name ? `${name}’s` : "this"} room · read-only
+        </div>
+      )}
       {arrange ? (
         <div className="room-arrange-hint" role="status">
           {moveFrom === null ? "Tap a record, then tap where it goes" : "Now tap the frame where it goes"}

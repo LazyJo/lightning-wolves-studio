@@ -264,3 +264,4 @@ body { background: #05040a; }
   .room-arrange-hint { bottom: auto; top: calc(max(16px, env(safe-area-inset-top)) + 62px); font-size: 11.5px; }
 }
 @media (prefers-reduced-motion: reduce) { .room-frame.is-arrange { animation: none; } }
+.room-viewing { color: #ffe27a; border-color: rgba(245, 197, 24, 0.5); }

@@ -300,7 +300,10 @@ swap; saved via `POST /api/lazyjo/room/layout` to `lazyjo-masters/rooms/<sha256>
 the crate); **I'm Lost = free welcome gift** (`gift: true` in singles.json, Jo has no WAV: the gift is its JAVEDA level mp3): gold "FREE GIFT"
 ribbon + lock on its 3D cover, gift panel instead of Buy, in every buyer's room after their first purchase; the first delivery email mentions it;
 every delivery email has "Open my room" (room token link); `POST /api/lazyjo/room/link` emails a room link (same answer whether or not the email
-bought). Next: gold unlock animation, UFO video loop in the window, private photo.
+bought). **Admin look-in:** admin page tab "Supporter rooms" (`components/admin/LazyJoRoomsTab.tsx`, `GET /api/lazyjo/admin/rooms`) lists every
+buyer (from their first purchase) with records/level and "Open room" = `/lazyjo/room/?view=<2-hour read-only key>` (claim `v:1`; can play, can't
+arrange, never saved on the device; privacy page says so). Next: gold unlock animation, UFO video loop in the window, private photo (keep the
+photo out of the admin look-in).
 JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
 Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 

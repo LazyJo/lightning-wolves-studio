@@ -52,7 +52,7 @@ body { background: #05040a; }
   box-shadow: 0 0 30px rgba(245, 197, 24, 0.5), inset 0 0 0 3px #fff3b0;
 }
 .room-disc::before {
-  content: ""; position: absolute; inset: 34%; border-radius: 50%;
+  content: ""; position: absolute; inset: 24%; border-radius: 50%;
   background: var(--label) center / cover; box-shadow: 0 0 0 3px #7a5a00;
 }
 .room-disc::after {
@@ -315,7 +315,7 @@ body { background: #05040a; }
   animation: room-disc-in 1.2s cubic-bezier(0.2, 1.2, 0.3, 1) 0.3s both, room-spin 9s linear 1.5s infinite;
 }
 .room-reveal.is-diamond .room-reveal-disc { background: conic-gradient(from 0deg, #9fe9ff, #fff, #7cc9ff, #e0fbff, #9fe9ff, #fff, #7cc9ff, #9fe9ff); }
-.room-reveal-disc::before { content: ""; position: absolute; inset: 34%; border-radius: 50%; background: var(--label) center / cover; box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.6); }
+.room-reveal-disc::before { content: ""; position: absolute; inset: 24%; border-radius: 50%; background: var(--label) center / cover; box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.6); }
 .room-reveal-disc::after {
   content: ""; position: absolute; inset: 0; border-radius: 50%;
   background: conic-gradient(from 30deg, transparent 0 10%, rgba(255, 255, 255, 0.6) 14%, transparent 20% 60%, rgba(255, 255, 255, 0.35) 64%, transparent 70%);

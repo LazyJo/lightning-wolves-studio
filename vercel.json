@@ -30,6 +30,10 @@
     {
       "source": "/lazyjo",
       "destination": "/lazyjo/index.html"
+    },
+    {
+      "source": "/lazyjo/room",
+      "destination": "/lazyjo/room/index.html"
     }
   ],
   "headers": [

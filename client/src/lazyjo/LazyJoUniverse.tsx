@@ -10,6 +10,7 @@ import PurchaseResult from "./ui/PurchaseResult";
 import GalaxyPanel from "./ui/GalaxyPanel";
 import JoinPanel from "./ui/JoinPanel";
 import { fetchDownload, type DownloadResult } from "./shop";
+import { roomCount, saveRoom } from "./room/roomStore";
 import { isFan, markFan } from "./fanGate";
 import VideoScreen from "./ui/VideoScreen";
 import { hasVideoClip, preloadVideoIndex } from "./videos";
@@ -68,6 +69,7 @@ export default function LazyJoUniverse() {
   const [purchase, setPurchase] = useState<{ sessionId?: string; cancelled?: boolean } | null>(null);
   // after a purchase: the record is beamed in first, then the delivery panel opens
   const [purchaseData, setPurchaseData] = useState<DownloadResult | null>(null);
+  const [roomN, setRoomN] = useState<number | null>(() => roomCount());
   const [delivering, setDelivering] = useState(false); // the beam-in is running: no regular player
   const [yours, setYours] = useState<Single | null>(null); // the big "IT'S YOURS" moment
   const [deliveryPanel, setDeliveryPanel] = useState(false);
@@ -240,7 +242,11 @@ export default function LazyJoUniverse() {
   // Back from Stripe: fetch the purchase while the page boots, then beam the record in.
   useEffect(() => {
     if (!purchase?.sessionId) return;
-    fetchDownload(purchase.sessionId).then(setPurchaseData, () => setDeliveryPanel(true)); // error: the panel says so
+    fetchDownload(purchase.sessionId).then((d) => {
+      saveRoom(d.roomToken, d.records);
+      setRoomN(roomCount());
+      setPurchaseData(d);
+    }, () => setDeliveryPanel(true)); // error: the panel says so
   }, [purchase]);
   useEffect(() => {
     if (!purchaseData || !ready || deliveryStarted.current) return;
@@ -365,6 +371,7 @@ export default function LazyJoUniverse() {
           onOpenNearest={() => (nearest ? openSingle(nearest.id) : engineRef.current?.openNearest())}
           onBeam={() => engineRef.current?.beamRandom()}
           onJoin={() => setJoinOpen(true)}
+          roomCount={roomN}
           ufoHover={!selected && ufoHover}
           javedaHover={!selected && javedaHover}
           galaxyHover={!selected && !galaxyOpen && galaxyHover}

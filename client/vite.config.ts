@@ -15,6 +15,7 @@ export default defineConfig({
       input: {
         main: here("./index.html"),
         lazyjo: here("./lazyjo/index.html"),
+        lazyjoroom: here("./lazyjo/room/index.html"),
       },
     },
   },

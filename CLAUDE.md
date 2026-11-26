@@ -282,6 +282,18 @@ distinct songs owned; both come back from `/api/lazyjo/download`. All of it need
 **JAVEDA chat + link counter (2026-11-24):** `supabase-javeda-chat-keep100.sql` **ran in prod** (the chat keeps the newest
 100 messages, no 30-day expiry); the `lazyjo-universe` rows in `javeda_link_days` were **deleted** (Jo's own tests). Creator
 devices no longer count as link visitors (`javeda.creatorDevice` in localStorage). Don't re-run either.
+**My Room (2026-11-26, step 1 of 4):** a buyer's private penthouse on the ship at `/lazyjo/room/` (3rd Vite entry `client/lazyjo/room/index.html`,
+code `client/src/lazyjo/room/`, vercel.json rewrite). A "living picture": Jo's ChatGPT room images (`public/lazyjo/room/room-desk.webp` 3200×1800,
+`room-phone.webp` 1440×2560, window cut out to transparent; 16K originals in Supabase `media/lazyjo/room/*.jpg`) with live layers placed in the
+picture's own units (1672×941 / 941×1672; frames mapped with a CSS matrix3d homography): the Universe drifting in the window (`window.webp`),
+8 wall frames (newest record in the spotlit one, empty = "+ COLLECT" → `/lazyjo/?single=`), the big frame = hidden "?" until **3 records**, then a
+gold plaque with their name (label = their 3rd song), name + Supporter # engraved in the gold floor circle, the selected record spinning on the
+turntable, gold hologram (play 30 s preview, WAV via `/api/lazyjo/download?session_id=`, supporter card), crate = all records, Discord
+(discord.gg/SES7XPJvBH). No accounts: `GET /api/lazyjo/room?t=` takes an HMAC token for the buyer's email (`lazyjoRoomToken` in server.js, key
+derived from `LAZYJO_ROOM_SECRET` or the service-role key, 1 year, renewed on every visit); `/api/lazyjo/download` returns `roomToken`, the
+Universe saves it (`room/roomStore.ts`, localStorage `lj-room` + `lj-room-n`), so the thank-you page or the delivery-email link on any device opens
+the room. HUD: "My room" ship button under the wordmark with the records count. `?demo=1` (&n=2) = Sam's demo room. Next steps: email "open my
+room" link, crate/record interactions polish, gold unlock animation, UFO video loop in the window, private photo.
 JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
 Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 

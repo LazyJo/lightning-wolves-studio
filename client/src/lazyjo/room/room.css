@@ -1,0 +1,198 @@
+/* ─── MY ROOM (/lazyjo/room/): the buyer's penthouse on the ship ─── */
+body { background: #05040a; }
+.room-root { position: fixed; inset: 0; overflow: hidden; background: #05040a; }
+.room-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.room-stage > * { position: absolute; left: 0; top: 0; }
+.room-pic { pointer-events: none; user-select: none; }
+
+/* the Universe drifting by outside */
+.room-window { overflow: hidden; }
+.room-window img {
+  position: absolute; width: 118%; height: 118%; left: -9%; top: -9%; object-fit: cover;
+  animation: room-drift 26s ease-in-out infinite alternate;
+}
+@keyframes room-drift { from { transform: translate3d(-2%, 0, 0) scale(1); } to { transform: translate3d(2%, -1%, 0) scale(1.05); } }
+
+/* the wall frames (mapped onto the picture's perspective) */
+.room-frame {
+  transform-origin: 0 0; padding: 0; border: 0; cursor: pointer; display: block;
+  background: center / cover no-repeat; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+.room-frame.is-own::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 40%, transparent 70%, rgba(255, 255, 255, 0.06));
+  transition: opacity 0.3s;
+}
+.room-frame.is-own:hover, .room-frame.is-on { box-shadow: 0 0 22px color-mix(in srgb, var(--acc) 70%, transparent), inset 0 0 0 2px var(--acc); }
+.room-frame.is-empty {
+  display: grid; place-items: center; text-decoration: none;
+  background: radial-gradient(circle at 50% 45%, rgba(245, 197, 24, 0.1), transparent 70%);
+}
+.room-frame.is-empty b { font: 300 34px var(--lj-body); color: rgba(245, 197, 24, 0.55); }
+.room-frame.is-empty small {
+  position: absolute; bottom: 8%; left: 0; right: 0; text-align: center;
+  font: 800 9px var(--lj-body); letter-spacing: 0.2em; color: rgba(245, 197, 24, 0.55);
+}
+.room-frame.is-empty:hover b, .room-frame.is-empty:hover small { color: #ffe27a; }
+.room-frame:focus-visible { outline: 3px solid #f5c518; outline-offset: 2px; }
+
+/* the big frame: a hidden gem until 3 records, then a gold record award */
+.room-award { transform-origin: 0 0; overflow: hidden; text-align: center; color: #f5c518; }
+.room-award.is-hidden-gem { display: grid; place-items: center; background: radial-gradient(ellipse at 50% 45%, #120d03, #040302 70%); }
+.room-award.is-hidden-gem span {
+  font: 900 120px "Cinzel", serif; color: rgba(245, 197, 24, 0.1);
+  text-shadow: 0 0 40px rgba(245, 197, 24, 0.12); animation: room-pulse 4s ease-in-out infinite;
+}
+@keyframes room-pulse { 50% { color: rgba(245, 197, 24, 0.22); } }
+.room-award.is-gold { background: radial-gradient(ellipse at 50% 40%, #1b1405, #070604 70%); }
+.room-award h5 { position: absolute; left: 0; right: 0; top: 7%; margin: 0; font: 800 10px var(--lj-body); letter-spacing: 0.42em; color: #d9b54a; }
+.room-disc {
+  position: absolute; left: 50%; top: 15%; width: 52%; aspect-ratio: 1; transform: translateX(-50%); border-radius: 50%;
+  background: repeating-radial-gradient(circle, #b8860b 0 1px, #f5c518 1px 3px, #d4a417 3px 4px);
+  box-shadow: 0 0 30px rgba(245, 197, 24, 0.5), inset 0 0 0 3px #fff3b0;
+}
+.room-disc::before {
+  content: ""; position: absolute; inset: 34%; border-radius: 50%;
+  background: var(--label) center / cover; box-shadow: 0 0 0 3px #7a5a00;
+}
+.room-disc::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(from 30deg, transparent 0 10%, rgba(255, 255, 255, 0.55) 14%, transparent 20% 60%, rgba(255, 255, 255, 0.3) 64%, transparent 70%);
+}
+.room-award h4 { position: absolute; left: 4%; right: 4%; top: 70%; margin: 0; font: 900 26px "Cinzel", serif; letter-spacing: 0.1em; color: #ffe27a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.room-award p { position: absolute; left: 0; right: 0; top: 81%; margin: 0; font: 800 10px var(--lj-body); letter-spacing: 0.16em; color: #d9b54a; white-space: nowrap; }
+
+/* the name engraved in the gold floor circle */
+.room-floor { border-radius: 50%; transform-origin: 50% 50%; pointer-events: none; }
+.room-floor > div {
+  position: absolute; left: 50%; top: 50%; text-align: center; white-space: nowrap;
+  font: 900 230px/1 "Cinzel", serif; letter-spacing: 0.08em; color: transparent;
+  background: linear-gradient(100deg, #7a5a12 0%, #f5d26b 30%, #fff3c4 45%, #c99a2e 60%, #7a5a12 100%);
+  background-size: 220% 100%; -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 0 10px rgba(245, 197, 24, 0.35)); animation: room-shine 6s linear infinite;
+}
+.room-floor small {
+  display: block; margin-top: 26px; font: 800 58px var(--lj-body); letter-spacing: 0.32em;
+  color: rgba(245, 210, 107, 0.85); -webkit-text-fill-color: rgba(245, 210, 107, 0.85);
+}
+@keyframes room-shine { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+
+/* the record label on the turntable */
+.room-label { border-radius: 50%; pointer-events: none; }
+.room-label i {
+  position: absolute; inset: 0; border-radius: 50%; background: center / cover;
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6); animation: room-spin 1.8s linear infinite paused;
+}
+.room-label.is-playing i { animation-play-state: running; }
+.room-label i::after { content: ""; position: absolute; left: 46%; top: 46%; width: 8%; height: 8%; border-radius: 50%; background: #111; box-shadow: 0 0 0 2px #c9a227; }
+@keyframes room-spin { to { transform: rotate(360deg); } }
+
+.room-crate {
+  transform: translate(-50%, -100%); white-space: nowrap; cursor: pointer;
+  padding: 7px 13px; border-radius: 999px; background: rgba(8, 6, 2, 0.8); border: 1px solid rgba(245, 197, 24, 0.6);
+  font: 800 12px var(--lj-body); color: #ffe27a; box-shadow: 0 0 14px rgba(245, 197, 24, 0.3);
+}
+.room-crate:hover { background: rgba(40, 30, 6, 0.9); }
+
+/* hologram */
+.room-holo-anchor { position: fixed; z-index: 5; }
+.room-holo {
+  position: relative; padding: 12px 14px 12px; border-radius: 12px; color: #fff3c4;
+  background: linear-gradient(180deg, rgba(40, 30, 6, 0.55), rgba(10, 8, 2, 0.55));
+  border: 1px solid rgba(245, 197, 24, 0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 0 24px rgba(245, 197, 24, 0.35), inset 0 0 30px rgba(245, 197, 24, 0.12);
+  animation: room-float 4s ease-in-out infinite;
+}
+@keyframes room-float { 50% { transform: translateY(-4px); } }
+.room-holo .k { font: 800 9px var(--lj-body); letter-spacing: 0.22em; color: #f5c518; }
+.room-holo h3 { margin: 3px 0 1px; font: 800 24px/1.1 var(--lj-display); color: #fff; text-shadow: 0 0 14px rgba(245, 197, 24, 0.6); }
+.room-holo .a { font: 700 11px var(--lj-body); color: #e9d9a4; }
+.room-holo .w { display: flex; gap: 2px; align-items: center; height: 20px; margin: 8px 0; }
+.room-holo .w i { flex: 1; background: #f5c518; border-radius: 1px; opacity: 0.55; transform: scaleY(0.3); }
+.room-holo.is-playing .w i { opacity: 0.9; animation: room-eq 1s ease-in-out infinite alternate; }
+@keyframes room-eq { from { transform: scaleY(0.35); } to { transform: scaleY(1); } }
+.room-holo .b { display: flex; gap: 6px; }
+.room-holo .b button {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 34px;
+  padding: 0 8px; border-radius: 8px; cursor: pointer; font: 800 12px var(--lj-body);
+  background: rgba(245, 197, 24, 0.14); color: #ffe27a; border: 1px solid rgba(245, 197, 24, 0.5);
+}
+.room-holo .b button:first-child { flex: 0 0 34px; padding: 0; }
+.room-holo .b button.p { background: #f5c518; color: #1a1400; border-color: #f5c518; }
+.room-holo .b button:disabled { opacity: 0.7; }
+.room-holo .note { margin: 8px 0 0; font: 600 11.5px/1.4 var(--lj-body); color: #e9d9a4; }
+
+/* HUD */
+.room-hud {
+  position: fixed; left: 0; right: 0; top: 0; z-index: 6; display: flex; align-items: center; gap: 14px;
+  padding: max(16px, env(safe-area-inset-top)) clamp(14px, 3vw, 24px) 18px;
+  background: linear-gradient(180deg, rgba(3, 3, 8, 0.78), rgba(3, 3, 8, 0));
+}
+.room-back {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid rgba(159, 233, 255, 0.35); background: rgba(3, 7, 18, 0.6); color: var(--lj-ink);
+  font: 700 14px var(--lj-body); text-decoration: none;
+}
+.room-title small { display: block; font: 700 11px var(--lj-body); letter-spacing: 0.34em; color: #f5c518; }
+.room-title b { font: 800 22px var(--lj-display); color: #fff; }
+.room-chips { margin-left: auto; display: flex; gap: 8px; }
+.room-chip { padding: 8px 14px; border-radius: 999px; background: rgba(3, 7, 18, 0.6); border: 1px solid rgba(245, 197, 24, 0.45); font: 800 12.5px var(--lj-body); color: #ffe27a; white-space: nowrap; }
+.room-discord {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px;
+  background: #5865f2; color: #fff; font: 800 12.5px var(--lj-body); text-decoration: none; box-shadow: 0 0 18px rgba(88, 101, 242, 0.55);
+}
+.room-demo {
+  position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 6;
+  padding: 7px 14px; border-radius: 999px; background: rgba(3, 7, 18, 0.75); border: 1px solid rgba(159, 233, 255, 0.3);
+  font: 700 11.5px var(--lj-body); color: var(--lj-muted); white-space: nowrap;
+}
+
+/* no room yet */
+.room-gate { position: fixed; inset: 0; z-index: 8; display: grid; place-items: center; padding: 16px; background: rgba(4, 3, 8, 0.6); backdrop-filter: blur(3px); }
+.room-gate-card {
+  width: min(460px, 100%); padding: 28px 26px; border-radius: 22px; text-align: center;
+  background: rgba(12, 9, 4, 0.88); border: 1px solid rgba(245, 197, 24, 0.45); box-shadow: 0 0 60px -10px rgba(245, 197, 24, 0.35);
+}
+.room-gate-k { margin: 0 0 8px; font: 800 11px var(--lj-body); letter-spacing: 0.34em; color: #f5c518; }
+.room-gate-card h1 { margin: 0 0 12px; font: 800 26px/1.15 var(--lj-display); color: #fff; }
+.room-gate-card p { margin: 0 0 12px; font: 600 15px/1.55 var(--lj-body); color: #e6dcc0; }
+.room-gate-card .room-gate-fine { font-size: 13px; color: #b9ad8c; }
+.room-gate-actions { display: grid; gap: 10px; margin-top: 18px; }
+.room-gate-actions .lj-btn { justify-content: center; text-decoration: none; }
+.room-loading { position: fixed; inset: 0; z-index: 7; display: grid; place-content: center; gap: 10px; justify-items: center; font: 700 14px var(--lj-body); color: #ffe27a; background: rgba(4, 3, 8, 0.4); }
+
+/* the crate: every record */
+.room-crate-wrap { position: fixed; inset: 0; z-index: 9; display: grid; place-items: center; padding: 16px; }
+.room-crate-panel {
+  position: relative; width: min(520px, 100%); max-height: min(80dvh, 720px); overflow: auto; padding: 24px 20px;
+  border-radius: 22px; background: rgba(12, 9, 4, 0.94); border: 1px solid rgba(245, 197, 24, 0.45);
+}
+.room-crate-panel h2 { margin: 0 0 14px; font: 800 22px var(--lj-display); color: #fff; }
+.room-crate-panel ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.room-crate-panel li button {
+  width: 100%; display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: 12px; cursor: pointer; text-align: left;
+  background: rgba(245, 197, 24, 0.06); border: 1px solid rgba(245, 197, 24, 0.2);
+}
+.room-crate-panel li button:hover { border-color: #f5c518; }
+.room-crate-panel img { width: 52px; height: 52px; border-radius: 6px; object-fit: cover; }
+.room-crate-panel b { display: block; font: 800 15px var(--lj-body); color: #fff; }
+.room-crate-panel small { font: 600 12px var(--lj-body); color: #b9ad8c; }
+
+@media (max-width: 600px) {
+  .room-demo { bottom: auto; top: calc(max(16px, env(safe-area-inset-top)) + 62px); font-size: 10.5px; padding: 5px 11px; }
+  .room-holo { padding: 9px 10px; border-radius: 10px; }
+  .room-holo h3 { font-size: 18px; }
+  .room-holo .a { font-size: 10px; }
+  .room-holo .w { display: none; }
+  .room-holo .b { margin-top: 7px; gap: 5px; }
+  .room-holo .b button { min-height: 32px; font-size: 11.5px; }
+  .room-holo .b button:first-child { flex-basis: 32px; }
+  .room-hud { gap: 10px; }
+  .room-back { padding: 0 13px; }
+  .room-back span, .room-chips, .room-discord span { display: none; }
+  .room-title b { font-size: 18px; }
+  .room-discord { margin-left: auto; width: 44px; min-height: 44px; padding: 0; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .room-window img, .room-floor > div, .room-award.is-hidden-gem span, .room-holo, .room-label i, .room-holo .w i { animation: none !important; }
+}

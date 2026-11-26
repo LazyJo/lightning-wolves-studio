@@ -10,6 +10,8 @@ interface Props {
   onOpenNearest(): void;
   onBeam(): void;
   onJoin(): void;
+  /** records in the visitor's room (null: no room on this device yet) */
+  roomCount: number | null;
   ufoHover: boolean;
   javedaHover: boolean;
   onJaveda(): void;
@@ -29,6 +31,7 @@ export default function Hud({
   onOpenNearest,
   onBeam,
   onJoin,
+  roomCount,
   ufoHover,
   javedaHover,
   onJaveda,
@@ -44,10 +47,30 @@ export default function Hud({
   return (
     <div className="lj-hud">
       <header className="lj-hud-top">
-        <a className="lj-wordmark" href="/" aria-label="Lightning Wolves home">
-          <span className="lj-wordmark-name">Lazy Jo&rsquo;s</span>
-          <span className="lj-wordmark-sub">Universe</span>
-        </a>
+        <div className="lj-hud-left">
+          <a className="lj-wordmark" href="/" aria-label="Lightning Wolves home">
+            <span className="lj-wordmark-name">Lazy Jo&rsquo;s</span>
+            <span className="lj-wordmark-sub">Universe</span>
+          </a>
+          <a
+            className="lj-room-btn"
+            href="/lazyjo/room/"
+            aria-label={roomCount ? `My room: ${roomCount} ${roomCount === 1 ? "record" : "records"}` : "My room"}
+          >
+            <svg className="lj-room-ship" viewBox="0 0 120 74" aria-hidden>
+              <ellipse cx="60" cy="66" rx="40" ry="5" fill="rgba(0,245,255,.25)" />
+              <path d="M8 44 Q20 22 60 18 Q100 22 112 44 Q100 56 60 58 Q20 56 8 44Z" fill="#1a2440" stroke="#9fe9ff" strokeOpacity=".5" strokeWidth="2" />
+              <rect x="28" y="34" width="64" height="12" rx="6" fill="#050a16" stroke="#f5c518" strokeOpacity=".6" />
+              <circle cx="40" cy="40" r="3.6" fill="#f5c518" />
+              <circle cx="52" cy="40" r="3.6" fill="#f5c518" />
+              <circle cx="64" cy="40" r="3.6" fill="#f5c518" />
+              <circle cx="76" cy="40" r="3.6" fill="#f5c518" />
+              <path d="M40 20 Q60 2 80 20" fill="rgba(159,233,255,.18)" stroke="#9fe9ff" strokeOpacity=".7" strokeWidth="2" />
+            </svg>
+            <span>My room</span>
+            {roomCount ? <small>{roomCount}</small> : null}
+          </a>
+        </div>
         <div className="lj-hud-actions">
           <button className="lj-chip" onClick={onJoin} aria-label="Join Lazy Jo's list">
             <Bell size={16} aria-hidden /> <span className="lj-hide-sm">Join</span>

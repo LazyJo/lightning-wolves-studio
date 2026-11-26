@@ -835,3 +835,23 @@ a { color: var(--lj-cyan); }
 .lj-card-actions .lj-btn { width: 100%; justify-content: center; }
 .lj-card-note { margin: 0; font-size: 12.5px; color: var(--lj-muted); text-align: center; }
 .lj-card-modal .lj-player-close { top: 12px; right: 12px; }
+
+/* ─── "My room" (top left, under the wordmark): the visitor's own room on the ship ─── */
+.lj-hud-left { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; pointer-events: none; }
+.lj-hud-left > * { pointer-events: auto; }
+.lj-room-btn {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 12px 0 8px; border-radius: 999px;
+  background: rgba(3, 7, 18, 0.66); border: 1.5px solid rgba(245, 197, 24, 0.6); color: #fff; text-decoration: none;
+  font: 800 13px var(--lj-display); letter-spacing: 0.01em; white-space: nowrap; box-shadow: 0 0 18px rgba(245, 197, 24, 0.25);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  transition: box-shadow 0.25s var(--lj-ease), border-color 0.25s var(--lj-ease), transform 0.2s var(--lj-ease);
+}
+.lj-room-btn:hover { border-color: #f5c518; box-shadow: 0 0 26px rgba(245, 197, 24, 0.45); }
+.lj-room-btn:active { transform: scale(0.97); }
+.lj-room-ship { width: 34px; height: 21px; filter: drop-shadow(0 0 6px rgba(245, 197, 24, 0.5)); }
+.lj-room-btn small { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center; background: #f5c518; color: #1a1400; font: 800 11px var(--lj-body); }
+@media (max-width: 600px) {
+  .lj-hud-left { gap: 10px; }
+  .lj-room-btn { min-height: 36px; font-size: 12px; padding: 0 10px 0 6px; }
+  .lj-room-ship { width: 28px; height: 18px; }
+}

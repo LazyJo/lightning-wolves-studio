@@ -4,6 +4,7 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const Anthropic = require('@anthropic-ai/sdk');
 const { createClient } = require('@supabase/supabase-js');
 const OpenAI = require('openai');
@@ -571,6 +572,70 @@ async function sendLazyjoDelivery(session, email, supporterNo, records) {
   await lazyjoSendEmails([{ to: email, subject: `Your record has landed: ${lazyjoTitle(single)}`, html }]);
 }
 
+// ─── MY ROOM: a buyer's private room (/lazyjo/room/) ────────────────────────────
+// No accounts: a room is opened with a signed token for the buyer's email (HMAC, so it can't be
+// guessed or edited). The thank-you page hands one out after a paid purchase; later an email link
+// will too. Tokens last a year and are renewed every time the room opens.
+const LAZYJO_ROOM_DAYS = 365;
+function lazyjoRoomSecret() {
+  const base = process.env.LAZYJO_ROOM_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+  return base ? crypto.createHash('sha256').update(`lazyjo-room:${base}`).digest() : null;
+}
+function lazyjoRoomToken(email) {
+  const secret = lazyjoRoomSecret();
+  if (!secret || !email) return null;
+  const body = Buffer.from(JSON.stringify({ e: String(email).toLowerCase(), x: Date.now() + LAZYJO_ROOM_DAYS * 864e5 })).toString('base64url');
+  const sig = crypto.createHmac('sha256', secret).update(body).digest('base64url');
+  return `${body}.${sig}`;
+}
+function lazyjoRoomEmail(token) {
+  const secret = lazyjoRoomSecret();
+  const [body, sig] = String(token || '').split('.');
+  if (!secret || !body || !sig) return null;
+  const want = crypto.createHmac('sha256', secret).update(body).digest();
+  const got = Buffer.from(sig, 'base64url');
+  if (got.length !== want.length || !crypto.timingSafeEqual(got, want)) return null;
+  try {
+    const { e, x } = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    return typeof e === 'string' && Number(x) > Date.now() ? e : null;
+  } catch {
+    return null;
+  }
+}
+
+app.get('/api/lazyjo/room', async (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  const email = lazyjoRoomEmail(req.query.t);
+  if (!email) return res.status(401).json({ error: 'This room link has expired. Open your room again from your email.' });
+  if (!supabase) return res.status(503).json({ error: 'Rooms are not available right now' });
+  try {
+    const { data, error } = await supabase.from('lazyjo_purchases')
+      .select('session_id, single_id, created_at').eq('email', email).is('refunded_at', null)
+      .order('created_at', { ascending: false }).limit(500);
+    if (error) throw error;
+    // one entry per song (the newest purchase of it), newest first
+    const seen = new Set();
+    const records = [];
+    for (const r of data || []) {
+      if (seen.has(r.single_id) || !lazyjoSingle(r.single_id)) continue;
+      seen.add(r.single_id);
+      records.push({ singleId: r.single_id, sessionId: r.session_id, purchasedAt: r.created_at });
+    }
+    const { supporterNo } = await lazyjoSupporterNo(email);
+    // first name from the newest Stripe checkout (we don't store names)
+    let name = null;
+    if (stripe && records[0]) {
+      const s = await stripe.checkout.sessions.retrieve(records[0].sessionId).catch(() => null);
+      name = (s?.customer_details?.name || '').trim().split(/\s+/)[0] || null;
+    }
+    const since = (data || []).length ? data[data.length - 1].created_at : null;
+    res.json({ name, supporterNo, since, records, token: lazyjoRoomToken(email) });
+  } catch (err) {
+    console.error('lazyjo room error:', err.message || err);
+    res.status(500).json({ error: 'Could not open your room' });
+  }
+});
+
 app.post('/api/lazyjo/checkout', async (req, res) => {
   if (!stripe) return res.status(503).json({ error: 'Checkout is not configured yet' });
   try {
@@ -659,7 +724,9 @@ app.get('/api/lazyjo/download', async (req, res) => {
       records: rec?.records ?? null,
       name: (session.customer_details?.name || '').trim().split(/\s+/)[0] || null,
       purchasedAt: new Date(session.created * 1000).toISOString(),
-      title: lazyjoTitle(single), email: session.customer_details?.email || null };
+      title: lazyjoTitle(single), email: session.customer_details?.email || null,
+      // opens the buyer's private room (/lazyjo/room/) on this device
+      roomToken: lazyjoRoomToken(session.customer_details?.email || session.customer_email) };
     if (!supabase || !single.masterPath) {
       return res.json({ ...base, status: 'pending' });
     }

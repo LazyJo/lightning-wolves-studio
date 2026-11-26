@@ -32,6 +32,8 @@ export interface DownloadResult {
   url?: string;
   email?: string | null;
   message?: string;
+  /** opens the buyer's private room on this device (/lazyjo/room/) */
+  roomToken?: string | null;
 }
 
 export async function fetchDownload(sessionId: string): Promise<DownloadResult> {

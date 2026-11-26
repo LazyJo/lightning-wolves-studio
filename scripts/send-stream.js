@@ -5,8 +5,10 @@
  *   node scripts/send-stream.js "<video file>"                         (the whole file)
  *   node scripts/send-stream.js "<video file>" --from 12:30 --to 20:20  (only that part)
  *
- * It cuts the part (1080p max, good quality), uploads it to the PRIVATE bucket (lazyjo-masters/streams/)
- * and prints a download link that works for 3 days. Paste that link to Claude. Nobody else can find the file.
+ * It keeps the original quality (no re-encode), cuts it into small 1-minute pieces (so a slow or
+ * shaky connection can't break one big upload), uploads them to the PRIVATE bucket
+ * (lazyjo-masters/streams/<name>/) and prints ONE link that works for 3 days. Paste that link to
+ * Claude. Nobody else can find the files. Re-running skips pieces that are already uploaded.
  * Needs ffmpeg (installed, or once: npm.cmd install --no-save ffmpeg-static) and the key in .env
  * (saved there by upload-masters.js).
  */
@@ -18,8 +20,10 @@ const { spawnSync } = require('child_process');
 const { createClient } = require('@supabase/supabase-js');
 
 const BUCKET = process.env.LAZYJO_MASTERS_BUCKET || 'lazyjo-masters';
+const DAYS = 3;
 const arg = (n) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : null; };
 const toSec = (t) => String(t).split(':').reduce((a, p) => a * 60 + Number(p), 0);
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function findFfmpeg() {
   try { const p = require('ffmpeg-static'); if (p && fs.existsSync(p)) return p; } catch { /* not installed */ }
@@ -47,29 +51,54 @@ function findFfmpeg() {
     process.exit(1);
   }
 
-  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'lj-stream-')), 'stream.mp4');
+  // 1. cut into 1-minute pieces, original quality (stream copy)
+  const base = path.basename(file).replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/gi, '-').slice(0, 40) || 'stream';
+  const tag = `${new Date().toISOString().slice(0, 10)}-${base}-${from ? toSec(from) : 0}-${to ? toSec(to) : 'end'}`;
+  const dir = path.join(os.tmpdir(), `lj-stream-${tag}`);
+  fs.mkdirSync(dir, { recursive: true });
+  for (const f of fs.readdirSync(dir)) fs.unlinkSync(path.join(dir, f));
   const range = [];
   if (from) range.push('-ss', String(toSec(from)));
   if (to) range.push('-t', String(toSec(to) - (from ? toSec(from) : 0)));
-  console.log(`Cutting ${from || 'start'} to ${to || 'end'}… (a few minutes for a long part)`);
+  console.log(`Cutting ${from || 'start'} to ${to || 'end'} into 1-minute pieces…`);
   const r = spawnSync(ffmpeg, [
     '-hide_banner', '-loglevel', 'error', '-y', ...range, '-i', file,
-    '-vf', "scale='min(1920,iw)':-2", '-c:v', 'libx264', '-preset', 'fast', '-crf', '20',
-    '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', out,
+    '-map', '0:v:0', '-map', '0:a:0', '-c', 'copy',
+    '-f', 'segment', '-segment_time', '60', '-reset_timestamps', '1', path.join(dir, 'part-%03d.mkv'),
   ], { stdio: 'inherit' });
-  if (r.status !== 0 || !fs.existsSync(out)) { console.error('ffmpeg could not cut that file.'); process.exit(1); }
-  const mb = fs.statSync(out).size / 1048576;
-  console.log(`Ready: ${mb.toFixed(0)} MB. Uploading…`);
+  const parts = fs.existsSync(dir) ? fs.readdirSync(dir).filter((f) => f.startsWith('part-')).sort() : [];
+  if (r.status !== 0 || !parts.length) { console.error('ffmpeg could not cut that file.'); process.exit(1); }
+  const total = parts.reduce((n, f) => n + fs.statSync(path.join(dir, f)).size, 0) / 1048576;
+  console.log(`${parts.length} pieces, ${total.toFixed(0)} MB in total. Uploading…`);
 
+  // 2. upload each piece (3 tries each); skip pieces already there
   const sb = createClient(url, key);
-  const name = `streams/${new Date().toISOString().slice(0, 10)}-${path.basename(file).replace(/\.[^.]+$/, '').replace(/[^a-z0-9]+/gi, '-').slice(0, 40)}-${Date.now().toString(36)}.mp4`;
-  const { error } = await sb.storage.from(BUCKET).upload(name, fs.readFileSync(out), { contentType: 'video/mp4', upsert: true });
-  if (error) {
-    console.error(`Upload failed: ${error.message}`);
-    if (/size|large|413|exceed/i.test(error.message)) console.error(`The file is ${mb.toFixed(0)} MB: raise the upload limit in Supabase → Storage → Settings, or send a shorter part.`);
-    process.exit(1);
+  const folder = `streams/${tag}`;
+  const { data: have } = await sb.storage.from(BUCKET).list(folder, { limit: 1000 });
+  const sizes = new Map((have || []).map((o) => [o.name, o.metadata?.size]));
+  for (const p of parts) {
+    const buf = fs.readFileSync(path.join(dir, p));
+    if (sizes.get(p) === buf.length) { console.log(`  ${p} already there`); continue; }
+    let ok = false;
+    for (let attempt = 1; attempt <= 3 && !ok; attempt++) {
+      process.stdout.write(`  ${p} (${(buf.length / 1048576).toFixed(1)} MB)${attempt > 1 ? ` try ${attempt}` : ''}… `);
+      const { error } = await sb.storage.from(BUCKET).upload(`${folder}/${p}`, buf, { contentType: 'video/x-matroska', upsert: true });
+      if (!error) { ok = true; console.log('done'); break; }
+      console.log(`failed (${error.message})`);
+      await wait(3000 * attempt);
+    }
+    if (!ok) { console.error('\nThat piece wouldn’t upload. Check your internet and run the same command again: finished pieces are skipped.'); process.exit(1); }
   }
-  const { data } = await sb.storage.from(BUCKET).createSignedUrl(name, 3 * 24 * 3600);
-  console.log('\nDone. Paste this link to Claude (it works for 3 days, only for whoever has it):\n');
+
+  // 3. one link: a small list of 3-day links to every piece
+  const list = [];
+  for (const p of parts) {
+    const { data } = await sb.storage.from(BUCKET).createSignedUrl(`${folder}/${p}`, DAYS * 24 * 3600);
+    list.push({ name: p, url: data?.signedUrl });
+  }
+  const { error } = await sb.storage.from(BUCKET).upload(`${folder}/index.json`, Buffer.from(JSON.stringify({ parts: list }, null, 1)), { contentType: 'application/json', upsert: true });
+  if (error) { console.error(`Could not save the list: ${error.message}`); process.exit(1); }
+  const { data } = await sb.storage.from(BUCKET).createSignedUrl(`${folder}/index.json`, DAYS * 24 * 3600);
+  console.log(`\nDone. Paste this link to Claude (it works for ${DAYS} days, only for whoever has it):\n`);
   console.log(data.signedUrl);
 })();

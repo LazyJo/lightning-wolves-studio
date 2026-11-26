@@ -66,6 +66,8 @@ export interface UniverseCallbacks {
   onGalaxyHover?(over: boolean): void;
   /** where the galaxy is on screen (px), for the glowing dot */
   onGalaxyScreen?(p: { x: number; y: number; visible: boolean }): void;
+  /** where "My room" floats in the sky (top left) */
+  onRoomScreen?(p: { x: number; y: number; visible: boolean }): void;
   /** Screen rect (px) of the presented cover's artwork, ~30 fps; null when nothing is presented. */
   onFocusScreen?(r: { x: number; y: number; w: number; h: number } | null): void;
   onGalaxy?(): void;
@@ -711,7 +713,12 @@ export class Universe {
     gglow.scale.set(330, 200, 1);
     this.farStars.add(ghit, gglow);
     this.galaxy = { hit: ghit, glow: gglow, dir: gdir };
+    // "My room": a point in the sky, up and to the left, where the visitor's ship is docked
+    this.roomAnchor = new THREE.Object3D();
+    this.roomAnchor.position.copy(new THREE.Vector3(-0.5, 0.36, -1).normalize().multiplyScalar(800));
+    this.farStars.add(this.roomAnchor);
   }
+  private roomAnchor!: THREE.Object3D;
 
   private buildStreaks() {
     const n = this.lowPower ? 200 : 420;
@@ -1608,6 +1615,11 @@ export class Universe {
       const g = this.galaxy.hit.getWorldPosition(this.tmpJ).project(this.camera);
       const gv = g.z < 1 && Math.abs(g.x) < 1.05 && Math.abs(g.y) < 1.05 && !this.travel && !this.gazing;
       this.cb.onGalaxyScreen({ x: (g.x * 0.5 + 0.5) * w, y: (-g.y * 0.5 + 0.5) * h, visible: gv });
+    }
+    if (this.cb.onRoomScreen) {
+      const g = this.roomAnchor.getWorldPosition(this.tmpJ).project(this.camera);
+      const gv = g.z < 1 && Math.abs(g.x) < 1.0 && Math.abs(g.y) < 1.0 && !this.travel && !this.gazing;
+      this.cb.onRoomScreen({ x: (g.x * 0.5 + 0.5) * w, y: (-g.y * 0.5 + 0.5) * h, visible: gv });
     }
   }
 

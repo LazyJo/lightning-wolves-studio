@@ -62,6 +62,7 @@ export default function LazyJoUniverse() {
   const javedaBtnRef = useRef<HTMLButtonElement>(null);
   const videoScreenRef = useRef<HTMLDivElement>(null);
   const galaxyDotRef = useRef<HTMLButtonElement>(null);
+  const roomDotRef = useRef<HTMLAnchorElement>(null);
   const [listOpen, setListOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [joined, setJoined] = useState(isFan);
@@ -168,6 +169,12 @@ export default function LazyJoUniverse() {
         },
         onGalaxyScreen: ({ x, y, visible }) => {
           const d = galaxyDotRef.current;
+          if (!d) return;
+          d.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -50%)`;
+          d.dataset.visible = visible ? "1" : "0";
+        },
+        onRoomScreen: ({ x, y, visible }) => {
+          const d = roomDotRef.current;
           if (!d) return;
           d.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -50%)`;
           d.dataset.visible = visible ? "1" : "0";
@@ -371,7 +378,6 @@ export default function LazyJoUniverse() {
           onOpenNearest={() => (nearest ? openSingle(nearest.id) : engineRef.current?.openNearest())}
           onBeam={() => engineRef.current?.beamRandom()}
           onJoin={() => setJoinOpen(true)}
-          roomCount={roomN}
           ufoHover={!selected && ufoHover}
           javedaHover={!selected && javedaHover}
           galaxyHover={!selected && !galaxyOpen && galaxyHover}
@@ -408,6 +414,21 @@ export default function LazyJoUniverse() {
           <span className="lj-galaxy-dot-core" />
           <span className="lj-galaxy-dot-label">Lazy Jo</span>
         </button>
+      )}
+
+      {phase === "flying" && !noWebgl && (
+        <a
+          ref={roomDotRef}
+          href="/lazyjo/room/"
+          className={`lj-room-dot ${selected || traveling || galaxyOpen ? "is-hidden" : ""}`}
+          data-visible="0"
+          aria-label={roomN ? `My room: ${roomN} ${roomN === 1 ? "record" : "records"}` : "My room"}
+        >
+          <span className="lj-room-dot-core" />
+          <span className="lj-room-dot-label">
+            My room{roomN ? <small>{roomN}</small> : null}
+          </span>
+        </a>
       )}
 
       {phase === "intro" && <IntroScreen ready={ready} onEnter={enter} joined={joined} onJoined={() => setJoined(true)} />}

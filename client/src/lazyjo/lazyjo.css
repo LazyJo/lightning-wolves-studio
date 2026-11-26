@@ -863,3 +863,28 @@ a { color: var(--lj-cyan); }
 .lj-gift-t { margin: 0 0 14px; font: 600 14.5px/1.55 var(--lj-body); color: #f3e7c4; }
 .lj-gift-room { width: 100%; justify-content: center; text-decoration: none; border-color: rgba(245, 197, 24, 0.6); color: #ffe27a; }
 .lj-gift .lj-trust { margin-top: 12px; }
+
+/* "My room": a gold dot in the sky, up and to the left (like the Lazy Jo dot), label always shown */
+.lj-room-dot {
+  position: absolute; left: 0; top: 0; z-index: 12; width: 44px; height: 44px; text-decoration: none;
+  opacity: 0; pointer-events: none; transition: opacity 0.4s var(--lj-ease); will-change: transform;
+}
+.lj-room-dot[data-visible="1"] { opacity: 1; pointer-events: auto; }
+.lj-room-dot.is-hidden { opacity: 0 !important; pointer-events: none !important; }
+.lj-room-dot-core {
+  position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%;
+  background: #fff3c4; box-shadow: 0 0 10px 3px rgba(255, 207, 92, 0.95), 0 0 28px 10px rgba(245, 160, 24, 0.45);
+}
+.lj-room-dot-core::before, .lj-room-dot-core::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 50%;
+  border: 1.5px solid rgba(255, 207, 92, 0.75); animation: lj-dot-ripple 2.4s ease-out infinite;
+}
+.lj-room-dot-core::after { animation-delay: 1.2s; }
+.lj-room-dot-label {
+  position: absolute; left: 38px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; white-space: nowrap;
+  font-family: var(--lj-display); font-weight: 700; font-size: 13px; color: #fff;
+  background: rgba(3, 7, 18, 0.55); border: 1px solid rgba(255, 207, 92, 0.5);
+}
+.lj-room-dot-label small { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; display: grid; place-items: center; background: #f5c518; color: #1a1400; font: 800 10.5px var(--lj-body); }
+.lj-room-dot:hover .lj-room-dot-label, .lj-room-dot:focus-visible .lj-room-dot-label { border-color: #ffcf5c; box-shadow: 0 0 16px rgba(245, 197, 24, 0.4); }

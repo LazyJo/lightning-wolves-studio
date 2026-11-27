@@ -270,6 +270,8 @@ EVEN import: `node scripts/import-fans.js export.csv` on Jo's PC. Merch still li
 on JAVEDA boards/chat and are always in every Super (`supabase-lazyjo-supporters.sql`: `lazyjo_purchases` filled by
 `recordLazyjoPurchase` in server.js from the download page + Stripe webhook, `javeda_supporters()`, extra rule in
 `javeda_challenge_in`; refund removes it). Data link only, no shared code. Re-run that SQL after re-running the JAVEDA schema.
+**Name badges (2026-11-27):** `supabase-javeda-ranks.sql` → `javeda_name_badges()`: 🎤 OWNER for creator accounts, 💜 TRUE FAN at 3+ different
+songs bought, ⚡ SUPPORTER at 1–2 (`BADGE_HTML` in `javeda/index.html`; falls back to `javeda_supporters()` until that SQL runs).
 **Delivery (2026-11-24):** back from Stripe (`?purchase=success&session_id=`) the page fetches the purchase, auto-enters
 and `engine.deliver(id)` beams the record in (UFO surge + journey + present); when it lands "IT'S YOURS" shows, then the
 docked delivery panel (`PurchaseResult`, themed). `ui/SupporterCard.tsx` draws a 1080×1920 story card (cover + record with

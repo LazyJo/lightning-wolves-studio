@@ -928,6 +928,8 @@ label.ck{display:flex; gap:8px; align-items:center; font-size:14px; color:var(--
 #tabs .cdot.gold{background:var(--gold); box-shadow:0 0 6px var(--gold)}
 .chatnote .err{display:block; margin-top:4px}
 .board .un .gb.sup, .chatlog .ch .gb.sup{color:#fff; background:linear-gradient(180deg,#a855f7,#5b21b6); box-shadow:0 0 10px #a855f788}
+.board .un .gb.tf, .chatlog .ch .gb.tf{color:#fff; background:linear-gradient(180deg,#f472b6,#be185d); box-shadow:0 0 10px #f472b688}
+.board .un .gb.own, .chatlog .ch .gb.own{color:#ffe08a; background:linear-gradient(180deg,#2a1a02,#120b01); border:1px solid #e0a41a; box-shadow:0 0 10px #e0a41a66; padding:2px 5px}
 .board .un .gb{display:inline-block; margin-left:7px; font:700 10px/1 var(--cond); letter-spacing:.1em; color:#2a1a02; background:linear-gradient(180deg,#ffe08a,#e0a41a); border-radius:999px; padding:3px 6px; vertical-align:2px}
 .pic .cost.earn{background:#2a1a02; color:var(--gold); border:1px solid #e0a41a; font-size:10.5px}
 /* invite a friend */
@@ -2008,11 +2010,18 @@ function loadGuest(){
 function saveGuest(){ try { localStorage.setItem(GUEST_KEY, JSON.stringify(guest)); } catch(e){} }
 let guest = loadGuest();
 let sb = null, session = null;
-// Lazy Jo's Universe supporters (bought a song at /lazyjo/ with this account's email): a ⚡ badge on the boards and
-// in the chat, and always in the Super (supabase-lazyjo-supporters.sql). Usernames only, lower-case.
-let SUPPORTERS = new Set();
-const supBadge = u => SUPPORTERS.has(String(u || "").toLowerCase())
-  ? '<span class="gb sup" title="Lazy Jo supporter: bought a song in Lazy Jo\u2019s Universe. Always invited to the Super.">&#9889; SUPPORTER</span>' : '';
+// Lazy Jo's Universe buyers (bought a song at /lazyjo/ with this account's email): a badge on the boards and in
+// the chat, and always in the Super (supabase-lazyjo-supporters.sql). ⚡ SUPPORTER = 1–2 songs, 💜 TRUE FAN = 3 or
+// more, 🎤 OWNER = Lazy Jo (a creator account) — javeda_name_badges() in supabase-javeda-ranks.sql.
+// Usernames only, lower-case.
+let SUPPORTERS = new Set();       // buyers (supporter + true fan): the Super tie-break
+let NAME_BADGE = new Map();       // username -> "owner" | "truefan" | "supporter"
+const BADGE_HTML = {
+  owner: '<span class="gb own" title="Lazy Jo himself: the artist behind JAVEDA.">&#127908; OWNER</span>',
+  truefan: '<span class="gb tf" title="Lazy Jo true fan: bought 3 or more songs in Lazy Jo\u2019s Universe. Always invited to the Super.">&#128156; TRUE FAN</span>',
+  supporter: '<span class="gb sup" title="Lazy Jo supporter: bought a song in Lazy Jo\u2019s Universe. Always invited to the Super.">&#9889; SUPPORTER</span>',
+};
+const supBadge = u => BADGE_HTML[NAME_BADGE.get(String(u || "").toLowerCase())] || '';
 let player = null;          // javeda_players row when signed in and joined
 let progress = {};          // level id -> { cleared, best, metres, runs }
 let owned = new Set();      // bought pictures
@@ -5507,7 +5516,15 @@ if (location.hash === "#app"){ history.replaceState(null, "", location.pathname 
   // the live catalogue wins over the built-in copy, so prices can change without a deploy
   sb.from("javeda_avatars").select("*").order("sort").then(({ data }) => { if (data && data.length) AVATARS = data; });
   // who wears the supporter badge (nothing breaks if the database part isn't there yet)
-  sb.rpc("javeda_supporters").then(({ data }) => { if (Array.isArray(data)) SUPPORTERS = new Set(data.map(u => String(u).toLowerCase())); }, () => {});
+  // (javeda_name_badges = owner / true fan / supporter; the older javeda_supporters until that SQL has run)
+  sb.rpc("javeda_name_badges").then(({ data, error }) => {
+    if (!error && Array.isArray(data)){
+      NAME_BADGE = new Map(data.map(r => [String(r.username).toLowerCase(), r.kind]));
+      SUPPORTERS = new Set(data.filter(r => r.kind !== "owner").map(r => String(r.username).toLowerCase()));
+      return;
+    }
+    sb.rpc("javeda_supporters").then(({ data }) => { if (Array.isArray(data)){ SUPPORTERS = new Set(data.map(u => String(u).toLowerCase())); NAME_BADGE = new Map([...SUPPORTERS].map(u => [u, "supporter"])); } }, () => {});
+  }, () => {});
   // is the Pass on sale?
   const passInfo = sb.from("javeda_settings").select("pass_on").maybeSingle().then(st => { passOn = !STORE && !!(st.data && st.data.pass_on); });
   const [{ data }] = await Promise.all([sb.auth.getSession(), passInfo]);

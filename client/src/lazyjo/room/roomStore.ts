@@ -125,7 +125,7 @@ export function localWall(): (string | null)[] | null {
 }
 
 /** "Send me my room link" (always the same answer, whether or not the email bought). */
-export async function requestRoomLink(email: string): Promise<string> {
+export async function requestRoomLink(email: string): Promise<{ message: string; challenge: string }> {
   const res = await fetch("/api/lazyjo/room/link", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -133,7 +133,19 @@ export async function requestRoomLink(email: string): Promise<string> {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new RoomError(data.error || `Couldn't send the link (${res.status})`, res.status);
-  return data.message || "Check your inbox.";
+  return { message: data.message || "Check your inbox.", challenge: data.challenge || "" };
+}
+
+/** The 6-digit code from the email → this device's room key. */
+export async function verifyRoomCode(challenge: string, code: string): Promise<string> {
+  const res = await fetch("/api/lazyjo/room/verify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ challenge, code }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.token) throw new RoomError(data.error || `That code didn't work (${res.status})`, res.status);
+  return data.token as string;
 }
 
 /** Upload the private photo (a JPEG the browser made). Returns its new link. */

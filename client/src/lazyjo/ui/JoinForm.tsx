@@ -50,7 +50,7 @@ export default function JoinForm({ source, defaultEmail = "", compact = false, s
     setState({ kind: "sending" });
     try {
       const r = await joinList({ name, email, consent, source, website });
-      markFan();
+      markFan(email);
       setState({ kind: r });
       onJoined?.(r);
     } catch (err) {

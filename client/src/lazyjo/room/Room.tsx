@@ -4,8 +4,9 @@ import { SINGLES, singleById, fullTitle, releaseLabel, PREVIEW_SECONDS, type Sin
 import { fetchDownload } from "../shop";
 import SupporterCard from "../ui/SupporterCard";
 import { media } from "../../lib/media";
+import { fanEmail } from "../fanGate";
 import {
-  demoRoom, RoomError, removePhoto, shrinkPhoto, uploadPhoto, fetchRoom, forgetRoom, localWall, requestRoomLink, roomPlayUrl, roomToken, saveRoom, saveWall,
+  demoRoom, RoomError, removePhoto, shrinkPhoto, uploadPhoto, verifyRoomCode, fetchRoom, forgetRoom, localWall, requestRoomLink, roomPlayUrl, roomToken, saveRoom, saveWall,
   type RoomData, type RoomRecord,
 } from "./roomStore";
 
@@ -597,7 +598,7 @@ export default function Room() {
         <div className="room-gate" role="dialog" aria-labelledby="room-gate-title">
           <div className="room-gate-card">
             <p className="room-gate-k">MY ROOM</p>
-            <h1 id="room-gate-title">{load.kind === "error" && !load.expired ? "Your room didn’t open" : "Your room opens with your first record"}</h1>
+            <h1 id="room-gate-title">{load.kind === "error" && !load.expired ? "Your room didn’t open" : fanEmail() ? "Welcome back" : "Your room opens with your first record"}</h1>
             <p>
               {load.kind === "error" && !load.expired
                 ? load.msg
@@ -788,41 +789,82 @@ function PhotoPanel({
   );
 }
 
-/** "Bought before? Send me my room link." */
+/** Opening the room on this device: email (filled in from the Universe's gate) → 6-digit code → in. */
 function RoomLinkForm() {
-  const [email, setEmail] = useState("");
-  const [state, setState] = useState<{ kind: "idle" | "busy" } | { kind: "done" | "err"; msg: string }>({ kind: "idle" });
-  if (state.kind === "done") return <p className="room-gate-fine room-gate-sent" role="status">&#9993; {state.msg}</p>;
+  const [email, setEmail] = useState(fanEmail());
+  const [code, setCode] = useState("");
+  const [challenge, setChallenge] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const send = async () => {
+    setErr(null);
+    setBusy(true);
+    try {
+      const r = await requestRoomLink(email.trim());
+      setChallenge(r.challenge);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  const verify = async () => {
+    if (!challenge) return;
+    setErr(null);
+    setBusy(true);
+    try {
+      const token = await verifyRoomCode(challenge, code);
+      saveRoom(token);
+      location.replace("/lazyjo/room/");
+    } catch (e) {
+      setErr((e as Error).message);
+      setBusy(false);
+    }
+  };
   return (
     <form
       className="room-link"
       onSubmit={(e) => {
         e.preventDefault();
-        setState({ kind: "busy" });
-        requestRoomLink(email.trim()).then(
-          (msg) => setState({ kind: "done", msg }),
-          (err: Error) => setState({ kind: "err", msg: err.message }),
-        );
+        void (challenge ? verify() : send());
       }}
     >
-      <label htmlFor="room-email" className="room-gate-fine">
-        Bought a record before? Get your room link by email:
-      </label>
-      <div className="room-link-row">
-        <input
-          id="room-email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="Your email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <button type="submit" disabled={state.kind === "busy"}>
-          {state.kind === "busy" ? <Loader2 size={15} className="lj-spin" aria-hidden /> : "Send"}
-        </button>
-      </div>
-      {state.kind === "err" && <p className="room-link-err" role="alert">{state.msg}</p>}
+      {!challenge ? (
+        <>
+          <label htmlFor="room-email" className="room-gate-fine">
+            Bought a record? Open your room with your email:
+          </label>
+          <div className="room-link-row">
+            <input id="room-email" type="email" required autoComplete="email" placeholder="Your email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <button type="submit" disabled={busy}>{busy ? <Loader2 size={15} className="lj-spin" aria-hidden /> : "Get code"}</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <label htmlFor="room-code" className="room-gate-fine">
+            We sent a 6-digit code to <b>{email}</b>. Type it here:
+          </label>
+          <div className="room-link-row">
+            <input
+              id="room-code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]*"
+              maxLength={6}
+              placeholder="000000"
+              className="room-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              autoFocus
+            />
+            <button type="submit" disabled={busy || code.length !== 6}>{busy ? <Loader2 size={15} className="lj-spin" aria-hidden /> : "Open"}</button>
+          </div>
+          <button type="button" className="room-link-again" onClick={() => { setChallenge(null); setCode(""); }}>
+            Use another email or send a new code
+          </button>
+        </>
+      )}
+      {err && <p className="room-link-err" role="alert">{err}</p>}
     </form>
   );
 }

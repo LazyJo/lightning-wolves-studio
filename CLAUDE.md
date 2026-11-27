@@ -309,6 +309,11 @@ the browser shrinks it to a ≤900 px JPEG, `POST /api/lazyjo/room/photo?t=` (ra
 is reached on a device (`lj-room-seen-<gold|platinum|diamond>`; `&reveal=1` forces it in the demo): rays, the disc spins in, a line from Jo,
 "Hang it on my wall" → the plaque glows. **Window loop**: `media/lazyjo/room/window-loop.mp4` (10 s, 1280×512, seamless; recorded from the
 Universe with a fake clock, staged in `media-uploads/lazyjo/room/`, Jo uploads it with upload-media.js); until it exists the still `window.webp` shows.
+**Room sign-in without leaving the site (2026-11-27):** the room screen asks for the email (pre-filled from the gate: `lj-fan-email`,
+saved by `markFan(email)`), `POST /api/lazyjo/room/link` emails a 6-digit code + a one-tap link and returns a stateless signed challenge
+(HMAC of email|expiry|code, 15 min; non-buyers get one that never verifies), `POST /api/lazyjo/room/verify` turns challenge + code into the
+1-year room key. No auto-login from the gate's email alone: it isn't proof of ownership and the room holds a private photo.
+"My room" is a gold dot in the sky (engine `onRoomScreen`, top left), not a HUD button.
 JAVEDA's **True Fans** buttons link to the Universe (`/lazyjo/?src=javeda`, a plain link); JAVEDA
 Pass codes still come from EVEN ("No code? EVEN"), and store-app builds hide both (see JAVEDA.md).
 

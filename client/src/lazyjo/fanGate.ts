@@ -18,9 +18,19 @@ export function isFan(): boolean {
   }
 }
 
-export function markFan(): void {
+/** the email this device joined with (fills in the "open my room" form) */
+export function fanEmail(): string {
+  try {
+    return localStorage.getItem("lj-fan-email") || "";
+  } catch {
+    return "";
+  }
+}
+
+export function markFan(email?: string): void {
   try {
     localStorage.setItem(KEY, "1");
+    if (email) localStorage.setItem("lj-fan-email", email.trim().toLowerCase());
   } catch {
     /* private mode: they'll just be asked again next visit */
   }

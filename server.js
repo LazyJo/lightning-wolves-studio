@@ -793,38 +793,69 @@ app.get('/api/lazyjo/admin/rooms', async (req, res) => {
   }
 });
 
-// "Send me my room link": for buyers on a new device. Always the same answer, so it doesn't reveal who bought.
+// Opening your room on a new device without leaving the site: a 6-digit code by email.
+// Stateless: the browser gets a signed "challenge" (email + expiry + the code's HMAC) and sends it back
+// with the code; nothing is stored. Non-buyers get a challenge that can never match (same answer for
+// everyone, so the endpoint doesn't reveal who bought). The email also has a one-tap room link.
 const lazyjoRoomLinkHits = new Map();
+const lazyjoRoomCodeTries = new Map();
+function lazyjoHit(map, ip, max) {
+  const now = Date.now();
+  const hits = (map.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
+  if (hits.length >= max) return false;
+  map.set(ip, [...hits, now]);
+  return true;
+}
+const lazyjoIp = (req) => String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+function lazyjoCodeSig(email, x, code) {
+  return crypto.createHmac('sha256', lazyjoRoomSecret()).update(`room-code:${email}|${x}|${code}`).digest('base64url');
+}
 app.post('/api/lazyjo/room/link', async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) return res.status(400).json({ error: 'That email doesn’t look right' });
-  const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-  const now = Date.now();
-  const hits = (lazyjoRoomLinkHits.get(ip) || []).filter((t) => now - t < 10 * 60 * 1000);
-  if (hits.length >= 5) return res.status(429).json({ error: 'Too many tries. Try again in a few minutes.' });
-  lazyjoRoomLinkHits.set(ip, [...hits, now]);
-  const answer = { ok: true, message: 'If that email has records, your room link is on its way. Check your inbox.' };
-  if (!supabase) return res.json(answer);
+  if (!lazyjoHit(lazyjoRoomLinkHits, lazyjoIp(req), 5)) return res.status(429).json({ error: 'Too many tries. Try again in a few minutes.' });
+  if (!lazyjoRoomSecret()) return res.status(503).json({ error: 'Rooms are not available right now' });
+  const x = Date.now() + 15 * 60 * 1000;
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  let challenge = `${Buffer.from(JSON.stringify({ e: email, x })).toString('base64url')}.${crypto.randomBytes(32).toString('base64url')}`;
   try {
-    const { records } = await lazyjoOwned(email);
-    if (!records.length) return res.json(answer);
-    const url = `${lazyjoBaseUrl(req)}/lazyjo/room/?t=${encodeURIComponent(lazyjoRoomToken(email))}`;
-    await lazyjoSendEmails([{
-      to: email,
-      subject: 'Your room in Lazy Jo’s Universe',
-      html: lazyjoEmailHtml({
-        heading: 'Your room is waiting',
-        paragraphs: [
-          `Your ${records.length} ${records.length === 1 ? 'record is' : 'records are'} on the wall. Tap the button to open your room on this device.`,
-          'This link is only for you. Don’t forward it: anyone with it can open your room.',
-        ],
-        button: { label: 'Open my room', url },
-      }),
-    }]);
+    const { records } = supabase ? await lazyjoOwned(email) : { records: [] };
+    if (records.length) {
+      challenge = `${Buffer.from(JSON.stringify({ e: email, x })).toString('base64url')}.${lazyjoCodeSig(email, x, code)}`;
+      const url = `${lazyjoBaseUrl(req)}/lazyjo/room/?t=${encodeURIComponent(lazyjoRoomToken(email))}`;
+      await lazyjoSendEmails([{
+        to: email,
+        subject: `${code} is your code for your room`,
+        html: lazyjoEmailHtml({
+          heading: 'Your room code',
+          paragraphs: [
+            `<span style="display:inline-block;font-size:38px;letter-spacing:10px;font-weight:800;color:#ffe27a">${code}</span>`,
+            'Type this code in Lazy Jo’s Universe to open your room on that device. It works for 15 minutes.',
+            'Or tap the button below. Don’t forward this email: anyone with it can open your room.',
+          ],
+          button: { label: 'Open my room', url },
+        }),
+      }]);
+    }
   } catch (err) {
-    console.error('lazyjo room link error:', err.message || err);
+    console.error('lazyjo room code error:', err.message || err);
   }
-  res.json(answer);
+  res.json({ ok: true, challenge, message: 'If that email has records, a 6-digit code is on its way. Check your inbox.' });
+});
+
+app.post('/api/lazyjo/room/verify', (req, res) => {
+  if (!lazyjoHit(lazyjoRoomCodeTries, lazyjoIp(req), 10)) return res.status(429).json({ error: 'Too many tries. Wait a few minutes and ask for a new code.' });
+  const code = String(req.body?.code || '').replace(/\D/g, '');
+  const [body, sig] = String(req.body?.challenge || '').split('.');
+  let claims = null;
+  try { claims = JSON.parse(Buffer.from(body || '', 'base64url').toString('utf8')); } catch { /* bad */ }
+  if (!claims || typeof claims.e !== 'string' || !(Number(claims.x) > Date.now()) || code.length !== 6 || !sig || !lazyjoRoomSecret()) {
+    return res.status(400).json({ error: 'That code didn’t work. Ask for a new one.' });
+  }
+  const want = Buffer.from(lazyjoCodeSig(claims.e, claims.x, code));
+  const got = Buffer.from(sig);
+  if (want.length !== got.length || !crypto.timingSafeEqual(want, got)) return res.status(400).json({ error: 'That code isn’t right. Check the email and try again.' });
+  res.json({ ok: true, token: lazyjoRoomToken(claims.e) });
 });
 
 app.post('/api/lazyjo/checkout', async (req, res) => {

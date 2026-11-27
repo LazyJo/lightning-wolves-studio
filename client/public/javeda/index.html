@@ -2011,14 +2011,14 @@ function saveGuest(){ try { localStorage.setItem(GUEST_KEY, JSON.stringify(guest
 let guest = loadGuest();
 let sb = null, session = null;
 // Lazy Jo's Universe buyers (bought a song at /lazyjo/ with this account's email): a badge on the boards and in
-// the chat, and always in the Super (supabase-lazyjo-supporters.sql). ⚡ SUPPORTER = 1–2 songs, 💜 TRUE FAN = 3 or
-// more, 🎤 OWNER = Lazy Jo (a creator account) — javeda_name_badges() in supabase-javeda-ranks.sql.
+// the chat, and always in the Super (supabase-lazyjo-supporters.sql). ⚡ SUPPORTER = a buyer, 💜 TRUE FAN = paid €5+ for
+// a song or owns 3+ songs, 🎤 OWNER = Lazy Jo (a creator account) — javeda_name_badges() in supabase-javeda-ranks.sql.
 // Usernames only, lower-case.
 let SUPPORTERS = new Set();       // buyers (supporter + true fan): the Super tie-break
 let NAME_BADGE = new Map();       // username -> "owner" | "truefan" | "supporter"
 const BADGE_HTML = {
   owner: '<span class="gb own" title="Lazy Jo himself: the artist behind JAVEDA.">&#127908; OWNER</span>',
-  truefan: '<span class="gb tf" title="Lazy Jo true fan: bought 3 or more songs in Lazy Jo\u2019s Universe. Always invited to the Super.">&#128156; TRUE FAN</span>',
+  truefan: '<span class="gb tf" title="Lazy Jo true fan: paid the True fan price (\u20ac5+) or bought 3 or more songs in Lazy Jo\u2019s Universe. Always invited to the Super.">&#128156; TRUE FAN</span>',
   supporter: '<span class="gb sup" title="Lazy Jo supporter: bought a song in Lazy Jo\u2019s Universe. Always invited to the Super.">&#9889; SUPPORTER</span>',
 };
 const supBadge = u => BADGE_HTML[NAME_BADGE.get(String(u || "").toLowerCase())] || '';

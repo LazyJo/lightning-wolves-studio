@@ -21,7 +21,7 @@ export interface Single {
   year: number | null;
   /** minimum price (the server enforces it) */
   priceCents: number;
-  /** the amount the player preselects ("Suggested") */
+  /** the amount the player preselects (tagged "True fan") */
   suggestedCents: number;
   cover: string | null;
   previewUrl: string | null;

@@ -306,7 +306,7 @@ export default function PlayerPanel({ single, cover, onClose, onVideo }: Props) 
                   onClick={() => setPreset(t)}
                 >
                   {formatPrice(t)}
-                  {t === suggested && suggested > min && <span className="lj-tier-tag">Suggested</span>}
+                  {t === suggested && suggested > min && <span className="lj-tier-tag">True fan</span>}
                 </button>
               ))}
               <button

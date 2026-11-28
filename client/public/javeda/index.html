@@ -652,6 +652,9 @@ html[data-season="summer"]{ --blue:#f08a24 } html[data-season="halloween"]{ --bl
 .fan .art{position:relative; display:block; justify-self:center; border-radius:12px; overflow:hidden; box-shadow:0 14px 40px #000c, 0 0 0 1px #ffffff14}
 .fan .art.sq{width:min(230px,62vw); aspect-ratio:1}
 .fan .art.wd{width:100%; aspect-ratio:16/9}
+.fan .art.pt{width:min(240px,62vw); aspect-ratio:4/5}
+.fan .ytp.ig i{width:62px; height:62px; border-radius:50%; background:#0009; border:2px solid #fff; backdrop-filter:blur(4px)}
+.fan .ytp.ig i::after{margin-left:6px}
 .fan .art img{width:100%; height:100%; object-fit:cover; display:block}
 .fan .ytp{position:absolute; inset:0; display:grid; place-items:center}
 .fan .ytp i{width:64px; height:44px; border-radius:12px; background:#ff0033e6; display:grid; place-items:center; box-shadow:0 6px 18px #0008}
@@ -5342,6 +5345,9 @@ $("anPlay").onclick = () => { closeSheet("acNudge"); play("lvl1"); };
    more 14 days later, then never; a tap on its link: never again. A song asks once. Kept on this phone. No points or
    prizes for any of it (the platforms' rules). In the store apps no True Fans (EVEN sells the art outside the store). ---- */
 const FAN_KEY = "javeda.fans.v1", FAN_IG = "https://www.instagram.com/lazyjo_/";
+// news for the app (Jo, 2026-11-28): My Fault judged live on stream, the Instagram reel. Once per phone, in the app only
+// (installed or store), until the date; it goes first among the catching-up cards.
+const FAN_REEL = { url:"https://www.instagram.com/reel/DgQOUYABMQa/", until:Date.parse("2027-01-01T00:00:00") };
 // each song's Spotify track and its cover (i.scdn.co/image/ab67616d0000b273 + the cover)
 const FAN_SONGS = {
   lvl1:["2ZBwbS5ItzQkZseIeRwsfv", "436cbbd71602aa526ef206ef"], lvl2:["31PRsSjiV670FTfVGGGQW7", "6a686f745db99404bfdc5ae3"], lvl3:["4iRoG0m5A58yN2jdbykrgl", "d4a9a4f0dfd9eb178672051a"], lvl4:["3jcDJJ5KvAWWRumGHMkdYH", "e8c65c4f1478f6f658ffd058"],
@@ -5369,6 +5375,7 @@ function fanWants(k){
   if (k === "merch") return cleared("lvl10");
   if (k === "fans") return !STORE && cleared("lvl14");
   if (k === "album") return albumDone();
+  if (k === "reel") return STANDALONE && Date.now() < FAN_REEL.until;
   return false;
 }
 // a cleared run, before it's saved (progress is still the old one): 3 stars on a song for the first time, a milestone
@@ -5381,10 +5388,10 @@ function fanRun(lv, m){
 }
 // which card: what was just earned (the biggest first), else catching up, else a song that's waiting
 function fanPick(){
-  const s = fanGet(), ok = k => k.startsWith("song:") ? !s.songs[k.slice(5)] : fanWants(k) && fanMay(s.c[k]);
+  const s = fanGet(), ok = k => k.startsWith("song:") ? !s.songs[k.slice(5)] : k === "reel" ? fanWants(k) && !s.c.reel : fanWants(k) && fanMay(s.c[k]);
   const now = ["album", "fans", "merch", "discord"].filter(k => fanNow.includes(k)).concat(fanNow.filter(k => k.startsWith("song:")).reverse());
   for (const k of now) if (ok(k)) return k;
-  for (const k of ["discord", "ig", "merch", "fans", "album"]) if (ok(k)) return k;
+  for (const k of ["reel", "discord", "ig", "merch", "fans", "album"]) if (ok(k)) return k;
   return s.pend && FAN_SONGS[s.pend] && !s.songs[s.pend] ? "song:" + s.pend : null;
 }
 // nothing else today: no fan card yet, and not the app card (browser) or the account card (app)
@@ -5433,6 +5440,11 @@ function fanCard(k){
     '<a class="igr" href="' + FAN_IG + '" target="_blank" rel="noopener" data-go="" aria-label="Instagram"><img src="fans/artist.jpg" alt=""></a>' +
     '<div class="ign" data-i18n-skip>Lazy Jo<small>@lazyjo_</small></div><h3 id="fcT">Show Lazy&nbsp;Jo some love</h3>' +
     '<p>Follow, like and share on Instagram. Every follow helps an independent artist grow.</p>' + fanA("fgo fig", FAN_IG, "", "&#128248;&nbsp; Follow on Instagram") + FAN_NO };
+  if (k === "reel") return { cls:"fig", html:FAN_X + '<div class="eb">New &middot; My Fault</div>' +
+    '<a class="art pt" href="' + FAN_REEL.url + '" target="_blank" rel="noopener" data-go="" aria-label="Instagram"><img src="fans/myfault-reel.jpg" alt=""><span class="ytp ig"><i></i></span></a>' +
+    '<h3 id="fcT">My Fault, judged live</h3>' +
+    '<p>Four judges heard Lazy Jo\'s new single for the first time on a live stream. Watch how they reacted, then tell him your score in the comments.</p>' +
+    fanA("fgo fig", FAN_REEL.url, "", "&#9654;&nbsp; Watch on Instagram") + FAN_NO };
   if (k === "merch") return { cls:"fmg", html:FAN_X + fanEb("lvl10", true) + '<div class="tee">' + FAN_TEE + '<span class="b10" aria-hidden="true">10</span></div>' +
     '<h3 id="fcT">10 levels down! Wear the music</h3><p>Lazy Jo merch from Lightning Wolves. Rep the music you just played through.</p>' +
     fanA("fgo fmg", LINKS.merch, "", "&#128085;&nbsp; Shop the merch") + FAN_NO };

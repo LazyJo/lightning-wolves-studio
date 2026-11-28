@@ -356,3 +356,7 @@ oldest goes (`javeda_chat_send`), the chat shows the newest 100 and old messages
 `localStorage["javeda.creatorDevice"]` and never counts in "Where visitors come from" (`LINK`, `linkFlush`). The
 `lazyjo-universe` counter was Jo's own testing; reset it with
 `DELETE FROM javeda_link_days WHERE src = 'lazyjo-universe';` (one-off, already done if CLAUDE.md says so).
+
+**My Fault reel card (2026-11-28):** a one-time fan card (`fanCard("reel")`, `FAN_REEL` in `index.html`) for app users only
+(`STANDALONE`, incl. store builds) until 2027-01-01: the "judged live on stream" Instagram reel, poster `fans/myfault-reel.jpg`.
+First in the catching-up cards, shown once per phone (`javeda.fans.v1` → `c.reel`), respects the one-card-a-day rule.
